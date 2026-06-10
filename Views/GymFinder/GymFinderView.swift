@@ -45,7 +45,7 @@ struct GymFinderView: View {
                                     .font(.appCaption.weight(.medium))
                             }
                         }
-                        .foregroundColor(vm.filters.isActive ? .orange : .white)
+                        .foregroundColor(vm.filters.isActive ? Color.forge : .white)
                     }
                 }
             }
@@ -77,7 +77,7 @@ struct GymFinderView: View {
 
             if vm.isLoading {
                 ProgressView()
-                    .tint(.orange)
+                    .tint(Color.forge)
                     .padding(10)
                     .background(Color.appCard.opacity(0.9))
                     .clipShape(Circle())
@@ -97,7 +97,7 @@ struct GymFinderView: View {
                         .foregroundColor(vm.filters.radiusKm == km ? .black : .white.opacity(0.7))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(Capsule().fill(vm.filters.radiusKm == km ? Color.orange : Color.appCard))
+                        .background(Capsule().fill(vm.filters.radiusKm == km ? Color.forge : Color.appCard))
                 }
             }
         }
@@ -112,7 +112,7 @@ struct GymFinderView: View {
             HStack(spacing: 10) {
                 Image(systemName: "figure.strengthtraining.traditional")
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Workout du jour détecté")
                         .font(.appCaption.weight(.semibold))
@@ -125,11 +125,11 @@ struct GymFinderView: View {
                 Spacer()
                 Text("Appliquer →")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(Color.orange.opacity(0.08))
+            .background(Color.forge.opacity(0.08))
         }
         .buttonStyle(.plain)
     }
@@ -193,7 +193,7 @@ struct GymFinderView: View {
         VStack(spacing: 16) {
             Image(systemName: "mappin.slash")
                 .font(.system(size: 36))
-                .foregroundColor(.orange.opacity(0.5))
+                .foregroundColor(Color.forge.opacity(0.5))
             Text("Aucun gym trouvé dans ce rayon")
                 .font(.appBody.weight(.semibold))
                 .foregroundColor(.white.opacity(0.7))
@@ -211,7 +211,7 @@ struct GymFinderView: View {
         VStack(spacing: 12) {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .font(.system(size: 28))
-                .foregroundColor(.orange.opacity(0.5))
+                .foregroundColor(Color.forge.opacity(0.5))
             Text("Aucun résultat avec ces filtres")
                 .font(.appBody.weight(.semibold))
                 .foregroundColor(.white.opacity(0.7))
@@ -220,7 +220,7 @@ struct GymFinderView: View {
                 vm.filters = GymFilters()
                 vm.filters.radiusKm = radius
             }
-            .foregroundColor(.orange)
+            .foregroundColor(Color.forge)
             .font(.appLabel)
         }
         .padding(.top, 30)
@@ -231,7 +231,7 @@ struct GymFinderView: View {
             Spacer()
             Image(systemName: "location.slash.fill")
                 .font(.system(size: 52))
-                .foregroundColor(.orange.opacity(0.7))
+                .foregroundColor(Color.forge.opacity(0.7))
             VStack(spacing: 8) {
                 Text("Position requise")
                     .font(.appTitle.weight(.bold))
@@ -252,7 +252,7 @@ struct GymFinderView: View {
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.orange)
+                    .background(Color.forge)
                     .cornerRadius(12)
                     .padding(.horizontal, 32)
             }
@@ -269,9 +269,9 @@ struct GymPin: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.orange)
+                .fill(Color.forge)
                 .frame(width: isSelected ? 40 : 30, height: isSelected ? 40 : 30)
-                .shadow(color: .orange.opacity(0.6), radius: isSelected ? 10 : 4)
+                .shadow(color: Color.forge.opacity(0.6), radius: isSelected ? 10 : 4)
             Image(systemName: "dumbbell.fill")
                 .font(.system(size: isSelected ? 16 : 12, weight: .bold))
                 .foregroundColor(.black)
@@ -291,11 +291,11 @@ struct GymCard: View {
         HStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.orange.opacity(0.15))
+                    .fill(Color.forge.opacity(0.15))
                     .frame(width: 44, height: 44)
                 Image(systemName: gym.gymType.icon)
                     .font(.appHeadline)
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -307,7 +307,7 @@ struct GymCard: View {
                     if isFavorite {
                         Image(systemName: "star.fill")
                             .font(.appCaption)
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                     }
                 }
 
@@ -335,7 +335,7 @@ struct GymCard: View {
                 if let price = gym.crowdsource?.dropInPrice {
                     Text("Drop-in: \(String(format: "%.0f", price))$")
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(.orange.opacity(0.8))
+                        .foregroundColor(Color.forge.opacity(0.8))
                 }
             }
 

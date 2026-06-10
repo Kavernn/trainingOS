@@ -71,7 +71,7 @@ struct DailyRemainingCard: View {
                     VStack(spacing: 2) {
                         Text("\(Int(remainingCal))")
                             .font(.system(size: 36, weight: .black))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         Text("kcal restantes")
                             .font(.system(size: 12))
                             .foregroundColor(.gray)
@@ -228,7 +228,7 @@ struct NutritionPatternsCard: View {
             HStack(spacing: 0) {
                 VStack(alignment: .center, spacing: 4) {
                     Text("\(Int(avgCal))")
-                        .font(.system(size: 24, weight: .black)).foregroundColor(.orange)
+                        .font(.system(size: 24, weight: .black)).foregroundColor(Color.forge)
                     Text("/ \(Int(calTarget)) kcal")
                         .font(.system(size: 10)).foregroundColor(.gray)
                     Text("moy. calories/j")
@@ -277,7 +277,7 @@ struct NutritionPatternsCard: View {
                                 VStack(spacing: 0) {
                                     Spacer()
                                     RoundedRectangle(cornerRadius: 3)
-                                        .fill(overTarget ? Color.red.opacity(0.5) : Color.orange.opacity(0.45))
+                                        .fill(overTarget ? Color.red.opacity(0.5) : Color.forge.opacity(0.45))
                                         .frame(height: max(geo.size.height * pct, 4))
                                 }
                             }
@@ -346,7 +346,7 @@ struct MacroGapCard: View {
                     MacroGapChip(label: "P", value: Int(gap.gaps.protein), unit: "g", color: .green)
                 }
                 if gap.gaps.carbs > 10 {
-                    MacroGapChip(label: "G", value: Int(gap.gaps.carbs), unit: "g", color: .orange)
+                    MacroGapChip(label: "G", value: Int(gap.gaps.carbs), unit: "g", color: Color.forge)
                 }
                 if gap.gaps.fat > 5 {
                     MacroGapChip(label: "L", value: Int(gap.gaps.fat), unit: "g", color: .yellow)
@@ -373,7 +373,7 @@ struct MacroGapCard: View {
                                     .font(.appCaption).foregroundColor(.green)
                             } else if let carb = item["carbs_per_100g"]?.value, let d = Double(carb) {
                                 Text(String(format: "%.0fg gluc/100g", d))
-                                    .font(.appCaption).foregroundColor(.orange)
+                                    .font(.appCaption).foregroundColor(Color.forge)
                             } else if let cal = item["calories_per_100g"]?.value, let d = Double(cal) {
                                 Text(String(format: "%.0f kcal/100g", d))
                                     .font(.appCaption).foregroundColor(.yellow)
@@ -489,7 +489,7 @@ struct NutritionCorrelationsCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("POST-WORKOUT").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                             Text(String(format: "%.0fg prot", prot))
-                                .font(.appLabel.weight(.black)).foregroundColor(.orange)
+                                .font(.appLabel.weight(.black)).foregroundColor(Color.forge)
                             if let cal = timing.postWorkout.avgCalories {
                                 Text(String(format: "%.0f kcal", cal))
                                     .font(.system(size: 10)).foregroundColor(.gray)
@@ -653,7 +653,7 @@ struct WorkoutTimingCard: View {
         if isTraining && (5...10).contains(hour) {
             return Guidance(
                 icon: "bolt.fill",
-                color: .orange,
+                color: Color.forge,
                 title: "Fenêtre pré-entraînement",
                 body: "Vise +30–40g glucides + 20g protéines 1–2h avant ta séance."
             )

@@ -178,10 +178,10 @@ struct CardioSummaryView: View {
         } else if session.gpsPoints.isEmpty {
             HStack(spacing: 8) {
                 Image(systemName: "location.slash.fill")
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 Text("Aucun point GPS — GPS non autorisé ou signal absent")
                     .font(.appLabel.weight(.regular))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
             }
             .padding(.horizontal, 16)
         }
@@ -242,7 +242,7 @@ struct CardioSummaryView: View {
                         SummaryMetric(label: "FC MOY", value: "\(Int(hr)) bpm", color: .red)
                     }
                     if let cal = hkCalories {
-                        SummaryMetric(label: "CALORIES", value: "\(Int(cal)) kcal", color: .orange)
+                        SummaryMetric(label: "CALORIES", value: "\(Int(cal)) kcal", color: Color.forge)
                     }
                 }
                 .padding(.horizontal, 16)

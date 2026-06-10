@@ -173,9 +173,9 @@ struct DashboardStatusBar: View {
                 } label: {
                     Image(systemName: "checklist")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         .padding(7)
-                        .background(Color.orange.opacity(0.12))
+                        .background(Color.forge.opacity(0.12))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)

@@ -354,7 +354,7 @@ struct StatsView: View {
             if pct >= 10 {
                 insights.append(("arrow.up.circle.fill", "Fréquence +\(pct)% vs les 4 semaines précédentes. Tu accélères.", .green))
             } else if pct <= -15 {
-                insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs les 4 semaines précédentes. Le rythme faiblit.", .orange))
+                insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs les 4 semaines précédentes. Le rythme faiblit.", Color.forge))
             }
         }
         if let a = acwr, ["caution", "danger"].contains(a.zone.code) {
@@ -362,9 +362,9 @@ struct StatsView: View {
         }
         if currentStreak > 0 && currentStreak < bestStreak && currentStreak >= bestStreak - 2 {
             let gap = bestStreak - currentStreak
-            insights.append(("flame.fill", "Streak: \(currentStreak) jours — \(gap) de ton record. À portée.", .orange))
+            insights.append(("flame.fill", "Streak: \(currentStreak) jours — \(gap) de ton record. À portée.", Color.forge))
         } else if currentStreak >= 7 {
-            insights.append(("flame.fill", "Streak: \(currentStreak) jours. Record: \(bestStreak). Reste en course.", .orange))
+            insights.append(("flame.fill", "Streak: \(currentStreak) jours. Record: \(bestStreak). Reste en course.", Color.forge))
         }
         // Muscle gap: show the most overdue muscle if 7+ days without training
         let todayStr = DateFormatter.isoDate.string(from: Date())
@@ -395,8 +395,8 @@ struct StatsView: View {
     }
     var earnedBadges: [Badge] {
         [
-            Badge(id: "first_session",   icon: "🏋️", title: "Premier set",     desc: "1ère séance",             earned: totalSessions >= 1,       color: .orange),
-            Badge(id: "sessions_10",     icon: "💪", title: "10 séances",       desc: "10 séances au total",     earned: totalSessions >= 10,      color: .orange),
+            Badge(id: "first_session",   icon: "🏋️", title: "Premier set",     desc: "1ère séance",             earned: totalSessions >= 1,       color: Color.forge),
+            Badge(id: "sessions_10",     icon: "💪", title: "10 séances",       desc: "10 séances au total",     earned: totalSessions >= 10,      color: Color.forge),
             Badge(id: "sessions_30",     icon: "🏆", title: "30 séances",       desc: "30 séances au total",     earned: totalSessions >= 30,      color: .yellow),
             Badge(id: "sessions_100",    icon: "💎", title: "100 séances",      desc: "100 séances au total",    earned: totalSessions >= 100,     color: .cyan),
             Badge(id: "streak_7",        icon: "🔥", title: "Streak 7j",        desc: "7 jours consécutifs",     earned: bestStreak >= 7,          color: .red),
@@ -430,7 +430,7 @@ struct StatsView: View {
                         Image(systemName: "wifi.slash").font(.system(size: 40)).foregroundColor(.gray)
                         Text("Impossible de charger les stats").foregroundColor(.gray)
                         Button("Réessayer") { Task { await loadData() } }
-                            .foregroundColor(.orange).fontWeight(.semibold)
+                            .foregroundColor(Color.forge).fontWeight(.semibold)
                     }
                 } else if weights.isEmpty {
                     VStack(spacing: 8) {

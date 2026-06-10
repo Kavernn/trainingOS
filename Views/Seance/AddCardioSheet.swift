@@ -104,7 +104,7 @@ struct AddCardioSheet: View {
                     Button("Annuler") {
                         if hasUnsavedData { confirmDiscard = true } else { dismiss() }
                     }
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 }
             }
             .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {

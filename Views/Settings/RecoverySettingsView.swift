@@ -102,7 +102,7 @@ struct RecoverySettingsView: View {
                                 if hrvSensitivity == option.id {
                                     Image(systemName: "checkmark")
                                         .font(.appLabel.weight(.semibold))
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.forge)
                                 }
                             }
                             .padding(.vertical, 3)

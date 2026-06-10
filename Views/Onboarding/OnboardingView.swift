@@ -81,7 +81,7 @@ struct OnboardingView: View {
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(Color.orange)
+                    .background(Color.forge)
                     .cornerRadius(16)
             }
             .padding(.horizontal, 24)
@@ -157,7 +157,7 @@ struct OnboardingView: View {
             TextField("Ex: Vincent", text: $name)
                 .font(.appTitle).fontWeight(.semibold)
                 .foregroundColor(.white)
-                .tint(.orange)
+                .tint(Color.forge)
                 .multilineTextAlignment(.center)
                 .autocorrectionDisabled()
                 .padding(.vertical, 22)
@@ -173,7 +173,7 @@ struct OnboardingView: View {
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(isNameValid ? Color.orange : Color(white: 0.18))
+                    .background(isNameValid ? Color.forge : Color(white: 0.18))
                     .cornerRadius(16)
             }
             .disabled(!isNameValid)
@@ -253,7 +253,7 @@ struct OnboardingView: View {
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
-                .background(Color.orange)
+                .background(Color.forge)
                 .cornerRadius(16)
             }
             .disabled(isSaving)
@@ -269,10 +269,10 @@ struct OnboardingView: View {
                 .foregroundColor(selected ? .black : .white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
-                .background(selected ? Color.orange : Color(white: 0.1))
+                .background(selected ? Color.forge : Color(white: 0.1))
                 .cornerRadius(14)
                 .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(selected ? Color.orange : Color(white: 0.15), lineWidth: 1))
+                    .stroke(selected ? Color.forge : Color(white: 0.15), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -319,11 +319,11 @@ struct OnboardingView: View {
                 .foregroundColor(selected ? .black : .white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 36)
-                .background(selected ? Color.orange : Color(white: 0.1))
+                .background(selected ? Color.forge : Color(white: 0.1))
                 .cornerRadius(16)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(selected ? Color.orange : Color(white: 0.15), lineWidth: 1)
+                        .stroke(selected ? Color.forge : Color(white: 0.15), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
@@ -544,7 +544,7 @@ struct HRVOnboardingView: View {
             }
             VStack(spacing: 8) {
                 HRVAutoFeatureRow(icon: "circle.fill", color: .green,  text: "Score vert — séance à 100%")
-                HRVAutoFeatureRow(icon: "circle.fill", color: .orange, text: "Score orange — surveille la fatigue")
+                HRVAutoFeatureRow(icon: "circle.fill", color: Color.forge, text: "Score orange — surveille la fatigue")
                 HRVAutoFeatureRow(icon: "circle.fill", color: .red,    text: "Score rouge — récupération d'abord")
             }
             .padding(.horizontal, 8)

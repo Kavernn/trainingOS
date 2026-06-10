@@ -25,11 +25,11 @@ struct TodayMetricsRow: View {
         HStack(spacing: 8) {
             MetricMiniCard(
                 icon: "flame.fill",
-                iconColor: .orange,
+                iconColor: Color.forge,
                 value: "\(Int(calories))",
                 label: "/ \(Int(calGoal)) kcal",
                 fill: calGoal > 0 ? min(calories / calGoal, 1.0) : 0,
-                fillColor: .orange,
+                fillColor: Color.forge,
                 compact: weeklyCardioKm > 0
             )
 

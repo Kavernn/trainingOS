@@ -392,7 +392,7 @@ struct HRMomentsChart: View {
                             dot(.cyan, m, maxHR, minHR, isLast)
                         }
                         if let pw = e.hrPostWorkout {
-                            dot(.orange, pw, maxHR, minHR, isLast)
+                            dot(Color.forge, pw, maxHR, minHR, isLast)
                         }
                         if let ev = e.hrEvening {
                             dot(.blue, ev, maxHR, minHR, isLast)
@@ -405,7 +405,7 @@ struct HRMomentsChart: View {
 
             HStack(spacing: 12) {
                 legendDot(.cyan,   "Matin")
-                legendDot(.orange, "Post séance")
+                legendDot(Color.forge, "Post séance")
                 legendDot(.blue,   "Soir")
             }
         }
@@ -559,7 +559,7 @@ struct SleepChart: View {
             // Legend
             HStack(spacing: 12) {
                 legendDot(.green,  "≥7h")
-                legendDot(.orange, "6–7h")
+                legendDot(Color.forge, "6–7h")
                 legendDot(.red,    "<6h")
                 Spacer()
                 HStack(spacing: 4) {
@@ -716,7 +716,7 @@ struct StepsChart: View {
             // Legend
             HStack(spacing: 12) {
                 legendDot(.green,  "≥10k")
-                legendDot(.orange, "7k–10k")
+                legendDot(Color.forge, "7k–10k")
                 legendDot(.red,    "<7k")
                 Spacer()
                 HStack(spacing: 4) {

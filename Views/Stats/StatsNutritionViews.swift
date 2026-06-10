@@ -175,7 +175,7 @@ struct ProteinComplianceView: View {
 
                 HStack(spacing: 12) {
                     legendDot(.green,           "Objectif atteint")
-                    legendDot(.orange,          "≥ 75%")
+                    legendDot(Color.forge,          "≥ 75%")
                     legendDot(Color.appSurfaceInset, "< 75%")
                 }
                 .padding(.top, 2)
@@ -225,7 +225,7 @@ struct MacrosBreakdownView: View {
             HStack(spacing: 10) {
                 StatsMacroBar(label: "Glucides", value: avgG, target: target.glucides, color: .blue, unit: "g")
                 StatsMacroBar(label: "Lipides",  value: avgL, target: target.lipides,  color: .yellow, unit: "g")
-                StatsMacroBar(label: "Protéines",value: avgP, target: target.proteines,color: .orange, unit: "g")
+                StatsMacroBar(label: "Protéines",value: avgP, target: target.proteines,color: Color.forge, unit: "g")
             }
 
             HStack {
@@ -315,7 +315,7 @@ struct ProteinWeightRatioView: View {
                                 if i == 0 { p.move(to: .init(x: x, y: y)) } else { p.addLine(to: .init(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.orange, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                        .stroke(Color.forge, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
                     }
                 }
             }
@@ -339,7 +339,7 @@ struct MacrosDayTypeView: View {
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             if let t = data.training, let r = data.rest {
                 HStack(spacing: 12) {
-                    macroColumn(label: "Entraînement", bucket: t, color: .orange, n: data.nTraining)
+                    macroColumn(label: "Entraînement", bucket: t, color: Color.forge, n: data.nTraining)
                     macroColumn(label: "Repos", bucket: r, color: .blue, n: data.nRest)
                 }
             }
@@ -356,7 +356,7 @@ struct MacrosDayTypeView: View {
             macroRow("Calories", String(format: "%.0f kcal", bucket.avgCal), color)
             macroRow("Protéines", String(format: "%.0f g", bucket.avgProt), .green)
             macroRow("Glucides", String(format: "%.0f g", bucket.avgCarbs), .yellow)
-            macroRow("Lipides", String(format: "%.0f g", bucket.avgFat), .orange)
+            macroRow("Lipides", String(format: "%.0f g", bucket.avgFat), Color.forge)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)

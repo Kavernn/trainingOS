@@ -54,12 +54,12 @@ struct ScanLabelSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 if step == .review {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Confirmer") { confirmSave() }
-                            .foregroundColor(.orange).fontWeight(.semibold)
+                            .foregroundColor(Color.forge).fontWeight(.semibold)
                             .disabled(nom.isEmpty || calories.isEmpty || isSaving)
                     }
                 }
@@ -91,7 +91,7 @@ struct ScanLabelSheet: View {
                         VStack(spacing: 10) {
                             Image(systemName: "camera.viewfinder")
                                 .font(.system(size: 44))
-                                .foregroundColor(.orange.opacity(0.7))
+                                .foregroundColor(Color.forge.opacity(0.7))
                             Text("Prendre une photo de l'étiquette")
                                 .font(.system(size: 14))
                                 .foregroundColor(.gray)
@@ -143,7 +143,7 @@ struct ScanLabelSheet: View {
                 Text("Analyser")
                     .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(pickedImage == nil ? Color.orange.opacity(0.4) : Color.orange)
+                    .background(pickedImage == nil ? Color.forge.opacity(0.4) : Color.forge)
                     .cornerRadius(12)
             }
             .disabled(pickedImage == nil)
@@ -158,7 +158,7 @@ struct ScanLabelSheet: View {
     private var analyzingView: some View {
         VStack(spacing: 16) {
             Spacer()
-            ProgressView().scaleEffect(1.5).tint(.orange)
+            ProgressView().scaleEffect(1.5).tint(Color.forge)
             Text("Analyse en cours…")
                 .font(.appBody).foregroundColor(.gray).padding(.top, 8)
             Spacer()

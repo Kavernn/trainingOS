@@ -14,22 +14,22 @@ struct TrainingSettingsView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .orange)
+            AmbientBackground(color: Color.forge)
 
             List {
                 Section("Séances") {
                     Toggle(isOn: $autoStartTimer) {
-                        settingsLabel(icon: "timer", color: .orange,
+                        settingsLabel(icon: "timer", color: Color.forge,
                                       title: "Timer automatique entre les sets",
                                       subtitle: "Lance le chrono dès qu'un set est loggé")
                     }
-                    .tint(.orange)
+                    .tint(Color.forge)
                     Toggle(isOn: $showRIRColumn) {
-                        settingsLabel(icon: "gauge.medium", color: .orange,
+                        settingsLabel(icon: "gauge.medium", color: Color.forge,
                                       title: "Afficher la colonne RIR",
                                       subtitle: "Reps In Reserve dans la carte d'exercice")
                     }
-                    .tint(.orange)
+                    .tint(Color.forge)
                 }
                 .listRowBackground(Color.appCard)
                 .listRowSeparatorTint(Color.white.opacity(0.06))
@@ -149,10 +149,10 @@ struct TrainingSettingsView: View {
                 get: { Double(pct.wrappedValue) },
                 set: { pct.wrappedValue = Int($0) }
             ), in: Double(range.lowerBound)...Double(range.upperBound), step: 5)
-            .tint(.orange)
+            .tint(Color.forge)
             Text("\(pct.wrappedValue)%")
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
                 .frame(width: 44, alignment: .trailing)
         }
         .padding(.vertical, 3)

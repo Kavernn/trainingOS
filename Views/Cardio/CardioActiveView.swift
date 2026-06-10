@@ -202,10 +202,10 @@ private struct CardioIdleView: View {
                     VStack(spacing: 8) {
                         HStack(spacing: 8) {
                             Image(systemName: "location.slash.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                             Text("GPS non autorisé — le tracé ne sera pas enregistré")
                                 .font(.appLabel.weight(.regular))
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                         }
                         Button("Ouvrir Réglages") {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -403,7 +403,7 @@ private struct MetricsBlock: View {
             if session.sessionState == .paused {
                 Text("EN PAUSE")
                     .font(.appCaption.weight(.bold)).tracking(2)
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                     .padding(.top, 4)
             }
         }

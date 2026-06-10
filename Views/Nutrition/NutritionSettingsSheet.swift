@@ -72,7 +72,7 @@ struct NutritionSettingsSheet: View {
                     .listRowBackground(Color.appCard)
 
                     Section(header: Text("OBJECTIFS PAR TYPE DE JOURNÉE")) {
-                        DayTypeRow(icon: "dumbbell.fill",                       color: .orange,
+                        DayTypeRow(icon: "dumbbell.fill",                       color: Color.forge,
                                    label: "Lourd",    calPlaceholder: "2550",   glucPlaceholder: "270",
                                    cal: $heavyCal,    gluc: $heavyGluc)
                         DayTypeRow(icon: "figure.strengthtraining.traditional", color: .yellow,
@@ -90,7 +90,7 @@ struct NutritionSettingsSheet: View {
                     Section(header: Text("FENÊTRE NUTRITIONNELLE")) {
                         DatePicker("Fin de journée", selection: $endTime, displayedComponents: .hourAndMinute)
                             .foregroundColor(.white)
-                            .tint(.orange)
+                            .tint(Color.forge)
                     }
                     .listRowBackground(Color.appCard)
                 }
@@ -101,11 +101,11 @@ struct NutritionSettingsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Sauvegarder") { Task { await save() } }
-                        .foregroundColor(.orange).fontWeight(.semibold)
+                        .foregroundColor(Color.forge).fontWeight(.semibold)
                         .disabled(!canSave || isSaving)
                 }
             }

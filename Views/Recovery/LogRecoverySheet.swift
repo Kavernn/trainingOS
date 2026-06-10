@@ -98,7 +98,7 @@ struct LogRecoverySheet: View {
                                         Text(String(format: "%.0f / 10", sleepQuality))
                                             .font(.appLabel.weight(.bold)).foregroundColor(.blue)
                                     }
-                                    Slider(value: $sleepQuality, in: 1...10, step: 1).tint(.orange)
+                                    Slider(value: $sleepQuality, in: 1...10, step: 1).tint(Color.forge)
                                 }
                                 Divider().background(Color.white.opacity(0.06))
                                 // Bedtime
@@ -203,7 +203,7 @@ struct LogRecoverySheet: View {
                                            !hrvStr.isEmpty, (hrv < 20 || hrv > 200) {
                                             Text("Valeur inhabituelle (20–200 ms)")
                                                 .font(.appMicro.weight(.semibold))
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(Color.forge)
                                         }
                                     }
                                 }
@@ -263,7 +263,7 @@ struct LogRecoverySheet: View {
                                                 .font(.appLabel.weight(.bold)).foregroundColor(.blue)
                                         }
                                     }
-                                    Slider(value: $sleepQuality, in: 0...10, step: 1).tint(.orange)
+                                    Slider(value: $sleepQuality, in: 0...10, step: 1).tint(Color.forge)
                                     HStack {
                                         Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
                                         Spacer()
@@ -299,7 +299,7 @@ struct LogRecoverySheet: View {
                                                     .scaleEffect(selected ? 1.15 : 1.0)
                                                     .opacity(moodScore == 0 || selected ? 1.0 : 0.4)
                                                 Circle()
-                                                    .fill(selected ? Color.orange : Color.clear)
+                                                    .fill(selected ? Color.forge : Color.clear)
                                                     .frame(width: 5, height: 5)
                                             }
                                             .frame(maxWidth: .infinity)
@@ -383,7 +383,7 @@ struct LogRecoverySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
             .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {

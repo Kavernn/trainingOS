@@ -35,8 +35,8 @@ struct ACWRCardView: View {
                     Text("ESTIMATION")
                         .font(.system(size: 8, weight: .bold)).tracking(1)
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.orange.opacity(0.15))
-                        .foregroundColor(.orange)
+                        .background(Color.forge.opacity(0.15))
+                        .foregroundColor(Color.forge)
                         .clipShape(Capsule())
                 }
             }
@@ -216,7 +216,7 @@ struct SessionHeatmapView: View {
                 Spacer()
                 if bestStreak > 1 {
                     Text("Best \(bestStreak)🔥")
-                        .font(.appCaption.weight(.bold)).foregroundColor(.orange)
+                        .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)
                 }
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 15), spacing: 3) {
@@ -230,7 +230,7 @@ struct SessionHeatmapView: View {
                 Text("\(activeDays) séances").font(.appCaption).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
-                    Circle().fill(Color.orange).frame(width: 8, height: 8)
+                    Circle().fill(Color.forge).frame(width: 8, height: 8)
                     Text("Muscu").font(.system(size: 10)).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
@@ -339,9 +339,9 @@ struct WeekComparisonCard: View {
         } else if !volumeUp && !sessionsUp {
             return ("Volume en baisse, sessions en baisse. Le relâchement s'installe.\(suffix)", .red)
         } else if volumeUp && !sessionsUp {
-            return ("Moins de séances, plus de volume par séance. Tu condenses.\(suffix)", .orange)
+            return ("Moins de séances, plus de volume par séance. Tu condenses.\(suffix)", Color.forge)
         } else {
-            return ("Plus de séances, volume en baisse. L'intensité recule.\(suffix)", .orange)
+            return ("Plus de séances, volume en baisse. L'intensité recule.\(suffix)", Color.forge)
         }
     }
 
@@ -351,7 +351,7 @@ struct WeekComparisonCard: View {
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             if isProjecting {
                 Text("Projection basée sur \(daysElapsed) jour\(daysElapsed > 1 ? "s" : "")")
-                    .font(.system(size: 10)).foregroundColor(.orange.opacity(0.7))
+                    .font(.system(size: 10)).foregroundColor(Color.forge.opacity(0.7))
             }
             HStack(spacing: 0) {
                 // Header
@@ -366,7 +366,7 @@ struct WeekComparisonCard: View {
                 // This week / Projection
                 VStack(alignment: .center, spacing: 10) {
                     Text(isProjecting ? "Proj. J+\(daysElapsed)" : "Cette sem.")
-                        .font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
+                        .font(.system(size: 10, weight: .bold)).foregroundColor(Color.forge)
                     Text(isProjecting ? "~\(Int(round(projectedSessions)))" : "\(thisWeekSessions)")
                         .font(.system(size: 14, weight: .black)).foregroundColor(.white)
                     Text(projectedVolume > 0 ? (isProjecting ? "~\(_formatK(projectedVolume))" : _formatK(thisWeekVolume)) : "—")
@@ -741,7 +741,7 @@ struct ExerciseStatRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 if let w = data.currentWeight, w > 0 {
                     Text(units.format(w))
-                        .font(.system(size: 16, weight: .black)).foregroundColor(.orange)
+                        .font(.system(size: 16, weight: .black)).foregroundColor(Color.forge)
                     if let history = data.history, history.count > 1,
                        let first = history.last?.weight, let last = history.first?.weight,
                        first > 0, last > 0 {
@@ -779,7 +779,7 @@ struct ExerciseDetailView: View {
                         VStack(spacing: 4) {
                             if let w = data?.currentWeight {
                                 Text(units.format(w))
-                                    .font(.system(size: 48, weight: .black)).foregroundColor(.orange)
+                                    .font(.system(size: 48, weight: .black)).foregroundColor(Color.forge)
                             }
                             if let reps = data?.lastReps {
                                 Text("Dernières reps: \(reps)").font(.system(size: 14)).foregroundColor(.gray)
@@ -824,12 +824,12 @@ struct ExerciseDetailView: View {
                     if let w = data?.currentWeight, let reps = data?.lastReps {
                         let oneRMStr = data?.history?.first?.oneRM.map { String(format: "→ 1RM estimé %.1f\(units.label)", $0) } ?? ""
                         ShareLink(item: "🏆 Record personnel — TrainingOS\n\(name) : \(units.format(w)) × \(reps) \(oneRMStr)") {
-                            Image(systemName: "square.and.arrow.up").foregroundColor(.orange)
+                            Image(systemName: "square.and.arrow.up").foregroundColor(Color.forge)
                         }
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.orange)
+                    Button("Fermer") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
         }
@@ -855,7 +855,7 @@ struct TrainingLoadChart: View {
         SimpleBarChart(
             title: "CHARGE D'ENTRAÎNEMENT / SEM (RPE × min)",
             data: weeklyLoad.map { (weekLabel($0.0), $0.1) },
-            color: .orange,
+            color: Color.forge,
             unit: "u.a."
         )
     }
@@ -1116,7 +1116,7 @@ struct OneRMTrendView: View {
                                 Text(ex)
                                     .font(.system(size: 10, weight: .semibold))
                                     .padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(currentExercise == ex ? Color.orange : Color.appSurfaceInset)
+                                    .background(currentExercise == ex ? Color.forge : Color.appSurfaceInset)
                                     .foregroundColor(currentExercise == ex ? .black : .gray)
                                     .cornerRadius(20)
                             }
@@ -1139,12 +1139,12 @@ struct OneRMTrendView: View {
                                 else { p.addLine(to: .init(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.orange, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                        .stroke(Color.forge, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
 
                         ForEach(Array(points.enumerated()), id: \.0) { i, pt in
                             let x = CGFloat(i) * step
                             let y = geo.size.height * (1 - CGFloat((pt.oneRM - lo) / span))
-                            Circle().fill(Color.orange).frame(width: 6, height: 6)
+                            Circle().fill(Color.forge).frame(width: 6, height: 6)
                                 .position(x: x, y: y)
                         }
                     }
@@ -1325,7 +1325,7 @@ struct Top5FrequencyView: View {
                                 .font(.appLabel).foregroundColor(.white).lineLimit(1)
                             Spacer()
                             Text("\(item.1)×")
-                                .font(.appLabel.weight(.bold)).foregroundColor(.orange)
+                                .font(.appLabel.weight(.bold)).foregroundColor(Color.forge)
                         }
                     }
                 }

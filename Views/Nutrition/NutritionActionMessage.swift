@@ -47,12 +47,12 @@ struct NutritionActionMessage: View {
                     Button(action: action) {
                         Text("Logger un repas")
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 7)
-                            .background(Color.orange.opacity(0.12))
+                            .background(Color.forge.opacity(0.12))
                             .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                            .overlay(Capsule().stroke(Color.forge.opacity(0.3), lineWidth: 1))
                     }
                 }
             }

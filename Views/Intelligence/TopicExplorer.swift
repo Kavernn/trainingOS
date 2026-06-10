@@ -25,7 +25,7 @@ let coachTopics: [CoachTopic] = [
     ),
     CoachTopic(
         icon: "fork.knife",
-        color: .orange,
+        color: Color.forge,
         title: "Nutrition",
         subtitle: "Macros & performance",
         query: "Analyse le lien entre ma nutrition et mes performances. Quels ajustements me feraient progresser plus vite ?"

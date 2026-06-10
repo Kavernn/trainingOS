@@ -16,7 +16,7 @@ struct HIITHistoriqueView: View {
                 AmbientBackground(color: .red)
 
                 if isLoading {
-                    ProgressView().tint(.orange)
+                    ProgressView().tint(Color.forge)
                 } else if hiitLog.isEmpty {
                     EmptyStateView(icon: "figure.run", title: "Aucune session HIIT", compact: true)
                 } else {
@@ -25,7 +25,7 @@ struct HIITHistoriqueView: View {
                             // Stats
                             HStack(spacing: 12) {
                                 KPICard(value: "\(totalSessions)", label: "Sessions", color: .red)
-                                KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: .orange)
+                                KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: Color.forge)
                             }
                             .padding(.horizontal, 16)
 
@@ -97,7 +97,7 @@ struct HIITEntryCard: View {
                 if let w = entry.workTime {
                     Label("\(w)s work", systemImage: "bolt.fill")
                         .font(.appCaption)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
                 if let r = entry.restTime {
                     Label("\(r)s rest", systemImage: "zzz")

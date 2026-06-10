@@ -13,7 +13,7 @@ struct MentalHealthDashboardView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .orange)
+            AmbientBackground(color: Color.forge)
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 18) {
@@ -98,7 +98,7 @@ struct MentalHealthDashboardView: View {
                     ForEach(s.insights, id: \.self) { insight in
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "circle.fill")
-                                .foregroundColor(.orange.opacity(0.6))
+                                .foregroundColor(Color.forge.opacity(0.6))
                                 .font(.system(size: 5))
                             Text(insight)
                                 .font(.subheadline)
@@ -132,14 +132,14 @@ struct MentalHealthDashboardView: View {
                     ForEach(s.topStreaks) { streak in
                         HStack {
                             Image(systemName: streak.habitIcon)
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                                 .frame(width: 20)
                             Text(streak.habitName)
                                 .font(.subheadline)
                             Spacer()
                             Text("🔥 \(streak.currentStreak) j")
                                 .font(.caption.bold())
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                         }
                     }
                 }

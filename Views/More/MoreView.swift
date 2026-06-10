@@ -16,7 +16,7 @@ struct MoreView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .orange)
+                AmbientBackground(color: Color.forge)
 
                 List {
                     Section("Quotidien") {
@@ -36,17 +36,17 @@ struct MoreView: View {
                         }) {
                             RitualView()
                         }
-                        MoreRow(icon: "fork.knife",      color: .orange, title: "Nutrition")    { NutritionView() }
-                        MoreRow(icon: "bolt.heart.fill", color: .orange, title: "Énergie & Récupération") { EnergyRecoveryView() }
+                        MoreRow(icon: "fork.knife",      color: Color.forge, title: "Nutrition")    { NutritionView() }
+                        MoreRow(icon: "bolt.heart.fill", color: Color.forge, title: "Énergie & Récupération") { EnergyRecoveryView() }
                     }
                     .listRowBackground(glassRowBG(Color.appDanger))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
                     Section("Entraînement") {
                         MoreRow(icon: "calendar",              color: .teal,                    title: "Historique") { HistoriqueView() }
-                        MoreRow(icon: "target",                color: .orange,                  title: "Objectifs")  { ObjectifsView() }
+                        MoreRow(icon: "target",                color: Color.forge,                  title: "Objectifs")  { ObjectifsView() }
                         MoreRow(icon: "chart.bar.fill",        color: .blue,                    title: "Stats")      { StatsView() }
-                        MoreRow(icon: "timer",                 color: .orange,                  title: "Timer")      { TimerView() }
+                        MoreRow(icon: "timer",                 color: Color.forge,                  title: "Timer")      { TimerView() }
                         MoreRow(icon: "mappin.and.ellipse",    color: Color.appWarning,     title: "Gym Finder") { GymFinderView() }
                     }
                     .listRowBackground(glassRowBG(.blue))
@@ -119,7 +119,7 @@ struct MoreView: View {
                     .font(.appBody.weight(.semibold))
                     .foregroundColor(color)
                 if badge {
-                    Circle().fill(Color.orange).frame(width: 9, height: 9).offset(x: 3, y: -3)
+                    Circle().fill(Color.forge).frame(width: 9, height: 9).offset(x: 3, y: -3)
                 }
             }
             VStack(alignment: .leading, spacing: 1) {
@@ -131,9 +131,9 @@ struct MoreView: View {
             if badge {
                 Spacer()
                 Text("À faire")
-                    .font(.appCaption.weight(.semibold)).foregroundColor(.orange)
+                    .font(.appCaption.weight(.semibold)).foregroundColor(Color.forge)
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.orange.opacity(0.12)).clipShape(Capsule())
+                    .background(Color.forge.opacity(0.12)).clipShape(Capsule())
             }
         }
         .padding(.vertical, 5)
@@ -166,7 +166,7 @@ struct MoreRow<Destination: View>: View {
                         .foregroundColor(color)
                     if badge {
                         Circle()
-                            .fill(Color.orange)
+                            .fill(Color.forge)
                             .frame(width: 9, height: 9)
                             .offset(x: 3, y: -3)
                     }
@@ -185,10 +185,10 @@ struct MoreRow<Destination: View>: View {
                     Spacer()
                     Text("À faire")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color.orange.opacity(0.12))
+                        .background(Color.forge.opacity(0.12))
                         .clipShape(Capsule())
                 }
             }

@@ -8,7 +8,7 @@ struct MeasurementsTrendView: View {
     private let metrics: [(String, KeyPath<BodyWeightEntry, Double?>, Color)] = [
         ("Taille", \.waistCm, .purple),
         ("Bras",   \.armsCm,  .blue),
-        ("Cuisses",\.thighsCm,.orange),
+        ("Cuisses",\.thighsCm,Color.forge),
         ("Hanches",\.hipsCm,  .pink),
     ]
 
@@ -205,7 +205,7 @@ struct MuscleBreakdownView: View {
             .frame(height: CGFloat(sorted.count) * (8 + 8) - 8)
 
             HStack(spacing: 16) {
-                legendDot(.orange, "≤ 2j")
+                legendDot(Color.forge, "≤ 2j")
                 legendDot(.green,  "3–5j")
                 legendDot(.gray,   "+5j")
             }
@@ -290,7 +290,7 @@ struct PRTrackerView: View {
                                 ZStack(alignment: .leading) {
                                     Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                                     Capsule()
-                                        .fill(pr.isRecent ? Color.yellow : Color.orange.opacity(0.6))
+                                        .fill(pr.isRecent ? Color.yellow : Color.forge.opacity(0.6))
                                         .frame(width: barW * (pr.prWeight / maxW), height: 6)
                                 }
                                 .frame(height: 6)
@@ -298,7 +298,7 @@ struct PRTrackerView: View {
                                 VStack(alignment: .trailing, spacing: 1) {
                                     Text("\(UnitSettings.shared.display(pr.prWeight), specifier: "%.1f") \(UnitSettings.shared.label)")
                                         .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(pr.isRecent ? .yellow : .orange)
+                                        .foregroundColor(pr.isRecent ? .yellow : Color.forge)
                                     Text(shortDate(pr.prDate))
                                         .font(.appMicro)
                                         .foregroundColor(.gray)
@@ -427,7 +427,7 @@ struct VolumeLandmarksCard: View {
             HStack(spacing: 14) {
                 legendDot(.blue,   "Sous le min")
                 legendDot(.green,  "Optimal")
-                legendDot(.orange, "Proche du max")
+                legendDot(Color.forge, "Proche du max")
                 legendDot(.red,    "Surcharge")
             }
 
@@ -652,7 +652,7 @@ struct SeasonComparisonCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "calendar.badge.clock")
-                    .foregroundColor(.orange).font(.system(size: 12))
+                    .foregroundColor(Color.forge).font(.system(size: 12))
                 Text("COMPARAISON SAISONS")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             }
@@ -680,7 +680,7 @@ struct SeasonComparisonCard: View {
 
             VStack(alignment: .center, spacing: 10) {
                 Text(current.title ?? "En cours")
-                    .font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
+                    .font(.system(size: 10, weight: .bold)).foregroundColor(Color.forge)
                     .lineLimit(1).frame(height: 16)
                 valCell(current.volumeAvgWeek.map { units.format($0, decimals: 0) })
                 valCell(current.sessionsCount.map { "\($0)" })
@@ -764,7 +764,7 @@ struct TransformationMarkersCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(tombstoneCount > 0 ? "\(tombstoneCount)" : "—")
                         .font(.system(size: 30, weight: .black))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         .contentTransition(.numericText())
                     Text(tombstoneCount == 1 ? "limite enterrée" : "limites enterrées")
                         .font(.appCaption).foregroundColor(.gray)
@@ -775,7 +775,7 @@ struct TransformationMarkersCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(Color.orange.opacity(0.07))
+                .background(Color.forge.opacity(0.07))
                 .cornerRadius(12)
 
                 if showWarRoom, let wr = warRoomStats {
@@ -861,7 +861,7 @@ struct StrengthProgressionCard: View {
                                         .fill(Color.gray.opacity(0.25))
                                         .frame(width: w * CGFloat(lift.baseline / maxCurrent), height: 8)
                                     Capsule()
-                                        .fill(lift.delta >= 0 ? Color(hex: "F5A623") : .orange)
+                                        .fill(lift.delta >= 0 ? Color(hex: "F5A623") : Color.forge)
                                         .frame(width: w * CGFloat(lift.current / maxCurrent), height: 8)
                                         .opacity(0.85)
                                 }
@@ -955,25 +955,25 @@ struct StrengthCurveChart: View {
                             x: .value("Date", p.date),
                             y: .value(metric.rawValue, p.value)
                         )
-                        .foregroundStyle(Color.orange)
+                        .foregroundStyle(Color.forge)
                         .interpolationMethod(.monotone)
 
                         PointMark(
                             x: .value("Date", p.date),
                             y: .value(metric.rawValue, p.value)
                         )
-                        .foregroundStyle(p.isPR ? Color.orange : Color.orange.opacity(0.4))
+                        .foregroundStyle(p.isPR ? Color.forge : Color.forge.opacity(0.4))
                         .symbolSize(p.isPR ? 80 : 30)
                     }
 
                     if let pr = points.last(where: \.isPR) {
                         RuleMark(y: .value("PR", pr.value))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                            .foregroundStyle(Color.orange.opacity(0.3))
+                            .foregroundStyle(Color.forge.opacity(0.3))
                             .annotation(position: .top, alignment: .trailing) {
                                 Text("PR \(units.format(pr.value))")
                                     .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                     }
                 }
@@ -1046,7 +1046,7 @@ struct IntensityCard: View {
                 ZStack(alignment: .leading) {
                     HStack(spacing: 0) {
                         Rectangle().fill(Color.blue.opacity(0.25)).frame(width: w * 0.65)
-                        Rectangle().fill(Color.orange.opacity(0.25)).frame(width: w * 0.15)
+                        Rectangle().fill(Color.forge.opacity(0.25)).frame(width: w * 0.15)
                         Rectangle().fill(Color.red.opacity(0.25))
                     }
                     .cornerRadius(4)
@@ -1065,7 +1065,7 @@ struct IntensityCard: View {
                 HStack {
                     Text("<65%").font(.system(size: 8)).foregroundColor(.blue)
                     Spacer()
-                    Text("65–80%").font(.system(size: 8)).foregroundColor(.orange)
+                    Text("65–80%").font(.system(size: 8)).foregroundColor(Color.forge)
                     Spacer()
                     Text(">80%").font(.system(size: 8)).foregroundColor(.red)
                 }
@@ -1108,9 +1108,9 @@ struct DeloadStatusCard: View {
             if data.recommande {
                 VStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 20)).foregroundColor(.orange)
+                        .font(.system(size: 20)).foregroundColor(Color.forge)
                     Text("Recommandé")
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.orange)
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(Color.forge)
                 }
             }
         }
@@ -1147,7 +1147,7 @@ struct PushPullRatioCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "arrow.left.arrow.right").foregroundColor(.orange)
+                Image(systemName: "arrow.left.arrow.right").foregroundColor(Color.forge)
                 Text("RATIO PUSH / PULL")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
@@ -1162,7 +1162,7 @@ struct PushPullRatioCard: View {
             if total > 0 {
                 VStack(spacing: 6) {
                     ForEach([
-                        ("PUSH", data.pushVolume, Color.orange),
+                        ("PUSH", data.pushVolume, Color.forge),
                         ("PULL", data.pullVolume, Color.blue),
                         ("LEGS", data.legsVolume, Color.green),
                     ], id: \.0) { label, vol, color in

@@ -135,7 +135,7 @@ struct NavyCalculatorView: View {
     private var sexRequiredView: some View {
         VStack(spacing: 12) {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
-                .font(.system(size: 36)).foregroundColor(.orange.opacity(0.7))
+                .font(.system(size: 36)).foregroundColor(Color.forge.opacity(0.7))
             Text("Sexe non renseigné")
                 .font(.appBody.weight(.semibold)).foregroundColor(.white)
             Text("La formule Navy est différente pour l'homme et la femme. Indique ton sexe dans ton profil pour un calcul précis.")
@@ -144,7 +144,7 @@ struct NavyCalculatorView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .glassCardAccent(.orange)
+        .glassCardAccent(Color.forge)
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -154,7 +154,7 @@ struct NavyCalculatorView: View {
     private var incompleteView: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
+                Image(systemName: "exclamationmark.triangle.fill").foregroundColor(Color.forge)
                 Text("Données manquantes")
                     .font(.appLabel.weight(.semibold)).foregroundColor(.white)
             }
@@ -162,7 +162,7 @@ struct NavyCalculatorView: View {
                 .font(.appLabel.weight(.regular)).foregroundColor(.gray)
             ForEach(bodyComp.navyMissingFields(isMale: isMale), id: \.self) { field in
                 HStack(spacing: 8) {
-                    Circle().fill(Color.orange).frame(width: 6, height: 6)
+                    Circle().fill(Color.forge).frame(width: 6, height: 6)
                     Text(field.capitalized)
                         .font(.appLabel.weight(.regular)).foregroundColor(.white)
                 }
@@ -177,13 +177,13 @@ struct NavyCalculatorView: View {
                     Text("Compléter mes mesures")
                         .font(.appLabel.weight(.semibold))
                 }
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
                 .padding(.top, 4)
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCardAccent(.orange)
+        .glassCardAccent(Color.forge)
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -276,7 +276,7 @@ struct NavyCalculatorView: View {
                        subtitle: "±4% vs DEXA")
             resultCard(label: "MASSE GRASSE",
                        value: units.format(res.fatMassLbs),
-                       color: .orange)
+                       color: Color.forge)
             resultCard(label: "MASSE MAIGRE",
                        value: units.format(res.leanMassLbs),
                        color: .green)
@@ -321,7 +321,7 @@ struct NavyCalculatorView: View {
                         .fill(Color.green.opacity(0.8))
                         .frame(width: geo.size.width * leanFrac)
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.orange.opacity(0.8))
+                        .fill(Color.forge.opacity(0.8))
                         .frame(maxWidth: .infinity)
                 }
                 .frame(height: 14)
@@ -335,7 +335,7 @@ struct NavyCalculatorView: View {
                 }
                 Spacer()
                 HStack(spacing: 6) {
-                    Circle().fill(Color.orange).frame(width: 7, height: 7)
+                    Circle().fill(Color.forge).frame(width: 7, height: 7)
                     Text("Masse grasse").font(.appCaption).foregroundColor(.gray)
                 }
             }
@@ -374,7 +374,7 @@ struct NavyCalculatorView: View {
         let freshness = bodyComp.staleness()
         let label = freshness.label
         guard !label.isEmpty else { return AnyView(EmptyView()) }
-        let color: Color = freshness.isProblematic ? .red : .orange
+        let color: Color = freshness.isProblematic ? .red : Color.forge
         return AnyView(
             HStack(spacing: 8) {
                 Image(systemName: "clock").foregroundColor(color)

@@ -20,7 +20,7 @@ struct HoldToLogButton: View {
                 .fill(logFlash ? Color.green : holding ? Color.orange.opacity(0.18) : Color.orange.opacity(0.07))
             RoundedRectangle(cornerRadius: 14)
                 .stroke(
-                    showHint ? Color.orange.opacity(hintPulse ? 0.7 : 0.2) : logFlash ? Color.clear : Color.orange.opacity(isEnabled ? 0.35 : 0.1),
+                    showHint ? Color.forge.opacity(hintPulse ? 0.7 : 0.2) : logFlash ? Color.clear : Color.forge.opacity(isEnabled ? 0.35 : 0.1),
                     lineWidth: showHint ? 1.5 : 1
                 )
             VStack(spacing: 3) {
@@ -33,7 +33,7 @@ struct HoldToLogButton: View {
                 if showHint && !holding {
                     Text("Maintenir appuyé pour logger")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.orange.opacity(0.7))
+                        .foregroundColor(Color.forge.opacity(0.7))
                 }
             }
         }

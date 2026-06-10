@@ -135,7 +135,7 @@ struct TimerView: View {
                     CircleButton(
                         icon: running ? "pause.fill" : "play.fill",
                         size: 68,
-                        color: .orange,
+                        color: Color.forge,
                         filled: !running
                     ) { toggleTimer() }
                     CircleButton(icon: "forward.end.fill", size: 52, color: .gray) {
@@ -167,7 +167,7 @@ struct TimerView: View {
                     TimerStepperRow(
                         label: "⚡  WORK",
                         value: $workSecs,
-                        color: .orange,
+                        color: Color.forge,
                         step: 5,
                         min: 5,
                         max: 300,

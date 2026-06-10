@@ -39,7 +39,7 @@ struct CoachContextSummary: View {
                 else { detail = "charge élevée" }
                 result.append(Bullet(icon: "exclamationmark.triangle.fill",
                                      text: "Récupération \(Int(lss.score))/100 — \(detail)",
-                                     color: lss.score < 40 ? .red : .orange))
+                                     color: lss.score < 40 ? .red : Color.forge))
             } else {
                 result.append(Bullet(icon: "checkmark.shield.fill",
                                      text: "Récupération \(Int(lss.score))/100 — dans la norme",
@@ -53,7 +53,7 @@ struct CoachContextSummary: View {
             if prot < target * 0.90 {
                 result.append(Bullet(icon: "fork.knife",
                                      text: "Hier : \(Int(prot))g protéines sur \(Int(target))g objectif",
-                                     color: prot < target * 0.70 ? .red : .orange))
+                                     color: prot < target * 0.70 ? .red : Color.forge))
             } else {
                 result.append(Bullet(icon: "fork.knife",
                                      text: "Nutrition d'hier sur cible",

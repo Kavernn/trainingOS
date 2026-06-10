@@ -92,7 +92,7 @@ struct StepperInput: View {
                     Spacer()
                     Button("Terminé") { isManualFocused = false }
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
             }
         }

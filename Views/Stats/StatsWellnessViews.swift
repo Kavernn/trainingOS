@@ -187,7 +187,7 @@ struct RecoveryCompositeScoreView: View {
                 if let s = score(last), s >= 45, allStatuses.contains(.red) {
                     Text("Score OK, mais un indicateur est en alerte")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
             }
         }
@@ -353,11 +353,11 @@ struct MoodStressTrendView: View {
             if n >= 2 {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("Score bien-être").font(.appMicro.weight(.semibold)).foregroundColor(.orange)
+                        Text("Score bien-être").font(.appMicro.weight(.semibold)).foregroundColor(Color.forge)
                         Text("(100 = optimal)").font(.system(size: 8)).foregroundColor(.gray.opacity(0.6))
                         Spacer()
                         Text(String(format: "Moy. %.0f / 100", avgStress))
-                            .font(.appMicro).foregroundColor(.orange.opacity(0.7))
+                            .font(.appMicro).foregroundColor(Color.forge.opacity(0.7))
                     }
                     GeometryReader { geo in
                         let stressPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
@@ -373,7 +373,7 @@ struct MoodStressTrendView: View {
                                     i == 0 ? p.move(to: pt) : p.addLine(to: pt)
                                 }
                             }
-                            .stroke(Color.orange, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+                            .stroke(Color.forge, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
                         }
                     }
                     .frame(height: 55)
@@ -382,7 +382,7 @@ struct MoodStressTrendView: View {
 
             HStack(spacing: 12) {
                 Label("Humeur (1–10)", systemImage: "circle.fill").font(.appMicro).foregroundColor(.purple)
-                Label("Bien-être (0–100)", systemImage: "circle.fill").font(.appMicro).foregroundColor(.orange)
+                Label("Bien-être (0–100)", systemImage: "circle.fill").font(.appMicro).foregroundColor(Color.forge)
                 Label("PSS", systemImage: "circle.fill").font(.appMicro).foregroundColor(.green)
             }
         }
@@ -416,7 +416,7 @@ struct SelfCareStreaksView: View {
                 HStack(spacing: 10) {
                     Image(systemName: s.habitIcon)
                         .font(.system(size: 16))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         .frame(width: 20)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(s.habitName).font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
@@ -426,7 +426,7 @@ struct SelfCareStreaksView: View {
                     Spacer()
                     if s.currentStreak > 0 {
                         Text("\(s.currentStreak)🔥")
-                            .font(.appLabel.weight(.bold)).foregroundColor(.orange)
+                            .font(.appLabel.weight(.bold)).foregroundColor(Color.forge)
                     }
                 }
             }
@@ -638,7 +638,7 @@ struct SorenessThresholdCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("SEUIL").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                         Text(_formatK(units.display(thresh)) + " \(units.label)")
-                            .font(.appBody.weight(.black)).foregroundColor(.orange)
+                            .font(.appBody.weight(.black)).foregroundColor(Color.forge)
                     }
                 }
                 Spacer()
@@ -722,7 +722,7 @@ struct WellnessTrendView: View {
                         WellnessSparkline(label: "Sommeil", values: movingAvg(sleepVals), color: .blue, range: 1...10)
                     }
                     if !sorenessVals.isEmpty {
-                        WellnessSparkline(label: "Douleurs", values: movingAvg(sorenessVals), color: .orange, range: 1...10, invertTrend: true)
+                        WellnessSparkline(label: "Douleurs", values: movingAvg(sorenessVals), color: Color.forge, range: 1...10, invertTrend: true)
                     }
                     if !fatigueVals.isEmpty {
                         WellnessSparkline(label: "Fatigue", values: movingAvg(fatigueVals), color: .purple, range: 1...10, invertTrend: true)
@@ -850,7 +850,7 @@ struct BestDayOfWeekView: View {
                 Spacer()
                 if let best = bestDow {
                     Text("→ \(dayNames[best])")
-                        .font(.appCaption.weight(.bold)).foregroundColor(.orange)
+                        .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)
                 }
             }
             let vols = efficiencyByDow
@@ -862,10 +862,10 @@ struct BestDayOfWeekView: View {
                     VStack(spacing: 3) {
                         Spacer()
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(isBest ? Color.orange : Color.orange.opacity(0.3))
+                            .fill(isBest ? Color.forge : Color.forge.opacity(0.3))
                             .frame(height: max(CGFloat(maxV > 0 ? v / maxV : 0) * 60, 3))
                         Text(dayNames[d])
-                            .font(.appMicro).foregroundColor(isBest ? .orange : .gray)
+                            .font(.appMicro).foregroundColor(isBest ? Color.forge : .gray)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 70)
                 }
@@ -885,7 +885,7 @@ struct StressCravingsInsightView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.shield.fill")
-                    .foregroundColor(.orange).font(.appCaption)
+                    .foregroundColor(Color.forge).font(.appCaption)
                 Text("STRESS → DÉCLENCHEURS")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             }
@@ -894,7 +894,7 @@ struct StressCravingsInsightView: View {
                 .foregroundColor(.white.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16).glassCard(color: .orange, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: Color.forge, intensity: 0.04).cornerRadius(14)
     }
 
     private var insightText: String {

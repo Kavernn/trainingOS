@@ -16,9 +16,9 @@ struct SessionTimerView: View {
             Text(formattedTime)
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
         }
-        .foregroundColor(chrono.isPaused ? .orange.opacity(0.75) : .cyan.opacity(0.75))
+        .foregroundColor(chrono.isPaused ? Color.forge.opacity(0.75) : .cyan.opacity(0.75))
         .padding(.horizontal, 8).padding(.vertical, 5)
-        .background(chrono.isPaused ? Color.orange.opacity(0.1) : Color.cyan.opacity(0.08))
+        .background(chrono.isPaused ? Color.forge.opacity(0.1) : Color.cyan.opacity(0.08))
         .cornerRadius(8)
         .animation(.easeInOut(duration: 0.2), value: chrono.isPaused)
         .onTapGesture { chrono.togglePause() }

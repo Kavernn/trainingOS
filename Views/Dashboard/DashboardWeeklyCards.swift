@@ -23,7 +23,7 @@ struct WeeklyReportTeaser: View {
                     }
                     if report.totalVolumeLbs > 0 {
                         Label("\(_formatK(units.display(report.totalVolumeLbs))) \(units.label)", systemImage: "scalemass.fill")
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                     }
                 }
                 .font(.appCaption.weight(.semibold))
@@ -61,7 +61,7 @@ struct WeeklyReportView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .orange)
+            AmbientBackground(color: Color.forge)
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     // Header
@@ -76,7 +76,7 @@ struct WeeklyReportView: View {
 
                     // KPI grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        WeeklyKPI(value: "\(report.sessionCount)", label: "Séances", icon: "flame.fill", color: .orange)
+                        WeeklyKPI(value: "\(report.sessionCount)", label: "Séances", icon: "flame.fill", color: Color.forge)
                         WeeklyKPI(value: "\(report.prCount)", label: "Limites détruites", icon: "trophy.fill", color: .yellow)
                         if report.totalVolumeLbs > 0 {
                             WeeklyKPI(value: _formatK(units.display(report.totalVolumeLbs)), label: "Volume (\(units.label))", icon: "scalemass.fill", color: .cyan)
@@ -235,7 +235,7 @@ struct QuickLogBar: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            QuickLogChip(icon: "dumbbell.fill",    label: "Séance",  done: alreadyLogged, color: .orange,                                   action: onSessionTap)
+            QuickLogChip(icon: "dumbbell.fill",    label: "Séance",  done: alreadyLogged, color: Color.forge,                                   action: onSessionTap)
             QuickLogChip(icon: "moon.fill",         label: "Sommeil", done: sleepLogged,  color: Color(red: 0.45, green: 0.35, blue: 0.95), action: onSleepTap)
             QuickLogChip(icon: "face.smiling.fill", label: "Humeur",  done: moodDone,     color: .yellow,                                   action: onMoodTap)
             QuickLogChip(icon: "fork.knife",        label: "Repas +", done: false,        color: .green,                                    action: onNutritionTap ?? {})

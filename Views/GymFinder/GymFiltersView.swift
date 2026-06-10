@@ -34,7 +34,7 @@ struct GymFiltersView: View {
                         dismiss()
                     }
                     .fontWeight(.semibold)
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 }
             }
         }
@@ -60,7 +60,7 @@ struct GymFiltersView: View {
                         .font(.appLabel.weight(.regular))
                         .foregroundColor(.white)
                 }
-                .tint(.orange)
+                .tint(Color.forge)
                 .padding(.vertical, 8)
 
                 Divider().background(Color.white.opacity(0.06))
@@ -70,7 +70,7 @@ struct GymFiltersView: View {
                         .font(.appLabel.weight(.regular))
                         .foregroundColor(.white)
                 }
-                .tint(.orange)
+                .tint(Color.forge)
                 .padding(.vertical, 8)
             }
         }
@@ -86,15 +86,15 @@ struct GymFiltersView: View {
                         HStack(spacing: 7) {
                             Image(systemName: "wand.and.stars")
                                 .font(.appCaption)
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                             Text("Auto — workout du jour : \(vm.workoutEquipmentSuggestion.map(\.label).joined(separator: ", "))")
                                 .font(.appCaption)
-                                .foregroundColor(.orange.opacity(0.9))
+                                .foregroundColor(Color.forge.opacity(0.9))
                                 .lineLimit(2)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
-                        .background(Color.orange.opacity(0.1))
+                        .background(Color.forge.opacity(0.1))
                         .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
@@ -128,7 +128,7 @@ struct GymFiltersView: View {
             .foregroundColor(selected ? .black : .white.opacity(0.6))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .background(selected ? Color.orange : Color.appCard.opacity(0.6))
+            .background(selected ? Color.forge : Color.appCard.opacity(0.6))
             .cornerRadius(10)
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(
                 selected ? Color.clear : Color.white.opacity(0.06), lineWidth: 1))
@@ -147,7 +147,7 @@ struct GymFiltersView: View {
                 .foregroundColor(selected ? .black : .white.opacity(0.6))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
-                .background(selected ? Color.orange : Color.appCard.opacity(0.6))
+                .background(selected ? Color.forge : Color.appCard.opacity(0.6))
                 .cornerRadius(8)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(
                     selected ? Color.clear : Color.white.opacity(0.06), lineWidth: 1))

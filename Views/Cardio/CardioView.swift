@@ -72,7 +72,7 @@ struct CardioView: View {
                                 KPICard(value: "\(totalSessions)", label: "Sessions", color: .teal)
                                 KPICard(value: String(format: "%.1f km", totalDistanceKm), label: "Distance tot.", color: .blue)
                                 KPICard(value: totalDurationMin > 0 ? String(format: "%.0f min", totalDurationMin) : "—",
-                                        label: "Durée tot.", color: .orange)
+                                        label: "Durée tot.", color: Color.forge)
                                 KPICard(value: avgRpe > 0 ? String(format: "%.1f", avgRpe) : "—",
                                         label: "RPE moy.", color: .red)
                             }
@@ -133,13 +133,13 @@ struct CardioView: View {
                     Button(action: importFromHealthKit) {
                         HStack(spacing: 4) {
                             if isImportingHK {
-                                ProgressView().tint(.orange).scaleEffect(0.7)
+                                ProgressView().tint(Color.forge).scaleEffect(0.7)
                             } else {
                                 Image(systemName: "heart.text.square").font(.appLabel.weight(.regular))
                             }
                             Text("Santé").font(.appLabel)
                         }
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                     }
                     .disabled(isImportingHK)
                 }
@@ -362,7 +362,7 @@ struct CardioGuidesSection: View {
             if let threshold = metrics.thresholdPaceMinPerKm {
                 CardioMetricCard(
                     icon: "flame.fill",
-                    color: .orange,
+                    color: Color.forge,
                     title: "Seuil lactique estimé",
                     value: threshold + " /km",
                     badge: nil,
@@ -620,7 +620,7 @@ struct PaceZonesCard: View {
             ("Easy",      .blue,   paceZones.easy),
             ("Moderate",  .green,  paceZones.moderate),
             ("Tempo",     .yellow, paceZones.tempo),
-            ("Threshold", .orange, paceZones.threshold),
+            ("Threshold", Color.forge, paceZones.threshold),
             ("Race",      .red,    paceZones.race),
         ]
     }
@@ -735,7 +735,7 @@ struct CardioHistoryDetailSheet: View {
             if let v = e.durationMin  { DetailKPI(label: "Durée",      value: String(format: "%.0f min", v),     color: .blue) }
             if let v = e.avgPace      { DetailKPI(label: "Allure",     value: v + " /km",                        color: .green) }
             if let v = e.avgHr        { DetailKPI(label: "FC moyenne", value: String(format: "%.0f bpm", v),     color: .red) }
-            if let v = e.calories     { DetailKPI(label: "Calories",   value: String(format: "%.0f kcal", v),    color: .orange) }
+            if let v = e.calories     { DetailKPI(label: "Calories",   value: String(format: "%.0f kcal", v),    color: Color.forge) }
             if let v = e.cadence      { DetailKPI(label: "Cadence",    value: String(format: "%.0f spm", v),     color: .purple) }
             if let v = e.rpe          { DetailKPI(label: "RPE",        value: String(format: "%.1f / 10", v),    color: .red) }
         }
@@ -778,7 +778,7 @@ struct CardioHistoryDetailSheet: View {
 
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             if let v = e.rounds   { DetailKPI(label: "Rounds",    value: "\(v)",               color: .red) }
-            if let v = e.workTime { DetailKPI(label: "Work",      value: "\(v)s",              color: .orange) }
+            if let v = e.workTime { DetailKPI(label: "Work",      value: "\(v)s",              color: Color.forge) }
             if let v = e.restTime { DetailKPI(label: "Repos",     value: "\(v)s",              color: .green) }
             if let v = e.rpe      { DetailKPI(label: "RPE",       value: String(format: "%.1f / 10", v), color: .red) }
         }
@@ -924,7 +924,7 @@ struct HRZonesCard: View {
         ("Z1 Récup.",   0.50, 0.60, .blue),
         ("Z2 Aérobie",  0.60, 0.70, .green),
         ("Z3 Seuil",    0.70, 0.80, .yellow),
-        ("Z4 Anaéro.", 0.80, 0.90, .orange),
+        ("Z4 Anaéro.", 0.80, 0.90, Color.forge),
         ("Z5 VO2max",  0.90, 1.00, .red)
     ]
 
@@ -1052,7 +1052,7 @@ struct CardioRow: View {
                 HStack(spacing: 6) {
                     if let cad = entry.cadence {
                         Label(String(format: "%.0f spm", cad), systemImage: "metronome")
-                            .font(.appCaption).foregroundColor(.orange)
+                            .font(.appCaption).foregroundColor(Color.forge)
                     }
                     if let cal = entry.calories {
                         Label(String(format: "%.0f kcal", cal), systemImage: "flame.fill")
@@ -1198,9 +1198,9 @@ struct LogCardioSheet: View {
                                 Text("RPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                 Spacer()
                                 Text(String(format: "%.0f / 10", rpeValue))
-                                    .font(.appLabel.weight(.bold)).foregroundColor(.orange)
+                                    .font(.appLabel.weight(.bold)).foregroundColor(Color.forge)
                             }
-                            Slider(value: $rpeValue, in: 1...10, step: 0.5).tint(.orange)
+                            Slider(value: $rpeValue, in: 1...10, step: 0.5).tint(Color.forge)
                         }
 
                         VStack(alignment: .leading, spacing: 6) {
@@ -1231,7 +1231,7 @@ struct LogCardioSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
             .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {

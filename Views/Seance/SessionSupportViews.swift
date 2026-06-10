@@ -38,7 +38,7 @@ struct SessionPickerSheet: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
                                         .font(.appHeadline)
-                                        .foregroundColor(isActive ? .orange : .gray.opacity(0.4))
+                                        .foregroundColor(isActive ? Color.forge : .gray.opacity(0.4))
                                     Text(session)
                                         .font(.appBody).fontWeight(isActive ? .semibold : .regular)
                                         .foregroundColor(isActive ? .white : .white.opacity(0.75))
@@ -63,7 +63,7 @@ struct SessionPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
         }
@@ -93,7 +93,7 @@ struct WorkoutSummarySheet: View {
                             VStack(spacing: 10) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 44))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                                     .padding(.top, 28)
                                 Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggué\(unloggedExercises.count > 1 ? "s" : "")")
                                     .font(.appTitle)
@@ -111,7 +111,7 @@ struct WorkoutSummarySheet: View {
                                     HStack(spacing: 12) {
                                         Image(systemName: "minus.circle")
                                             .font(.appBody)
-                                            .foregroundColor(.orange.opacity(0.6))
+                                            .foregroundColor(Color.forge.opacity(0.6))
                                         Text(name)
                                             .font(.appBody)
                                             .foregroundColor(.white.opacity(0.75))
@@ -140,14 +140,14 @@ struct WorkoutSummarySheet: View {
                             Text("Terminer quand même")
                                 .font(.appBody).fontWeight(.bold)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(Color.orange)
+                                .background(Color.forge)
                                 .foregroundColor(.white)
                                 .cornerRadius(14)
                         }
                         .padding(.horizontal, 20)
                         Button("Retourner à la séance") { dismiss() }
                             .font(.appBody).fontWeight(.medium)
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .padding(.bottom, 20)
                     }
                     .background(Color.appBg)
@@ -156,7 +156,7 @@ struct WorkoutSummarySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Retour") { dismiss() }.foregroundColor(.orange)
+                    Button("Retour") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
         }
@@ -195,7 +195,7 @@ struct FinishSessionSheet: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         VStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundColor(.orange)
+                            Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundColor(Color.forge)
                             Text("Terminer la séance").font(.appTitle).foregroundColor(.white)
                             Text("\(loggedCount) / \(exercises.count) exercices loggés").font(.appLabel).foregroundColor(.gray)
                         }.padding(.top, 20)
@@ -344,7 +344,7 @@ struct FinishSessionSheet: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("NOTES").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 TextField("Commentaire optionnel...", text: $comment, axis: .vertical)
-                                    .foregroundColor(.white).tint(.orange)
+                                    .foregroundColor(.white).tint(Color.forge)
                                     .lineLimit(3, reservesSpace: true)
                                     .submitLabel(.done)
                                     .onSubmit { hideKeyboard() }
@@ -399,10 +399,10 @@ struct FinishSessionSheet: View {
                                         .font(.appLabel).fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .background(Color.orange.opacity(0.15))
-                                .foregroundColor(.orange)
+                                .background(Color.forge.opacity(0.15))
+                                .foregroundColor(Color.forge)
                                 .cornerRadius(14)
-                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.3), lineWidth: 1))
                             }
                             .padding(.horizontal, 20)
                         }
@@ -413,7 +413,7 @@ struct FinishSessionSheet: View {
                         }) {
                             Text(loggedCount == exercises.count ? "Enregistrer la séance" : "Enregistrer quand même tout")
                                 .font(.appBody).fontWeight(.bold).frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(Color.orange).foregroundColor(.white).cornerRadius(14)
+                                .background(Color.forge).foregroundColor(.white).cornerRadius(14)
                         }
                         .padding(.horizontal, 20).padding(.bottom, 8)
 
@@ -447,7 +447,7 @@ struct FinishSessionSheet: View {
                     Button("Annuler") {
                         if hasUnsavedData { confirmDiscard = true } else { dismiss() }
                     }
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 }
             }
             .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
@@ -564,12 +564,12 @@ struct SessionRecapSheet: View {
                         VStack(spacing: 10) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.orange.opacity(0.12))
+                                    .fill(Color.forge.opacity(0.12))
                                     .frame(width: 96, height: 96)
                                     .scaleEffect(animateHeader ? 1.0 : 0.4)
                                 Image(systemName: "trophy.fill")
                                     .font(.system(size: 46))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                                     .scaleEffect(animateHeader ? 1.0 : 0.3)
                                     .opacity(animateHeader ? 1.0 : 0.0)
                             }
@@ -580,9 +580,9 @@ struct SessionRecapSheet: View {
                                 .offset(y: animateHeader ? 0 : 10)
                             Text(snapshot.sessionName)
                                 .font(.appLabel).fontWeight(.semibold)
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                                 .padding(.horizontal, 14).padding(.vertical, 5)
-                                .background(Color.orange.opacity(0.1))
+                                .background(Color.forge.opacity(0.1))
                                 .cornerRadius(20)
                                 .opacity(animateHeader ? 1.0 : 0.0)
                         }
@@ -599,7 +599,7 @@ struct SessionRecapSheet: View {
                         // Stats row
                         HStack(spacing: 10) {
                             statPill("\(Int(snapshot.durationMin)) min", label: "DURÉE", color: .cyan)
-                            statPill("\(snapshot.logResults.count)", label: "EXERCICES", color: .orange)
+                            statPill("\(snapshot.logResults.count)", label: "EXERCICES", color: Color.forge)
                             statPill("\(totalSets)", label: "SÉRIES", color: .green)
                         }
                         .padding(.horizontal, 20)
@@ -649,7 +649,7 @@ struct SessionRecapSheet: View {
                                     if let r {
                                         Text(UnitSettings.shared.format(r.weight))
                                             .font(.appLabel).fontWeight(.bold)
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(Color.forge)
                                     } else {
                                         Text("Ignoré")
                                             .font(.appCaption)
@@ -717,7 +717,7 @@ struct SessionRecapSheet: View {
                             Text("Continuer")
                                 .font(.appBody).fontWeight(.bold)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(Color.orange).foregroundColor(.white).cornerRadius(14)
+                                .background(Color.forge).foregroundColor(.white).cornerRadius(14)
                         }
                         .buttonStyle(SpringButtonStyle())
                         .padding(.horizontal, 20).padding(.bottom, 32)
@@ -815,7 +815,7 @@ struct EnergyPreWorkoutSheet: View {
             .font(.appBody).fontWeight(.bold)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(Color.orange)
+            .background(Color.forge)
             .foregroundColor(.white)
             .cornerRadius(14)
             .padding(.horizontal, 20)
@@ -873,9 +873,9 @@ struct HIITSeanceView: View {
                     HStack {
                         Text("RPE").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                         Spacer()
-                        Text("\(rpe, specifier: "%.1f")").font(.appTitle).fontWeight(.black).foregroundColor(.orange)
+                        Text("\(rpe, specifier: "%.1f")").font(.appTitle).fontWeight(.black).foregroundColor(Color.forge)
                     }
-                    Slider(value: $rpe, in: 1...10, step: 0.5).tint(.orange)
+                    Slider(value: $rpe, in: 1...10, step: 0.5).tint(Color.forge)
                 }
                 .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
 
@@ -1072,7 +1072,7 @@ struct SpecialSeanceView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("NOTES").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                         TextField("Comment c'était ?", text: $comment, axis: .vertical)
-                            .foregroundColor(.white).tint(.orange)
+                            .foregroundColor(.white).tint(Color.forge)
                             .lineLimit(3, reservesSpace: true)
                             .submitLabel(.done)
                             .onSubmit { hideKeyboard() }
@@ -1149,7 +1149,7 @@ struct StepperRow: View {
                 }
                 Text("\(value)").font(.appTitle).fontWeight(.black).foregroundColor(.white).frame(width: 50, alignment: .center)
                 Button(action: { if value + step <= range.upperBound { value += step } }) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 28)).foregroundColor(.orange)
+                    Image(systemName: "plus.circle.fill").font(.system(size: 28)).foregroundColor(Color.forge)
                 }
             }
         }
@@ -1212,7 +1212,7 @@ struct ErrorView: View {
             Image(systemName: "wifi.slash").font(.system(size: 48)).foregroundColor(.gray)
             Text("Erreur").foregroundColor(.white).font(.headline)
             Text(message).font(.caption).foregroundColor(.gray).multilineTextAlignment(.center)
-            Button("Réessayer", action: retry).foregroundColor(.orange)
+            Button("Réessayer", action: retry).foregroundColor(Color.forge)
         }.padding()
     }
 }

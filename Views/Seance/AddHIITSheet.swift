@@ -154,7 +154,7 @@ struct AddHIITSheet: View {
                         } label: {
                             Label("Sauvegarder comme template", systemImage: "bookmark")
                                 .font(.appLabel)
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                                 .frame(maxWidth: .infinity).padding(.vertical, 10)
                                 .background(Color.appCard).cornerRadius(10)
                         }
@@ -176,7 +176,7 @@ struct AddHIITSheet: View {
             .navigationTitle("HIIT").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
             .alert("Nom du template", isPresented: $showSavePrompt) {

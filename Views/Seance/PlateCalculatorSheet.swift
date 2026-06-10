@@ -66,7 +66,7 @@ struct PlateCalculatorSheet: View {
                                 if isValid {
                                     Label("Par côté : \(String(format: "%.2f", perSide)) \(units.label)", systemImage: "arrow.left.and.right")
                                         .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.forge)
                                 }
                             }
                             .padding(.horizontal, 4)
@@ -109,7 +109,7 @@ struct PlateCalculatorSheet: View {
                         } else if totalInput != nil {
                             Label("Poids inférieur au poids de barre (\(barWeightStr))", systemImage: "exclamationmark.circle.fill")
                                 .font(.appLabel)
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
@@ -150,7 +150,7 @@ struct PlateCalculatorSheet: View {
                                     .foregroundColor(Color.appBg)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 15)
-                                    .background(Color.orange)
+                                    .background(Color.forge)
                                     .clipShape(RoundedRectangle(cornerRadius: 14))
                             }
                             .buttonStyle(SpringButtonStyle())

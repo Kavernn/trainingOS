@@ -189,19 +189,19 @@ struct PeakPredictionCard: View {
                                 .frame(width: 36, height: 36)
                             if day.isPeak {
                                 Circle()
-                                    .stroke(Color.orange, lineWidth: 1.5)
+                                    .stroke(Color.forge, lineWidth: 1.5)
                                     .frame(width: 36, height: 36)
                             }
                             Text("\(Int(day.predictedLss))")
                                 .font(.appCaption.weight(day.isPeak ? .black : .semibold))
-                                .foregroundColor(day.isPeak ? .orange : levelColor(day.level))
+                                .foregroundColor(day.isPeak ? Color.forge : levelColor(day.level))
                         }
                         Text(dayLabel(day.date))
                             .font(.appCaption.weight(.medium))
-                            .foregroundColor(day.isPeak ? .orange : .gray)
+                            .foregroundColor(day.isPeak ? Color.forge : .gray)
                         if day.isPeak {
                             Image(systemName: "star.fill")
-                                .font(.system(size: 7)).foregroundColor(.orange)
+                                .font(.system(size: 7)).foregroundColor(Color.forge)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -214,17 +214,17 @@ struct PeakPredictionCard: View {
                     HStack(spacing: 6) {
                         Image(systemName: "star.fill")
                             .font(.appCaption)
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         Text("Jour optimal : \(dayLabel(peakDay.date)) — Voir les stats")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                     .padding(.horizontal, 10).padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.08))
+                    .background(Color.forge.opacity(0.08))
                     .cornerRadius(10)
                 }
                 .buttonStyle(.plain)
@@ -244,19 +244,19 @@ struct DeloadChipView: View {
         HStack(spacing: 8) {
             Image(systemName: "flame.fill")
                 .font(.appCaption)
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
             Text("Fatigue accumulée détectée — score \(report.fatigueScore)/100")
                 .font(.appLabel)
                 .foregroundColor(.white)
             Spacer()
             Text("Niv. \(report.fatigueLevel)")
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
             CardInfoButton(title: "Fatigue & déload", entries: InfoEntry.deloadEntries)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Color.orange.opacity(0.10))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+        .background(Color.forge.opacity(0.10))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.25), lineWidth: 1))
         .cornerRadius(12)
     }
 }
@@ -403,7 +403,7 @@ struct SleepPromptCard: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(Color.orange)
+                .background(Color.forge)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
@@ -413,7 +413,7 @@ struct SleepPromptCard: View {
             if durationHours <= 0 || durationHours > 16 {
                 Text("Durée invalide — ajuste l'heure de coucher ou de réveil")
                     .font(.appCaption)
-                    .foregroundColor(.orange.opacity(0.85))
+                    .foregroundColor(Color.forge.opacity(0.85))
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         }

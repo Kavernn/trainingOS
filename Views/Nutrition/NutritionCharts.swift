@@ -83,7 +83,7 @@ struct WeeklyCalorieChart: View {
                             VStack(spacing: 0) {
                                 Spacer()
                                 RoundedRectangle(cornerRadius: 4)
-                                    .fill(isToday ? Color.orange : Color.orange.opacity(0.4))
+                                    .fill(isToday ? Color.forge : Color.forge.opacity(0.4))
                                     .frame(height: max(geo.size.height * pct, 4))
                             }
                         }
@@ -93,7 +93,7 @@ struct WeeklyCalorieChart: View {
                             .foregroundColor(.gray)
                         Text("\(Int(day.calories))")
                             .font(.appMicro.weight(.semibold))
-                            .foregroundColor(isToday ? .orange : .gray)
+                            .foregroundColor(isToday ? Color.forge : .gray)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -101,7 +101,7 @@ struct WeeklyCalorieChart: View {
 
             if let t = target {
                 HStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: 2).fill(Color.orange.opacity(0.3)).frame(width: 20, height: 2)
+                    RoundedRectangle(cornerRadius: 2).fill(Color.forge.opacity(0.3)).frame(width: 20, height: 2)
                     Text("Objectif \(Int(t)) kcal")
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
@@ -148,7 +148,7 @@ struct WeeklyNutritionChart: View {
         }
     }
 
-    private var accentColor: Color { metric == .calories ? .orange : .blue }
+    private var accentColor: Color { metric == .calories ? Color.forge : .blue }
 
     private func value(for day: NutritionDayHistory) -> Double {
         metric == .calories ? day.calories : day.proteines

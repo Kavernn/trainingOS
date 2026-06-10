@@ -22,7 +22,7 @@ struct MealTemplateListSheet: View {
                         Text("Aucun repas sauvegardé")
                             .foregroundColor(.gray)
                         Button("Créer mon premier repas") { showCreate = true }
-                            .buttonStyle(.borderedProminent).tint(.orange)
+                            .buttonStyle(.borderedProminent).tint(Color.forge)
                     }
                 } else {
                     List {
@@ -34,7 +34,7 @@ struct MealTemplateListSheet: View {
                                             .foregroundColor(.white).fontWeight(.semibold)
                                         HStack(spacing: 10) {
                                             Text("\(Int(template.totalCalories)) kcal")
-                                                .font(.system(size: 12)).foregroundColor(.orange)
+                                                .font(.system(size: 12)).foregroundColor(Color.forge)
                                             Text("\(template.items.count) aliment\(template.items.count > 1 ? "s" : "")")
                                                 .font(.system(size: 12)).foregroundColor(.gray)
                                         }
@@ -63,11 +63,11 @@ struct MealTemplateListSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.orange)
+                    Button("Fermer") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showCreate = true } label: {
-                        Image(systemName: "plus").foregroundColor(.orange)
+                        Image(systemName: "plus").foregroundColor(Color.forge)
                     }
                 }
             }
@@ -138,7 +138,7 @@ struct MealTemplateEditorSheet: View {
                             withAnimation { showAddItem.toggle() }
                         } label: {
                             Image(systemName: showAddItem ? "minus.circle.fill" : "plus.circle.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                         }
                         .buttonStyle(.plain)
                         .textCase(nil)
@@ -198,7 +198,7 @@ struct MealTemplateEditorSheet: View {
                                     showAddItem = false
                                 }
                             }
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .disabled(newItemName.isEmpty)
                         }
                         .listRowBackground(Color.appCard)
@@ -210,7 +210,7 @@ struct MealTemplateEditorSheet: View {
                                 Text("Total")
                                 Spacer()
                                 Text("\(Int(totalCalories)) kcal · \(Int(totalProteines))g prot")
-                                    .font(.appLabel).foregroundColor(.orange)
+                                    .font(.appLabel).foregroundColor(Color.forge)
                             }
                         }
                         .listRowBackground(Color.appCard)
@@ -223,11 +223,11 @@ struct MealTemplateEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(isSaving ? "…" : "Sauvegarder") { save() }
-                        .foregroundColor(.orange).fontWeight(.semibold)
+                        .foregroundColor(Color.forge).fontWeight(.semibold)
                         .disabled(name.isEmpty || items.isEmpty || isSaving)
                 }
             }

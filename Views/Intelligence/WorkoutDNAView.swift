@@ -410,7 +410,7 @@ private struct WorkoutDNAInlineContent: View {
                             .foregroundColor(.gray)
                         Text("Diversité \(patterns.diversityScore)%")
                             .font(.appCaption)
-                            .foregroundColor(patterns.diversityScore >= 40 ? accent : .orange)
+                            .foregroundColor(patterns.diversityScore >= 40 ? accent : Color.forge)
                     }
                 }
             }
@@ -1082,7 +1082,7 @@ private struct DNAErrorState: View {
     let onRetry: () -> Void
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle").font(.system(size: 26)).foregroundColor(.orange.opacity(0.7))
+            Image(systemName: "exclamationmark.triangle").font(.system(size: 26)).foregroundColor(Color.forge.opacity(0.7))
             Text("Erreur de chargement")
                 .font(.appLabel).foregroundColor(.gray)
             Button(action: onRetry) {

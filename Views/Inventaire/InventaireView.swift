@@ -161,7 +161,7 @@ struct CatalogueView: View {
                                 ZStack(alignment: .topTrailing) {
                                     Image(systemName: "tag.fill")
                                         .font(.appBody.weight(.semibold))
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.forge)
                                     Text("\(gapsCount)")
                                         .font(.appMicro.weight(.black))
                                         .foregroundColor(.white)
@@ -257,7 +257,7 @@ struct CatalogueView: View {
             Image(systemName: "magnifyingglass").foregroundColor(.gray)
             TextField("Rechercher...", text: $searchText)
                 .foregroundColor(.white)
-                .tint(.orange)
+                .tint(Color.forge)
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
@@ -574,7 +574,7 @@ struct CatalogueRow: View {
                     if !item.defaultScheme.isEmpty {
                         Text("·").foregroundColor(.gray.opacity(0.4)).font(.appCaption)
                         Text(item.defaultScheme)
-                            .font(.appCaption.weight(.medium)).foregroundColor(.orange.opacity(0.8))
+                            .font(.appCaption.weight(.medium)).foregroundColor(Color.forge.opacity(0.8))
                     }
                     if !item.loadProfile.isEmpty {
                         let (lpLabel, lpColor) = loadProfileInfo(item.loadProfile)
@@ -594,7 +594,7 @@ struct CatalogueRow: View {
                 } label: {
                     Image(systemName: "play.circle.fill")
                         .font(.appTitle.weight(.regular))
-                        .foregroundColor(.orange.opacity(0.75))
+                        .foregroundColor(Color.forge.opacity(0.75))
                 }
                 .buttonStyle(.plain)
             }
@@ -689,7 +689,7 @@ private struct WeightTypeOption {
 }
 
 private let kWeightTypes: [WeightTypeOption] = [
-    WeightTypeOption(key: "barbell",      label: "Barre",        note: "Poids par côté + barre",   color: .orange),
+    WeightTypeOption(key: "barbell",      label: "Barre",        note: "Poids par côté + barre",   color: Color.forge),
     WeightTypeOption(key: "dumbbell",     label: "Haltères",     note: "Poids par haltère",         color: .blue),
     WeightTypeOption(key: "cable_single", label: "Câble",        note: "Poids de la pile",          color: .teal),
     WeightTypeOption(key: "cable_double", label: "Câble ×2",     note: "Pile × 2 (bilatéral)",     color: .teal),
@@ -792,7 +792,7 @@ private struct SecondaryMusclesSheet: View {
                                                 .foregroundColor(isPrimary || isMaxed ? .gray.opacity(0.4) : .white)
                                             Spacer()
                                             if isSelected {
-                                                Image(systemName: "checkmark.circle.fill").foregroundColor(.orange)
+                                                Image(systemName: "checkmark.circle.fill").foregroundColor(Color.forge)
                                             } else if isPrimary {
                                                 Text("principal").font(.appMicro).foregroundColor(.gray.opacity(0.5))
                                             }
@@ -816,7 +816,7 @@ private struct SecondaryMusclesSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("OK") { dismiss() }.foregroundColor(.orange)
+                    Button("OK") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
         }
@@ -909,7 +909,7 @@ struct InventoryFormSheet: View {
                         guard canSave else { return }
                         saveItem()
                     }
-                    .foregroundColor(canSave ? .orange : .gray)
+                    .foregroundColor(canSave ? Color.forge : .gray)
                     .disabled(!canSave)
                 }
             }
@@ -1070,7 +1070,7 @@ struct InventoryFormSheet: View {
                 }
             }
             .pickerStyle(.menu)
-            .tint(muscleGroup.isEmpty ? .gray : .orange)
+            .tint(muscleGroup.isEmpty ? .gray : Color.forge)
 
             if !availableSpecifics.isEmpty {
                 Picker("Muscle spécifique", selection: $muscleSpecific) {
@@ -1080,7 +1080,7 @@ struct InventoryFormSheet: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .tint(.orange.opacity(0.8))
+                .tint(Color.forge.opacity(0.8))
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -1097,7 +1097,7 @@ struct InventoryFormSheet: View {
                                 Image(systemName: "plus.circle.fill")
                                 Text("Ajouter").font(.appCaption.weight(.medium))
                             }
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         }
                         .buttonStyle(.plain)
                     }
@@ -1118,9 +1118,9 @@ struct InventoryFormSheet: View {
                                 }
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 8).padding(.vertical, 4)
-                                .background(Color.orange.opacity(0.2))
+                                .background(Color.forge.opacity(0.2))
                                 .cornerRadius(8)
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.3), lineWidth: 1))
                             }
                         }
                     }
@@ -1156,7 +1156,7 @@ struct InventoryFormSheet: View {
                             .foregroundColor(sel ? .black : .white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 7)
-                            .background(sel ? Color.orange : Color.appSurfaceInset)
+                            .background(sel ? Color.forge : Color.appSurfaceInset)
                             .cornerRadius(10)
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
                     }
@@ -1169,7 +1169,7 @@ struct InventoryFormSheet: View {
                 sectionHeader("Pattern de mouvement")
                 Text("·  requis")
                     .font(.appMicro)
-                    .foregroundColor(movementPattern.isEmpty ? .orange.opacity(0.7) : .gray.opacity(0.5))
+                    .foregroundColor(movementPattern.isEmpty ? Color.forge.opacity(0.7) : .gray.opacity(0.5))
                     .textCase(nil)
             }
         }
@@ -1244,7 +1244,7 @@ struct InventoryFormSheet: View {
                                     .font(.appCaption.weight(.medium))
                                     .foregroundColor(sel ? .black : .white)
                                     .padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(sel ? Color.orange : Color.appSurfaceInset)
+                                    .background(sel ? Color.forge : Color.appSurfaceInset)
                                     .cornerRadius(16)
                                     .overlay(Capsule().stroke(sel ? .clear : Color.white.opacity(0.15), lineWidth: 1))
                             }
@@ -1323,7 +1323,7 @@ struct InventoryFormSheet: View {
                                 Text(s)
                                     .font(.appCaption.weight(.medium))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(defaultScheme == s ? Color.orange : Color.appSurfaceInset)
+                                    .background(defaultScheme == s ? Color.forge : Color.appSurfaceInset)
                                     .foregroundColor(defaultScheme == s ? .black : .white)
                                     .cornerRadius(16)
                             }
@@ -1357,7 +1357,7 @@ struct InventoryFormSheet: View {
         Section {
             let opts: [(String, String, Color)] = [
                 ("compound_heavy",       "Composé lourd\n5–8 reps",  .red),
-                ("compound_hypertrophy", "Composé hyper\n8–12 reps", .orange),
+                ("compound_hypertrophy", "Composé hyper\n8–12 reps", Color.forge),
                 ("isolation",            "Isolation\n12–15 reps",     .yellow),
             ]
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
@@ -1399,7 +1399,7 @@ struct InventoryFormSheet: View {
                             .foregroundColor(sel ? .black : .white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
-                            .background(sel ? Color.orange : Color.appSurfaceInset)
+                            .background(sel ? Color.forge : Color.appSurfaceInset)
                             .cornerRadius(10)
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
                     }
@@ -1435,7 +1435,7 @@ struct InventoryFormSheet: View {
                             .font(.appLabel.weight(.semibold))
                             .foregroundColor(restSecs == nil ? .black : .gray)
                             .padding(.horizontal, 14).padding(.vertical, 7)
-                            .background(restSecs == nil ? Color.orange : Color.appSurfaceInset)
+                            .background(restSecs == nil ? Color.forge : Color.appSurfaceInset)
                             .clipShape(Capsule())
                     }
                     ForEach([30, 45, 60, 90, 120, 180], id: \.self) { s in
@@ -1444,7 +1444,7 @@ struct InventoryFormSheet: View {
                                 .font(.appLabel.weight(.semibold))
                                 .foregroundColor(restSecs == s ? .black : .white)
                                 .padding(.horizontal, 14).padding(.vertical, 7)
-                                .background(restSecs == s ? Color.orange : Color.appSurfaceInset)
+                                .background(restSecs == s ? Color.forge : Color.appSurfaceInset)
                                 .clipShape(Capsule())
                         }
                     }
@@ -1454,7 +1454,7 @@ struct InventoryFormSheet: View {
                 HStack {
                     Text("Repos configuré").foregroundColor(.gray).font(.appLabel.weight(.regular))
                     Spacer()
-                    Text(formatDur(r)).font(.appLabel.weight(.semibold)).foregroundColor(.orange)
+                    Text(formatDur(r)).font(.appLabel.weight(.semibold)).foregroundColor(Color.forge)
                 }
             }
         } header: {
@@ -1566,9 +1566,9 @@ struct ExerciseMediaSheet: View {
                                     ForEach(muscles, id: \.self) { m in
                                         Text(m.capitalized)
                                             .font(.appCaption.weight(.medium))
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(Color.forge)
                                             .padding(.horizontal, 10).padding(.vertical, 5)
-                                            .background(Color.orange.opacity(0.1))
+                                            .background(Color.forge.opacity(0.1))
                                             .clipShape(Capsule())
                                     }
                                 }
@@ -1627,11 +1627,11 @@ struct ExerciseMediaSheet: View {
                 .foregroundColor(active ? .white : .gray)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
-                .background(active ? Color.orange.opacity(0.2) : Color.clear)
+                .background(active ? Color.forge.opacity(0.2) : Color.clear)
         }
         .buttonStyle(.plain)
         .overlay(alignment: .bottom) {
-            if active { Rectangle().fill(Color.orange).frame(height: 2) }
+            if active { Rectangle().fill(Color.forge).frame(height: 2) }
         }
     }
 }
@@ -1698,7 +1698,7 @@ struct CatalogueExerciseDetailView: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
-                    ProgressView().tint(.orange)
+                    ProgressView().tint(Color.forge)
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 20) {
@@ -2066,7 +2066,7 @@ struct AddExerciseToProgramSheet: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
-                    ProgressView().tint(.orange)
+                    ProgressView().tint(Color.forge)
                 } else if seances.isEmpty {
                     EmptyStateView(icon: "list.bullet.clipboard", title: "Aucune séance dans ton programme", compact: true)
                         .padding(.top, 60)

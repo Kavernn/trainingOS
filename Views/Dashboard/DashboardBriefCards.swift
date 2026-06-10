@@ -624,7 +624,7 @@ struct MorningBriefCardView: View {
 
     private var flagChips: [FlagChip] {
         var chips: [FlagChip] = []
-        if data.flags.hrvDrop        { chips.append(.init(icon: "waveform.path.ecg", label: "HRV bas",          color: .orange)) }
+        if data.flags.hrvDrop        { chips.append(.init(icon: "waveform.path.ecg", label: "HRV bas",          color: Color.forge)) }
         if data.flags.sleepDeprivation { chips.append(.init(icon: "moon.zzz.fill",  label: "Manque sommeil",   color: .blue)) }
         if data.flags.trainingOverload { chips.append(.init(icon: "flame.fill",      label: "Surcharge",       color: .red)) }
         return chips

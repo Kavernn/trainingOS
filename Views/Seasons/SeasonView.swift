@@ -13,7 +13,7 @@ struct SeasonView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .orange)
+                AmbientBackground(color: Color.forge)
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {

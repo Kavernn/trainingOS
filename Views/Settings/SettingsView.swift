@@ -15,7 +15,7 @@ struct SettingsView: View {
                 .listRowSeparatorTint(Color.white.opacity(0.06))
 
                 Section("Entraînement") {
-                    MoreRow(icon: "dumbbell.fill", color: .orange,
+                    MoreRow(icon: "dumbbell.fill", color: Color.forge,
                             title: "Entraînement",
                             subtitle: "Incréments, échauffement, RIR, timer") { TrainingSettingsView() }
                     MoreRow(icon: "fork.knife", color: .green,
@@ -25,7 +25,7 @@ struct SettingsView: View {
                             title: "Cardio",
                             subtitle: "FC max, objectif hebdo") { CardioSettingsView() }
                 }
-                .listRowBackground(glassRowBG(.orange))
+                .listRowBackground(glassRowBG(Color.forge))
                 .listRowSeparatorTint(Color.white.opacity(0.06))
 
                 Section("Récupération") {

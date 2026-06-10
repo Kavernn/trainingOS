@@ -19,7 +19,7 @@ struct PSSView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .orange)
+            AmbientBackground(color: Color.forge)
 
                 if isLoading {
                     AppLoadingView()
@@ -48,7 +48,7 @@ struct PSSView: View {
                                 // P-D4: LSS error state with retry
                                 HStack(spacing: 10) {
                                     Image(systemName: "exclamationmark.triangle")
-                                        .font(.appLabel.weight(.regular)).foregroundColor(.orange)
+                                        .font(.appLabel.weight(.regular)).foregroundColor(Color.forge)
                                     Text("Données de stress momentané indisponibles")
                                         .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                                     Spacer()
@@ -60,7 +60,7 @@ struct PSSView: View {
                                     }
                                 }
                                 .padding(14)
-                                .glassCard(color: .orange, intensity: 0.05)
+                                .glassCard(color: Color.forge, intensity: 0.05)
                                 .cornerRadius(14)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.04)
@@ -389,9 +389,9 @@ struct PSSHistoryRow: View {
                                 if let val = record.triggerRatings[key] {
                                     Text("\(key) : \(val)/4")
                                         .font(.appCaption.weight(.medium))
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.forge)
                                         .padding(.horizontal, 7).padding(.vertical, 3)
-                                        .background(Color.orange.opacity(0.1))
+                                        .background(Color.forge.opacity(0.1))
                                         .cornerRadius(5)
                                 }
                             }
@@ -983,7 +983,7 @@ struct TriggerRatingSection: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 7)
-                                .background(ratings[trigger] == val ? Color.orange.opacity(0.6) : Color.white.opacity(0.04))
+                                .background(ratings[trigger] == val ? Color.forge.opacity(0.6) : Color.white.opacity(0.04))
                                 .cornerRadius(7)
                             }
                             .buttonStyle(.plain)
@@ -1113,7 +1113,7 @@ struct LSSCompactCard: View {
                     LSSComponentPill(icon: "waveform.path.ecg", color: .green, label: "HRV", value: Int(hrv))
                 }
                 if let fat = lss.components.trainingFatigue {
-                    LSSComponentPill(icon: "bolt.fill", color: .orange, label: "Fatigue", value: Int(fat))
+                    LSSComponentPill(icon: "bolt.fill", color: Color.forge, label: "Fatigue", value: Int(fat))
                 }
             }
 
@@ -1208,7 +1208,7 @@ struct PSSTrendChart: View {
             HStack {
                 Text("Faible ≤13").font(.appMicro).foregroundColor(.green)
                 Spacer()
-                Text("Modéré ≤26").font(.appMicro).foregroundColor(.orange)
+                Text("Modéré ≤26").font(.appMicro).foregroundColor(Color.forge)
                 Spacer()
                 Text("Élevé ≤40").font(.appMicro).foregroundColor(.red)
             }

@@ -17,7 +17,7 @@ struct EnergyRecoveryView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            AmbientBackground(color: .orange)
+            AmbientBackground(color: Color.forge)
 
             VStack(spacing: 0) {
                 ERTabPicker(activeTab: $activeTab)
@@ -125,7 +125,7 @@ private struct ERTabPicker: View {
                 .foregroundColor(selected ? .white : .gray)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(selected ? Color.orange : Color.clear)
+                .background(selected ? Color.forge : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .padding(3)
         }
@@ -226,6 +226,18 @@ struct EnergyHeaderCard: View {
                           value: bal,
                           unit: "", color: energy.statusColor)
             }
+
+            if energy.isTooEarly == true {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock")
+                        .font(.appCaption)
+                        .foregroundColor(.gray)
+                    Text("Bilan partiel — BMR proraté au temps écoulé")
+                        .font(.appCaption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.top, 2)
+            }
         }
         .padding(16)
         .background(Color.appCard)
@@ -261,7 +273,7 @@ private struct EnergyBreakdownCard: View {
     var activeEnergy: Double? = nil
 
     var body: some View {
-        let bmrVal   = energy.bmr ?? 0
+        let bmrVal   = energy.bmrElapsed ?? energy.bmr ?? 0
         let eatW     = energy.eatWorkouts ?? 0
         let eatC     = energy.eatCardio ?? 0
         let neatVal  = energy.neat ?? 0
@@ -276,7 +288,7 @@ private struct EnergyBreakdownCard: View {
 
             VStack(spacing: 8) {
                 breakdownRow(label: "BMR",
-                             subtitle: energy.bmrFormulaLabel,
+                             subtitle: energy.bmrFormulaProgressLabel,
                              value: bmrVal,
                              color: .blue,
                              total: tdee)
@@ -284,7 +296,7 @@ private struct EnergyBreakdownCard: View {
                     breakdownRow(label: "Musculation",
                                  subtitle: "\(energy.breakdown?.workouts?.count ?? 0) séance(s)",
                                  value: eatW,
-                                 color: .orange,
+                                 color: Color.forge,
                                  total: tdee)
                 }
                 if eatC > 0 {
@@ -295,8 +307,16 @@ private struct EnergyBreakdownCard: View {
                                  total: tdee)
                 }
                 if neatVal > 0 {
+                    let stepsLabel: String = {
+                        if let net = energy.breakdown?.stepsNet, let total = energy.breakdown?.steps, net < total {
+                            return "\(net) pas nets (\(total) bruts)"
+                        }
+                        return energy.breakdown?.stepsNet.map { "\($0) pas" }
+                            ?? energy.breakdown?.steps.map { "\($0) pas" }
+                            ?? "Activité légère"
+                    }()
                     breakdownRow(label: "NEAT",
-                                 subtitle: energy.breakdown?.steps.map { "\($0) pas" } ?? "Activité légère",
+                                 subtitle: stepsLabel,
                                  value: neatVal,
                                  color: .green,
                                  total: tdee)
@@ -316,7 +336,7 @@ private struct EnergyBreakdownCard: View {
                     HStack(spacing: 8) {
                         Image(systemName: "applewatch")
                             .font(.appCaption)
-                            .foregroundColor(isRestDay && ae > 800 ? .orange : .gray)
+                            .foregroundColor(isRestDay && ae > 800 ? Color.forge : .gray)
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Dépense active (HealthKit)")
                                 .font(.appCaption.weight(.medium))
@@ -324,13 +344,13 @@ private struct EnergyBreakdownCard: View {
                             if isRestDay && ae > 800 {
                                 Text("Activité élevée malgré le repos")
                                     .font(.appCaption)
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                         }
                         Spacer()
                         Text("\(Int(ae)) kcal")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundColor(isRestDay && ae > 800 ? .orange : .gray)
+                            .foregroundColor(isRestDay && ae > 800 ? Color.forge : .gray)
                     }
                     .padding(.top, 2)
                 }
@@ -344,7 +364,7 @@ private struct EnergyBreakdownCard: View {
                     Spacer()
                     Text("\(tdee) kcal")
                         .font(.system(size: 15, weight: .black, design: .rounded))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
             }
         }
@@ -396,7 +416,7 @@ private struct EnergyErrorCard: View {
         HStack(spacing: 12) {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
                 .font(.appTitle.weight(.regular))
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
             Text(message)
                 .font(.appLabel.weight(.regular))
                 .foregroundColor(.white.opacity(0.8))
@@ -408,7 +428,7 @@ private struct EnergyErrorCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                .stroke(Color.forge.opacity(0.2), lineWidth: 1)
         )
     }
 }
@@ -709,15 +729,15 @@ private struct UnifiedRecoverySleepSection: View {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.appCaption)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                     Text(err)
                         .font(.appCaption)
-                        .foregroundColor(.orange.opacity(0.9))
+                        .foregroundColor(Color.forge.opacity(0.9))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.08))
+                .background(Color.forge.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
@@ -733,7 +753,7 @@ private struct UnifiedRecoverySleepSection: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.orange.opacity(0.15), lineWidth: 1)
+                .stroke(Color.forge.opacity(0.15), lineWidth: 1)
         )
         .sheet(isPresented: $showLogSheet) {
             LogRecoverySheet(prefillEntry: today, onSaved: { await onRefresh() })
@@ -763,10 +783,10 @@ private struct UnifiedRecoverySleepSection: View {
                     Image(systemName: "chevron.right")
                         .font(.appMicro)
                 }
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
-                .background(Color.orange.opacity(0.1))
+                .background(Color.forge.opacity(0.1))
                 .clipShape(Capsule())
             }
 #if !targetEnvironment(macCatalyst)
@@ -778,15 +798,15 @@ private struct UnifiedRecoverySleepSection: View {
                         ProgressView()
                             .progressViewStyle(.circular)
                             .scaleEffect(0.7)
-                            .tint(.orange)
+                            .tint(Color.forge)
                     } else {
                         Image(systemName: "arrow.clockwise")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                     }
                 }
                 .padding(6)
-                .background(Color.orange.opacity(0.1))
+                .background(Color.forge.opacity(0.1))
                 .clipShape(Circle())
             }
             .disabled(watchSync.isSyncing)
@@ -961,10 +981,10 @@ private struct UnifiedRecoverySleepSection: View {
             HStack(spacing: 6) {
                 Text(showExpanded ? "Voir moins" : "Voir plus")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 Image(systemName: showExpanded ? "chevron.up" : "chevron.down")
                     .font(.appMicro.weight(.bold))
-                    .foregroundColor(.orange.opacity(0.7))
+                    .foregroundColor(Color.forge.opacity(0.7))
                 Spacer()
                 Text("Toutes les métriques")
                     .font(.appMicro)
@@ -1007,7 +1027,7 @@ private struct UnifiedRecoverySleepSection: View {
             TappableMetricCell(label: "Pas", value: entry.steps.map { "\($0)" } ?? "—",
                                icon: "figure.walk", color: .green, infoEntry: InfoEntry.stepsMetric)
             TappableMetricCell(label: "Courbatures", value: entry.soreness.map { "\(Int($0))/10" } ?? "—",
-                               icon: "bolt.fill", color: .orange, infoEntry: InfoEntry.sorenessMetric)
+                               icon: "bolt.fill", color: Color.forge, infoEntry: InfoEntry.sorenessMetric)
             TappableMetricCell(label: "Fatigue", value: entry.fatigue.map { "\(Int($0))/10" } ?? "—",
                                icon: "gauge", color: .purple, infoEntry: InfoEntry.fatigueMetric)
             TappableMetricCell(label: "Énergie perçue", value: energyPre.map { "\(Int($0))/10" } ?? "—",
@@ -1016,7 +1036,7 @@ private struct UnifiedRecoverySleepSection: View {
             TappableMetricCell(label: "FC Matin", value: entry.hrMorning.map { "\(Int($0)) bpm" } ?? "—",
                                icon: "sun.max.fill", color: .yellow, infoEntry: InfoEntry.hrMorningMetric)
             TappableMetricCell(label: "FC Post-Séance", value: entry.hrPostWorkout.map { "\(Int($0)) bpm" } ?? "—",
-                               icon: "figure.strengthtraining.traditional", color: .orange,
+                               icon: "figure.strengthtraining.traditional", color: Color.forge,
                                infoEntry: InfoEntry.hrPostWorkoutMetric)
             TappableMetricCell(label: "FC Soir", value: entry.hrEvening.map { "\(Int($0)) bpm" } ?? "—",
                                icon: "moon.fill", color: .indigo, infoEntry: InfoEntry.hrEveningMetric)
@@ -1081,7 +1101,7 @@ private struct UnifiedRecoverySleepSection: View {
             } label: {
                 Label("Synchroniser HealthKit", systemImage: "arrow.clockwise")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
             }
             .disabled(watchSync.isSyncing)
 #endif
@@ -1327,7 +1347,7 @@ private struct Sleep10dChart: View {
     private var chartPoints: [SleepPoint] {
         Array(history.prefix(10).reversed()).map { e in
             let color: Color = e.durationHours >= 7 ? .green
-                             : e.durationHours >= 6 ? .orange : .red
+                             : e.durationHours >= 6 ? Color.forge : .red
             return SleepPoint(id: e.id, label: shortDate(e.date),
                               duration: e.durationHours, quality: e.quality,
                               durColor: color)
@@ -1481,7 +1501,7 @@ private struct DynamicSuggestionsSection: View {
         // ── Alertes sommeil / récup (orange) ───────────────────────────────
         if sleepHours > 0 && sleepHours < 6 {
             list.append(Suggestion(
-                icon: "bed.double.fill", color: .orange,
+                icon: "bed.double.fill", color: Color.forge,
                 title: "Sommeil insuffisant",
                 detail: "Moins de 6h cette nuit — la récupération et la synthèse protéique sont compromises. Couche-toi plus tôt.",
                 priority: 3
@@ -1491,7 +1511,7 @@ private struct DynamicSuggestionsSection: View {
         if fatigue >= 7 || soreness >= 7 {
             let field = fatigue >= soreness ? "fatigue" : "courbatures"
             list.append(Suggestion(
-                icon: "bolt.slash.fill", color: .orange,
+                icon: "bolt.slash.fill", color: Color.forge,
                 title: "Récupération insuffisante",
                 detail: "Score de \(field) élevé — envisage une séance légère ou un jour de repos actif aujourd'hui.",
                 priority: 3
@@ -1501,7 +1521,7 @@ private struct DynamicSuggestionsSection: View {
         // ── Surplus trop élevé (orange) ────────────────────────────────────
         if !tooEarly && balanceStatus == "surplus_high" {
             list.append(Suggestion(
-                icon: "arrow.up.circle.fill", color: .orange,
+                icon: "arrow.up.circle.fill", color: Color.forge,
                 title: "Surplus trop élevé",
                 detail: "Ton surplus dépasse +600 kcal. Ajoute 20-30 min de cardio ou réduis de ~200 kcal.",
                 priority: 4

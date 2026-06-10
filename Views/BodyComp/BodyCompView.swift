@@ -128,7 +128,7 @@ struct BodyCompView: View {
                     if let w = latest?.weight {
                         Text(units.format(w))
                             .font(.system(size: 44, weight: .black))
-                            .foregroundColor(.orange).glow(.orange)
+                            .foregroundColor(Color.forge).glow(Color.forge)
                             .contentTransition(.numericText())
                     } else {
                         Text("— \(units.label)")
@@ -389,7 +389,7 @@ struct WHRCard: View {
                 ZStack(alignment: .leading) {
                     HStack(spacing: 0) {
                         Rectangle().fill(Color.green.opacity(0.25)).frame(width: goodX)
-                        Rectangle().fill(Color.orange.opacity(0.25)).frame(width: okX - goodX)
+                        Rectangle().fill(Color.forge.opacity(0.25)).frame(width: okX - goodX)
                         Rectangle().fill(Color.red.opacity(0.25))
                     }
                     .clipShape(Capsule()).frame(height: 8)
@@ -431,7 +431,7 @@ struct MeasurementsCard: View {
         let defs: [(String, String, Color, Double?, Double?)] = [
             ("Taille",    "arrow.left.and.right",                   .purple, l.waistCm,  ref?.waistCm),
             ("Cou",       "bolt.ring.closed",                       .teal,   l.neckCm,   ref?.neckCm),
-            ("Bras",      "figure.strengthtraining.traditional",     .orange, l.armsCm,   ref?.armsCm),
+            ("Bras",      "figure.strengthtraining.traditional",     Color.forge, l.armsCm,   ref?.armsCm),
             ("Poitrine",  "heart.fill",                             .red,    l.chestCm,  ref?.chestCm),
             ("Cuisses",   "figure.walk",                            .blue,   l.thighsCm, ref?.thighsCm),
             ("Hanches",   "oval.portrait",                          .pink,   l.hipsCm,   ref?.hipsCm),
@@ -646,8 +646,8 @@ struct BodyWeightRow: View {
                 Image(systemName: "pencil")
                     .font(.appLabel.weight(.semibold))
                     .frame(width: 32, height: 32)
-                    .background(Color.orange.opacity(0.12))
-                    .foregroundColor(.orange)
+                    .background(Color.forge.opacity(0.12))
+                    .foregroundColor(Color.forge)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
@@ -807,7 +807,7 @@ struct BodyWeightSheet: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
-                .background(weightStr.isEmpty ? Color.gray.opacity(0.3) : Color.orange)
+                .background(weightStr.isEmpty ? Color.gray.opacity(0.3) : Color.forge)
                 .cornerRadius(14)
                 .disabled(weightStr.isEmpty || isSaving)
                 .padding(.horizontal, 20)
@@ -819,16 +819,16 @@ struct BodyWeightSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     if bodyFocus == .weight {
                         Button("% Gras →") { bodyFocus = .bodyFat }
-                            .font(.appBody.weight(.semibold)).foregroundColor(.orange)
+                            .font(.appBody.weight(.semibold)).foregroundColor(Color.forge)
                     } else {
                         Button("Ok") { bodyFocus = nil }
-                            .font(.appBody.weight(.semibold)).foregroundColor(.orange)
+                            .font(.appBody.weight(.semibold)).foregroundColor(Color.forge)
                     }
                 }
             }
@@ -1026,7 +1026,7 @@ struct WeightChartView: View {
                             path.closeSubpath()
                         }
                         .fill(LinearGradient(
-                            colors: [Color.orange.opacity(0.18), Color.orange.opacity(0.0)],
+                            colors: [Color.forge.opacity(0.18), Color.forge.opacity(0.0)],
                             startPoint: .top, endPoint: .bottom
                         ))
 
@@ -1039,14 +1039,14 @@ struct WeightChartView: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.orange, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.forge, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         // Points
                         ForEach(entries.indices, id: \.self) { i in
                             let x = (Double(i) / Double(entries.count - 1)) * Double(w)
                             let y = Double(h) - ((entries[i].weight - minW) / range * Double(h))
                             Circle()
-                                .fill(i == entries.count - 1 ? Color.orange : Color.orange.opacity(0.5))
+                                .fill(i == entries.count - 1 ? Color.forge : Color.forge.opacity(0.5))
                                 .frame(width: i == entries.count - 1 ? 8 : 5,
                                        height: i == entries.count - 1 ? 8 : 5)
                                 .position(x: x, y: y)

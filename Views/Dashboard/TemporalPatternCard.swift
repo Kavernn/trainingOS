@@ -284,7 +284,7 @@ private struct DayDetailTable: View {
                         DayMetricChip(
                             value: "\(Int(detail.workoutRate * 100))%",
                             icon: "flame.fill",
-                            color: .orange
+                            color: Color.forge
                         )
                         DayMetricChip(
                             value: "\(Int(detail.nutritionRate * 100))%",

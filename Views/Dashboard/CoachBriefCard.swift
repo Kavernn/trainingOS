@@ -48,7 +48,7 @@ struct CoachInsightCard: View {
 
     @ViewBuilder
     private func alertContent(_ alert: ProactiveAlert) -> some View {
-        let accentColor: Color = alert.severity == "warning" ? .orange : .blue
+        let accentColor: Color = alert.severity == "warning" ? Color.forge : .blue
         let alertIcon: String = {
             switch alert.type {
             case "nutrition": return "fork.knife.circle.fill"
@@ -96,16 +96,16 @@ struct CoachInsightCard: View {
         } label: {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
-                    Circle().fill(Color.orange.opacity(0.18)).frame(width: 40, height: 40)
+                    Circle().fill(Color.forge.opacity(0.18)).frame(width: 40, height: 40)
                     Image(systemName: "brain.head.profile")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text(contextLabel)
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .textCase(.uppercase)
                             .tracking(1)
                         Spacer()
@@ -141,8 +141,8 @@ struct CoachInsightCard: View {
                 }
             }
             .padding(14)
-            .background(Color.orange.opacity(0.07))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.22), lineWidth: 1))
+            .background(Color.forge.opacity(0.07))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.22), lineWidth: 1))
             .cornerRadius(14)
         }
         .buttonStyle(.plain)

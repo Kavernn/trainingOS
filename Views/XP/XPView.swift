@@ -67,12 +67,12 @@ struct XPView: View {
         // ── Volume ──────────────────────────────────────────────
         let sc = totalSessions
         badges += [
-            badge("volume.1",    "figure.walk",               "Premier pas",     "Ta toute première séance.",            .orange,  sc >= 1,   sc, 1),
+            badge("volume.1",    "figure.walk",               "Premier pas",     "Ta toute première séance.",            Color.forge,  sc >= 1,   sc, 1),
             badge("volume.10",   "flame.fill",                "10 séances",       "10 séances au compteur.",              .red,     sc >= 10,  sc, 10),
             badge("volume.25",   "star.fill",                 "25 séances",       "Régularité installée.",                .yellow,  sc >= 25,  sc, 25),
             badge("volume.50",   "chart.line.uptrend.xyaxis", "50 séances",       "La moitié du centenaire.",             .purple,  sc >= 50,  sc, 50),
             badge("volume.100",  "crown.fill",                "Centurion",        "100 séances — engagement total.",      .yellow,  sc >= 100, sc, 100),
-            badge("volume.200",  "trophy.fill",               "Légende 200",      "200 séances. Tu es une machine.",      .orange,  sc >= 200, sc, 200),
+            badge("volume.200",  "trophy.fill",               "Légende 200",      "200 séances. Tu es une machine.",      Color.forge,  sc >= 200, sc, 200),
         ]
 
         // ── Force ────────────────────────────────────────────────
@@ -81,7 +81,7 @@ struct XPView: View {
         let bwRatio     = profileWeight.map { maxLift / $0 } ?? 0
 
         badges += [
-            badge("force.first", "dumbbell.fill",             "Premier lift",     "Ton premier exercice logué.",          .orange,  liftCount >= 1,    liftCount, 1),
+            badge("force.first", "dumbbell.fill",             "Premier lift",     "Ton premier exercice logué.",          Color.forge,  liftCount >= 1,    liftCount, 1),
             badge("force.5exos", "figure.strengthtraining.traditional", "5 exercices", "5 exercices différents maîtrisés.", .blue, liftCount >= 5, liftCount, 5),
             badge("force.15exo", "figure.cross.training",     "Polyvalent",       "15 exercices différents maîtrisés.",   .cyan,    liftCount >= 15,   liftCount, 15),
         ]
@@ -107,7 +107,7 @@ struct XPView: View {
         let hiitCount = hiitLog.count
         badges += [
             badge("reg.hiit1",  "bolt.fill",                 "Premier HIIT",     "Ta première séance HIIT.",             .red,    hiitCount >= 1,  hiitCount, 1),
-            badge("reg.hiit10", "bolt.circle.fill",          "10 HIIT",          "10 HIIT complétés.",                   .orange, hiitCount >= 10, hiitCount, 10),
+            badge("reg.hiit10", "bolt.circle.fill",          "10 HIIT",          "10 HIIT complétés.",                   Color.forge, hiitCount >= 10, hiitCount, 10),
             badge("reg.hiit25", "figure.run.circle.fill",    "25 HIIT",          "Machine cardio.",                      .red,    hiitCount >= 25, hiitCount, 25),
         ]
 
@@ -201,15 +201,15 @@ struct XPView: View {
         VStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Color.orange.opacity(0.15))
+                    .fill(Color.forge.opacity(0.15))
                     .frame(width: 100, height: 100)
                 VStack(spacing: 2) {
                     Text("LVL")
                         .font(.appCaption.weight(.bold)).tracking(2)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                     Text("\(level)")
                         .font(.system(size: 44, weight: .black))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
             }
 
@@ -223,7 +223,7 @@ struct XPView: View {
                         .font(.appCaption).foregroundColor(.gray)
                     Spacer()
                     Text("\(xpInLevel) / \(xpToNextLevel) XP")
-                        .font(.appCaption).foregroundColor(.orange)
+                        .font(.appCaption).foregroundColor(Color.forge)
                 }
                 Capsule()
                     .fill(Color.appSurfaceInset)
@@ -231,7 +231,7 @@ struct XPView: View {
                     .overlay(alignment: .leading) {
                         GeometryReader { geo in
                             Capsule()
-                                .fill(LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing))
+                                .fill(LinearGradient(colors: [Color.forge, .red], startPoint: .leading, endPoint: .trailing))
                                 .frame(width: geo.size.width * Double(xpInLevel) / Double(xpToNextLevel))
                         }
                     }
@@ -240,20 +240,20 @@ struct XPView: View {
 
             HStack(spacing: 4) {
                 Image(systemName: "shield.checkered")
-                    .font(.appCaption).foregroundColor(.orange.opacity(0.7))
+                    .font(.appCaption).foregroundColor(Color.forge.opacity(0.7))
                 Text("\(unlockedCount)/\(allBadges.count) badges débloqués")
                     .font(.appCaption).foregroundColor(.gray)
             }
         }
         .padding(20)
-        .glassCardAccent(.orange)
+        .glassCardAccent(Color.forge)
         .cornerRadius(20)
         .padding(.horizontal, 16)
     }
 
     private var statsRow: some View {
         HStack(spacing: 12) {
-            KPICard(value: "\(totalSessions)", label: "Séances", color: .orange)
+            KPICard(value: "\(totalSessions)", label: "Séances", color: Color.forge)
             KPICard(value: "\(hiitLog.count)", label: "HIIT", color: .red)
             KPICard(value: "\(totalExercices)", label: "Exercices", color: .blue)
         }
@@ -426,9 +426,9 @@ struct BadgeDetailSheet: View {
             } else if let pl = badge.progressLabel {
                 Label(pl, systemImage: "hourglass")
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                     .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.1))
+                    .background(Color.forge.opacity(0.1))
                     .clipShape(Capsule())
             }
 

@@ -94,7 +94,7 @@ private struct TriggerRow: View {
     }
 
     private var intensityColor: Color {
-        trigger.intensity >= 4 ? Color.forge : trigger.intensity >= 3 ? Color.orange.opacity(0.7) : Color.secondary.opacity(0.5)
+        trigger.intensity >= 4 ? Color.forge : trigger.intensity >= 3 ? Color.forge.opacity(0.7) : Color.secondary.opacity(0.5)
     }
 
     private func shortDate(_ iso: String) -> String {
@@ -140,7 +140,7 @@ struct TriggerLogView: View {
                         get: { Double(intensity) },
                         set: { intensity = Int($0) }
                     ), in: 1...5, step: 1)
-                    .tint(intensity >= 4 ? Color.forge : Color.orange)
+                    .tint(intensity >= 4 ? Color.forge : Color.forge)
                 }
                 .listRowBackground(Color.appCard)
 

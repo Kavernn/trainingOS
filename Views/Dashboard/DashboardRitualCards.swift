@@ -562,8 +562,8 @@ struct EveningRoutineCard: View {
     }
 
     private var timeBadge: some View {
-        let hourColor = softLimitWarning ? Color.orange : Color.white.opacity(0.3)
-        let bgColor   = softLimitWarning ? Color.orange.opacity(0.12) : Color.white.opacity(0.05)
+        let hourColor = softLimitWarning ? Color.forge : Color.white.opacity(0.3)
+        let bgColor   = softLimitWarning ? Color.forge.opacity(0.12) : Color.white.opacity(0.05)
         return HStack(spacing: 3) {
             Text("22h")
                 .font(.appMicro.weight(.medium))
@@ -657,9 +657,9 @@ struct EveningRoutineCard: View {
                     } label: {
                         Text("Annuler")
                             .font(.appMicro.weight(.bold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.12))
+                            .background(Color.forge.opacity(0.12))
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -723,9 +723,9 @@ struct EveningRoutineCard: View {
                 if softLimitWarning {
                     Text("22h")
                         .font(.appMicro.weight(.bold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.orange.opacity(0.12))
+                        .background(Color.forge.opacity(0.12))
                         .clipShape(Capsule())
                         .transition(.scale.combined(with: .opacity))
                 }

@@ -91,7 +91,7 @@ struct CreateVariantSheet: View {
                                         .font(.appLabel.weight(.semibold))
                                         .foregroundColor(selectedType == t ? .black : .white)
                                         .padding(.horizontal, 14).padding(.vertical, 8)
-                                        .background(selectedType == t ? Color.orange : Color.white.opacity(0.07))
+                                        .background(selectedType == t ? Color.forge : Color.white.opacity(0.07))
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -126,7 +126,7 @@ struct CreateVariantSheet: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(variantName.isEmpty ? Color.gray : Color.orange)
+                        .background(variantName.isEmpty ? Color.gray : Color.forge)
                         .cornerRadius(14)
                 }
                 .buttonStyle(.plain)
@@ -189,7 +189,7 @@ struct CreateVariantSheet: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Color.orange)
+                .background(Color.forge)
                 .cornerRadius(14)
             }
             .buttonStyle(.plain)
@@ -220,7 +220,7 @@ struct CreateVariantSheet: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
                 .font(.appLabel)
-                .foregroundColor(.orange.opacity(0.7))
+                .foregroundColor(Color.forge.opacity(0.7))
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)

@@ -22,7 +22,7 @@ struct ObjectifsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .orange)
+                AmbientBackground(color: Color.forge)
 
                 if isLoading {
                     AppLoadingView()
@@ -442,11 +442,11 @@ struct AddGoalSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Sauvegarder") { save() }
-                        .foregroundColor(canSave ? .orange : .gray)
+                        .foregroundColor(canSave ? Color.forge : .gray)
                         .fontWeight(.semibold)
                         .disabled(!canSave)
                 }
@@ -548,14 +548,14 @@ struct AddGoalSheet: View {
                     Button("\(months) mois") {
                         deadline = Date(timeIntervalSince1970: Date().timeIntervalSince1970 + Double(months) * 30.44 * 86400)
                     }
-                    .font(.appCaption.weight(.medium)).foregroundColor(.orange)
+                    .font(.appCaption.weight(.medium)).foregroundColor(Color.forge)
                     .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Color.orange.opacity(0.12)).cornerRadius(8)
+                    .background(Color.forge.opacity(0.12)).cornerRadius(8)
                 }
                 Spacer()
             }
             DatePicker("", selection: $deadline, displayedComponents: .date)
-                .labelsHidden().tint(.orange)
+                .labelsHidden().tint(Color.forge)
         }
         .padding(.horizontal, 20)
     }
@@ -739,7 +739,7 @@ struct EditGoalSheet: View {
                                 .foregroundColor(.gray)
                             DatePicker("", selection: $deadline, displayedComponents: .date)
                                 .labelsHidden()
-                                .tint(.orange)
+                                .tint(Color.forge)
                                 .padding(12)
                                 .background(Color.appSurfaceInset)
                                 .cornerRadius(10)
@@ -756,7 +756,7 @@ struct EditGoalSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.orange)
+                    Button("Fermer") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
             .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {

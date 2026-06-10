@@ -94,11 +94,11 @@ struct StartSessionBanner: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(Color.orange.opacity(0.15))
+                        .fill(Color.forge.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "play.fill")
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Commencer la séance")
@@ -111,14 +111,14 @@ struct StartSessionBanner: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.orange.opacity(0.6))
+                    .foregroundColor(Color.forge.opacity(0.6))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color.orange.opacity(0.07))
+            .background(Color.forge.opacity(0.07))
             .cornerRadius(12)
             .overlay(RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                .stroke(Color.forge.opacity(0.25), lineWidth: 1))
         }
         .buttonStyle(SpringButtonStyle(scale: 0.97))
     }

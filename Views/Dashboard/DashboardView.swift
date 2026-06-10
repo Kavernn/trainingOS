@@ -58,7 +58,7 @@ struct DashboardView: View {
                                         .font(.appLabel).fontWeight(.semibold)
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 20).padding(.vertical, 9)
-                                        .background(Color.orange)
+                                        .background(Color.forge)
                                         .cornerRadius(18)
                                 }
                                 .buttonStyle(SpringButtonStyle())
@@ -74,7 +74,7 @@ struct DashboardView: View {
                                 if vm.partialLoadWarning {
                                     HStack(spacing: 10) {
                                         Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(Color.forge)
                                             .font(.appLabel)
                                         Text("Certaines données n'ont pas pu être chargées")
                                             .font(.appCaption)
@@ -85,13 +85,13 @@ struct DashboardView: View {
                                         } label: {
                                             Image(systemName: "arrow.clockwise")
                                                 .font(.appLabel).fontWeight(.semibold)
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(Color.forge)
                                         }
                                         .buttonStyle(.plain)
                                     }
                                     .padding(.horizontal, 12).padding(.vertical, 9)
-                                    .background(Color.orange.opacity(0.10))
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                                    .background(Color.forge.opacity(0.10))
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.25), lineWidth: 1))
                                     .cornerRadius(10)
                                     .appearAnimation(delay: 0)
                                 }
@@ -497,7 +497,7 @@ struct DashboardView: View {
                                 .font(.appBody).fontWeight(.semibold)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 28).padding(.vertical, 12)
-                                .background(Color.orange).cornerRadius(22)
+                                .background(Color.forge).cornerRadius(22)
                         }
                         .buttonStyle(SpringButtonStyle())
                     }

@@ -94,7 +94,7 @@ struct InfoSheetView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(entry.term)
                                     .font(.appLabel.weight(.bold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                                 Text(entry.definition)
                                     .font(.appLabel.weight(.regular))
                                     .foregroundColor(.white.opacity(0.85))
@@ -113,7 +113,7 @@ struct InfoSheetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.orange)
+                    Button("Fermer") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
         }

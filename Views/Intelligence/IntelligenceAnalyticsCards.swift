@@ -143,7 +143,7 @@ struct PainJournalCard: View {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("\(ex.count)×")
-                            .font(.system(size: 12, weight: .bold)).foregroundColor(.orange)
+                            .font(.system(size: 12, weight: .bold)).foregroundColor(Color.forge)
                         if let d = ex.lastDate {
                             Text(String(d.prefix(10)))
                                 .font(.system(size: 10)).foregroundColor(.gray)

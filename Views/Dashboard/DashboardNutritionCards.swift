@@ -52,7 +52,7 @@ struct NutritionSummaryView: View {
 
                     // Badges macros
                     HStack(spacing: 8) {
-                        NutriBadge(value: "\(Int(totals.calories ?? 0))", unit: "kcal", color: .orange)
+                        NutriBadge(value: "\(Int(totals.calories ?? 0))", unit: "kcal", color: Color.forge)
                         NutriBadge(value: "\(Int(totals.glucides ?? 0))", unit: "g carbs", color: .yellow)
                         NutriBadge(value: "\(Int(totals.lipides ?? 0))", unit: "g lip", color: .pink)
                     }
@@ -71,13 +71,13 @@ struct NutritionSummaryView: View {
                         Spacer()
                         Text("\(Int(calCurrent)) / \(Int(calTarget)) kcal")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(overTarget ? .red : .orange)
+                            .foregroundColor(overTarget ? .red : Color.forge)
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.white.opacity(0.07)).frame(height: 5)
                             Capsule()
-                                .fill(overTarget ? Color.red : Color.orange)
+                                .fill(overTarget ? Color.red : Color.forge)
                                 .frame(width: max(5, geo.size.width * calPct), height: 5)
                                 .animation(.easeOut(duration: 0.6), value: calPct)
                         }
@@ -87,7 +87,7 @@ struct NutritionSummaryView: View {
             }
         }
         .padding(16)
-        .glassCard(color: .orange, intensity: 0.04)
+        .glassCard(color: Color.forge, intensity: 0.04)
         .cornerRadius(16)
     }
 }
@@ -131,14 +131,14 @@ struct NutritionStripView: View {
             HStack(spacing: 6) {
                 Image(systemName: "fork.knife")
                     .font(.appCaption)
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 Text("NUTRITION")
                     .font(.appMicro.weight(.bold)).tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
                 Text("\(Int(calCurrent))\(calTarget > 0 ? " / \(Int(calTarget))" : "") kcal")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(overCal ? .red : .orange)
+                    .foregroundColor(overCal ? .red : Color.forge)
             }
 
             HStack(spacing: 6) {
@@ -150,7 +150,7 @@ struct NutritionStripView: View {
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.white.opacity(0.06)).frame(height: 4)
                             Capsule()
-                                .fill(overCal ? Color.red : Color.orange)
+                                .fill(overCal ? Color.red : Color.forge)
                                 .frame(width: max(4, geo.size.width * calPct), height: 4)
                         }
                     }
@@ -161,7 +161,7 @@ struct NutritionStripView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .glassCard(color: .orange, intensity: 0.04)
+        .glassCard(color: Color.forge, intensity: 0.04)
         .cornerRadius(12)
     }
 }
@@ -216,7 +216,7 @@ struct DataGapSection: View {
                         NavigationLink(destination: BodyCompView()) {
                             DataGapCard(
                                 icon: "scalemass.fill",
-                                color: .orange,
+                                color: Color.forge,
                                 title: "Poids corporel",
                                 subtitle: "Ajoute ton poids pour un suivi précis"
                             )

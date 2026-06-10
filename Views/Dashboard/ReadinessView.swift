@@ -92,7 +92,7 @@ struct ReadinessSheet: View {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "lightbulb.fill")
                                 .font(.appLabel.weight(.regular))
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                                 .padding(.top, 1)
                             Text(adj)
                                 .font(.appLabel)
@@ -100,8 +100,8 @@ struct ReadinessSheet: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(12)
-                        .background(Color.orange.opacity(0.07))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.18), lineWidth: 1))
+                        .background(Color.forge.opacity(0.07))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.18), lineWidth: 1))
                         .cornerRadius(10)
                     }
 

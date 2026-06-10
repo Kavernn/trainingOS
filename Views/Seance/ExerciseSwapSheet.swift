@@ -99,7 +99,7 @@ struct ExerciseSwapSheet: View {
                                 Text("Suggestions")
                                     .font(.appCaption.weight(.bold))
                                     .tracking(1)
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                         }
 

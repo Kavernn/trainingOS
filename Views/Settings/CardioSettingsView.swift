@@ -36,7 +36,7 @@ struct CardioSettingsView: View {
                             Spacer()
                             Text("\(maxHR) bpm")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                             Image(systemName: "chevron.right")
                                 .font(.appCaption)
                                 .foregroundColor(.gray.opacity(0.4))

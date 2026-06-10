@@ -190,7 +190,7 @@ struct RecoveryScoreRing: View {
 
                 if let soreness = summary.soreness {
                     HStack(spacing: 4) {
-                        Image(systemName: "bolt.fill").font(.appCaption).foregroundColor(.orange)
+                        Image(systemName: "bolt.fill").font(.appCaption).foregroundColor(Color.forge)
                         Text("Courbatures : \(Int(soreness))/10").font(.appCaption).foregroundColor(.gray)
                     }
                 }
@@ -220,7 +220,7 @@ struct DataSourcesRow: View {
         switch s {
         case "healthkit": return ("apple.logo", .white)
         case "wearable":  return ("applewatch", .cyan)
-        default:          return ("hand.point.up.fill", .orange)
+        default:          return ("hand.point.up.fill", Color.forge)
         }
     }
 
@@ -315,7 +315,7 @@ struct BodyMetricsCard: View {
                 if let w = summary.bodyWeight {
                     VStack(spacing: 2) {
                         Text(units.format(w))
-                            .font(.appTitle.weight(.black)).foregroundColor(.orange)
+                            .font(.appTitle.weight(.black)).foregroundColor(Color.forge)
                         Text("Poids").font(.appCaption).foregroundColor(.gray)
                     }
                 }
@@ -336,7 +336,7 @@ struct BodyMetricsCard: View {
                 Spacer()
             }
         }
-        .padding(14).glassCard(color: .orange, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: Color.forge, intensity: 0.05).cornerRadius(14)
     }
 }
 
@@ -360,7 +360,7 @@ struct CardioSummaryCard: View {
                     MetricPill(value: String(format: "%.2f km", d), icon: "figure.run", color: .teal)
                 }
                 if let m = summary.activeMinutes {
-                    MetricPill(value: String(format: "%.0f min", m), icon: "timer", color: .orange)
+                    MetricPill(value: String(format: "%.0f min", m), icon: "timer", color: Color.forge)
                 }
                 if let p = summary.pace {
                     MetricPill(value: p, icon: "speedometer", color: .blue)
@@ -387,7 +387,7 @@ struct TrainingSummaryCard: View {
                 if let rpe = summary.trainingRpe {
                     VStack(spacing: 2) {
                         Text(String(format: "%.1f", rpe))
-                            .font(.appTitle.weight(.black)).foregroundColor(.orange)
+                            .font(.appTitle.weight(.black)).foregroundColor(Color.forge)
                         Text("RPE").font(.appCaption).foregroundColor(.gray)
                     }
                 }
@@ -418,7 +418,7 @@ struct TrainingSummaryCard: View {
                     .lineLimit(2)
             }
         }
-        .padding(14).glassCard(color: .orange, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: Color.forge, intensity: 0.05).cornerRadius(14)
     }
 }
 
@@ -438,7 +438,7 @@ struct NutritionSummaryHealthCard: View {
             }
             HStack(spacing: 12) {
                 if let cal = summary.calories {
-                    MacroChip(value: "\(Int(cal))", label: "kcal", color: .orange)
+                    MacroChip(value: "\(Int(cal))", label: "kcal", color: Color.forge)
                 }
                 if let p = summary.protein {
                     MacroChip(value: "\(Int(p))g", label: "protéines", color: .red)
@@ -451,7 +451,7 @@ struct NutritionSummaryHealthCard: View {
                 }
             }
         }
-        .padding(14).glassCard(color: .orange, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: Color.forge, intensity: 0.05).cornerRadius(14)
     }
 }
 
@@ -482,7 +482,7 @@ struct WeeklySleepChart: View {
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
                     let pct = maxH > 0 ? item.1 / maxH : 0
-                    let color: Color = item.1 >= 7 ? .blue : (item.1 >= 5 ? .orange : .red)
+                    let color: Color = item.1 >= 7 ? .blue : (item.1 >= 5 ? Color.forge : .red)
                     let isLast = i == data.count - 1
                     VStack(spacing: 3) {
                         Text(String(format: "%.0fh", item.1))
@@ -678,7 +678,7 @@ struct LifeStressCard: View {
             if score.dataCoverage < 0.6 {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle")
-                        .font(.appCaption).foregroundColor(.orange)
+                        .font(.appCaption).foregroundColor(Color.forge)
                     Text("Données partielles (\(Int(score.dataCoverage * 100))% de couverture)")
                         .font(.appCaption).foregroundColor(.gray)
                 }
@@ -809,7 +809,7 @@ struct DayStatusHeaderView: View {
 
                     if let soreness = summary.soreness {
                         HStack(spacing: 4) {
-                            Image(systemName: "bolt.fill").font(.appCaption).foregroundColor(.orange)
+                            Image(systemName: "bolt.fill").font(.appCaption).foregroundColor(Color.forge)
                             Text("Courbatures \(Int(soreness))/10")
                                 .font(.appCaption).foregroundColor(.gray)
                         }
@@ -872,7 +872,7 @@ struct HealthDayDetailSheet: View {
                                         value: "\(steps)" + (steps >= stepsGoal ? " ✓" : ""))
                     }
                     if let active = day.activeMinutes {
-                        DetailMetricRow(icon: "timer", color: .orange, label: "Minutes actives",
+                        DetailMetricRow(icon: "timer", color: Color.forge, label: "Minutes actives",
                                         value: String(format: "%.0f min", active))
                     }
                 }
@@ -889,18 +889,18 @@ struct HealthDayDetailSheet: View {
                 if day.recoveryScore != nil || day.soreness != nil {
                     Section("Récupération") {
                         if let rec = day.recoveryScore {
-                            DetailMetricRow(icon: "bolt.fill", color: .orange, label: "Score",
+                            DetailMetricRow(icon: "bolt.fill", color: Color.forge, label: "Score",
                                             value: String(format: "%.1f / 10", rec))
                         }
                         if let soreness = day.soreness {
-                            DetailMetricRow(icon: "figure.strengthtraining.traditional", color: .orange,
+                            DetailMetricRow(icon: "figure.strengthtraining.traditional", color: Color.forge,
                                             label: "Courbatures", value: "\(Int(soreness)) / 10")
                         }
                     }
                 }
                 if let w = day.bodyWeight {
                     Section("Corps") {
-                        DetailMetricRow(icon: "scalemass.fill", color: .orange, label: "Poids",
+                        DetailMetricRow(icon: "scalemass.fill", color: Color.forge, label: "Poids",
                                         value: units.format(w))
                         if let bf = day.bodyFatPct {
                             DetailMetricRow(icon: "chart.pie.fill", color: .blue, label: "Masse grasse",

@@ -103,16 +103,16 @@ struct BonusSeanceView: View {
 
     @ViewBuilder private var addExerciseButton: some View {
         let label = HStack(spacing: 8) {
-            Image(systemName: "plus.circle.fill").foregroundColor(.orange)
+            Image(systemName: "plus.circle.fill").foregroundColor(Color.forge)
             Text("Ajouter un exercice")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(Color.orange.opacity(0.08))
+        .background(Color.forge.opacity(0.08))
         .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.25), lineWidth: 1))
         Button { showAddExercise = true } label: { label }
             .buttonStyle(SpringButtonStyle())
             .padding(.horizontal, 16)
@@ -128,7 +128,7 @@ struct BonusSeanceView: View {
         ZStack {
             Color.appBg.ignoresSafeArea()
             if isLoading {
-                ProgressView().tint(.orange)
+                ProgressView().tint(Color.forge)
             } else {
                 ScrollView {
                     VStack(spacing: 16) {
@@ -198,7 +198,7 @@ struct BonusSeanceView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(Color.orange)
+                                .background(Color.forge)
                                 .foregroundColor(.white)
                                 .cornerRadius(14)
                             }

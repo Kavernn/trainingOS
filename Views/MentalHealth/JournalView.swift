@@ -195,7 +195,7 @@ enum JournalPromptEngine {
         if let pss = pssRecord, pss.category == "moderate" || (pss.score >= 14 && pss.score < 27) {
             return ContextualPrompt(
                 prompt: moderateStressPrompt(triggers: pss.triggers),
-                signal: .init(label: "Stress modéré", icon: "brain.head.profile", color: .orange)
+                signal: .init(label: "Stress modéré", icon: "brain.head.profile", color: Color.forge)
             )
         }
 
@@ -204,7 +204,7 @@ enum JournalPromptEngine {
             let avg = moodEntries.prefix(7).map { Double($0.score) }.reduce(0, +) / 7.0
             return ContextualPrompt(
                 prompt: lowMoodPrompt(avgScore: avg),
-                signal: .init(label: "Humeur en baisse", icon: "arrow.down.heart.fill", color: .orange)
+                signal: .init(label: "Humeur en baisse", icon: "arrow.down.heart.fill", color: Color.forge)
             )
         }
 

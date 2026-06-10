@@ -150,7 +150,7 @@ struct BodyCompHistoryView: View {
                 }
                 HStack(spacing: 10) {
                     Label(units.format(entry.fatMassLbs), systemImage: "")
-                        .font(.appCaption).foregroundColor(.orange)
+                        .font(.appCaption).foregroundColor(Color.forge)
                     Label(units.format(entry.leanMassLbs), systemImage: "")
                         .font(.appCaption).foregroundColor(.green)
                 }

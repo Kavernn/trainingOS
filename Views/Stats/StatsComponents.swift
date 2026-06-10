@@ -29,8 +29,8 @@ struct StatsTabBar: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .foregroundColor(selectedTab == i ? .orange : .gray)
-                    .background(selectedTab == i ? Color.orange.opacity(0.12) : Color.clear)
+                    .foregroundColor(selectedTab == i ? Color.forge : .gray)
+                    .background(selectedTab == i ? Color.forge.opacity(0.12) : Color.clear)
                     .cornerRadius(10)
                 }
             }
@@ -55,7 +55,7 @@ struct PeriodPicker: View {
                         .font(.system(size: 12, weight: .semibold))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 5)
-                        .background(selected == p ? Color.orange : Color.appSurfaceInset)
+                        .background(selected == p ? Color.forge : Color.appSurfaceInset)
                         .foregroundColor(selected == p ? .black : .gray)
                         .cornerRadius(20)
                 }

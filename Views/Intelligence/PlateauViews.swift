@@ -39,7 +39,7 @@ struct PlateauSection: View {
         HStack(spacing: 6) {
             Image(systemName: "waveform.path.ecg.rectangle")
                 .font(.appCaption.weight(.bold))
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
             Text("DÉTECTION DE PLATEAU")
                 .font(.appCaption.weight(.bold))
                 .foregroundColor(Color(white: 0.45))
@@ -47,10 +47,10 @@ struct PlateauSection: View {
             if !alerts.isEmpty {
                 Text("\(alerts.count)")
                     .font(.appCaption.weight(.bold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.15))
+                    .background(Color.forge.opacity(0.15))
                     .cornerRadius(4)
             }
         }
@@ -297,7 +297,7 @@ struct PlateauDetailSheet: View {
             HStack(spacing: 12) {
                 Image(systemName: alert.deloadTypeIcon)
                     .font(.system(size: 20))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                     .frame(width: 28)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(alert.deloadTypeLabel)
@@ -312,9 +312,9 @@ struct PlateauDetailSheet: View {
                 }
             }
             .padding(14)
-            .background(Color.orange.opacity(0.08))
+            .background(Color.forge.opacity(0.08))
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.2), lineWidth: 1))
         }
         .padding(.horizontal, 20)
     }
@@ -328,7 +328,7 @@ struct PlateauDetailSheet: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.orange)
+                        .background(Color.forge)
                         .cornerRadius(12)
                 }
             }
@@ -397,7 +397,7 @@ struct DeloadPlanSheet: View {
             HStack(spacing: 10) {
                 Image(systemName: alert.deloadTypeIcon)
                     .font(.system(size: 28))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(alert.deloadTypeLabel)
                         .font(.system(size: 20, weight: .bold))
@@ -516,7 +516,7 @@ struct DeloadPlanSheet: View {
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Color.orange)
+                .background(Color.forge)
                 .cornerRadius(12)
             }
             .disabled(isActivating)
@@ -578,7 +578,7 @@ private struct DeloadExerciseRow: View {
                 .foregroundColor(Color(white: 0.35))
             Text(to)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
             Spacer()
             Text("\(sets) \(reps)")
                 .font(.system(size: 12))
@@ -596,7 +596,7 @@ private struct DeloadExerciseRow: View {
                         .foregroundColor(Color(white: 0.45))
                     Text(forceText)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
             }
             if let volume = exercise.volumeOption {
@@ -618,7 +618,7 @@ private struct DeloadExerciseRow: View {
 
 struct E1RMSparkline: View {
     let series: [E1RMPoint]
-    var accentColor: Color = .orange
+    var accentColor: Color = Color.forge
 
     var body: some View {
         Canvas { ctx, size in

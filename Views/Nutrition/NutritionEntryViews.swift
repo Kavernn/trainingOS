@@ -59,7 +59,7 @@ struct GroupedEntryList: View {
                             Spacer()
                             Text("\(Int(totalKcal)) kcal")
                                 .font(.appCaption.weight(.semibold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                             Text("·")
                                 .foregroundColor(.gray)
                                 .font(.appCaption)
@@ -124,12 +124,12 @@ struct NutritionEntryRow: View {
             Spacer()
             Text("\(Int(entry.calories ?? 0)) kcal")
                 .font(.appBody.weight(.bold))
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
             if let onEdit {
                 Button { onEdit() } label: {
                     Image(systemName: "pencil")
                         .font(.system(size: 14))
-                        .foregroundColor(.orange.opacity(0.8))
+                        .foregroundColor(Color.forge.opacity(0.8))
                         .padding(.leading, 12)
                 }
             }

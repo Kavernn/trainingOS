@@ -44,13 +44,13 @@ struct NotesView: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 if loadingState.isLoading {
-                    ProgressView().tint(.orange)
+                    ProgressView().tint(Color.forge)
                 } else {
                     ScrollView {
                         VStack(spacing: 12) {
                             // KPIs
                             HStack(spacing: 12) {
-                                KPICard(value: "\(allSessions.count)", label: "Séances", color: .orange)
+                                KPICard(value: "\(allSessions.count)", label: "Séances", color: Color.forge)
                                 KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: .purple)
                                 KPICard(value: "\(sessionsWithNotes)", label: "Notes", color: .blue)
                             }
@@ -67,7 +67,7 @@ struct NotesView: View {
                                 Toggle("Avec notes seulement", isOn: $showOnlyWithNotes)
                                     .font(.appLabel)
                                     .foregroundColor(.gray)
-                                    .tint(.orange)
+                                    .tint(Color.forge)
                             }
                             .padding(.horizontal, 16)
 

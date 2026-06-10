@@ -6,7 +6,7 @@ struct CrisisResourcesView: View {
             Section {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                     Text("Cette section est une ressource d'information. Si tu es en danger immédiat, appelle le 911.")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -36,7 +36,7 @@ struct CrisisResourcesView: View {
                     name: "Urgences",
                     number: "911",
                     description: "Danger immédiat pour toi ou autrui",
-                    color: .orange
+                    color: Color.forge
                 )
             }
 

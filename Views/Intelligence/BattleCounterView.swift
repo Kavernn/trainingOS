@@ -98,7 +98,7 @@ struct BattleCounterView: View {
     }
 
     private func progressionColor(_ rate: Int) -> Color {
-        rate >= 80 ? .forge : rate >= 60 ? Color.orange : Color(white: 0.5)
+        rate >= 80 ? .forge : rate >= 60 ? Color.forge : Color(white: 0.5)
     }
 
     private func cardBg(_ streak: Int) -> some ShapeStyle {
@@ -109,7 +109,7 @@ struct BattleCounterView: View {
     }
 
     private func streakColor(_ streak: Int) -> Color {
-        streak >= 30 ? .forge : streak >= 7 ? Color.orange : streak >= 1 ? Color.primary : Color.secondary
+        streak >= 30 ? .forge : streak >= 7 ? Color.forge : streak >= 1 ? Color.primary : Color.secondary
     }
 
     // MARK: Stats row

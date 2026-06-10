@@ -61,11 +61,11 @@ struct WeekMomentumStrip: View {
                         VStack(spacing: 4) {
                             ZStack {
                                 Circle()
-                                    .fill(dot.hasSession ? Color.orange : Color.white.opacity(0.07))
+                                    .fill(dot.hasSession ? Color.forge : Color.white.opacity(0.07))
                                     .frame(width: 30, height: 30)
                                 if dot.isToday {
                                     Circle()
-                                        .stroke(Color.orange.opacity(0.65), lineWidth: 1.5)
+                                        .stroke(Color.forge.opacity(0.65), lineWidth: 1.5)
                                         .frame(width: 30, height: 30)
                                 }
                                 if dot.hasSession {
@@ -76,7 +76,7 @@ struct WeekMomentumStrip: View {
                             }
                             Text(dot.letter)
                                 .font(.appMicro.weight(.medium))
-                                .foregroundColor(dot.isToday ? .orange : Color.white.opacity(0.3))
+                                .foregroundColor(dot.isToday ? Color.forge : Color.white.opacity(0.3))
                         }
                     }
                 }
@@ -87,10 +87,10 @@ struct WeekMomentumStrip: View {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         Text("\(streak)j streak")
                             .font(.appLabel.weight(.bold))
-                            .foregroundColor(streak >= 5 ? .orange : .white)
+                            .foregroundColor(streak >= 5 ? Color.forge : .white)
                     }
                     Text("\(weekCount)/7 jours")
                         .font(.appCaption)
@@ -103,12 +103,12 @@ struct WeekMomentumStrip: View {
         .padding(.vertical, 12)
         .background(
             streak >= 5
-                ? Color.orange.opacity(0.06)
+                ? Color.forge.opacity(0.06)
                 : Color(white: 0.07).opacity(0.7)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(streak >= 5 ? Color.orange.opacity(0.25) : Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(streak >= 5 ? Color.forge.opacity(0.25) : Color.white.opacity(0.06), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }

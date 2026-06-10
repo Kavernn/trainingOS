@@ -111,7 +111,7 @@ struct ProfileView: View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
-                AmbientBackground(color: .orange).ignoresSafeArea()
+                AmbientBackground(color: Color.forge).ignoresSafeArea()
                 if isLoading {
                     AppLoadingView()
                 } else {
@@ -124,7 +124,7 @@ struct ProfileView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Modifier") { showEdit = true }
                         .font(.appLabel).fontWeight(.semibold)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button { Task { await exportData() } } label: {
@@ -200,7 +200,7 @@ struct ProfileView: View {
                 profilePhotoView
                 Button(action: { showPhotoOptions = true }) {
                     ZStack {
-                        Circle().fill(Color.orange).frame(width: 30, height: 30)
+                        Circle().fill(Color.forge).frame(width: 30, height: 30)
                             .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                         if isUploadingPhoto {
                             ProgressView().tint(.white).scaleEffect(0.6)
@@ -283,8 +283,8 @@ struct ProfileView: View {
                 case .failure:
                     initialsCircle
                 default:
-                    Circle().fill(Color.orange.opacity(0.08)).frame(width: 88, height: 88)
-                        .overlay(ProgressView().tint(.orange).scaleEffect(0.7))
+                    Circle().fill(Color.forge.opacity(0.08)).frame(width: 88, height: 88)
+                        .overlay(ProgressView().tint(Color.forge).scaleEffect(0.7))
                 }
             }
         } else if let b64 = profile?.photoB64,
@@ -302,7 +302,7 @@ struct ProfileView: View {
         ZStack {
             Circle()
                 .fill(LinearGradient(
-                    colors: [Color.orange.opacity(0.6), Color.red.opacity(0.4)],
+                    colors: [Color.forge.opacity(0.6), Color.red.opacity(0.4)],
                     startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 88, height: 88)
                 .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
@@ -349,7 +349,7 @@ struct ProfileView: View {
             }
 
             HStack(spacing: 0) {
-                phoenixAxisChip(icon: "dumbbell.fill",   label: "FORCE",      delta: px.axes.workout.delta,   color: .orange)
+                phoenixAxisChip(icon: "dumbbell.fill",   label: "FORCE",      delta: px.axes.workout.delta,   color: Color.forge)
                 Divider().background(Color.white.opacity(0.08)).padding(.vertical, 4)
                 phoenixAxisChip(icon: "brain.head.profile", label: "MENTAL",  delta: px.axes.stress.delta,    color: .purple)
                 Divider().background(Color.white.opacity(0.08)).padding(.vertical, 4)
@@ -395,7 +395,7 @@ struct ProfileView: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             ProfileStatSquare(
                 value: displayTotalSessions > 0 ? "\(displayTotalSessions)" : "—",
-                label: "SÉANCES", icon: "dumbbell.fill", color: .orange,
+                label: "SÉANCES", icon: "dumbbell.fill", color: Color.forge,
                 subtitle: nil,
                 hasData: displayTotalSessions > 0
             )
@@ -497,7 +497,7 @@ struct ProfileView: View {
                 Text(catLabel)
                     .font(.appCaption).fontWeight(.semibold).foregroundColor(catColor.opacity(0.8))
             } else {
-                Text("Incomplet").font(.appMicro).foregroundColor(.orange.opacity(0.7))
+                Text("Incomplet").font(.appMicro).foregroundColor(Color.forge.opacity(0.7))
             }
             Text("% MG NAVY").font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
         }
@@ -513,7 +513,7 @@ struct ProfileView: View {
                 Text("Aucune donnée de poids")
                     .font(.appLabel).fontWeight(.semibold).foregroundColor(.white.opacity(0.6))
                 Button("Ajouter maintenant") { showAddWeight = true }
-                    .font(.appCaption).fontWeight(.semibold).foregroundColor(.orange)
+                    .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.forge)
             }
         }
     }
@@ -535,13 +535,13 @@ struct ProfileView: View {
                 for (i, y) in ys.dropFirst().enumerated() {
                     line.addLine(to: CGPoint(x: CGFloat(i + 1) * step, y: y))
                 }
-                ctx.stroke(line, with: .color(.orange.opacity(0.8)),
+                ctx.stroke(line, with: .color(Color.forge.opacity(0.8)),
                            style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                 var fill = line
                 fill.addLine(to: CGPoint(x: size.width, y: size.height))
                 fill.addLine(to: CGPoint(x: 0, y: size.height))
                 fill.closeSubpath()
-                ctx.fill(fill, with: .color(.orange.opacity(0.12)))
+                ctx.fill(fill, with: .color(Color.forge.opacity(0.12)))
             }
         } else {
             Text("—").font(.appCaption).foregroundColor(.gray.opacity(0.4))
@@ -669,7 +669,7 @@ struct ProfileView: View {
                 let rect = CGRect(x: x, y: size.height - h, width: barW, height: h)
                 let isLast = i == items.count - 1
                 ctx.fill(Path(roundedRect: rect, cornerRadius: 3),
-                         with: .color(.orange.opacity(isLast ? 0.9 : 0.45)))
+                         with: .color(Color.forge.opacity(isLast ? 0.9 : 0.45)))
             }
         }
         .frame(height: 44)
@@ -747,10 +747,10 @@ struct ProfileView: View {
 
                     if warRoomEnabled && warRoomVictoryStreak > 0 {
                         HStack(spacing: 6) {
-                            Image(systemName: "flame.fill").foregroundColor(.orange)
+                            Image(systemName: "flame.fill").foregroundColor(Color.forge)
                                 .font(.appCaption)
                             Text("War Room — \(warRoomVictoryStreak)j de victoires consécutives")
-                                .font(.appCaption).fontWeight(.semibold).foregroundColor(.orange)
+                                .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.forge)
                         }
                         .padding(.top, 10)
                     }
@@ -766,7 +766,7 @@ struct ProfileView: View {
                                 Image(systemName: "chevron.right")
                                     .font(.appCaption)
                             }
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
@@ -780,7 +780,7 @@ struct ProfileView: View {
                             .font(.appLabel).fontWeight(.regular).foregroundColor(.white.opacity(0.5))
                         NavigationLink(destination: OathGateView()) {
                             Text("Écrire mon serment →")
-                                .font(.appCaption).fontWeight(.semibold).foregroundColor(.orange)
+                                .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.forge)
                         }
                     }
                 }
@@ -906,7 +906,7 @@ struct ProfileView: View {
         Button(action: { showEdit = true }) {
             HStack(spacing: 12) {
                 Image(systemName: "person.crop.circle.badge.exclamationmark.fill")
-                    .font(.appTitle).foregroundColor(.orange)
+                    .font(.appTitle).foregroundColor(Color.forge)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Profil incomplet — l'IA travaille à l'aveugle.")
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
@@ -917,8 +917,8 @@ struct ProfileView: View {
                 Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
             }
             .padding(14)
-            .background(Color.orange.opacity(0.12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+            .background(Color.forge.opacity(0.12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.3), lineWidth: 1))
             .cornerRadius(12)
         }
         .padding(.horizontal, 16).padding(.top, 4)
@@ -1266,13 +1266,13 @@ struct EditProfileSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-                .tint(.orange)
+                .tint(Color.forge)
             }
             .navigationTitle("Ton identité")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -1295,9 +1295,9 @@ struct EditProfileSheet: View {
                         }
                     } label: {
                         if isSaving {
-                            ProgressView().tint(.orange)
+                            ProgressView().tint(Color.forge)
                         } else {
-                            Text("Confirmer").fontWeight(.semibold).foregroundColor(.orange)
+                            Text("Confirmer").fontWeight(.semibold).foregroundColor(Color.forge)
                         }
                     }
                     .disabled(isSaving)

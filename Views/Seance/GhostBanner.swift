@@ -35,7 +35,7 @@ struct GhostBanner: View {
                     HStack(spacing: 6) {
                         Text(beaten ? "Battu ! 🔥" : "\(UnitSettings.shared.display(ghost.volume), specifier: "%.0f") \(UnitSettings.shared.label)")
                             .font(.appLabel.weight(.bold))
-                            .foregroundColor(beaten ? .orange : .white)
+                            .foregroundColor(beaten ? Color.forge : .white)
                         if let rpe = ghost.rpe {
                             Text("RPE \(String(format: "%.1f", rpe))")
                                 .font(.appCaption).foregroundColor(.gray)
@@ -57,7 +57,7 @@ struct GhostBanner: View {
                     Capsule().fill(Color.white.opacity(0.07)).frame(height: 5)
                     Capsule()
                         .fill(beaten
-                            ? LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing)
+                            ? LinearGradient(colors: [Color.forge, .yellow], startPoint: .leading, endPoint: .trailing)
                             : LinearGradient(colors: [.purple.opacity(0.8), .blue.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
                         )
                         .frame(width: geo.size.width * progress, height: 5)
@@ -74,14 +74,14 @@ struct GhostBanner: View {
                 Spacer()
                 Text("\(Int(progress * 100))%")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(beaten ? .orange : .purple)
+                    .foregroundColor(beaten ? Color.forge : .purple)
             }
         }
         .padding(12)
         .background(Color.appBg)
         .cornerRadius(12)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(
-            beaten ? Color.orange.opacity(0.5) : Color.purple.opacity(0.25), lineWidth: 1
+            beaten ? Color.forge.opacity(0.5) : Color.purple.opacity(0.25), lineWidth: 1
         ))
     }
 }

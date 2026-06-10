@@ -44,13 +44,13 @@ struct ProgressionSuggestionsSheet: View {
                         if hasFatigue {
                             HStack(spacing: 10) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                                 Text("Fatigue globale — charge réduite recommandée")
                                     .font(.appLabel.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                             .padding(12)
-                            .background(Color.orange.opacity(0.12))
+                            .background(Color.forge.opacity(0.12))
                             .cornerRadius(12)
                             .padding(.horizontal)
                         }

@@ -45,7 +45,7 @@ struct RecoveryPerformanceBanner: View {
         case .low(let s):
             return ("exclamationmark.triangle.fill",
                     "Récupération à \(String(format: "%.1f", s))/10 — réduis le volume de ta séance aujourd'hui.",
-                    .orange)
+                    Color.forge)
         case .moderate:
             return ("bolt.fill",
                     "Récupération modérée — reste sur le programme, écoute ton corps.",

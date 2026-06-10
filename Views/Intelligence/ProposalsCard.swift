@@ -28,7 +28,7 @@ struct ProposalsCard: View {
                                 Text(p.exercise).font(.appCaption).foregroundColor(.purple)
                             }
                             if !p.scheme.isEmpty {
-                                Text(p.scheme).font(.appCaption).foregroundColor(.orange)
+                                Text(p.scheme).font(.appCaption).foregroundColor(Color.forge)
                             }
                         }
                         Text(p.reason).font(.system(size: 12)).foregroundColor(.gray)

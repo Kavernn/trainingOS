@@ -31,7 +31,7 @@ extension StatsView {
 
         // 4. KPI Grid
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            KPICard(value: "\(filteredSessions.count)", label: "Séances (\(period.rawValue))", color: .orange)
+            KPICard(value: "\(filteredSessions.count)", label: "Séances (\(period.rawValue))", color: Color.forge)
             KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel", color: .blue)
             KPICard(
                 value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",
@@ -117,7 +117,7 @@ extension StatsView {
             SimpleBarChart(
                 title: "FRÉQUENCE / SEM",
                 data: weeklyFrequency.map { (weekLabel($0.0), $0.1) },
-                color: .orange,
+                color: Color.forge,
                 unit: "séances"
             )
             SimpleBarChart(
@@ -323,7 +323,7 @@ extension StatsView {
             HStack {
                 Image(systemName: "magnifyingglass").foregroundColor(.gray)
                 TextField("Rechercher un exercice...", text: $searchText)
-                    .foregroundColor(.white).tint(.orange)
+                    .foregroundColor(.white).tint(Color.forge)
             }
             .padding(12)
             .background(Color.appCard).cornerRadius(12)
@@ -415,7 +415,7 @@ extension StatsView {
                 xLabel: "Volume J-1 (\(units.label))",
                 yLabel: "Soreness J (1–10)",
                 title: "VOLUME → DOULEURS MUSCULAIRES",
-                color: .orange
+                color: Color.forge
             )
             .padding(.horizontal, 16)
         }

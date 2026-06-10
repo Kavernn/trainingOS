@@ -70,13 +70,13 @@ struct TodayCardView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "star.fill")
                                     .font(.appMicro)
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                                 Text("Parfait")
                                     .font(.appCaption.weight(.bold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                             .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(Color.orange.opacity(0.12))
+                            .background(Color.forge.opacity(0.12))
                             .clipShape(Capsule())
                         } else {
                             PulsingDot(color: .green)
@@ -381,7 +381,7 @@ struct StatsRowView: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            StatPill(value: "\(totalSessions)", label: "SÉANCES", color: .orange)
+            StatPill(value: "\(totalSessions)", label: "SÉANCES", color: Color.forge)
             StatPill(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE MOY", color: .purple)
             StatPill(value: "\(weekSessions)", label: "CETTE SEMAINE", color: .cyan)
             StatPill(value: totalVolume, label: "VOLUME TOTAL", color: .green)
@@ -418,7 +418,7 @@ struct HeatmapView: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(activeDays)")
                         .font(.appTitle.weight(.black))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                     Text("sur 30 jours")
                         .font(.appCaption)
                         .foregroundColor(.gray)
@@ -431,13 +431,13 @@ struct HeatmapView: View {
                     let isToday = idx == last30Days.count - 1
                     ZStack {
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(day.1 ? Color.orange : Color.white.opacity(0.04))
+                            .fill(day.1 ? Color.forge : Color.white.opacity(0.04))
                         if isToday {
                             RoundedRectangle(cornerRadius: 3)
                                 .stroke(Color.white.opacity(0.55), lineWidth: 1.5)
                         } else if day.1 {
                             RoundedRectangle(cornerRadius: 3)
-                                .stroke(Color.orange.opacity(0.3), lineWidth: 0.5)
+                                .stroke(Color.forge.opacity(0.3), lineWidth: 0.5)
                         }
                     }
                     .frame(height: 22)
@@ -452,13 +452,13 @@ struct HeatmapView: View {
                         .font(.appCaption).foregroundColor(.gray)
                     Spacer()
                     Text("\(Int(pct * 100))%")
-                        .font(.appCaption.weight(.bold)).foregroundColor(.orange)
+                        .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)
                 }
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.white.opacity(0.07)).frame(height: 4)
                         Capsule()
-                            .fill(LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing))
+                            .fill(LinearGradient(colors: [Color.forge, .yellow], startPoint: .leading, endPoint: .trailing))
                             .frame(width: max(4, geo.size.width * pct), height: 4)
                     }
                 }
@@ -468,7 +468,7 @@ struct HeatmapView: View {
             // Légende
             HStack(spacing: 14) {
                 HStack(spacing: 5) {
-                    RoundedRectangle(cornerRadius: 2).fill(Color.orange)
+                    RoundedRectangle(cornerRadius: 2).fill(Color.forge)
                         .frame(width: 12, height: 12)
                     Text("Entraînement")
                         .font(.appCaption).foregroundColor(.gray)

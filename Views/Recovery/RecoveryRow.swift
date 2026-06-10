@@ -49,8 +49,8 @@ struct RecoveryRow: View {
                                 Image(systemName: "pencil")
                                     .font(.appCaption)
                                     .frame(width: 26, height: 26)
-                                    .background(Color.orange.opacity(0.12))
-                                    .foregroundColor(.orange.opacity(0.8))
+                                    .background(Color.forge.opacity(0.12))
+                                    .foregroundColor(Color.forge.opacity(0.8))
                                     .clipShape(RoundedRectangle(cornerRadius: 7))
                             }
                             .buttonStyle(.plain)
@@ -91,7 +91,7 @@ struct RecoveryRow: View {
                             secChip("star.fill", String(format: "%.0f/10", q), "qualité", .purple)
                         }
                         if let f = entry.fatigue {
-                            secChip("bolt.slash.fill", String(format: "%.0f/10", f), "fatigue", .orange)
+                            secChip("bolt.slash.fill", String(format: "%.0f/10", f), "fatigue", Color.forge)
                         }
                         if let hr = entry.restingHr {
                             secChip("heart.fill", String(format: "%.0f bpm", hr), "FC repos", .red)

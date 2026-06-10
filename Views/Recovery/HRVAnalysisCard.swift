@@ -75,7 +75,7 @@ struct HRVAnalysisCard: View {
                             }
                             if analysis.consecutiveLowDays >= 2 {
                                 Text("· \(analysis.consecutiveLowDays)j consécutifs")
-                                    .font(.appCaption).foregroundColor(.orange)
+                                    .font(.appCaption).foregroundColor(Color.forge)
                             }
                         }
                     }
@@ -301,7 +301,7 @@ struct HRVMorningNudgeView: View {
             HRVNudgeBanner(
                 icon: "waveform.path.ecg",
                 message: "Mesure HRV manquante ce matin — pense à rester allongé quelques secondes demain.",
-                color: .orange
+                color: Color.forge
             )
         case .watchNotWorn:
             HRVNudgeBanner(

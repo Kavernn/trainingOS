@@ -43,7 +43,7 @@ struct EditNutritionSheet: View {
                         }
                         .pickerStyle(.menu)
                         .foregroundColor(.white)
-                        .tint(.orange)
+                        .tint(Color.forge)
                     }.listRowBackground(Color.appCard)
                     Section("Aliment") {
                         TextField("Nom", text: $name).foregroundColor(.white)
@@ -62,11 +62,11 @@ struct EditNutritionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Sauvegarder") { Task { await save() } }
-                        .foregroundColor(.orange).fontWeight(.semibold)
+                        .foregroundColor(Color.forge).fontWeight(.semibold)
                         .disabled(name.isEmpty || calories.isEmpty || isSaving)
                 }
             }

@@ -144,18 +144,18 @@ private struct StreakRow: View {
     var body: some View {
         HStack {
             Image(systemName: streak.habitIcon)
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
                 .frame(width: 20)
             Text(streak.habitName)
                 .font(.subheadline)
             Spacer()
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                     .font(.caption)
                 Text("\(streak.currentStreak) j")
                     .font(.caption.bold())
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
             }
         }
     }

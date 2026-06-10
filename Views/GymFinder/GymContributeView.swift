@@ -65,7 +65,7 @@ struct GymContributeView: View {
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.orange)
+                    .background(Color.forge)
                     .cornerRadius(12)
                 }
                 .disabled(isSubmitting)
@@ -86,7 +86,7 @@ struct GymContributeView: View {
                     .foregroundColor(.white)
                 Text("$")
                     .font(.appTitle.weight(.bold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
             }
             Text("Laisse vide si tu ne sais pas")
                 .font(.appCaption)
@@ -141,7 +141,7 @@ struct GymContributeView: View {
                 Spacer()
                 Text("\(value.wrappedValue)/5")
                     .font(.appCaption)
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
             }
             HStack(spacing: 0) {
                 Text(low)
@@ -152,7 +152,7 @@ struct GymContributeView: View {
                     ForEach(1...5, id: \.self) { i in
                         Button { value.wrappedValue = i } label: {
                             Circle()
-                                .fill(i <= value.wrappedValue ? Color.orange : Color.white.opacity(0.12))
+                                .fill(i <= value.wrappedValue ? Color.forge : Color.white.opacity(0.12))
                                 .frame(width: 26, height: 26)
                         }
                         .buttonStyle(.plain)
@@ -193,7 +193,7 @@ struct GymContributeView: View {
             Spacer()
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 56))
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
             Text("Merci, soldat.")
                 .font(.system(size: 26, weight: .bold))
                 .foregroundColor(.white)
@@ -203,7 +203,7 @@ struct GymContributeView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             Button("Fermer") { dismiss() }
-                .foregroundColor(.orange)
+                .foregroundColor(Color.forge)
                 .font(.appBody.weight(.medium))
                 .padding(.top, 8)
             Spacer()

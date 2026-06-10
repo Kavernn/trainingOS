@@ -52,9 +52,9 @@ struct BarcodeScannerSheet: View {
                                 }
                             }
                             .font(.appBody.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .padding(.horizontal, 24).padding(.vertical, 10)
-                            .background(Color.orange.opacity(0.12))
+                            .background(Color.forge.opacity(0.12))
                             .cornerRadius(12)
                         }
                     }

@@ -15,7 +15,7 @@ struct ProgramPreviewSheet: View {
 
     private let phaseColors: [String: Color] = [
         "accumulation":   .blue,
-        "intensification": .orange,
+        "intensification": Color.forge,
         "peak":           .red,
         "deload":         .green
     ]
@@ -140,7 +140,7 @@ struct ProgramPreviewSheet: View {
                     if let err = approveError {
                         Text(err)
                             .font(.system(size: 12))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .multilineTextAlignment(.center)
                     }
                     if approveSuccess {
@@ -265,7 +265,7 @@ private struct DayCard: View {
     ]
     private let categoryColors: [String: Color] = [
         "compound_heavy":       .red,
-        "compound_hypertrophy": .orange,
+        "compound_hypertrophy": Color.forge,
         "isolation":            .blue
     ]
 
