@@ -482,7 +482,7 @@ struct MonthPickerSheet: View {
                     }
                     .font(.appBody.weight(.semibold))
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(Color.forge).foregroundColor(.white).cornerRadius(14)
+                    .background(Color.forge).foregroundColor(Color.onAccent).cornerRadius(14)
                     .padding(.horizontal, 20)
                 }
                 .padding(.top, 20)
@@ -891,14 +891,14 @@ struct EditSessionSheet: View {
                             }
                         } label: {
                             HStack {
-                                if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
+                                if isSaving { ProgressView().tint(Color.onAccent).scaleEffect(0.8) }
                                 Text("Enregistrer")
                                     .font(.appBody.weight(.bold))
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
                             .background(Color.forge)
-                            .foregroundColor(.black)
+                            .foregroundColor(Color.onAccent)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .disabled(isSaving)
@@ -974,10 +974,10 @@ struct EditHIITSheet: View {
                             }
                         } label: {
                             HStack {
-                                if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
+                                if isSaving { ProgressView().tint(Color.onAccent).scaleEffect(0.8) }
                                 Text("Sauvegarder").font(.appBody.weight(.bold))
                             }
-                            .foregroundColor(.black).frame(maxWidth: .infinity).padding(14)
+                            .foregroundColor(Color.onAccent).frame(maxWidth: .infinity).padding(14)
                             .background(Color.forge).clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .disabled(isSaving)

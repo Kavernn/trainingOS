@@ -799,10 +799,10 @@ struct BodyWeightSheet: View {
             .safeAreaInset(edge: .bottom) {
                 Button(action: save) {
                     HStack(spacing: 8) {
-                        if isSaving { ProgressView().tint(.white).scaleEffect(0.85) }
+                        if isSaving { ProgressView().tint(weightStr.isEmpty ? .white : Color.onAccent).scaleEffect(0.85) }
                         Text(isEdit ? "Enregistrer les modifications" : "Enregistrer")
                             .font(.appBody.weight(.semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(weightStr.isEmpty ? Color(white: 0.4) : Color.onAccent)
                     }
                 }
                 .frame(maxWidth: .infinity)

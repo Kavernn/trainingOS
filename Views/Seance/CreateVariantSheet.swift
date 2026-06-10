@@ -123,7 +123,7 @@ struct CreateVariantSheet: View {
                 } label: {
                     Text("Prévisualiser")
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(variantName.isEmpty ? Color(white: 0.4) : Color.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(variantName.isEmpty ? Color.gray : Color.forge)
@@ -180,12 +180,12 @@ struct CreateVariantSheet: View {
                 HStack(spacing: 8) {
                     if isSaving {
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                            .progressViewStyle(CircularProgressViewStyle(tint: Color.onAccent))
                             .scaleEffect(0.85)
                     }
                     Text(isSaving ? "Enregistrement…" : "Confirmer et ajouter au catalogue")
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(Color.onAccent)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)

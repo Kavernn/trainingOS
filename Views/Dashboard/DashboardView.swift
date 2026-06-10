@@ -56,7 +56,7 @@ struct DashboardView: View {
                                 } label: {
                                     Text("Relancer")
                                         .font(.appLabel).fontWeight(.semibold)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(Color.onAccent)
                                         .padding(.horizontal, 20).padding(.vertical, 9)
                                         .background(Color.forge)
                                         .cornerRadius(18)
@@ -449,11 +449,6 @@ struct DashboardView: View {
                                 XPChipView(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.38)
 
-                                // 19 — Objectif
-                                if let goal = dash.profile.goal, !goal.isEmpty {
-                                    GoalReminderView(goal: goal)
-                                        .appearAnimation(delay: 0.40)
-                                }
 
                             }
                             .padding(.horizontal, 16)
@@ -495,7 +490,7 @@ struct DashboardView: View {
                         } label: {
                             Text("Réessayer")
                                 .font(.appBody).fontWeight(.semibold)
-                                .foregroundColor(.white)
+                                .foregroundColor(Color.onAccent)
                                 .padding(.horizontal, 28).padding(.vertical, 12)
                                 .background(Color.forge).cornerRadius(22)
                         }

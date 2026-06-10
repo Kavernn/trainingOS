@@ -122,7 +122,7 @@ private struct ERTabPicker: View {
         } label: {
             Text(title)
                 .font(.appLabel.weight(selected ? .bold : .medium))
-                .foregroundColor(selected ? .white : .gray)
+                .foregroundColor(selected ? Color.onAccent : .gray)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(selected ? Color.forge : Color.clear)

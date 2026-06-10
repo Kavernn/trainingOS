@@ -141,7 +141,7 @@ struct ScanLabelSheet: View {
                 Task { await analyze() }
             } label: {
                 Text("Analyser")
-                    .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
+                    .font(.system(size: 16, weight: .semibold)).foregroundColor(pickedImage == nil ? Color(white: 0.5) : Color.onAccent)
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(pickedImage == nil ? Color.forge.opacity(0.4) : Color.forge)
                     .cornerRadius(12)

@@ -1176,7 +1176,7 @@ struct NoProgramEmptyState: View {
                         Text("Séance libre")
                             .font(.appHeadline.weight(.bold))
                     }
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(Color.forge)
@@ -1446,7 +1446,7 @@ struct FreeWorkoutView: View {
                     } label: {
                         Text("Terminer la séance")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(Color.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(Color.forge)

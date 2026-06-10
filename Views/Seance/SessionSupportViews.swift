@@ -141,7 +141,7 @@ struct WorkoutSummarySheet: View {
                                 .font(.appBody).fontWeight(.bold)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
                                 .background(Color.forge)
-                                .foregroundColor(.white)
+                                .foregroundColor(Color.onAccent)
                                 .cornerRadius(14)
                         }
                         .padding(.horizontal, 20)
@@ -413,7 +413,7 @@ struct FinishSessionSheet: View {
                         }) {
                             Text(loggedCount == exercises.count ? "Enregistrer la séance" : "Enregistrer quand même tout")
                                 .font(.appBody).fontWeight(.bold).frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(Color.forge).foregroundColor(.white).cornerRadius(14)
+                                .background(Color.forge).foregroundColor(Color.onAccent).cornerRadius(14)
                         }
                         .padding(.horizontal, 20).padding(.bottom, 8)
 
@@ -717,7 +717,7 @@ struct SessionRecapSheet: View {
                             Text("Continuer")
                                 .font(.appBody).fontWeight(.bold)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(Color.forge).foregroundColor(.white).cornerRadius(14)
+                                .background(Color.forge).foregroundColor(Color.onAccent).cornerRadius(14)
                         }
                         .buttonStyle(SpringButtonStyle())
                         .padding(.horizontal, 20).padding(.bottom, 32)
@@ -816,7 +816,7 @@ struct EnergyPreWorkoutSheet: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background(Color.forge)
-            .foregroundColor(.white)
+            .foregroundColor(Color.onAccent)
             .cornerRadius(14)
             .padding(.horizontal, 20)
             .padding(.bottom, 8)

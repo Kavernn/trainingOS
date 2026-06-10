@@ -133,7 +133,7 @@ struct CatalogueView: View {
                         } label: {
                             Image(systemName: "plus")
                                 .font(.title2.weight(.semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(Color.onAccent)
                                 .frame(width: 56, height: 56)
                                 .background(Color.forge)
                                 .clipShape(Circle())
@@ -1324,7 +1324,7 @@ struct InventoryFormSheet: View {
                                     .font(.appCaption.weight(.medium))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                     .background(defaultScheme == s ? Color.forge : Color.appSurfaceInset)
-                                    .foregroundColor(defaultScheme == s ? .black : .white)
+                                    .foregroundColor(defaultScheme == s ? Color.onAccent : .white)
                                     .cornerRadius(16)
                             }
                         }
@@ -2277,7 +2277,7 @@ struct ClassificationGapsSheet: View {
                         Text("Appliquer")
                     }
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Color.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 7)
                     .background(Color.forge)

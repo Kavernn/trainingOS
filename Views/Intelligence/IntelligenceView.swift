@@ -154,7 +154,7 @@ struct IntelligenceView: View {
                                         Text("Commencer la séance")
                                             .font(.system(size: 14, weight: .semibold))
                                     }
-                                    .foregroundColor(.black)
+                                    .foregroundColor(Color.onAccent)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
                                     .background(Color.forge)

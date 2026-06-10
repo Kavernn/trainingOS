@@ -147,7 +147,7 @@ struct PlateCalculatorSheet: View {
                             } label: {
                                 Text("Appliquer \(String(format: "%.2g", perSide)) \(units.label) / côté")
                                     .font(.appBody.weight(.bold))
-                                    .foregroundColor(Color.appBg)
+                                    .foregroundColor(Color.onAccent)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 15)
                                     .background(Color.forge)

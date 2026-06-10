@@ -199,7 +199,7 @@ struct BonusSeanceView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(Color.forge)
-                                .foregroundColor(.white)
+                                .foregroundColor(Color.onAccent)
                                 .cornerRadius(14)
                             }
                             .padding(.horizontal, 16)

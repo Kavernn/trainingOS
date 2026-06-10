@@ -58,11 +58,11 @@ struct GymContributeView: View {
 
                 Button { Task { await submit() } } label: {
                     HStack(spacing: 8) {
-                        if isSubmitting { ProgressView().tint(.black) }
+                        if isSubmitting { ProgressView().tint(Color.onAccent) }
                         Text(isSubmitting ? "Envoi…" : "Envoyer")
                             .fontWeight(.semibold)
                     }
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(Color.forge)

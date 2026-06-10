@@ -78,7 +78,7 @@ struct OnboardingView: View {
             Button { withAnimation { step = 1 } } label: {
                 Text("Commencer →")
                     .font(.appHeadline).fontWeight(.bold)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(Color.forge)
@@ -170,7 +170,7 @@ struct OnboardingView: View {
             Button { withAnimation { step = 3 } } label: {
                 Text("Continuer →")
                     .font(.appHeadline).fontWeight(.bold)
-                    .foregroundColor(.black)
+                    .foregroundColor(isNameValid ? Color.onAccent : Color(white: 0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(isNameValid ? Color.forge : Color(white: 0.18))
@@ -246,11 +246,11 @@ struct OnboardingView: View {
 
             Button(action: submit) {
                 HStack(spacing: 10) {
-                    if isSaving { ProgressView().tint(.black).scaleEffect(0.85) }
+                    if isSaving { ProgressView().tint(Color.onAccent).scaleEffect(0.85) }
                     Text(isSaving ? "Préparation…" : "Continuer →")
                         .font(.appHeadline).fontWeight(.bold)
                 }
-                .foregroundColor(.black)
+                .foregroundColor(Color.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
                 .background(Color.forge)

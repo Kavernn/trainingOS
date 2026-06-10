@@ -394,11 +394,11 @@ struct SleepPromptCard: View {
             } label: {
                 Group {
                     if isSaving {
-                        ProgressView().tint(.white).scaleEffect(0.8)
+                        ProgressView().tint(Color.onAccent).scaleEffect(0.8)
                     } else {
                         Text("Enregistrer")
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Color.onAccent)
                     }
                 }
                 .frame(maxWidth: .infinity)

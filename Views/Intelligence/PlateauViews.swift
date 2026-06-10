@@ -325,7 +325,7 @@ struct PlateauDetailSheet: View {
                 Button(action: { showDeloadPlan = true }) {
                     Label("Voir le plan de deload", systemImage: "arrow.right.circle.fill")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(Color.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(Color.forge)
@@ -506,14 +506,14 @@ struct DeloadPlanSheet: View {
             Button(action: activate) {
                 HStack(spacing: 8) {
                     if isActivating {
-                        ProgressView().tint(.black)
+                        ProgressView().tint(Color.onAccent)
                     } else {
                         Image(systemName: "bolt.fill")
                     }
                     Text("Activer le deload")
                         .font(.appBody.weight(.semibold))
                 }
-                .foregroundColor(.black)
+                .foregroundColor(Color.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(Color.forge)

@@ -249,7 +249,7 @@ struct GymFinderView: View {
             } label: {
                 Text("Autoriser dans Réglages")
                     .font(.appBody.weight(.semibold))
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(Color.forge)
@@ -274,7 +274,7 @@ struct GymPin: View {
                 .shadow(color: Color.forge.opacity(0.6), radius: isSelected ? 10 : 4)
             Image(systemName: "dumbbell.fill")
                 .font(.system(size: isSelected ? 16 : 12, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(Color.onAccent)
         }
         .scaleEffect(isSelected ? 1.15 : 1.0)
         .animation(.spring(response: 0.3), value: isSelected)

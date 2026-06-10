@@ -154,7 +154,7 @@ struct ChecklistCardView: View {
                 } label: {
                     Text("En route.")
                         .font(.appLabel.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Color.onAccent)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
                         .background(Color.forge)

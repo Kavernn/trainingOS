@@ -419,7 +419,7 @@ struct ProgrammeView: View {
                                         Button { showCreateProgram = true } label: {
                                             Text("Importer un programme")
                                                 .font(.appBody.weight(.semibold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(Color.onAccent)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
                                                 .background(Color.forge)

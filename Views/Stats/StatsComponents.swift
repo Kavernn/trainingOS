@@ -56,7 +56,7 @@ struct PeriodPicker: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 5)
                         .background(selected == p ? Color.forge : Color.appSurfaceInset)
-                        .foregroundColor(selected == p ? .black : .gray)
+                        .foregroundColor(selected == p ? Color.onAccent : .gray)
                         .cornerRadius(20)
                 }
             }

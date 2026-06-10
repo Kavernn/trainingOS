@@ -228,7 +228,7 @@ struct GymDetailView: View {
             Button { openDirections() } label: {
                 Label("Itinéraire", systemImage: "arrow.triangle.turn.up.right.circle.fill")
                     .font(.appBody.weight(.semibold))
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(Color.forge)

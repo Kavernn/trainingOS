@@ -681,7 +681,7 @@ struct RecoveryView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(activeTab == tab ? Color.forge : Color.clear)
-            .foregroundColor(activeTab == tab ? .white : .gray)
+            .foregroundColor(activeTab == tab ? Color.onAccent : .gray)
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
