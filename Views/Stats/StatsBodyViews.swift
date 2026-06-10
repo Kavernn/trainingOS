@@ -680,7 +680,7 @@ struct SeasonComparisonCard: View {
 
             VStack(alignment: .center, spacing: 10) {
                 Text(current.title ?? "En cours")
-                    .font(.system(size: 10, weight: .bold)).foregroundColor(Color.forge)
+                    .font(.system(size: 11, weight: .bold)).foregroundColor(Color.forge)
                     .lineLimit(1).frame(height: 16)
                 valCell(current.volumeAvgWeek.map { units.format($0, decimals: 0) })
                 valCell(current.sessionsCount.map { "\($0)" })
@@ -701,7 +701,7 @@ struct SeasonComparisonCard: View {
 
                 VStack(alignment: .center, spacing: 10) {
                     Text(prev.title ?? "Précédente")
-                        .font(.system(size: 10, weight: .bold)).foregroundColor(.gray)
+                        .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
                         .lineLimit(1).frame(height: 16)
                     valCell(prev.volumeAvgWeek.map { units.format($0, decimals: 0) }, dim: true)
                     valCell(prev.sessionsCount.map { "\($0)" }, dim: true)

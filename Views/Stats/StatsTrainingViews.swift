@@ -231,15 +231,15 @@ struct SessionHeatmapView: View {
                 Spacer()
                 HStack(spacing: 4) {
                     Circle().fill(Color.forge).frame(width: 8, height: 8)
-                    Text("Muscu").font(.system(size: 10)).foregroundColor(.gray)
+                    Text("Muscu").font(.appCaption).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
                     Circle().fill(Color.blue).frame(width: 8, height: 8)
-                    Text("HIIT").font(.system(size: 10)).foregroundColor(.gray)
+                    Text("HIIT").font(.appCaption).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
                     Circle().fill(Color.purple).frame(width: 8, height: 8)
-                    Text("Les 2").font(.system(size: 10)).foregroundColor(.gray)
+                    Text("Les 2").font(.appCaption).foregroundColor(.gray)
                 }
             }
         }

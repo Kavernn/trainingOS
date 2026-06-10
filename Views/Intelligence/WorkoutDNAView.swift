@@ -406,7 +406,7 @@ private struct WorkoutDNAInlineContent: View {
                     }
                     HStack(spacing: 4) {
                         Image(systemName: "shuffle")
-                            .font(.system(size: 10))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                         Text("Diversité \(patterns.diversityScore)%")
                             .font(.appCaption)
@@ -726,11 +726,11 @@ private struct IntensitySlider: View {
             }
             .frame(height: 8)
             HStack {
-                Text("Pump").font(.system(size: 10)).foregroundColor(.gray)
+                Text("Pump").font(.appCaption).foregroundColor(.gray)
                 Spacer()
-                Text("Hypertrophie").font(.system(size: 10)).foregroundColor(.gray)
+                Text("Hypertrophie").font(.appCaption).foregroundColor(.gray)
                 Spacer()
-                Text("Force").font(.system(size: 10)).foregroundColor(.gray)
+                Text("Force").font(.appCaption).foregroundColor(.gray)
             }
         }
     }
@@ -813,7 +813,7 @@ private struct RecoveryIndicator: View {
                     .font(.system(size: 22, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                 Text("repos moyen")
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
             Spacer()
@@ -829,7 +829,7 @@ private struct RecoveryIndicator: View {
                 }
                 .frame(height: 6)
                 Text("ratio \(String(format: "%.2f", recovery.ratio)) vs optimal")
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
             .frame(maxWidth: .infinity)
@@ -862,7 +862,7 @@ private struct SignatureLiftRow: View {
                     .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text("\(lift.sessionCount) séances")
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
 
@@ -874,7 +874,7 @@ private struct SignatureLiftRow: View {
                     .foregroundColor(.white)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% sur l'ancienne limite")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.green)
                 }
             }
@@ -968,7 +968,7 @@ struct WorkoutDNAShareCard: View {
                     .font(.system(size: 22, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                 Text(dna.archetype.tagline)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundColor(accent)
                     .italic()
                     .padding(.bottom, 14)
