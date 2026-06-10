@@ -34,7 +34,7 @@ struct PortraitJ90Card: View {
                 .foregroundColor(.white.opacity(0.35))
             Spacer()
             if let score = data.transformationScore {
-                let scoreColor: Color = score >= 50 ? .forge : .trendNegative
+                let scoreColor: Color = score >= 50 ? .forge : Color.trendNegative
                 Text("\(score)%")
                     .font(.appLabel.weight(.black))
                     .foregroundColor(scoreColor)
@@ -67,7 +67,7 @@ private struct DimRowCompact: View {
     let dim: PortraitDimension
 
     private var improving: Bool { dim.improving ?? false }
-    private var deltaColor: Color { improving ? .forge : .trendNegative }
+    private var deltaColor: Color { improving ? .forge : Color.trendNegative }
     private var arrowName: String { improving ? "arrow.up" : "arrow.down" }
 
     var body: some View {
@@ -131,7 +131,7 @@ private struct TransformationScoreBanner: View {
     let improving: Int
     let total: Int
 
-    private var scoreColor: Color { score >= 50 ? .forge : .trendNegative }
+    private var scoreColor: Color { score >= 50 ? .forge : Color.trendNegative }
 
     var body: some View {
         HStack(spacing: 16) {
@@ -204,7 +204,7 @@ private struct DimDetailRow: View {
     let dim: PortraitDimension
 
     private var improving: Bool { dim.improving ?? false }
-    private var deltaColor: Color { improving ? .forge : .trendNegative }
+    private var deltaColor: Color { improving ? .forge : Color.trendNegative }
 
     private func fmt(_ v: Double?) -> String {
         guard let v else { return "—" }

@@ -71,9 +71,9 @@ private struct TrendBadge: View {
     let icon: String
 
     private var color: Color {
-        if trendPct >= 5  { return .trendPositive }
-        if trendPct <= -5 { return .trendNegative }
-        return .trendNeutral
+        if trendPct >= 5  { return Color.trendPositive }
+        if trendPct <= -5 { return Color.trendNegative }
+        return Color.trendNeutral
     }
 
     var body: some View {
@@ -117,9 +117,9 @@ private struct PillarDot: View {
     let score: Int
 
     private var color: Color {
-        if score >= 75 { return .trendPositive }
-        if score >= 50 { return .trendNeutral }
-        return .trendNegative
+        if score >= 75 { return Color.trendPositive }
+        if score >= 50 { return Color.trendNeutral }
+        return Color.trendNegative
     }
 
     var body: some View {
@@ -231,9 +231,9 @@ private struct MomentumPillarRow: View {
     let weight: Double
 
     private var color: Color {
-        if score >= 75 { return .trendPositive }
-        if score >= 50 { return .trendNeutral }
-        return .trendNegative
+        if score >= 75 { return Color.trendPositive }
+        if score >= 50 { return Color.trendNeutral }
+        return Color.trendNegative
     }
 
     var body: some View {
@@ -298,9 +298,9 @@ private struct HistoryCard: View {
                 if let cur = currentScore {
                     let barH = maxScore > 0 ? max(8.0, 60.0 * Double(cur) / Double(maxScore)) : 8.0
                     let color: Color = {
-                        if cur >= 75 { return .trendPositive }
-                        if cur >= 50 { return .trendNeutral }
-                        return .trendNegative
+                        if cur >= 75 { return Color.trendPositive }
+                        if cur >= 50 { return Color.trendNeutral }
+                        return Color.trendNegative
                     }()
                     VStack(spacing: 4) {
                         RoundedRectangle(cornerRadius: 3)

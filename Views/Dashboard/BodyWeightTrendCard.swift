@@ -8,8 +8,8 @@ struct BodyWeightTrendCard: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "gaining": return .trendNeutral
-        case "losing":  return .trendPositive
+        case "gaining": return Color.trendNeutral
+        case "losing":  return Color.trendPositive
         default:        return .gray
         }
     }
@@ -96,7 +96,7 @@ private struct BodyWeightSparkline: View {
                 let v = avgs[i].avg ?? minVal
                 let h = max(4.0, 36.0 * (v - minVal) / range)
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
+                    .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
                     .frame(width: 5, height: h)
             }
         }
@@ -139,8 +139,8 @@ private struct BodyWeightBanner: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "gaining": return .trendNeutral
-        case "losing":  return .trendPositive
+        case "gaining": return Color.trendNeutral
+        case "losing":  return Color.trendPositive
         default:        return .gray
         }
     }
@@ -183,7 +183,7 @@ private struct BodyWeightWeeklyChart: View {
                     let v  = avgs[i].avg ?? minVal
                     let h  = max(8.0, 60.0 * (v - minVal) / range)
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
+                        .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
                         .frame(maxWidth: .infinity)
                         .frame(height: h)
                 }
@@ -215,13 +215,13 @@ private struct BodyWeightRangeCard: View {
                     Text("BAS").font(.appMicro).foregroundColor(.white.opacity(0.28))
                     Text(data.rangeLow.map { String(format: "%.1f", $0) } ?? "—")
                         .font(.system(size: 20, weight: .black, design: .rounded))
-                        .foregroundColor(.trendPositive)
+                        .foregroundColor(Color.trendPositive)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("HAUT").font(.appMicro).foregroundColor(.white.opacity(0.28))
                     Text(data.rangeHigh.map { String(format: "%.1f", $0) } ?? "—")
                         .font(.system(size: 20, weight: .black, design: .rounded))
-                        .foregroundColor(.trendNeutral)
+                        .foregroundColor(Color.trendNeutral)
                 }
                 if let pct = data.currentPctOfRange {
                     Spacer()

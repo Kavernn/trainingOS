@@ -8,8 +8,8 @@ struct WorkoutDurationCard: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "increasing": return .trendNeutral
-        case "decreasing": return .trendPositive
+        case "increasing": return Color.trendNeutral
+        case "decreasing": return Color.trendPositive
         default:           return .gray
         }
     }
@@ -88,7 +88,7 @@ private struct DurationSparkline: View {
                 let v = weeks[i].avgMin ?? 0
                 let h = maxVal > 0 ? max(4.0, 36.0 * v / maxVal) : 4.0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
+                    .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
                     .frame(width: 5, height: h)
             }
         }
@@ -132,8 +132,8 @@ private struct DurationBanner: View {
 
     private var color: Color {
         switch data.trend {
-        case "increasing": return .trendNeutral
-        case "decreasing": return .trendPositive
+        case "increasing": return Color.trendNeutral
+        case "decreasing": return Color.trendPositive
         default:           return .gray
         }
     }
@@ -175,7 +175,7 @@ private struct DurationWeeklyChart: View {
                     let v = weeks[i].avgMin ?? 0
                     let h = maxVal > 0 ? max(8.0, 60.0 * v / maxVal) : 8.0
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
+                        .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
                         .frame(maxWidth: .infinity).frame(height: h)
                 }
             }
@@ -204,7 +204,7 @@ private struct DurationByLengthCard: View {
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundColor(.white.opacity(b.count > 0 ? 0.75 : 0.25))
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(b.count > 0 ? .trendPositive : Color.white.opacity(0.10))
+                            .fill(b.count > 0 ? Color.trendPositive : Color.white.opacity(0.10))
                             .frame(height: h)
                         Text(b.label)
                             .font(.system(size: 8, weight: .medium))

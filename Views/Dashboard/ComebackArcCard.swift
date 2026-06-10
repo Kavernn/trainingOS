@@ -179,7 +179,7 @@ private struct RuptureContextCard: View {
             ArcStatRow(label: "Durée de la rupture",
                        value: data.ruptureLength.map { "\($0) jour\($0 > 1 ? "s" : "")" } ?? "—",
                        icon: "exclamationmark.triangle.fill",
-                       iconColor: .trendNegative)
+                       iconColor: Color.trendNegative)
 
             ArcStatRow(label: "Jours depuis la rupture",
                        value: data.daysSinceRupture.map { "\($0)j" } ?? "—",

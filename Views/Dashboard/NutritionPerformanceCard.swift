@@ -194,13 +194,13 @@ private struct BreakdownCard: View {
 
             DetailRow(label: "Avec nutrition J-1",
                       icon: "checkmark.circle.fill",
-                      iconColor: .trendPositive,
+                      iconColor: Color.trendPositive,
                       rpe: data.avgRpeWith,
                       count: data.countWith)
 
             DetailRow(label: "Sans nutrition J-1",
                       icon: "xmark.circle.fill",
-                      iconColor: .trendNegative,
+                      iconColor: Color.trendNegative,
                       rpe: data.avgRpeWithout,
                       count: data.countWithout)
 

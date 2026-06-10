@@ -26,9 +26,9 @@ struct EnergyPerformanceCard: View {
                     if data.hasData {
                         Text("Meilleur: \(bestLabel)")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.trendPositive.opacity(0.85))
+                            .foregroundColor(Color.trendPositive.opacity(0.85))
                             .padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(.trendPositive.opacity(0.12))
+                            .background(Color.trendPositive.opacity(0.12))
                             .clipShape(Capsule())
                     }
                     Image(systemName: "chevron.right")
@@ -73,7 +73,7 @@ private struct EnergyBucketBars: View {
                             .foregroundColor(isBest ? .white.opacity(0.80) : .white.opacity(0.35))
                     }
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(isBest ? .trendPositive : Color.white.opacity(0.20))
+                        .fill(isBest ? Color.trendPositive : Color.white.opacity(0.20))
                         .frame(height: h)
                     Text(b.bucket == "low" ? "Bas" : b.bucket == "medium" ? "Moyen" : "Élevé")
                         .font(.system(size: 8))
@@ -161,7 +161,7 @@ private struct EnergyPerfDetailChart: View {
                             Text("—").font(.system(size: 11)).foregroundColor(.white.opacity(0.25))
                         }
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(isBest ? .trendPositive : Color.white.opacity(0.20))
+                            .fill(isBest ? Color.trendPositive : Color.white.opacity(0.20))
                             .frame(height: h)
                         Text(b.label)
                             .font(.system(size: 9, weight: .medium))

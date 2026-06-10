@@ -8,9 +8,9 @@ struct SessionQualityCard: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "improving": return .trendPositive
-        case "declining": return .trendNegative
-        default:          return .trendNeutral
+        case "improving": return Color.trendPositive
+        case "declining": return Color.trendNegative
+        default:          return Color.trendNeutral
         }
     }
 
@@ -90,7 +90,7 @@ private struct SessionQualitySparkline: View {
                 let q = weeks[i].avgQuality ?? 0
                 let h = maxQ > 0 ? max(4.0, 36.0 * q / maxQ) : 4.0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
+                    .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
                     .frame(width: 6, height: h)
             }
         }
@@ -136,9 +136,9 @@ private struct SessionQualityBanner: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "improving": return .trendPositive
-        case "declining": return .trendNegative
-        default:          return .trendNeutral
+        case "improving": return Color.trendPositive
+        case "declining": return Color.trendNegative
+        default:          return Color.trendNeutral
         }
     }
 
@@ -182,7 +182,7 @@ private struct SessionQualityWeekChart: View {
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundColor(isLast ? .white.opacity(0.65) : .white.opacity(0.28))
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
+                            .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
                             .frame(height: h)
                         Text("S\(i + 1)")
                             .font(.system(size: 7))
