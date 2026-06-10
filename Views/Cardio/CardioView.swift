@@ -1176,7 +1176,7 @@ struct LogCardioSheet: View {
                                             Text(t.capitalized)
                                                 .font(.appLabel)
                                                 .padding(.horizontal, 14).padding(.vertical, 8)
-                                                .background(selectedType == t ? Color.teal : Color(hex: "191926"))
+                                                .background(selectedType == t ? Color.teal : Color.appSurfaceInset)
                                                 .foregroundColor(selectedType == t ? .white : .gray)
                                                 .cornerRadius(20)
                                         }
@@ -1209,7 +1209,7 @@ struct LogCardioSheet: View {
                                 .lineLimit(3, reservesSpace: true)
                                 .foregroundColor(.white)
                                 .padding(12)
-                                .background(Color(hex: "191926"))
+                                .background(Color.appSurfaceInset)
                                 .cornerRadius(10)
                         }
 
@@ -1279,7 +1279,7 @@ struct CardioField: View {
                 .keyboardType(keyboardType)
                 .foregroundColor(.white)
                 .padding(10)
-                .background(Color(hex: "191926"))
+                .background(Color.appSurfaceInset)
                 .cornerRadius(8)
         }
     }

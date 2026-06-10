@@ -845,14 +845,14 @@ struct EditSessionSheet: View {
                                                     .foregroundColor(.gray)
                                             }
                                             .padding(10)
-                                            .background(Color(hex: "191926"))
+                                            .background(Color.appSurfaceInset)
                                             .clipShape(RoundedRectangle(cornerRadius: 8))
 
                                             TextField("Reps (ex: 5,5,5)", text: $exos[i].reps)
                                                 .font(.appLabel.weight(.regular))
                                                 .foregroundColor(.white)
                                                 .padding(10)
-                                                .background(Color(hex: "191926"))
+                                                .background(Color.appSurfaceInset)
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                         }
                                     }

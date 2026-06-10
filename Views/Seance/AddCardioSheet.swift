@@ -31,7 +31,7 @@ struct AddCardioSheet: View {
                                     ForEach(types, id: \.self) { t in
                                         Button(t) { cardioType = t }
                                             .padding(.horizontal, 12).padding(.vertical, 6)
-                                            .background(cardioType == t ? Color.blue.opacity(0.2) : Color(hex: "191926"))
+                                            .background(cardioType == t ? Color.blue.opacity(0.2) : Color.appSurfaceInset)
                                             .foregroundColor(cardioType == t ? .blue : .gray)
                                             .cornerRadius(8)
                                             .font(.system(size: 13, weight: .medium))
@@ -47,13 +47,13 @@ struct AddCardioSheet: View {
                                 Text("DURÉE (MIN)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                                 TextField("30", text: $durationMin).keyboardType(.decimalPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
-                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                    .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                             }
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("DISTANCE (\(UnitSettings.shared.distanceUnit))").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $distanceKm).keyboardType(.decimalPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
-                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                    .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                             }
                         }
                         .padding(14).background(Color.appCard).cornerRadius(14)
@@ -77,7 +77,7 @@ struct AddCardioSheet: View {
                                 .lineLimit(3, reservesSpace: true)
                                 .submitLabel(.done)
                                 .onSubmit { hideKeyboard() }
-                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                                .padding(12).background(Color.appSurfaceInset).cornerRadius(10)
                         }
                         .padding(14).background(Color.appCard).cornerRadius(14)
 

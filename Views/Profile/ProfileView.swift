@@ -1115,7 +1115,7 @@ struct GoalProgressRow: View {
             GeometryReader { geo in
                 let pct = progress.goal > 0 ? min(progress.current / progress.goal, 1.0) : 0
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color(hex: "191926")).frame(height: 4)
+                    Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                     Capsule()
                         .fill(progress.achieved ? Color.green : Color.orange)
                         .frame(width: geo.size.width * pct, height: 4)

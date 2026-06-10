@@ -482,7 +482,7 @@ struct MeasurementsCard: View {
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color(hex: "191926")).frame(height: 5)
+                            Capsule().fill(Color.appSurfaceInset).frame(height: 5)
                             Capsule()
                                 .fill(item.color.opacity(0.75))
                                 .frame(width: geo.size.width * CGFloat(item.current / maxValue), height: 5)
@@ -742,7 +742,7 @@ struct BodyWeightSheet: View {
                                     .foregroundColor(.white)
                                     .font(.appTitle)
                                     .padding(12)
-                                    .background(Color(hex: "191926"))
+                                    .background(Color.appSurfaceInset)
                                     .cornerRadius(10)
                             }
                             VStack(alignment: .leading, spacing: 6) {
@@ -760,7 +760,7 @@ struct BodyWeightSheet: View {
                                     .foregroundColor(fatInvalid ? .red : .white)
                                     .font(.appTitle)
                                     .padding(12)
-                                    .background(Color(hex: "191926"))
+                                    .background(Color.appSurfaceInset)
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
@@ -921,7 +921,7 @@ struct MesureField: View {
             Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             TextField(placeholder, text: $text)
                 .keyboardType(.decimalPad).foregroundColor(.white)
-                .padding(10).background(Color(hex: "191926")).cornerRadius(8)
+                .padding(10).background(Color.appSurfaceInset).cornerRadius(8)
         }
     }
 }

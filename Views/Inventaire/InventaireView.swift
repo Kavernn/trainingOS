@@ -1156,7 +1156,7 @@ struct InventoryFormSheet: View {
                             .foregroundColor(sel ? .black : .white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 7)
-                            .background(sel ? Color.orange : Color(hex: "191926"))
+                            .background(sel ? Color.orange : Color.appSurfaceInset)
                             .cornerRadius(10)
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
                     }
@@ -1244,7 +1244,7 @@ struct InventoryFormSheet: View {
                                     .font(.appCaption.weight(.medium))
                                     .foregroundColor(sel ? .black : .white)
                                     .padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(sel ? Color.orange : Color(hex: "191926"))
+                                    .background(sel ? Color.orange : Color.appSurfaceInset)
                                     .cornerRadius(16)
                                     .overlay(Capsule().stroke(sel ? .clear : Color.white.opacity(0.15), lineWidth: 1))
                             }
@@ -1296,7 +1296,7 @@ struct InventoryFormSheet: View {
                                     Text(formatDur(d))
                                         .font(.appCaption.weight(.medium))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(timeDuration == d ? Color.cyan : Color(hex: "191926"))
+                                        .background(timeDuration == d ? Color.cyan : Color.appSurfaceInset)
                                         .foregroundColor(timeDuration == d ? .black : .white)
                                         .cornerRadius(16)
                                 }
@@ -1323,7 +1323,7 @@ struct InventoryFormSheet: View {
                                 Text(s)
                                     .font(.appCaption.weight(.medium))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(defaultScheme == s ? Color.orange : Color(hex: "191926"))
+                                    .background(defaultScheme == s ? Color.orange : Color.appSurfaceInset)
                                     .foregroundColor(defaultScheme == s ? .black : .white)
                                     .cornerRadius(16)
                             }
@@ -1399,7 +1399,7 @@ struct InventoryFormSheet: View {
                             .foregroundColor(sel ? .black : .white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
-                            .background(sel ? Color.orange : Color(hex: "191926"))
+                            .background(sel ? Color.orange : Color.appSurfaceInset)
                             .cornerRadius(10)
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
                     }
@@ -1435,7 +1435,7 @@ struct InventoryFormSheet: View {
                             .font(.appLabel.weight(.semibold))
                             .foregroundColor(restSecs == nil ? .black : .gray)
                             .padding(.horizontal, 14).padding(.vertical, 7)
-                            .background(restSecs == nil ? Color.orange : Color(hex: "191926"))
+                            .background(restSecs == nil ? Color.orange : Color.appSurfaceInset)
                             .clipShape(Capsule())
                     }
                     ForEach([30, 45, 60, 90, 120, 180], id: \.self) { s in
@@ -1444,7 +1444,7 @@ struct InventoryFormSheet: View {
                                 .font(.appLabel.weight(.semibold))
                                 .foregroundColor(restSecs == s ? .black : .white)
                                 .padding(.horizontal, 14).padding(.vertical, 7)
-                                .background(restSecs == s ? Color.orange : Color(hex: "191926"))
+                                .background(restSecs == s ? Color.orange : Color.appSurfaceInset)
                                 .clipShape(Capsule())
                         }
                     }
@@ -1538,12 +1538,12 @@ struct ExerciseMediaSheet: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 14))
                                             .transition(.opacity)
                                     case .failure:
-                                        Color(hex: "191926")
+                                        Color.appSurfaceInset
                                             .frame(height: 200)
                                             .clipShape(RoundedRectangle(cornerRadius: 14))
                                             .overlay(Image(systemName: "photo.slash").foregroundColor(.gray))
                                     default:
-                                        Color(hex: "191926")
+                                        Color.appSurfaceInset
                                             .frame(height: 200)
                                             .clipShape(RoundedRectangle(cornerRadius: 14))
                                             .overlay(ProgressView())

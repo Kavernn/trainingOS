@@ -226,7 +226,7 @@ struct XPView: View {
                         .font(.appCaption).foregroundColor(.orange)
                 }
                 Capsule()
-                    .fill(Color(hex: "191926"))
+                    .fill(Color.appSurfaceInset)
                     .frame(height: 8)
                     .overlay(alignment: .leading) {
                         GeometryReader { geo in
@@ -344,7 +344,7 @@ struct BadgeCell: View {
         VStack(spacing: 6) {
             ZStack {
                 Circle()
-                    .fill(badge.unlocked ? badge.color.opacity(0.15) : Color(hex: "191926"))
+                    .fill(badge.unlocked ? badge.color.opacity(0.15) : Color.appSurfaceInset)
                     .frame(width: 52, height: 52)
 
                 if !badge.unlocked, let p = badge.progress {
@@ -391,7 +391,7 @@ struct BadgeDetailSheet: View {
 
             ZStack {
                 Circle()
-                    .fill(badge.unlocked ? badge.color.opacity(0.15) : Color(hex: "191926"))
+                    .fill(badge.unlocked ? badge.color.opacity(0.15) : Color.appSurfaceInset)
                     .frame(width: 90, height: 90)
                 if !badge.unlocked, let p = badge.progress {
                     Circle()

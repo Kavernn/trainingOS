@@ -201,7 +201,7 @@ struct ObjectifCard: View {
                                     .font(.appCaption.weight(.medium))
                                     .foregroundColor(.gray)
                                     .padding(.horizontal, 8).padding(.vertical, 4)
-                                    .background(Color(hex: "191926")).cornerRadius(8)
+                                    .background(Color.appSurfaceInset).cornerRadius(8)
                             }
                         }
                     }
@@ -233,7 +233,7 @@ struct ObjectifCard: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(hex: "191926"))
+                        .fill(Color.appSurfaceInset)
                         .frame(height: 8)
                     RoundedRectangle(cornerRadius: 4)
                         .fill(obj.achieved ? Color.green : Color.orange)
@@ -351,7 +351,7 @@ struct SmartGoalCard: View {
 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4).fill(Color(hex: "191926")).frame(height: 8)
+                        RoundedRectangle(cornerRadius: 4).fill(Color.appSurfaceInset).frame(height: 8)
                         RoundedRectangle(cornerRadius: 4)
                             .fill(goal.achieved ? Color.green : goal.color)
                             .frame(width: geo.size.width * CGFloat(min(goal.progress, 1.0)), height: 8)
@@ -481,7 +481,7 @@ struct AddGoalSheet: View {
                                 Spacer()
                             }
                             .padding(10)
-                            .background(smartType == opt ? opt.color.opacity(0.15) : Color(hex: "191926"))
+                            .background(smartType == opt ? opt.color.opacity(0.15) : Color.appSurfaceInset)
                             .cornerRadius(10)
                             .overlay(RoundedRectangle(cornerRadius: 10)
                                 .stroke(smartType == opt ? opt.color.opacity(0.5) : Color.clear, lineWidth: 1))
@@ -502,7 +502,7 @@ struct AddGoalSheet: View {
                     .foregroundColor(.white)
                     .font(.appTitle.weight(.bold))
                     .padding(12)
-                    .background(Color(hex: "191926"))
+                    .background(Color.appSurfaceInset)
                     .cornerRadius(10)
             }
             .padding(.horizontal, 20)
@@ -518,7 +518,7 @@ struct AddGoalSheet: View {
                 Text("EXERCICE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 TextField("ex: Squat", text: $exercise)
                     .foregroundColor(.white).padding(12)
-                    .background(Color(hex: "191926")).cornerRadius(10)
+                    .background(Color.appSurfaceInset).cornerRadius(10)
                     .focused($goalFocus, equals: .exercise)
                     .submitLabel(.next)
                     .onSubmit { goalFocus = .goalWeight }
@@ -531,7 +531,7 @@ struct AddGoalSheet: View {
                 TextField("0.0", text: $goalWeight)
                     .keyboardType(.decimalPad).foregroundColor(.white)
                     .font(.appTitle.weight(.bold))
-                    .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                    .padding(12).background(Color.appSurfaceInset).cornerRadius(10)
                     .focused($goalFocus, equals: .goalWeight)
             }
             .padding(.horizontal, 20)
@@ -728,7 +728,7 @@ struct EditGoalSheet: View {
                                 .keyboardType(.decimalPad)
                                 .foregroundColor(.white)
                                 .padding(12)
-                                .background(Color(hex: "191926"))
+                                .background(Color.appSurfaceInset)
                                 .cornerRadius(10)
                         }
 
@@ -741,7 +741,7 @@ struct EditGoalSheet: View {
                                 .labelsHidden()
                                 .tint(.orange)
                                 .padding(12)
-                                .background(Color(hex: "191926"))
+                                .background(Color.appSurfaceInset)
                                 .cornerRadius(10)
                         }
                     }

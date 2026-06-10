@@ -140,7 +140,7 @@ struct AdherenceScoreCard: View {
             } else {
                 HStack(spacing: 24) {
                     ZStack {
-                        Circle().stroke(Color(hex: "191926"), lineWidth: 10)
+                        Circle().stroke(Color.appSurfaceInset, lineWidth: 10)
                         Circle()
                             .trim(from: 0, to: pct)
                             .stroke(badge.color, style: StrokeStyle(lineWidth: 10, lineCap: .round))

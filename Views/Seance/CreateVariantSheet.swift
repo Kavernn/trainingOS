@@ -44,7 +44,7 @@ struct CreateVariantSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0E0E1A").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if showPreview {
                     previewView
                 } else {
@@ -160,7 +160,7 @@ struct CreateVariantSheet: View {
                         infoRow(icon: "tag",               label: "Catégorie",  value: originalCategory.isEmpty ? "—" : originalCategory)
                     }
                     .padding(20)
-                    .background(Color(hex: "14142A"))
+                    .background(Color.appSurfaceInset)
                     .cornerRadius(16)
 
                     if let err = errorMessage {
@@ -210,7 +210,7 @@ struct CreateVariantSheet: View {
             content()
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(hex: "14142A"))
+                .background(Color.appSurfaceInset)
                 .cornerRadius(10)
         }
     }

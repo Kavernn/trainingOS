@@ -138,7 +138,7 @@ struct ProgressionSuggestionsSheet: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(Color(hex: "1c1c2e"))
+                    .background(Color.appCard)
                     .cornerRadius(12)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)

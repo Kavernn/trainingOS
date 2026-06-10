@@ -72,7 +72,7 @@ struct ExerciseSwapSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0E0E1A").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 VStack(spacing: 0) {
                     // Search
                     HStack(spacing: 10) {
@@ -83,7 +83,7 @@ struct ExerciseSwapSheet: View {
                             .autocorrectionDisabled()
                     }
                     .padding(12)
-                    .background(Color(hex: "1A1A2E"))
+                    .background(Color.appCard)
                     .cornerRadius(12)
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
@@ -184,6 +184,6 @@ struct ExerciseSwapSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowBackground(Color(hex: "14142A"))
+        .listRowBackground(Color.appSurfaceInset)
     }
 }

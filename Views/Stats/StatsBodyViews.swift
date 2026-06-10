@@ -288,7 +288,7 @@ struct PRTrackerView: View {
 
                                 let barW = outer.size.width - 225
                                 ZStack(alignment: .leading) {
-                                    Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                                    Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                                     Capsule()
                                         .fill(pr.isRecent ? Color.yellow : Color.orange.opacity(0.6))
                                         .frame(width: barW * (pr.prWeight / maxW), height: 6)
@@ -352,7 +352,7 @@ struct MuscleVolumeView: View {
 
                                 let barW = outer.size.width - 202
                                 ZStack(alignment: .leading) {
-                                    Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                                    Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                                     Capsule()
                                         .fill(
                                             LinearGradient(

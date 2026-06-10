@@ -78,7 +78,7 @@ struct GhostBanner: View {
             }
         }
         .padding(12)
-        .background(Color(hex: "0e0e1c"))
+        .background(Color.appBg)
         .cornerRadius(12)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(
             beaten ? Color.orange.opacity(0.5) : Color.purple.opacity(0.25), lineWidth: 1

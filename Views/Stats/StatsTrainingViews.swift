@@ -201,7 +201,7 @@ struct SessionHeatmapView: View {
 
     private func cellColor(_ t: CellType) -> Color {
         switch t {
-        case .none:  return Color(hex: "191926")
+        case .none:  return Color.appSurfaceInset
         case .muscu: return .orange
         case .hiit:  return .blue
         case .both:  return .purple
@@ -433,7 +433,7 @@ struct PersonalRecordsView: View {
                             .lineLimit(1)
                         Spacer()
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                            Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                             Capsule()
                                 .fill(prColor(i))
                                 .frame(width: 80 * (record.1 / maxORM), height: 6)
@@ -540,7 +540,7 @@ struct Top5VolumeView: View {
                                 .lineLimit(1).frame(width: 120, alignment: .leading)
                             let barW = outer.size.width - 184
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color(hex: "191926")).frame(height: 8)
+                                Capsule().fill(Color.appSurfaceInset).frame(height: 8)
                                 Capsule()
                                     .fill(barColor(i))
                                     .frame(width: barW * (item.1 / maxVol), height: 8)

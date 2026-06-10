@@ -74,7 +74,7 @@ struct StepperInput: View {
                 )
                 .disabled(isDisabled)
         }
-        .background(Color(hex: "191926"))
+        .background(Color.appSurfaceInset)
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.09), lineWidth: 1))
         .onChange(of: isManualFocused) { _, focused in

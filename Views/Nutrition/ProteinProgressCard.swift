@@ -34,7 +34,7 @@ struct ProteinProgressCard: View {
                 // Grand anneau
                 ZStack {
                     Circle()
-                        .stroke(Color(hex: "191926"), lineWidth: 10)
+                        .stroke(Color.appSurfaceInset, lineWidth: 10)
                     Circle()
                         .trim(from: 0, to: pct)
                         .stroke(ringColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
@@ -79,7 +79,7 @@ struct ProteinProgressCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                                Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                                 Capsule()
                                     .fill(ringColor)
                                     .frame(width: geo.size.width * pct, height: 6)

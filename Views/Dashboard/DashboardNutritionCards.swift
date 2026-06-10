@@ -21,7 +21,7 @@ struct NutritionSummaryView: View {
             HStack(spacing: 16) {
                 // Anneau protéines
                 ZStack {
-                    Circle().stroke(Color(hex: "191926"), lineWidth: 7)
+                    Circle().stroke(Color.appSurfaceInset, lineWidth: 7)
                     Circle()
                         .trim(from: 0, to: pct)
                         .stroke(ringColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))

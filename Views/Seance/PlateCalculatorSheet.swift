@@ -37,7 +37,7 @@ struct PlateCalculatorSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0D0D14").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
                         // Weight input
@@ -56,7 +56,7 @@ struct PlateCalculatorSheet: View {
                                     .foregroundColor(.gray)
                             }
                             .padding(14)
-                            .background(Color(hex: "191926"))
+                            .background(Color.appSurfaceInset)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
 
                             HStack(spacing: 16) {
@@ -168,7 +168,7 @@ struct PlateCalculatorSheet: View {
                         .foregroundColor(.white)
                 }
             }
-            .toolbarBackground(Color(hex: "0D0D14"), for: .navigationBar)
+            .toolbarBackground(Color.appBg, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .preferredColorScheme(.dark)

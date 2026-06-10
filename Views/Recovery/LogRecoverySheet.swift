@@ -240,7 +240,7 @@ struct LogRecoverySheet: View {
                                     .lineLimit(3, reservesSpace: true)
                                     .foregroundColor(.white)
                                     .padding(12)
-                                    .background(Color(hex: "191926"))
+                                    .background(Color.appSurfaceInset)
                                     .cornerRadius(10)
                             }
                             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -522,7 +522,7 @@ struct RecoveryField: View {
                 .keyboardType(keyboardType)
                 .foregroundColor(.white)
                 .padding(10)
-                .background(Color(hex: "191926"))
+                .background(Color.appSurfaceInset)
                 .cornerRadius(8)
         }
         .frame(maxWidth: .infinity)

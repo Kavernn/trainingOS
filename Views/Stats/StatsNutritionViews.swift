@@ -164,7 +164,7 @@ struct ProteinComplianceView: View {
                 LazyVGrid(columns: columns, spacing: 4) {
                     ForEach(statuses) { day in
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(day.hit ? Color.green : day.partial ? Color.orange : Color(hex: "191926"))
+                            .fill(day.hit ? Color.green : day.partial ? Color.orange : Color.appSurfaceInset)
                             .frame(height: 14)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 3)
@@ -176,7 +176,7 @@ struct ProteinComplianceView: View {
                 HStack(spacing: 12) {
                     legendDot(.green,           "Objectif atteint")
                     legendDot(.orange,          "≥ 75%")
-                    legendDot(Color(hex: "191926"), "< 75%")
+                    legendDot(Color.appSurfaceInset, "< 75%")
                 }
                 .padding(.top, 2)
             }

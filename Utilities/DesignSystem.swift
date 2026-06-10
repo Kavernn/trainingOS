@@ -401,7 +401,7 @@ struct ProgressRing<Center: View>: View {
     let color: Color
     var size: CGFloat = 80
     var lineWidth: CGFloat = 10
-    var backgroundColor: Color = Color(hex: "191926")
+    var backgroundColor: Color = Color.appSurfaceInset
     var animation: Animation = .easeOut(duration: 0.6)
     @ViewBuilder let centerContent: () -> Center
 
@@ -426,7 +426,7 @@ extension ProgressRing where Center == EmptyView {
         color: Color,
         size: CGFloat = 80,
         lineWidth: CGFloat = 10,
-        backgroundColor: Color = Color(hex: "191926"),
+        backgroundColor: Color = Color.appSurfaceInset,
         animation: Animation = .easeOut(duration: 0.6)
     ) {
         self.init(progress: progress, color: color, size: size, lineWidth: lineWidth,
@@ -455,7 +455,7 @@ struct ChipButton: View {
                 .font(.system(size: fontSize, weight: .semibold))
                 .padding(.horizontal, hPadding)
                 .padding(.vertical, vPadding)
-                .background(isSelected ? color.opacity(0.2) : Color(hex: "191926"))
+                .background(isSelected ? color.opacity(0.2) : Color.appSurfaceInset)
                 .foregroundColor(isSelected ? color : .gray)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(isSelected ? color.opacity(0.5) : Color.clear, lineWidth: 1))

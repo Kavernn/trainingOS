@@ -73,7 +73,7 @@ struct TimerView: View {
                 // Ring
                 ZStack {
                     Circle()
-                        .stroke(Color(hex: "191926"), lineWidth: 14)
+                        .stroke(Color.appSurfaceInset, lineWidth: 14)
                         .frame(width: 200, height: 200)
 
                     Circle()
@@ -504,7 +504,7 @@ struct RoundDotsView: View {
     private func dotColor(_ i: Int) -> Color {
         if i < currentRound { return .orange }
         if i == currentRound && phase != .idle { return phaseColor }
-        return Color(hex: "191926")
+        return Color.appSurfaceInset
     }
 
     var body: some View {
@@ -590,7 +590,7 @@ struct TimerStepperRow: View {
                         .foregroundColor(value + step <= max ? color : .gray.opacity(0.3))
                 }
             }
-            .background(Color(hex: "191926"))
+            .background(Color.appSurfaceInset)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(.horizontal, 16)

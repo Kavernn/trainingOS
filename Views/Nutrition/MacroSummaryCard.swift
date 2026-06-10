@@ -42,7 +42,7 @@ struct MacroSummaryCard: View {
                 let pct = min((totals?.calories ?? 0) / target, 1.0)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                        Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                         Capsule()
                             .fill(pct > 1 ? Color.red : Color.orange)
                             .frame(width: geo.size.width * pct, height: 6)
@@ -85,7 +85,7 @@ struct MacroBar: View {
                     .foregroundColor(.gray)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color(hex: "191926")).frame(height: 4)
+                        Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                         Capsule()
                             .fill(color)
                             .frame(width: t > 0 ? geo.size.width * min(current / t, 1.0) : 0, height: 4)

@@ -1141,7 +1141,7 @@ struct WorkoutSeanceView: View {
                                 .font(.appBody).fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(vm.logResults.isEmpty || vm.isFinishing ? Color(hex: "1a1a2e") : completionGlow ? Color.green : Color.orange)
+                        .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.green : Color.orange)
                         .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
                         .cornerRadius(14)
                         .overlay(

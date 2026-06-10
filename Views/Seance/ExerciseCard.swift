@@ -485,7 +485,7 @@ struct ExerciseCard: View {
                         .font(.appHeadline).fontWeight(.bold).foregroundColor(.white)
                         .frame(minWidth: 64, alignment: .center)
                         .padding(.vertical, 6).padding(.horizontal, 12)
-                        .background(Color(hex: "191926")).cornerRadius(8)
+                        .background(Color.appSurfaceInset).cornerRadius(8)
                     Button { evm.sets[i].duration += 5 } label: {
                         Image(systemName: "plus.circle.fill").font(.appTitle).foregroundColor(.cyan)
                     }.buttonStyle(.plain)

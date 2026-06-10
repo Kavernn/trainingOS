@@ -126,14 +126,14 @@ enum RPEHelper {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
-                            .background(selected ? opt.color : Color(hex: "191926"))
+                            .background(selected ? opt.color : Color.appSurfaceInset)
                             .cornerRadius(10)
                         } else {
                             Text(opt.shortLabel)
                                 .font(.appMicro.weight(.black))
                                 .foregroundColor(selected ? .black : .gray.opacity(0.5))
                                 .frame(maxWidth: .infinity, minHeight: 32)
-                                .background(selected ? opt.color : Color(hex: "191926"))
+                                .background(selected ? opt.color : Color.appSurfaceInset)
                                 .cornerRadius(5)
                         }
                     }

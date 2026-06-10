@@ -75,7 +75,7 @@ struct AddHIITSheet: View {
                                                 }
                                             }
                                             .padding(.horizontal, 10).padding(.vertical, 6)
-                                            .background(Color(hex: "1c1c2e")).cornerRadius(8)
+                                            .background(Color.appCard).cornerRadius(8)
                                         }
                                     }
                                 }
@@ -88,7 +88,7 @@ struct AddHIITSheet: View {
                             Text("TYPE DE SESSION").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                             TextField("HIIT", text: $sessionType)
                                 .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
-                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                                .padding(12).background(Color.appSurfaceInset).cornerRadius(10)
                         }
                         .padding(14).background(Color.appCard).cornerRadius(14)
 
@@ -99,7 +99,7 @@ struct AddHIITSheet: View {
                                 TextField("—", text: $rounds).keyboardType(.numberPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .multilineTextAlignment(.center)
-                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                    .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 1 et 30 rounds")
                                     .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
                             }
@@ -108,7 +108,7 @@ struct AddHIITSheet: View {
                                 TextField("—", text: $workTime).keyboardType(.numberPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .multilineTextAlignment(.center)
-                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                    .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 5 et 300s")
                                     .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
                             }
@@ -117,7 +117,7 @@ struct AddHIITSheet: View {
                                 TextField("—", text: $restTime).keyboardType(.numberPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .multilineTextAlignment(.center)
-                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                    .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 0 et 300s")
                                     .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
                             }
@@ -143,7 +143,7 @@ struct AddHIITSheet: View {
                                 .lineLimit(3, reservesSpace: true)
                                 .submitLabel(.done)
                                 .onSubmit { hideKeyboard() }
-                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                                .padding(12).background(Color.appSurfaceInset).cornerRadius(10)
                         }
                         .padding(14).background(Color.appCard).cornerRadius(14)
 
@@ -156,7 +156,7 @@ struct AddHIITSheet: View {
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.orange)
                                 .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                .background(Color(hex: "1c1c2e")).cornerRadius(10)
+                                .background(Color.appCard).cornerRadius(10)
                         }
 
                         PrimaryButton(

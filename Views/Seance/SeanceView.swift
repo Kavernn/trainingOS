@@ -414,7 +414,7 @@ struct AlreadyLoggedSeanceView: View {
                         Text("Partager la séance").font(.system(size: 14, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 12)
-                    .background(Color(hex: "1c1c2e"))
+                    .background(Color.appCard)
                     .foregroundColor(.white.opacity(0.7))
                     .cornerRadius(14)
                 }
@@ -737,11 +737,11 @@ struct PostSessionEditSheet: View {
                     TextField("0.0", text: $edits[i].sets[j].weight)
                         .keyboardType(.decimalPad)
                         .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
-                        .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                        .padding(8).background(Color.appSurfaceInset).cornerRadius(8)
                     TextField("0", text: $edits[i].sets[j].reps)
                         .keyboardType(.numberPad)
                         .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
-                        .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                        .padding(8).background(Color.appSurfaceInset).cornerRadius(8)
                         .frame(width: 60)
                 }
             }

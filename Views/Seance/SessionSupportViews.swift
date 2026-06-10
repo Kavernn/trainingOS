@@ -348,7 +348,7 @@ struct FinishSessionSheet: View {
                                     .lineLimit(3, reservesSpace: true)
                                     .submitLabel(.done)
                                     .onSubmit { hideKeyboard() }
-                                    .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                                    .padding(12).background(Color.appSurfaceInset).cornerRadius(10)
                             }
                             .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
 
@@ -1076,7 +1076,7 @@ struct SpecialSeanceView: View {
                             .lineLimit(3, reservesSpace: true)
                             .submitLabel(.done)
                             .onSubmit { hideKeyboard() }
-                            .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                            .padding(12).background(Color.appSurfaceInset).cornerRadius(10)
                     }
                     .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
 
