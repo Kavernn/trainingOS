@@ -62,6 +62,7 @@ struct TodayCardView: View {
                     Text(dash.today)
                         .font(.appHeadline.weight(.bold))
                         .foregroundColor(isLoggedToday ? .green : todayColor)
+                        .lineLimit(1)
                 }
                 Spacer()
                 if isLoggedToday {
@@ -132,6 +133,7 @@ struct TodayCardView: View {
                                     .frame(width: 16)
                                 Text(item.0)
                                     .font(.appLabel).foregroundColor(.white)
+                                    .lineLimit(1)
                                 Spacer()
                                 Text(item.1)
                                     .font(.appCaption).foregroundColor(.gray)

@@ -1609,7 +1609,6 @@ struct EnduranceTimerSection: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.green.opacity(flashGreen ? 0.7 : 0), lineWidth: 2)
                     .animation(.easeOut(duration: 0.9), value: flashGreen)
-                    .padding(-10)
             )
 
         case .paused:

@@ -1934,7 +1934,6 @@ struct EditSchemeSheet: View {
                             Spacer()
                         }
                         .padding(.horizontal)
-                        .padding(.top, -8)
                     }
 
                     // Suggestions rapides
