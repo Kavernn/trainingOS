@@ -3,9 +3,10 @@ from flask import Blueprint, jsonify, request
 wellness_spirit_bp = Blueprint("wellness_spirit", __name__)
 
 
-# WARNING: This route writes to breathwork_sessions.technique (legacy column, integer FK to techniques table).
-# The Spirit pillar equivalent /api/spirit/breathwork writes to breathwork_sessions.protocol (text, Spirit columns).
-# Do NOT merge these two routes without a full schema analysis — they target different columns.
+# Wellness breathwork: writes technique_id (str key e.g. "coherence"), technique (display name),
+# duration_min, logged_at. Distinct from Spirit breathwork (protocol: calm_storm/ignite/stillness).
+# Both share breathwork_sessions table; reads are partitioned by technique_id IS NOT NULL (wellness)
+# vs protocol IS NOT NULL (spirit) — do not remove those filters.
 @wellness_spirit_bp.route("/api/breathwork/techniques")
 def api_breathwork_techniques():
     from breathwork import TECHNIQUES

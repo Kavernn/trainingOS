@@ -361,6 +361,29 @@
 
 ---
 
+## 🎨 Migration couleurs — tokens sémantiques
+
+> Remplacer les `Color(hex:)` hardcodés par les tokens sémantiques de `Extensions.swift`.
+> Tokens disponibles : `.appBg` `.appCard` `.appBgSecondary` `.forge` `.forgeDeep` `.appAccentUltraLight`
+> `.appDanger` `.appSuccess` `.appWarning` `.appTextSecondary` `.appTextTertiary` `.appSeparator`
+> Exceptions intentionnelles : `.moonlight` `.voidBg` (Spirit aesthetic, fixed), couleurs de charts
+> spécifiques (ex : `"34C759"` health-green, `"191926"` ring bg, `"FF9500"` workout badge).
+> Workflow : un dossier à la fois, approbation visuelle entre chaque.
+> ~427 occurrences restantes après pass initial (PRTrackerCard + SessionQualityCard migrés).
+
+**Fichiers déjà migrés ✅**
+- [x] Views/Dashboard/PRTrackerCard.swift — FFD60A → .appWarning
+- [x] Views/Dashboard/SessionQualityCard.swift — FFD60A → .appWarning
+
+**Top offenders restants (par volume)**
+- [ ] Views/Dashboard/DashboardRitualCards.swift (~26)
+- [ ] Views/Intelligence/ObjectifsView.swift (~22)
+- [ ] Views/Seance/PlateCalculatorSheet.swift (~20)
+- [ ] Views/Intelligence/GraveyardView.swift (~15)
+- [ ] Views/Dashboard/MuscleBalanceCard.swift (~15)
+
+---
+
 ## 🔤 Migration typographie — tokens design system
 
 > Remplacer tous les `.font(.system(size:))` par les 7 tokens (`appHero/appTitle/appHeadline/appBody/appLabel/appCaption/appMicro`).

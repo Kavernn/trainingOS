@@ -297,6 +297,10 @@ private struct MesuresTab: View {
                         MHMenuCard(icon: "heart.fill", color: .pink,
                                    title: "Self-Care", subtitle: selfCareSubtitle)
                     }
+                    NavigationLink { JournalView() } label: {
+                        MHMenuCard(icon: "book.pages.fill", color: .teal,
+                                   title: "Journal", subtitle: "Réflexion guidée IA")
+                    }
                 }
                 .padding(.horizontal)
                 .appearAnimation(delay: 0.07)

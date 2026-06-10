@@ -20,9 +20,9 @@ struct PRTrackerCard: View {
                             Text("\(data.totalPrs) PR")
                                 .font(.system(size: 10, weight: .semibold))
                         }
-                        .foregroundColor(Color(hex: "FFD60A").opacity(0.85))
+                        .foregroundColor(Color.appWarning.opacity(0.85))
                         .padding(.horizontal, 7).padding(.vertical, 3)
-                        .background(Color(hex: "FFD60A").opacity(0.12))
+                        .background(Color.appWarning.opacity(0.12))
                         .clipShape(Capsule())
                     }
                     Image(systemName: "chevron.right")
@@ -59,7 +59,7 @@ private struct PRRow: View {
         HStack(spacing: 8) {
             Image(systemName: "trophy.fill")
                 .font(.system(size: 9))
-                .foregroundColor(Color(hex: "FFD60A"))
+                .foregroundColor(Color.appWarning)
                 .frame(width: 14)
             Text(pr.name)
                 .font(.appCaption.weight(.medium))
@@ -68,7 +68,7 @@ private struct PRRow: View {
             Spacer()
             Text(String(format: "%.0f lbs", pr.est1rm))
                 .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(Color(hex: "FFD60A"))
+                .foregroundColor(Color.appWarning)
         }
     }
 }
@@ -121,7 +121,7 @@ private struct PRSummaryBanner: View {
             Spacer()
             Text("\(data.totalPrs)")
                 .font(.system(size: 40, weight: .black, design: .rounded))
-                .foregroundColor(data.totalPrs > 0 ? Color(hex: "FFD60A") : .white.opacity(0.30))
+                .foregroundColor(data.totalPrs > 0 ? Color.appWarning : .white.opacity(0.30))
         }
         .padding(14)
         .glassCard()
@@ -150,7 +150,7 @@ private struct PRListCard: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(String(format: "%.0f lbs 1RM", pr.est1rm))
                             .font(.system(size: 13, weight: .black, design: .rounded))
-                            .foregroundColor(Color(hex: "FFD60A"))
+                            .foregroundColor(Color.appWarning)
                         if let prev = pr.prevBest {
                             Text(String(format: "Préc. %.0f", prev))
                                 .font(.system(size: 9))

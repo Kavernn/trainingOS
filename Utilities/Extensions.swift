@@ -39,10 +39,18 @@ extension View {
 }
 
 extension Color {
-    static var appBg:     Color { AppTheme.shared.background }
-    static var appCard:   Color { AppTheme.shared.backgroundCard }
-    static var forge:     Color { AppTheme.shared.accent }
-    static var forgeDeep: Color { AppTheme.shared.accentLight }
+    static var appBg:              Color { AppTheme.shared.background }
+    static var appCard:            Color { AppTheme.shared.backgroundCard }
+    static var appBgSecondary:     Color { AppTheme.shared.backgroundSecondary }
+    static var forge:              Color { AppTheme.shared.accent }
+    static var forgeDeep:          Color { AppTheme.shared.accentLight }
+    static var appAccentUltraLight:Color { AppTheme.shared.accentUltraLight }
+    static var appDanger:          Color { AppTheme.shared.danger }
+    static var appSuccess:         Color { AppTheme.shared.success }
+    static var appWarning:         Color { AppTheme.shared.warning }
+    static var appTextSecondary:   Color { AppTheme.shared.textSecondary }
+    static var appTextTertiary:    Color { AppTheme.shared.textTertiary }
+    static var appSeparator:       Color { AppTheme.shared.separator }
     static let moonlight = Color(hex: "E8EDF5")   // spirit accent — silver-white (intentional fixed)
     static let voidBg    = Color(red: 0.020, green: 0.031, blue: 0.063)  // spirit deep (intentional fixed)
 

@@ -924,6 +924,7 @@ def get_breathwork_sessions_spirit(limit: int = 500) -> List[dict]:
         resp = (
             db_core._client.table("breathwork_sessions")
             .select("id, protocol, duration_sec, cycles, started_at")
+            .not_("protocol", "is", "null")
             .order("started_at", desc=True)
             .limit(limit)
             .execute()

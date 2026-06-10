@@ -205,7 +205,7 @@ private struct SessionQualityBestCard: View {
         HStack(spacing: 12) {
             Image(systemName: "star.fill")
                 .font(.system(size: 20))
-                .foregroundColor(Color(hex: "FFD60A"))
+                .foregroundColor(Color.appWarning)
             VStack(alignment: .leading, spacing: 2) {
                 Text("MEILLEURE SÉANCE")
                     .font(.appMicro.weight(.black)).tracking(1.5)
@@ -216,7 +216,7 @@ private struct SessionQualityBestCard: View {
             Spacer()
             Text("\(Int(session.score))")
                 .font(.system(size: 28, weight: .black, design: .rounded))
-                .foregroundColor(Color(hex: "FFD60A"))
+                .foregroundColor(Color.appWarning)
         }
         .padding(14)
         .glassCard()
