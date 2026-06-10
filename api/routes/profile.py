@@ -6,6 +6,13 @@ logger = logging.getLogger("trainingos")
 profile_bp = Blueprint("profile", __name__)
 
 
+@profile_bp.route("/api/profile", methods=["GET"])
+def api_profile():
+    import db as _db
+    profile = _db.get_profile() or {}
+    return jsonify(profile)
+
+
 @profile_bp.route("/api/profil_data")
 def api_profil_data():
     from body_weight import load_body_weight, get_tendance

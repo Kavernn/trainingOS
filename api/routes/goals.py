@@ -22,8 +22,17 @@ def api_set_goal():
     return jsonify({"success": True})
 
 
-@goals_bp.route("/api/body_weight", methods=["POST"])
+@goals_bp.route("/api/body_weight", methods=["GET", "POST"])
 def api_body_weight():
+    if request.method == "GET":
+        import db as _db
+        try:
+            limit = int(request.args.get("limit", 100))
+        except ValueError:
+            limit = 100
+        logs = _db.get_body_weight_logs(limit=limit) or []
+        return jsonify(logs)
+
     try:
         from body_weight import log_body_weight
         from datetime import date as _date
