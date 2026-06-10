@@ -435,7 +435,7 @@ struct BadgeDetailSheet: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
-        .background(Color(hex: "0D0D14").ignoresSafeArea())
+        .background(Color.appBg.ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 }

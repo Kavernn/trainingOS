@@ -166,7 +166,7 @@ private struct PhoenixCardContent: View {
 
                 if let delta = dayDelta, abs(delta) >= 0.1 {
                     let dSign = delta >= 0 ? "+" : ""
-                    let dColor: Color = delta >= 0 ? .green : Color(hex: "FF5555")
+                    let dColor: Color = delta >= 0 ? .green : Color.appDanger
                     HStack(spacing: 3) {
                         Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
                             .font(.appMicro.weight(.bold))
@@ -259,7 +259,7 @@ struct PhoenixAxisPill: View {
     @State private var showInfo = false
 
     var body: some View {
-        let deltaColor: Color = delta >= 0 ? color : Color(hex: "FF5555")
+        let deltaColor: Color = delta >= 0 ? color : Color.appDanger
         VStack(spacing: 3) {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)

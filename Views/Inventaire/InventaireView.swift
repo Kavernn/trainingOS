@@ -1517,7 +1517,7 @@ struct ExerciseMediaSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0D0D14").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
                         // Images (start / end position)
@@ -1614,7 +1614,7 @@ struct ExerciseMediaSheet: View {
                     Button("Fermer") { dismiss() }.foregroundColor(.white)
                 }
             }
-            .toolbarBackground(Color(hex: "0D0D14"), for: .navigationBar)
+            .toolbarBackground(Color.appBg, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .preferredColorScheme(.dark)

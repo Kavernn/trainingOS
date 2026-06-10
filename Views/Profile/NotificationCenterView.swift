@@ -149,7 +149,7 @@ struct NotificationCenterView: View {
 
     private var rituelSection: some View {
         Section("Rituel Quotidien") {
-            notifToggle(icon: "sunrise.fill", color: Color(hex: "FF2D20"),
+            notifToggle(icon: "sunrise.fill", color: Color.appDanger,
                         title: "Rappel matin",
                         subtitle: "Déclare ta guerre",
                         isOn: $ritualMorning,
@@ -162,7 +162,7 @@ struct NotificationCenterView: View {
                         .labelsHidden()
                 }
             }
-            notifToggle(icon: "moon.stars.fill", color: Color(hex: "FF2D20").opacity(0.85),
+            notifToggle(icon: "moon.stars.fill", color: Color.appDanger.opacity(0.85),
                         title: "Rappel soir",
                         subtitle: "Est-ce que tu l'as tué ?",
                         isOn: $ritualEvening,

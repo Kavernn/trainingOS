@@ -11,7 +11,7 @@ struct WarRoomStripView: View {
             HStack(spacing: 5) {
                 Image(systemName: "shield.lefthalf.filled")
                     .font(.appCaption).fontWeight(.bold)
-                    .foregroundColor(Color(hex: "C0201A").opacity(0.75))
+                    .foregroundColor(Color.appDanger.opacity(0.75))
                 Text("War Room")
                     .font(.appCaption).fontWeight(.semibold)
                     .foregroundColor(.white.opacity(0.6))
@@ -80,7 +80,7 @@ struct WarRoomStripView: View {
                 Capsule()
                     .fill(hasTemptation ? Color.white.opacity(0.04) : Color(hex: "1a0505"))
                     .overlay(Capsule().stroke(
-                        hasTemptation ? Color.white.opacity(0.08) : Color(hex: "C0201A").opacity(0.6),
+                        hasTemptation ? Color.white.opacity(0.08) : Color.appDanger.opacity(0.6),
                         lineWidth: 0.5
                     ))
             )
