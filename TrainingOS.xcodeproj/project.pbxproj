@@ -63,7 +63,6 @@
 		A8B9C0D1E2F3A4B5C6D7E8F9 /* CardioSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */; };
 		AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010012F5D98B8002AE470 /* MoreView.swift */; };
 		AA0020022F5D98BA002AE470 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010022F5D98B8002AE470 /* StatsView.swift */; };
-		AA0020032F5D98BA002AE470 /* ObjectifsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010032F5D98B8002AE470 /* ObjectifsView.swift */; };
 		AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010042F5D98B8002AE470 /* BodyCompView.swift */; };
 		AA0020052F5D98BA002AE470 /* HIITHistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */; };
 		AA0020062F5D98BA002AE470 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010062F5D98B8002AE470 /* NutritionView.swift */; };
@@ -90,7 +89,6 @@
 		AHS0002AHS0002AHS0002AH2 /* AddHIITSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AHS0001AHS0001AHS0001AH1 /* AddHIITSheet.swift */; };
 		APICA002APICA002APICA002 /* APIService+Cardio.swift in Sources */ = {isa = PBXBuildFile; fileRef = APICA001APICA001APICA001 /* APIService+Cardio.swift */; };
 		APIEN002APIEN002APIEN002 /* APIService+Energy.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIEN001APIEN001APIEN001 /* APIService+Energy.swift */; };
-		APIGO002APIGO002APIGO002 /* APIService+Goals.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIGO001APIGO001APIGO001 /* APIService+Goals.swift */; };
 		APIME002APIME002APIME002 /* APIService+Mental.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIME001APIME001APIME001 /* APIService+Mental.swift */; };
 		APINU002APINU002APINU002 /* APIService+Nutrition.swift in Sources */ = {isa = PBXBuildFile; fileRef = APINU001APINU001APINU001 /* APIService+Nutrition.swift */; };
 		APIPR002APIPR002APIPR002 /* APIService+Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIPR001APIPR001APIPR001 /* APIService+Profile.swift */; };
@@ -182,7 +180,6 @@
 		F2EA55F129F3462CBACE25FF /* CoachMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */; };
 		F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */; };
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
-		FBCACC3302AC10C5231E0521 /* GoalsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F5880EE01F89F628060F5D /* GoalsModels.swift */; };
 		FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1100002F5D98BA002AE470 /* WatchSyncService.swift */; };
 		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
 		FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */; };
@@ -443,7 +440,6 @@
 		64709C7BAEA141594DB92A70 /* EmptyStateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRitualCards.swift; sourceTree = "<group>"; };
 		75686E58001949C3B9BD69C3 /* DashboardWellnessCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWellnessCards.swift; sourceTree = "<group>"; };
-		76F5880EE01F89F628060F5D /* GoalsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GoalsModels.swift; sourceTree = "<group>"; };
 		8130286D3B05F35EC783FDF9 /* APIService+Readiness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Readiness.swift"; sourceTree = "<group>"; };
 		85B27AF055DB8AC84A8CEA39 /* BodyBudgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyBudgetView.swift; sourceTree = "<group>"; };
 		896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardReadinessCards.swift; sourceTree = "<group>"; };
@@ -463,7 +459,6 @@
 		A9F578FC8AECBFD3FF6B65C2 /* TrainingOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0010012F5D98B8002AE470 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
 		AA0010022F5D98B8002AE470 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
-		AA0010032F5D98B8002AE470 /* ObjectifsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectifsView.swift; sourceTree = "<group>"; };
 		AA0010042F5D98B8002AE470 /* BodyCompView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompView.swift; sourceTree = "<group>"; };
 		AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIITHistoriqueView.swift; sourceTree = "<group>"; };
 		AA0010062F5D98B8002AE470 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
@@ -490,7 +485,6 @@
 		AHS0001AHS0001AHS0001AH1 /* AddHIITSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddHIITSheet.swift; sourceTree = "<group>"; };
 		APICA001APICA001APICA001 /* APIService+Cardio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Cardio.swift"; sourceTree = "<group>"; };
 		APIEN001APIEN001APIEN001 /* APIService+Energy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Energy.swift"; sourceTree = "<group>"; };
-		APIGO001APIGO001APIGO001 /* APIService+Goals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Goals.swift"; sourceTree = "<group>"; };
 		APIME001APIME001APIME001 /* APIService+Mental.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Mental.swift"; sourceTree = "<group>"; };
 		APINU001APINU001APINU001 /* APIService+Nutrition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Nutrition.swift"; sourceTree = "<group>"; };
 		APIPR001APIPR001APIPR001 /* APIService+Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Profile.swift"; sourceTree = "<group>"; };
@@ -906,14 +900,6 @@
 			path = Stats;
 			sourceTree = "<group>";
 		};
-		AA0030032F5D98B8002AE470 /* Objectifs */ = {
-			isa = PBXGroup;
-			children = (
-				AA0010032F5D98B8002AE470 /* ObjectifsView.swift */,
-			);
-			path = Objectifs;
-			sourceTree = "<group>";
-		};
 		AA0030042F5D98B8002AE470 /* BodyComp */ = {
 			isa = PBXGroup;
 			children = (
@@ -1104,7 +1090,6 @@
 				17DD0C9095A69B34AA03E74F /* WorkoutModels.swift */,
 				A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */,
 				552F808C866A877BFC051570 /* WellnessModels.swift */,
-				76F5880EE01F89F628060F5D /* GoalsModels.swift */,
 				E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */,
 				ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */,
 				EDD35C9A164F89962D3E6E18 /* ProfileModels.swift */,
@@ -1167,7 +1152,6 @@
 				D665E4372F5D98B8002AE470 /* APIService.swift */,
 				APIWO001APIWO001APIWO001 /* APIService+Workout.swift */,
 				APIPR001APIPR001APIPR001 /* APIService+Profile.swift */,
-				APIGO001APIGO001APIGO001 /* APIService+Goals.swift */,
 				APINU001APINU001APINU001 /* APIService+Nutrition.swift */,
 				APICA001APICA001APICA001 /* APIService+Cardio.swift */,
 				D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */,
@@ -1370,7 +1354,6 @@
 				D665E4452F5D98B8002AE470 /* Timer */,
 				AA0030012F5D98B8002AE470 /* More */,
 				AA0030022F5D98B8002AE470 /* Stats */,
-				AA0030032F5D98B8002AE470 /* Objectifs */,
 				AA0030042F5D98B8002AE470 /* BodyComp */,
 				AA0030052F5D98B8002AE470 /* HIIT */,
 				AA0030062F5D98B8002AE470 /* Nutrition */,
@@ -1763,7 +1746,6 @@
 				D665E44C2F5D98BA002AE470 /* APIService.swift in Sources */,
 				APIWO002APIWO002APIWO002 /* APIService+Workout.swift in Sources */,
 				APIPR002APIPR002APIPR002 /* APIService+Profile.swift in Sources */,
-				APIGO002APIGO002APIGO002 /* APIService+Goals.swift in Sources */,
 				APINU002APINU002APINU002 /* APIService+Nutrition.swift in Sources */,
 				APICA002APICA002APICA002 /* APIService+Cardio.swift in Sources */,
 				C4D5E6F7A8B9C0D1E2F3A4B5 /* CardioSessionManager.swift in Sources */,
@@ -1804,7 +1786,6 @@
 				AA0024022F5D98BA002AE470 /* StatsNutritionViews.swift in Sources */,
 				AA0025022F5D98BA002AE470 /* StatsWellnessViews.swift in Sources */,
 				AA0026022F5D98BA002AE470 /* StatsComponents.swift in Sources */,
-				AA0020032F5D98BA002AE470 /* ObjectifsView.swift in Sources */,
 				AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */,
 				BC0000012F5D98BA002AE470 /* BodyCompEntry.swift in Sources */,
 				BC0000032F5D98BA002AE470 /* NavyCalculatorView.swift in Sources */,
@@ -1914,7 +1895,6 @@
 				183289EC5ED0058D31E05A4E /* WorkoutModels.swift in Sources */,
 				EBD686A12DC32EF0A13FD632 /* NutritionModels.swift in Sources */,
 				F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */,
-				FBCACC3302AC10C5231E0521 /* GoalsModels.swift in Sources */,
 				2013CE6D9FC8EE527D8B63F2 /* AnalyticsModels.swift in Sources */,
 				ENMOD002ENMOD002ENMOD002 /* EnergyModels.swift in Sources */,
 				D618A6BF2FA81E94001AEADD /* ChatPanel.swift in Sources */,

@@ -178,10 +178,8 @@ struct DataGapSection: View {
     }
     private var missingNutrition: Bool { (dash.nutritionTotals.calories ?? 0) < 1 }
     private var missingWeight: Bool    { (dash.profile.weight ?? 0) == 0 }
-    private var missingGoals: Bool     { dash.goals.isEmpty && dash.smartGoalsCount == 0 }
-
     var body: some View {
-        let gaps = [missingRecovery, missingNutrition, missingWeight, missingGoals]
+        let gaps = [missingRecovery, missingNutrition, missingWeight]
         if gaps.contains(true) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("À COMPLÉTER")
@@ -219,17 +217,6 @@ struct DataGapSection: View {
                                 color: Color.forge,
                                 title: "Poids corporel",
                                 subtitle: "Ajoute ton poids pour un suivi précis"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    if missingGoals {
-                        NavigationLink(destination: ObjectifsView()) {
-                            DataGapCard(
-                                icon: "target",
-                                color: .blue,
-                                title: "Objectifs",
-                                subtitle: "Aucun objectif défini pour le moment"
                             )
                         }
                         .buttonStyle(.plain)

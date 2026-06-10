@@ -159,48 +159,6 @@ struct QuoteOfDayView: View {
     }
 }
 
-// MARK: - Goal Reminder
-
-// D-C2: GoalReminderView is now a NavigationLink to ObjectifsView
-struct GoalReminderView: View {
-    let goal: String
-
-    var body: some View {
-        NavigationLink(destination: ObjectifsView()) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.forge.opacity(0.12))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "target")
-                        .font(.appBody.weight(.semibold))
-                        .foregroundColor(Color.forge)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Cible")
-                        .font(.appCaption.weight(.medium))
-                        .foregroundColor(.gray)
-                    Text(goal)
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.gray.opacity(0.5))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.appCard)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.14), lineWidth: 1))
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 // MARK: - Daily Metrics Row
 

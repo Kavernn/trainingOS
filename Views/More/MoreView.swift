@@ -44,7 +44,6 @@ struct MoreView: View {
 
                     Section("Entraînement") {
                         MoreRow(icon: "calendar",              color: .teal,                    title: "Historique") { HistoriqueView() }
-                        MoreRow(icon: "target",                color: Color.forge,                  title: "Objectifs")  { ObjectifsView() }
                         MoreRow(icon: "chart.bar.fill",        color: .blue,                    title: "Stats")      { StatsView() }
                         MoreRow(icon: "timer",                 color: Color.forge,                  title: "Timer")      { TimerView() }
                         MoreRow(icon: "mappin.and.ellipse",    color: Color.appWarning,     title: "Gym Finder") { GymFinderView() }

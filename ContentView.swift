@@ -156,7 +156,7 @@ private enum MacPage: String, Identifiable {
     // IA
     case intelligence
     // Entraînement
-    case programme, stats, objectifs, timer, hiit, historique, xp
+    case programme, stats, timer, hiit, historique, xp
     // Corps & Santé
     case healthDashboard, bodyComp, cardio, recovery, pss, mentalHealth
     // Divers
@@ -172,7 +172,6 @@ private enum MacPage: String, Identifiable {
         case .timer:          return "Timer"
         case .intelligence:   return "Intelligence"
         case .stats:          return "Stats"
-        case .objectifs:      return "Objectifs"
         case .hiit:           return "HIIT"
         case .historique:     return "Historique"
         case .xp:             return "XP & Niveau"
@@ -197,7 +196,6 @@ private enum MacPage: String, Identifiable {
         case .timer:          return "timer"
         case .intelligence:   return "brain.head.profile"
         case .stats:          return "chart.bar.fill"
-        case .objectifs:      return "target"
         case .hiit:           return "figure.run"
         case .historique:     return "calendar"
         case .xp:             return "star.fill"
@@ -222,7 +220,6 @@ private enum MacPage: String, Identifiable {
         case .timer:          return .orange
         case .intelligence:   return .purple
         case .stats:          return .blue
-        case .objectifs:      return .orange
         case .hiit:           return .red
         case .historique:     return .teal
         case .xp:             return .yellow
@@ -247,7 +244,7 @@ private struct MacSidebarSection {
 
 private let macSections: [MacSidebarSection] = [
     MacSidebarSection(title: "Principal",      pages: [.intelligence, .dashboard, .seance, .nutrition]),
-    MacSidebarSection(title: "Entraînement",   pages: [.programme, .stats, .objectifs, .timer, .hiit, .historique, .xp]),
+    MacSidebarSection(title: "Entraînement",   pages: [.programme, .stats, .timer, .hiit, .historique, .xp]),
     MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .pss, .mentalHealth]),
     MacSidebarSection(title: "Divers",         pages: [.notes, .inventaire, .profil]),
 ]
@@ -321,7 +318,6 @@ private struct MacContentView: View {
         case .timer:           TimerView()
         case .intelligence:    IntelligenceView()
         case .stats:           StatsView()
-        case .objectifs:       ObjectifsView()
         case .hiit:            HIITHistoriqueView()
         case .historique:      HistoriqueView()
         case .xp:              XPView()

@@ -32,7 +32,6 @@ enum APIError: LocalizedError {
 // ─────────────────────────────────────────────────────────────────────────────
 //  WORKOUT      APIService+Workout.swift
 //  PROFILE      APIService+Profile.swift
-//  GOALS        APIService+Goals.swift
 //  NUTRITION    APIService+Nutrition.swift
 //  CARDIO       APIService+Cardio.swift
 //  WELLNESS     APIService+Wellness.swift
