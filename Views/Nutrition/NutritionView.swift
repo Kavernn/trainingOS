@@ -181,7 +181,7 @@ struct NutritionView: View {
                                     .appearAnimation(delay: 0.30)
                             }
 
-                            Spacer(minLength: 80)
+                            Spacer(minLength: fabBottomPadding + 72)
                         }
                         .padding(.vertical, 16)
                     }

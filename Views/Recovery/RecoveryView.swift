@@ -749,7 +749,7 @@ struct RecoveryView: View {
                 Spacer(minLength: 32)
             }
             .padding(.vertical, 16)
-            .padding(.bottom, contentBottomPadding)
+            .padding(.bottom, fabBottomPadding + 72)
         }
         .refreshable {
             await loadData()
@@ -1285,7 +1285,7 @@ struct RecoveryView: View {
                 Spacer(minLength: 32)
             }
             .padding(.vertical, 16)
-            .padding(.bottom, contentBottomPadding)
+            .padding(.bottom, fabBottomPadding + 72)
         }
         .refreshable { await loadData() }
     }

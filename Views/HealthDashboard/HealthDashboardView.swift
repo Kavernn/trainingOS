@@ -486,7 +486,7 @@ struct WeeklySleepChart: View {
                     let isLast = i == data.count - 1
                     VStack(spacing: 3) {
                         Text(String(format: "%.0fh", item.1))
-                            .font(.system(size: 8)).foregroundColor(color.opacity(0.8))
+                            .font(.system(size: 10)).foregroundColor(color.opacity(0.8))
                         RoundedRectangle(cornerRadius: 4)
                             .fill(color.opacity(isLast ? 1 : 0.5))
                             .frame(height: max(CGFloat(pct) * 60, 4))
@@ -494,7 +494,7 @@ struct WeeklySleepChart: View {
                                 RoundedRectangle(cornerRadius: 4)
                                     .stroke(color, lineWidth: selectedDay?.date == item.2.date ? 2 : 0)
                             )
-                        Text(item.0).font(.system(size: 8)).foregroundColor(.gray).lineLimit(1)
+                        Text(item.0).font(.system(size: 10)).foregroundColor(.gray).lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 80, alignment: .bottom)
                     .onTapGesture { selectedDay = item.2 }
@@ -540,7 +540,7 @@ struct WeeklyStepsChart: View {
                     let isLast = i == data.count - 1
                     VStack(spacing: 3) {
                         Text(item.1 >= 1000 ? "\(item.1 / 1000)k" : "\(item.1)")
-                            .font(.system(size: 8)).foregroundColor(color.opacity(0.8))
+                            .font(.system(size: 10)).foregroundColor(color.opacity(0.8))
                         RoundedRectangle(cornerRadius: 4)
                             .fill(color.opacity(isLast ? 1 : 0.5))
                             .frame(height: max(CGFloat(pct) * 60, 4))
@@ -548,7 +548,7 @@ struct WeeklyStepsChart: View {
                                 RoundedRectangle(cornerRadius: 4)
                                     .stroke(color, lineWidth: selectedDay?.date == item.2.date ? 2 : 0)
                             )
-                        Text(item.0).font(.system(size: 8)).foregroundColor(.gray).lineLimit(1)
+                        Text(item.0).font(.system(size: 10)).foregroundColor(.gray).lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 80, alignment: .bottom)
                     .onTapGesture { selectedDay = item.2 }
@@ -727,11 +727,11 @@ struct LifeStressTrendChart: View {
                     let isLast = i == data.count - 1
                     VStack(spacing: 2) {
                         Text(String(format: "%.0f", item.1))
-                            .font(.system(size: 7)).foregroundColor(barColor.opacity(0.8))
+                            .font(.system(size: 10)).foregroundColor(barColor.opacity(0.8))
                         RoundedRectangle(cornerRadius: 3)
                             .fill(barColor.opacity(isLast ? 1.0 : 0.5))
                             .frame(height: max(CGFloat(pct) * 48, 3))
-                        Text(item.0).font(.system(size: 7)).foregroundColor(.gray).lineLimit(1)
+                        Text(item.0).font(.system(size: 10)).foregroundColor(.gray).lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 64, alignment: .bottom)
                 }
