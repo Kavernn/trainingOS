@@ -104,7 +104,7 @@ struct EngagementCreationView: View {
                     if texts.count > 1 {
                         Button(action: { removeField(at: i) }) {
                             Image(systemName: "xmark")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(Color(white: 0.22))
                                 .padding(6)
                         }
@@ -135,7 +135,7 @@ struct EngagementCreationView: View {
             Button(action: addField) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus").font(.system(size: 12))
-                    Text("Ajouter un engagement").font(.system(size: 13))
+                    Text("Ajouter un engagement").font(.appLabel)
                 }
                 .foregroundColor(Color(white: 0.38))
                 .padding(.vertical, 8)
@@ -168,7 +168,7 @@ struct EngagementCreationView: View {
                         ProgressView().tint(.black)
                     } else {
                         Text("Confirmer pour demain")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundColor(canConfirm ? .black : Color(white: 0.4))
                     }
                 }
@@ -177,7 +177,7 @@ struct EngagementCreationView: View {
             .buttonStyle(.plain)
 
             Text("Verrouillés jusqu'au \(tomorrowDateShort)")
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(Color(white: 0.2))
                 .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -194,7 +194,7 @@ struct EngagementCreationView: View {
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.white)
             Text("Verrouillés pour \(tomorrowDateShort)")
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(Color(white: 0.35))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

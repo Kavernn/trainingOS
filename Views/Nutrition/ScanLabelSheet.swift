@@ -132,7 +132,7 @@ struct ScanLabelSheet: View {
 
             if let err = errorMsg {
                 Text(err)
-                    .font(.system(size: 13)).foregroundColor(.red)
+                    .font(.appLabel).foregroundColor(.red)
                     .multilineTextAlignment(.center)
             }
 
@@ -160,7 +160,7 @@ struct ScanLabelSheet: View {
             Spacer()
             ProgressView().scaleEffect(1.5).tint(.orange)
             Text("Analyse en cours…")
-                .font(.system(size: 15)).foregroundColor(.gray).padding(.top, 8)
+                .font(.appBody).foregroundColor(.gray).padding(.top, 8)
             Spacer()
         }
     }
@@ -173,22 +173,22 @@ struct ScanLabelSheet: View {
                 TextField("Nom", text: $nom).foregroundColor(.white)
                 HStack {
                     TextField("Calories", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
-                    Text("kcal").foregroundColor(.gray).font(.system(size: 13))
+                    Text("kcal").foregroundColor(.gray).font(.appLabel)
                 }
             }.listRowBackground(Color.appCard)
 
             Section("MACROS") {
                 HStack {
                     TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.white)
-                    Text("g").foregroundColor(.gray).font(.system(size: 13))
+                    Text("g").foregroundColor(.gray).font(.appLabel)
                 }
                 HStack {
                     TextField("Glucides", text: $glucides).keyboardType(.decimalPad).foregroundColor(.white)
-                    Text("g").foregroundColor(.gray).font(.system(size: 13))
+                    Text("g").foregroundColor(.gray).font(.appLabel)
                 }
                 HStack {
                     TextField("Lipides", text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
-                    Text("g").foregroundColor(.gray).font(.system(size: 13))
+                    Text("g").foregroundColor(.gray).font(.appLabel)
                 }
             }.listRowBackground(Color.appCard)
 

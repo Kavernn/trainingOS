@@ -90,7 +90,7 @@ struct PRCelebrationView: View {
                         // Label + PRs
                         VStack(spacing: 14) {
                             Text(prs.count == 1 ? "LIMITE DÉTRUITE" : "LIMITES DÉTRUITES")
-                                .font(.system(size: 11, weight: .black)).tracking(3)
+                                .font(.appCaption.weight(.black)).tracking(3)
                                 .foregroundColor(.yellow.opacity(0.7))
 
                             if prs.count == 1, let pr = prs.first {
@@ -101,10 +101,10 @@ struct PRCelebrationView: View {
                                     .padding(.horizontal, 32)
                                 HStack(spacing: 6) {
                                     Image(systemName: "arrow.up.right")
-                                        .font(.system(size: 13, weight: .bold))
+                                        .font(.appLabel.weight(.bold))
                                         .foregroundColor(.yellow)
                                     Text("Nouvelle frontière : \(units.format(pr.oneRM))")
-                                        .font(.system(size: 17, weight: .bold))
+                                        .font(.appHeadline.weight(.bold))
                                         .foregroundColor(.yellow)
                                 }
                             } else {

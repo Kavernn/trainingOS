@@ -37,7 +37,7 @@ struct CoachGreetingHeader: View {
                     .font(.system(size: 26, weight: .bold))
                     .foregroundColor(.white)
                 Text(formattedDate + " · Sem. \(dash.week)")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(Color.white.opacity(0.38))
             }
             Spacer()

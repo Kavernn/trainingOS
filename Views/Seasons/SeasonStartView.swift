@@ -60,7 +60,7 @@ struct SeasonStartView: View {
                         ProgressView().tint(.white)
                     } else {
                         Text("Commencer")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 28)
                             .padding(.vertical, 12)
@@ -105,7 +105,7 @@ struct SeasonStartView: View {
             }
             Spacer()
             Button("Allons-y") { onStarted() }
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundStyle(Color.forge)
                 .padding(.horizontal, 32)
                 .padding(.vertical, 14)

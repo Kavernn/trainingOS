@@ -123,7 +123,7 @@ struct RitualBiographyView: View {
                             .foregroundColor(Color(white: 0.55))
                             .multilineTextAlignment(.center)
                         Text("Commence avec un seul.")
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(Color(white: 0.35))
                     }
                     Button {
@@ -155,7 +155,7 @@ struct RitualBiographyView: View {
                         if hasMore {
                             Button(action: loadMore) {
                                 Text("Charger plus")
-                                    .font(.system(size: 13))
+                                    .font(.appLabel)
                                     .foregroundColor(Color(white: 0.4))
                                     .padding(.vertical, 12)
                                     .frame(maxWidth: .infinity)
@@ -202,13 +202,13 @@ struct RitualBiographyView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(formattedDate(entry.date))
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(Color(white: 0.3))
                     Spacer()
                     if entry.carryCount > 0 {
                         HStack(spacing: 3) {
-                            Image(systemName: "moon.stars.fill").font(.system(size: 9)).foregroundColor(Color(white: 0.25))
-                            Text("×\(entry.carryCount)").font(.system(size: 9)).foregroundColor(Color(white: 0.25))
+                            Image(systemName: "moon.stars.fill").font(.appMicro).foregroundColor(Color(white: 0.25))
+                            Text("×\(entry.carryCount)").font(.appMicro).foregroundColor(Color(white: 0.25))
                         }
                     }
                 }
@@ -229,7 +229,7 @@ struct RitualBiographyView: View {
                 if let tmrw = entry.tomorrowIntention {
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 9))
+                            .font(.appMicro)
                             .foregroundColor(Color.forge.opacity(0.5))
                         Text(tmrw)
                             .font(.system(size: 12))
@@ -289,7 +289,7 @@ struct RitualDoneView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
                 Text(todayLabel)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(Color(white: 0.25))
                     .tracking(1)
                     .padding(.top, 40)
@@ -332,7 +332,7 @@ struct RitualDoneView: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
                 Text(tomorrowEngagementsLabel)
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(Color(white: 0.35))
             } else {
                 Image(systemName: "moon.stars.fill")
@@ -342,7 +342,7 @@ struct RitualDoneView: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
                 Text("Ce soir, crée tes engagements pour demain.")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(Color(white: 0.35))
                     .multilineTextAlignment(.center)
             }
@@ -370,7 +370,7 @@ struct RitualDoneView: View {
                 .foregroundColor(Color(white: 0.55))
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(Color(white: 0.2))
         }
         .padding(.horizontal, 16)
@@ -456,7 +456,7 @@ struct RitualHeatMapView: View {
 
         return VStack(alignment: .leading, spacing: 8) {
             Text(fmt.string(from: month).capitalized)
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .tracking(1)
                 .foregroundColor(Color(white: 0.4))
 
@@ -503,7 +503,7 @@ struct RitualHeatMapView: View {
             if isToday {
                 RoundedRectangle(cornerRadius: 4).stroke(Color.white.opacity(0.4), lineWidth: 1)
             }
-            Text("\(day)").font(.system(size: 9)).foregroundColor(outcome != nil ? .white : Color(white: 0.25))
+            Text("\(day)").font(.appMicro).foregroundColor(outcome != nil ? .white : Color(white: 0.25))
         }
         .frame(width: 32, height: 28)
     }

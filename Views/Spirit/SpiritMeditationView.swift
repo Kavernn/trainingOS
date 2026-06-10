@@ -25,7 +25,7 @@ struct SpiritMeditationTabView: View {
                     .animation(.easeInOut(duration: 0.2), value: durationMin)
 
                 Text("minutes")
-                    .font(.system(size: 13, weight: .ultraLight))
+                    .font(.appLabel.weight(.ultraLight))
                     .foregroundStyle(Color.moonlight.opacity(0.3))
             }
 
@@ -149,14 +149,14 @@ struct SpiritMeditationSessionView: View {
                         .font(.system(size: 20, weight: .ultraLight))
                         .foregroundStyle(Color.moonlight.opacity(0.55))
                     Button("Fermer") { dismiss() }
-                        .font(.system(size: 13, weight: .ultraLight))
+                        .font(.appLabel.weight(.ultraLight))
                         .foregroundStyle(Color.moonlight.opacity(0.3))
                 }
             } else if isRunning {
                 Button("Terminer") {
                     sessionTask?.cancel()
                 }
-                .font(.system(size: 13, weight: .ultraLight))
+                .font(.appLabel.weight(.ultraLight))
                 .foregroundStyle(Color.moonlight.opacity(0.25))
             } else {
                 Button {

@@ -189,13 +189,13 @@ private struct WorkoutDNAInlineContent: View {
                 HStack {
                     Image(systemName: dna.ppl.balanceScore >= 70 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                         .foregroundColor(dna.ppl.balanceScore >= 70 ? .green : .orange)
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                     Text(dna.ppl.verdict)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(.white.opacity(0.85))
                     Spacer()
                     Text("Score \(dna.ppl.balanceScore)/100")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
             }
@@ -213,11 +213,11 @@ private struct WorkoutDNAInlineContent: View {
                 }
                 HStack {
                     Text(dna.intensity.label)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                     Spacer()
                     Text("Compound \(dna.intensity.compoundPct)%")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
             }
@@ -264,11 +264,11 @@ private struct WorkoutDNAInlineContent: View {
                 }
                 HStack {
                     Text(dna.consistency.archetype)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(accent)
                     Spacer()
                     Text("\(dna.consistency.activeWeeksPct)% semaines actives")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
             }
@@ -282,13 +282,13 @@ private struct WorkoutDNAInlineContent: View {
                 HStack {
                     Image(systemName: dna.recovery.verdict == "Optimal" ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                         .foregroundColor(dna.recovery.verdict == "Optimal" ? .green : .orange)
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                     Text(dna.recovery.verdict)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(.white.opacity(0.85))
                     Spacer()
                     Text("Optimal: \(String(format: "%.1f", dna.recovery.optimalRestDays))j")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
             }
@@ -342,7 +342,7 @@ private struct WorkoutDNAInlineContent: View {
                     Spacer()
                     if let trend = intensityTrend(activeMonths) {
                         Text(trend)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(accent)
                     }
                 }
@@ -372,7 +372,7 @@ private struct WorkoutDNAInlineContent: View {
                     ForEach(topPatterns) { entry in
                         HStack(spacing: 8) {
                             Text(patternLabel(entry.pattern))
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.appCaption.weight(.medium))
                                 .foregroundColor(.gray)
                                 .frame(width: 110, alignment: .leading)
                                 .lineLimit(1)
@@ -386,7 +386,7 @@ private struct WorkoutDNAInlineContent: View {
                             }
                             .frame(height: 7)
                             Text("\(entry.pct)%")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .foregroundColor(patternColor(entry.pattern))
                                 .frame(width: 28, alignment: .trailing)
                         }
@@ -409,7 +409,7 @@ private struct WorkoutDNAInlineContent: View {
                             .font(.system(size: 10))
                             .foregroundColor(.gray)
                         Text("Diversité \(patterns.diversityScore)%")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(patterns.diversityScore >= 40 ? accent : .orange)
                     }
                 }
@@ -454,7 +454,7 @@ private struct WorkoutDNAInlineContent: View {
             HStack(spacing: 8) {
                 Image(systemName: "square.and.arrow.up")
                 Text("Partager mon DNA")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.appBody.weight(.bold))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
@@ -506,7 +506,7 @@ private struct IntensityTimelineLegendDot: View {
     var body: some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
     }
 }
@@ -747,7 +747,7 @@ private struct IntensityZonePill: View {
                 .font(.system(size: 14, weight: .black, design: .rounded))
                 .foregroundColor(color)
             Text(label)
-                .font(.system(size: 9))
+                .font(.appMicro)
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
@@ -794,7 +794,7 @@ private struct ConsistencyStat: View {
                 .font(.system(size: 16, weight: .black, design: .rounded))
                 .foregroundColor(.white)
             Text(label)
-                .font(.system(size: 9))
+                .font(.appMicro)
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
@@ -853,13 +853,13 @@ private struct SignatureLiftRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Text("#\(rank)")
-                .font(.system(size: 11, weight: .black))
+                .font(.appCaption.weight(.black))
                 .foregroundColor(accent.opacity(0.6))
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(lift.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text("\(lift.sessionCount) séances")
                     .font(.system(size: 10))
@@ -870,7 +870,7 @@ private struct SignatureLiftRow: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(unitSettings.format(lift.prKg)) × \(lift.prReps)")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                     .foregroundColor(.white)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% sur l'ancienne limite")
@@ -910,7 +910,7 @@ private struct WorkoutDNAShareSheet: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "square.and.arrow.up")
-                        Text("Exporter").font(.system(size: 15, weight: .bold))
+                        Text("Exporter").font(.appBody.weight(.bold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(archetypeAccent(dna.archetype.key))
@@ -959,7 +959,7 @@ struct WorkoutDNAShareCard: View {
                     }
                     Spacer()
                     Text(dna.period.to.prefix(7).description)
-                        .font(.system(size: 9)).foregroundColor(.gray)
+                        .font(.appMicro).foregroundColor(.gray)
                 }
                 .padding(.bottom, 12)
 
@@ -1006,10 +1006,10 @@ struct WorkoutDNAShareCard: View {
                     Rectangle().fill(accent.opacity(0.25)).frame(height: 1).padding(.bottom, 10)
                     ForEach(dna.signatureLifts.prefix(3)) { lift in
                         HStack {
-                            Text(lift.name).font(.system(size: 9, weight: .medium)).foregroundColor(.white.opacity(0.8))
+                            Text(lift.name).font(.appMicro.weight(.medium)).foregroundColor(.white.opacity(0.8))
                             Spacer()
                             Text(UnitSettings.shared.format(lift.prKg))
-                                .font(.system(size: 9, weight: .bold)).foregroundColor(.white)
+                                .font(.appMicro.weight(.bold)).foregroundColor(.white)
                             if lift.progressionPct > 0 {
                                 Text("+\(Int(lift.progressionPct))%")
                                     .font(.system(size: 8, weight: .semibold)).foregroundColor(.green)
@@ -1065,7 +1065,7 @@ private struct DNAEmptyState: View {
         VStack(spacing: 10) {
             Image(systemName: "waveform.path.ecg").font(.system(size: 26)).foregroundColor(.gray.opacity(0.35))
             Text("Pas encore assez de données")
-                .font(.system(size: 13, weight: .medium)).foregroundColor(.gray)
+                .font(.appLabel).foregroundColor(.gray)
             Button(action: onLoad) {
                 Text("Générer mon DNA")
                     .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
@@ -1084,7 +1084,7 @@ private struct DNAErrorState: View {
         VStack(spacing: 10) {
             Image(systemName: "exclamationmark.triangle").font(.system(size: 26)).foregroundColor(.orange.opacity(0.7))
             Text("Erreur de chargement")
-                .font(.system(size: 13, weight: .medium)).foregroundColor(.gray)
+                .font(.appLabel).foregroundColor(.gray)
             Button(action: onRetry) {
                 Text("Réessayer")
                     .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)

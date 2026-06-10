@@ -70,7 +70,7 @@ private struct ConsistencyTrendBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
             Text(trend == "improving" ? "En hausse" : trend == "declining" ? "En baisse" : "Stable")
                 .font(.system(size: 10, weight: .semibold))
         }

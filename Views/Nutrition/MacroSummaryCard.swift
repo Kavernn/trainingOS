@@ -32,7 +32,7 @@ struct MacroSummaryCard: View {
                     ProgressRing(progress: pct, color: over ? .red : .orange,
                                  size: 60, lineWidth: 8, animation: .easeOut) {
                         Text("\(Int(pct * 100))%")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .foregroundColor(over ? .red : .orange)
                     }
                 }

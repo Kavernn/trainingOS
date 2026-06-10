@@ -91,7 +91,7 @@ struct TopicCard: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(topic.title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     Text(topic.subtitle)

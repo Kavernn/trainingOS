@@ -45,7 +45,7 @@ struct NutritionPerfInsightCard: View {
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(insight.accentColor)
                     Text(insight.detail)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.7))
                         .lineLimit(expanded ? nil : 1)
                 }
@@ -77,7 +77,7 @@ struct NutritionPerfInsightCard: View {
                 Divider().background(insight.accentColor.opacity(0.2)).padding(.horizontal, 12)
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(insight.accentColor.opacity(0.7))
                     Text(insight.actionHint)
                         .font(.system(size: 12))

@@ -61,7 +61,7 @@ struct WarMapView: View {
         return HStack(spacing: 0) {
             ForEach(labels.indices, id: \.self) { i in
                 Text(labels[i])
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.appMicro.weight(.semibold))
                     .foregroundStyle(Color.secondary.opacity(0.6))
                     .frame(maxWidth: .infinity)
             }

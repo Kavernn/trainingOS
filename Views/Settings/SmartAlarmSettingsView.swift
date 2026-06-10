@@ -63,7 +63,7 @@ struct SmartAlarmSettingsView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Réveil intelligent")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.appBody.weight(.medium))
                     .foregroundColor(.white)
                 Text("Alarme sur le plus proche point de cycle (90 min)")
                     .font(.system(size: 12))
@@ -148,11 +148,11 @@ struct SmartAlarmSettingsView: View {
     private func howStep(_ number: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text(number)
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(AppTheme.shared.accent)
                 .frame(width: 14, alignment: .center)
             Text(text)
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(Color(white: 0.5))
                 .fixedSize(horizontal: false, vertical: true)
         }

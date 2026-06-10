@@ -77,7 +77,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "trash")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                             Text("Effacer")
                                 .font(.system(size: 12))
                         }
@@ -100,7 +100,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
 
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("Message...", text: $input, axis: .vertical)
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundColor(.white)
                     .tint(.purple)
                     .padding(.horizontal, 14)
@@ -126,7 +126,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                         Circle()
                             .fill(canSend ? Color.purple : Color.white.opacity(0.1))
                         Image(systemName: "arrow.up")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.appBody.weight(.bold))
                             .foregroundColor(canSend ? .white : Color(white: 0.3))
                     }
                     .frame(width: 38, height: 38)

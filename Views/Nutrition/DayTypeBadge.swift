@@ -41,13 +41,13 @@ struct DayTypeBadge: View {
                 if let cal = effectiveCal, let gluc = effectiveGluc {
                     HStack(spacing: 8) {
                         Text("\(Int(cal)) kcal")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.75))
                         Text("·")
                             .font(.system(size: 10))
                             .foregroundColor(.gray.opacity(0.5))
                         Text("\(Int(gluc))g glucides")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.white.opacity(0.55))
                     }
                 }

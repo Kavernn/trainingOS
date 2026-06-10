@@ -88,10 +88,10 @@ struct EngagementAddressingView: View {
         Button(action: advance) {
             HStack(spacing: 8) {
                 Text("Prépare demain")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(.black)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.black)
             }
             .frame(maxWidth: .infinity)
@@ -170,7 +170,7 @@ private struct EngagementAddressRow: View {
     private func actionButton(label: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)

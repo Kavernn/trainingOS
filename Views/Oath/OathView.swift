@@ -40,7 +40,7 @@ struct OathGateView: View {
                     .tracking(6)
                 if authFailed {
                     Text("Authentification requise")
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundStyle(.white.opacity(0.4))
                 }
             }
@@ -140,7 +140,7 @@ struct OathContentView: View {
                     .font(.system(size: 48, weight: .ultraLight))
                     .foregroundStyle(.white.opacity(0.2))
                 Text("Tu n'as pas encore écrit ton serment.")
-                    .font(.system(size: 15, weight: .light))
+                    .font(.appBody.weight(.light))
                     .foregroundStyle(.white.opacity(0.5))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)

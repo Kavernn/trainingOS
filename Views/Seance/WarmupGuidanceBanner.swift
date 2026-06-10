@@ -8,15 +8,15 @@ struct WarmupGuidanceBanner: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "flame.fill")
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(.yellow.opacity(0.8))
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Échauffement recommandé")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.yellow.opacity(0.9))
                 Text(guidance)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }

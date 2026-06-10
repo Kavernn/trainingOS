@@ -96,7 +96,7 @@ struct ReadinessCard: View {
                         .font(.system(size: 10, weight: .bold)).tracking(2)
                         .foregroundColor(.gray)
                     Text(scoreLabel)
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.appMicro.weight(.bold))
                         .foregroundColor(scoreColor)
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(scoreColor.opacity(0.15))
@@ -119,10 +119,10 @@ struct ReadinessCard: View {
                 if !missingMetrics.isEmpty {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.circle")
-                            .font(.system(size: 9))
+                            .font(.appMicro)
                             .foregroundColor(reliabilityColor)
                         Text("\(reliabilityLabel) · manque : \(missingMetrics.joined(separator: ", "))")
-                            .font(.system(size: 9))
+                            .font(.appMicro)
                             .foregroundColor(.gray)
                     }
                 }
@@ -138,7 +138,7 @@ struct ReadinessCard: View {
     private func metricPill(_ label: String, _ value: String, _ color: Color) -> some View {
         VStack(spacing: 1) {
             Text(value)
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(color)
             Text(label)
                 .font(.system(size: 8))

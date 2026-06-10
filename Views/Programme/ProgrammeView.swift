@@ -1458,7 +1458,7 @@ struct EditableSeanceProgramCard: View {
                     .foregroundColor(color)
                 if isToday {
                     Text("AUJOURD'HUI")
-                        .font(.system(size: 9, weight: .black)).tracking(1)
+                        .font(.appMicro.weight(.black)).tracking(1)
                         .foregroundColor(Color.forge)
                         .padding(.horizontal, 7).padding(.vertical, 3)
                         .background(Color.forge.opacity(0.12))
@@ -2435,7 +2435,7 @@ private struct ActiveProgrammeBanner: View {
                 VStack(alignment: .leading, spacing: 3) {
                     if !programmeName.isEmpty {
                         Text(programmeName.uppercased())
-                            .font(.system(size: 9, weight: .black)).tracking(1.5)
+                            .font(.appMicro.weight(.black)).tracking(1.5)
                             .foregroundColor(.gray.opacity(0.6))
                     }
                     HStack(spacing: 8) {
@@ -2454,7 +2454,7 @@ private struct ActiveProgrammeBanner: View {
                     if let session = todaySession {
                         HStack(spacing: 5) {
                             Image(systemName: "flame.fill")
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(Color.forge)
                             Text(session)
                                 .font(.appCaption.weight(.semibold))

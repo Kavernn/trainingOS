@@ -30,25 +30,25 @@ struct GhostBanner: View {
                     .font(.system(size: 16))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("GHOST · \(shortDate(ghost.date))")
-                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .font(.appMicro.weight(.bold)).tracking(2)
                         .foregroundColor(.gray)
                     HStack(spacing: 6) {
                         Text(beaten ? "Battu ! 🔥" : "\(UnitSettings.shared.display(ghost.volume), specifier: "%.0f") \(UnitSettings.shared.label)")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .foregroundColor(beaten ? .orange : .white)
                         if let rpe = ghost.rpe {
                             Text("RPE \(String(format: "%.1f", rpe))")
-                                .font(.system(size: 11)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                         }
                         if let sets = ghost.sets {
                             Text("\(sets) sets")
-                                .font(.system(size: 11)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                         }
                     }
                 }
                 Spacer()
                 Button(action: onDismiss) {
-                    Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
+                    Image(systemName: "xmark").font(.appCaption).foregroundColor(.gray)
                 }
             }
 

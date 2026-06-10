@@ -49,7 +49,7 @@ struct QuestionChipsView: View {
                 ForEach(chips, id: \.self) { chip in
                     Button { onTap(chip) } label: {
                         Text(chip)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.purple.opacity(0.9))
                             .padding(.horizontal, 13)
                             .padding(.vertical, 7)

@@ -62,11 +62,11 @@ struct NutritionSettingsSheet: View {
                     Section(header: Text("MACROS FIXES (TOUS LES JOURS)")) {
                         HStack {
                             TextField("180", text: $proteines).keyboardType(.numberPad).foregroundColor(.white)
-                            Text("g protéines").foregroundColor(.blue).font(.system(size: 13))
+                            Text("g protéines").foregroundColor(.blue).font(.appLabel)
                         }
                         HStack {
                             TextField("75", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
-                            Text("g lipides").foregroundColor(.pink).font(.system(size: 13))
+                            Text("g lipides").foregroundColor(.pink).font(.appLabel)
                         }
                     }
                     .listRowBackground(Color.appCard)
@@ -166,7 +166,7 @@ private struct DayTypeRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(label, systemImage: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
             HStack(spacing: 8) {
                 TextField(calPlaceholder, text: $cal)

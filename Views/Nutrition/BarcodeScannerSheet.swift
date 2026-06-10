@@ -28,7 +28,7 @@ struct BarcodeScannerSheet: View {
                                 .frame(width: 280, height: 110)
                                 .shadow(color: .white.opacity(0.15), radius: 8)
                             Text("Pointe vers le code-barres")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appLabel)
                                 .foregroundColor(.white.opacity(0.8))
                                 .padding(.top, 12)
                             Spacer()
@@ -51,7 +51,7 @@ struct BarcodeScannerSheet: View {
                                     UIApplication.shared.open(url)
                                 }
                             }
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundColor(.orange)
                             .padding(.horizontal, 24).padding(.vertical, 10)
                             .background(Color.orange.opacity(0.12))

@@ -66,7 +66,7 @@ struct LogRecoverySheet: View {
                                     ProgressView().tint(.white).scaleEffect(0.8)
                                 } else {
                                     Image(systemName: "heart.text.square.fill")
-                                        .font(.system(size: 15))
+                                        .font(.appBody)
                                 }
                                 Text(isLoadingHK ? "Lecture Health..." : "Remplir depuis Apple Santé")
                                     .font(.system(size: 14, weight: .semibold))
@@ -96,7 +96,7 @@ struct LogRecoverySheet: View {
                                         Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         Spacer()
                                         Text(String(format: "%.0f / 10", sleepQuality))
-                                            .font(.system(size: 13, weight: .bold)).foregroundColor(.blue)
+                                            .font(.appLabel.weight(.bold)).foregroundColor(.blue)
                                     }
                                     Slider(value: $sleepQuality, in: 1...10, step: 1).tint(.orange)
                                 }
@@ -143,13 +143,13 @@ struct LogRecoverySheet: View {
                                     HStack {
                                         Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         Spacer()
-                                        Text(String(format: "%.0f / 10", soreness)).font(.system(size: 13, weight: .bold)).foregroundColor(sorenessColor(soreness))
+                                        Text(String(format: "%.0f / 10", soreness)).font(.appLabel.weight(.bold)).foregroundColor(sorenessColor(soreness))
                                     }
                                     Slider(value: $soreness, in: 0...10, step: 1).tint(sorenessColor(soreness))
                                     HStack {
-                                        Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("0 = Aucune").font(.appMicro).foregroundColor(.gray)
                                         Spacer()
-                                        Text("10 = Sévère").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("10 = Sévère").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
                                 Divider().background(Color.white.opacity(0.06))
@@ -158,16 +158,16 @@ struct LogRecoverySheet: View {
                                         Text("FATIGUE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         Spacer()
                                         if fatigue == 0 {
-                                            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
                                         } else {
-                                            Text(String(format: "%.0f / 10", fatigue)).font(.system(size: 13, weight: .bold)).foregroundColor(fatigueColor(fatigue))
+                                            Text(String(format: "%.0f / 10", fatigue)).font(.appLabel.weight(.bold)).foregroundColor(fatigueColor(fatigue))
                                         }
                                     }
                                     Slider(value: $fatigue, in: 0...10, step: 1).tint(fatigue == 0 ? .gray : fatigueColor(fatigue))
                                     HStack {
-                                        Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
                                         Spacer()
-                                        Text("10 = Épuisé(e)").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("10 = Épuisé(e)").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
                                 Divider().background(Color.white.opacity(0.06))
@@ -176,16 +176,16 @@ struct LogRecoverySheet: View {
                                         Text("ÉNERGIE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         Spacer()
                                         if energyPre == 0 {
-                                            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
                                         } else {
-                                            Text(String(format: "%.0f / 10", energyPre)).font(.system(size: 13, weight: .bold)).foregroundColor(energyPreColor(energyPre))
+                                            Text(String(format: "%.0f / 10", energyPre)).font(.appLabel.weight(.bold)).foregroundColor(energyPreColor(energyPre))
                                         }
                                     }
                                     Slider(value: $energyPre, in: 0...10, step: 1).tint(energyPre == 0 ? .gray : energyPreColor(energyPre))
                                     HStack {
-                                        Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
                                         Spacer()
-                                        Text("10 = Excellent").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("10 = Excellent").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
                             }
@@ -202,7 +202,7 @@ struct LogRecoverySheet: View {
                                         if let hrv = Double(hrvStr.replacingOccurrences(of: ",", with: ".")),
                                            !hrvStr.isEmpty, (hrv < 20 || hrv > 200) {
                                             Text("Valeur inhabituelle (20–200 ms)")
-                                                .font(.system(size: 9, weight: .semibold))
+                                                .font(.appMicro.weight(.semibold))
                                                 .foregroundColor(.orange)
                                         }
                                     }
@@ -257,17 +257,17 @@ struct LogRecoverySheet: View {
                                         Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         Spacer()
                                         if sleepQuality == 0 {
-                                            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
                                         } else {
                                             Text(String(format: "%.0f / 10", sleepQuality))
-                                                .font(.system(size: 13, weight: .bold)).foregroundColor(.blue)
+                                                .font(.appLabel.weight(.bold)).foregroundColor(.blue)
                                         }
                                     }
                                     Slider(value: $sleepQuality, in: 0...10, step: 1).tint(.orange)
                                     HStack {
-                                        Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
                                         Spacer()
-                                        Text("10 = Excellent").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("10 = Excellent").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
                             }
@@ -319,16 +319,16 @@ struct LogRecoverySheet: View {
                                         Text("FATIGUE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         Spacer()
                                         if fatigue == 0 {
-                                            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
                                         } else {
-                                            Text(String(format: "%.0f / 10", fatigue)).font(.system(size: 13, weight: .bold)).foregroundColor(fatigueColor(fatigue))
+                                            Text(String(format: "%.0f / 10", fatigue)).font(.appLabel.weight(.bold)).foregroundColor(fatigueColor(fatigue))
                                         }
                                     }
                                     Slider(value: $fatigue, in: 0...10, step: 1).tint(fatigue == 0 ? .gray : fatigueColor(fatigue))
                                     HStack {
-                                        Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
                                         Spacer()
-                                        Text("10 = Épuisé(e)").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("10 = Épuisé(e)").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
                                 Divider().background(Color.white.opacity(0.06))
@@ -337,16 +337,16 @@ struct LogRecoverySheet: View {
                                         Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         Spacer()
                                         if soreness == 0 {
-                                            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
                                         } else {
-                                            Text(String(format: "%.0f / 10", soreness)).font(.system(size: 13, weight: .bold)).foregroundColor(sorenessColor(soreness))
+                                            Text(String(format: "%.0f / 10", soreness)).font(.appLabel.weight(.bold)).foregroundColor(sorenessColor(soreness))
                                         }
                                     }
                                     Slider(value: $soreness, in: 0...10, step: 1).tint(soreness == 0 ? .gray : sorenessColor(soreness))
                                     HStack {
-                                        Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("0 = Aucune").font(.appMicro).foregroundColor(.gray)
                                         Spacer()
-                                        Text("10 = Sévère").font(.system(size: 9)).foregroundColor(.gray)
+                                        Text("10 = Sévère").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
                             }
@@ -365,7 +365,7 @@ struct LogRecoverySheet: View {
                                     Image(systemName: "plus.circle")
                                         .font(.system(size: 12))
                                     Text("Plus de détails")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                 }
                                 .foregroundColor(Color(white: 0.40))
                             }
@@ -517,7 +517,7 @@ struct RecoveryField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
                 .foregroundColor(.white)

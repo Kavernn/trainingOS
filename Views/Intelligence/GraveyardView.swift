@@ -49,7 +49,7 @@ struct GraveyardView: View {
     private func graveyardHeader(_ r: GraveyardResponse) -> some View {
         VStack(spacing: 6) {
             Text("\(r.totalCount) LIMITES ENTERRÉES")
-                .font(.system(size: 13, weight: .black)).tracking(2)
+                .font(.appLabel.weight(.black)).tracking(2)
                 .foregroundColor(.white.opacity(0.85))
             if let inception = r.inceptionDate {
                 Text("depuis \(frenchDate(inception))")
@@ -143,7 +143,7 @@ struct GraveyardView: View {
         VStack(spacing: 12) {
             ProgressView().tint(.white.opacity(0.3))
             Text("Exhumation en cours…")
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(.white.opacity(0.5))
         }
     }
@@ -230,7 +230,7 @@ struct TombstoneCard: View {
                     Image(systemName: ttype.icon)
                         .font(.system(size: 10, weight: .semibold))
                     Text(ttype.label)
-                        .font(.system(size: 9, weight: .black)).tracking(1.2)
+                        .font(.appMicro.weight(.black)).tracking(1.2)
                 }
                 .foregroundColor(ttype.accentColor.opacity(0.75))
 
@@ -243,7 +243,7 @@ struct TombstoneCard: View {
 
             // Title
             Text(tombstone.title)
-                .font(.system(size: 15, weight: .bold))
+                .font(.appBody.weight(.bold))
                 .foregroundColor(.white.opacity(daysOld < 365 ? 0.92 : 0.6))
 
             // Epitaph
@@ -354,7 +354,7 @@ struct TombstoneDetailSheet: View {
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("CHIFFRES")
-                .font(.system(size: 9, weight: .black)).tracking(2)
+                .font(.appMicro.weight(.black)).tracking(2)
                 .foregroundColor(.white.opacity(0.3))
 
             HStack(spacing: 0) {
@@ -382,7 +382,7 @@ struct TombstoneDetailSheet: View {
     private var contextSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTEXTE")
-                .font(.system(size: 9, weight: .black)).tracking(2)
+                .font(.appMicro.weight(.black)).tracking(2)
                 .foregroundColor(.white.opacity(0.3))
             Text(contextText)
                 .font(.system(size: 14))
@@ -394,7 +394,7 @@ struct TombstoneDetailSheet: View {
     private func statPill(label: String, value: String) -> some View {
         VStack(spacing: 4) {
             Text(label)
-                .font(.system(size: 9, weight: .bold)).tracking(0.5)
+                .font(.appMicro.weight(.bold)).tracking(0.5)
                 .foregroundColor(.white.opacity(0.35))
             Text(value)
                 .font(.system(size: 15, weight: .bold, design: .rounded))

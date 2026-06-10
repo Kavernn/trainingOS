@@ -55,7 +55,7 @@ private struct BestDayBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "star.fill")
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
         }
@@ -193,11 +193,11 @@ private struct DayDetailRow: View {
         HStack(spacing: 8) {
             if isBest {
                 Image(systemName: "star.fill")
-                    .font(.system(size: 9))
+                    .font(.appMicro)
                     .foregroundColor(Color.trendPositive)
             } else if isWorst && day.hasData {
                 Image(systemName: "exclamationmark.circle.fill")
-                    .font(.system(size: 9))
+                    .font(.appMicro)
                     .foregroundColor(Color.trendNegative)
             } else {
                 Circle().fill(Color.clear).frame(width: 9)

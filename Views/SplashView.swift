@@ -361,7 +361,7 @@ struct SplashView: View {
                             .opacity(dividerVisible ? 1 : 0)
 
                             Text("DO MORE")
-                                .font(.system(size: 11, weight: .light))
+                                .font(.appCaption.weight(.light))
                                 .kerning(5)
                                 .foregroundColor(mutedColor)
                                 .opacity(taglineVisible ? 1 : 0)

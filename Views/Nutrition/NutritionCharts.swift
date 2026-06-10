@@ -30,10 +30,10 @@ struct WeeklyProteinChart: View {
                         }
                         .frame(height: 60)
                         Text(shortDay(day.date))
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.appMicro.weight(.medium))
                             .foregroundColor(.gray)
                         Text("\(Int(day.proteines))g")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.appMicro.weight(.semibold))
                             .foregroundColor(isToday ? .blue : .gray)
                     }
                     .frame(maxWidth: .infinity)
@@ -89,10 +89,10 @@ struct WeeklyCalorieChart: View {
                         }
                         .frame(height: 60)
                         Text(shortDay(day.date))
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.appMicro.weight(.medium))
                             .foregroundColor(.gray)
                         Text("\(Int(day.calories))")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.appMicro.weight(.semibold))
                             .foregroundColor(isToday ? .orange : .gray)
                     }
                     .frame(maxWidth: .infinity)
@@ -240,11 +240,11 @@ struct WeeklyNutritionChart: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(day.date)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.white)
                         Spacer()
                         Text("\(Int(day.calories)) kcal · \(Int(day.proteines))g prot")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                     if let t = target {
@@ -253,7 +253,7 @@ struct WeeklyNutritionChart: View {
                         let ok = metric == .calories ? v <= t * 1.1 : v >= t * 0.9
                         Label(ok ? "Dans l'objectif" : "Hors objectif",
                               systemImage: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(ok ? .green : .red)
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {

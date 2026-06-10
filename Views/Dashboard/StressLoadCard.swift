@@ -41,7 +41,7 @@ struct StressLoadCard: View {
                     Spacer()
                     if data.hasData {
                         HStack(spacing: 4) {
-                            Image(systemName: trendIcon).font(.system(size: 9, weight: .semibold))
+                            Image(systemName: trendIcon).font(.appMicro.weight(.semibold))
                             Text(dominantLabel).font(.system(size: 10, weight: .semibold))
                         }
                         .foregroundColor(trendColor.opacity(0.85))

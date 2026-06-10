@@ -60,7 +60,7 @@ struct RuptureRiskCard: View {
             ForEach(data.signals, id: \.self) { signal in
                 HStack(spacing: 4) {
                     Image(systemName: data.signalIcon(signal))
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.appMicro.weight(.semibold))
                     Text(data.signalLabel(signal))
                         .font(.system(size: 10, weight: .medium))
                 }

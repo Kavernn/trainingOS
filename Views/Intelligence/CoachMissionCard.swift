@@ -65,7 +65,7 @@ struct CoachMissionCard: View {
                 }
                 Spacer()
                 Text(statusLabel)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(statusColor)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)

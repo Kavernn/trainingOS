@@ -69,7 +69,7 @@ struct CoachContextSummary: View {
         if !b.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Ce que je sais de toi aujourd'hui")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(Color(white: 0.40))
                     .tracking(0.3)
                     .padding(.bottom, 9)
@@ -78,11 +78,11 @@ struct CoachContextSummary: View {
                     ForEach(b) { bullet in
                         HStack(spacing: 8) {
                             Image(systemName: bullet.icon)
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(bullet.color.opacity(0.8))
                                 .frame(width: 16, alignment: .center)
                             Text(bullet.text)
-                                .font(.system(size: 13))
+                                .font(.appLabel)
                                 .foregroundColor(Color(white: 0.60))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.85)

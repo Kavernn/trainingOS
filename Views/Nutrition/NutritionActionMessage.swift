@@ -38,7 +38,7 @@ struct NutritionActionMessage: View {
                         .fill(msgColor(state))
                         .frame(width: 8, height: 8)
                     Text(msgText(state))
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(msgColor(state))
                         .minimumScaleFactor(0.75)
                         .fixedSize(horizontal: false, vertical: true)
@@ -46,7 +46,7 @@ struct NutritionActionMessage: View {
                 if case .noEntries = state, let action = onAddMeal {
                     Button(action: action) {
                         Text("Logger un repas")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(.orange)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 7)

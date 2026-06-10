@@ -104,7 +104,7 @@ struct AddNutritionSheet: View {
                                                 .foregroundColor(.white)
                                             Spacer()
                                             Text("\(fmtN(item.quantity)) \(item.food.refUnit)")
-                                                .font(.system(size: 13))
+                                                .font(.appLabel)
                                                 .foregroundColor(.gray)
                                         }
                                     }
@@ -120,7 +120,7 @@ struct AddNutritionSheet: View {
                             Spacer()
                             Button { showManageTemplates = true } label: {
                                 Label("Gérer", systemImage: "slider.horizontal.3")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.orange)
                             }
                             .buttonStyle(.plain)
@@ -132,7 +132,7 @@ struct AddNutritionSheet: View {
                             } else if templates.isEmpty {
                                 Button { showManageTemplates = true } label: {
                                     Label("Créer un repas sauvegardé…", systemImage: "fork.knife")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                         .foregroundColor(.orange.opacity(0.7))
                                 }
                                 .buttonStyle(.plain)
@@ -143,9 +143,9 @@ struct AddNutritionSheet: View {
                                             Button { logTemplate(template) } label: {
                                                 VStack(alignment: .leading, spacing: 3) {
                                                     Text(template.name)
-                                                        .font(.system(size: 13, weight: .semibold))
+                                                        .font(.appLabel.weight(.semibold))
                                                     Text("\(Int(template.totalCalories)) kcal")
-                                                        .font(.system(size: 11))
+                                                        .font(.appCaption)
                                                         .opacity(0.75)
                                                 }
                                                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -171,14 +171,14 @@ struct AddNutritionSheet: View {
                             Spacer()
                             Button { showBarcodeScanner = true } label: {
                                 Label("Scanner", systemImage: "barcode.viewfinder")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.green)
                             }
                             .buttonStyle(.plain)
                             .textCase(nil)
                             Button { withAnimation { manualMode = true } } label: {
                                 Label("Manuel", systemImage: "pencil")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.gray)
                             }
                             .buttonStyle(.plain)
@@ -187,7 +187,7 @@ struct AddNutritionSheet: View {
                                 showCatalog = true
                             } label: {
                                 Label("Gérer", systemImage: "slider.horizontal.3")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.orange)
                             }
                             .buttonStyle(.plain)
@@ -206,12 +206,12 @@ struct AddNutritionSheet: View {
                             if !searchText.isEmpty && filteredCatalog.isEmpty {
                                 VStack(spacing: 10) {
                                     Text("Aucun résultat pour \"\(searchText)\"")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                         .foregroundColor(.gray)
                                     Button("Saisir manuellement") {
                                         withAnimation { manualMode = true }
                                     }
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appLabel.weight(.semibold))
                                     .foregroundColor(.orange)
                                 }
                                 .frame(maxWidth: .infinity)
@@ -229,7 +229,7 @@ struct AddNutritionSheet: View {
                                             }
                                         } label: {
                                             Text(item.name)
-                                                .font(.system(size: 13, weight: .medium))
+                                                .font(.appLabel)
                                                 .padding(.horizontal, 12).padding(.vertical, 7)
                                                 .background(isSel ? Color.blue.opacity(0.35) : Color.blue.opacity(0.12))
                                                 .foregroundColor(isSel ? .white : .blue)
@@ -251,18 +251,18 @@ struct AddNutritionSheet: View {
                                 VStack(spacing: 8) {
                                     HStack(spacing: 10) {
                                         Image(systemName: "scalemass.fill")
-                                            .font(.system(size: 13))
+                                            .font(.appLabel)
                                             .foregroundColor(.blue.opacity(0.7))
                                         TextField("Quantité", text: $quantity)
                                             .keyboardType(.decimalPad)
                                             .foregroundColor(.white)
-                                            .font(.system(size: 15, weight: .semibold))
+                                            .font(.appBody.weight(.semibold))
                                         Text(item.refUnit)
                                             .foregroundColor(.gray)
                                             .font(.system(size: 14))
                                     }
                                     Text("Réf : \(fmtN(item.refQty)) \(item.refUnit) = \(Int(item.calories)) kcal")
-                                        .font(.system(size: 11))
+                                        .font(.appCaption)
                                         .foregroundColor(.gray)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     if let m = preview {
@@ -295,7 +295,7 @@ struct AddNutritionSheet: View {
                             TextField("Nom", text: $manName).foregroundColor(.white)
                             HStack {
                                 TextField("Calories (kcal)", text: $manCal).keyboardType(.decimalPad).foregroundColor(.white)
-                                Text("kcal").foregroundColor(.gray).font(.system(size: 13))
+                                Text("kcal").foregroundColor(.gray).font(.appLabel)
                             }
                         }.listRowBackground(Color.appCard)
 
@@ -320,7 +320,7 @@ struct AddNutritionSheet: View {
                                 }
                             } label: {
                                 Label("Retour au catalogue", systemImage: "list.bullet")
-                                    .font(.system(size: 13))
+                                    .font(.appLabel)
                                     .foregroundColor(.gray)
                             }
                             .buttonStyle(.plain)
@@ -346,19 +346,19 @@ struct AddNutritionSheet: View {
                                     .foregroundColor(.red)
                                 if !manualMode && selected == nil {
                                     Text("Sélectionne un aliment dans le catalogue")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                         .foregroundColor(.red)
                                 } else if !manualMode && (quantity.isEmpty || p(quantity) <= 0) {
                                     Text("Entre une quantité valide (nombre > 0)")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                         .foregroundColor(.red)
                                 } else if manualMode && manName.isEmpty {
                                     Text("Entre le nom de l'aliment")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                         .foregroundColor(.red)
                                 } else if manualMode && manCal.isEmpty {
                                     Text("Entre les calories (kcal)")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                         .foregroundColor(.red)
                                 }
                             }
@@ -541,10 +541,10 @@ struct MacroPreviewPill: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(value.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(value))" : String(format: "%.1f", value))
-                .font(.system(size: 15, weight: .bold))
+                .font(.appBody.weight(.bold))
                 .foregroundColor(color)
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.appMicro.weight(.medium))
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)

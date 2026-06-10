@@ -75,7 +75,7 @@ struct WeekMomentumStrip: View {
                                 }
                             }
                             Text(dot.letter)
-                                .font(.system(size: 9, weight: .medium))
+                                .font(.appMicro.weight(.medium))
                                 .foregroundColor(dot.isToday ? .orange : Color.white.opacity(0.3))
                         }
                     }
@@ -86,14 +86,14 @@ struct WeekMomentumStrip: View {
                 VStack(alignment: .trailing, spacing: 3) {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.orange)
                         Text("\(streak)j streak")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .foregroundColor(streak >= 5 ? .orange : .white)
                     }
                     Text("\(weekCount)/7 jours")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(Color.white.opacity(0.38))
                 }
             }

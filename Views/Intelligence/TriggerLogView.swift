@@ -60,7 +60,7 @@ private struct TriggerRow: View {
                         .font(.system(size: 14, weight: .semibold))
                     Spacer()
                     Text(shortDate(trigger.date))
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundStyle(Color.secondary)
                 }
 
@@ -161,7 +161,7 @@ struct TriggerLogView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Enregistrer") { save() }
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundStyle(Color.forge)
                         .disabled(saving)
                 }

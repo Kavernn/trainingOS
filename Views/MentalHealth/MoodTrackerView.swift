@@ -395,7 +395,7 @@ private struct MoodRPECorrelationCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("HUMEUR vs RPE")
-                    .font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.secondary)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.secondary)
                 Spacer()
                 let r = correlation
                 Text("r = \(String(format: "%.2f", r))")

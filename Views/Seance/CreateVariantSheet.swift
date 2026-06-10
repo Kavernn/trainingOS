@@ -76,7 +76,7 @@ struct CreateVariantSheet: View {
                 fieldBlock(label: "NOM") {
                     TextField("Nom de l'exercice", text: $variantName)
                         .foregroundColor(.white)
-                        .font(.system(size: 15))
+                        .font(.appBody)
                 }
 
                 // Type picker
@@ -88,7 +88,7 @@ struct CreateVariantSheet: View {
                                     selectedType = t
                                 } label: {
                                     Text(typeLabel(t))
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appLabel.weight(.semibold))
                                         .foregroundColor(selectedType == t ? .black : .white)
                                         .padding(.horizontal, 14).padding(.vertical, 8)
                                         .background(selectedType == t ? Color.orange : Color.white.opacity(0.07))
@@ -122,7 +122,7 @@ struct CreateVariantSheet: View {
                     withAnimation { showPreview = true }
                 } label: {
                     Text("Prévisualiser")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -165,7 +165,7 @@ struct CreateVariantSheet: View {
 
                     if let err = errorMessage {
                         Text(err)
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.red)
                             .multilineTextAlignment(.center)
                     }
@@ -184,7 +184,7 @@ struct CreateVariantSheet: View {
                             .scaleEffect(0.85)
                     }
                     Text(isSaving ? "Enregistrement…" : "Confirmer et ajouter au catalogue")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(.black)
                 }
                 .frame(maxWidth: .infinity)
@@ -204,7 +204,7 @@ struct CreateVariantSheet: View {
     private func fieldBlock<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .tracking(1)
                 .foregroundColor(.gray)
             content()
@@ -219,12 +219,12 @@ struct CreateVariantSheet: View {
     private func infoRow(icon: String, label: String, value: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(.orange.opacity(0.7))
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .tracking(0.5)
                     .foregroundColor(.gray)
                 Text(value)

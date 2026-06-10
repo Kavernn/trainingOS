@@ -147,7 +147,7 @@ private struct HeatmapFullGrid: View {
                     let fullDays = ["L", "M", "M", "J", "V", "S", "D"]
                     ForEach(fullDays.indices, id: \.self) { i in
                         Text(fullDays[i])
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.appMicro.weight(.medium))
                             .foregroundColor(i == data.bestDayIndex ? Color.trendPositive.opacity(0.8) : .white.opacity(0.25))
                             .frame(maxWidth: .infinity)
                     }

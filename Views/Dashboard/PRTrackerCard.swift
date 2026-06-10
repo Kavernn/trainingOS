@@ -16,7 +16,7 @@ struct PRTrackerCard: View {
                     Spacer()
                     if data.totalPrs > 0 {
                         HStack(spacing: 4) {
-                            Image(systemName: "trophy.fill").font(.system(size: 9, weight: .semibold))
+                            Image(systemName: "trophy.fill").font(.appMicro.weight(.semibold))
                             Text("\(data.totalPrs) PR")
                                 .font(.system(size: 10, weight: .semibold))
                         }
@@ -58,7 +58,7 @@ private struct PRRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "trophy.fill")
-                .font(.system(size: 9))
+                .font(.appMicro)
                 .foregroundColor(Color.appWarning)
                 .frame(width: 14)
             Text(pr.name)
@@ -153,7 +153,7 @@ private struct PRListCard: View {
                             .foregroundColor(Color.appWarning)
                         if let prev = pr.prevBest {
                             Text(String(format: "Préc. %.0f", prev))
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(.white.opacity(0.28))
                         }
                     }

@@ -95,7 +95,7 @@ private struct TopCatBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
         }
@@ -183,7 +183,7 @@ private struct MuscleCatRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(color.opacity(0.80))
                 .frame(width: 16)
             Text(label)

@@ -84,7 +84,7 @@ struct SeasonReportView: View {
             if !prs.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("PRs tombés : \(prs.count)")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundStyle(Color.primary)
                     ForEach(prs.prefix(5), id: \.exercise) { pr in
                         HStack {
@@ -165,7 +165,7 @@ struct SeasonReportView: View {
     private var verdictSection: some View {
         reportSection(label: "LE VERDICT", delay: 0.7) {
             Text(report.narrative)
-                .font(.system(size: 15, weight: .light))
+                .font(.appBody.weight(.light))
                 .foregroundStyle(Color.primary)
                 .lineSpacing(5)
         }
@@ -209,7 +209,7 @@ struct SeasonReportView: View {
                           delta: Double, unit: String, lowerIsBetter: Bool) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundStyle(Color.secondary)
             Spacer()
             Text("\(from) → \(to)")
@@ -226,7 +226,7 @@ struct SeasonReportView: View {
     private func metricRow(_ label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundStyle(Color.secondary)
             Spacer()
             Text(value)

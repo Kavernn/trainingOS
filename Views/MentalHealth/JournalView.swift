@@ -34,7 +34,7 @@ struct JournalView: View {
                                         .font(.system(size: 10, weight: .bold))
                                         .foregroundColor(cp.signal.color)
                                     Text(cp.signal.label.uppercased())
-                                        .font(.system(size: 9, weight: .black)).tracking(1.5)
+                                        .font(.appMicro.weight(.black)).tracking(1.5)
                                         .foregroundColor(cp.signal.color)
                                 }
                                 .padding(.horizontal, 8).padding(.vertical, 4)

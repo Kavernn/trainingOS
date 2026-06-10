@@ -128,7 +128,7 @@ struct IntelligenceView: View {
                                 } label: {
                                     HStack(spacing: 4) {
                                         Image(systemName: "brain.head.profile")
-                                            .font(.system(size: 13, weight: .semibold))
+                                            .font(.appLabel.weight(.semibold))
                                         if !memoryStore.entries.isEmpty {
                                             Text("\(memoryStore.entries.count)")
                                                 .font(.system(size: 10, weight: .bold))
@@ -214,9 +214,9 @@ struct IntelligenceView: View {
                                     } label: {
                                     HStack(spacing: 5) {
                                         Image(systemName: section.icon)
-                                            .font(.system(size: 11, weight: .semibold))
+                                            .font(.appCaption.weight(.semibold))
                                         Text(section.rawValue)
-                                            .font(.system(size: 13, weight: .medium))
+                                            .font(.appLabel)
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 7)
@@ -412,7 +412,7 @@ struct IntelligenceView: View {
                     Image(systemName: "chart.dots.scatter")
                         .foregroundColor(.purple.opacity(0.5))
                     Text("Pas encore assez de données — reviens dans quelques semaines.")
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(Color(white: 0.45))
                 }
                 .padding(.horizontal, 16)
@@ -426,7 +426,7 @@ struct IntelligenceView: View {
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.purple)
                         Text("MES PATTERNS SUIVIS")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .foregroundColor(Color(white: 0.45))
                     }
                     .padding(.horizontal, 16)
@@ -449,7 +449,7 @@ struct IntelligenceView: View {
             // ── Corrélations rapides (existing engine) ────────────────────
             VStack(alignment: .leading, spacing: 10) {
                 Text("CORRÉLATIONS GLOBALES")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(Color(white: 0.45))
                     .padding(.horizontal, 16)
 
@@ -461,8 +461,8 @@ struct IntelligenceView: View {
                 } else {
                     Button { loadInsights() } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "chart.dots.scatter").font(.system(size: 13))
-                            Text("Analyser les corrélations").font(.system(size: 13, weight: .medium))
+                            Image(systemName: "chart.dots.scatter").font(.appLabel)
+                            Text("Analyser les corrélations").font(.appLabel)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
@@ -524,7 +524,7 @@ struct IntelligenceView: View {
             if let meso = mesocycleInfo {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("MÉSOCYCLE ACTIF")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.appCaption.weight(.bold))
                         .foregroundColor(Color(white: 0.45))
                     HStack(alignment: .center, spacing: 16) {
                         VStack(alignment: .leading, spacing: 3) {
@@ -532,7 +532,7 @@ struct IntelligenceView: View {
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundColor(.white)
                             Text(meso.phase)
-                                .font(.system(size: 13))
+                                .font(.appLabel)
                                 .foregroundColor(.purple)
                         }
                         Rectangle()
@@ -540,7 +540,7 @@ struct IntelligenceView: View {
                             .frame(width: 1, height: 44)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("RPE cible")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(Color(white: 0.5))
                             Text(meso.rpeTarget)
                                 .font(.system(size: 22, weight: .semibold))
@@ -565,9 +565,9 @@ struct IntelligenceView: View {
             if generatedProgram != nil && !isGeneratingProgram {
                 Button { showProgramPreview = true } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "doc.text.magnifyingglass").font(.system(size: 13))
+                        Image(systemName: "doc.text.magnifyingglass").font(.appLabel)
                         Text("Voir le dernier programme généré")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12))
@@ -622,9 +622,9 @@ struct IntelligenceView: View {
                         if isLoadingProposals {
                             ProgressView().tint(.purple).scaleEffect(0.75)
                         } else {
-                            Image(systemName: "wand.and.stars").font(.system(size: 13))
+                            Image(systemName: "wand.and.stars").font(.appLabel)
                         }
-                        Text("Propositions").font(.system(size: 13, weight: .medium))
+                        Text("Propositions").font(.appLabel)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -639,9 +639,9 @@ struct IntelligenceView: View {
                         if isGeneratingProgram {
                             ProgressView().tint(.blue).scaleEffect(0.75)
                         } else {
-                            Image(systemName: "calendar.badge.plus").font(.system(size: 13))
+                            Image(systemName: "calendar.badge.plus").font(.appLabel)
                         }
-                        Text("Générer").font(.system(size: 13, weight: .medium))
+                        Text("Générer").font(.appLabel)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -681,7 +681,7 @@ struct IntelligenceView: View {
                     NarrativeCard(text: text, onDismiss: { narrative = nil }).padding(.horizontal, 16).padding(.bottom, 4)
                 } else {
                     Text("Aucun récit généré pour cette semaine.")
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(Color(white: 0.45))
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
@@ -712,7 +712,7 @@ struct IntelligenceView: View {
                 }
                 if overtrainingRisk == nil && mesocycleStatus == nil {
                     Text("Chargement des analyses…")
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(Color(white: 0.45))
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
@@ -726,7 +726,7 @@ struct IntelligenceView: View {
                         .padding(.horizontal, 16).padding(.bottom, 4)
                 } else if intelligenceInsights.isEmpty {
                     Text("Pas encore assez de données pour générer des insights.")
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(Color(white: 0.45))
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
@@ -807,7 +807,7 @@ struct IntelligenceView: View {
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(.white)
             Text(label)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(Color(white: 0.45))
         }
         .frame(maxWidth: .infinity)
@@ -853,7 +853,7 @@ struct IntelligenceView: View {
     private func bilanSignalChip(icon: String, label: String, color: Color) -> some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
             Text(label)
                 .font(.system(size: 12, weight: .medium))
         }
@@ -892,7 +892,7 @@ struct IntelligenceView: View {
                         .foregroundColor(.white)
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(Color(white: 0.4))
                 }
                 .padding(.horizontal, 16)
@@ -940,13 +940,13 @@ struct IntelligenceView: View {
         let accent = insightAccentColor(insight.color)
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: insight.icon)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundColor(accent)
                 .frame(width: 22)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 4) {
                 Text(insight.title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text(insight.message)
                     .font(.system(size: 12))
@@ -975,7 +975,7 @@ struct IntelligenceView: View {
                     .padding(.horizontal, 16)
             } else {
                 Text("MÉMOIRE DU COACH")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(Color(white: 0.45))
                     .padding(.horizontal, 16)
 
@@ -990,7 +990,7 @@ struct IntelligenceView: View {
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.purple.opacity(0.7))
                             Text(entry.content)
-                                .font(.system(size: 13))
+                                .font(.appLabel)
                                 .foregroundColor(Color(white: 0.82))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -999,7 +999,7 @@ struct IntelligenceView: View {
                             withAnimation { CoachMemoryStore.shared.delete(id: entry.id) }
                         } label: {
                             Image(systemName: "xmark")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(Color(white: 0.3))
                                 .padding(6)
                         }
@@ -1017,8 +1017,8 @@ struct IntelligenceView: View {
                     historyData = "[]"
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "trash").font(.system(size: 13))
-                        Text("Effacer la conversation").font(.system(size: 13, weight: .medium))
+                        Image(systemName: "trash").font(.appLabel)
+                        Text("Effacer la conversation").font(.appLabel)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)

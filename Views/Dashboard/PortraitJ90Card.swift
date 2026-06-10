@@ -215,7 +215,7 @@ private struct DimDetailRow: View {
         HStack(spacing: 0) {
             HStack(spacing: 6) {
                 Image(systemName: dim.icon)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.42))
                     .frame(width: 16)
                 Text(dim.label)

@@ -79,7 +79,7 @@ private struct TrendBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
             let sign = trendPct >= 0 ? "+" : ""
             Text("\(sign)\(trendPct)%")
                 .font(.system(size: 10, weight: .semibold))
@@ -239,7 +239,7 @@ private struct MomentumPillarRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.white.opacity(0.38))
                 .frame(width: 16)
             Text(label)

@@ -210,7 +210,7 @@ struct MealTemplateEditorSheet: View {
                                 Text("Total")
                                 Spacer()
                                 Text("\(Int(totalCalories)) kcal · \(Int(totalProteines))g prot")
-                                    .font(.system(size: 13)).foregroundColor(.orange)
+                                    .font(.appLabel).foregroundColor(.orange)
                             }
                         }
                         .listRowBackground(Color.appCard)

@@ -38,11 +38,11 @@ struct InsightPrincipalCard: View {
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(insight.title)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(.white)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(insight.body)
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(.white.opacity(0.78))
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -51,7 +51,7 @@ struct InsightPrincipalCard: View {
                 HStack {
                     if !insight.source.isEmpty {
                         Text(insight.source)
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(accent.opacity(0.7))
                     }
                     Spacer()

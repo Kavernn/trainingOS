@@ -69,7 +69,7 @@ private struct ImpactBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: direction.icon)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
             Text(direction.label)
                 .font(.system(size: 10, weight: .semibold))
         }

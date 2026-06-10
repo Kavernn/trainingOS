@@ -166,7 +166,7 @@ struct BattleCounterView: View {
                     Button("Modifier") {
                         Task { await vm.logBattle(status == .victory ? .lost : .victory) }
                     }
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundStyle(Color.secondary)
                 }
             } else {
@@ -230,7 +230,7 @@ struct BattleCounterView: View {
     private func demonThreatsCard(_ demons: [RitualDemon]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                Image(systemName: "moon.stars.fill").font(.system(size: 11)).foregroundStyle(Color.secondary)
+                Image(systemName: "moon.stars.fill").font(.appCaption).foregroundStyle(Color.secondary)
                 Text("MENACES ACTIVES")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(Color.secondary).tracking(3)
@@ -243,11 +243,11 @@ struct BattleCounterView: View {
                         .frame(width: 28, alignment: .center)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("«\(demon.intention)»")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                             .foregroundStyle(Color.primary)
                             .lineLimit(2)
                         Text("\(demon.carryCount) nuit\(demon.carryCount > 1 ? "s" : "") sans résolution")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundStyle(Color.secondary)
                     }
                 }
@@ -345,7 +345,7 @@ struct BattleCounterView: View {
                 }
                 Spacer()
                 Button("Continuer le combat") { showMilestone = false }
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundStyle(Color.forge)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 14)

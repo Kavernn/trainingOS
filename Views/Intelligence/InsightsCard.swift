@@ -12,7 +12,7 @@ struct InsightsCard: View {
                     .foregroundColor(.blue)
                 Spacer()
                 Text("\(data.dataPoints) pts")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                 Button(action: onDismiss) {
                     Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
@@ -77,7 +77,7 @@ struct CorrelationRow: View {
                             .cornerRadius(4)
                     }
                     Text(insight.insightDesc)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                         .lineLimit(2)
                 }

@@ -46,7 +46,7 @@ struct StepperInput: View {
 
             ZStack {
                 Text(valueStr.isEmpty ? placeholderText : displayText)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(.appTitle)
                     .foregroundColor(valueStr.isEmpty ? .gray.opacity(0.35) : .white)
                     .frame(minWidth: 52, alignment: .center)
                     .allowsHitTesting(false)
@@ -105,7 +105,7 @@ struct StepperInput: View {
                 .fill(Color.white.opacity(isDisabled ? 0 : (isHeld ? 0.1 : 0.04)))
                 .frame(width: 32, height: 32)
             Image(systemName: systemName)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundColor(isDisabled ? .gray.opacity(0.2) : .white.opacity(isHeld ? 1.0 : 0.9))
         }
         .frame(width: 44, height: 44)

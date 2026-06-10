@@ -41,13 +41,13 @@ struct DailyRemainingCard: View {
             if settings == nil {
                 // N-C1: settings not configured — don't show fake "Objectifs atteints !"
                 Label("Configure tes objectifs pour suivre ta progression", systemImage: "gearshape.fill")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(.gray)
                     .frame(maxWidth: .infinity)
             } else if allDone {
                 VStack(spacing: 6) {
                     Label("Objectifs atteints !", systemImage: "checkmark.seal.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.green)
                         .scaleEffect(goalScale)
                         .onChange(of: allDone) { done in
@@ -61,7 +61,7 @@ struct DailyRemainingCard: View {
                         }
                     if calorieSurplus > 200 {
                         Label("Surplus de \(Int(calorieSurplus)) kcal — reste léger ce soir", systemImage: "exclamationmark.triangle.fill")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.yellow)
                     }
                 }
@@ -80,7 +80,7 @@ struct DailyRemainingCard: View {
 
                     let s = suggestion
                     HStack(spacing: 6) {
-                        Image(systemName: s.icon).font(.system(size: 13)).foregroundColor(s.color)
+                        Image(systemName: s.icon).font(.appLabel).foregroundColor(s.color)
                         Text(s.text).font(.system(size: 12, weight: .medium)).foregroundColor(s.color)
                             .multilineTextAlignment(.leading)
                     }
@@ -133,7 +133,7 @@ struct AdherenceScoreCard: View {
 
             if history.count < 3 {
                 Text("Pas encore assez de données · Revenez dans \(3 - history.count) jour(s)")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
@@ -264,7 +264,7 @@ struct NutritionPatternsCard: View {
             if !weekdayAverages.isEmpty {
                 Divider().background(Color.white.opacity(0.07))
                 Text("MOYENNE PAR JOUR DE LA SEMAINE")
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(Color.gray.opacity(0.6))
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(Color.gray.opacity(0.6))
                 let maxAvg = weekdayAverages.map(\.avgCal).max() ?? 1
                 HStack(alignment: .bottom, spacing: 6) {
                     ForEach(weekdayAverages, id: \.label) { item in
@@ -283,7 +283,7 @@ struct NutritionPatternsCard: View {
                             }
                             .frame(height: 36)
                             Text(item.label)
-                                .font(.system(size: 9)).foregroundColor(.gray)
+                                .font(.appMicro).foregroundColor(.gray)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -336,7 +336,7 @@ struct MacroGapCard: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("Manque en \(primaryLabel)")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(primaryColor)
             }
 
@@ -359,24 +359,24 @@ struct MacroGapCard: View {
 
             if !gap.foodSuggestions.isEmpty {
                 Text("ALIMENTS SUGGÉRÉS")
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
 
                 ForEach(Array(gap.foodSuggestions.prefix(4).enumerated()), id: \.offset) { _, item in
                     if let name = item["name"]?.value {
                         HStack(spacing: 8) {
                             Text(name)
-                                .font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                                .font(.appLabel).foregroundColor(.white)
                                 .lineLimit(1)
                             Spacer()
                             if let prot = item["protein_per_100g"]?.value, let d = Double(prot) {
                                 Text(String(format: "%.0fg prot/100g", d))
-                                    .font(.system(size: 11)).foregroundColor(.green)
+                                    .font(.appCaption).foregroundColor(.green)
                             } else if let carb = item["carbs_per_100g"]?.value, let d = Double(carb) {
                                 Text(String(format: "%.0fg gluc/100g", d))
-                                    .font(.system(size: 11)).foregroundColor(.orange)
+                                    .font(.appCaption).foregroundColor(.orange)
                             } else if let cal = item["calories_per_100g"]?.value, let d = Double(cal) {
                                 Text(String(format: "%.0f kcal/100g", d))
-                                    .font(.system(size: 11)).foregroundColor(.yellow)
+                                    .font(.appCaption).foregroundColor(.yellow)
                             }
                         }
                         .padding(.horizontal, 10).padding(.vertical, 7)
@@ -399,7 +399,7 @@ struct MacroGapChip: View {
     let color: Color
     var body: some View {
         VStack(spacing: 2) {
-            Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             Text("\(value)\(unit)").font(.system(size: 14, weight: .black)).foregroundColor(color)
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
@@ -472,13 +472,13 @@ struct NutritionCorrelationsCard: View {
             if let timing = timingData, timing.trainingDaysAnalyzed >= 5 {
                 Divider().opacity(0.2)
                 Text("TIMING PRÉ/POST SÉANCE")
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                 HStack(spacing: 12) {
                     if let prot = timing.preWorkout.avgProtein {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("PRÉ-WORKOUT").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            Text("PRÉ-WORKOUT").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                             Text(String(format: "%.0fg prot", prot))
-                                .font(.system(size: 13, weight: .black)).foregroundColor(.green)
+                                .font(.appLabel.weight(.black)).foregroundColor(.green)
                             if let cal = timing.preWorkout.avgCalories {
                                 Text(String(format: "%.0f kcal", cal))
                                     .font(.system(size: 10)).foregroundColor(.gray)
@@ -487,9 +487,9 @@ struct NutritionCorrelationsCard: View {
                     }
                     if let prot = timing.postWorkout.avgProtein {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("POST-WORKOUT").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            Text("POST-WORKOUT").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                             Text(String(format: "%.0fg prot", prot))
-                                .font(.system(size: 13, weight: .black)).foregroundColor(.orange)
+                                .font(.appLabel.weight(.black)).foregroundColor(.orange)
                             if let cal = timing.postWorkout.avgCalories {
                                 Text(String(format: "%.0f kcal", cal))
                                     .font(.system(size: 10)).foregroundColor(.gray)
@@ -499,7 +499,7 @@ struct NutritionCorrelationsCard: View {
                     Spacer()
                 }
                 Text(timing.insight)
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -540,10 +540,10 @@ private struct NutritionCorrInsightRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                 Text(title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.white.opacity(0.85))
             }
             HStack(spacing: 0) {
@@ -595,7 +595,7 @@ struct NutritionQualityBadge: View {
                 .fill(qualityColor)
                 .frame(width: 8, height: 8)
             Text("Qualité du jour")
-                .font(.system(size: 13, weight: .medium))
+                .font(.appLabel)
                 .foregroundColor(.secondary)
             Spacer()
             Text("\(score)/100")
@@ -603,7 +603,7 @@ struct NutritionQualityBadge: View {
                 .foregroundColor(qualityColor)
             Button { showInfo = true } label: {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
@@ -697,7 +697,7 @@ struct WorkoutTimingCard: View {
                     .frame(width: 32)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(g.title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.primary)
                     Text(g.body)
                         .font(.system(size: 12))

@@ -64,18 +64,18 @@ struct HRVAnalysisCard: View {
                         .foregroundColor(analysis.zoneColor)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("vs ta baseline 7j")
-                            .font(.system(size: 11)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                         HStack(spacing: 4) {
                             Text(analysis.trendArrow)
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.appLabel.weight(.bold))
                                 .foregroundColor(analysis.trendColor)
                             if let trend = analysis.hrvTrend {
                                 Text(trend == "up" ? "en hausse" : trend == "down" ? "en baisse" : "stable")
-                                    .font(.system(size: 11)).foregroundColor(.gray)
+                                    .font(.appCaption).foregroundColor(.gray)
                             }
                             if analysis.consecutiveLowDays >= 2 {
                                 Text("· \(analysis.consecutiveLowDays)j consécutifs")
-                                    .font(.system(size: 11)).foregroundColor(.orange)
+                                    .font(.appCaption).foregroundColor(.orange)
                             }
                         }
                     }
@@ -104,9 +104,9 @@ struct HRVAnalysisCard: View {
                 NavigationLink(destination: HRVFAQView()) {
                     HStack(spacing: 4) {
                         Image(systemName: "questionmark.circle")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                         Text("FAQ")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                     }
                     .foregroundColor(.cyan.opacity(0.8))
                 }
@@ -125,8 +125,8 @@ private struct HRVMetricPill: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-            Text(value).font(.system(size: 15, weight: .black)).foregroundColor(color)
+            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+            Text(value).font(.appBody.weight(.black)).foregroundColor(color)
         }
     }
 }
@@ -200,7 +200,7 @@ struct HRVBaselineProgressView: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("\(Int(progress * 100))%")
-                    .font(.system(size: 11, weight: .bold)).foregroundColor(.cyan)
+                    .font(.appCaption.weight(.bold)).foregroundColor(.cyan)
             }
 
             Text("Continue — ta baseline personnelle se construit.")
@@ -209,7 +209,7 @@ struct HRVBaselineProgressView: View {
             Text(daysLeft > 0
                  ? "\(daysLeft) jour\(daysLeft > 1 ? "s" : "") de plus pour des insights précis."
                  : "Baseline prête dans quelques instants.")
-                .font(.system(size: 13)).foregroundColor(.gray)
+                .font(.appLabel).foregroundColor(.gray)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -224,7 +224,7 @@ struct HRVBaselineProgressView: View {
             .frame(height: 8)
 
             Text("\(dataPoints) / \(target) jours de données collectés")
-                .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                .font(.appCaption).foregroundColor(.gray.opacity(0.6))
         }
         .padding(14)
         .glassCard(color: .cyan, intensity: 0.05).cornerRadius(14)
@@ -249,7 +249,7 @@ struct HRVContextualTipView: View {
         if !dismissed && !UserDefaults.standard.bool(forKey: shownKey) {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(accentColor)
                     .padding(.top, 1)
                 Text(message)
@@ -317,7 +317,7 @@ private struct HRVNudgeBanner: View {
     let icon: String; let message: String; let color: Color
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: icon).font(.system(size: 13)).foregroundColor(color)
+            Image(systemName: icon).font(.appLabel).foregroundColor(color)
             Text(message).font(.system(size: 12)).foregroundColor(.white.opacity(0.75)).fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
@@ -377,13 +377,13 @@ private struct HRVFAQItem: View {
                 HStack(spacing: 12) {
                     Text(question).font(.system(size: 14, weight: .semibold)).foregroundColor(.white).multilineTextAlignment(.leading)
                     Spacer()
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundColor(.gray)
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.appCaption.weight(.semibold)).foregroundColor(.gray)
                 }
                 .padding(14)
             }
             .buttonStyle(.plain)
             if expanded {
-                Text(answer).font(.system(size: 13)).foregroundColor(.gray).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+                Text(answer).font(.appLabel).foregroundColor(.gray).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 14).padding(.bottom, 14)
             }
         }

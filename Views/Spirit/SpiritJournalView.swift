@@ -46,20 +46,20 @@ struct SpiritJournalGateView: View {
                     .foregroundStyle(Color.moonlight.opacity(0.55))
                     .tracking(4)
                 Text("Tes pensées restent sur cet appareil.")
-                    .font(.system(size: 13, weight: .thin))
+                    .font(.appLabel.weight(.thin))
                     .foregroundStyle(Color.moonlight.opacity(0.35))
                 Text("Jamais transmis au coach IA.")
-                    .font(.system(size: 11, weight: .thin))
+                    .font(.appCaption.weight(.thin))
                     .foregroundStyle(Color.moonlight.opacity(0.2))
             }
 
             if failed {
                 Button("Réessayer avec Face ID") { authenticate() }
-                    .font(.system(size: 13, weight: .thin))
+                    .font(.appLabel.weight(.thin))
                     .foregroundStyle(Color.moonlight.opacity(0.6))
             } else {
                 Button("Déverrouiller avec Face ID") { authenticate() }
-                    .font(.system(size: 13, weight: .thin))
+                    .font(.appLabel.weight(.thin))
                     .foregroundStyle(Color.moonlight.opacity(0.4))
             }
 
@@ -119,10 +119,10 @@ struct SpiritJournalView: View {
             if hasEntry {
                 HStack {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 11, weight: .thin))
+                        .font(.appCaption.weight(.thin))
                         .foregroundStyle(Color.moonlight.opacity(0.6))
                     Text("Écrit ce soir.")
-                        .font(.system(size: 13, weight: .thin))
+                        .font(.appLabel.weight(.thin))
                         .foregroundStyle(Color.moonlight.opacity(0.6))
                     Spacer()
                     Button("Relire") { showWrite = true }
@@ -139,7 +139,7 @@ struct SpiritJournalView: View {
                             .foregroundStyle(Color.moonlight.opacity(0.5))
                         Spacer()
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 11, weight: .thin))
+                            .font(.appCaption.weight(.thin))
                             .foregroundStyle(Color.moonlight.opacity(0.2))
                     }
                 }
@@ -166,11 +166,11 @@ struct SpiritJournalView: View {
                 } label: {
                     HStack {
                         Text(formattedDate(stub.date))
-                            .font(.system(size: 13, weight: .thin))
+                            .font(.appLabel.weight(.thin))
                             .foregroundStyle(Color.moonlight.opacity(0.6))
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .thin))
+                            .font(.appMicro.weight(.thin))
                             .foregroundStyle(Color.moonlight.opacity(0.15))
                     }
                     .padding(.vertical, 6)
@@ -256,7 +256,7 @@ struct SpiritJournalWriteView: View {
                     .id(step)
 
                 TextField(questions[step].1, text: currentBinding, axis: .vertical)
-                    .font(.system(size: 15, weight: .thin))
+                    .font(.appBody.weight(.thin))
                     .foregroundStyle(Color.moonlight.opacity(0.8))
                     .tint(Color.moonlight.opacity(0.5))
                     .lineLimit(2)
@@ -326,7 +326,7 @@ struct SpiritJournalWriteView: View {
             }
 
             Button("Fermer") { dismiss() }
-                .font(.system(size: 13, weight: .thin))
+                .font(.appLabel.weight(.thin))
                 .foregroundStyle(Color.moonlight.opacity(0.25))
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.bottom, 52)
@@ -341,7 +341,7 @@ struct SpiritJournalWriteView: View {
                 .foregroundStyle(Color.moonlight.opacity(0.2))
                 .tracking(3)
             Text("· \(text)")
-                .font(.system(size: 15, weight: .thin))
+                .font(.appBody.weight(.thin))
                 .foregroundStyle(Color.moonlight.opacity(0.6))
         }
         .opacity(showFinal ? 1 : 0)

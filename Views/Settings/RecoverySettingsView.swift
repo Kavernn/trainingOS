@@ -30,8 +30,8 @@ struct RecoverySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("moon.zzz.fill", color: .indigo)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Objectif de sommeil").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                            Text("Score 100% quand atteint").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                            Text("Objectif de sommeil").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Score 100% quand atteint").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
                         Stepper(
@@ -49,8 +49,8 @@ struct RecoverySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("sunrise.fill", color: .yellow)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Heure de lever cible").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                            Text("Utilisé pour les rappels").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                            Text("Heure de lever cible").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Utilisé pour les rappels").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
                         DatePicker("", selection: $wakeDate, displayedComponents: .hourAndMinute)
@@ -65,8 +65,8 @@ struct RecoverySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("moon.fill", color: .blue)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Heure de coucher cible").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                            Text("Utilisé pour les rappels").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                            Text("Heure de coucher cible").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Utilisé pour les rappels").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
                         DatePicker("", selection: $bedDate, displayedComponents: .hourAndMinute)
@@ -95,13 +95,13 @@ struct RecoverySettingsView: View {
                                            option.id == "standard"   ? .cyan : .green
                                 )
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(option.label).font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                                    Text(option.subtitle).font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                                    Text(option.label).font(.appBody.weight(.medium)).foregroundColor(.white)
+                                    Text(option.subtitle).font(.appCaption).foregroundColor(.gray.opacity(0.55))
                                 }
                                 Spacer()
                                 if hrvSensitivity == option.id {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appLabel.weight(.semibold))
                                         .foregroundColor(.orange)
                                 }
                             }
@@ -136,7 +136,7 @@ struct RecoverySettingsView: View {
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 30, height: 30)
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
         }
     }

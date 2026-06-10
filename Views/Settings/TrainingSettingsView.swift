@@ -94,12 +94,12 @@ struct TrainingSettingsView: View {
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 30, height: 30)
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(color)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                Text(subtitle).font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                Text(title).font(.appBody.weight(.medium)).foregroundColor(.white)
+                Text(subtitle).font(.appCaption).foregroundColor(.gray.opacity(0.55))
             }
         }
         .padding(.vertical, 3)
@@ -115,12 +115,12 @@ struct TrainingSettingsView: View {
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 30, height: 30)
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(color)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                Text(subtitle).font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                Text(title).font(.appBody.weight(.medium)).foregroundColor(.white)
+                Text(subtitle).font(.appCaption).foregroundColor(.gray.opacity(0.55))
             }
             Spacer()
             Stepper(
@@ -142,7 +142,7 @@ struct TrainingSettingsView: View {
     private func warmupRow(label: String, pct: Binding<Int>, range: ClosedRange<Int>) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 15, weight: .medium))
+                .font(.appBody.weight(.medium))
                 .foregroundColor(.white)
                 .frame(width: 40, alignment: .leading)
             Slider(value: Binding(

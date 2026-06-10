@@ -163,7 +163,7 @@ struct MentalHealthDashboardView: View {
                                 .frame(width: 32)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\"\(demon.intention)\"")
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.appLabel)
                                     .foregroundColor(.white.opacity(0.8))
                                 Text("jours sans résolution")
                                     .font(.caption2)

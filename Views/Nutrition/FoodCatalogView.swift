@@ -23,7 +23,7 @@ struct FoodCatalogView: View {
                             Image(systemName: "exclamationmark.icloud.fill")
                                 .foregroundColor(.orange)
                             Text("Modifications non synchronisées")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appLabel)
                                 .foregroundColor(.white)
                             Spacer()
                             Button {
@@ -48,7 +48,7 @@ struct FoodCatalogView: View {
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.gray)
                             Text("Tape + pour ajouter un aliment")
-                                .font(.system(size: 13))
+                                .font(.appLabel)
                                 .foregroundColor(.gray.opacity(0.6))
                         }
                         Spacer()
@@ -252,22 +252,22 @@ struct FoodItemFormView: View {
                         HStack {
                             TextField("Calories", text: $calories)
                                 .keyboardType(.decimalPad).focused($foodFocus, equals: .calories).foregroundColor(.white)
-                            Text("kcal").foregroundColor(.gray).font(.system(size: 13))
+                            Text("kcal").foregroundColor(.gray).font(.appLabel)
                         }
                         HStack {
                             TextField("Protéines", text: $proteines)
                                 .keyboardType(.decimalPad).focused($foodFocus, equals: .proteines).foregroundColor(.white)
-                            Text("g").foregroundColor(.gray).font(.system(size: 13))
+                            Text("g").foregroundColor(.gray).font(.appLabel)
                         }
                         HStack {
                             TextField("Glucides", text: $glucides)
                                 .keyboardType(.decimalPad).focused($foodFocus, equals: .glucides).foregroundColor(.white)
-                            Text("g").foregroundColor(.gray).font(.system(size: 13))
+                            Text("g").foregroundColor(.gray).font(.appLabel)
                         }
                         HStack {
                             TextField("Lipides", text: $lipides)
                                 .keyboardType(.decimalPad).focused($foodFocus, equals: .lipides).foregroundColor(.white)
-                            Text("g").foregroundColor(.gray).font(.system(size: 13))
+                            Text("g").foregroundColor(.gray).font(.appLabel)
                         }
                     }
                     .listRowBackground(Color.appCard)
@@ -300,14 +300,14 @@ struct FoodItemFormView: View {
                         }()
                         if let next {
                             Button("Suivant →") { foodFocus = next }
-                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                                .font(.appBody.weight(.semibold)).foregroundColor(.orange)
                         } else {
                             Button("Ok") { foodFocus = nil }
-                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                                .font(.appBody.weight(.semibold)).foregroundColor(.orange)
                         }
                     } else {
                         Button("Ok") { foodFocus = nil }
-                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                            .font(.appBody.weight(.semibold)).foregroundColor(.orange)
                     }
                 }
             }

@@ -122,7 +122,7 @@ private struct MentalAmePillBar: View {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .medium))
                 Text(label)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.appLabel)
             }
             .foregroundStyle(tab == t
                 ? (t == .mesures ? Color.teal : Color.moonlight)
@@ -181,12 +181,12 @@ private struct SignalDuJourHeader: View {
                         .foregroundStyle(lssColor)
                     if lss != nil {
                         Text("/ 100")
-                            .font(.system(size: 9, weight: .light))
+                            .font(.appMicro.weight(.light))
                             .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
                     }
                 }
                 Text(lssLabel)
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.appMicro.weight(.medium))
                     .foregroundStyle(lssColor.opacity(0.8))
                 Text("Sommeil · HRV · Fatigue")
                     .font(.system(size: 8, weight: .light))
@@ -210,12 +210,12 @@ private struct SignalDuJourHeader: View {
                         .foregroundStyle(moodColor)
                     if todayMood != nil {
                         Text("/ 10")
-                            .font(.system(size: 9, weight: .light))
+                            .font(.appMicro.weight(.light))
                             .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
                     }
                 }
                 Text(todayMood != nil ? "Aujourd'hui" : "Non loggé")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.appMicro.weight(.medium))
                     .foregroundStyle(todayMood != nil ? moodColor.opacity(0.8) : Color.gray.opacity(0.5))
                 Text("Humeur subjective /10")
                     .font(.system(size: 8, weight: .light))
@@ -388,7 +388,7 @@ private struct PratiqueTab: View {
             if let h = hint {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkle")
-                        .font(.system(size: 11, weight: .light))
+                        .font(.appCaption.weight(.light))
                         .foregroundStyle(Color.moonlight.opacity(0.5))
                     Text(h)
                         .font(.system(size: 12, weight: .light))
@@ -452,7 +452,7 @@ private struct DisclaimerBanner: View {
             Spacer()
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .medium)).foregroundColor(.gray)
+                    .font(.appCaption.weight(.medium)).foregroundColor(.gray)
             }
         }
         .padding(12)
@@ -554,7 +554,7 @@ private struct MoodSparklineCard: View {
                 AxisMarks(values: [1, 5, 10]) { v in
                     AxisValueLabel {
                         Text("\(v.as(Int.self) ?? 0)")
-                            .font(.system(size: 9)).foregroundColor(.white.opacity(0.65))
+                            .font(.appMicro).foregroundColor(.white.opacity(0.65))
                     }
                 }
             }

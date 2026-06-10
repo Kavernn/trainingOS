@@ -108,7 +108,7 @@ private struct TrendBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
         }

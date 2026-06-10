@@ -26,14 +26,14 @@ struct MeasurementsTrendView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Circle().fill(color).frame(width: 6, height: 6)
-                            Text(label).font(.system(size: 11, weight: .medium)).foregroundColor(.white)
+                            Text(label).font(.appCaption.weight(.medium)).foregroundColor(.white)
                             Spacer()
                             let diff = (vals.last?.1 ?? 0) - (vals.first?.1 ?? 0)
                             Text(String(format: "%+.1f cm", diff))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .foregroundColor(diff <= 0 ? .green : .red)
                             Text(String(format: "%.0f", vals.last?.1 ?? 0))
-                                .font(.system(size: 13, weight: .black)).foregroundColor(color)
+                                .font(.appLabel.weight(.black)).foregroundColor(color)
                         }
                         MiniLineChart(values: vals.map(\.1), color: color)
                             .frame(height: 28)
@@ -121,7 +121,7 @@ struct BodyFatChartView: View {
                         Text("Début: \(String(format: "%.1f%%", first.1))").font(.system(size: 10)).foregroundColor(.gray)
                         Spacer()
                         Text(String(format: "%+.1f%%", diff))
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .foregroundColor(diff <= 0 ? .green : .red)
                     }
                 }
@@ -173,7 +173,7 @@ struct MuscleBreakdownView: View {
                     ForEach(sorted, id: \.0) { muscle, entry in
                         HStack(spacing: 10) {
                             Text(muscle.localizedMuscleGroup)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appLabel)
                                 .foregroundColor(.white)
                                 .frame(width: 110, alignment: .leading)
 
@@ -189,11 +189,11 @@ struct MuscleBreakdownView: View {
 
                             VStack(alignment: .trailing, spacing: 1) {
                                 Text(formatVol(entry.volume))
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.white.opacity(0.8))
                                 if let days = daysSince(entry.lastDate) {
                                     Text(days == 0 ? "auj." : "\(days)j")
-                                        .font(.system(size: 9))
+                                        .font(.appMicro)
                                         .foregroundColor(freshnessColor(days))
                                 }
                             }
@@ -267,13 +267,13 @@ struct PRTrackerView: View {
                 Spacer()
                 HStack(spacing: 4) {
                     Circle().fill(Color.yellow).frame(width: 7, height: 7)
-                    Text("< 30 jours").font(.system(size: 9)).foregroundColor(.gray)
+                    Text("< 30 jours").font(.appMicro).foregroundColor(.gray)
                 }
             }
 
             if prs.isEmpty {
                 Text("Aucune donnée.")
-                    .font(.system(size: 13)).foregroundColor(.gray).italic()
+                    .font(.appLabel).foregroundColor(.gray).italic()
             } else {
                 let maxW = prs.map(\.prWeight).max() ?? 1
                 GeometryReader { outer in
@@ -281,7 +281,7 @@ struct PRTrackerView: View {
                         ForEach(prs) { pr in
                             HStack(spacing: 10) {
                                 Text(pr.name)
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.appLabel)
                                     .foregroundColor(.white)
                                     .lineLimit(1)
                                     .frame(width: 130, alignment: .leading)
@@ -300,7 +300,7 @@ struct PRTrackerView: View {
                                         .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(pr.isRecent ? .yellow : .orange)
                                     Text(shortDate(pr.prDate))
-                                        .font(.system(size: 9))
+                                        .font(.appMicro)
                                         .foregroundColor(.gray)
                                 }
                                 .frame(width: 75, alignment: .trailing)
@@ -337,7 +337,7 @@ struct MuscleVolumeView: View {
 
             if sorted.isEmpty {
                 Text("Aucune donnée.")
-                    .font(.system(size: 13)).foregroundColor(.gray).italic()
+                    .font(.appLabel).foregroundColor(.gray).italic()
             } else {
                 let maxVol = sorted.first?.1 ?? 1
                 GeometryReader { outer in
@@ -365,7 +365,7 @@ struct MuscleVolumeView: View {
                                 .frame(height: 6)
 
                                 Text("\(UnitSettings.shared.display(volume), specifier: "%.0f") \(UnitSettings.shared.label)")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.blue.opacity(0.8))
                                     .frame(width: 72, alignment: .trailing)
                             }
@@ -415,7 +415,7 @@ struct VolumeLandmarksCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.bar.doc.horizontal")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.purple)
                 Text("VOLUME HEBDO — LANDMARKS")
                     .font(.system(size: 10, weight: .bold)).tracking(2)
@@ -467,7 +467,7 @@ struct VolumeLandmarksCard: View {
                                 .frame(width: 22, alignment: .trailing)
 
                             Text(zoneLabel(lm.zone))
-                                .font(.system(size: 9, weight: .semibold))
+                                .font(.appMicro.weight(.semibold))
                                 .foregroundColor(zoneColor(lm.zone).opacity(0.8))
                                 .frame(width: 44, alignment: .trailing)
                         }
@@ -477,7 +477,7 @@ struct VolumeLandmarksCard: View {
             .frame(height: CGFloat(sorted.count) * (12 + 7) - 7)
 
             Text("MEV · MAV · MRV d'après Renaissance Periodization (Israetel et al.)")
-                .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+                .font(.appMicro).foregroundColor(.gray.opacity(0.6))
                 .padding(.top, 2)
 
             let specificsEntries: [(String, [String: Int])] = sorted.compactMap { muscle, lm in
@@ -488,17 +488,17 @@ struct VolumeLandmarksCard: View {
                 Divider().background(Color.white.opacity(0.08))
                 VStack(alignment: .leading, spacing: 5) {
                     Text("DÉTAIL PAR MUSCLE SPÉCIFIQUE")
-                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .font(.appMicro.weight(.bold)).tracking(2)
                         .foregroundColor(.gray)
                     ForEach(specificsEntries, id: \.0) { muscleKey, detail in
                         ForEach(detail.sorted(by: { $0.value > $1.value }), id: \.key) { specific, count in
                             HStack {
                                 Text("\(muscleKey.localizedMuscleGroup) → \(specific)")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                                     .foregroundColor(.white.opacity(0.65))
                                 Spacer()
                                 Text("\(count) sets")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.white.opacity(0.65))
                             }
                         }
@@ -514,7 +514,7 @@ struct VolumeLandmarksCard: View {
     private func legendDot(_ color: Color, _ label: String) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(.gray)
+            Text(label).font(.appMicro.weight(.medium)).foregroundColor(.gray)
         }
     }
 }
@@ -661,7 +661,7 @@ struct SeasonComparisonCard: View {
                 seasonTable(current: current, previous: data.previous)
             } else {
                 Text("Aucune saison active")
-                    .font(.system(size: 13)).foregroundColor(.gray)
+                    .font(.appLabel).foregroundColor(.gray)
             }
         }
         .padding(16).glassCard().cornerRadius(14)
@@ -671,10 +671,10 @@ struct SeasonComparisonCard: View {
         HStack(alignment: .top, spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
                 Text("").frame(height: 16)
-                Text("Vol. moy/sem").font(.system(size: 11)).foregroundColor(.gray)
-                Text("Séances").font(.system(size: 11)).foregroundColor(.gray)
-                Text("PSS moy.").font(.system(size: 11)).foregroundColor(.gray)
-                Text("Δ poids").font(.system(size: 11)).foregroundColor(.gray)
+                Text("Vol. moy/sem").font(.appCaption).foregroundColor(.gray)
+                Text("Séances").font(.appCaption).foregroundColor(.gray)
+                Text("PSS moy.").font(.appCaption).foregroundColor(.gray)
+                Text("Δ poids").font(.appCaption).foregroundColor(.gray)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -715,7 +715,7 @@ struct SeasonComparisonCard: View {
 
     @ViewBuilder private func valCell(_ v: String?, dim: Bool = false) -> some View {
         Text(v ?? "—")
-            .font(.system(size: 13, weight: .bold))
+            .font(.appLabel.weight(.bold))
             .foregroundColor(dim ? .gray : .white)
             .frame(height: 18)
     }
@@ -725,11 +725,11 @@ struct SeasonComparisonCard: View {
             let sign = d > 0 ? "+" : ""
             let color: Color = dim ? .gray : (d < 0 ? .green : .orange)
             Text("\(sign)\(units.format(d, decimals: 1))")
-                .font(.system(size: 13, weight: .bold))
+                .font(.appLabel.weight(.bold))
                 .foregroundColor(color)
                 .frame(height: 18)
         } else {
-            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray).frame(height: 18)
+            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray).frame(height: 18)
         }
     }
 
@@ -740,7 +740,7 @@ struct SeasonComparisonCard: View {
             let pct = Int(round(abs(diff) / abs(p) * 100))
             let sym = diff > 0 ? "↑" : "↓"
             Text("\(sym)\(pct)%")
-                .font(.system(size: 9, weight: .bold))
+                .font(.appMicro.weight(.bold))
                 .foregroundColor(isGood ? .green : .orange)
                 .frame(height: 18)
         } else {
@@ -767,10 +767,10 @@ struct TransformationMarkersCard: View {
                         .foregroundColor(.orange)
                         .contentTransition(.numericText())
                     Text(tombstoneCount == 1 ? "limite enterrée" : "limites enterrées")
-                        .font(.system(size: 11)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                     if tombstoneCount == 0 {
                         Text("Continue à logger")
-                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                            .font(.appMicro).foregroundColor(.gray.opacity(0.5))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -785,9 +785,9 @@ struct TransformationMarkersCard: View {
                             .foregroundColor(Color.appSuccess)
                             .contentTransition(.numericText())
                         Text("jours de victoire")
-                            .font(.system(size: 11)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                         Text("Ne descend jamais")
-                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                            .font(.appMicro).foregroundColor(.gray.opacity(0.5))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
@@ -869,10 +869,10 @@ struct StrengthProgressionCard: View {
                             .frame(height: 8)
                             HStack {
                                 Text("Baseline: \(units.format(lift.baseline, decimals: 0))")
-                                    .font(.system(size: 9)).foregroundColor(.gray)
+                                    .font(.appMicro).foregroundColor(.gray)
                                 Spacer()
                                 Text("Actuel: \(units.format(lift.current, decimals: 0))")
-                                    .font(.system(size: 9, weight: .semibold))
+                                    .font(.appMicro.weight(.semibold))
                                     .foregroundColor(Color(hex: "F5A623"))
                             }
                         }
@@ -946,7 +946,7 @@ struct StrengthCurveChart: View {
 
             if points.count < 2 {
                 Text("Données insuffisantes — continue à logger.")
-                    .font(.system(size: 13)).foregroundColor(.gray)
+                    .font(.appLabel).foregroundColor(.gray)
                     .frame(maxWidth: .infinity, minHeight: 140, alignment: .center)
             } else {
                 Chart {
@@ -1036,7 +1036,7 @@ struct IntensityCard: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(zoneColor)
                     Text("\(data.setsCount) sets cette semaine")
-                        .font(.system(size: 11)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
                 Spacer()
             }
@@ -1090,18 +1090,18 @@ struct DeloadStatusCard: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 if data.deloadActif {
                     Text("Deload actif")
-                        .font(.system(size: 15, weight: .bold)).foregroundColor(.blue)
+                        .font(.appBody.weight(.bold)).foregroundColor(.blue)
                 } else if let w = data.weeksSinceDeload {
                     Text("\(w) sem.")
                         .font(.system(size: 28, weight: .black))
                         .foregroundColor(deloadColor)
                     Text("depuis le dernier deload")
-                        .font(.system(size: 11)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 } else {
                     Text("—")
                         .font(.system(size: 28, weight: .black)).foregroundColor(.gray)
                     Text("pas encore de deload enregistré")
-                        .font(.system(size: 11)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
             }
             Spacer()

@@ -137,7 +137,7 @@ struct AlreadyLoggedSeanceView: View {
                         .opacity(animateHeader ? 1.0 : 0.0)
                         .offset(y: animateHeader ? 0 : 12)
                     Text(data.today)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(sessionColor)
                         .padding(.horizontal, 14).padding(.vertical, 5)
                         .background(sessionColor.opacity(0.12))
@@ -172,7 +172,7 @@ struct AlreadyLoggedSeanceView: View {
                                         .foregroundColor(rpeColor(rpe))
                                     HStack(spacing: 3) {
                                         Text("RPE")
-                                            .font(.system(size: 9, weight: .bold))
+                                            .font(.appMicro.weight(.bold))
                                             .tracking(1)
                                             .foregroundColor(.gray)
                                         CardInfoButton(title: "RPE & RIR", entries: InfoEntry.rpeRirEntries)
@@ -189,7 +189,7 @@ struct AlreadyLoggedSeanceView: View {
                                         .font(.system(size: 24, weight: .black))
                                         .foregroundColor(sessionColor)
                                     Text("EXOS")
-                                        .font(.system(size: 9, weight: .bold))
+                                        .font(.appMicro.weight(.bold))
                                         .tracking(1)
                                         .foregroundColor(.gray)
                                 }
@@ -210,7 +210,7 @@ struct AlreadyLoggedSeanceView: View {
                                             .fill(sessionColor.opacity(0.3))
                                             .frame(width: 5, height: 5)
                                         Text(exo)
-                                            .font(.system(size: 13))
+                                            .font(.appLabel)
                                             .foregroundColor(.white.opacity(0.85))
                                         Spacer()
                                         if let w = entry?.weight, w > 0 {
@@ -220,7 +220,7 @@ struct AlreadyLoggedSeanceView: View {
                                         }
                                         if let r = entry?.reps, !r.isEmpty {
                                             Text(r)
-                                                .font(.system(size: 11))
+                                                .font(.appCaption)
                                                 .foregroundColor(.gray)
                                         }
                                     }
@@ -237,7 +237,7 @@ struct AlreadyLoggedSeanceView: View {
                                     .font(.system(size: 12))
                                     .foregroundColor(.blue)
                                 Text(comment)
-                                    .font(.system(size: 13))
+                                    .font(.appLabel)
                                     .foregroundColor(.gray)
                                     .italic()
                                 Spacer()
@@ -245,7 +245,7 @@ struct AlreadyLoggedSeanceView: View {
                         }
                     } else {
                         Text("Données non disponibles")
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.gray)
                     }
                 }
@@ -260,7 +260,7 @@ struct AlreadyLoggedSeanceView: View {
                     HStack(spacing: 10) {
                         ProgressView().tint(.purple)
                         Text("Analyse en cours…")
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -273,7 +273,7 @@ struct AlreadyLoggedSeanceView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 6) {
                             Image(systemName: "brain.head.profile")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.purple)
                             Text("BILAN IA")
                                 .font(.system(size: 10, weight: .bold))
@@ -281,7 +281,7 @@ struct AlreadyLoggedSeanceView: View {
                                 .foregroundColor(.purple.opacity(0.8))
                         }
                         Text(brief)
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.white.opacity(0.85))
                             .lineSpacing(4)
                     }
@@ -297,9 +297,9 @@ struct AlreadyLoggedSeanceView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 13))
+                                .font(.appLabel)
                             Text("Recharger le bilan")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appLabel)
                         }
                         .foregroundColor(.purple.opacity(0.8))
                         .frame(maxWidth: .infinity)
@@ -321,7 +321,7 @@ struct AlreadyLoggedSeanceView: View {
                             .foregroundColor(.gray)
                         Spacer()
                         Text(tomorrowType)
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .foregroundColor(tomorrowColor)
                             .padding(.horizontal, 12).padding(.vertical, 5)
                             .background(tomorrowColor.opacity(0.12))
@@ -330,7 +330,7 @@ struct AlreadyLoggedSeanceView: View {
 
                     if tomorrowExercises.isEmpty {
                         Text(tomorrowType == "Repos" ? "Journée de repos 🛌" : "Aucun exercice défini")
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.gray)
                     } else {
                         VStack(spacing: 0) {
@@ -340,11 +340,11 @@ struct AlreadyLoggedSeanceView: View {
                                         .fill(tomorrowColor.opacity(0.25))
                                         .frame(width: 5, height: 5)
                                     Text(name)
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(.appLabel)
                                         .foregroundColor(.white.opacity(0.75))
                                     Spacer()
                                     Text(scheme)
-                                        .font(.system(size: 11))
+                                        .font(.appCaption)
                                         .foregroundColor(.gray)
                                 }
                                 .padding(.vertical, 6)
@@ -352,7 +352,7 @@ struct AlreadyLoggedSeanceView: View {
                             }
                             if tomorrowExercises.count > 5 {
                                 Text("+ \(tomorrowExercises.count - 5) exercices")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                                     .foregroundColor(.gray)
                                     .padding(.top, 4)
                             }
@@ -410,7 +410,7 @@ struct AlreadyLoggedSeanceView: View {
                 }()
                 ShareLink(item: shareText) {
                     HStack(spacing: 8) {
-                        Image(systemName: "square.and.arrow.up").font(.system(size: 15))
+                        Image(systemName: "square.and.arrow.up").font(.appBody)
                         Text("Partager la séance").font(.system(size: 14, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 12)
@@ -425,7 +425,7 @@ struct AlreadyLoggedSeanceView: View {
                 Button(action: { showEditSheet = true }) {
                     HStack(spacing: 10) {
                         Image(systemName: "pencil.circle.fill").font(.system(size: 18))
-                        Text("Modifier la séance").font(.system(size: 15, weight: .semibold))
+                        Text("Modifier la séance").font(.appBody.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(Color.blue.opacity(0.12))
@@ -442,7 +442,7 @@ struct AlreadyLoggedSeanceView: View {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.system(size: 16))
                         Text("Réinitialiser la séance")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -459,10 +459,10 @@ struct AlreadyLoggedSeanceView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 13))
+                                .font(.appLabel)
                                 .foregroundColor(.yellow)
                             Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggé\(unloggedExercises.count > 1 ? "s" : "")")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.white)
                         }
                         VStack(alignment: .leading, spacing: 3) {
@@ -476,7 +476,7 @@ struct AlreadyLoggedSeanceView: View {
                             }
                             if unloggedExercises.count > 3 {
                                 Text("+ \(unloggedExercises.count - 3) autre\(unloggedExercises.count - 3 > 1 ? "s" : "")…")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                                     .foregroundColor(.gray)
                             }
                         }
@@ -504,7 +504,7 @@ struct AlreadyLoggedSeanceView: View {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 18))
                         Text("Faire une séance supplémentaire")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -658,7 +658,7 @@ struct PostSessionEditSheet: View {
                             HStack {
                                 if isSaving { ProgressView().tint(.white).scaleEffect(0.8) }
                                 Text(isSaving ? "Enregistrement…" : "Sauvegarder les modifications")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.appBody.weight(.bold))
                             }
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(Color.blue).foregroundColor(.white).cornerRadius(14)
@@ -715,16 +715,16 @@ struct PostSessionEditSheet: View {
         let eq = edits[i].equipmentType
         VStack(alignment: .leading, spacing: 10) {
             Text(edits[i].name)
-                .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                .font(.appLabel.weight(.bold)).foregroundColor(.white)
 
             HStack(spacing: 6) {
-                Text("S#").font(.system(size: 9, weight: .bold)).foregroundColor(.clear)
+                Text("S#").font(.appMicro.weight(.bold)).foregroundColor(.clear)
                     .frame(width: 22)
                 Text(weightLabel(eq))
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                 Spacer()
                 Text("REPS")
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                     .frame(width: 60)
             }
             .padding(.horizontal, 2)
@@ -732,15 +732,15 @@ struct PostSessionEditSheet: View {
             ForEach(edits[i].sets.indices, id: \.self) { j in
                 HStack(spacing: 6) {
                     Text("S\(j + 1)")
-                        .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+                        .font(.appCaption.weight(.bold)).foregroundColor(.gray)
                         .frame(width: 22)
                     TextField("0.0", text: $edits[i].sets[j].weight)
                         .keyboardType(.decimalPad)
-                        .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                        .font(.appBody.weight(.semibold)).foregroundColor(.white)
                         .padding(8).background(Color.appSurfaceInset).cornerRadius(8)
                     TextField("0", text: $edits[i].sets[j].reps)
                         .keyboardType(.numberPad)
-                        .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                        .font(.appBody.weight(.semibold)).foregroundColor(.white)
                         .padding(8).background(Color.appSurfaceInset).cornerRadius(8)
                         .frame(width: 60)
                 }
@@ -748,10 +748,10 @@ struct PostSessionEditSheet: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("RPE").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    Text("RPE").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                     Spacer()
                     Text(String(format: "%.1f", edits[i].rpe))
-                        .font(.system(size: 13, weight: .black)).foregroundColor(.orange)
+                        .font(.appLabel.weight(.black)).foregroundColor(.orange)
                 }
                 Slider(value: $edits[i].rpe, in: 1...10, step: 0.5).tint(.orange)
             }
@@ -950,7 +950,7 @@ struct ExtraSessionSheet: View {
 
                 if let err = loadError {
                     Text(err)
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(.red)
                         .padding(.horizontal)
                 }
@@ -978,7 +978,7 @@ struct ExtraSessionSheet: View {
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appLabel.weight(.semibold))
                                     .foregroundColor(Color.gray.opacity(0.4))
                             }
                             .padding(.horizontal, 16)
@@ -1060,16 +1060,16 @@ struct FinishRemainingSheet: View {
                             VStack(spacing: 0) {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text("DÉJÀ LOGGÉS")
-                                        .font(.system(size: 9, weight: .bold))
+                                        .font(.appMicro.weight(.bold))
                                         .tracking(2)
                                         .foregroundColor(.gray)
                                     ForEach(loggedExercises, id: \.name) { ex in
                                         HStack(spacing: 8) {
                                             Image(systemName: "checkmark.circle.fill")
-                                                .font(.system(size: 13))
+                                                .font(.appLabel)
                                                 .foregroundColor(.green.opacity(0.7))
                                             Text(ex.name)
-                                                .font(.system(size: 13))
+                                                .font(.appLabel)
                                                 .foregroundColor(.white.opacity(0.5))
                                             Spacer()
                                             if let w = ex.weight {
@@ -1079,7 +1079,7 @@ struct FinishRemainingSheet: View {
                                             }
                                             if let r = ex.reps {
                                                 Text("· \(r)")
-                                                    .font(.system(size: 11))
+                                                    .font(.appCaption)
                                                     .foregroundColor(.gray)
                                             }
                                         }
@@ -1155,12 +1155,12 @@ struct NoProgramEmptyState: View {
                     .padding(.bottom, 4)
 
                 Text("Aucun programme pour aujourd'hui")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.appHeadline)
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
 
                 Text("Tu peux partir en séance libre ou créer un programme.")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
@@ -1172,9 +1172,9 @@ struct NoProgramEmptyState: View {
                 Button { showFreePicker = true } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "play.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                         Text("Séance libre")
-                            .font(.system(size: 17, weight: .bold))
+                            .font(.appHeadline.weight(.bold))
                     }
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
@@ -1186,7 +1186,7 @@ struct NoProgramEmptyState: View {
 
                 NavigationLink(destination: ProgrammeView()) {
                     Text("Créer mon programme")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.appBody.weight(.medium))
                         .foregroundColor(.orange)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -1203,7 +1203,7 @@ struct NoProgramEmptyState: View {
                         Image(systemName: "brain.head.profile")
                             .font(.system(size: 14))
                         Text("Demander au Coach")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.appBody.weight(.medium))
                     }
                     .foregroundColor(.purple)
                     .frame(maxWidth: .infinity)
@@ -1274,7 +1274,7 @@ struct FreeSessionPickerView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if !selectedNames.isEmpty {
                         Button("Commencer (\(selectedNames.count))") { showWorkout = true }
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.appBody.weight(.bold))
                             .foregroundColor(.orange)
                     }
                 }
@@ -1337,7 +1337,7 @@ struct FreeSessionPickerView: View {
                             selectedNames.remove(name)
                         } label: {
                             Image(systemName: "xmark")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.appMicro.weight(.bold))
                                 .foregroundColor(.orange.opacity(0.7))
                         }
                         .buttonStyle(.plain)
@@ -1373,7 +1373,7 @@ struct FreeSessionPickerView: View {
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.white)
                     Text(item.defaultScheme)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
                 Spacer()

@@ -71,7 +71,7 @@ private struct SleepHRVBucketBars: View {
                 VStack(spacing: 4) {
                     if let hrv = b.avgHrv {
                         Text("\(Int(hrv))")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.appMicro.weight(.semibold))
                             .foregroundColor(isBest ? .white.opacity(0.8) : .white.opacity(0.35))
                     }
                     RoundedRectangle(cornerRadius: 3)
@@ -169,7 +169,7 @@ private struct SleepHRVDetailChart: View {
                             .fill(isBest ? Color.trendPositive : Color.white.opacity(0.20))
                             .frame(height: h)
                         Text(b.label)
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.appMicro.weight(.medium))
                             .foregroundColor(isBest ? .white.opacity(0.65) : .white.opacity(0.30))
                         Text("\(b.count) nuits")
                             .font(.system(size: 8))

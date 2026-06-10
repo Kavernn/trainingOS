@@ -90,11 +90,11 @@ struct PlateCalculatorSheet: View {
                                                 .fill(plate.color)
                                                 .frame(width: 12, height: 12)
                                             Text("\(plate.count) × \(plate.label)")
-                                                .font(.system(size: 15, weight: .semibold))
+                                                .font(.appBody.weight(.semibold))
                                                 .foregroundColor(.white)
                                             Spacer()
                                             Text("= \(String(format: "%.2g", plate.value * Double(plate.count))) \(units.label)")
-                                                .font(.system(size: 13, weight: .medium))
+                                                .font(.appLabel)
                                                 .foregroundColor(.gray)
                                         }
                                         .padding(.horizontal, 16).padding(.vertical, 8)
@@ -108,7 +108,7 @@ struct PlateCalculatorSheet: View {
                             .cornerRadius(16)
                         } else if totalInput != nil {
                             Label("Poids inférieur au poids de barre (\(barWeightStr))", systemImage: "exclamationmark.circle.fill")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appLabel)
                                 .foregroundColor(.orange)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -126,7 +126,7 @@ struct PlateCalculatorSheet: View {
                                         triggerImpact(style: .light)
                                     } label: {
                                         Text("\(String(format: "%.4g", v))")
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(.appLabel.weight(.bold))
                                             .foregroundColor(.white)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 10)
@@ -146,7 +146,7 @@ struct PlateCalculatorSheet: View {
                                 dismiss()
                             } label: {
                                 Text("Appliquer \(String(format: "%.2g", perSide)) \(units.label) / côté")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.appBody.weight(.bold))
                                     .foregroundColor(Color.appBg)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 15)

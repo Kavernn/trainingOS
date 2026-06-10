@@ -49,7 +49,7 @@ struct CoachMemoryView: View {
                             confirmDeleteAll = true
                         }
                         .foregroundColor(.red.opacity(0.7))
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                     }
                 }
             }
@@ -92,7 +92,7 @@ struct CoachMemoryView: View {
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.white)
             Text("Le coach accumule des faits sur ton entraînement au fil du temps. Reviens après quelques séances.")
-                .font(.system(size: 13, weight: .medium))
+                .font(.appLabel)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -161,7 +161,7 @@ private struct MemoryEntryRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.content)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.appLabel)
                     .foregroundColor(.white.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Confiance : \(Int(entry.confidence * 100))% · \(entry.updatedAt)")

@@ -69,7 +69,7 @@ private struct EnergyBucketBars: View {
                 VStack(spacing: 4) {
                     if let rpe = b.avgRpe {
                         Text(String(format: "%.1f", rpe))
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.appMicro.weight(.semibold))
                             .foregroundColor(isBest ? .white.opacity(0.80) : .white.opacity(0.35))
                     }
                     RoundedRectangle(cornerRadius: 3)
@@ -155,16 +155,16 @@ private struct EnergyPerfDetailChart: View {
                     VStack(spacing: 5) {
                         if let rpe = b.avgRpe {
                             Text(String(format: "%.1f", rpe))
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(isBest ? .white.opacity(0.85) : .white.opacity(0.40))
                         } else {
-                            Text("—").font(.system(size: 11)).foregroundColor(.white.opacity(0.25))
+                            Text("—").font(.appCaption).foregroundColor(.white.opacity(0.25))
                         }
                         RoundedRectangle(cornerRadius: 4)
                             .fill(isBest ? Color.trendPositive : Color.white.opacity(0.20))
                             .frame(height: h)
                         Text(b.label)
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.appMicro.weight(.medium))
                             .foregroundColor(isBest ? .white.opacity(0.65) : .white.opacity(0.30))
                             .multilineTextAlignment(.center)
                         Text("\(b.count) séances")

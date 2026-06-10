@@ -440,7 +440,7 @@ struct StatsView: View {
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                         Text("Continue à logger.")
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.gray.opacity(0.6))
                     }
                     .padding(.horizontal, 40)

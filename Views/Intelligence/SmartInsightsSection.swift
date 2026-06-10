@@ -101,12 +101,12 @@ struct SmartInsightsSection: View {
                 ForEach(Array(insights.enumerated()), id: \.offset) { _, insight in
                     HStack(spacing: 12) {
                         Image(systemName: insight.icon)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundColor(insight.color)
                             .frame(width: 22)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(insight.title)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.white)
                             Text(insight.detail)
                                 .font(.system(size: 12))

@@ -30,15 +30,15 @@ struct CardioSettingsView: View {
                         HStack(spacing: 12) {
                             settingsIcon("heart.fill", color: .red)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("FC max personnelle").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                                Text("Utilisée pour calculer vos zones cardio").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                                Text("FC max personnelle").font(.appBody.weight(.medium)).foregroundColor(.white)
+                                Text("Utilisée pour calculer vos zones cardio").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                             }
                             Spacer()
                             Text("\(maxHR) bpm")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.orange)
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.gray.opacity(0.4))
                         }
                         .padding(.vertical, 3)
@@ -62,8 +62,8 @@ struct CardioSettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("calendar.badge.checkmark", color: .teal)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Minutes de cardio par semaine").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                            Text("Recommandation ACSM : 150 min/semaine").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                            Text("Minutes de cardio par semaine").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Recommandation ACSM : 150 min/semaine").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                     }
 
@@ -107,7 +107,7 @@ struct CardioSettingsView: View {
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 30, height: 30)
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
         }
     }

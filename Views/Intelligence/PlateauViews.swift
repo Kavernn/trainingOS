@@ -38,15 +38,15 @@ struct PlateauSection: View {
     private var sectionHeader: some View {
         HStack(spacing: 6) {
             Image(systemName: "waveform.path.ecg.rectangle")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(.orange)
             Text("DÉTECTION DE PLATEAU")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(Color(white: 0.45))
             Spacer()
             if !alerts.isEmpty {
                 Text("\(alerts.count)")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(.orange)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -62,9 +62,9 @@ struct PlateauSection: View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundColor(.green.opacity(0.7))
-                .font(.system(size: 13))
+                .font(.appLabel)
             Text("Aucun adversaire actif. Tu progresses.")
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(Color(white: 0.45))
         }
         .padding(.horizontal, 16)
@@ -142,12 +142,12 @@ struct PlateauAlertRow: View {
                         .background(alert.severityColor.opacity(0.15))
                         .cornerRadius(4)
                     Text(scoreText)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(Color(white: 0.4))
                 }
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(Color(white: 0.35))
             }
             .padding(.horizontal, 16)
@@ -209,7 +209,7 @@ struct PlateauDetailSheet: View {
                     .font(.system(size: 22))
                     .foregroundColor(alert.severityColor)
                 Text(alert.severityLabel)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                     .foregroundColor(alert.severityColor)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
@@ -233,7 +233,7 @@ struct PlateauDetailSheet: View {
     private var sparklineSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("PROGRESSION e1RM")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(Color(white: 0.4))
             E1RMSparkline(series: alert.e1rmSeries, accentColor: alert.severityColor)
                 .frame(height: 70)
@@ -261,7 +261,7 @@ struct PlateauDetailSheet: View {
     private var contextChipsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("FACTEURS DÉTECTÉS")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(Color(white: 0.4))
                 .padding(.horizontal, 20)
             ScrollView(.horizontal, showsIndicators: false) {
@@ -292,7 +292,7 @@ struct PlateauDetailSheet: View {
     private var solutionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("LA DÉCISION")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(Color(white: 0.4))
             HStack(spacing: 12) {
                 Image(systemName: alert.deloadTypeIcon)
@@ -301,11 +301,11 @@ struct PlateauDetailSheet: View {
                     .frame(width: 28)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(alert.deloadTypeLabel)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.white)
                     if let instruction = alert.deloadPlan?.instruction {
                         Text(instruction)
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(Color(white: 0.5))
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -324,7 +324,7 @@ struct PlateauDetailSheet: View {
             if alert.deloadPlan != nil {
                 Button(action: { showDeloadPlan = true }) {
                     Label("Voir le plan de deload", systemImage: "arrow.right.circle.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -334,7 +334,7 @@ struct PlateauDetailSheet: View {
             }
             Button(action: snooze) {
                 Text("Ignorer — rappeler dans 7 jours")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(Color(white: 0.4))
             }
             .disabled(isDismissing)
@@ -404,7 +404,7 @@ struct DeloadPlanSheet: View {
                         .foregroundColor(.white)
                     let duration = deloadDuration
                     Text(duration)
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(Color(white: 0.45))
                 }
             }
@@ -431,7 +431,7 @@ struct DeloadPlanSheet: View {
     private func exerciseTable(_ exercises: [DeloadExercise]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PRESCRIPTIONS")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(Color(white: 0.4))
             VStack(spacing: 0) {
                 ForEach(Array(exercises.enumerated()), id: \.offset) { idx, ex in
@@ -450,7 +450,7 @@ struct DeloadPlanSheet: View {
     private func nutritionCard(_ nutrition: NutritionPrescription) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PRESCRIPTION NUTRITION")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(Color(white: 0.4))
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -463,7 +463,7 @@ struct DeloadPlanSheet: View {
                         .foregroundColor(Color(white: 0.45))
                 }
                 Text(nutrition.proteinTargetNote)
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(Color(white: 0.5))
             }
             .padding(14)
@@ -476,7 +476,7 @@ struct DeloadPlanSheet: View {
     private func reboundCard(min: Int, max: Int) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PRÉDICTION")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(Color(white: 0.4))
             HStack(spacing: 12) {
                 Image(systemName: "arrow.up.right.circle.fill")
@@ -511,7 +511,7 @@ struct DeloadPlanSheet: View {
                         Image(systemName: "bolt.fill")
                     }
                     Text("Activer le deload")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                 }
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
@@ -522,7 +522,7 @@ struct DeloadPlanSheet: View {
             .disabled(isActivating)
             .padding(.horizontal, 20)
             Text("Le plan sera actif pour la durée indiquée. Tu peux le compléter après ta semaine de deload.")
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(Color(white: 0.35))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
@@ -550,7 +550,7 @@ private struct DeloadExerciseRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(exercise.name)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(.white)
 
             if deloadType == "rep_range" {
@@ -571,10 +571,10 @@ private struct DeloadExerciseRow: View {
 
         return HStack(spacing: 6) {
             Text(from)
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(Color(white: 0.5))
             Image(systemName: "arrow.right")
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(Color(white: 0.35))
             Text(to)
                 .font(.system(size: 14, weight: .bold))
@@ -595,7 +595,7 @@ private struct DeloadExerciseRow: View {
                         .font(.system(size: 12))
                         .foregroundColor(Color(white: 0.45))
                     Text(forceText)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.orange)
                 }
             }
@@ -606,7 +606,7 @@ private struct DeloadExerciseRow: View {
                         .font(.system(size: 12))
                         .foregroundColor(Color(white: 0.45))
                     Text(volText)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.blue.opacity(0.8))
                 }
             }
@@ -679,7 +679,7 @@ private struct ContextChip: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(color)
             Text(label)
                 .font(.system(size: 12, weight: .medium))

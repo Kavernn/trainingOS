@@ -72,7 +72,7 @@ private struct ConditionRowCompact: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: condition.matchToday ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(condition.matchToday ? .forge : .white.opacity(0.22))
 
             Image(systemName: condition.icon)

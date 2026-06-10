@@ -93,14 +93,14 @@ struct SeasonCloseView: View {
                 Button(editingTitle ? "Valider" : "Changer le titre") {
                     editingTitle.toggle()
                 }
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundStyle(Color.secondary)
             }
             Spacer()
             Button("Continuer") {
                 withAnimation { step = .note }
             }
-            .font(.system(size: 15, weight: .semibold))
+            .font(.appBody.weight(.semibold))
             .foregroundStyle(Color.primary)
             .padding(.horizontal, 32)
             .padding(.vertical, 14)
@@ -179,7 +179,7 @@ struct SeasonCloseView: View {
             }
             Spacer()
             Button("Fermer") { onSealed() }
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundStyle(Color.primary)
                 .padding(.horizontal, 32)
                 .padding(.vertical, 14)

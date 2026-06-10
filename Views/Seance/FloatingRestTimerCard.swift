@@ -13,7 +13,7 @@ struct FloatingRestTimerCard: View {
             VStack(spacing: 22) {
                 if let name = timer.exerciseName {
                     Text(name.uppercased())
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .tracking(2)
                         .foregroundColor(.white.opacity(0.4))
                         .lineLimit(1)
@@ -53,7 +53,7 @@ struct FloatingRestTimerCard: View {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             Text("−10s")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(ringColor.opacity(0.85))
                                 .padding(.horizontal, 16).padding(.vertical, 7)
                                 .background(ringColor.opacity(0.1))
@@ -65,7 +65,7 @@ struct FloatingRestTimerCard: View {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         } label: {
                             Text("+10s")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(ringColor.opacity(0.85))
                                 .padding(.horizontal, 16).padding(.vertical, 7)
                                 .background(ringColor.opacity(0.1))
@@ -80,7 +80,7 @@ struct FloatingRestTimerCard: View {
                 HStack(spacing: 28) {
                     Button { timer.reset() } label: {
                         Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.appHeadline)
                             .foregroundColor(.white.opacity(0.55))
                             .frame(width: 50, height: 50)
                             .background(Color.white.opacity(0.09))
@@ -106,7 +106,7 @@ struct FloatingRestTimerCard: View {
                         }
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .foregroundColor(.white.opacity(0.45))
                             .frame(width: 50, height: 50)
                             .background(Color.white.opacity(0.07))

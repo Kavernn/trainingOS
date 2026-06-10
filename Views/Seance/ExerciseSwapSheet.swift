@@ -97,7 +97,7 @@ struct ExerciseSwapSheet: View {
                                 }
                             } header: {
                                 Text("Suggestions")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .tracking(1)
                                     .foregroundColor(.orange)
                             }
@@ -110,7 +110,7 @@ struct ExerciseSwapSheet: View {
                                 }
                             } header: {
                                 Text("Tous les exercices")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .tracking(1)
                                     .foregroundColor(.gray)
                             }
@@ -167,14 +167,14 @@ struct ExerciseSwapSheet: View {
                                 .font(.system(size: 10))
                                 .foregroundColor(note.contains("comparables") ? .yellow : .gray.opacity(0.6))
                             Text(note)
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(note.contains("comparables") ? .yellow : .gray.opacity(0.6))
                         }
                     }
                 }
                 Spacer()
                 Text(typeLabel(type))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.appCaption.weight(.medium))
                     .foregroundColor(.gray)
                     .padding(.horizontal, 7).padding(.vertical, 3)
                     .background(Color.white.opacity(0.07))

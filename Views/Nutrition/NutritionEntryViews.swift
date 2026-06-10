@@ -35,7 +35,7 @@ struct GroupedEntryList: View {
                     .foregroundColor(.gray)
                 Spacer()
                 Text("\(entries.count) aliment\(entries.count != 1 ? "s" : "")")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
 
@@ -51,20 +51,20 @@ struct GroupedEntryList: View {
                         // Section header with subtotal
                         HStack(spacing: 8) {
                             Image(systemName: mealIcons[group.key] ?? "fork.knife")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(color)
                             Text(mealLabels[group.key] ?? group.key.capitalized)
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(color)
                             Spacer()
                             Text("\(Int(totalKcal)) kcal")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.orange)
                             Text("·")
                                 .foregroundColor(.gray)
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                             Text("\(Int(totalProt))g prot")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.blue)
                         }
                         .padding(.horizontal, 12)
@@ -116,14 +116,14 @@ struct NutritionEntryRow: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                 HStack(spacing: 8) {
-                    if let p = entry.proteines { Text("\(Int(p))g prot").font(.system(size: 11)).foregroundColor(.blue) }
-                    if let c = entry.glucides  { Text("\(Int(c))g carbs").font(.system(size: 11)).foregroundColor(.yellow) }
-                    if let l = entry.lipides   { Text("\(Int(l))g lip").font(.system(size: 11)).foregroundColor(.pink) }
+                    if let p = entry.proteines { Text("\(Int(p))g prot").font(.appCaption).foregroundColor(.blue) }
+                    if let c = entry.glucides  { Text("\(Int(c))g carbs").font(.appCaption).foregroundColor(.yellow) }
+                    if let l = entry.lipides   { Text("\(Int(l))g lip").font(.appCaption).foregroundColor(.pink) }
                 }
             }
             Spacer()
             Text("\(Int(entry.calories ?? 0)) kcal")
-                .font(.system(size: 15, weight: .bold))
+                .font(.appBody.weight(.bold))
                 .foregroundColor(.orange)
             if let onEdit {
                 Button { onEdit() } label: {

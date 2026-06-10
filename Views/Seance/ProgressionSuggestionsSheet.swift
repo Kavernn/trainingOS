@@ -46,7 +46,7 @@ struct ProgressionSuggestionsSheet: View {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundColor(.orange)
                                 Text("Fatigue globale — charge réduite recommandée")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appLabel.weight(.semibold))
                                     .foregroundColor(.orange)
                             }
                             .padding(12)
@@ -58,7 +58,7 @@ struct ProgressionSuggestionsSheet: View {
                         // Actionable suggestions
                         if !actionable.isEmpty {
                             Text("COACHING")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .foregroundColor(.gray)
                                 .padding(.horizontal)
                                 .padding(.top, 8)
@@ -82,10 +82,10 @@ struct ProgressionSuggestionsSheet: View {
                             } label: {
                                 HStack(spacing: 6) {
                                     Text("MAINTENIR (\(maintain.count))")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.appCaption.weight(.bold))
                                         .foregroundColor(.gray)
                                     Image(systemName: showMaintain ? "chevron.up" : "chevron.down")
-                                        .font(.system(size: 9, weight: .bold))
+                                        .font(.appMicro.weight(.bold))
                                         .foregroundColor(.gray)
                                 }
                             }
@@ -129,11 +129,11 @@ struct ProgressionSuggestionsSheet: View {
                 if undoVisible, let info = undoPrev {
                     HStack(spacing: 12) {
                         Text("Progression appliquée ↑")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.white)
                         Spacer()
                         Button("Annuler") { undoApply(info) }
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(.cyan)
                     }
                     .padding(.horizontal, 16)
@@ -230,7 +230,7 @@ private struct SuggestionRow: View {
                     .foregroundColor(typeColor)
                     .frame(width: 22)
                 Text(suggestion.exerciseName)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.appBody.weight(.bold))
                     .foregroundColor(.white)
             }
 
@@ -240,10 +240,10 @@ private struct SuggestionRow: View {
                suggestion.suggestionType != "rep_progress" {
                 HStack(spacing: 6) {
                     Text(UnitSettings.shared.format(cur))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray)
                     Text(UnitSettings.shared.format(sug))
                         .font(.system(size: 22, weight: .black))
@@ -273,7 +273,7 @@ private struct SuggestionRow: View {
                     // F8 — bouton Ignorer
                     Button(action: onIgnore) {
                         Text("Ignorer")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.gray)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 7)
@@ -290,13 +290,13 @@ private struct SuggestionRow: View {
                             Button(action: onApply) {
                                 HStack(spacing: 5) {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.appCaption.weight(.bold))
                                     if let sug = suggestion.suggestedWeight {
                                         Text("Appliquer · \(UnitSettings.shared.format(sug))")
-                                            .font(.system(size: 13, weight: .semibold))
+                                            .font(.appLabel.weight(.semibold))
                                     } else {
                                         Text("Appliquer")
-                                            .font(.system(size: 13, weight: .semibold))
+                                            .font(.appLabel.weight(.semibold))
                                     }
                                 }
                                 .foregroundColor(.black)
@@ -313,12 +313,12 @@ private struct SuggestionRow: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
                     Text("Appliqué")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(.green)
                 }
             } else {
                 Text("Ignoré")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.appLabel)
                     .foregroundColor(.gray.opacity(0.6))
             }
         }
@@ -363,12 +363,12 @@ private struct MaintainRow: View {
                 .foregroundColor(.gray)
                 .frame(width: 18)
             Text(suggestion.exerciseName)
-                .font(.system(size: 13, weight: .medium))
+                .font(.appLabel)
                 .foregroundColor(Color.white.opacity(0.55))
             Spacer()
             if let w = suggestion.currentWeight {
                 Text(UnitSettings.shared.format(w))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.gray)
             }
         }

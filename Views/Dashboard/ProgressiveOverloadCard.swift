@@ -22,7 +22,7 @@ struct ProgressiveOverloadCard: View {
                     Spacer()
                     HStack(spacing: 4) {
                         Image(systemName: hasGainers ? "arrow.up.right" : "arrow.right")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.appMicro.weight(.semibold))
                         Text("\(data.topGainers.count) exo en +")
                             .font(.system(size: 10, weight: .semibold))
                     }
@@ -70,7 +70,7 @@ private struct OverloadExerciseRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: isGainer ? "arrow.up.right" : "minus")
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
                 .foregroundColor(color)
                 .frame(width: 14)
             Text(exercise.name)

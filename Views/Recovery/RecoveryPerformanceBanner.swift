@@ -67,14 +67,14 @@ struct RecoveryPerformanceBanner: View {
                         .foregroundColor(c.color)
                         .frame(width: 20)
                     Text(c.text)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(Color(white: 0.85))
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
                     Spacer(minLength: 0)
                     if onTap != nil {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(.gray.opacity(0.5))
                     }
                 }

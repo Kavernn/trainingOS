@@ -10,8 +10,8 @@ struct HealthDataSettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("heart.text.square.fill", color: .pink)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Permissions HealthKit").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                            Text("Gérer depuis les Réglages iOS > Santé > Accès aux apps").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                            Text("Permissions HealthKit").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Gérer depuis les Réglages iOS > Santé > Accès aux apps").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
@@ -33,12 +33,12 @@ struct HealthDataSettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("square.and.arrow.up.fill", color: .gray)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Exporter mes données").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                            Text("Bientôt disponible").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                            Text("Exporter mes données").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Bientôt disponible").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
                         Text("Bientôt")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(.gray.opacity(0.5))
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(Color.gray.opacity(0.12))
@@ -64,7 +64,7 @@ struct HealthDataSettingsView: View {
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 30, height: 30)
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
         }
     }

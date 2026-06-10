@@ -144,10 +144,10 @@ struct DemonsView: View {
                 .font(.system(size: 32))
                 .foregroundColor(Color(white: 0.15))
             Text("Aucun démon")
-                .font(.system(size: 15, weight: .medium))
+                .font(.appBody.weight(.medium))
                 .foregroundColor(Color(white: 0.3))
             Text("Toutes tes intentions ont été tuées.")
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(Color(white: 0.2))
         }
     }
@@ -188,7 +188,7 @@ private struct DemonCard: View {
                     .font(.system(size: 20, weight: .black))
                     .foregroundColor(Color(white: 0.15))
                     + Text(demon.intention)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.appBody.weight(.medium))
                     .foregroundColor(Color(white: textOpacity))
                     + Text("\"")
                     .font(.system(size: 20, weight: .black))
@@ -199,7 +199,7 @@ private struct DemonCard: View {
                         .font(.system(size: 10))
                         .foregroundColor(Color(white: 0.25))
                     Text("Survécu · \(demon.carryCount) nuit\(demon.carryCount > 1 ? "s" : "") · \(formattedDate)")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(Color(white: 0.25))
                 }
             }

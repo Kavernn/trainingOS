@@ -112,7 +112,7 @@ struct SeasonView: View {
             // G7: ritual completion rate for this season
             if let rate = season.ritualCompletionRate, rate > 0 {
                 HStack(spacing: 8) {
-                    Image(systemName: "flame.fill").font(.system(size: 11)).foregroundStyle(Color.forge)
+                    Image(systemName: "flame.fill").font(.appCaption).foregroundStyle(Color.forge)
                     Text("Rituel \(Int(rate * 100))% cette saison").font(.system(size: 12)).foregroundStyle(Color.secondary)
                     Spacer()
                     GeometryReader { geo in
@@ -151,7 +151,7 @@ struct SeasonView: View {
                 .font(.system(size: 36, weight: .light))
                 .foregroundStyle(Color.secondary)
             Text("Aucune saison active.")
-                .font(.system(size: 15))
+                .font(.appBody)
                 .foregroundStyle(Color.secondary)
             Button("Commencer une saison") { showStart = true }
                 .font(.system(size: 14, weight: .semibold))
@@ -206,7 +206,7 @@ struct SeasonView: View {
                         .foregroundStyle(Color.primary)
                         .lineLimit(1)
                     Text("\(season.startFormatted) → \(season.endFormatted)")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundStyle(Color.secondary)
                 }
 
@@ -268,7 +268,7 @@ struct SeasonStripView: View {
             Spacer()
             if season.dayNumber >= 80 {
                 Button("Bilan →") { onCloseTap() }
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(Color.forge.opacity(0.8))
                     .buttonStyle(.plain)
             }

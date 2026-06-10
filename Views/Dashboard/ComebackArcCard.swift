@@ -76,7 +76,7 @@ private struct ArcStatusBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "arrow.up.forward.circle.fill")
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
         }
@@ -205,7 +205,7 @@ private struct ArcStatRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(iconColor)
                 .frame(width: 16)
             Text(label)

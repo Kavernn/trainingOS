@@ -26,7 +26,7 @@ struct SpiritView: View {
                             .foregroundStyle(Color.moonlight.opacity(0.5))
                             .tracking(5)
                         Text("Respiration · Méditation · Journal")
-                            .font(.system(size: 9, weight: .light))
+                            .font(.appMicro.weight(.light))
                             .foregroundStyle(Color.moonlight.opacity(0.25))
                     }
                 }

@@ -102,9 +102,9 @@ extension StatsView {
                     .font(.system(size: 18)).foregroundColor(.gray)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ACWR non disponible")
-                        .font(.system(size: 13, weight: .semibold)).foregroundColor(.gray)
+                        .font(.appLabel.weight(.semibold)).foregroundColor(.gray)
                     Text("Logge au moins 4 semaines de séances avec RPE et durée")
-                        .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.6))
                 }
                 Spacer()
             }

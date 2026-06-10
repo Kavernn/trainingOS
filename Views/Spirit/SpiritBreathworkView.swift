@@ -41,7 +41,7 @@ struct SpiritBreathTabView: View {
                 .foregroundStyle(Color.moonlight.opacity(0.35))
                 .tracking(4)
             Text("3 protocoles. Pas plus.")
-                .font(.system(size: 13, weight: .light))
+                .font(.appLabel.weight(.light))
                 .foregroundStyle(Color.moonlight.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
@@ -61,10 +61,10 @@ struct SpiritBreathTabView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(proto.displayName)
-                        .font(.system(size: 15, weight: .light))
+                        .font(.appBody.weight(.light))
                         .foregroundStyle(Color.moonlight.opacity(0.9))
                     Text(proto.subtitle)
-                        .font(.system(size: 11, weight: .light))
+                        .font(.appCaption.weight(.light))
                         .foregroundStyle(Color.moonlight.opacity(0.35))
                 }
 
@@ -100,7 +100,7 @@ struct SpiritBreathTabView: View {
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(Color.moonlight.opacity(0.3))
                     Text(shortDate(s.startedAt))
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundStyle(Color.moonlight.opacity(0.2))
                 }
                 .padding(.vertical, 4)
@@ -229,7 +229,7 @@ struct SpiritBreathSessionView: View {
             }
             if target > shown {
                 Text("+\(target - shown)")
-                    .font(.system(size: 9, weight: .light))
+                    .font(.appMicro.weight(.light))
                     .foregroundStyle(Color.moonlight.opacity(0.2))
             }
         }
@@ -251,7 +251,7 @@ struct SpiritBreathSessionView: View {
             sessionTask?.cancel()
         } label: {
             Text("Terminer")
-                .font(.system(size: 13, weight: .light))
+                .font(.appLabel.weight(.light))
                 .foregroundStyle(Color.moonlight.opacity(0.3))
         }
         .padding(.bottom, 8)
@@ -264,7 +264,7 @@ struct SpiritBreathSessionView: View {
                 .foregroundStyle(Color.moonlight.opacity(0.6))
 
             Button("Fermer") { onDismiss() }
-                .font(.system(size: 13, weight: .light))
+                .font(.appLabel.weight(.light))
                 .foregroundStyle(Color.moonlight.opacity(0.35))
                 .accessibilityLabel("Fermer")
         }

@@ -79,7 +79,7 @@ struct ArsenalView: View {
     private func arsenalRow(_ item: WarRoomArsenalItem) -> some View {
         HStack(spacing: 12) {
             Text(item.label)
-                .font(.system(size: 15, weight: .medium))
+                .font(.appBody.weight(.medium))
                 .foregroundStyle(Color.primary)
 
             Spacer()
@@ -152,7 +152,7 @@ struct AddArsenalView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Ajouter") { save() }
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundStyle(Color.forge)
                         .disabled(label.trimmingCharacters(in: .whitespaces).isEmpty || saving)
                 }

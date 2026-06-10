@@ -23,7 +23,7 @@ struct StatsTabBar: View {
                         Image(systemName: tabs[i].icon)
                             .font(.system(size: 13, weight: selectedTab == i ? .bold : .regular))
                         Text(tabs[i].label)
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.appMicro.weight(.semibold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
@@ -81,10 +81,10 @@ struct SmartInsightsBanner: View {
                     HStack(spacing: 10) {
                         Image(systemName: insights[i].icon)
                             .foregroundColor(insights[i].color)
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .frame(width: 18)
                         Text(insights[i].text)
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.white.opacity(0.9))
                         Spacer()
                     }
@@ -127,7 +127,7 @@ struct AdherenceRingsCard: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("\(data.daysElapsed) jours écoulés")
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
             }
 
             HStack(spacing: 24) {
@@ -163,7 +163,7 @@ struct AdherenceRingsCard: View {
                             if pillars[i].rawDays != nil {
                                 Button { showFuelInfo = true } label: {
                                     Image(systemName: "info.circle")
-                                        .font(.system(size: 11)).foregroundColor(.secondary)
+                                        .font(.appCaption).foregroundColor(.secondary)
                                 }
                                 .buttonStyle(.plain)
                             }

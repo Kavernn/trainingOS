@@ -52,7 +52,7 @@ struct MidWorkoutAdvisorCard: View {
                 Divider().background(advice.color.opacity(0.2)).padding(.horizontal, 12)
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(advice.color.opacity(0.7))
                     Text(advice.message)
                         .font(.system(size: 12))

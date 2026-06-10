@@ -39,7 +39,7 @@ struct BodyWeightTrendCard: View {
                         .foregroundColor(.white.opacity(0.35))
                     Spacer()
                     HStack(spacing: 4) {
-                        Image(systemName: trendIcon).font(.system(size: 9, weight: .semibold))
+                        Image(systemName: trendIcon).font(.appMicro.weight(.semibold))
                         Text(trendLabel).font(.system(size: 10, weight: .semibold))
                     }
                     .foregroundColor(trendColor.opacity(0.85))

@@ -102,7 +102,7 @@ private struct WeekStatMini: View {
     var body: some View {
         VStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.white.opacity(0.38))
             HStack(alignment: .lastTextBaseline, spacing: 2) {
                 Text("\(current)")
@@ -240,7 +240,7 @@ private struct CompRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.white.opacity(0.38))
                 .frame(width: 16)
             Text(label)

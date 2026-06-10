@@ -79,7 +79,7 @@ struct HRVChart: View {
                 Spacer()
                 if let b = baseline {
                     Text("baseline \(Int(b)) ms")
-                        .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.6))
                 }
             }
 
@@ -118,8 +118,8 @@ struct HRVChart: View {
                         let lbl = entries.indices.contains(pt.idx) ? (entries[pt.idx].date ?? "") : ""
                         VStack(spacing: 2) {
                             Text(String(format: "%.0f ms", pt.val))
-                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
-                            Text(lbl).font(.system(size: 9)).foregroundColor(.gray)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                            Text(lbl).font(.appMicro).foregroundColor(.gray)
                         }
                         .padding(.horizontal, 8).padding(.vertical, 5)
                         .background(Color.appCard.opacity(0.97))
@@ -162,7 +162,7 @@ struct HRVChart: View {
             HStack(spacing: 14) {
                 HStack(spacing: 4) {
                     Circle().fill(zoneColor).frame(width: 6, height: 6)
-                    Text("HRV personnelle").font(.system(size: 9)).foregroundColor(.gray)
+                    Text("HRV personnelle").font(.appMicro).foregroundColor(.gray)
                 }
                 if baseline != nil {
                     HStack(spacing: 4) {
@@ -173,7 +173,7 @@ struct HRVChart: View {
                             Rectangle().fill(Color.clear).frame(width: 2, height: 1)
                             Rectangle().fill(zoneColor.opacity(0.5)).frame(width: 2, height: 1)
                         }
-                        Text("Baseline 7j").font(.system(size: 9)).foregroundColor(.gray)
+                        Text("Baseline 7j").font(.appMicro).foregroundColor(.gray)
                     }
                 }
             }
@@ -303,8 +303,8 @@ struct RHRChart: View {
                         let lbl = entries.indices.contains(pt.idx) ? (entries[pt.idx].date ?? "") : ""
                         VStack(spacing: 2) {
                             Text(String(format: "%.0f bpm", pt.val))
-                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
-                            Text(lbl).font(.system(size: 9)).foregroundColor(.gray)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                            Text(lbl).font(.appMicro).foregroundColor(.gray)
                         }
                         .padding(.horizontal, 8).padding(.vertical, 5)
                         .background(Color.appCard.opacity(0.97))
@@ -347,7 +347,7 @@ struct RHRChart: View {
             HStack(spacing: 14) {
                 HStack(spacing: 4) {
                     Circle().fill(lineColor).frame(width: 6, height: 6)
-                    Text("FC repos").font(.system(size: 9)).foregroundColor(.gray)
+                    Text("FC repos").font(.appMicro).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
                     HStack(spacing: 1) {
@@ -357,7 +357,7 @@ struct RHRChart: View {
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
                         Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
                     }
-                    Text("Zone optimale 40–60 bpm").font(.system(size: 9)).foregroundColor(.gray)
+                    Text("Zone optimale 40–60 bpm").font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
@@ -425,7 +425,7 @@ struct HRMomentsChart: View {
     private func legendDot(_ color: Color, _ label: String) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
     }
 }
@@ -511,9 +511,9 @@ struct SleepChart: View {
                         let barH   = CGFloat(sleepH / yMax) * h
                         VStack(spacing: 2) {
                             Text(String(format: "%.1fh", sleepH))
-                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
                             Text(entries[j].date ?? "")
-                                .font(.system(size: 9)).foregroundColor(.gray)
+                                .font(.appMicro).foregroundColor(.gray)
                         }
                         .padding(.horizontal, 8).padding(.vertical, 5)
                         .background(Color.appCard.opacity(0.97))
@@ -570,7 +570,7 @@ struct SleepChart: View {
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
                         Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
                     }
-                    Text("Objectif 7h").font(.system(size: 9)).foregroundColor(.gray)
+                    Text("Objectif 7h").font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
@@ -580,7 +580,7 @@ struct SleepChart: View {
     private func legendDot(_ color: Color, _ label: String) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
     }
 }
@@ -674,9 +674,9 @@ struct StepsChart: View {
                         let barH   = CGFloat(steps / yMax) * h
                         VStack(spacing: 2) {
                             Text(stepsLabel(steps) + " pas")
-                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
                             Text(entries[j].date ?? "")
-                                .font(.system(size: 9)).foregroundColor(.gray)
+                                .font(.appMicro).foregroundColor(.gray)
                         }
                         .padding(.horizontal, 8).padding(.vertical, 5)
                         .background(Color.appCard.opacity(0.97))
@@ -727,7 +727,7 @@ struct StepsChart: View {
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
                         Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
                     }
-                    Text("Objectif 10k").font(.system(size: 9)).foregroundColor(.gray)
+                    Text("Objectif 10k").font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
@@ -737,7 +737,7 @@ struct StepsChart: View {
     private func legendDot(_ color: Color, _ label: String) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
     }
 }

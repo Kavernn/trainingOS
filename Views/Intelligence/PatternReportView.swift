@@ -28,9 +28,9 @@ struct PatternReportView: View {
                 .font(.system(size: 36))
                 .foregroundStyle(Color.secondary)
             Text("Données insuffisantes.")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
             Text("Il faut au moins 3 entrées dans les 90 derniers jours.\n\(count) enregistrée(s) pour l'instant.")
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundStyle(Color.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -67,7 +67,7 @@ struct PatternReportView: View {
             }
 
             Text(insight.body)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundStyle(Color.primary)
 
             if let detail = insight.detail, !detail.isEmpty {

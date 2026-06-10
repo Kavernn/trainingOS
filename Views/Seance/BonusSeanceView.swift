@@ -136,7 +136,7 @@ struct BonusSeanceView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("SÉANCE BONUS")
-                                    .font(.system(size: 13, weight: .black))
+                                    .font(.appLabel.weight(.black))
                                     .tracking(3)
                                     .foregroundColor(.gray)
                                 Text("Séance libre")
@@ -194,7 +194,7 @@ struct BonusSeanceView: View {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
                                     Text("Terminer la séance")
-                                        .font(.system(size: 15, weight: .semibold))
+                                        .font(.appBody.weight(.semibold))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)

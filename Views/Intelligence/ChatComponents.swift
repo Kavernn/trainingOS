@@ -92,7 +92,7 @@ struct ChatBubble: View {
                 }
 
                 Text(message.content)
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundColor(.white)
                     .lineSpacing(3)
                     .padding(.horizontal, 14)

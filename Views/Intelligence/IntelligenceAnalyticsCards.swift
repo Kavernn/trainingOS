@@ -22,7 +22,7 @@ struct OvertrainingRiskCard: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text(risk.level.uppercased())
-                    .font(.system(size: 11, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .foregroundColor(riskColor)
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(riskColor.opacity(0.12))
@@ -84,31 +84,31 @@ struct MesocycleStatusCard: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text(status.phaseLabel.uppercased())
-                    .font(.system(size: 11, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .foregroundColor(phaseColor)
             }
 
             Text(status.description)
-                .font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
+                .font(.appLabel).foregroundColor(.white.opacity(0.85))
 
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("RPE CIBLE").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    Text("RPE CIBLE").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                     Text(status.rpeTarget).font(.system(size: 14, weight: .black)).foregroundColor(phaseColor)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("SEMAINE CYCLE").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    Text("SEMAINE CYCLE").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                     Text("S\(status.weekInCycle + 1) / 8").font(.system(size: 14, weight: .black)).foregroundColor(.white)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("DÉCHARGE DANS").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    Text("DÉCHARGE DANS").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                     Text("\(status.nextDeloadInWeeks) sem").font(.system(size: 14, weight: .black)).foregroundColor(.cyan)
                 }
                 Spacer()
             }
 
             Text(status.volGuidance)
-                .font(.system(size: 11)).foregroundColor(.gray)
+                .font(.appCaption).foregroundColor(.gray)
         }
         .padding(14)
         .background(Color.appCard)
@@ -129,16 +129,16 @@ struct PainJournalCard: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("\(data.byExercise.count) exercices")
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
             }
 
             ForEach(data.byExercise.prefix(5)) { ex in
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ex.exercise)
-                            .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                            .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                         Text(ex.zones.joined(separator: " · "))
-                            .font(.system(size: 11)).foregroundColor(.red.opacity(0.8))
+                            .font(.appCaption).foregroundColor(.red.opacity(0.8))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
@@ -213,7 +213,7 @@ struct OneRMProgrammingCard: View {
                             Text("\(entry.pct)%")
                                 .font(.system(size: 10, weight: .bold)).foregroundColor(.purple)
                             Text(units.format(entry.weight, decimals: 0))
-                                .font(.system(size: 13, weight: .black)).foregroundColor(.white)
+                                .font(.appLabel.weight(.black)).foregroundColor(.white)
                         }
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity)

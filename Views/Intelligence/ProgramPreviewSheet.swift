@@ -34,10 +34,10 @@ struct ProgramPreviewSheet: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(content.name)
-                            .font(.system(size: 17, weight: .bold))
+                            .font(.appHeadline.weight(.bold))
                             .foregroundColor(.white)
                         Text("4 semaines · 5 jours/semaine · Hypertrophie")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                     Spacer()
@@ -62,9 +62,9 @@ struct ProgramPreviewSheet: View {
                             } label: {
                                 VStack(spacing: 3) {
                                     Text("S\(week.week)")
-                                        .font(.system(size: 13, weight: .bold))
+                                        .font(.appLabel.weight(.bold))
                                     Text(label)
-                                        .font(.system(size: 9, weight: .medium))
+                                        .font(.appMicro.weight(.medium))
                                         .tracking(0.5)
                                 }
                                 .padding(.horizontal, 14)
@@ -112,7 +112,7 @@ struct ProgramPreviewSheet: View {
                             if !content.globalRationale.isEmpty {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Label("Justification", systemImage: "lightbulb.fill")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.appCaption.weight(.bold))
                                         .foregroundColor(.blue)
                                     Text(content.globalRationale)
                                         .font(.system(size: 12))
@@ -155,7 +155,7 @@ struct ProgramPreviewSheet: View {
                         HStack(spacing: 12) {
                             Button(action: onReject) {
                                 Text("Rejeter")
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.appBody.weight(.semibold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                                     .background(Color.white.opacity(0.07))
@@ -172,7 +172,7 @@ struct ProgramPreviewSheet: View {
                                         Image(systemName: "checkmark")
                                     }
                                     Text(isApproving ? "Activation..." : "Approuver")
-                                        .font(.system(size: 15, weight: .semibold))
+                                        .font(.appBody.weight(.semibold))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -200,7 +200,7 @@ struct ProgramPreviewSheet: View {
     private var muscleVolumeRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("VOLUME PAR MUSCLE")
-                .font(.system(size: 9, weight: .bold))
+                .font(.appMicro.weight(.bold))
                 .tracking(1.5)
                 .foregroundColor(.gray)
             ScrollView(.horizontal, showsIndicators: false) {
@@ -209,10 +209,10 @@ struct ProgramPreviewSheet: View {
                         let inRange = vol.setsPerWeek >= 10 && vol.setsPerWeek <= 20
                         VStack(spacing: 2) {
                             Text("\(vol.setsPerWeek)")
-                                .font(.system(size: 13, weight: .black))
+                                .font(.appLabel.weight(.black))
                                 .foregroundColor(inRange ? .green : .orange)
                             Text(muscle.prefix(6))
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(.gray)
                             Text("\(vol.frequency)×/sem")
                                 .font(.system(size: 8))
@@ -278,7 +278,7 @@ private struct DayCard: View {
                             .fill(Color.blue.opacity(0.15))
                             .frame(width: 32, height: 32)
                         Text("\(day.day)")
-                            .font(.system(size: 13, weight: .black))
+                            .font(.appLabel.weight(.black))
                             .foregroundColor(.blue)
                     }
                     VStack(alignment: .leading, spacing: 2) {
@@ -286,16 +286,16 @@ private struct DayCard: View {
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white)
                         Text(day.muscleFocus.joined(separator: " · "))
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                     Spacer()
                     HStack(spacing: 4) {
                         Text("\(day.exercises.count) exo")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.gray)
                     }
                 }
@@ -346,7 +346,7 @@ private struct ProgramExerciseRow: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(exercise.name)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                     Text(exercise.muscleGroup)
                         .font(.system(size: 10))
@@ -357,7 +357,7 @@ private struct ProgramExerciseRow: View {
 
                 VStack(alignment: .trailing, spacing: 1) {
                     Text("\(exercise.sets)×\(exercise.reps)")
-                        .font(.system(size: 13, weight: .black))
+                        .font(.appLabel.weight(.black))
                         .foregroundColor(.white)
                     if let rest = exercise.restSec {
                         Text("\(rest / 60)'\(rest % 60 == 0 ? "" : "\(rest % 60)\"")")
@@ -379,7 +379,7 @@ private struct ProgramExerciseRow: View {
 
             if showRationale {
                 Text(exercise.rationale)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                     .padding(.horizontal, 48)
                     .padding(.bottom, 8)

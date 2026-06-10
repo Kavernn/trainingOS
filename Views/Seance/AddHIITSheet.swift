@@ -66,7 +66,7 @@ struct AddHIITSheet: View {
                                         ForEach(templates) { t in
                                             HStack(spacing: 4) {
                                                 Button(t.name) { applyTemplate(t) }
-                                                    .font(.system(size: 13, weight: .semibold))
+                                                    .font(.appLabel.weight(.semibold))
                                                     .foregroundColor(.red)
                                                 Button {
                                                     saveTemplates(templates.filter { $0.id != t.id })
@@ -87,7 +87,7 @@ struct AddHIITSheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("TYPE DE SESSION").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                             TextField("HIIT", text: $sessionType)
-                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                                .font(.appBody.weight(.semibold)).foregroundColor(.white)
                                 .padding(12).background(Color.appSurfaceInset).cornerRadius(10)
                         }
                         .padding(14).background(Color.appCard).cornerRadius(14)
@@ -95,31 +95,31 @@ struct AddHIITSheet: View {
                         // Rounds / Work / Rest
                         HStack(spacing: 10) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("RONDES").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                Text("RONDES").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $rounds).keyboardType(.numberPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 1 et 30 rounds")
-                                    .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                                    .font(.appCaption).foregroundColor(.gray.opacity(0.6))
                             }
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("TRAVAIL (s)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                Text("TRAVAIL (s)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $workTime).keyboardType(.numberPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 5 et 300s")
-                                    .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                                    .font(.appCaption).foregroundColor(.gray.opacity(0.6))
                             }
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("REPOS (s)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                Text("REPOS (s)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $restTime).keyboardType(.numberPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 0 et 300s")
-                                    .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                                    .font(.appCaption).foregroundColor(.gray.opacity(0.6))
                             }
                         }
                         .padding(14).background(Color.appCard).cornerRadius(14)
@@ -127,7 +127,7 @@ struct AddHIITSheet: View {
                         // RPE
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("RPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                 Spacer()
                                 Text("\(rpe, specifier: "%.1f")").font(.system(size: 18, weight: .black)).foregroundColor(rpeColor(rpe))
                             }
@@ -153,7 +153,7 @@ struct AddHIITSheet: View {
                             showSavePrompt = true
                         } label: {
                             Label("Sauvegarder comme template", systemImage: "bookmark")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appLabel)
                                 .foregroundColor(.orange)
                                 .frame(maxWidth: .infinity).padding(.vertical, 10)
                                 .background(Color.appCard).cornerRadius(10)

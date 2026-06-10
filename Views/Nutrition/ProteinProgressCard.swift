@@ -26,7 +26,7 @@ struct ProteinProgressCard: View {
                     .foregroundColor(.gray)
                 Spacer()
                 Text("Cible : \(Int(target))g")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
 
@@ -55,22 +55,22 @@ struct ProteinProgressCard: View {
                     // Message statut
                     if isOver {
                         Label("+\(Int(current - target))g au-delà de la cible.", systemImage: "exclamationmark.triangle.fill")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(.red)
                     } else if isReached {
                         Label("Cible atteinte.", systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(.green)
                     } else {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Encore")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                             Text("\(Int(remaining))g")
                                 .font(.system(size: 32, weight: .black))
                                 .foregroundColor(.blue)
                             Text("restants")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                         }
                     }

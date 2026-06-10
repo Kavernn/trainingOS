@@ -44,8 +44,8 @@ struct DisplaySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("scalemass.fill", color: .cyan)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Unité de poids").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                            Text("Appliqué à tous les exercices et métriques").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                            Text("Unité de poids").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Appliqué à tous les exercices et métriques").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
                         Picker("", selection: Binding(
@@ -68,8 +68,8 @@ struct DisplaySettingsView: View {
                         HStack(spacing: 12) {
                             settingsIcon("figure.walk", color: .green)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Objectif de pas quotidien").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                                Text("Affiché dans le tableau de bord santé").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                                Text("Objectif de pas quotidien").font(.appBody.weight(.medium)).foregroundColor(.white)
+                                Text("Affiché dans le tableau de bord santé").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                             }
                             Spacer()
                             Text(stepsGoal.formatted())
@@ -93,8 +93,8 @@ struct DisplaySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("drop.fill", color: .blue)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Objectif d'hydratation").font(.system(size: 15, weight: .medium)).foregroundColor(.white)
-                            Text("Non encore connecté au suivi — disponible bientôt").font(.system(size: 11)).foregroundColor(.gray.opacity(0.55))
+                            Text("Objectif d'hydratation").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Non encore connecté au suivi — disponible bientôt").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
                         Stepper(
@@ -134,7 +134,7 @@ struct DisplaySettingsView: View {
                         .font(.system(size: 14))
                         .foregroundColor(hasChange ? pendingTheme.previewColor : .green)
                     Text(hasChange ? "Appliquer « \(pendingTheme.displayName) »" : "Thème appliqué")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(hasChange ? .white : .white.opacity(0.35))
                     Spacer()
                     if hasChange {
@@ -169,7 +169,7 @@ struct DisplaySettingsView: View {
                         )
                     if isApplied {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.white)
                             .background(Circle().fill(option.previewColor).padding(1))
                             .offset(x: 4, y: 4)
@@ -204,7 +204,7 @@ struct DisplaySettingsView: View {
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 30, height: 30)
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
         }
     }

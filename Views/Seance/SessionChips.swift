@@ -63,7 +63,7 @@ struct ReadinessChip: View {
                 .font(.system(size: 10))
                 .foregroundColor(swiftColor)
             Text("READINESS")
-                .font(.system(size: 9, weight: .bold)).tracking(1)
+                .font(.appMicro.weight(.bold)).tracking(1)
                 .foregroundColor(.gray)
             Text(String(format: "%.1f", score))
                 .font(.system(size: 11, weight: .black, design: .monospaced))
@@ -97,12 +97,12 @@ struct StartSessionBanner: View {
                         .fill(Color.orange.opacity(0.15))
                         .frame(width: 40, height: 40)
                     Image(systemName: "play.fill")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(.orange)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Commencer la séance")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(.white)
                     Text("Le chrono démarre maintenant")
                         .font(.system(size: 12))

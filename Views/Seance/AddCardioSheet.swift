@@ -34,7 +34,7 @@ struct AddCardioSheet: View {
                                             .background(cardioType == t ? Color.blue.opacity(0.2) : Color.appSurfaceInset)
                                             .foregroundColor(cardioType == t ? .blue : .gray)
                                             .cornerRadius(8)
-                                            .font(.system(size: 13, weight: .medium))
+                                            .font(.appLabel)
                                     }
                                 }
                             }
@@ -44,13 +44,13 @@ struct AddCardioSheet: View {
                         // Durée + Distance
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("DURÉE (MIN)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                Text("DURÉE (MIN)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("30", text: $durationMin).keyboardType(.decimalPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                             }
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("DISTANCE (\(UnitSettings.shared.distanceUnit))").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                Text("DISTANCE (\(UnitSettings.shared.distanceUnit))").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $distanceKm).keyboardType(.decimalPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
@@ -61,7 +61,7 @@ struct AddCardioSheet: View {
                         // RPE
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("RPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                 Spacer()
                                 Text("\(rpe, specifier: "%.1f")").font(.system(size: 18, weight: .black)).foregroundColor(rpeColor(rpe))
                             }
@@ -85,7 +85,7 @@ struct AddCardioSheet: View {
                             HStack {
                                 if isLogging { ProgressView().tint(.white) }
                                 else { Image(systemName: "checkmark.circle.fill") }
-                                Text("Enregistrer Cardio").font(.system(size: 15, weight: .semibold))
+                                Text("Enregistrer Cardio").font(.appBody.weight(.semibold))
                             }
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(durationMin.isEmpty ? Color.gray.opacity(0.3) : Color.blue)

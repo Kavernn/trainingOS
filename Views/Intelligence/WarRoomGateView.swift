@@ -50,13 +50,13 @@ struct WarRoomGateView: View {
                     .tracking(3)
 
                 Text("Accès biométrique requis")
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundStyle(Color.secondary)
             }
 
             if authFailed {
                 Button("Réessayer") { authenticate() }
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundStyle(Color.forge)
                     .padding(.horizontal, 28)
                     .padding(.vertical, 12)

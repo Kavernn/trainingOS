@@ -22,13 +22,13 @@ struct ProposalsCard: View {
                         .font(.system(size: 16))
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(p.jour).font(.system(size: 11, weight: .bold)).foregroundColor(.white)
+                            Text(p.jour).font(.appCaption.weight(.bold)).foregroundColor(.white)
                             if !p.exercise.isEmpty {
                                 Text("·").foregroundColor(.gray)
-                                Text(p.exercise).font(.system(size: 11)).foregroundColor(.purple)
+                                Text(p.exercise).font(.appCaption).foregroundColor(.purple)
                             }
                             if !p.scheme.isEmpty {
-                                Text(p.scheme).font(.system(size: 11)).foregroundColor(.orange)
+                                Text(p.scheme).font(.appCaption).foregroundColor(.orange)
                             }
                         }
                         Text(p.reason).font(.system(size: 12)).foregroundColor(.gray)

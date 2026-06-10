@@ -17,7 +17,7 @@ struct PostSeanceCard: View {
                 Spacer()
                 if let name = data.sessionName, !name.isEmpty {
                     Text(name)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.white.opacity(0.45))
                 }
             }
@@ -35,7 +35,7 @@ struct PostSeanceCard: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                         Text(shortInterpretation(data.rpeInterpretation))
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.white.opacity(0.50))
                             .lineLimit(1)
                     }
@@ -49,7 +49,7 @@ struct PostSeanceCard: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(delta > 10 ? .orange : delta < -10 ? .green : .white)
                         Text("même type de séance")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.white.opacity(0.50))
                     }
                 }
@@ -59,11 +59,11 @@ struct PostSeanceCard: View {
             if !data.nutritionAdvice.isEmpty {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "fork.knife")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.green.opacity(0.75))
                         .padding(.top, 1)
                     Text(data.nutritionAdvice)
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(.white.opacity(0.78))
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)

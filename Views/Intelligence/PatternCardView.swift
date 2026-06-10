@@ -11,15 +11,15 @@ struct PatternDailyCard: View {
             // Header
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(.purple)
                 Text("Pattern détecté")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(.purple)
                     .tracking(0.4)
                 if pattern.isNew {
                     Text("NEW")
-                        .font(.system(size: 9, weight: .black))
+                        .font(.appMicro.weight(.black))
                         .foregroundColor(.black)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
@@ -32,7 +32,7 @@ struct PatternDailyCard: View {
 
             // Headline
             Text(pattern.headline)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundColor(.white)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)
@@ -47,7 +47,7 @@ struct PatternDailyCard: View {
                 Button(action: onPin) {
                     HStack(spacing: 5) {
                         Image(systemName: pattern.pinned ? "pin.fill" : "pin")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                         Text(pattern.pinned ? "Suivi" : "Suivre")
                             .font(.system(size: 12, weight: .medium))
                     }
@@ -94,7 +94,7 @@ struct PatternPinnedChip: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pattern.subLabel.uppercased())
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.appMicro.weight(.bold))
                             .foregroundColor(colorFromName(pattern.color).opacity(0.7))
                         Text(pattern.headline)
                             .font(.system(size: 12, weight: .medium))
@@ -113,7 +113,7 @@ struct PatternPinnedChip: View {
                             EffectBadge(pct: pattern.effectPct)
                         }
                         Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 9))
+                            .font(.appMicro)
                             .foregroundColor(.gray)
                     }
                 }
@@ -134,7 +134,7 @@ struct PatternPinnedChip: View {
                                 Image(systemName: "pin.slash")
                                     .font(.system(size: 10))
                                 Text("Retirer")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                             }
                             .foregroundColor(.gray)
                         }
@@ -184,7 +184,7 @@ private struct PatternBarRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Text(bar.label)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.white.opacity(0.65))
                 .frame(width: 110, alignment: .leading)
                 .lineLimit(1)
@@ -306,14 +306,14 @@ struct PatternDailyChip: View {
         Button(action: onTap) {
             HStack(spacing: 10) {
                 Image(systemName: pattern.icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(colorFromName(pattern.color))
                     .frame(width: 22)
 
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 6) {
                         Text(pattern.subLabel.uppercased())
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.appMicro.weight(.bold))
                             .foregroundColor(colorFromName(pattern.color).opacity(0.7))
                             .tracking(0.3)
                         if pattern.isNew {
@@ -386,14 +386,14 @@ struct MacroThresholdDetail: View {
                         .tracking(0.5)
                 }
                 Text("Ton seuil optimal : \(Int(t.value))\(t.unit) de \(macroLabel) la veille")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 HStack(spacing: 4) {
                     Circle()
                         .fill(pattern.confidence == "forte" ? Color.green : Color.yellow)
                         .frame(width: 5, height: 5)
                     Text("Basé sur \(pattern.n) paires — corrélation \(pattern.confidence)")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(Color(white: 0.45))
                 }
             }

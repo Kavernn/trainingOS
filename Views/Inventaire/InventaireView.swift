@@ -163,7 +163,7 @@ struct CatalogueView: View {
                                         .font(.appBody.weight(.semibold))
                                         .foregroundColor(.orange)
                                     Text("\(gapsCount)")
-                                        .font(.system(size: 9, weight: .black))
+                                        .font(.appMicro.weight(.black))
                                         .foregroundColor(.white)
                                         .padding(2)
                                         .background(Color.red)
@@ -2276,7 +2276,7 @@ struct ClassificationGapsSheet: View {
                         }
                         Text("Appliquer")
                     }
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 7)
@@ -2291,7 +2291,7 @@ struct ClassificationGapsSheet: View {
                     onCountChange(visible.count - 1)
                 } label: {
                     Text("Passer")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 7)
@@ -2311,10 +2311,10 @@ struct ClassificationGapsSheet: View {
                 .font(.system(size: 10))
                 .foregroundColor(color)
             Text("\(label): ")
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.gray)
             + Text(value)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.white.opacity(0.85))
         }
     }

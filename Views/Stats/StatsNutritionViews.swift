@@ -46,7 +46,7 @@ struct NutritionComplianceChart: View {
                 Spacer()
                 HStack(spacing: 4) {
                     Circle().fill(Color.green).frame(width: 6, height: 6)
-                    Text("±10%").font(.system(size: 9)).foregroundColor(.gray)
+                    Text("±10%").font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
@@ -92,7 +92,7 @@ struct RPEDistributionView: View {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(colors[i])
                             .frame(height: max(CGFloat(pct) * 80, 2))
-                        Text(item.0).font(.system(size: 9)).foregroundColor(.gray)
+                        Text(item.0).font(.appMicro).foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 100, alignment: .bottom)
                 }
@@ -188,8 +188,8 @@ struct ProteinComplianceView: View {
 
     private func compKPI(_ value: String, _ label: String, _ color: Color) -> some View {
         VStack(spacing: 3) {
-            Text(value).font(.system(size: 17, weight: .black)).foregroundColor(color)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+            Text(value).font(.appHeadline.weight(.black)).foregroundColor(color)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
     }
@@ -197,7 +197,7 @@ struct ProteinComplianceView: View {
     private func legendDot(_ color: Color, _ label: String) -> some View {
         HStack(spacing: 4) {
             RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 10, height: 10)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
     }
 }
@@ -265,9 +265,9 @@ private struct StatsMacroBar: View {
             RoundedRectangle(cornerRadius: 4).fill(compliance.opacity(0.7))
                 .frame(height: max(CGFloat(pct) * 50, 2))
             if let t = target {
-                Text("/ \(Int(t))\(unit)").font(.system(size: 9)).foregroundColor(.gray)
+                Text("/ \(Int(t))\(unit)").font(.appMicro).foregroundColor(.gray)
             }
-            Text(label).font(.system(size: 9, weight: .semibold)).foregroundColor(.gray)
+            Text(label).font(.appMicro.weight(.semibold)).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, maxHeight: 80, alignment: .bottom)
     }
@@ -289,7 +289,7 @@ struct ProteinWeightRatioView: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text(String(format: "Moy. %.2f g/lb", avg))
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(avg >= 0.8 ? .green : .orange)
             }
             GeometryReader { geo in
@@ -351,8 +351,8 @@ struct MacrosDayTypeView: View {
 
     private func macroColumn(label: String, bucket: MacroBucket, color: Color, n: Int) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(label).font(.system(size: 11, weight: .bold)).foregroundColor(color)
-            Text("(\(n) jours)").font(.system(size: 9)).foregroundColor(.gray)
+            Text(label).font(.appCaption.weight(.bold)).foregroundColor(color)
+            Text("(\(n) jours)").font(.appMicro).foregroundColor(.gray)
             macroRow("Calories", String(format: "%.0f kcal", bucket.avgCal), color)
             macroRow("Protéines", String(format: "%.0f g", bucket.avgProt), .green)
             macroRow("Glucides", String(format: "%.0f g", bucket.avgCarbs), .yellow)
@@ -473,11 +473,11 @@ struct NutritionVsPerfView: View {
         HStack(spacing: 16) {
             HStack(spacing: 4) {
                 Rectangle().fill(Color(hex: "F5A623")).frame(width: 16, height: 2)
-                Text("Volume").font(.system(size: 9)).foregroundColor(.gray)
+                Text("Volume").font(.appMicro).foregroundColor(.gray)
             }
             HStack(spacing: 4) {
                 Rectangle().fill(Color.green).frame(width: 16, height: 2)
-                Text("Adherence macros").font(.system(size: 9)).foregroundColor(.gray)
+                Text("Adherence macros").font(.appMicro).foregroundColor(.gray)
             }
         }
     }
