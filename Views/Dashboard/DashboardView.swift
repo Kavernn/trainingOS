@@ -319,9 +319,9 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.32)
                                 }
 
-                                // 16b — Rythme hebdomadaire
-                                if let temporal = vm.temporalPatterns, temporal.hasBaseline {
-                                    TemporalPatternCard(data: temporal)
+                                // 16b — Progression par séance
+                                if let prog = vm.sessionProgression, prog.hasData {
+                                    SessionProgressionCard(data: prog)
                                         .appearAnimation(delay: 0.33)
                                 }
 

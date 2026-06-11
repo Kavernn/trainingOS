@@ -39,7 +39,7 @@ private final class P3State: @unchecked Sendable {
     var warRoomHasTemptation = false
     var velocityData: VelocityData? = nil
     var compoundScore: CompoundScore? = nil
-    var temporalPatterns: TemporalPatterns? = nil
+    var sessionProgression: SessionProgressionData? = nil
     var portraitData: PortraitData? = nil
     var behavioralPRs: BehavioralPRsData? = nil
     var ruptureRisk: RuptureRisk? = nil
@@ -211,7 +211,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var streakData: StreakResponse? = nil
     @Published var velocityData: VelocityData? = nil
     @Published var compoundScore: CompoundScore? = nil
-    @Published var temporalPatterns: TemporalPatterns? = nil
+    @Published var sessionProgression: SessionProgressionData? = nil
     @Published var portraitData: PortraitData? = nil
     @Published var behavioralPRs: BehavioralPRsData? = nil
     @Published var ruptureRisk: RuptureRisk? = nil
@@ -506,7 +506,7 @@ final class DashboardViewModel: ObservableObject {
                 }
                 group.addTask { @MainActor in p3.velocityData     = try? await APIService.shared.fetchVelocity() }
                 group.addTask { @MainActor in p3.compoundScore    = try? await APIService.shared.fetchCompoundScore() }
-                group.addTask { @MainActor in p3.temporalPatterns = try? await APIService.shared.fetchTemporalPatterns() }
+                group.addTask { @MainActor in p3.sessionProgression = try? await APIService.shared.fetchSessionProgression() }
                 group.addTask { @MainActor in p3.portraitData     = try? await APIService.shared.fetchPortraitJ90() }
                 group.addTask { @MainActor in p3.behavioralPRs    = try? await APIService.shared.fetchBehavioralPRs() }
                 group.addTask { @MainActor in p3.ruptureRisk      = try? await APIService.shared.fetchRuptureRisk() }
@@ -547,7 +547,7 @@ final class DashboardViewModel: ObservableObject {
             warRoomHasTemptation = p3.warRoomHasTemptation
             velocityData         = p3.velocityData
             compoundScore        = p3.compoundScore
-            temporalPatterns     = p3.temporalPatterns
+            sessionProgression   = p3.sessionProgression
             portraitData            = p3.portraitData
             behavioralPRs           = p3.behavioralPRs
             ruptureRisk             = p3.ruptureRisk

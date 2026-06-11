@@ -223,6 +223,7 @@ from db_stats import (
     get_protein_weight_ratio,
     get_mood_trend,
     _get_session_volume_map,
+    get_session_volume_map,
     get_soreness_volume_scatter,
     get_sleep_volume_scatter,
     get_rpe_progression,

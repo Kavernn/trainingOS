@@ -1,167 +1,111 @@
 import SwiftUI
 
-// MARK: - TemporalPatternCard (Dashboard compact)
+// MARK: - SessionProgressionCard (Dashboard compact)
 
-struct TemporalPatternCard: View {
-    let data: TemporalPatterns
+struct SessionProgressionCard: View {
+    let data: SessionProgressionData
     @State private var showDetail = false
+
+    private var topSessions: [SessionProgressionEntry] {
+        Array(data.sessions.prefix(3))
+    }
 
     var body: some View {
         Button { showDetail = true } label: {
-            cardContent
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("PROGRESSION PAR SÉANCE")
+                        .font(.appMicro.weight(.black)).tracking(1.5)
+                        .foregroundColor(.white.opacity(0.35))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.appMicro)
+                        .foregroundColor(.white.opacity(0.22))
+                }
+
+                VStack(spacing: 6) {
+                    ForEach(topSessions, id: \.sessionName) { entry in
+                        SessionProgressionRow(entry: entry, compact: true)
+                    }
+                }
+            }
+            .padding(14)
+            .glassCard()
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showDetail) {
-            TemporalDetailSheet(data: data)
+            SessionProgressionDetailSheet(data: data)
         }
-    }
-
-    @ViewBuilder
-    private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("RYTHME HEBDOMADAIRE")
-                    .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.appMicro)
-                    .foregroundColor(.white.opacity(0.22))
-            }
-
-            HStack(alignment: .top, spacing: 0) {
-                // Weakest day
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("POINT FAIBLE")
-                        .font(.appMicro).tracking(0.8)
-                        .foregroundColor(.white.opacity(0.28))
-                    Text(data.weakestDay.capitalized)
-                        .font(.appHeadline.weight(.bold))
-                        .foregroundColor(Color.trendNegative)
-                }
-                Spacer()
-                // Strongest day
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("POINT FORT")
-                        .font(.appMicro).tracking(0.8)
-                        .foregroundColor(.white.opacity(0.28))
-                    Text(data.strongestDay.capitalized)
-                        .font(.appLabel.weight(.bold))
-                        .foregroundColor(.forge)
-                }
-            }
-
-            WeekdayBarsCompact(
-                orderedScores: data.orderedDayScores,
-                weakestDay: data.weakestDay
-            )
-
-            if !data.suggestion.isEmpty {
-                Text(data.suggestion)
-                    .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.42))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineLimit(2)
-            }
-        }
-        .padding(14)
-        .glassCard()
     }
 }
 
-// MARK: - Weekday Bars (compact)
+// MARK: - Compact row
 
-private struct WeekdayBarsCompact: View {
-    let orderedScores: [(String, Double)]
-    let weakestDay: String
+private struct SessionProgressionRow: View {
+    let entry: SessionProgressionEntry
+    let compact: Bool
 
-    private let shorts = ["LU", "MA", "ME", "JE", "VE", "SA", "DI"]
-    private let fulls  = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
-
-    private func shortLabel(_ day: String) -> String {
-        guard let i = fulls.firstIndex(of: day), i < shorts.count else {
-            return String(day.prefix(2)).uppercased()
+    private var trendColor: Color {
+        switch entry.trend {
+        case "up":   return Color.trendPositive
+        case "down": return Color.trendNegative
+        default:     return .white.opacity(0.38)
         }
-        return shorts[i]
     }
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 5) {
-            ForEach(orderedScores, id: \.0) { (day, score) in
-                let isWeakest = day == weakestDay
-                let barColor: Color = isWeakest ? Color.trendNegative : Color.forge.opacity(0.55)
-                let height = max(8.0, 36.0 * score)
-                VStack(spacing: 3) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(barColor)
-                        .frame(width: 14, height: height)
-                    Text(shortLabel(day))
-                        .font(.system(size: 7, weight: isWeakest ? .black : .regular))
-                        .foregroundColor(isWeakest ? Color.trendNegative : .white.opacity(0.32))
-                }
+        HStack(spacing: 8) {
+            Image(systemName: entry.trendIcon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(trendColor)
+                .frame(width: 14)
+
+            Text(entry.sessionName)
+                .font(.appLabel.weight(.medium))
+                .foregroundColor(.white.opacity(0.80))
+                .lineLimit(1)
+
+            Spacer()
+
+            if let delta = entry.volumeDeltaPct {
+                let sign = delta >= 0 ? "+" : ""
+                Text("\(sign)\(Int(delta))% vol")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(trendColor)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(trendColor.opacity(0.12))
+                    .clipShape(Capsule())
             }
+
+            Text(entry.relativeDate)
+                .font(.appMicro)
+                .foregroundColor(.white.opacity(0.28))
         }
-        .frame(height: 52, alignment: .bottom)
     }
 }
 
 // MARK: - Detail Sheet
 
-private struct TemporalDetailSheet: View {
-    let data: TemporalPatterns
+private struct SessionProgressionDetailSheet: View {
+    let data: SessionProgressionData
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
+                    SessionProgressionExplainer()
 
-                    WeekdayBarsFull(
-                        orderedScores: data.orderedDayScores,
-                        weakestDay: data.weakestDay,
-                        strongestDay: data.strongestDay,
-                        details: data.dayDetails
-                    )
-
-                    if !data.suggestion.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("INTERVENTION RECOMMANDÉE")
-                                .font(.appMicro.weight(.black)).tracking(1.5)
-                                .foregroundColor(.white.opacity(0.35))
-                            Text(data.suggestion)
-                                .font(.appBody)
-                                .foregroundColor(.white.opacity(0.80))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(14)
-                        .glassCard()
+                    ForEach(data.sessions, id: \.sessionName) { entry in
+                        SessionProgressionDetailCard(entry: entry)
                     }
-
-                    if !data.weakestFactors.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("FACTEURS IDENTIFIÉS")
-                                .font(.appMicro.weight(.black)).tracking(1.5)
-                                .foregroundColor(.white.opacity(0.35))
-                            ForEach(data.weakestFactors, id: \.self) { f in
-                                FactorRow(factor: f)
-                            }
-                        }
-                        .padding(14)
-                        .glassCard()
-                    }
-
-                    DayDetailTable(
-                        orderedScores: data.orderedDayScores,
-                        details: data.dayDetails,
-                        weakestDay: data.weakestDay
-                    )
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 32)
             }
             .background(Color.appBg.ignoresSafeArea())
-            .navigationTitle("Rythme Hebdomadaire")
+            .navigationTitle("Progression par Séance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -172,160 +116,121 @@ private struct TemporalDetailSheet: View {
     }
 }
 
-// MARK: - Full Bar Chart (sheet)
+// MARK: - Detail Card (per session type)
 
-private struct WeekdayBarsFull: View {
-    let orderedScores: [(String, Double)]
-    let weakestDay: String
-    let strongestDay: String
-    let details: [String: DayDetail]
+private struct SessionProgressionDetailCard: View {
+    let entry: SessionProgressionEntry
 
-    private let shorts = ["LU", "MA", "ME", "JE", "VE", "SA", "DI"]
-    private let fulls  = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
-
-    private func shortLabel(_ day: String) -> String {
-        guard let i = fulls.firstIndex(of: day), i < shorts.count else {
-            return String(day.prefix(2)).uppercased()
+    private var trendColor: Color {
+        switch entry.trend {
+        case "up":   return Color.trendPositive
+        case "down": return Color.trendNegative
+        default:     return Color.forge
         }
-        return shorts[i]
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("SCORE PAR JOUR (90 DERNIERS JOURS)")
-                .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
-
-            HStack(alignment: .bottom, spacing: 0) {
-                ForEach(orderedScores, id: \.0) { (day, score) in
-                    let isWeakest  = day == weakestDay
-                    let isStrongest = day == strongestDay
-                    let barColor: Color = isWeakest ? Color.trendNegative
-                        : (isStrongest ? Color.forge : Color.forge.opacity(0.45))
-                    let height = max(12.0, 80.0 * score)
-                    VStack(spacing: 4) {
-                        Text("\(Int(score * 100))%")
-                            .font(.system(size: 8, weight: .semibold))
-                            .foregroundColor(barColor.opacity(0.8))
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(barColor)
-                            .frame(height: height)
-                        Text(shortLabel(day))
-                            .font(.system(size: 9, weight: isWeakest || isStrongest ? .black : .regular))
-                            .foregroundColor(isWeakest ? Color.trendNegative : (isStrongest ? .forge : .white.opacity(0.38)))
-                    }
-                    .frame(maxWidth: .infinity)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(entry.sessionName)
+                    .font(.appLabel.weight(.bold))
+                    .foregroundColor(.white.opacity(0.88))
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: entry.trendIcon)
+                        .font(.system(size: 10, weight: .black))
+                    Text(entry.trend == "up" ? "Progression" : entry.trend == "down" ? "Régression" : "Stable")
+                        .font(.system(size: 10, weight: .semibold))
                 }
+                .foregroundColor(trendColor)
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .background(trendColor.opacity(0.12))
+                .clipShape(Capsule())
             }
-            .frame(height: 110, alignment: .bottom)
+
+            Text(entry.relativeDate)
+                .font(.appMicro)
+                .foregroundColor(.white.opacity(0.30))
+
+            Divider().background(Color.white.opacity(0.08))
+
+            HStack(spacing: 0) {
+                MetricBlock(
+                    label: "Volume",
+                    value: entry.lastVolume.map { "\(Int($0)) kg" } ?? "—",
+                    baseline: entry.baselineVolume.map { "moy. \(Int($0)) kg" },
+                    delta: entry.volumeDeltaPct
+                )
+                MetricBlock(
+                    label: "Durée",
+                    value: entry.lastDuration.map { "\($0) min" } ?? "—",
+                    baseline: entry.baselineDuration.map { "moy. \(Int($0)) min" },
+                    delta: entry.durationDeltaPct
+                )
+                MetricBlock(
+                    label: "RPE",
+                    value: entry.lastRpe.map { "\(String(format: "%.1f", $0))/10" } ?? "—",
+                    baseline: nil,
+                    delta: nil
+                )
+            }
+
+            Text("\(entry.occurrences) occurrences analysées")
+                .font(.appMicro)
+                .foregroundColor(.white.opacity(0.22))
         }
         .padding(14)
         .glassCard()
     }
 }
 
-// MARK: - Factor Row
-
-private struct FactorRow: View {
-    let factor: String
-
-    private var icon: String {
-        switch factor {
-        case "workout_absent":    return "figure.strengthtraining.traditional"
-        case "stress_élevé":      return "brain.head.profile"
-        case "nutrition_absente": return "fork.knife"
-        default:                  return "exclamationmark.circle"
-        }
-    }
-
-    private var label: String {
-        switch factor {
-        case "workout_absent":    return "Entraînement souvent absent"
-        case "stress_élevé":      return "Niveau de stress plus élevé"
-        case "nutrition_absente": return "Nutrition rarement loggée"
-        default:                  return factor
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.appLabel)
-                .foregroundColor(Color.trendNegative.opacity(0.80))
-                .frame(width: 20)
-            Text(label)
-                .font(.appLabel)
-                .foregroundColor(.white.opacity(0.75))
-        }
-    }
-}
-
-// MARK: - Day Detail Table
-
-private struct DayDetailTable: View {
-    let orderedScores: [(String, Double)]
-    let details: [String: DayDetail]
-    let weakestDay: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("DÉTAIL PAR JOUR")
-                .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
-
-            ForEach(orderedScores, id: \.0) { (day, score) in
-                if let detail = details[day] {
-                    let isWeakest = day == weakestDay
-                    HStack(spacing: 12) {
-                        Text(day.capitalized)
-                            .font(.appLabel.weight(isWeakest ? .bold : .regular))
-                            .foregroundColor(isWeakest ? Color.trendNegative : .white.opacity(0.70))
-                            .frame(width: 80, alignment: .leading)
-                        DayMetricChip(
-                            value: "\(Int(detail.workoutRate * 100))%",
-                            icon: "flame.fill",
-                            color: Color.forge
-                        )
-                        DayMetricChip(
-                            value: "\(Int(detail.nutritionRate * 100))%",
-                            icon: "fork.knife",
-                            color: .green
-                        )
-                        if let pss = detail.pssAvg {
-                            DayMetricChip(
-                                value: "\(Int(pss))",
-                                icon: "brain.head.profile",
-                                color: pss > 20 ? Color.trendNegative : .forge
-                            )
-                        }
-                        Spacer()
-                        Text("\(Int(score * 100))%")
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.45))
-                    }
-                }
-            }
-        }
-        .padding(14)
-        .glassCard()
-    }
-}
-
-private struct DayMetricChip: View {
+private struct MetricBlock: View {
+    let label: String
     let value: String
-    let icon: String
-    let color: Color
+    let baseline: String?
+    let delta: Double?
+
+    private var deltaColor: Color {
+        guard let d = delta else { return .white.opacity(0.38) }
+        return d > 0 ? Color.trendPositive : (d < 0 ? Color.trendNegative : .white.opacity(0.38))
+    }
 
     var body: some View {
-        HStack(spacing: 3) {
-            Image(systemName: icon)
-                .font(.system(size: 8, weight: .semibold))
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.appMicro)
+                .foregroundColor(.white.opacity(0.30))
             Text(value)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
+                .foregroundColor(.white.opacity(0.85))
+            if let b = baseline {
+                Text(b)
+                    .font(.appMicro)
+                    .foregroundColor(.white.opacity(0.28))
+            }
+            if let d = delta {
+                let sign = d >= 0 ? "+" : ""
+                Text("\(sign)\(Int(d))%")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(deltaColor)
+            }
         }
-        .foregroundColor(color.opacity(0.85))
-        .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(color.opacity(0.10))
-        .clipShape(Capsule())
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct SessionProgressionExplainer: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("COMMENT C'EST CALCULÉ")
+                .font(.appMicro.weight(.black)).tracking(1.5)
+                .foregroundColor(.white.opacity(0.35))
+            Text("Chaque séance est comparée à ses 4 occurrences précédentes du même type. Le volume (kg×reps total) et la durée sont les métriques de base. La tendance est haussière si le dernier volume dépasse la moyenne de +5% ou plus.")
+                .font(.appCaption)
+                .foregroundColor(.white.opacity(0.50))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .glassCard()
     }
 }

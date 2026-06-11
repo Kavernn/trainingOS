@@ -347,6 +347,10 @@ def get_mood_trend(days: int = 60) -> list[dict]:
         return []
 
 
+def get_session_volume_map(days: int = 200) -> dict[str, float]:
+    return _get_session_volume_map(days)
+
+
 def _get_session_volume_map(days: int = 200) -> dict[str, float]:
     """Return {date: total_volume} from v_session_volume view."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
