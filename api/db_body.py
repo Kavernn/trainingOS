@@ -304,10 +304,9 @@ def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
     for key in WEARABLE_KEYS:
         if key not in wearable:
             continue
-        if merged.get(key) is None:
-            merged[key] = wearable[key]
-        elif key in CUMULATIVE_KEYS and not is_manual:
-            # Always take the latest HealthKit value for cumulative metrics
+        # Manual entries are preserved as-is — user overrides HealthKit.
+        # For all other sources (healthkit, new entry): always take fresh data.
+        if merged.get(key) is None or not is_manual:
             merged[key] = wearable[key]
 
     return upsert_recovery_log(merged)
