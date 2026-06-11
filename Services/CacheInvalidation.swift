@@ -101,7 +101,7 @@ enum CacheInvalidation {
         case .bodyWeightMutated:
             return ["profil_data"]
         case .exerciseSaved:
-            return ["seance_data"]
+            return ["seance_data", "seance_soir_data"]
         case .wearableSynced:
             return ["recovery_data", "cardio_data", "hrv_analysis",
                     "sleep_history", "sleep_today", "sleep_stats"]
