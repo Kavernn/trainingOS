@@ -28,7 +28,7 @@ struct ErrorBannerView: View {
             }
         }
         .padding(12)
-        .background(Color.red.opacity(0.1))
+        .background(Color.appDanger.opacity(0.1))
         .cornerRadius(10)
         .padding(.horizontal)
     }

@@ -122,7 +122,7 @@ struct NotificationCenterView: View {
             .tint(.purple)
         }
         .listRowBackground(Color.appCard)
-        .listRowSeparatorTint(Color.white.opacity(0.06))
+        .listRowSeparatorTint(Color.appSeparator)
     }
 
     private var seanceSection: some View {
@@ -144,7 +144,7 @@ struct NotificationCenterView: View {
                         ids: ["streak.milestone"])
         }
         .listRowBackground(Color.appCard)
-        .listRowSeparatorTint(Color.white.opacity(0.06))
+        .listRowSeparatorTint(Color.appSeparator)
     }
 
     private var rituelSection: some View {
@@ -187,7 +187,7 @@ struct NotificationCenterView: View {
                         ids: ["ritual.demon.haunting"])
         }
         .listRowBackground(Color.appCard)
-        .listRowSeparatorTint(Color.white.opacity(0.06))
+        .listRowSeparatorTint(Color.appSeparator)
     }
 
     private var recoverySection: some View {
@@ -227,7 +227,7 @@ struct NotificationCenterView: View {
                         ids: ["weekly.recap.sunday"])
         }
         .listRowBackground(Color.appCard)
-        .listRowSeparatorTint(Color.white.opacity(0.06))
+        .listRowSeparatorTint(Color.appSeparator)
     }
 
     private var intelligenceSection: some View {
@@ -263,7 +263,7 @@ struct NotificationCenterView: View {
                         ids: ["proactive.daily"])
         }
         .listRowBackground(Color.appCard)
-        .listRowSeparatorTint(Color.white.opacity(0.06))
+        .listRowSeparatorTint(Color.appSeparator)
     }
 
     private var warRoomSection: some View {
@@ -278,7 +278,7 @@ struct NotificationCenterView: View {
                         })
         }
         .listRowBackground(Color.appCard)
-        .listRowSeparatorTint(Color.white.opacity(0.06))
+        .listRowSeparatorTint(Color.appSeparator)
     }
 
     // MARK: - Helpers

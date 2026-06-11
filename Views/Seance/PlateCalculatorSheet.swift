@@ -80,7 +80,7 @@ struct PlateCalculatorSheet: View {
                                     .frame(height: 88)
                                     .padding(.horizontal, 8)
 
-                                Divider().background(Color.white.opacity(0.08))
+                                Divider().background(Color.appSeparatorStrong)
 
                                 // Plate list
                                 VStack(spacing: 8) {

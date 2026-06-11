@@ -576,7 +576,7 @@ struct ComparisonTableCard: View {
                         .font(.appCaption.weight(.semibold)).foregroundColor(.gray)
                         .frame(width: 52, alignment: .trailing)
                 }
-                Divider().background(Color.white.opacity(0.08))
+                Divider().background(Color.appSeparatorStrong)
                 // Data rows
                 ForEach(rows) { row in
                     HStack {
@@ -601,7 +601,7 @@ struct ComparisonTableCard: View {
                         .font(.appCaption.weight(.semibold))
                         .frame(width: 52, alignment: .trailing)
                     }
-                    Divider().background(Color.white.opacity(0.05))
+                    Divider().background(Color.appSeparatorSubtle)
                 }
             }
             .padding(16)

@@ -52,13 +52,13 @@ struct MacroSummaryCard: View {
                 .animation(.easeOut, value: pct)
             }
 
-            Divider().background(Color.white.opacity(0.07))
+            Divider().background(Color.appSeparator)
 
             HStack(spacing: 0) {
                 MacroBar(label: "Prot", current: totals?.proteines ?? 0, target: settings?.proteines, color: .blue)
-                Divider().background(Color.white.opacity(0.07)).frame(height: 40)
+                Divider().background(Color.appSeparator).frame(height: 40)
                 MacroBar(label: "Carbs", current: totals?.glucides ?? 0, target: settings?.glucides, color: .yellow)
-                Divider().background(Color.white.opacity(0.07)).frame(height: 40)
+                Divider().background(Color.appSeparator).frame(height: 40)
                 MacroBar(label: "Lip", current: totals?.lipides ?? 0, target: settings?.lipides, color: .pink)
             }
         }

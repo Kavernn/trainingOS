@@ -346,7 +346,7 @@ struct CatalogueView: View {
             ForEach(filtered, id: \.name) { item in
                 CatalogueRow(item: item, isInProgram: inProgram.contains(item.name))
                     .listRowBackground(Color.appCard)
-                    .listRowSeparatorTint(Color.white.opacity(0.07))
+                    .listRowSeparatorTint(Color.appSeparator)
                     .contentShape(Rectangle())
                     .onTapGesture { detailTarget = item }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -1490,7 +1490,7 @@ private struct CatalogueSkeletonView: View {
                 .padding(.vertical, 12)
                 .opacity(shimmer ? 0.5 : 1.0)
                 .animation(.easeInOut(duration: 0.9).repeatForever().delay(Double(i) * 0.05), value: shimmer)
-                Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+                Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
             }
             Spacer()
         }
@@ -1891,7 +1891,7 @@ struct CatalogueExerciseDetailView: View {
                 }
                 .padding(.vertical, 6)
                 if history.last?.date != entry.date {
-                    Divider().background(Color.white.opacity(0.06))
+                    Divider().background(Color.appSeparator)
                 }
             }
         }
@@ -2099,7 +2099,7 @@ struct AddExerciseToProgramSheet: View {
                                 }
                                 .buttonStyle(.plain)
                                 .listRowBackground(Color.appCard)
-                                .listRowSeparatorTint(Color.white.opacity(0.07))
+                                .listRowSeparatorTint(Color.appSeparator)
                             }
                         } header: {
                             Text("Ajouter à quelle séance ?")
@@ -2227,7 +2227,7 @@ struct ClassificationGapsSheet: View {
                         ForEach(visible) { gap in
                             gapRow(gap)
                                 .listRowBackground(Color.appCard)
-                                .listRowSeparatorTint(Color.white.opacity(0.07))
+                                .listRowSeparatorTint(Color.appSeparator)
                         }
                     }
                     .listStyle(.plain)

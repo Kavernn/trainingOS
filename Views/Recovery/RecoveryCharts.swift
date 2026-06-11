@@ -178,7 +178,7 @@ struct HRVChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .green, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: .green, intensity: 0.05)
     }
 }
 
@@ -361,7 +361,7 @@ struct RHRChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .red, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: .red, intensity: 0.04)
     }
 }
 
@@ -409,7 +409,7 @@ struct HRMomentsChart: View {
                 legendDot(.blue,   "Soir")
             }
         }
-        .padding(16).glassCard(color: .cyan, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: .cyan, intensity: 0.04)
     }
 
     @ViewBuilder
@@ -574,7 +574,7 @@ struct SleepChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .blue, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: .blue, intensity: 0.05)
     }
 
     private func legendDot(_ color: Color, _ label: String) -> some View {
@@ -731,7 +731,7 @@ struct StepsChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .green, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: .green, intensity: 0.05)
     }
 
     private func legendDot(_ color: Color, _ label: String) -> some View {

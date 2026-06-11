@@ -116,7 +116,7 @@ private struct iOSContentView: View {
             .padding(.vertical, 7)
             .background(
                 Capsule()
-                    .fill(Color(hex: "1c1c1e"))
+                    .fill(Color.appCard)
                     .overlay(Capsule().stroke(Color.orange.opacity(0.55), lineWidth: 1))
             )
             .shadow(color: .black.opacity(0.35), radius: 10, y: 4)

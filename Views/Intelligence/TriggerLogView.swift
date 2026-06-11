@@ -30,7 +30,7 @@ struct TriggerHistoryView: View {
                 List(vm.triggers) { t in
                     TriggerRow(trigger: t)
                         .listRowBackground(Color.appCard)
-                        .listRowSeparatorTint(Color.white.opacity(0.06))
+                        .listRowSeparatorTint(Color.appSeparator)
                 }
                 .listStyle(.plain)
                 .background(Color.appBg)

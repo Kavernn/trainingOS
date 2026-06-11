@@ -350,9 +350,9 @@ struct ProfileView: View {
 
             HStack(spacing: 0) {
                 phoenixAxisChip(icon: "dumbbell.fill",   label: "FORCE",      delta: px.axes.workout.delta,   color: Color.forge)
-                Divider().background(Color.white.opacity(0.08)).padding(.vertical, 4)
+                Divider().background(Color.appSeparatorStrong).padding(.vertical, 4)
                 phoenixAxisChip(icon: "brain.head.profile", label: "MENTAL",  delta: px.axes.stress.delta,    color: .purple)
-                Divider().background(Color.white.opacity(0.08)).padding(.vertical, 4)
+                Divider().background(Color.appSeparatorStrong).padding(.vertical, 4)
                 phoenixAxisChip(icon: "fork.knife",      label: "NUTRITION",  delta: px.axes.nutrition.delta, color: .green)
             }
             .background(Color.white.opacity(0.04))
@@ -566,7 +566,7 @@ struct ProfileView: View {
 
                 ForEach(Array(lifts.prefix(5).enumerated()), id: \.offset) { idx, lift in
                     if idx > 0 {
-                        Divider().background(Color.white.opacity(0.06)).padding(.vertical, 2)
+                        Divider().background(Color.appSeparator).padding(.vertical, 2)
                     }
                     prRow(lift)
                 }
@@ -870,7 +870,7 @@ struct ProfileView: View {
     }
 
     private var settingsDivider: some View {
-        Divider().background(Color.white.opacity(0.06)).padding(.leading, 46)
+        Divider().background(Color.appSeparator).padding(.leading, 46)
     }
 
     private func settingsRow(icon: String, color: Color, label: String, detail: String?, action: (() -> Void)?) -> some View {

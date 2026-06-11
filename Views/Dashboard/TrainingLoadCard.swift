@@ -190,7 +190,7 @@ private struct LoadBreakdownCard: View {
                          color: .white.opacity(0.55))
             }
             if data.strengthAcwr != nil || data.cardioAcwr != nil {
-                Divider().background(Color.white.opacity(0.08))
+                Divider().background(Color.appSeparatorStrong)
                 HStack(spacing: 0) {
                     if let s = data.strengthAcwr {
                         LoadStat(label: "FORCE", sublabel: "ACWR",

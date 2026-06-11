@@ -15,7 +15,7 @@ struct SmartAlarmSettingsView: View {
                     toggleRow
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 if service.isEnabled {
                     Section("Fenêtre de réveil") {
@@ -30,19 +30,19 @@ struct SmartAlarmSettingsView: View {
                             .onChange(of: windowEndDate) { _, _ in commitWindowChange() }
                     }
                     .listRowBackground(Color.appCard)
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Comment ça fonctionne") {
                         howItWorksView
                     }
                     .listRowBackground(Color.appCard)
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Statut") {
                         alarmStateRow
                     }
                     .listRowBackground(Color.appCard)
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .listRowSeparatorTint(Color.appSeparator)
                 }
             }
             .listStyle(.insetGrouped)

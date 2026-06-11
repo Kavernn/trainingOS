@@ -81,7 +81,7 @@ struct RecoveryScoreChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .blue, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: .blue, intensity: 0.05)
     }
 }
 
@@ -739,7 +739,7 @@ struct WellnessTrendView: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }
 
@@ -872,7 +872,7 @@ struct BestDayOfWeekView: View {
             }
             .frame(height: 70)
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }
 
@@ -894,7 +894,7 @@ struct StressCravingsInsightView: View {
                 .foregroundColor(.white.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16).glassCard(color: Color.forge, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: Color.forge, intensity: 0.04)
     }
 
     private var insightText: String {
@@ -979,7 +979,7 @@ struct SleepDebtCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }
 
@@ -1023,7 +1023,7 @@ struct RecoveryProfileCard: View {
                 .foregroundColor(.white.opacity(0.8))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }
 

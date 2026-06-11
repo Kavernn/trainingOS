@@ -104,7 +104,7 @@ struct ChecklistCardView: View {
             VStack(alignment: .leading, spacing: 0) {
                 header
                 if !minimized {
-                    Divider().background(Color.white.opacity(0.06))
+                    Divider().background(Color.appSeparator)
                     itemList
                     if showComplete {
                         completionMessage
@@ -254,7 +254,7 @@ struct ChecklistCardView: View {
         .buttonStyle(.plain)
         .background(Color.clear)
         .overlay(alignment: .bottom) {
-            Divider().background(Color.white.opacity(0.05))
+            Divider().background(Color.appSeparatorSubtle)
         }
     }
 
@@ -292,7 +292,7 @@ struct ChecklistCardView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 11)
             .overlay(alignment: .bottom) {
-                Divider().background(Color.white.opacity(0.05))
+                Divider().background(Color.appSeparatorSubtle)
             }
 
             if gymExpanded {

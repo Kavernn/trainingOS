@@ -49,7 +49,7 @@ struct SessionPickerSheet: View {
                             }
                             .buttonStyle(.plain)
                             if session != availableSessions.last {
-                                Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 20)
+                                Divider().background(Color.appSeparator).padding(.horizontal, 20)
                             }
                         }
                     }
@@ -119,7 +119,7 @@ struct WorkoutSummarySheet: View {
                                     }
                                     .padding(.horizontal, 20).padding(.vertical, 14)
                                     if name != unloggedExercises.last {
-                                        Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 20)
+                                        Divider().background(Color.appSeparator).padding(.horizontal, 20)
                                     }
                                 }
                             }
@@ -132,7 +132,7 @@ struct WorkoutSummarySheet: View {
 
                     // CTAs — pinned to bottom
                     VStack(spacing: 10) {
-                        Divider().background(Color.white.opacity(0.07))
+                        Divider().background(Color.appSeparator)
                         Button(action: {
                             onConfirm()
                             dismiss()
@@ -245,7 +245,7 @@ struct FinishSessionSheet: View {
                                 }
                                 .padding(.horizontal, 16).padding(.vertical, 8)
                                 if idx < exercises.count - 1 {
-                                    Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+                                    Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
                                 }
                             }
                         }
@@ -658,7 +658,7 @@ struct SessionRecapSheet: View {
                                 }
                                 .padding(.horizontal, 16).padding(.vertical, 10)
                                 if idx < snapshot.exercises.count - 1 {
-                                    Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+                                    Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
                                 }
                             }
                         }
@@ -889,7 +889,7 @@ struct HIITSeanceView: View {
                 Button(action: logHIIT) {
                     Text("Enregistrer HIIT")
                         .font(.appBody).fontWeight(.semibold).frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(Color.red).foregroundColor(.white).cornerRadius(14)
+                        .background(Color.appDanger).foregroundColor(.white).cornerRadius(14)
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
@@ -939,7 +939,7 @@ struct CoachingChip: View {
                     .font(.appCaption).fontWeight(.medium).foregroundColor(.green)
             }
             .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(Color.green.opacity(0.1)).cornerRadius(8)
+            .background(Color.appSuccess.opacity(0.1)).cornerRadius(8)
         } else if suggestion.suggestionType == "maintain" {
             HStack(spacing: 6) {
                 Image(systemName: "equal.circle")

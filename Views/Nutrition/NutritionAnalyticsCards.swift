@@ -262,7 +262,7 @@ struct NutritionPatternsCard: View {
             }
 
             if !weekdayAverages.isEmpty {
-                Divider().background(Color.white.opacity(0.07))
+                Divider().background(Color.appSeparator)
                 Text("MOYENNE PAR JOUR DE LA SEMAINE")
                     .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(Color.gray.opacity(0.6))
                 let maxAvg = weekdayAverages.map(\.avgCal).max() ?? 1

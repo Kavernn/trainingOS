@@ -301,7 +301,7 @@ private struct WorkoutDNAInlineContent: View {
                 ForEach(dna.signatureLifts.indices, id: \.self) { i in
                     SignatureLiftRow(lift: dna.signatureLifts[i], rank: i + 1, accent: accent)
                     if i < dna.signatureLifts.count - 1 {
-                        Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 4)
+                        Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 4)
                     }
                 }
             }

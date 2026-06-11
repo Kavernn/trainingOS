@@ -204,7 +204,7 @@ private struct BreakdownCard: View {
                       rpe: data.avgRpeWithout,
                       count: data.countWithout)
 
-            Divider().background(Color.white.opacity(0.08))
+            Divider().background(Color.appSeparatorStrong)
 
             HStack {
                 Text("Séances analysées")

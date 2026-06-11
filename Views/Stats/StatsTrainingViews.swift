@@ -88,7 +88,7 @@ struct ACWRCardView: View {
                 ACWRSparkline(trend: data.trend)
             }
         }
-        .padding(16).glassCard(color: isLowConfidence ? .gray : zoneColor, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: isLowConfidence ? .gray : zoneColor, intensity: 0.05)
     }
 }
 
@@ -243,7 +243,7 @@ struct SessionHeatmapView: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }
 
@@ -405,7 +405,7 @@ struct WeekComparisonCard: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(verdict.color)
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }
 
@@ -447,7 +447,7 @@ struct PersonalRecordsView: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 
     private func prColor(_ rank: Int) -> Color {
@@ -510,7 +510,7 @@ struct SimpleBarChart: View {
                 }
             }
         }
-        .padding(12).glassCard(color: color, intensity: 0.04).cornerRadius(12)
+        .padding(12).glassCard(color: color, intensity: 0.04)
         .frame(maxWidth: .infinity)
     }
 
@@ -555,16 +555,10 @@ struct Top5VolumeView: View {
             }
             .frame(height: CGFloat(data.count) * (8 + 8) - 8)
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 
-    private func barColor(_ i: Int) -> Color {
-        if AppTheme.shared.selectedTheme == .monochrome {
-            let opacities: [Double] = [1.0, 0.65, 0.45, 0.30, 0.18]
-            return Color.white.opacity(opacities[i % 5])
-        }
-        return [Color.orange, .blue, .purple, .green, .red][i % 5]
-    }
+    private func barColor(_ i: Int) -> Color { AppTheme.shared.chartColor(i) }
 
     private func formatK(_ v: Double) -> String {
         if v >= 1_000_000 { return String(format: "%.1fM", v/1_000_000) }
@@ -630,7 +624,7 @@ struct HIITStatsSection: View {
                 .padding(12).background(Color.appCard).cornerRadius(10)
             }
         }
-        .padding(16).glassCard(color: .red, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: .red, intensity: 0.04)
     }
 }
 
@@ -717,7 +711,7 @@ struct KPICard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .glassCard(color: isNull ? .gray : color, intensity: isNull ? 0.02 : 0.05).cornerRadius(12)
+        .glassCard(color: isNull ? .gray : color, intensity: isNull ? 0.02 : 0.05)
     }
 }
 
@@ -757,7 +751,7 @@ struct ExerciseStatRow: View {
             }
             Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray)
         }
-        .padding(14).glassCard().cornerRadius(12)
+        .padding(14).glassCard()
     }
 }
 
@@ -809,7 +803,7 @@ struct ExerciseDetailView: View {
                                         }
                                     }
                                     .padding(.vertical, 6)
-                                    Divider().background(Color.white.opacity(0.06))
+                                    Divider().background(Color.appSeparator)
                                 }
                             }
                             .padding(16).background(Color.appCard).cornerRadius(14)
@@ -1331,6 +1325,6 @@ struct Top5FrequencyView: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }

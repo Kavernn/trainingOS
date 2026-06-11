@@ -77,7 +77,7 @@ struct NutritionSummaryView: View {
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.white.opacity(0.07)).frame(height: 5)
                             Capsule()
-                                .fill(overTarget ? Color.red : Color.forge)
+                                .fill(overTarget ? Color.appDanger : Color.forge)
                                 .frame(width: max(5, geo.size.width * calPct), height: 5)
                                 .animation(.easeOut(duration: 0.6), value: calPct)
                         }
@@ -150,7 +150,7 @@ struct NutritionStripView: View {
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.white.opacity(0.06)).frame(height: 4)
                             Capsule()
-                                .fill(overCal ? Color.red : Color.forge)
+                                .fill(overCal ? Color.appDanger : Color.forge)
                                 .frame(width: max(4, geo.size.width * calPct), height: 4)
                         }
                     }
@@ -328,10 +328,10 @@ struct MacroInsightCard: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
-                .background(above ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
+                .background(above ? Color.appSuccess.opacity(0.08) : Color.appWarning.opacity(0.08))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(above ? Color.green.opacity(0.20) : Color.orange.opacity(0.20), lineWidth: 1)
+                        .stroke(above ? Color.appSuccess.opacity(0.20) : Color.appWarning.opacity(0.20), lineWidth: 1)
                 )
                 .cornerRadius(12)
             }

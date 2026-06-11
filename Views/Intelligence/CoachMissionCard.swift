@@ -76,7 +76,7 @@ struct CoachMissionCard: View {
             .padding(.top, 16)
             .padding(.bottom, 12)
 
-            Divider().background(Color.white.opacity(0.07))
+            Divider().background(Color.appSeparator)
 
             if isBriefLoading && briefText.isEmpty {
                 MissionShimmer()
@@ -105,7 +105,7 @@ struct CoachMissionCard: View {
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(sessionDone ? Color.green : sessionColor)
+                    .background(sessionDone ? Color.appSuccess : sessionColor)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .buttonStyle(ScaleButtonStyle())

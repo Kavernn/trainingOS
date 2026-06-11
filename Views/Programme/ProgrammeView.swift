@@ -1523,7 +1523,7 @@ struct EditableSeanceProgramCard: View {
             .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
 
             if expanded {
-                Divider().background(Color.white.opacity(0.07))
+                Divider().background(Color.appSeparator)
 
                 if orderedPairs.isEmpty {
                     HStack {
@@ -1575,7 +1575,7 @@ struct EditableSeanceProgramCard: View {
                     .animation(.spring(response: 0.2,  dampingFraction: 0.9),  value: isDragging)
 
                     if name != orderedPairs.last?.0 {
-                        Divider().background(Color.white.opacity(0.04)).padding(.leading, 40)
+                        Divider().background(Color.appSeparatorSubtle).padding(.leading, 40)
                     }
                 }
                 .onPreferenceChange(ProgramRowHeightKey.self) { rowHeights.merge($0) { $1 } }

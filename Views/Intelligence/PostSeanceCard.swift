@@ -22,7 +22,7 @@ struct PostSeanceCard: View {
                 }
             }
 
-            Divider().background(Color.white.opacity(0.08))
+            Divider().background(Color.appSeparatorStrong)
 
             // Metrics
             HStack(alignment: .top, spacing: 20) {
@@ -71,10 +71,10 @@ struct PostSeanceCard: View {
             }
         }
         .padding(14)
-        .background(Color.green.opacity(0.07))
+        .background(Color.appSuccess.opacity(0.07))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.green.opacity(0.22), lineWidth: 1)
+                .stroke(Color.appSuccess.opacity(0.22), lineWidth: 1)
         )
         .cornerRadius(14)
     }

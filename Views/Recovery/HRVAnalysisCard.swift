@@ -227,7 +227,7 @@ struct HRVBaselineProgressView: View {
                 .font(.appCaption).foregroundColor(.gray.opacity(0.6))
         }
         .padding(14)
-        .glassCard(color: .cyan, intensity: 0.05).cornerRadius(14)
+        .glassCard(color: .cyan, intensity: 0.05)
         .onAppear {
             withAnimation(.easeOut(duration: 0.6)) { displayProgress = progress }
         }

@@ -36,7 +36,7 @@ struct DisplaySettingsView: View {
                     .animation(.easeInOut(duration: 0.2), value: pendingTheme)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 applySection
 
@@ -61,7 +61,7 @@ struct DisplaySettingsView: View {
                     .padding(.vertical, 3)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Activité") {
                     VStack(alignment: .leading, spacing: 10) {
@@ -87,7 +87,7 @@ struct DisplaySettingsView: View {
                     .padding(.vertical, 4)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Nutrition") {
                     HStack(spacing: 12) {
@@ -110,7 +110,7 @@ struct DisplaySettingsView: View {
                     .padding(.vertical, 3)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
@@ -149,7 +149,7 @@ struct DisplaySettingsView: View {
             .buttonStyle(.plain)
         }
         .listRowBackground(hasChange ? pendingTheme.previewColor.opacity(0.14) : Color.appCard)
-        .listRowSeparatorTint(Color.white.opacity(0.06))
+        .listRowSeparatorTint(Color.appSeparator)
     }
 
     @ViewBuilder

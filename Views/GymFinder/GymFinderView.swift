@@ -318,7 +318,7 @@ struct GymCard: View {
 
                     if let open = gym.isOpenNow {
                         Circle()
-                            .fill(open ? Color.green : Color.red)
+                            .fill(open ? Color.appSuccess : Color.appDanger)
                             .frame(width: 5, height: 5)
                         Text(open ? "Ouvert" : "Fermé")
                             .font(.appCaption)

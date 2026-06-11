@@ -359,7 +359,7 @@ struct PSSHistoryRow: View {
 
             // Détails expandable
             if expanded {
-                Divider().background(Color.white.opacity(0.06))
+                Divider().background(Color.appSeparator)
                 VStack(alignment: .leading, spacing: 10) {
                     // Insights
                     ForEach(Array(record.insights.enumerated()), id: \.0) { _, insight in

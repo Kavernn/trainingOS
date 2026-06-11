@@ -100,7 +100,7 @@ struct LogRecoverySheet: View {
                                     }
                                     Slider(value: $sleepQuality, in: 1...10, step: 1).tint(Color.forge)
                                 }
-                                Divider().background(Color.white.opacity(0.06))
+                                Divider().background(Color.appSeparator)
                                 // Bedtime
                                 HStack {
                                     Toggle(isOn: $hasBedtime) {
@@ -146,7 +146,7 @@ struct LogRecoverySheet: View {
                                         Text("10 = Sévère").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
-                                Divider().background(Color.white.opacity(0.06))
+                                Divider().background(Color.appSeparator)
                                 VStack(alignment: .leading, spacing: 8) {
                                     HStack {
                                         Text("FATIGUE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -164,7 +164,7 @@ struct LogRecoverySheet: View {
                                         Text("10 = Épuisé(e)").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
-                                Divider().background(Color.white.opacity(0.06))
+                                Divider().background(Color.appSeparator)
                                 VStack(alignment: .leading, spacing: 8) {
                                     HStack {
                                         Text("ÉNERGIE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -325,7 +325,7 @@ struct LogRecoverySheet: View {
                                         Text("10 = Épuisé(e)").font(.appMicro).foregroundColor(.gray)
                                     }
                                 }
-                                Divider().background(Color.white.opacity(0.06))
+                                Divider().background(Color.appSeparator)
                                 VStack(alignment: .leading, spacing: 8) {
                                     HStack {
                                         Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)

@@ -27,7 +27,7 @@ struct InsightsCard: View {
                 ForEach(data.insights) { insight in
                     CorrelationRow(insight: insight)
                     if insight.id != data.insights.last?.id {
-                        Divider().background(Color.white.opacity(0.06))
+                        Divider().background(Color.appSeparator)
                     }
                 }
             }

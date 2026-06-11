@@ -329,7 +329,7 @@ struct WorkoutSeanceView: View {
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 9)
-                Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+                Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
             }
         }
         .background(Color.appCard).cornerRadius(14)
@@ -435,7 +435,7 @@ struct WorkoutSeanceView: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(Color.appCard)
-        Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
+        Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
     }
 
     // MARK: - Section separator helpers (PROB-11)
@@ -768,7 +768,7 @@ struct WorkoutSeanceView: View {
                             }
                         } label: {
                             Circle()
-                                .fill(isLogged ? Color.green : Color.white.opacity(0.22))
+                                .fill(isLogged ? Color.appSuccess : Color.white.opacity(0.22))
                                 .frame(width: 8, height: 8)
                         }
                         .buttonStyle(.plain)
@@ -867,13 +867,13 @@ struct WorkoutSeanceView: View {
                             GeometryReader { g in
                                 let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
                                 RoundedRectangle(cornerRadius: 3)
-                                    .fill(allDone ? Color.green : Color.orange)
+                                    .fill(allDone ? Color.appSuccess : Color.appWarning)
                                     .frame(width: g.size.width * fraction)
                                     .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
                             },
                             alignment: .leading
                         )
-                        .shadow(color: allDone ? Color.green.opacity(0.35) : .clear, radius: 5)
+                        .shadow(color: allDone ? Color.appSuccess.opacity(0.35) : .clear, radius: 5)
                         .animation(.easeInOut(duration: 0.3), value: allDone)
 
                     // Readiness chip
@@ -1141,14 +1141,14 @@ struct WorkoutSeanceView: View {
                                 .font(.appBody).fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.green : Color.orange)
+                        .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.appSuccess : Color.appWarning)
                         .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
                         .cornerRadius(14)
                         .overlay(
                             !vm.logResults.isEmpty && !vm.isFinishing ? nil :
                                 RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.2), lineWidth: 1)
                         )
-                        .shadow(color: completionGlow && !vm.isFinishing ? Color.green.opacity(0.5) : .clear, radius: 12)
+                        .shadow(color: completionGlow && !vm.isFinishing ? Color.appSuccess.opacity(0.5) : .clear, radius: 12)
                         .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
                         .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
                     }

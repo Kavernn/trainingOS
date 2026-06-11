@@ -516,7 +516,7 @@ struct EveningRoutineCard: View {
                 .fill(Color.appCard)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(allDone ? Color.green.opacity(0.25) : Color.white.opacity(0.06), lineWidth: 1)
+                        .stroke(allDone ? Color.appSuccess.opacity(0.25) : Color.white.opacity(0.06), lineWidth: 1)
                 )
         )
         .onAppear {
@@ -541,8 +541,8 @@ struct EveningRoutineCard: View {
     private var headerRow: some View {
         let icon       = allDone ? "checkmark.circle.fill" : "moon.stars.fill"
         let title      = allDone ? "Routine complétée" : "Routine de soir"
-        let titleColor = allDone ? Color.green : Color.white.opacity(0.85)
-        let iconColor  = allDone ? Color.green : Color.white.opacity(0.55)
+        let titleColor = allDone ? Color.appSuccess : Color.white.opacity(0.85)
+        let iconColor  = allDone ? Color.appSuccess : Color.white.opacity(0.55)
         return HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.appLabel)
@@ -584,7 +584,7 @@ struct EveningRoutineCard: View {
 
     private var progressBar: some View {
         let count    = checkedCount
-        let barColor = allDone ? Color.green : Color.forge
+        let barColor = allDone ? Color.appSuccess : Color.forge
         return GeometryReader { geo in
             let filledWidth = count > 0 ? geo.size.width * CGFloat(count) / 7.0 : 0
             ZStack(alignment: .leading) {
@@ -638,7 +638,7 @@ struct EveningRoutineCard: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .stroke(isArmed ? Color.green.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1.5)
+                        .stroke(isArmed ? Color.appSuccess.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1.5)
                         .frame(width: 20, height: 20)
                     Image(systemName: isArmed ? "bell.fill" : "bell")
                         .font(.system(size: 10, weight: .bold))
@@ -803,7 +803,7 @@ struct EveningRoutineCard: View {
     private func checkCircle(checked: Bool) -> some View {
         ZStack {
             Circle()
-                .stroke(checked ? Color.green.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1.5)
+                .stroke(checked ? Color.appSuccess.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1.5)
                 .frame(width: 20, height: 20)
             if checked {
                 Image(systemName: "checkmark")

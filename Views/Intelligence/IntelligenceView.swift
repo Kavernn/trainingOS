@@ -204,7 +204,7 @@ struct IntelligenceView: View {
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
-                        Divider().background(Color.white.opacity(0.08))
+                        Divider().background(Color.appSeparatorStrong)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(CoachSection.allCases, id: \.self) { section in
@@ -782,14 +782,14 @@ struct IntelligenceView: View {
                 .foregroundColor(Color(white: 0.45))
             HStack(spacing: 0) {
                 bilanStatCell(value: "\(sessionCount)", label: "séances")
-                Divider().frame(height: 36).background(Color.white.opacity(0.1))
+                Divider().frame(height: 36).background(Color.appSeparatorStrong)
                 bilanStatCell(value: restDays == 0 ? "—" : "\(restDays)", label: "repos")
                 if let rpe = avgRpe {
-                    Divider().frame(height: 36).background(Color.white.opacity(0.1))
+                    Divider().frame(height: 36).background(Color.appSeparatorStrong)
                     bilanStatCell(value: String(format: "%.1f", rpe), label: "RPE moy")
                 }
                 if totalVol > 0 {
-                    Divider().frame(height: 36).background(Color.white.opacity(0.1))
+                    Divider().frame(height: 36).background(Color.appSeparatorStrong)
                     bilanStatCell(value: _formatK(units.display(totalVol)), label: "\(units.label) vol")
                 }
             }

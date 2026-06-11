@@ -210,7 +210,7 @@ struct EnergyHeaderCard: View {
                 Spacer()
             }
 
-            Divider().background(Color.white.opacity(0.08))
+            Divider().background(Color.appSeparatorStrong)
 
             // Bilan kcal
             HStack(spacing: 0) {
@@ -355,7 +355,7 @@ private struct EnergyBreakdownCard: View {
                     .padding(.top, 2)
                 }
 
-                Divider().background(Color.white.opacity(0.08))
+                Divider().background(Color.appSeparatorStrong)
 
                 HStack {
                     Text("Total TDEE")

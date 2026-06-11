@@ -41,7 +41,7 @@ struct MeasurementsTrendView: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .purple, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: .purple, intensity: 0.04)
     }
 }
 
@@ -129,7 +129,7 @@ struct BodyFatChartView: View {
                 Text("Données insuffisantes — continue à logger.").font(.system(size: 12)).foregroundColor(.gray)
             }
         }
-        .padding(16).glassCard(color: .purple, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: .purple, intensity: 0.04)
     }
 }
 
@@ -485,7 +485,7 @@ struct VolumeLandmarksCard: View {
                 return (muscle, detail)
             }
             if !specificsEntries.isEmpty {
-                Divider().background(Color.white.opacity(0.08))
+                Divider().background(Color.appSeparatorStrong)
                 VStack(alignment: .leading, spacing: 5) {
                     Text("DÉTAIL PAR MUSCLE SPÉCIFIQUE")
                         .font(.appMicro.weight(.bold)).tracking(2)
@@ -563,7 +563,7 @@ struct BodyRecompView: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 
     private func chartY(_ v: Double, h: CGFloat, minV: Double, range: Double) -> CGFloat {
@@ -664,7 +664,7 @@ struct SeasonComparisonCard: View {
                     .font(.appLabel).foregroundColor(.gray)
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 
     @ViewBuilder private func seasonTable(current: SeasonCompStats, previous: SeasonCompStats?) -> some View {
@@ -796,7 +796,7 @@ struct TransformationMarkersCard: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }
 
@@ -880,7 +880,7 @@ struct StrengthProgressionCard: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 }
 
@@ -1073,7 +1073,7 @@ struct IntensityCard: View {
             }
             .frame(height: 32)
         }
-        .padding(16).glassCard(color: zoneColor, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: zoneColor, intensity: 0.04)
     }
 }
 
@@ -1114,7 +1114,7 @@ struct DeloadStatusCard: View {
                 }
             }
         }
-        .padding(16).glassCard(color: deloadColor, intensity: 0.04).cornerRadius(14)
+        .padding(16).glassCard(color: deloadColor, intensity: 0.04)
     }
 
     private var deloadColor: Color {
@@ -1162,9 +1162,9 @@ struct PushPullRatioCard: View {
             if total > 0 {
                 VStack(spacing: 6) {
                     ForEach([
-                        ("PUSH", data.pushVolume, Color.forge),
-                        ("PULL", data.pullVolume, Color.blue),
-                        ("LEGS", data.legsVolume, Color.green),
+                        ("PUSH", data.pushVolume, AppTheme.shared.chartColor(0)),
+                        ("PULL", data.pullVolume, AppTheme.shared.chartColor(1)),
+                        ("LEGS", data.legsVolume, AppTheme.shared.chartColor(2)),
                     ], id: \.0) { label, vol, color in
                         HStack(spacing: 8) {
                             Text(label)

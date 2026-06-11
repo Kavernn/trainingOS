@@ -152,7 +152,7 @@ private struct SessionProgressionDetailCard: View {
                 .font(.appMicro)
                 .foregroundColor(.white.opacity(0.30))
 
-            Divider().background(Color.white.opacity(0.08))
+            Divider().background(Color.appSeparatorStrong)
 
             HStack(spacing: 0) {
                 MetricBlock(

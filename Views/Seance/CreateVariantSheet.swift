@@ -150,7 +150,7 @@ struct CreateVariantSheet: View {
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
 
-                        Divider().background(Color.white.opacity(0.08))
+                        Divider().background(Color.appSeparatorStrong)
 
                         infoRow(icon: "dumbbell.fill",     label: "Équipement", value: typeLabel(selectedType))
                         infoRow(icon: "figure.strengthtraining.traditional", label: "Muscles",

@@ -112,7 +112,7 @@ struct ReadinessSheet: View {
                         ForEach(mods.indices, id: \.self) { i in
                             ModuleRow(mod: mods[i])
                             if i < mods.count - 1 {
-                                Divider().background(Color.white.opacity(0.05)).padding(.leading, 16)
+                                Divider().background(Color.appSeparatorSubtle).padding(.leading, 16)
                             }
                         }
                     }
@@ -127,7 +127,7 @@ struct ReadinessSheet: View {
                             ForEach(groups.indices, id: \.self) { i in
                                 MuscleRow(key: groups[i].key, rec: groups[i].value)
                                 if i < groups.count - 1 {
-                                    Divider().background(Color.white.opacity(0.05)).padding(.leading, 16)
+                                    Divider().background(Color.appSeparatorSubtle).padding(.leading, 16)
                                 }
                             }
                         }

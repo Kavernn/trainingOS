@@ -978,7 +978,7 @@ struct HRZonesCard: View {
             Text("Basé sur \(hrValues.count) session(s) avec FC")
                 .font(.caption).foregroundColor(.secondary)
         }
-        .padding(14).glassCard().cornerRadius(14)
+        .padding(14).glassCard()
         .alert("FC maximale", isPresented: $showMaxHRInput) {
             TextField("Ex: 190", text: $maxHRStr).keyboardType(.numberPad)
             Button("OK") { if let v = Int(maxHRStr), v > 100 { onSetMaxHR(v) } }
@@ -1133,7 +1133,7 @@ struct CardioDistanceChart: View {
             }
             .frame(height: 70)
         }
-        .padding(16).glassCard(color: .teal, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: .teal, intensity: 0.05)
     }
 }
 

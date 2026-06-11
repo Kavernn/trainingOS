@@ -56,6 +56,8 @@ extension Color {
     static var appTextMuted:       Color { AppTheme.shared.textMuted }
     static var onAccent:           Color { AppTheme.shared.onAccent }
     static var appSeparator:       Color { AppTheme.shared.separator }
+    static var appSeparatorSubtle: Color { AppTheme.shared.separatorSubtle }
+    static var appSeparatorStrong: Color { AppTheme.shared.separatorStrong }
     static let trendPositive = Color(hex: "34C759")  // data viz — positive trend indicator (intentional fixed)
     static let trendNeutral  = Color(hex: "FF9500")  // data viz — neutral/stable indicator (intentional fixed)
     static let trendNegative = Color(hex: "FF6B6B")  // data viz — negative trend indicator (intentional fixed)

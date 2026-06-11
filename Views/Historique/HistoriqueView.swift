@@ -573,7 +573,7 @@ struct MuscuSessionCard: View {
             // Expanded body
             if isExpanded {
                 VStack(spacing: 0) {
-                    Divider().background(Color.white.opacity(0.07))
+                    Divider().background(Color.appSeparator)
 
                     if !session.exos.isEmpty {
                         VStack(spacing: 0) {
@@ -602,7 +602,7 @@ struct MuscuSessionCard: View {
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
-                                Divider().background(Color.white.opacity(0.04)).padding(.leading, 14)
+                                Divider().background(Color.appSeparatorSubtle).padding(.leading, 14)
                             }
                         }
                     }
@@ -686,7 +686,7 @@ struct HIITSessionCard: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                Divider().background(Color.white.opacity(0.07))
+                Divider().background(Color.appSeparator)
                 VStack(spacing: 8) {
                     HStack(spacing: 16) {
                         if let wt = session.workTime {

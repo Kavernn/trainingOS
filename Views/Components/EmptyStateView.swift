@@ -118,7 +118,7 @@ struct EmptyStateView: View {
             .glassCard()
             .padding(.horizontal)
 
-            Divider().background(Color.white.opacity(0.1))
+            Divider().background(Color.appSeparatorStrong)
 
             Text("COMPACT — inline liste").font(.caption).foregroundColor(.secondary)
 

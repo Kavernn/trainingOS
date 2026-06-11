@@ -172,7 +172,7 @@ struct AdherenceRingsCard: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
         .alert("Consistance", isPresented: $showFuelInfo) {
             Button("OK", role: .cancel) {}
         } message: {

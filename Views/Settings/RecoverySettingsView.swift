@@ -79,7 +79,7 @@ struct RecoverySettingsView: View {
                     .padding(.vertical, 3)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Sensibilité HRV") {
                     ForEach(sensitivityOptions, id: \.id) { option in
@@ -115,7 +115,7 @@ struct RecoverySettingsView: View {
                         .listRowBackground(Color.clear)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)

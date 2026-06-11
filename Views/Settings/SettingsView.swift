@@ -12,7 +12,7 @@ struct SettingsView: View {
                             subtitle: "Nom, âge, objectif, photo") { ProfileView() }
                 }
                 .listRowBackground(glassRowBG(.purple))
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Entraînement") {
                     MoreRow(icon: "dumbbell.fill", color: Color.forge,
@@ -26,7 +26,7 @@ struct SettingsView: View {
                             subtitle: "FC max, objectif hebdo") { CardioSettingsView() }
                 }
                 .listRowBackground(glassRowBG(Color.forge))
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Récupération") {
                     MoreRow(icon: "bed.double.fill", color: .indigo,
@@ -37,7 +37,7 @@ struct SettingsView: View {
                             subtitle: "Cycles 90 min, fenêtre personnalisée") { SmartAlarmSettingsView() }
                 }
                 .listRowBackground(glassRowBG(.indigo))
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Préférences") {
                     MoreRow(icon: "bell.badge.fill", color: .red,
@@ -51,7 +51,7 @@ struct SettingsView: View {
                             subtitle: "HealthKit, export") { HealthDataSettingsView() }
                 }
                 .listRowBackground(glassRowBG(.cyan))
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)

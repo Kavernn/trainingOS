@@ -56,7 +56,7 @@ struct CardioSettingsView: View {
                     .listRowBackground(Color.clear)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Objectif hebdomadaire") {
                     HStack(spacing: 12) {
@@ -80,7 +80,7 @@ struct CardioSettingsView: View {
                     .colorScheme(.dark)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)

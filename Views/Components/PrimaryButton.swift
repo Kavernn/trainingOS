@@ -80,7 +80,7 @@ struct PrimaryButton: View {
         case .filled:
             RoundedRectangle(cornerRadius: cornerRadius).fill(Color.forge)
         case .destructive:
-            RoundedRectangle(cornerRadius: cornerRadius).fill(Color.red)
+            RoundedRectangle(cornerRadius: cornerRadius).fill(Color.appDanger)
         case .outlined, .ghost:
             Color.clear
         }

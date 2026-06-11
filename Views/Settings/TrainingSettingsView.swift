@@ -32,7 +32,7 @@ struct TrainingSettingsView: View {
                     .tint(Color.forge)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Progression") {
                     if units.isKg {
@@ -64,7 +64,7 @@ struct TrainingSettingsView: View {
                     }
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Échauffement") {
                     warmupRow(label: "Set 1", pct: $warmupPct1, range: 10...70)
@@ -76,7 +76,7 @@ struct TrainingSettingsView: View {
                         .listRowBackground(Color.clear)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)

@@ -336,7 +336,7 @@ struct BodyMetricsCard: View {
                 Spacer()
             }
         }
-        .padding(14).glassCard(color: Color.forge, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: Color.forge, intensity: 0.05)
     }
 }
 
@@ -370,7 +370,7 @@ struct CardioSummaryCard: View {
                 }
             }
         }
-        .padding(14).glassCard(color: .teal, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: .teal, intensity: 0.05)
     }
 }
 
@@ -418,7 +418,7 @@ struct TrainingSummaryCard: View {
                     .lineLimit(2)
             }
         }
-        .padding(14).glassCard(color: Color.forge, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: Color.forge, intensity: 0.05)
     }
 }
 
@@ -451,7 +451,7 @@ struct NutritionSummaryHealthCard: View {
                 }
             }
         }
-        .padding(14).glassCard(color: Color.forge, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: Color.forge, intensity: 0.05)
     }
 }
 
@@ -502,7 +502,7 @@ struct WeeklySleepChart: View {
             }
             .frame(height: 80)
         }
-        .padding(14).glassCard(color: .blue, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: .blue, intensity: 0.05)
         .sheet(item: $selectedDay) { day in
             HealthDayDetailSheet(day: day)
         }
@@ -556,7 +556,7 @@ struct WeeklyStepsChart: View {
             }
             .frame(height: 80)
         }
-        .padding(14).glassCard(color: .green, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: .green, intensity: 0.05)
         .sheet(item: $selectedDay) { day in
             HealthDayDetailSheet(day: day)
         }

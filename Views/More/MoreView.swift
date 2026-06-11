@@ -40,7 +40,7 @@ struct MoreView: View {
                         MoreRow(icon: "bolt.heart.fill", color: Color.forge, title: "Énergie & Récupération") { EnergyRecoveryView() }
                     }
                     .listRowBackground(glassRowBG(Color.appDanger))
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Entraînement") {
                         MoreRow(icon: "calendar",              color: .teal,                    title: "Historique") { HistoriqueView() }
@@ -49,7 +49,7 @@ struct MoreView: View {
                         MoreRow(icon: "mappin.and.ellipse",    color: Color.appWarning,     title: "Gym Finder") { GymFinderView() }
                     }
                     .listRowBackground(glassRowBG(.blue))
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Corps & Santé") {
                         MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Tableau santé")         { HealthDashboardView() }
@@ -59,7 +59,7 @@ struct MoreView: View {
                                 subtitle: "Mesures · Pratique · The Void")                { MentalAmeView() }
                     }
                     .listRowBackground(glassRowBG(.green))
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Esprit & Identité") {
                         MoreRow(icon: "lock.shield.fill",     color: Color.forge,                   title: "War Room",   subtitle: "Résistance aux habitudes difficiles") { WarRoomGateView() }
@@ -70,7 +70,7 @@ struct MoreView: View {
                         MoreRow(icon: "seal.fill",            color: .black,                        title: "Mon serment")   { OathGateView() }
                     }
                     .listRowBackground(glassRowBG(.indigo))
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Réglages") {
                         MoreRow(icon: "gearshape.fill",   color: .purple, title: "Paramètres",
@@ -80,7 +80,7 @@ struct MoreView: View {
                         MoreRow(icon: "note.text",        color: .blue,   title: "Notes")         { NotesView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .listRowSeparatorTint(Color.appSeparator)
                 }
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)

@@ -27,7 +27,7 @@ struct HealthDataSettingsView: View {
                     }
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Données") {
                     HStack(spacing: 12) {
@@ -47,7 +47,7 @@ struct HealthDataSettingsView: View {
                     .padding(.vertical, 3)
                 }
                 .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.white.opacity(0.06))
+                .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)

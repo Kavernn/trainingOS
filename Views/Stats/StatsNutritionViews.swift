@@ -153,9 +153,9 @@ struct ProteinComplianceView: View {
 
             HStack(spacing: 0) {
                 compKPI("\(Int(complianceRate * 100))%", "jours atteints", complianceRate >= 0.8 ? .green : complianceRate >= 0.5 ? .orange : .red)
-                Divider().background(Color.white.opacity(0.07)).frame(height: 36)
+                Divider().background(Color.appSeparator).frame(height: 36)
                 compKPI("\(hitCount)/\(statuses.count)", "jours trackés", .blue)
-                Divider().background(Color.white.opacity(0.07)).frame(height: 36)
+                Divider().background(Color.appSeparator).frame(height: 36)
                 compKPI("\(Int(avgProteines))g", "moy. / jour", avgProteines >= protTarget ? .green : .orange)
             }
 
@@ -437,7 +437,7 @@ struct NutritionVsPerfView: View {
                 }
             }
         }
-        .padding(16).glassCard().cornerRadius(14)
+        .padding(16).glassCard()
     }
 
     @ViewBuilder private var miniDualChart: some View {

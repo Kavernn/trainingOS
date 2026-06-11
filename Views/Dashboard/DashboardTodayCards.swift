@@ -96,7 +96,7 @@ struct TodayCardView: View {
             }
             .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 12)
 
-            Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 16)
+            Divider().background(Color.appSeparator).padding(.horizontal, 16)
 
             if isLoggedToday {
                 // ── Récap séance loggée ───────────────────────────────────
@@ -653,7 +653,7 @@ struct SoirCardView: View {
             }
             .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 12)
 
-            Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 16)
+            Divider().background(Color.appSeparator).padding(.horizontal, 16)
 
             if !exercises.isEmpty && !data.alreadyLogged {
                 VStack(spacing: 0) {

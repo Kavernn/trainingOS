@@ -33,7 +33,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
 
             Group {
                 if step == 0 { splashStep.transition(.asymmetric(insertion: .opacity, removal: .opacity)) }
@@ -421,7 +421,7 @@ struct HRVOnboardingView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
 
             Circle()
                 .fill(pageAccent.opacity(0.08))

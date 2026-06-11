@@ -59,7 +59,7 @@ struct RecoveryRow: View {
                             Image(systemName: "trash")
                                 .font(.appCaption)
                                 .frame(width: 26, height: 26)
-                                .background(Color.red.opacity(0.1))
+                                .background(Color.appDanger.opacity(0.1))
                                 .foregroundColor(.red.opacity(0.7))
                                 .clipShape(RoundedRectangle(cornerRadius: 7))
                         }

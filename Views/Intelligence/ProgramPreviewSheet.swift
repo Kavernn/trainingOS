@@ -87,7 +87,7 @@ struct ProgramPreviewSheet: View {
                         .padding(.bottom, 10)
                 }
 
-                Divider().background(Color.white.opacity(0.07))
+                Divider().background(Color.appSeparator)
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 8) {
@@ -305,7 +305,7 @@ private struct DayCard: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                Divider().background(Color.white.opacity(0.06))
+                Divider().background(Color.appSeparator)
                 VStack(spacing: 0) {
                     ForEach(Array(day.exercises.enumerated()), id: \.offset) { idx, ex in
                         ProgramExerciseRow(exercise: ex,

@@ -107,11 +107,11 @@ struct GymDetailView: View {
                 if let open = gym.isOpenNow {
                     HStack(spacing: 5) {
                         Circle()
-                            .fill(open ? Color.green : Color.red)
+                            .fill(open ? Color.appSuccess : Color.appDanger)
                             .frame(width: 6, height: 6)
                         Text(open ? "Ouvert" : "Fermé")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(open ? .green : .red)
+                            .foregroundColor(open ? Color.appSuccess : Color.appDanger)
                     }
                 }
             }
@@ -173,7 +173,7 @@ struct GymDetailView: View {
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 5)
-                            .background(Color.green.opacity(0.08))
+                            .background(Color.appSuccess.opacity(0.08))
                             .cornerRadius(7)
                         }
                     }
@@ -402,7 +402,7 @@ struct AdaptWorkoutSheet: View {
                         Spacer()
                     }
                     .padding(8)
-                    .background((ok ? Color.green : Color.red).opacity(0.08))
+                    .background((ok ? Color.appSuccess : Color.appDanger).opacity(0.08))
                     .cornerRadius(8)
                 }
             }

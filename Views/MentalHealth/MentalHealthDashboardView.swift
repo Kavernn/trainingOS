@@ -51,13 +51,13 @@ struct MentalHealthDashboardView: View {
         HStack(spacing: 0) {
             MHKPICell(label: "Humeur moy.", value: s.avgMood.map { String(format: "%.1f", $0) } ?? "–",
                       unit: "/10", color: moodColor(s.avgMood))
-            Divider().background(Color.white.opacity(0.1))
+            Divider().background(Color.appSeparatorStrong)
             MHKPICell(label: "Séances BW", value: "\(s.breathworkSessions)",
                       unit: "sessions", color: .green)
-            Divider().background(Color.white.opacity(0.1))
+            Divider().background(Color.appSeparatorStrong)
             MHKPICell(label: "Self-Care", value: "\(Int(s.selfCareRate * 100))",
                       unit: "%", color: s.selfCareRate >= 0.7 ? .green : .orange)
-            Divider().background(Color.white.opacity(0.1))
+            Divider().background(Color.appSeparatorStrong)
             MHKPICell(label: "Journal", value: "\(s.journalEntries)",
                       unit: "entrées", color: .blue)
         }

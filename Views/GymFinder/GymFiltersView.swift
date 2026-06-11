@@ -63,7 +63,7 @@ struct GymFiltersView: View {
                 .tint(Color.forge)
                 .padding(.vertical, 8)
 
-                Divider().background(Color.white.opacity(0.06))
+                Divider().background(Color.appSeparator)
 
                 Toggle(isOn: $vm.filters.dropInOnly) {
                     Label("Drop-in confirmé seulement", systemImage: "dollarsign.circle.fill")

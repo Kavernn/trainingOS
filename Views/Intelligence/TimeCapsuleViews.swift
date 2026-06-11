@@ -622,7 +622,7 @@ private struct SnapshotPreviewCard: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 11)
                 if i < rows.count - 1 {
-                    Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
+                    Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
                 }
             }
         }
@@ -813,7 +813,7 @@ struct TimeCapsuleRevealView: View {
                         ForEach(metrics.indices, id: \.self) { i in
                             ComparisonRow(metric: metrics[i], visible: i < staggerIndex)
                             if i < metrics.count - 1 {
-                                Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
+                                Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
                             }
                         }
                     }

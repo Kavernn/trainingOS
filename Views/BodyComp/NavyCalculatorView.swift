@@ -229,7 +229,7 @@ struct NavyCalculatorView: View {
                 }
             }
 
-            Divider().background(Color.white.opacity(0.06)).padding(.vertical, 12)
+            Divider().background(Color.appSeparator).padding(.vertical, 12)
 
             if let e = bodyComp.latest {
                 measuresRow(e)

@@ -151,7 +151,7 @@ struct TimerView: View {
                     phaseColor: phaseColor
                 )
 
-                Divider().background(Color.white.opacity(0.07))
+                Divider().background(Color.appSeparator)
 
                 // Settings — PRÉPARE, WORK, REST, ROUNDS (désactivés pendant le run)
                 VStack(spacing: 10) {

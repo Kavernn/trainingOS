@@ -31,46 +31,58 @@ extension Font {
 struct GlassCard: ViewModifier {
     var color: Color = .white   // kept for call-site compatibility, unused
     var intensity: Double = 0.06
-    var cornerRadius: CGFloat = 16
+    var cornerRadius: CGFloat? = nil  // nil = use AppTheme.cardCornerRadius
+
+    private var resolvedRadius: CGFloat {
+        cornerRadius ?? AppTheme.shared.cardCornerRadius
+    }
 
     func body(content: Content) -> some View {
         content
             .background(
-                RoundedRectangle(cornerRadius: cornerRadius)
+                RoundedRectangle(cornerRadius: resolvedRadius)
                     .fill(Color.appCard)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(Color.forge.opacity(AppTheme.shared.glassOpacity), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: resolvedRadius)
+                    .stroke(AppTheme.shared.cardBorderColor, lineWidth: AppTheme.shared.cardBorderWidth)
             )
-            .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
+            .clipShape(RoundedRectangle(cornerRadius: resolvedRadius))
+            .shadow(color: AppTheme.shared.cardGlowColor, radius: AppTheme.shared.cardGlowRadius, x: 0, y: 0)
+            .shadow(color: AppTheme.shared.cardShadowColor, radius: AppTheme.shared.cardShadowRadius,
+                    x: AppTheme.shared.cardShadowOffset.width, y: AppTheme.shared.cardShadowOffset.height)
     }
 }
 
 struct GlassCardAccent: ViewModifier {
     var accent: Color
-    var cornerRadius: CGFloat = 16
+    var cornerRadius: CGFloat? = nil  // nil = use AppTheme.cardCornerRadius
+
+    private var resolvedRadius: CGFloat {
+        cornerRadius ?? AppTheme.shared.cardCornerRadius
+    }
 
     func body(content: Content) -> some View {
         content
             .background(
-                RoundedRectangle(cornerRadius: cornerRadius)
+                RoundedRectangle(cornerRadius: resolvedRadius)
                     .fill(Color.appCard)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius)
+                RoundedRectangle(cornerRadius: resolvedRadius)
                     .stroke(accent.opacity(0.25), lineWidth: 1)
             )
+            .clipShape(RoundedRectangle(cornerRadius: resolvedRadius))
             .shadow(color: accent.opacity(0.10), radius: 12, x: 0, y: 4)
     }
 }
 
 extension View {
-    func glassCard(color: Color = .white, intensity: Double = 0.06, cornerRadius: CGFloat = 16) -> some View {
+    func glassCard(color: Color = .white, intensity: Double = 0.06, cornerRadius: CGFloat? = nil) -> some View {
         modifier(GlassCard(color: color, intensity: intensity, cornerRadius: cornerRadius))
     }
 
-    func glassCardAccent(_ accent: Color, cornerRadius: CGFloat = 16) -> some View {
+    func glassCardAccent(_ accent: Color, cornerRadius: CGFloat? = nil) -> some View {
         modifier(GlassCardAccent(accent: accent, cornerRadius: cornerRadius))
     }
 }
@@ -154,11 +166,7 @@ struct FAB: View {
             ZStack {
                 Circle()
                     .fill(
-                        LinearGradient(
-                            colors: [Color.forge, Color.forgeDeep],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        AppTheme.shared.accentGradient(startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
                     .frame(width: 58, height: 58)
                     .shadow(color: Color.forge.opacity(0.30), radius: 12, x: 0, y: 6)
@@ -388,7 +396,6 @@ struct StatCard: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .glassCard(color: isNull ? .gray : color, intensity: isNull ? 0.02 : 0.05)
-        .cornerRadius(12)
     }
 }
 

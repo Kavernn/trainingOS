@@ -225,7 +225,7 @@ struct AlreadyLoggedSeanceView: View {
                                         }
                                     }
                                     .padding(.vertical, 6)
-                                    Divider().background(Color.white.opacity(0.04))
+                                    Divider().background(Color.appSeparatorSubtle)
                                 }
                             }
                         }
@@ -348,7 +348,7 @@ struct AlreadyLoggedSeanceView: View {
                                         .foregroundColor(.gray)
                                 }
                                 .padding(.vertical, 6)
-                                Divider().background(Color.white.opacity(0.04))
+                                Divider().background(Color.appSeparatorSubtle)
                             }
                             if tomorrowExercises.count > 5 {
                                 Text("+ \(tomorrowExercises.count - 5) exercices")
@@ -1088,7 +1088,7 @@ struct FinishRemainingSheet: View {
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 10)
                                 .background(Color.appBg)
-                                Divider().background(Color.white.opacity(0.06))
+                                Divider().background(Color.appSeparator)
                             }
                         }
                     }
