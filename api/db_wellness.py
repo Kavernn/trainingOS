@@ -362,7 +362,7 @@ def get_breathwork_sessions(days: int = 30) -> List[dict]:
         resp = (
             db_core._client.table("breathwork_sessions")
             .select("*")
-            .not_("technique_id", "is", "null")
+            .filter("technique_id", "not.is", "null")
             .gte("date", cutoff)
             .order("date", desc=True)
             .execute()
