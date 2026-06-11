@@ -183,12 +183,12 @@ enum CoachMemoryAnalyzer {
         var results: [CoachMemoryEntry] = []
         let today = DateFormatter.isoDate.string(from: Date())
 
-        // 1. PATTERN — preferred training days
-        if let dayPattern = preferredTrainingDays(sessions: sessions) {
+        // 1. PATTERN — training consistency (adherence over recent weeks)
+        if let consistency = trainingConsistency(sessions: sessions) {
             results.append(CoachMemoryEntry(
                 id: "pattern.training.days",
                 type: .pattern,
-                content: "S'entraîne préférentiellement \(dayPattern)",
+                content: consistency,
                 createdAt: today, updatedAt: today, confidence: 0.8
             ))
         }
@@ -314,27 +314,28 @@ enum CoachMemoryAnalyzer {
 
     // MARK: - Analysis helpers
 
-    private static func preferredTrainingDays(sessions: [String: SessionEntry]) -> String? {
+    private static func trainingConsistency(sessions: [String: SessionEntry]) -> String? {
         guard sessions.count >= 8 else { return nil }
-        var dayCounts: [Int: Int] = [:]
+
+        var weekCounts: [String: Int] = [:]
+        let cal = Calendar(identifier: .iso8601)
         for dateStr in sessions.keys {
             guard let date = DateFormatter.isoDate.date(from: dateStr) else { continue }
-            // Pure timestamp weekday — avoids Calendar.current.component on iOS 26
-            // Jan 1, 1970 = Thursday = weekday 5 (Calendar: 1=Sun … 7=Sat)
-            let epochDays = Int(date.timeIntervalSince1970 / 86400)
-            let weekday = ((epochDays + 4) % 7) + 1
-            dayCounts[weekday, default: 0] += 1
+            let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+            guard let yr = comps.yearForWeekOfYear, let wk = comps.weekOfYear else { continue }
+            let key = String(format: "%d-W%02d", yr, wk)
+            weekCounts[key, default: 0] += 1
         }
-        // Use top-3 days by count with a relative threshold (≥60% of the most frequent day)
-        // — avoids the 30% absolute threshold that silently returns nil for 4-5 day/week trainees
-        guard let maxCount = dayCounts.values.max() else { return nil }
-        let preferred = dayCounts
-            .filter { Double($0.value) >= Double(maxCount) * 0.6 }
-            .sorted { $0.value > $1.value }
-            .prefix(3)
-            .map { dayName($0.key) }
-        guard !preferred.isEmpty else { return nil }
-        return preferred.joined(separator: "/")
+        guard weekCounts.count >= 4 else { return nil }
+
+        let counts   = weekCounts.values.sorted()
+        let median   = counts[counts.count / 2]
+        let total    = weekCounts.count
+        let onPlan   = weekCounts.values.filter { $0 >= median }.count
+        let adherPct = Int(Double(onPlan) / Double(total) * 100)
+        let avg      = Double(counts.reduce(0, +)) / Double(total)
+
+        return "Cohérence plan : \(String(format: "%.1f", avg)) séances/sem en moy. — \(adherPct)% des semaines complètes (\(total) sem. analysées)"
     }
 
     private static func rpePattern(sessions: [String: SessionEntry]) -> String? {
@@ -386,18 +387,6 @@ enum CoachMemoryAnalyzer {
         return "Charge maximale actuelle : \(name) à \(UnitSettings.shared.format(w, decimals: 0))"
     }
 
-    private static func dayName(_ weekday: Int) -> String {
-        switch weekday {
-        case 1: return "dim"
-        case 2: return "lun"
-        case 3: return "mar"
-        case 4: return "mer"
-        case 5: return "jeu"
-        case 6: return "ven"
-        case 7: return "sam"
-        default: return "?"
-        }
-    }
 
     // MARK: - New analyzers
 
