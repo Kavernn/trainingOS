@@ -999,27 +999,32 @@ struct PatternVolumeView: View {
                         .foregroundColor(pushPullBalance)
                 }
             }
-            GeometryReader { outer in
-                let barW = max(0, outer.size.width - 102)
-                VStack(spacing: 10) {
-                    ForEach(entries, id: \.0) { name, vol, color in
-                        let pct = CGFloat(maxVal > 0 ? vol / maxVal : 0)
-                        HStack(spacing: 8) {
-                            Text(name)
-                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
-                                .frame(width: 42, alignment: .leading)
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(color.opacity(0.7))
-                                .frame(width: max(0, barW * pct), height: 14)
-                            Spacer(minLength: 0)
-                            Text(_formatK(units.display(vol)))
-                                .font(.system(size: 10)).foregroundColor(.gray)
-                                .frame(width: 44, alignment: .trailing)
+            if entries.isEmpty {
+                Text("Aucun mouvement logué sur les 4 dernières semaines")
+                    .font(.appCaption).foregroundColor(.gray).italic()
+            } else {
+                GeometryReader { outer in
+                    let barW = max(0, outer.size.width - 102)
+                    VStack(spacing: 10) {
+                        ForEach(entries, id: \.0) { name, vol, color in
+                            let pct = CGFloat(maxVal > 0 ? vol / maxVal : 0)
+                            HStack(spacing: 8) {
+                                Text(name)
+                                    .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                                    .frame(width: 42, alignment: .leading)
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(color.opacity(0.7))
+                                    .frame(width: max(0, barW * pct), height: 14)
+                                Spacer(minLength: 0)
+                                Text(_formatK(units.display(vol)))
+                                    .font(.system(size: 10)).foregroundColor(.gray)
+                                    .frame(width: 44, alignment: .trailing)
+                            }
                         }
                     }
                 }
+                .frame(height: CGFloat(entries.count) * 24 - 10)
             }
-            .frame(height: entries.isEmpty ? 0 : CGFloat(entries.count) * 24 - 10)
         }
         .padding(14)
         .background(Color.appCard)
