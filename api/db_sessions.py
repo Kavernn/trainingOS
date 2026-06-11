@@ -748,33 +748,37 @@ def get_exercise_detail_history(exercise_name: str, limit: int = 10) -> List[dic
         return []
 
 
-def get_all_exercise_history(cutoff_days: int = 180) -> dict:
+def get_all_exercise_history(cutoff_days: int = 180, full_history: bool = False) -> dict:
     """Return {exercise_name: [{date, weight, reps}]} for all exercises in one query.
 
     Used by load_weights() to avoid N+1 per-exercise queries.
-    Filters to the last cutoff_days (default 180) to cap egress.
+    Pass full_history=True for callers that need all-time data (PRs, graveyard).
+    Otherwise the SQL query is bounded by cutoff_days — no Python-side full scan.
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return {}
     from datetime import date as _date, timedelta
-    cutoff = (_date.today() - timedelta(days=cutoff_days)).isoformat()
+    cutoff = None if full_history else (_date.today() - timedelta(days=cutoff_days)).isoformat()
     page_size = 1000
 
     def _do() -> dict:
         result: dict = {}
         offset = 0
         while True:
-            resp = (
+            q = (
                 db_core._client.table("exercise_logs")
                 .select("weight, reps, sets_json, exercises(name), workout_sessions(date)")
-                .range(offset, offset + page_size - 1)
-                .execute()
             )
+            if cutoff:
+                q = q.gte("workout_sessions.date", cutoff)
+            resp = q.range(offset, offset + page_size - 1).execute()
             rows = resp.data or []
             for r in rows:
                 name = (r.get("exercises") or {}).get("name")
                 date = (r.get("workout_sessions") or {}).get("date")
-                if not name or not date or date < cutoff:
+                if not name or not date:
+                    continue
+                if cutoff and date < cutoff:  # safety net
                     continue
                 entry = {"date": date, "weight": r.get("weight"), "reps": r.get("reps")}
                 sets_json = r.get("sets_json")

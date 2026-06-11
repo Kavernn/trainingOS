@@ -940,7 +940,7 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
 
         if goal_type == "estimated_1rm":
             # Best estimated 1RM across all exercises: weight * (1 + reps/30)
-            history = get_all_exercise_history()
+            history = get_all_exercise_history(cutoff_days=90)
             best = 0.0
             for logs in history.values():
                 for entry in logs[:10]:  # check last 10 sessions per exercise

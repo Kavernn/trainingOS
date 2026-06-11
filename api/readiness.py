@@ -416,7 +416,7 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
     Volume multiplicateur : >6 sets → +25% threshold, >9 sets → +50% (MacDougall 1995).
     Soreness modifier — DOMS direct (Hooper & Mackinnon 1995).
     """
-    all_hist  = db.get_all_exercise_history() or {}
+    all_hist  = db.get_all_exercise_history(cutoff_days=7) or {}
     ex_info   = db.get_exercises_info_bulk(list(all_hist.keys())) if all_hist else {}
     from utils import _now_mtl
     today_dt  = _now_mtl()
@@ -453,24 +453,20 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
     if not relevant:
         return 85.0, {"no_recent_training": True}, {}
 
-    def _count_sets_for_cat(cat: str) -> int:
-        session_date = cat_date.get(cat, "")
-        if not session_date:
-            return 0
-        total = 0
-        for ex_name, entries in all_hist.items():
-            if not entries:
-                continue
-            if str(entries[0].get("date") or "")[:10] != session_date:
-                continue
-            info = ex_info.get(ex_name) or {}
-            if (info.get("category") or "other").lower() != cat:
-                continue
-            sets_val = entries[0].get("sets") or entries[0].get("nb_sets") or 0
-            if isinstance(sets_val, list):
-                sets_val = len(sets_val)
-            total += int(sets_val)
-        return total
+    # Pre-index sets by (cat, date) — single pass replaces O(n×cats) inner loops
+    _sets_by_date_cat: dict[tuple[str, str], int] = {}
+    for _ex, _entries in all_hist.items():
+        if not _entries:
+            continue
+        _d = str(_entries[0].get("date") or "")[:10]
+        if not _d:
+            continue
+        _info = ex_info.get(_ex) or {}
+        _cat  = (_info.get("category") or "other").lower()
+        _sv   = _entries[0].get("sets") or _entries[0].get("nb_sets") or 0
+        if isinstance(_sv, list):
+            _sv = len(_sv)
+        _sets_by_date_cat[(_cat, _d)] = _sets_by_date_cat.get((_cat, _d), 0) + int(_sv)
 
     exp_mult = _get_experience_mult()
 
@@ -482,7 +478,7 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
         lp        = cat_profile.get(cat, "compound_hypertrophy")
         threshold = float(_RECOVERY_H.get(lp, _DEFAULT_RECOVERY_H))
 
-        vol_sets = _count_sets_for_cat(cat)
+        vol_sets = _sets_by_date_cat.get((cat, cat_date.get(cat, "")), 0)
         if vol_sets > _VOL_THRESHOLD_VERY_HIGH:
             threshold *= _VOL_MULT_VERY_HIGH
         elif vol_sets > _VOL_THRESHOLD_HIGH:

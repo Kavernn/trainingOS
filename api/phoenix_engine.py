@@ -45,7 +45,7 @@ def _find_stagnant_exercise(history: dict) -> str | None:
 
 
 def _workout_axis(last7: set[str], prior7: set[str]) -> tuple[float, dict]:
-    history = db.get_all_exercise_history() or {}
+    history = db.get_all_exercise_history(cutoff_days=14) or {}
     sessions_raw = db.get_workout_sessions(limit=50) or []
 
     last_sessions  = [s for s in sessions_raw if s.get("date") in last7  and s.get("completed")]

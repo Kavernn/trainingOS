@@ -217,7 +217,7 @@ def _load_context(days: int = 90) -> dict[str, dict]:
 def _load_ex_by_date(days: int = 90) -> dict[str, dict[str, float]]:
     """Return {exercise: {date: max_volume}} for last N days."""
     cutoff  = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
-    ex_hist = db.get_all_exercise_history() or {}
+    ex_hist = db.get_all_exercise_history(cutoff_days=90) or {}
     result: dict[str, dict[str, float]] = defaultdict(dict)
     for name, entries in ex_hist.items():
         for e in entries:

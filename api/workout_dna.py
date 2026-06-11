@@ -507,7 +507,7 @@ def compute(period_days: int = 90) -> dict:
         return cached["data"]
 
     try:
-        history  = db.get_all_exercise_history()
+        history  = db.get_all_exercise_history(full_history=True)
         ex_info  = db.get_exercises_info_bulk(list(history.keys()))
 
         ppl               = _compute_ppl(history, ex_info, period_days)

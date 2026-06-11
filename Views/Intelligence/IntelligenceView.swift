@@ -1130,7 +1130,10 @@ struct IntelligenceView: View {
 
     private func loadProactiveInsights() async {
         do {
-            let result = try await APIService.shared.fetchProactiveInsights()
+            let cached = try? await APIService.shared.fetchReadiness()
+            let result = try await APIService.shared.fetchProactiveInsights(
+                readinessScore: cached.map { Double($0.score) }
+            )
             await MainActor.run { proactiveInsights = result }
             if let push = result.pushInsight {
                 NotificationService.scheduleProactiveAlert(

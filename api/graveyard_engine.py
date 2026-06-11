@@ -73,7 +73,7 @@ def _best_1rm_from_entry(entry: dict) -> float:
 # ── PR_KILLED ─────────────────────────────────────────────────────────────────
 
 def _pr_killed_tombstones() -> list[dict]:
-    history = db.get_all_exercise_history() or {}
+    history = db.get_all_exercise_history(full_history=True) or {}
     results = []
 
     for exercise_name, ex_data in history.items():

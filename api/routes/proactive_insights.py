@@ -531,10 +531,16 @@ def api_intelligence_insights():
 @proactive_insights_bp.route("/api/coach/proactive_insights")
 def api_proactive_insights():
     try:
+        from flask import request as _req
         recovery = _recent_recovery(days=7)
         acwr     = _acwr_data()
         hrv      = _hrv_analysis()
-        ready    = _readiness_score()
+        # Accept pre-computed score from caller to skip readiness.compute()
+        _rs = _req.args.get("readiness_score")
+        try:
+            ready = float(_rs) if _rs is not None else _readiness_score()
+        except (ValueError, TypeError):
+            ready = _readiness_score()
 
         # Évaluer les dimensions
         d10 = _check_d10(acwr)

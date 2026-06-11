@@ -60,7 +60,7 @@ def _working_sets(days: int = 28) -> dict[str, list[dict]]:
     """
     cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
 
-    history       = db.get_all_exercise_history()     # {name: [{date, weight, reps}]} newest-first
+    history       = db.get_all_exercise_history(cutoff_days=28)     # {name: [{date, weight, reps}]} newest-first
     exercises_meta = db.get_exercises() or {}
 
     best_by_date: dict[str, dict[str, dict]] = defaultdict(dict)

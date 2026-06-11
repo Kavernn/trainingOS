@@ -45,7 +45,7 @@ def load_weights(exercise_names: list[str] | None = None, limit_per: int = 20) -
         if exercise_names:
             all_history = db.get_exercise_history_bulk(exercise_names, limit_per=limit_per)
         else:
-            all_history = db.get_all_exercise_history()
+            all_history = db.get_all_exercise_history(cutoff_days=90)
         if not isinstance(all_history, dict):
             return {}
 

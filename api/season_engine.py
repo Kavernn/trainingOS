@@ -93,7 +93,7 @@ def _current_war_room_streak() -> int:
 
 def _compute_top_prs() -> list[dict]:
     """Top 5 exercises by max weight ever lifted."""
-    history = db.get_all_exercise_history() or {}
+    history = db.get_all_exercise_history(full_history=True) or {}
     prs: list[dict] = []
     for name, data in history.items():
         max_w = 0.0
@@ -170,7 +170,12 @@ def compute_season_stats(start_date: str, end_date: str, start_prs: list) -> dic
             cur_streak = 0
 
     # PRs broken — compare start PRs vs best achieved during period
-    history = db.get_all_exercise_history() or {}
+    try:
+        _days = (date.today() - date.fromisoformat(start_date)).days + 1
+    except (ValueError, TypeError, AttributeError):
+        _days = 0
+    history = db.get_all_exercise_history(full_history=True) if _days <= 0 else db.get_all_exercise_history(cutoff_days=_days)
+    history = history or {}
     start_pr_map = {p["exercise"]: p.get("weight_lbs", 0) for p in (start_prs or [])}
     prs_broken = []
     for name, data in history.items():

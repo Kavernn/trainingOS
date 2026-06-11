@@ -27,8 +27,12 @@ extension APIService {
         return try APIService.decoder.decode(IntelligenceInsightsResponse.self, from: data).insights
     }
 
-    func fetchProactiveInsights() async throws -> ProactiveInsightsResponse {
-        let url = try buildURL(path: "/api/coach/proactive_insights")
+    func fetchProactiveInsights(readinessScore: Double? = nil) async throws -> ProactiveInsightsResponse {
+        var items: [URLQueryItem] = []
+        if let score = readinessScore {
+            items.append(URLQueryItem(name: "readiness_score", value: String(score)))
+        }
+        let url = try buildURL(path: "/api/coach/proactive_insights", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "proactive_insights")
         return try APIService.decoder.decode(ProactiveInsightsResponse.self, from: data)
     }
