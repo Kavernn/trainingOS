@@ -180,7 +180,6 @@
 		EPF003AA00300B2F5D0001 /* EnergyPerformanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */; };
 		ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ER001000ER001000ER001000 /* EnergyRecoveryView.swift */; };
 		F2EA55F129F3462CBACE25FF /* CoachMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */; };
-		F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */; };
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
 		FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1100002F5D98BA002AE470 /* WatchSyncService.swift */; };
 		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
@@ -230,7 +229,6 @@
 		NA0011NA0011NA0011NA0011 /* ScanLabelSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0011NR0011NR0011NR0011 /* ScanLabelSheet.swift */; };
 		NA0012NA0012NA0012NA0012 /* MealTemplateSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */; };
 		NA0013NA0013NA0013NA0013 /* BarcodeScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0013NR0013NR0013NR0013 /* BarcodeScannerSheet.swift */; };
-		NHLS002NHLS002NHLS002002 /* NHLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NHLS001NHLS001NHLS001001 /* NHLService.swift */; };
 		NOTSC002NOTSC002NOTSC002 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */; };
 		NPC001AA00300B2F5D0001 /* NutritionPerformanceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */; };
 		NPC002AA00300B2F5D0001 /* APIService+NutritionPerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */; };
@@ -582,7 +580,6 @@
 		EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyPerformanceCard.swift; sourceTree = "<group>"; };
 		ER001000ER001000ER001000 /* EnergyRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyRecoveryView.swift; sourceTree = "<group>"; };
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoButton.swift; sourceTree = "<group>"; };
-		F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachTipCard.swift; sourceTree = "<group>"; };
 		F4D4DE4EE839463B0D4AB746 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioActiveView.swift; sourceTree = "<group>"; };
 		FCEBA1D5B9BA47DD98CD46E2 /* InsightPrincipalCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightPrincipalCard.swift; sourceTree = "<group>"; };
@@ -619,7 +616,6 @@
 		MBL002AA00300B2F5D0000 /* APIService+MuscleBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+MuscleBalance.swift"; sourceTree = "<group>"; };
 		MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleBalanceCard.swift; sourceTree = "<group>"; };
 		MC000001MC000001MC000001 /* MetricCell.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetricCell.swift; sourceTree = "<group>"; };
-		NHLS001NHLS001NHLS001001 /* NHLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NHLService.swift; sourceTree = "<group>"; };
 		NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerformanceModels.swift; sourceTree = "<group>"; };
 		NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+NutritionPerformance.swift"; sourceTree = "<group>"; };
@@ -1168,7 +1164,6 @@
 				APISL001APISL001APISL001 /* APIService+Sleep.swift */,
 				APIEN001APIEN001APIEN001 /* APIService+Energy.swift */,
 				NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */,
-				NHLS001NHLS001NHLS001001 /* NHLService.swift */,
 				D0FE1CA8525F46319027AD6D /* AlertService.swift */,
 				27D3508F57CBFDAD2C6FDA2D /* HealthKitService.swift */,
 				AA1100012F5D98BA002AE470 /* NetworkMonitor.swift */,
@@ -1258,7 +1253,6 @@
 				CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */,
 				D68B8535D55F4B109509F146 /* MorningRevealView.swift */,
 				919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */,
-				F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */,
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */,
 				A8115703CA371513172F372F /* DashboardViewModel.swift */,
 				TDYW001TDYW001TDYW001001 /* TodayWidgets.swift */,
@@ -1762,7 +1756,6 @@
 				APISL002APISL002APISL002 /* APIService+Sleep.swift in Sources */,
 				APIEN002APIEN002APIEN002 /* APIService+Energy.swift in Sources */,
 				NOTSC002NOTSC002NOTSC002 /* NotificationScheduler.swift in Sources */,
-				NHLS002NHLS002NHLS002002 /* NHLService.swift in Sources */,
 				TDYW002TDYW002TDYW002002 /* TodayWidgets.swift in Sources */,
 				D665E44D2F5D98BA002AE470 /* TrainingOSApp.swift in Sources */,
 				D665E44E2F5D98BA002AE470 /* ProfileView.swift in Sources */,
@@ -1825,7 +1818,6 @@
 				329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */,
 				15AFE1BFA7B8487CBEECB98C /* ProactiveAlert.swift in Sources */,
 				CF49E6FEF95E455D9F84D443 /* CoachBriefCard.swift in Sources */,
-				F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* InfoButton.swift in Sources */,
 				AA00200A2F5D98BA002AE470 /* InventaireView.swift in Sources */,
 				AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */,
