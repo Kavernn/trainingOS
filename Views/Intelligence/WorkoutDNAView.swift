@@ -352,8 +352,8 @@ private struct WorkoutDNAInlineContent: View {
 
     private func intensityTrend(_ months: [DNAIntensityMonth]) -> String? {
         guard months.count >= 2 else { return nil }
-        let first = months.first!.strengthPct
-        let last  = months.last!.strengthPct
+        let first = months[0].strengthPct
+        let last  = months[months.count - 1].strengthPct
         let delta = last - first
         if delta > 8  { return "↑ Plus lourd" }
         if delta < -8 { return "↓ Plus de volume" }

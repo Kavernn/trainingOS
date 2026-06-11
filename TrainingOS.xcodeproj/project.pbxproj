@@ -146,6 +146,7 @@
 		D665E44F2F5D98BA002AE470 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43A2F5D98B8002AE470 /* Extensions.swift */; };
 		D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43C2F5D98B8002AE470 /* DashboardView.swift */; };
 		D665E4512F5D98BA002AE470 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = D665E4362F5D98B8002AE470 /* README.md */; };
+		596D048F4196405588738734 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B554A58CFDED45048F4B16FD /* PrivacyInfo.xcprivacy */; };
 		D665E4552F5D98BA002AE470 /* DashboardWellnessCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75686E58001949C3B9BD69C3 /* DashboardWellnessCards.swift */; };
 		D665E4562F5D98BA002AE470 /* DashboardWeeklyCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */; };
 		D665E4572F5D98BA002AE470 /* DashboardReadinessCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */; };
@@ -534,6 +535,7 @@
 		D665E4332F5D98B8002AE470 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D665E4342F5D98B8002AE470 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
 		D665E4362F5D98B8002AE470 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		B554A58CFDED45048F4B16FD /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D665E4372F5D98B8002AE470 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		D665E4392F5D98B8002AE470 /* TrainingOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingOSApp.swift; sourceTree = "<group>"; };
 		D665E43A2F5D98B8002AE470 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -768,29 +770,21 @@
 		};
 		D68A5C452FD0CE6600B824DF /* VinceSeven Watch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch App";
 			sourceTree = "<group>";
 		};
 		D68A5C532FD0CE6800B824DF /* VinceSeven Watch Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppTests";
 			sourceTree = "<group>";
 		};
 		D68A5C5D2FD0CE6800B824DF /* VinceSeven Watch Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppUITests";
 			sourceTree = "<group>";
 		};
 		D69FB9062F666F3F0091BDD2 /* TrainingOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TrainingOSTests;
 			sourceTree = "<group>";
 		};
@@ -1067,6 +1061,7 @@
 				4F39BE5140557B375DC19C45 /* Frameworks */,
 				C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */,
 				3804A04195775D974B912B1B /* TrainingOS.entitlements */,
+				B554A58CFDED45048F4B16FD /* PrivacyInfo.xcprivacy */,
 				21673EE755A64B20E32A146E /* TrainingOSUITests */,
 			);
 			sourceTree = "<group>";
@@ -1690,6 +1685,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D665E4512F5D98BA002AE470 /* README.md in Resources */,
+				596D048F4196405588738734 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
