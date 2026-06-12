@@ -3,23 +3,9 @@ import SwiftUI
 struct ReadinessCard: View {
     let entry: RecoveryEntry
     var backendScore: Double? = nil
-    var hrv7dBaseline: Double? = nil
-
-    private var localScore: Double? {
-        var total = 0.0; var weight = 0.0
-        if let q   = entry.sleepQuality { total += q * 1.5;                                      weight += 1.5 }
-        if let s   = entry.soreness, s > 0 { total += max(0, 10 - s) * 1.5;                      weight += 1.5 }
-        if let h   = entry.sleepHours   { total += min(10, h / 8 * 10) * 1.5;                    weight += 1.5 }
-        if let hrv = entry.hrv          { let ref = hrv7dBaseline ?? 60.0; total += min(10, hrv / ref * 10) * 4.0; weight += 4.0 }
-        if let hr  = entry.restingHr, hr <= 100 { total += min(10, max(0, (85 - hr) / 45 * 10)) * 1.5;   weight += 1.5 }
-        if let f   = entry.fatigue      { total += max(0, 10 - f) * 1.0;                         weight += 1.0 }
-        if let ep  = entry.energyPre    { total += min(10, ep) * 0.5;                             weight += 0.5 }
-        return weight >= 2.0 ? round(total / weight * 10) / 10 : nil
-    }
 
     private var score: Double? {
-        if let b = backendScore { return b / 10.0 }
-        return localScore
+        backendScore.map { $0 / 10.0 }
     }
 
     private var scoreColor: Color {
