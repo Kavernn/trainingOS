@@ -30,10 +30,11 @@ DAY_NAMES = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Diman
 
 
 def _epley_1rm(weight: float, reps: int) -> float:
-    """Epley 1RM estimate — simple proxy for strength level."""
-    if reps <= 0:
+    if reps <= 0 or reps > 15:
         return weight
-    return weight * (1.0 + reps / 30.0)
+    if reps <= 10:
+        return round(weight * (1.0 + reps / 30.0), 1)    # Epley (1985)
+    return round(weight * (36.0 / (37.0 - reps)), 1)     # Brzycki (1993)
 
 
 def _to_float(v, default: float = 0.0) -> float:

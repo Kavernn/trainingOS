@@ -44,7 +44,9 @@ def _epley(weight_lbs: float, reps: int) -> float:
     r = min(reps, 20)
     if r <= 1:
         return weight_lbs
-    return weight_lbs * (1.0 + r / 30.0)
+    if r <= 10:
+        return round(weight_lbs * (1.0 + r / 30.0), 1)   # Epley (1985)
+    return round(weight_lbs * (36.0 / (37.0 - r)), 1)    # Brzycki (1993)
 
 
 def _round_lbs(w: float, step: float = 5.0) -> float:
