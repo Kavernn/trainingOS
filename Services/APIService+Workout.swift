@@ -33,7 +33,7 @@ extension APIService {
         if !painZone.isEmpty { body["pain_zone"] = painZone }
         if !notes.isEmpty { body["notes"] = notes }
         guard let data = try await offlinePost(endpoint: "/api/log", payload: body) else {
-            return LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
+            return LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil, baselineCount: nil, confidence: nil)
         }
         if invalidate { CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate() }
         do {
