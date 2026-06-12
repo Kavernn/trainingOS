@@ -329,7 +329,7 @@ struct NotificationCenterView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.appBody.weight(.medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(subtitle)
                     .font(.appCaption)
                     .foregroundColor(.secondary)

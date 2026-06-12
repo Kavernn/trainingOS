@@ -101,7 +101,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("Message...", text: $input, axis: .vertical)
                     .font(.appBody)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .tint(.purple)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)

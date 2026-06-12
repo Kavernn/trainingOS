@@ -65,7 +65,7 @@ struct StageLegendItem: View {
                 .foregroundColor(.gray)
             Text(String(format: "%.0fmin", hours * 60))
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
         }
     }
 }
@@ -113,7 +113,7 @@ struct ReadinessScoreCard: View {
                 VStack(spacing: 1) {
                     Text("\(score)")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .contentTransition(.numericText())
                     Text("/ 100")
                         .font(.appCaption.weight(.medium))
@@ -173,7 +173,7 @@ struct ReadinessMetricRow: View {
                 .foregroundColor(.gray)
             Text(value)
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
         }
     }
 }

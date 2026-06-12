@@ -280,7 +280,7 @@ struct MoodCardView: View {
                         .foregroundColor(.gray)
                     Text("Aujourd'hui — où tu en es ?")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -335,7 +335,7 @@ struct SleepPromptCard: View {
                     .foregroundColor(.blue)
                 Text("Ton sommeil cette nuit")
                     .font(.appBody.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Spacer()
                 Button {
                     onDone() // dismiss without saving
@@ -498,7 +498,7 @@ struct DashboardInsightsCard: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(insight.title)
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text(insight.message)
                             .font(.appCaption)
                             .foregroundColor(.gray)

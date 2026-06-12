@@ -275,7 +275,7 @@ private struct MesuresTab: View {
                             .font(.title2).foregroundColor(.purple)
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Stress & PSS")
-                                .font(.headline).foregroundColor(.white)
+                                .font(.headline).foregroundColor(.appTextPrimary)
                             Text(stressSubtitle)
                                 .font(.caption).foregroundColor(.white.opacity(0.6))
                         }
@@ -308,7 +308,7 @@ private struct MesuresTab: View {
                 NavigationLink { MentalHealthDashboardView() } label: {
                     HStack {
                         Label("Résumé & insights", systemImage: "chart.bar.fill")
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Spacer()
                         Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.4))
                     }
@@ -493,7 +493,7 @@ private struct MoodQuickLogCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     if let entry = todayEntry {
                         Text("Humeur loggée")
-                            .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                            .font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
                         if !entry.emotions.isEmpty {
                             Text(entry.emotions.prefix(3).joined(separator: " · "))
                                 .font(.caption).foregroundColor(.white.opacity(0.6)).lineLimit(1)
@@ -503,7 +503,7 @@ private struct MoodQuickLogCard: View {
                         }
                     } else {
                         Text(moodDue?.isDue == true ? "Note ton humeur" : "Comment tu te sens ?")
-                            .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                            .font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
                         Text("30 secondes · émotions + score")
                             .font(.caption).foregroundColor(.white.opacity(0.6))
                     }
@@ -578,7 +578,7 @@ struct MHMenuCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: icon).font(.title2).foregroundColor(color)
-            Text(title).font(.headline).foregroundColor(.white)
+            Text(title).font(.headline).foregroundColor(.appTextPrimary)
             Text(subtitle).font(.caption).foregroundColor(.white.opacity(0.6)).lineLimit(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

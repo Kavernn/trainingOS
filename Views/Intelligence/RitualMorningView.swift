@@ -56,7 +56,7 @@ struct EngagementAddressingView: View {
 
             Text("Tes engagements d'hier")
                 .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
 
             if let ts = ritual.engagementsCreatedAt {
                 Text(ts)

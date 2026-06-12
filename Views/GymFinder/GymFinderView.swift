@@ -116,7 +116,7 @@ struct GymFinderView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Workout du jour détecté")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text("Filtrer : \(vm.workoutEquipmentSuggestion.map(\.label).joined(separator: ", "))")
                         .font(.appCaption)
                         .foregroundColor(.white.opacity(0.5))
@@ -235,7 +235,7 @@ struct GymFinderView: View {
             VStack(spacing: 8) {
                 Text("Position requise")
                     .font(.appTitle.weight(.bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text("Gym Finder utilise ta position localement pour trouver les salles à proximité. Ta position n'est jamais envoyée à nos serveurs.")
                     .font(.appLabel.weight(.regular))
                     .foregroundColor(.white.opacity(0.45))
@@ -302,7 +302,7 @@ struct GymCard: View {
                 HStack(spacing: 6) {
                     Text(gym.name)
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .lineLimit(1)
                     if isFavorite {
                         Image(systemName: "star.fill")

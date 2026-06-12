@@ -368,7 +368,7 @@ struct ProgrammeView: View {
                                             .foregroundColor(.gray)
                                         Text(clipboardLabel)
                                             .font(.appLabel.weight(.semibold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.appTextPrimary)
                                     }
                                     Spacer()
                                     Button {
@@ -467,7 +467,7 @@ struct ProgrammeView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\"\(item.name)\" retiré du programme")
                                     .font(.appLabel)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                                 Text("L'inventaire n'est pas affecté")
                                     .font(.appCaption)
                                     .foregroundColor(.gray)
@@ -1602,7 +1602,7 @@ struct ExerciseRow: View {
             HStack(spacing: 10) {
                 Text(name)
                     .font(.appLabel.weight(.medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if isSupersetted {
                     Text("SS")
@@ -1690,7 +1690,7 @@ struct AddExerciseSheet: View {
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundColor(.gray)
                         TextField("Nom de l'exercice...", text: $name)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         if !name.isEmpty {
                             Button { name = "" } label: {
                                 Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
@@ -1757,7 +1757,7 @@ struct AddExerciseSheet: View {
                                                     .foregroundColor(Color.forge.opacity(0.7))
                                                 Text(ex)
                                                     .font(.appLabel)
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(.appTextPrimary)
                                                     .lineLimit(1)
                                             }
                                             .padding(.horizontal, 12).padding(.vertical, 7)
@@ -1785,7 +1785,7 @@ struct AddExerciseSheet: View {
                             .foregroundColor(.gray)
                         TextField("ex: 4x6-8", text: $scheme)
                             .font(.appLabel)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .padding(8)
                             .background(Color.appCard)
                             .cornerRadius(8)
@@ -1805,7 +1805,7 @@ struct AddExerciseSheet: View {
                             } label: {
                                 HStack {
                                     Text(ex)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.appTextPrimary)
                                         .font(.appLabel.weight(.regular))
                                     Spacer()
                                     Text(muscleGroup(for: ex))
@@ -1895,7 +1895,7 @@ struct EditSchemeSheet: View {
                             .padding(.horizontal)
                         TextField("Nom", text: $name)
                             .font(.appHeadline.weight(.regular))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .padding()
                             .background(Color.appCard)
                             .cornerRadius(10)
@@ -1910,7 +1910,7 @@ struct EditSchemeSheet: View {
                             .padding(.horizontal)
                         TextField("ex: 4x6-8", text: $scheme)
                             .font(.appHeadline.weight(.regular))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .padding()
                             .background(Color.appCard)
                             .cornerRadius(10)
@@ -2363,7 +2363,7 @@ struct CreateSeanceSheet: View {
                             .padding(.horizontal)
                         TextField("ex: Upper A, Core, Mobility…", text: $name)
                             .font(.appHeadline.weight(.regular))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .padding()
                             .background(Color.appCard)
                             .cornerRadius(10)

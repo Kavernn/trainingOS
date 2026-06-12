@@ -115,7 +115,7 @@ struct MorningRevealView: View {
 
                             Text(morningBrief.sessionToday.isEmpty ? title : morningBrief.sessionToday)
                                 .font(.system(size: 30, weight: .black, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
 
                             Text(morningBrief.message)
                                 .font(.appLabel)
@@ -253,7 +253,7 @@ private struct RevealComponentChip: View {
                 .foregroundColor(color)
             Text(qualityLabel)
                 .font(.appCaption.weight(.bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Text(label)
                 .font(.appMicro.weight(.medium))
                 .foregroundColor(.white.opacity(0.45))

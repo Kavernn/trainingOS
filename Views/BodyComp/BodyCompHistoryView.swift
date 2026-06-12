@@ -136,7 +136,7 @@ struct BodyCompHistoryView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.date, style: .date)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(entry.date, style: .time)
                     .font(.appCaption)
                     .foregroundColor(.gray)

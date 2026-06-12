@@ -103,7 +103,7 @@ struct StartSessionBanner: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Commencer la séance")
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text("Le chrono démarre maintenant")
                         .font(.system(size: 12))
                         .foregroundColor(.gray)

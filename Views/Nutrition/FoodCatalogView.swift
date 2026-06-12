@@ -24,7 +24,7 @@ struct FoodCatalogView: View {
                                 .foregroundColor(Color.forge)
                             Text("Modifications non synchronisées")
                                 .font(.appLabel)
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                             Spacer()
                             Button {
                                 Task { await syncCatalog(items) }
@@ -61,7 +61,7 @@ struct FoodCatalogView: View {
                                             HStack {
                                                 Text(item.name)
                                                     .font(.system(size: 14, weight: .semibold))
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(.appTextPrimary)
                                                 Spacer()
                                                 Text("pour \(formatQty(item.refQty)) \(item.refUnit)")
                                                     .font(.system(size: 12))
@@ -220,7 +220,7 @@ struct FoodItemFormView: View {
                 Form {
                     Section("ALIMENT") {
                         TextField("Nom", text: $name)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .focused($foodFocus, equals: .name)
                             .submitLabel(.next)
                             .onSubmit { foodFocus = .qty }
@@ -232,7 +232,7 @@ struct FoodItemFormView: View {
                             TextField("Quantité", text: $refQty)
                                 .keyboardType(.decimalPad)
                                 .focused($foodFocus, equals: .qty)
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                             Picker("", selection: $refUnit) {
                                 ForEach(units, id: \.self) { Text($0) }
                             }
@@ -251,22 +251,22 @@ struct FoodItemFormView: View {
                     Section("MACROS POUR CETTE QUANTITÉ") {
                         HStack {
                             TextField("Calories", text: $calories)
-                                .keyboardType(.decimalPad).focused($foodFocus, equals: .calories).foregroundColor(.white)
+                                .keyboardType(.decimalPad).focused($foodFocus, equals: .calories).foregroundColor(.appTextPrimary)
                             Text("kcal").foregroundColor(.gray).font(.appLabel)
                         }
                         HStack {
                             TextField("Protéines", text: $proteines)
-                                .keyboardType(.decimalPad).focused($foodFocus, equals: .proteines).foregroundColor(.white)
+                                .keyboardType(.decimalPad).focused($foodFocus, equals: .proteines).foregroundColor(.appTextPrimary)
                             Text("g").foregroundColor(.gray).font(.appLabel)
                         }
                         HStack {
                             TextField("Glucides", text: $glucides)
-                                .keyboardType(.decimalPad).focused($foodFocus, equals: .glucides).foregroundColor(.white)
+                                .keyboardType(.decimalPad).focused($foodFocus, equals: .glucides).foregroundColor(.appTextPrimary)
                             Text("g").foregroundColor(.gray).font(.appLabel)
                         }
                         HStack {
                             TextField("Lipides", text: $lipides)
-                                .keyboardType(.decimalPad).focused($foodFocus, equals: .lipides).foregroundColor(.white)
+                                .keyboardType(.decimalPad).focused($foodFocus, equals: .lipides).foregroundColor(.appTextPrimary)
                             Text("g").foregroundColor(.gray).font(.appLabel)
                         }
                     }

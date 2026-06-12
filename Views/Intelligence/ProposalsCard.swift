@@ -22,7 +22,7 @@ struct ProposalsCard: View {
                         .font(.system(size: 16))
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(p.jour).font(.appCaption.weight(.bold)).foregroundColor(.white)
+                            Text(p.jour).font(.appCaption.weight(.bold)).foregroundColor(.appTextPrimary)
                             if !p.exercise.isEmpty {
                                 Text("·").foregroundColor(.gray)
                                 Text(p.exercise).font(.appCaption).foregroundColor(.purple)

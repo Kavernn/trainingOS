@@ -67,7 +67,7 @@ struct CorrelationRow: View {
                     HStack {
                         Text(insight.label)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Spacer()
                         Text(insight.strength)
                             .font(.system(size: 10, weight: .medium))

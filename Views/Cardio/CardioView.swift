@@ -284,7 +284,7 @@ struct ActiveSessionBanner: View {
             HStack(spacing: 10) {
                 Circle().fill(Color.red).frame(width: 8, height: 8)
                 Text("Session en cours — Tap pour reprendre")
-                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                 Spacer()
                 Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
             }
@@ -443,7 +443,7 @@ struct CardioMetricCard: View {
                     .font(.appCaption).foregroundColor(.gray.opacity(0.5))
             }
             Text(value)
-                .font(.system(size: 26, weight: .bold)).foregroundColor(.white)
+                .font(.system(size: 26, weight: .bold)).foregroundColor(.appTextPrimary)
             if !guide.isEmpty {
                 Text(guide)
                     .font(.appCaption).foregroundColor(.secondary)
@@ -494,7 +494,7 @@ struct CardioMetricDetailSheet: View {
                                 }
                             }
                             Text(value)
-                                .font(.system(size: 40, weight: .heavy)).foregroundColor(.white)
+                                .font(.system(size: 40, weight: .heavy)).foregroundColor(.appTextPrimary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(18).background(color.opacity(0.07)).cornerRadius(16)
@@ -530,7 +530,7 @@ struct CardioMetricDetailSheet: View {
                 Text(title).font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
             }
             Text(content)
-                .font(.appLabel.weight(.regular)).foregroundColor(.white).lineSpacing(3)
+                .font(.appLabel.weight(.regular)).foregroundColor(.appTextPrimary).lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -583,7 +583,7 @@ struct FCZonesSummaryCard: View {
                         Circle().fill(color).frame(width: 6, height: 6)
                         Text(name).font(.appCaption).foregroundColor(.gray).frame(width: 80, alignment: .leading)
                         Spacer()
-                        Text(range).font(.appCaption.weight(.medium)).foregroundColor(.white)
+                        Text(range).font(.appCaption.weight(.medium)).foregroundColor(.appTextPrimary)
                     }
                 }
             }
@@ -638,7 +638,7 @@ struct PaceZonesCard: View {
                         Circle().fill(color).frame(width: 6, height: 6)
                         Text(name).font(.appCaption).foregroundColor(.gray).frame(width: 70, alignment: .leading)
                         Spacer()
-                        Text(range + " /km").font(.appCaption.weight(.medium)).foregroundColor(.white)
+                        Text(range + " /km").font(.appCaption.weight(.medium)).foregroundColor(.appTextPrimary)
                     }
                 }
             }
@@ -722,7 +722,7 @@ struct CardioHistoryDetailSheet: View {
                 Image(systemName: cardioIcon(e.type)).font(.appTitle.weight(.regular)).foregroundColor(cardioColor(e.type))
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(e.type?.capitalized ?? "Séance").font(.appHeadline.weight(.bold)).foregroundColor(.white)
+                Text(e.type?.capitalized ?? "Séance").font(.appHeadline.weight(.bold)).foregroundColor(.appTextPrimary)
                 Text(e.date ?? "—").font(.appLabel.weight(.regular)).foregroundColor(.gray)
             }
             Spacer()
@@ -769,7 +769,7 @@ struct CardioHistoryDetailSheet: View {
                 Text("HIIT").font(.appCaption.weight(.black)).foregroundColor(.red)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(e.sessionType ?? "HIIT").font(.appHeadline.weight(.bold)).foregroundColor(.white)
+                Text(e.sessionType ?? "HIIT").font(.appHeadline.weight(.bold)).foregroundColor(.appTextPrimary)
                 Text(e.date ?? "—").font(.appLabel.weight(.regular)).foregroundColor(.gray)
             }
             Spacer()
@@ -792,7 +792,7 @@ struct CardioHistoryDetailSheet: View {
     func detailSection(title: String, content: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
-            Text(content).font(.appLabel.weight(.regular)).foregroundColor(.white)
+            Text(content).font(.appLabel.weight(.regular)).foregroundColor(.appTextPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -853,7 +853,7 @@ struct HIITHistoryRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.sessionType ?? "HIIT")
-                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                 Text(entry.date ?? "")
                     .font(.appCaption).foregroundColor(.gray)
                 hiitDetails
@@ -998,7 +998,7 @@ struct CardioProgressionCard: View {
                 Text("PROGRESSION — \(type.uppercased())")
                     .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                 Text(msg)
-                    .font(.appLabel.weight(.regular)).foregroundColor(.white)
+                    .font(.appLabel.weight(.regular)).foregroundColor(.appTextPrimary)
             }
             Spacer()
         }
@@ -1027,7 +1027,7 @@ struct CardioRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(typeLabel)
-                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                 Text(entry.date ?? "")
                     .font(.appCaption).foregroundColor(.gray)
             }
@@ -1207,7 +1207,7 @@ struct LogCardioSheet: View {
                             Text("NOTES").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                             TextField("Commentaire...", text: $notes, axis: .vertical)
                                 .lineLimit(3, reservesSpace: true)
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .padding(12)
                                 .background(Color.appSurfaceInset)
                                 .cornerRadius(10)
@@ -1277,7 +1277,7 @@ struct CardioField: View {
             Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .padding(10)
                 .background(Color.appSurfaceInset)
                 .cornerRadius(8)

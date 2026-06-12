@@ -33,7 +33,7 @@ struct PatternDailyCard: View {
             // Headline
             Text(pattern.headline)
                 .font(.appBody.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)
 
@@ -387,7 +387,7 @@ struct MacroThresholdDetail: View {
                 }
                 Text("Ton seuil optimal : \(Int(t.value))\(t.unit) de \(macroLabel) la veille")
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 HStack(spacing: 4) {
                     Circle()
                         .fill(pattern.confidence == "forte" ? Color.green : Color.yellow)

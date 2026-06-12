@@ -35,7 +35,7 @@ struct CoachGreetingHeader: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(greeting), \(firstName)")
                     .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(formattedDate + " · Sem. \(dash.week)")
                     .font(.appLabel)
                     .foregroundColor(Color.white.opacity(0.38))

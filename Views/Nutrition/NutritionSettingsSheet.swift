@@ -61,11 +61,11 @@ struct NutritionSettingsSheet: View {
                 Form {
                     Section(header: Text("MACROS FIXES (TOUS LES JOURS)")) {
                         HStack {
-                            TextField("180", text: $proteines).keyboardType(.numberPad).foregroundColor(.white)
+                            TextField("180", text: $proteines).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
                             Text("g protéines").foregroundColor(.blue).font(.appLabel)
                         }
                         HStack {
-                            TextField("75", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
+                            TextField("75", text: $lipides).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
                             Text("g lipides").foregroundColor(.pink).font(.appLabel)
                         }
                     }
@@ -89,7 +89,7 @@ struct NutritionSettingsSheet: View {
 
                     Section(header: Text("FENÊTRE NUTRITIONNELLE")) {
                         DatePicker("Fin de journée", selection: $endTime, displayedComponents: .hourAndMinute)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .tint(Color.forge)
                     }
                     .listRowBackground(Color.appCard)
@@ -171,7 +171,7 @@ private struct DayTypeRow: View {
             HStack(spacing: 8) {
                 TextField(calPlaceholder, text: $cal)
                     .keyboardType(.numberPad)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .frame(width: 60)
                 Text("kcal")
                     .foregroundColor(.gray)
@@ -179,7 +179,7 @@ private struct DayTypeRow: View {
                 Spacer()
                 TextField(glucPlaceholder, text: $gluc)
                     .keyboardType(.numberPad)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .frame(width: 50)
                     .multilineTextAlignment(.trailing)
                 Text("g glucides")

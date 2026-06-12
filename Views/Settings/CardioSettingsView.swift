@@ -30,7 +30,7 @@ struct CardioSettingsView: View {
                         HStack(spacing: 12) {
                             settingsIcon("heart.fill", color: .red)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("FC max personnelle").font(.appBody.weight(.medium)).foregroundColor(.white)
+                                Text("FC max personnelle").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                                 Text("Utilisée pour calculer vos zones cardio").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                             }
                             Spacer()
@@ -62,7 +62,7 @@ struct CardioSettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("calendar.badge.checkmark", color: .teal)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Minutes de cardio par semaine").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Minutes de cardio par semaine").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Recommandation ACSM : 150 min/semaine").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                     }

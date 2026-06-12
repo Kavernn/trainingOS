@@ -77,7 +77,7 @@ private struct RecoveryDayCell: View {
                         .foregroundColor(color)
                     Text(v)
                         .font(.appLabel.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .lineLimit(1).minimumScaleFactor(0.65)
                     Text(label)
                         .font(.appMicro.weight(.medium))
@@ -602,24 +602,6 @@ struct RecoveryView: View {
             }
             .navigationTitle("Récupération")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { AppTheme.shared.debugTintedSurfaces.toggle() } label: {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(theme.debugTintedSurfaces ? Color.forge : Color.gray.opacity(0.45))
-                                .frame(width: 7, height: 7)
-                            Text(theme.debugTintedSurfaces ? "TEINTÉ" : "NEUTRE")
-                                .font(.appMicro.weight(.bold))
-                                .tracking(0.8)
-                                .foregroundColor(theme.debugTintedSurfaces ? Color.forge : Color.gray)
-                        }
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(Capsule())
-                    }
-                }
-            }
             .sheet(isPresented: $showSheet) {
                 LogRecoverySheet(onSaved: { await loadData() })
             }
@@ -1096,7 +1078,7 @@ struct RecoveryView: View {
                         Image(systemName: "heart.text.square.fill")
                             .font(.appLabel).foregroundColor(.red)
                         Text("\(entriesMissingHK.count) entrée\(entriesMissingHK.count > 1 ? "s" : "") sans FC/HRV")
-                            .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             .lineLimit(1)
                         Spacer()
                         Button { Task { await backfillFromHealthKit() } } label: {

@@ -419,7 +419,7 @@ struct SelfCareStreaksView: View {
                         .foregroundColor(Color.forge)
                         .frame(width: 20)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(s.habitName).font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                        Text(s.habitName).font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
                         Text("Meilleure série : \(s.longestStreak) jours")
                             .font(.system(size: 10)).foregroundColor(.gray)
                     }
@@ -967,7 +967,7 @@ struct SleepDebtCard: View {
                     if let avg = avgSleep {
                         VStack(alignment: .trailing, spacing: 4) {
                             Text(String(format: "%.1fh", avg))
-                                .font(.system(size: 28, weight: .black)).foregroundColor(.white)
+                                .font(.system(size: 28, weight: .black)).foregroundColor(.appTextPrimary)
                             Text("moy. / nuit").font(.appCaption).foregroundColor(.gray)
                         }
                     }

@@ -67,7 +67,7 @@ struct CoachInsightCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(alert.title)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(alert.message)
                     .font(.appCaption)
                     .foregroundColor(.white.opacity(0.75))

@@ -53,7 +53,7 @@ private struct PhoenixDetailSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fermer") { dismiss() }
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                 }
             }
         }

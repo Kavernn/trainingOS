@@ -113,7 +113,7 @@ struct ScanLabelSheet: View {
                         .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.gray)
                     TextField("1", text: $quantity)
                         .keyboardType(.decimalPad)
-                        .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
+                        .font(.system(size: 16, weight: .semibold)).foregroundColor(.appTextPrimary)
                         .padding(12)
                         .background(Color.white.opacity(0.06))
                         .cornerRadius(10)
@@ -170,24 +170,24 @@ struct ScanLabelSheet: View {
     private var reviewView: some View {
         Form {
             Section("ALIMENT") {
-                TextField("Nom", text: $nom).foregroundColor(.white)
+                TextField("Nom", text: $nom).foregroundColor(.appTextPrimary)
                 HStack {
-                    TextField("Calories", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
+                    TextField("Calories", text: $calories).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                     Text("kcal").foregroundColor(.gray).font(.appLabel)
                 }
             }.listRowBackground(Color.appCard)
 
             Section("MACROS") {
                 HStack {
-                    TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.white)
+                    TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                     Text("g").foregroundColor(.gray).font(.appLabel)
                 }
                 HStack {
-                    TextField("Glucides", text: $glucides).keyboardType(.decimalPad).foregroundColor(.white)
+                    TextField("Glucides", text: $glucides).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                     Text("g").foregroundColor(.gray).font(.appLabel)
                 }
                 HStack {
-                    TextField("Lipides", text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
+                    TextField("Lipides", text: $lipides).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                     Text("g").foregroundColor(.gray).font(.appLabel)
                 }
             }.listRowBackground(Color.appCard)
@@ -197,12 +197,12 @@ struct ScanLabelSheet: View {
                     HStack {
                         Text("Fibres").foregroundColor(.gray)
                         Spacer()
-                        Text("\(fibres)g").foregroundColor(.white)
+                        Text("\(fibres)g").foregroundColor(.appTextPrimary)
                     }
                     HStack {
                         Text("Sodium").foregroundColor(.gray)
                         Spacer()
-                        Text("\(sodium)mg").foregroundColor(.white)
+                        Text("\(sodium)mg").foregroundColor(.appTextPrimary)
                     }
                 }.listRowBackground(Color.appCard)
             }

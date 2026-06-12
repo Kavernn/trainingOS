@@ -312,7 +312,7 @@ struct MHSectionCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             Label(title, systemImage: icon)
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             content()
         }
         .padding(16)

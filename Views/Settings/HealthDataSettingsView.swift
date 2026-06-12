@@ -10,7 +10,7 @@ struct HealthDataSettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("heart.text.square.fill", color: .pink)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Permissions HealthKit").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Permissions HealthKit").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Gérer depuis les Réglages iOS > Santé > Accès aux apps").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
@@ -33,7 +33,7 @@ struct HealthDataSettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("square.and.arrow.up.fill", color: .gray)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Exporter mes données").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Exporter mes données").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Bientôt disponible").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()

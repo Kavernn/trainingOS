@@ -287,7 +287,7 @@ struct QuickWarRoomTriggerSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("J'ai cédé")
                                 .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                             Text("Cochez si vous avez succombé à la tentation.")
                                 .font(.appCaption)
                                 .foregroundColor(.gray)
@@ -371,7 +371,7 @@ struct QuickBattleSheet: View {
                 VStack(spacing: 28) {
                     Text("Comment s'est terminée la journée ?")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
 

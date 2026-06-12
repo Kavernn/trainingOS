@@ -130,7 +130,7 @@ struct ProgressionSuggestionsSheet: View {
                     HStack(spacing: 12) {
                         Text("Progression appliquée ↑")
                             .font(.appLabel)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Spacer()
                         Button("Annuler") { undoApply(info) }
                             .font(.appLabel.weight(.semibold))
@@ -231,7 +231,7 @@ private struct SuggestionRow: View {
                     .frame(width: 22)
                 Text(suggestion.exerciseName)
                     .font(.appBody.weight(.bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
             }
 
             // Ligne 2 : poids current → suggested (masqué pour rep_progress et maintain)

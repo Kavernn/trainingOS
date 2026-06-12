@@ -554,7 +554,7 @@ struct TimerStepperRow: View {
             Text(label)
                 .font(.appLabel.weight(.bold))
                 .tracking(1)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .frame(width: 100, alignment: .leading)
 
             Spacer()

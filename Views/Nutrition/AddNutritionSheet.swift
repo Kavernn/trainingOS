@@ -101,7 +101,7 @@ struct AddNutritionSheet: View {
                                         HStack {
                                             Text(item.food.name)
                                                 .font(.system(size: 14, weight: .medium))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.appTextPrimary)
                                             Spacer()
                                             Text("\(fmtN(item.quantity)) \(item.food.refUnit)")
                                                 .font(.appLabel)
@@ -195,7 +195,7 @@ struct AddNutritionSheet: View {
                         }) {
                             TextField("Rechercher…", text: $searchText)
                                 .font(.system(size: 14))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 6)
                                 .background(Color.white.opacity(0.06))
@@ -255,7 +255,7 @@ struct AddNutritionSheet: View {
                                             .foregroundColor(.blue.opacity(0.7))
                                         TextField("Quantité", text: $quantity)
                                             .keyboardType(.decimalPad)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.appTextPrimary)
                                             .font(.appBody.weight(.semibold))
                                         Text(item.refUnit)
                                             .foregroundColor(.gray)
@@ -292,17 +292,17 @@ struct AddNutritionSheet: View {
                                     .textCase(nil)
                             }
                         }) {
-                            TextField("Nom", text: $manName).foregroundColor(.white)
+                            TextField("Nom", text: $manName).foregroundColor(.appTextPrimary)
                             HStack {
-                                TextField("Calories (kcal)", text: $manCal).keyboardType(.decimalPad).foregroundColor(.white)
+                                TextField("Calories (kcal)", text: $manCal).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                                 Text("kcal").foregroundColor(.gray).font(.appLabel)
                             }
                         }.listRowBackground(Color.appCard)
 
                         Section("MACROS (g) — optionnel") {
-                            TextField("Protéines", text: $manProt).keyboardType(.decimalPad).foregroundColor(.white)
-                            TextField("Glucides",  text: $manGluc).keyboardType(.decimalPad).foregroundColor(.white)
-                            TextField("Lipides",   text: $manLip).keyboardType(.decimalPad).foregroundColor(.white)
+                            TextField("Protéines", text: $manProt).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
+                            TextField("Glucides",  text: $manGluc).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
+                            TextField("Lipides",   text: $manLip).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                         }.listRowBackground(Color.appCard)
 
                         Section {
@@ -375,7 +375,7 @@ struct AddNutritionSheet: View {
                     VStack(spacing: 14) {
                         ProgressView().tint(.white).scaleEffect(1.4)
                         Text(isLoggingTemplate ? "Enregistrement du repas…" : "Recherche du produit…")
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .font(.system(size: 14, weight: .medium))
                     }
                 }

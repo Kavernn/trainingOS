@@ -30,7 +30,7 @@ struct RecoverySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("moon.zzz.fill", color: .indigo)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Objectif de sommeil").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Objectif de sommeil").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Score 100% quand atteint").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
@@ -41,7 +41,7 @@ struct RecoverySettingsView: View {
                         ) {
                             Text(sleepGoalLabel)
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                         }
                     }
                     .padding(.vertical, 3)
@@ -49,7 +49,7 @@ struct RecoverySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("sunrise.fill", color: .yellow)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Heure de lever cible").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Heure de lever cible").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Utilisé pour les rappels").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
@@ -65,7 +65,7 @@ struct RecoverySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("moon.fill", color: .blue)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Heure de coucher cible").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Heure de coucher cible").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Utilisé pour les rappels").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
@@ -95,7 +95,7 @@ struct RecoverySettingsView: View {
                                            option.id == "standard"   ? .cyan : .green
                                 )
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(option.label).font(.appBody.weight(.medium)).foregroundColor(.white)
+                                    Text(option.label).font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                                     Text(option.subtitle).font(.appCaption).foregroundColor(.gray.opacity(0.55))
                                 }
                                 Spacer()

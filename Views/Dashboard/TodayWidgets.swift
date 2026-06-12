@@ -19,7 +19,7 @@ struct QuoteOfDayView: View {
             }
             Text(quote.text)
                 .font(.appBody.weight(.medium))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
             Text("— \(quote.author)  ·  \(quote.context)")
@@ -145,7 +145,7 @@ private struct MetricChip: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 if !unit.isEmpty {
                     Text(unit)
                         .font(.appCaption.weight(.medium))
@@ -205,7 +205,7 @@ struct XPChipView: View {
                     HStack(spacing: 4) {
                         Text("Niveau \(level) · \(levelTitle)")
                             .font(.appLabel.weight(.bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Spacer()
                         Text("\(xpInLevel) / 1500 XP")
                             .font(.appCaption)

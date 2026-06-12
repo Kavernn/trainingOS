@@ -43,7 +43,7 @@ struct ProteinProgressCard: View {
                     VStack(spacing: 0) {
                         Text("\(Int(current))")
                             .font(.system(size: 30, weight: .black))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text("g")
                             .font(.system(size: 12))
                             .foregroundColor(.gray)

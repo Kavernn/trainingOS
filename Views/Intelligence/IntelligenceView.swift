@@ -304,7 +304,7 @@ struct IntelligenceView: View {
                         WeeklyReportView(report: r)
                             .toolbar {
                                 ToolbarItem(placement: .cancellationAction) {
-                                    Button("Fermer") { showWeeklyReport = false }.foregroundColor(.white)
+                                    Button("Fermer") { showWeeklyReport = false }.foregroundColor(.appTextPrimary)
                                 }
                             }
                     }
@@ -530,7 +530,7 @@ struct IntelligenceView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("S\(meso.week)/8")
                                 .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                             Text(meso.phase)
                                 .font(.appLabel)
                                 .foregroundColor(.purple)
@@ -544,7 +544,7 @@ struct IntelligenceView: View {
                                 .foregroundColor(Color(white: 0.5))
                             Text(meso.rpeTarget)
                                 .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                         }
                         if !meso.note.isEmpty {
                             Spacer()
@@ -754,7 +754,7 @@ struct IntelligenceView: View {
                 .frame(maxWidth: .infinity)
                 .padding(14)
                 .background(Color.white.opacity(0.05))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding(.horizontal, 16)
@@ -805,7 +805,7 @@ struct IntelligenceView: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Text(label)
                 .font(.appCaption)
                 .foregroundColor(Color(white: 0.45))
@@ -889,7 +889,7 @@ struct IntelligenceView: View {
                         .frame(width: 20)
                     Text(label)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.appCaption)
@@ -947,7 +947,7 @@ struct IntelligenceView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(insight.title)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(insight.message)
                     .font(.system(size: 12))
                     .foregroundColor(Color(white: 0.62))

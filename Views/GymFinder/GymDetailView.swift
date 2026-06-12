@@ -62,7 +62,7 @@ struct GymDetailView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(gym.name)
                         .font(.appTitle.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text(gym.gymType.label)
                         .font(.appLabel.weight(.regular))
                         .foregroundColor(Color.forge.opacity(0.8))
@@ -102,7 +102,7 @@ struct GymDetailView: View {
                     .foregroundColor(Color.forge)
                 Text("Horaires")
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Spacer()
                 if let open = gym.isOpenNow {
                     HStack(spacing: 5) {
@@ -149,7 +149,7 @@ struct GymDetailView: View {
                         .foregroundColor(.green)
                     Text("Communauté — \(cs.contributionCount) contribution\(cs.contributionCount == 1 ? "" : "s")")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Spacer()
                     if let price = cs.dropInPrice {
                         Text("Drop-in: \(String(format: "%.0f", price))$")
@@ -435,7 +435,7 @@ struct AdaptWorkoutSheet: View {
                             Image(systemName: "arrow.right")
                                 .font(.appCaption).foregroundColor(.white.opacity(0.3))
                             Text(sub.substitute)
-                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             Spacer()
                             Text(sub.setsReps)
                                 .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)

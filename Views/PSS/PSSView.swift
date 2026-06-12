@@ -181,7 +181,7 @@ struct PSSdueBanner: View {
                     .font(.appBody).foregroundColor(.purple)
                 Text(message)
                     .font(.appLabel)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .multilineTextAlignment(.leading)
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -258,7 +258,7 @@ struct PSSKPICell: View {
             Text(value)
                 .font(.appTitle.weight(.black)).foregroundColor(color)
             Text(label)
-                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
             Text(sublabel)
                 .font(.appMicro).foregroundColor(.gray)
                 .lineLimit(1)
@@ -632,7 +632,7 @@ struct PSSQuestionnaireSheet: View {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 44)).foregroundColor(.green.opacity(0.6))
                     Text("Résultats envoyés")
-                        .font(.appHeadline).foregroundColor(.white)
+                        .font(.appHeadline).foregroundColor(.appTextPrimary)
                     Text("Données disponibles après rechargement")
                         .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -752,7 +752,7 @@ struct PSSResultsContent: View {
                             Image(systemName: "lungs.fill").font(.appBody).foregroundColor(.green)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Décompresser maintenant")
-                                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                                    .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                                 Text("Cohérence cardiaque · 5 min recommandées")
                                     .font(.appCaption).foregroundColor(.gray)
                             }
@@ -830,7 +830,7 @@ struct PSSResultsContent: View {
                 .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             TextField("Qu'est-ce qui t'a aidé ou stressé ce mois-ci ?", text: $notes, axis: .vertical)
                 .font(.appLabel.weight(.regular))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .lineLimit(3...5)
                 .padding(12)
                 .background(Color.white.opacity(0.05))
@@ -897,7 +897,7 @@ struct PSSQuestionCard: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(question.text)
                     .font(.appLabel)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let example = Self.examples[question.id] {
                     Text(example)
@@ -966,7 +966,7 @@ struct TriggerRatingSection: View {
             ForEach(triggers, id: \.self) { trigger in
                 VStack(alignment: .leading, spacing: 8) {
                     Text("« \(trigger) » t'a stressé(e) ce mois-ci ?")
-                        .font(.appLabel.weight(.regular)).foregroundColor(.white)
+                        .font(.appLabel.weight(.regular)).foregroundColor(.appTextPrimary)
                     HStack(spacing: 4) {
                         ForEach(0..<5) { val in
                             Button {

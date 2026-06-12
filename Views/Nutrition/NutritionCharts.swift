@@ -241,7 +241,7 @@ struct WeeklyNutritionChart: View {
                     HStack {
                         Text(day.date)
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Spacer()
                         Text("\(Int(day.calories)) kcal · \(Int(day.proteines))g prot")
                             .font(.appCaption)

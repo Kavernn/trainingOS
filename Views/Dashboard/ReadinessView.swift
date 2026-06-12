@@ -300,7 +300,7 @@ private struct ModuleRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(mod.label)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(mod.detail)
                     .font(.appCaption)
                     .foregroundColor(.gray)
@@ -336,7 +336,7 @@ private struct MuscleRow: View {
 
             Text(rec.label)
                 .font(.appLabel)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .frame(width: 130, alignment: .leading)
 
             GeometryReader { geo in

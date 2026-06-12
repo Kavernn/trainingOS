@@ -26,7 +26,7 @@ struct MeasurementsTrendView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Circle().fill(color).frame(width: 6, height: 6)
-                            Text(label).font(.appCaption.weight(.medium)).foregroundColor(.white)
+                            Text(label).font(.appCaption.weight(.medium)).foregroundColor(.appTextPrimary)
                             Spacer()
                             let diff = (vals.last?.1 ?? 0) - (vals.first?.1 ?? 0)
                             Text(String(format: "%+.1f cm", diff))
@@ -174,7 +174,7 @@ struct MuscleBreakdownView: View {
                         HStack(spacing: 10) {
                             Text(muscle.localizedMuscleGroup)
                                 .font(.appLabel)
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .frame(width: 110, alignment: .leading)
 
                             let barW = outer.size.width - 168
@@ -282,7 +282,7 @@ struct PRTrackerView: View {
                             HStack(spacing: 10) {
                                 Text(pr.name)
                                     .font(.appLabel)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                                     .lineLimit(1)
                                     .frame(width: 130, alignment: .leading)
 
@@ -346,7 +346,7 @@ struct MuscleVolumeView: View {
                             HStack(spacing: 10) {
                                 Text(muscle.localizedMuscleGroup)
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                                     .lineLimit(1)
                                     .frame(width: 110, alignment: .leading)
 
@@ -439,7 +439,7 @@ struct VolumeLandmarksCard: View {
                         HStack(spacing: 8) {
                             Text(muscle.localizedMuscleGroup)
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .frame(width: 100, alignment: .leading)
                                 .lineLimit(1)
 
@@ -846,7 +846,7 @@ struct StrengthProgressionCard: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(lift.name)
-                                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
                                     .lineLimit(1)
                                 Spacer()
                                 let sign = lift.delta >= 0 ? "+" : ""

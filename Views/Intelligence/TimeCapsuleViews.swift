@@ -289,7 +289,7 @@ struct TimeCapsuleCreateView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Voici qui tu es aujourd'hui")
                         .font(.appTitle).fontWeight(.black)
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text("Ces stats seront figées dans ta capsule.")
                         .font(.appLabel)
                         .foregroundColor(.gray)
@@ -339,7 +339,7 @@ struct TimeCapsuleCreateView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Écris à ton futur toi")
                         .font(.appTitle).fontWeight(.black)
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text("Optionnel. 280 caractères max.")
                         .font(.appLabel)
                         .foregroundColor(.gray)
@@ -347,7 +347,7 @@ struct TimeCapsuleCreateView: View {
 
                 TextEditor(text: $message)
                     .scrollContentBackground(.hidden)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .font(.appBody)
                     .padding(14)
                     .frame(minHeight: 150)
@@ -401,7 +401,7 @@ struct TimeCapsuleCreateView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Quand l'ouvrir ?")
                     .font(.appTitle).fontWeight(.black)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text("Impossible de modifier après la création.")
                     .font(.appLabel)
                     .foregroundColor(.gray)
@@ -452,7 +452,7 @@ struct TimeCapsuleCreateView: View {
             VStack(spacing: 8) {
                 Text(sealDone ? "Capsule scellée" : "Scellement en cours...")
                     .font(.system(size: 26, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 if sealDone {
                     Text("S'ouvre le \(unlockDateLabel)")
                         .font(.appLabel)
@@ -617,7 +617,7 @@ private struct SnapshotPreviewCard: View {
                     Spacer()
                     Text(rows[i].1)
                         .font(.appLabel).fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 11)
@@ -730,7 +730,7 @@ struct TimeCapsuleRevealView: View {
                 .tracking(3)
             Text("\(display.durationMonths) mois plus tard...")
                 .font(.appHero).fontWeight(.black)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .multilineTextAlignment(.center)
             Spacer()
             Text("Touche pour continuer")
@@ -853,7 +853,7 @@ struct TimeCapsuleRevealView: View {
             Spacer()
             Text(display.motivationalVerdict)
                 .font(.appHero).fontWeight(.black)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
                 .opacity(showVerdict ? 1 : 0)
@@ -961,7 +961,7 @@ private struct ComparisonRow: View {
 
             Text(metric.after)
                 .font(.appCaption).fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .frame(maxWidth: .infinity, alignment: .center)
 
             Text(metric.delta)
@@ -996,7 +996,7 @@ struct TimeCapsuleShareSheet: View {
             VStack(spacing: 20) {
                 Text("Aperçu")
                     .font(.appBody).fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .padding(.top, 16)
 
                 TimeCapsuleShareCard(capsule: capsule)

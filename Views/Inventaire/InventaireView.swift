@@ -256,7 +256,7 @@ struct CatalogueView: View {
         HStack {
             Image(systemName: "magnifyingglass").foregroundColor(.gray)
             TextField("Rechercher...", text: $searchText)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .tint(Color.forge)
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {
@@ -544,7 +544,7 @@ struct CatalogueRow: View {
                 HStack(spacing: 6) {
                     Text(item.name)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     if isInProgram {
                         Text("⭐")
                             .font(.appCaption)
@@ -896,7 +896,7 @@ struct InventoryFormSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             }
             .navigationTitle(isEditing ? "Modifier" : "Nouvel exercice")
             .navigationBarTitleDisplayMode(.inline)
@@ -1042,7 +1042,7 @@ struct InventoryFormSheet: View {
     private var identitySection: some View {
         Section {
             TextField("Nom de l'exercice", text: $name)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             if isDuplicate {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -1116,7 +1116,7 @@ struct InventoryFormSheet: View {
                                         Image(systemName: "xmark").font(.appMicro)
                                     }
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .padding(.horizontal, 8).padding(.vertical, 4)
                                 .background(Color.forge.opacity(0.2))
                                 .cornerRadius(8)
@@ -1225,7 +1225,7 @@ struct InventoryFormSheet: View {
                     TextField("45", text: $barWeight)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .frame(width: 60)
                 }
             }
@@ -1285,7 +1285,7 @@ struct InventoryFormSheet: View {
                     Text("Séries").foregroundColor(.gray)
                     Spacer()
                     Stepper("\(timeSets)", value: $timeSets, in: 1...10).labelsHidden()
-                    Text("\(timeSets)").foregroundColor(.white).frame(width: 20)
+                    Text("\(timeSets)").foregroundColor(.appTextPrimary).frame(width: 20)
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Durée par série").font(.appCaption).foregroundColor(.gray)
@@ -1315,7 +1315,7 @@ struct InventoryFormSheet: View {
             .listRowBackground(Color.appCard)
         } else {
             Section {
-                TextField("ex: 4x6-8", text: $defaultScheme).foregroundColor(.white)
+                TextField("ex: 4x6-8", text: $defaultScheme).foregroundColor(.appTextPrimary)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(schemes, id: \.self) { s in
@@ -1343,7 +1343,7 @@ struct InventoryFormSheet: View {
                 TextField("5", text: $increment)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .frame(width: 60)
             }
         } header: {
@@ -1417,7 +1417,7 @@ struct InventoryFormSheet: View {
     private var notesSection: some View {
         Section {
             TextField("Cues techniques, conseils, variantes…", text: $notes, axis: .vertical)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .lineLimit(3...6)
         } header: {
             sectionHeader("Notes personnelles")
@@ -1611,7 +1611,7 @@ struct ExerciseMediaSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.white)
+                    Button("Fermer") { dismiss() }.foregroundColor(.appTextPrimary)
                 }
             }
             .toolbarBackground(Color.appBg, for: .navigationBar)
@@ -1873,7 +1873,7 @@ struct CatalogueExerciseDetailView: View {
                         let setsSummary = setsSummaryText(entry)
                         Text(setsSummary)
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         HStack(spacing: 6) {
                             if let e1rm = entry.e1rm {
                                 Text("e1RM \(String(format: "%.0f", e1rm))lbs")
@@ -1912,7 +1912,7 @@ struct CatalogueExerciseDetailView: View {
                         .font(.appLabel)
                     Text(s)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Spacer()
                 }
                 .padding(.vertical, 4)
@@ -2085,7 +2085,7 @@ struct AddExerciseToProgramSheet: View {
                                             .frame(width: 28)
                                         Text(seance)
                                             .font(.appLabel.weight(.semibold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.appTextPrimary)
                                         Spacer()
                                         if pendingSeance == seance {
                                             ProgressView().tint(.forge).scaleEffect(0.8)
@@ -2209,7 +2209,7 @@ struct ClassificationGapsSheet: View {
                             .foregroundColor(.green)
                         Text("Tout est classifié")
                             .font(.appTitle)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text("Tous les exercices ont un groupe musculaire et un muscle spécifique.")
                             .font(.appBody)
                             .foregroundColor(.gray)
@@ -2250,7 +2250,7 @@ struct ClassificationGapsSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(gap.name)
                 .font(.appBody.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
 
             VStack(alignment: .leading, spacing: 3) {
                 if let mg = gap.suggestedMuscleGroup ?? gap.currentMuscleGroup {

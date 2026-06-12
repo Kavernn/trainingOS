@@ -44,7 +44,7 @@ struct NutritionView: View {
                                         .foregroundColor(.yellow)
                                     Text("Cibles nutritionnelles non définies — l'app calcule dans le vide.")
                                         .font(.appLabel)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.appTextPrimary)
                                     Spacer()
                                     Button("Définir les cibles") { showSettings = true }
                                         .font(.appLabel).fontWeight(.semibold)
@@ -247,7 +247,7 @@ struct NutritionView: View {
                         Image(systemName: "trash").foregroundColor(.red)
                         Text("Supprimé.")
                             .font(.appLabel)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Spacer()
                         Button("Restaurer") {
                             pendingDeleteTimer?.cancel()

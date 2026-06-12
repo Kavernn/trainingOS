@@ -323,7 +323,7 @@ extension StatsView {
             HStack {
                 Image(systemName: "magnifyingglass").foregroundColor(.gray)
                 TextField("Rechercher un exercice...", text: $searchText)
-                    .foregroundColor(.white).tint(Color.forge)
+                    .foregroundColor(.appTextPrimary).tint(Color.forge)
             }
             .padding(12)
             .background(Color.appCard).cornerRadius(12)

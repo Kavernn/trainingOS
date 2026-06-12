@@ -92,7 +92,7 @@ struct TopicCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(topic.title)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .lineLimit(1)
                     Text(topic.subtitle)
                         .font(.system(size: 10))

@@ -424,7 +424,7 @@ struct WorkoutSeanceView: View {
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(name).font(.appLabel).fontWeight(.regular).foregroundColor(.white)
+                        Text(name).font(.appLabel).fontWeight(.regular).foregroundColor(.appTextPrimary)
                         Text(scheme).font(.appCaption).foregroundColor(.gray)
                     }
                     Spacer()
@@ -1054,7 +1054,7 @@ struct WorkoutSeanceView: View {
                             .foregroundColor(Color.forge)
                         Text("\(swap.old) → \(swap.new)")
                             .font(.appCaption).fontWeight(.semibold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Spacer()

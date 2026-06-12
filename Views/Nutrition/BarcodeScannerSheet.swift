@@ -39,7 +39,7 @@ struct BarcodeScannerSheet: View {
                                 .font(.system(size: 48))
                                 .foregroundColor(.gray)
                             Text("Accès caméra refusé")
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .fontWeight(.semibold)
                             Text("Active l'accès dans Réglages > Confidentialité > Caméra.")
                                 .font(.caption)
@@ -66,7 +66,7 @@ struct BarcodeScannerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.white)
+                    Button("Annuler") { dismiss() }.foregroundColor(.appTextPrimary)
                 }
             }
         }

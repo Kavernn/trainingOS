@@ -166,7 +166,7 @@ struct OathContentView: View {
 
                 Text("\u{201C}\(oath.text)\u{201D}")
                     .font(.system(size: 20, weight: .light, design: .serif))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.appTextPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(6)
                     .padding(.horizontal, 32)

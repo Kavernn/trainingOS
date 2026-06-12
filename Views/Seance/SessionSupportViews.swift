@@ -18,7 +18,7 @@ struct SessionPickerSheet: View {
                     VStack(spacing: 6) {
                         Text("Changer de séance")
                             .font(.appHeadline).fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .padding(.top, 20)
                         Text("Séance active aujourd'hui")
                             .font(.appCaption)
@@ -97,7 +97,7 @@ struct WorkoutSummarySheet: View {
                                     .padding(.top, 28)
                                 Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggué\(unloggedExercises.count > 1 ? "s" : "")")
                                     .font(.appTitle)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                                 Text("Ces exercices ne seront pas enregistrés.\nVeux-tu continuer quand même ?")
                                     .font(.appLabel)
                                     .foregroundColor(.gray)
@@ -196,7 +196,7 @@ struct FinishSessionSheet: View {
                     VStack(spacing: 16) {
                         VStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundColor(Color.forge)
-                            Text("Terminer la séance").font(.appTitle).foregroundColor(.white)
+                            Text("Terminer la séance").font(.appTitle).foregroundColor(.appTextPrimary)
                             Text("\(loggedCount) / \(exercises.count) exercices loggés").font(.appLabel).foregroundColor(.gray)
                         }.padding(.top, 20)
 
@@ -210,7 +210,7 @@ struct FinishSessionSheet: View {
                                 Text("DURÉE").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 Text("\(Int(elapsedMin)) min")
                                     .font(.appTitle).fontWeight(.black)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                             }
                             Spacer()
                         }
@@ -344,7 +344,7 @@ struct FinishSessionSheet: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("NOTES").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 TextField("Commentaire optionnel...", text: $comment, axis: .vertical)
-                                    .foregroundColor(.white).tint(Color.forge)
+                                    .foregroundColor(.appTextPrimary).tint(Color.forge)
                                     .lineLimit(3, reservesSpace: true)
                                     .submitLabel(.done)
                                     .onSubmit { hideKeyboard() }
@@ -575,7 +575,7 @@ struct SessionRecapSheet: View {
                             }
                             Text("Séance complète !")
                                 .font(.appTitle).fontWeight(.black)
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .opacity(animateHeader ? 1.0 : 0.0)
                                 .offset(y: animateHeader ? 0 : 10)
                             Text(snapshot.sessionName)
@@ -611,7 +611,7 @@ struct SessionRecapSheet: View {
                                     Text("VOLUME TOTAL")
                                         .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                     Text(UnitSettings.shared.format(totalVolume))
-                                        .font(.system(size: 28, weight: .black)).foregroundColor(.white)
+                                        .font(.system(size: 28, weight: .black)).foregroundColor(.appTextPrimary)
                                         .contentTransition(.numericText())
                                 }
                                 Spacer()
@@ -739,7 +739,7 @@ struct SessionRecapSheet: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.appTitle).fontWeight(.black)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .contentTransition(.numericText())
             Text(label)
                 .font(.appMicro).fontWeight(.bold).tracking(1.5)
@@ -783,7 +783,7 @@ struct EnergyPreWorkoutSheet: View {
             VStack(spacing: 6) {
                 Text("Avant de commencer")
                     .font(.appTitle)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text("Comment te sens-tu aujourd'hui ?")
                     .font(.appLabel)
                     .foregroundColor(.gray)
@@ -860,7 +860,7 @@ struct HIITSeanceView: View {
             VStack(spacing: 16) {
                 VStack(spacing: 12) {
                     Image(systemName: "figure.run").font(.system(size: 48)).foregroundColor(.red)
-                    Text(sessionType).font(.appTitle).fontWeight(.black).foregroundColor(.white)
+                    Text(sessionType).font(.appTitle).fontWeight(.black).foregroundColor(.appTextPrimary)
                 }.padding(.top, 20)
 
                 VStack(spacing: 12) {
@@ -882,7 +882,7 @@ struct HIITSeanceView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("NOTES").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                     TextField("Notes optionnelles...", text: $notes, axis: .vertical)
-                        .foregroundColor(.white).lineLimit(3, reservesSpace: true)
+                        .foregroundColor(.appTextPrimary).lineLimit(3, reservesSpace: true)
                 }
                 .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
 
@@ -1038,7 +1038,7 @@ struct SpecialSeanceView: View {
             VStack(spacing: 20) {
                 VStack(spacing: 12) {
                     Image(systemName: icon).font(.system(size: 48)).foregroundColor(color)
-                    Text(sessionType).font(.appTitle).fontWeight(.black).foregroundColor(.white)
+                    Text(sessionType).font(.appTitle).fontWeight(.black).foregroundColor(.appTextPrimary)
                 }.padding(.top, 24)
                 .onAppear {
                     if alreadyLoggedToday {
@@ -1072,7 +1072,7 @@ struct SpecialSeanceView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("NOTES").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                         TextField("Comment c'était ?", text: $comment, axis: .vertical)
-                            .foregroundColor(.white).tint(Color.forge)
+                            .foregroundColor(.appTextPrimary).tint(Color.forge)
                             .lineLimit(3, reservesSpace: true)
                             .submitLabel(.done)
                             .onSubmit { hideKeyboard() }
@@ -1147,7 +1147,7 @@ struct StepperRow: View {
                 Button(action: { if value - step >= range.lowerBound { value -= step } }) {
                     Image(systemName: "minus.circle.fill").font(.system(size: 28)).foregroundColor(.gray)
                 }
-                Text("\(value)").font(.appTitle).fontWeight(.black).foregroundColor(.white).frame(width: 50, alignment: .center)
+                Text("\(value)").font(.appTitle).fontWeight(.black).foregroundColor(.appTextPrimary).frame(width: 50, alignment: .center)
                 Button(action: { if value + step <= range.upperBound { value += step } }) {
                     Image(systemName: "plus.circle.fill").font(.system(size: 28)).foregroundColor(Color.forge)
                 }
@@ -1210,7 +1210,7 @@ struct ErrorView: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "wifi.slash").font(.system(size: 48)).foregroundColor(.gray)
-            Text("Erreur").foregroundColor(.white).font(.headline)
+            Text("Erreur").foregroundColor(.appTextPrimary).font(.headline)
             Text(message).font(.caption).foregroundColor(.gray).multilineTextAlignment(.center)
             Button("Réessayer", action: retry).foregroundColor(Color.forge)
         }.padding()

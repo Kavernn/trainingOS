@@ -136,7 +136,7 @@ struct DashboardStatusBar: View {
         HStack(spacing: 0) {
             Text(dateShort)
                 .font(.appLabel.weight(.medium))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
 
             Spacer()
 

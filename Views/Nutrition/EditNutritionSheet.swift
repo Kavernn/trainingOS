@@ -42,17 +42,17 @@ struct EditNutritionSheet: View {
                             Text("Post-workout").tag("post_workout")
                         }
                         .pickerStyle(.menu)
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .tint(Color.forge)
                     }.listRowBackground(Color.appCard)
                     Section("Aliment") {
-                        TextField("Nom", text: $name).foregroundColor(.white)
-                        TextField("Calories (kcal)", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
+                        TextField("Nom", text: $name).foregroundColor(.appTextPrimary)
+                        TextField("Calories (kcal)", text: $calories).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                     }.listRowBackground(Color.appCard)
                     Section("Macros (g)") {
-                        TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.white)
-                        TextField("Glucides",  text: $glucides).keyboardType(.decimalPad).foregroundColor(.white)
-                        TextField("Lipides",   text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
+                        TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
+                        TextField("Glucides",  text: $glucides).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
+                        TextField("Lipides",   text: $lipides).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                     }.listRowBackground(Color.appCard)
                 }
                 .scrollContentBackground(.hidden)

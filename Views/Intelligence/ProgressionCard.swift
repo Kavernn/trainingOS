@@ -67,7 +67,7 @@ struct ProgressionCard: View {
         HStack {
             Text(lift.name)
                 .font(.appLabel)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .lineLimit(1)
             Spacer()
             if let delta = lift.delta, abs(delta) > 0.5 {
@@ -78,7 +78,7 @@ struct ProgressionCard: View {
             }
             Text(units.format(lift.currentWeight, decimals: 0))
                 .font(.appLabel.weight(.bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
         }
     }
 }

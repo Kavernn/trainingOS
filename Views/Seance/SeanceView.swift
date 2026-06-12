@@ -133,7 +133,7 @@ struct AlreadyLoggedSeanceView: View {
                     }
                     Text("Séance complétée")
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .opacity(animateHeader ? 1.0 : 0.0)
                         .offset(y: animateHeader ? 0 : 12)
                     Text(data.today)
@@ -463,7 +463,7 @@ struct AlreadyLoggedSeanceView: View {
                                 .foregroundColor(.yellow)
                             Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggé\(unloggedExercises.count > 1 ? "s" : "")")
                                 .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                         }
                         VStack(alignment: .leading, spacing: 3) {
                             ForEach(unloggedExercises.prefix(3), id: \.0) { ex in
@@ -715,7 +715,7 @@ struct PostSessionEditSheet: View {
         let eq = edits[i].equipmentType
         VStack(alignment: .leading, spacing: 10) {
             Text(edits[i].name)
-                .font(.appLabel.weight(.bold)).foregroundColor(.white)
+                .font(.appLabel.weight(.bold)).foregroundColor(.appTextPrimary)
 
             HStack(spacing: 6) {
                 Text("S#").font(.appMicro.weight(.bold)).foregroundColor(.clear)
@@ -736,11 +736,11 @@ struct PostSessionEditSheet: View {
                         .frame(width: 22)
                     TextField("0.0", text: $edits[i].sets[j].weight)
                         .keyboardType(.decimalPad)
-                        .font(.appBody.weight(.semibold)).foregroundColor(.white)
+                        .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
                         .padding(8).background(Color.appSurfaceInset).cornerRadius(8)
                     TextField("0", text: $edits[i].sets[j].reps)
                         .keyboardType(.numberPad)
-                        .font(.appBody.weight(.semibold)).foregroundColor(.white)
+                        .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
                         .padding(8).background(Color.appSurfaceInset).cornerRadius(8)
                         .frame(width: 60)
                 }
@@ -969,7 +969,7 @@ struct ExtraSessionSheet: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(session)
                                         .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.appTextPrimary)
                                     if exoCount > 0 {
                                         Text("\(exoCount) exercices")
                                             .font(.system(size: 12))
@@ -1156,7 +1156,7 @@ struct NoProgramEmptyState: View {
 
                 Text("Aucun programme pour aujourd'hui")
                     .font(.appHeadline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .multilineTextAlignment(.center)
 
                 Text("Tu peux partir en séance libre ou créer un programme.")
@@ -1371,7 +1371,7 @@ struct FreeSessionPickerView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.name)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text(item.defaultScheme)
                         .font(.appCaption)
                         .foregroundColor(.gray)

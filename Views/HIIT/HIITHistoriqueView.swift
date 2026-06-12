@@ -71,7 +71,7 @@ struct HIITEntryCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.sessionType ?? "HIIT")
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text(entry.date ?? "—")
                         .font(.appCaption)
                         .foregroundColor(.gray)

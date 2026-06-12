@@ -533,7 +533,7 @@ struct MuscuSessionCard: View {
                         HStack(spacing: 6) {
                             Text(formattedDate)
                                 .font(.appBody.weight(.bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                             if session.sessionType == "bonus" {
                                 Text("BONUS")
                                     .font(.appMicro.weight(.black))
@@ -582,7 +582,7 @@ struct MuscuSessionCard: View {
                                     let isArchived = !activeExercises.isEmpty && !activeExercises.contains(exo.exercise)
                                     Text(exo.exercise)
                                         .font(.appLabel.weight(.semibold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.appTextPrimary)
                                     if isArchived {
                                         Text("archivé")
                                             .font(.system(size: 10, weight: .medium))
@@ -833,13 +833,13 @@ struct EditSessionSheet: View {
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(exos[i].exercise)
                                             .font(.appLabel.weight(.semibold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.appTextPrimary)
                                         HStack(spacing: 10) {
                                             HStack {
                                                 TextField("Poids", text: $exos[i].weightStr)
                                                     .keyboardType(.decimalPad)
                                                     .font(.appLabel.weight(.regular))
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(.appTextPrimary)
                                                 Text(units.label)
                                                     .font(.appCaption)
                                                     .foregroundColor(.gray)
@@ -850,7 +850,7 @@ struct EditSessionSheet: View {
 
                                             TextField("Reps (ex: 5,5,5)", text: $exos[i].reps)
                                                 .font(.appLabel.weight(.regular))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.appTextPrimary)
                                                 .padding(10)
                                                 .background(Color.appSurfaceInset)
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -872,7 +872,7 @@ struct EditSessionSheet: View {
                             TextField("Note, ressenti…", text: $comment, axis: .vertical)
                                 .lineLimit(3...6)
                                 .font(.appLabel.weight(.regular))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .padding(12)
                                 .background(Color.appCard)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -946,7 +946,7 @@ struct EditHIITSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("ROUNDS").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                             Stepper("\(rounds) rounds", value: $rounds, in: 1...20)
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .padding(12).background(Color.appCard).clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
@@ -962,7 +962,7 @@ struct EditHIITSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("NOTES").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                             TextField("Notes…", text: $notes, axis: .vertical)
-                                .lineLimit(3...5).font(.appLabel.weight(.regular)).foregroundColor(.white)
+                                .lineLimit(3...5).font(.appLabel.weight(.regular)).foregroundColor(.appTextPrimary)
                                 .padding(12).background(Color.appCard).clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 

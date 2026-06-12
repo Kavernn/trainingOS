@@ -96,7 +96,7 @@ struct PRCelebrationView: View {
                             if prs.count == 1, let pr = prs.first {
                                 Text(pr.name)
                                     .font(.system(size: 26, weight: .black, design: .rounded))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal, 32)
                                 HStack(spacing: 6) {
@@ -113,7 +113,7 @@ struct PRCelebrationView: View {
                                         HStack {
                                             Text(pr.name)
                                                 .font(.system(size: 14, weight: .bold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.appTextPrimary)
                                                 .lineLimit(1)
                                             Spacer()
                                             HStack(spacing: 4) {

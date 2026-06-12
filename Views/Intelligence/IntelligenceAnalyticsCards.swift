@@ -98,7 +98,7 @@ struct MesocycleStatusCard: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text("SEMAINE CYCLE").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                    Text("S\(status.weekInCycle + 1) / 8").font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                    Text("S\(status.weekInCycle + 1) / 8").font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text("DÉCHARGE DANS").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
@@ -136,7 +136,7 @@ struct PainJournalCard: View {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ex.exercise)
-                            .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                            .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                         Text(ex.zones.joined(separator: " · "))
                             .font(.appCaption).foregroundColor(.red.opacity(0.8))
                     }
@@ -184,7 +184,7 @@ struct OneRMProgrammingCard: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(ex.exercise)
-                                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
                                     .lineLimit(1)
                                 HStack(spacing: 4) {
                                     Text("1RM \(units.format(ex.estimated1rm, decimals: 0))")
@@ -213,7 +213,7 @@ struct OneRMProgrammingCard: View {
                             Text("\(entry.pct)%")
                                 .font(.system(size: 10, weight: .bold)).foregroundColor(.purple)
                             Text(units.format(entry.weight, decimals: 0))
-                                .font(.appLabel.weight(.black)).foregroundColor(.white)
+                                .font(.appLabel.weight(.black)).foregroundColor(.appTextPrimary)
                         }
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity)

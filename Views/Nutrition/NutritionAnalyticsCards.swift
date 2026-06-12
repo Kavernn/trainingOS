@@ -148,7 +148,7 @@ struct AdherenceScoreCard: View {
                             .animation(.easeOut(duration: 0.6), value: pct)
                         Text("\(score)%")
                             .font(.system(size: 22, weight: .black))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                     }
                     .frame(width: 90, height: 90)
 
@@ -365,7 +365,7 @@ struct MacroGapCard: View {
                     if let name = item["name"]?.value {
                         HStack(spacing: 8) {
                             Text(name)
-                                .font(.appLabel).foregroundColor(.white)
+                                .font(.appLabel).foregroundColor(.appTextPrimary)
                                 .lineLimit(1)
                             Spacer()
                             if let prot = item["protein_per_100g"]?.value, let d = Double(prot) {

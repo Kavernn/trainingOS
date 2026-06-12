@@ -360,7 +360,7 @@ private struct EnergyBreakdownCard: View {
                 HStack {
                     Text("Total TDEE")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Spacer()
                     Text("\(tdee) kcal")
                         .font(.system(size: 15, weight: .black, design: .rounded))
@@ -382,7 +382,7 @@ private struct EnergyBreakdownCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(label)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text(subtitle)
                         .font(.appCaption)
                         .foregroundColor(.gray)
@@ -623,7 +623,7 @@ private struct EnergyChartSection: View {
         VStack(spacing: 2) {
             Text(day.date)
                 .font(.appMicro.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Text("TDEE \(day.tdee) kcal")
                 .font(.appMicro)
                 .foregroundColor(.blue)
@@ -1080,7 +1080,7 @@ private struct UnifiedRecoverySleepSection: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.system(size: 14, weight: .black, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Text(label)
                 .font(.appMicro.weight(.medium))
                 .foregroundColor(.gray)
@@ -1158,7 +1158,7 @@ private struct TappableSleepStat: View {
             VStack(spacing: 2) {
                 Text(value)
                     .font(.system(size: 14, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 HStack(spacing: 2) {
                     Text(label)
                         .font(.appMicro.weight(.medium))
@@ -1612,7 +1612,7 @@ private struct DynamicSuggestionsSection: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(s.title)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(s.detail)
                     .font(.appCaption)
                     .foregroundColor(.gray)

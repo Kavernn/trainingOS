@@ -483,7 +483,7 @@ struct DashboardView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "wifi.exclamationmark")
                             .font(.system(size: 48)).foregroundColor(.gray)
-                        Text("Connexion impossible").foregroundColor(.white).fontWeight(.semibold)
+                        Text("Connexion impossible").foregroundColor(.appTextPrimary).fontWeight(.semibold)
                         Text(err).font(.caption).foregroundColor(.gray).multilineTextAlignment(.center)
                         Button {
                             Task { await api.fetchDashboard() }
@@ -577,7 +577,7 @@ struct DashboardView: View {
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Fermer") { showSleepSheet = false }
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                     }
                 }
             }

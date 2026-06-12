@@ -369,7 +369,7 @@ struct MacrosDayTypeView: View {
             Circle().fill(color).frame(width: 6, height: 6)
             Text(name).font(.system(size: 10)).foregroundColor(.gray)
             Spacer()
-            Text(value).font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
+            Text(value).font(.system(size: 10, weight: .semibold)).foregroundColor(.appTextPrimary)
         }
     }
 }

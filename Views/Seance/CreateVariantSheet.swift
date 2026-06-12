@@ -75,7 +75,7 @@ struct CreateVariantSheet: View {
                 // Name field
                 fieldBlock(label: "NOM") {
                     TextField("Nom de l'exercice", text: $variantName)
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .font(.appBody)
                 }
 
@@ -148,7 +148,7 @@ struct CreateVariantSheet: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Text(variantName)
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
 
                         Divider().background(Color.appSeparatorStrong)
 
@@ -229,7 +229,7 @@ struct CreateVariantSheet: View {
                     .foregroundColor(.gray)
                 Text(value)
                     .font(.system(size: 14))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
             }
             Spacer()
         }

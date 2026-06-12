@@ -122,7 +122,7 @@ struct MoreView: View {
                 }
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.appBody.weight(.medium)).foregroundColor(.white)
+                Text(title).font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                 if let sub = subtitle {
                     Text(sub).font(.appCaption).foregroundColor(.gray.opacity(0.6))
                 }
@@ -173,7 +173,7 @@ struct MoreRow<Destination: View>: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
                         .font(.appBody.weight(.medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     if let sub = subtitle {
                         Text(sub)
                             .font(.appCaption)

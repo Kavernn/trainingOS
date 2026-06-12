@@ -86,7 +86,7 @@ struct RecoveryTrioCard: View {
                 .foregroundColor(color)
             Text(value)
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Text(subLabel)
@@ -146,7 +146,7 @@ struct MomentumStripView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(weekSessions) / \(weekTarget) séances")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.white.opacity(0.07)).frame(height: 4)

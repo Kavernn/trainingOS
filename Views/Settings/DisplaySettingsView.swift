@@ -44,7 +44,7 @@ struct DisplaySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("scalemass.fill", color: .cyan)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Unité de poids").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Unité de poids").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Appliqué à tous les exercices et métriques").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
@@ -68,7 +68,7 @@ struct DisplaySettingsView: View {
                         HStack(spacing: 12) {
                             settingsIcon("figure.walk", color: .green)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Objectif de pas quotidien").font(.appBody.weight(.medium)).foregroundColor(.white)
+                                Text("Objectif de pas quotidien").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                                 Text("Affiché dans le tableau de bord santé").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                             }
                             Spacer()
@@ -93,7 +93,7 @@ struct DisplaySettingsView: View {
                     HStack(spacing: 12) {
                         settingsIcon("drop.fill", color: .blue)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Objectif d'hydratation").font(.appBody.weight(.medium)).foregroundColor(.white)
+                            Text("Objectif d'hydratation").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Non encore connecté au suivi — disponible bientôt").font(.appCaption).foregroundColor(.gray.opacity(0.55))
                         }
                         Spacer()
@@ -104,7 +104,7 @@ struct DisplaySettingsView: View {
                         ) {
                             Text(hydrationLabel)
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                         }
                     }
                     .padding(.vertical, 3)
@@ -170,7 +170,7 @@ struct DisplaySettingsView: View {
                     if isApplied {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.appLabel)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .background(Circle().fill(option.previewColor).padding(1))
                             .offset(x: 4, y: 4)
                     }

@@ -120,7 +120,7 @@ private struct VolumeProgressionDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.white)
+                    Button("Fermer") { dismiss() }.foregroundColor(.appTextPrimary)
                 }
             }
         }

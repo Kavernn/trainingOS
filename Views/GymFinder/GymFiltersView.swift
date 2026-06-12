@@ -58,7 +58,7 @@ struct GymFiltersView: View {
                 Toggle(isOn: $vm.filters.openNow) {
                     Label("Ouvert maintenant", systemImage: "clock.fill")
                         .font(.appLabel.weight(.regular))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                 }
                 .tint(Color.forge)
                 .padding(.vertical, 8)
@@ -68,7 +68,7 @@ struct GymFiltersView: View {
                 Toggle(isOn: $vm.filters.dropInOnly) {
                     Label("Drop-in confirmé seulement", systemImage: "dollarsign.circle.fill")
                         .font(.appLabel.weight(.regular))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                 }
                 .tint(Color.forge)
                 .padding(.vertical, 8)

@@ -79,7 +79,7 @@ struct ExerciseSwapSheet: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.gray)
                         TextField("Rechercher un exercice…", text: $searchText)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .autocorrectionDisabled()
                     }
                     .padding(12)
@@ -160,7 +160,7 @@ struct ExerciseSwapSheet: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(name)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     if let note {
                         HStack(spacing: 4) {
                             Image(systemName: note.contains("comparables") ? "exclamationmark.triangle" : "arrow.left.arrow.right")

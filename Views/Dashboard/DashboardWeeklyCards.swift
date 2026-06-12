@@ -110,14 +110,14 @@ struct WeeklyReportView: View {
                                     .frame(width: 70, height: 70)
                                     .rotationEffect(.degrees(-90))
                                 VStack(spacing: 0) {
-                                    Text("\(score)").font(.appTitle.weight(.black)).foregroundColor(.white)
+                                    Text("\(score)").font(.appTitle.weight(.black)).foregroundColor(.appTextPrimary)
                                     Text("/100").font(.appMicro).foregroundColor(.gray)
                                 }
                             }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("SCORE SEMAINE").font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
                                 Text(score >= 75 ? "Excellente semaine" : score >= 50 ? "Bonne semaine" : "Semaine à améliorer")
-                                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                                    .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                                 if let rpe = report.avgRpe {
                                     Text("RPE moy. \(String(format: "%.1f", rpe))/10")
                                         .font(.appCaption).foregroundColor(.gray)
@@ -135,7 +135,7 @@ struct WeeklyReportView: View {
                             Image(systemName: "star.fill").foregroundColor(.yellow)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("EXERCICE PHARE").font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
-                                Text(top).font(.appLabel.weight(.bold)).foregroundColor(.white)
+                                Text(top).font(.appLabel.weight(.bold)).foregroundColor(.appTextPrimary)
                             }
                             Spacer()
                         }
@@ -152,7 +152,7 @@ struct WeeklyReportView: View {
                             ForEach(report.prs, id: \.self) { exo in
                                 HStack(spacing: 8) {
                                     Image(systemName: "star.fill").font(.appCaption).foregroundColor(.yellow.opacity(0.8))
-                                    Text(exo).font(.appLabel).foregroundColor(.white)
+                                    Text(exo).font(.appLabel).foregroundColor(.appTextPrimary)
                                     Spacer()
                                 }
                             }
@@ -299,7 +299,7 @@ struct ActivityRingCard: View {
                 VStack(spacing: 0) {
                     Text("\(Int(progress * 100))%")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                 }
             }
             .frame(width: 64, height: 64)
@@ -311,7 +311,7 @@ struct ActivityRingCard: View {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text("\(steps.formatted())")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text("/ \(goal.formatted()) pas")
                         .font(.appCaption)
                         .foregroundColor(.gray)
@@ -381,7 +381,7 @@ struct OptimalWindowCard: View {
                 HStack(spacing: 4) {
                     Text("\(timeFormatter.string(from: windowStart))–\(timeFormatter.string(from: windowEnd))")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     if isWindowNow {
                         Text("• MAINTENANT")
                             .font(.appCaption.weight(.bold))

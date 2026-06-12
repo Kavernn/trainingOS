@@ -41,7 +41,7 @@ struct CoachMemoryView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.white)
+                    Button("Fermer") { dismiss() }.foregroundColor(.appTextPrimary)
                 }
                 if !store.entries.isEmpty {
                     ToolbarItem(placement: .destructiveAction) {
@@ -90,7 +90,7 @@ struct CoachMemoryView: View {
                 .foregroundColor(.purple.opacity(0.35))
             Text("Mémoire vide")
                 .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Text("Le coach accumule des faits sur ton entraînement au fil du temps. Reviens après quelques séances.")
                 .font(.appLabel)
                 .foregroundColor(.gray)

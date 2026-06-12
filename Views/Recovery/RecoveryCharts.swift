@@ -118,7 +118,7 @@ struct HRVChart: View {
                         let lbl = entries.indices.contains(pt.idx) ? (entries[pt.idx].date ?? "") : ""
                         VStack(spacing: 2) {
                             Text(String(format: "%.0f ms", pt.val))
-                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             Text(lbl).font(.appMicro).foregroundColor(.gray)
                         }
                         .padding(.horizontal, 8).padding(.vertical, 5)
@@ -303,7 +303,7 @@ struct RHRChart: View {
                         let lbl = entries.indices.contains(pt.idx) ? (entries[pt.idx].date ?? "") : ""
                         VStack(spacing: 2) {
                             Text(String(format: "%.0f bpm", pt.val))
-                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             Text(lbl).font(.appMicro).foregroundColor(.gray)
                         }
                         .padding(.horizontal, 8).padding(.vertical, 5)
@@ -511,7 +511,7 @@ struct SleepChart: View {
                         let barH   = CGFloat(sleepH / yMax) * h
                         VStack(spacing: 2) {
                             Text(String(format: "%.1fh", sleepH))
-                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             Text(entries[j].date ?? "")
                                 .font(.appMicro).foregroundColor(.gray)
                         }
@@ -674,7 +674,7 @@ struct StepsChart: View {
                         let barH   = CGFloat(steps / yMax) * h
                         VStack(spacing: 2) {
                             Text(stepsLabel(steps) + " pas")
-                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             Text(entries[j].date ?? "")
                                 .font(.appMicro).foregroundColor(.gray)
                         }

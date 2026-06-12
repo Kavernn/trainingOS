@@ -30,7 +30,7 @@ struct NutritionSummaryView: View {
                     VStack(spacing: 0) {
                         Text("\(Int(protCurrent))")
                             .font(.appBody.weight(.black))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text("g")
                             .font(.appMicro)
                             .foregroundColor(.gray)
@@ -246,7 +246,7 @@ struct DataGapCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(subtitle)
                     .font(.appCaption)
                     .foregroundColor(.gray)
@@ -305,12 +305,12 @@ struct MacroInsightCard: View {
                         if above {
                             Text("Bonne nutrition hier — conditions optimales")
                                 .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .lineLimit(1)
                         } else {
                             Text("Hier : \(Int(v))\(t.unit) \(macroLabel) — sous ton seuil optimal (\(Int(t.value))\(t.unit))")
                                 .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.85)
                         }

@@ -87,7 +87,7 @@ struct AddHIITSheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("TYPE DE SESSION").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                             TextField("HIIT", text: $sessionType)
-                                .font(.appBody.weight(.semibold)).foregroundColor(.white)
+                                .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
                                 .padding(12).background(Color.appSurfaceInset).cornerRadius(10)
                         }
                         .padding(14).background(Color.appCard).cornerRadius(14)
@@ -97,7 +97,7 @@ struct AddHIITSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("RONDES").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $rounds).keyboardType(.numberPad)
-                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 1 et 30 rounds")
@@ -106,7 +106,7 @@ struct AddHIITSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("TRAVAIL (s)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $workTime).keyboardType(.numberPad)
-                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 5 et 300s")
@@ -115,7 +115,7 @@ struct AddHIITSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("REPOS (s)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $restTime).keyboardType(.numberPad)
-                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                                 Text("Entre 0 et 300s")
@@ -139,7 +139,7 @@ struct AddHIITSheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                             TextField("Notes...", text: $notes, axis: .vertical)
-                                .font(.system(size: 14)).foregroundColor(.white).tint(.red)
+                                .font(.system(size: 14)).foregroundColor(.appTextPrimary).tint(.red)
                                 .lineLimit(3, reservesSpace: true)
                                 .submitLabel(.done)
                                 .onSubmit { hideKeyboard() }

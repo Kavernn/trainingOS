@@ -368,11 +368,11 @@ struct WeekComparisonCard: View {
                     Text(isProjecting ? "Proj. J+\(daysElapsed)" : "Cette sem.")
                         .font(.system(size: 10, weight: .bold)).foregroundColor(Color.forge)
                     Text(isProjecting ? "~\(Int(round(projectedSessions)))" : "\(thisWeekSessions)")
-                        .font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                        .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
                     Text(projectedVolume > 0 ? (isProjecting ? "~\(_formatK(projectedVolume))" : _formatK(thisWeekVolume)) : "—")
-                        .font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                        .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
                     Text(thisWeekAvgRPE > 0 ? String(format: "%.1f", thisWeekAvgRPE) : "—")
-                        .font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                        .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
                 }
                 .frame(maxWidth: .infinity)
 
@@ -429,7 +429,7 @@ struct PersonalRecordsView: View {
                             .frame(width: 16)
                         Text(record.0)
                             .font(.appLabel)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .lineLimit(1)
                         Spacer()
                         ZStack(alignment: .leading) {
@@ -536,7 +536,7 @@ struct Top5VolumeView: View {
                     ForEach(Array(data.enumerated()), id: \.0) { i, item in
                         HStack(spacing: 10) {
                             Text(item.0)
-                                .font(.system(size: 12, weight: .medium)).foregroundColor(.white)
+                                .font(.system(size: 12, weight: .medium)).foregroundColor(.appTextPrimary)
                                 .lineLimit(1).frame(width: 120, alignment: .leading)
                             let barW = outer.size.width - 184
                             ZStack(alignment: .leading) {
@@ -726,7 +726,7 @@ struct ExerciseStatRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(name).font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                Text(name).font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
                 if let reps = data.lastReps, !reps.isEmpty {
                     Text(reps).font(.system(size: 12)).foregroundColor(.gray)
                 }
@@ -795,7 +795,7 @@ struct ExerciseDetailView: View {
                                         Text(entry.date ?? "—").font(.appLabel).foregroundColor(.gray)
                                         Spacer()
                                         Text(units.format(entry.weight ?? 0))
-                                            .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                                            .font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
                                         Text(entry.reps ?? "").font(.appLabel).foregroundColor(.gray)
                                         if let note = entry.note, !note.isEmpty {
                                             Text(note).font(.system(size: 12, weight: .semibold))
@@ -1010,7 +1010,7 @@ struct PatternVolumeView: View {
                             let pct = CGFloat(maxVal > 0 ? vol / maxVal : 0)
                             HStack(spacing: 8) {
                                 Text(name)
-                                    .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                                     .frame(width: 42, alignment: .leading)
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(color.opacity(0.7))
@@ -1185,7 +1185,7 @@ struct RPEProgressionView: View {
                         let barW = outer.size.width - 126
                         HStack(spacing: 8) {
                             Text("RPE \(name)")
-                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                                 .frame(width: 60, alignment: .leading)
                             HStack(spacing: 0) {
                                 RoundedRectangle(cornerRadius: 3).fill(c).frame(width: max(barW * CGFloat(pct), 2), height: 14)
@@ -1231,7 +1231,7 @@ struct RIRByExerciseView: View {
                         let barW = outer.size.width - 164
                         HStack(spacing: 8) {
                             Text(e.exercise)
-                                .font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
+                                .font(.system(size: 10, weight: .semibold)).foregroundColor(.appTextPrimary)
                                 .frame(width: 120, alignment: .leading).lineLimit(1)
                             RoundedRectangle(cornerRadius: 3).fill(c.opacity(0.7))
                                 .frame(width: barW * CGFloat(pct), height: 12)
@@ -1321,7 +1321,7 @@ struct Top5FrequencyView: View {
                                 .font(.appCaption.weight(.bold)).foregroundColor(.gray)
                                 .frame(width: 16)
                             Text(item.0)
-                                .font(.appLabel).foregroundColor(.white).lineLimit(1)
+                                .font(.appLabel).foregroundColor(.appTextPrimary).lineLimit(1)
                             Spacer()
                             Text("\(item.1)×")
                                 .font(.appLabel.weight(.bold)).foregroundColor(Color.forge)

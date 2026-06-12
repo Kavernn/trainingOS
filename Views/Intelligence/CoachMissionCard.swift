@@ -61,7 +61,7 @@ struct CoachMissionCard: View {
                         .foregroundColor(sessionColor)
                     Text(dash.today)
                         .font(.system(size: 22, weight: .black))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                 }
                 Spacer()
                 Text(statusLabel)

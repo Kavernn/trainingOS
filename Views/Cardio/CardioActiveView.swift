@@ -37,7 +37,7 @@ struct CardioTypeSelectionSheet: View {
 
             Text("Type d'effort")
                 .font(.appTitle)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
@@ -98,7 +98,7 @@ private struct CardioTypeCard: View {
 
                 Text(type.label)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
 
                 Text(type.description)
                     .font(.appCaption)
@@ -151,7 +151,7 @@ struct CardioActiveView: View {
                         Button(action: { dismiss() }) {
                             Image(systemName: "xmark")
                                 .font(.appBody.weight(.semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .padding(10)
                                 .background(.ultraThinMaterial)
                                 .clipShape(Circle())
@@ -195,7 +195,7 @@ private struct CardioIdleView: View {
             VStack(spacing: 16) {
                 Text("Nouvelle séance")
                     .font(.appTitle)
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .padding(.top, 20)
 
                 if session.authorizationStatus == .denied || session.authorizationStatus == .restricted {
@@ -330,7 +330,7 @@ private struct ActiveLayout: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(Color.white.opacity(0.08))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.2), lineWidth: 1))
                     .cornerRadius(14)
                 }
@@ -471,7 +471,7 @@ private struct MetricsBlock: View {
     private func primaryText(_ value: String) -> some View {
         Text(value)
             .font(.system(size: 72, weight: .black, design: .monospaced))
-            .foregroundColor(.white)
+            .foregroundColor(.appTextPrimary)
             .frame(maxWidth: .infinity, alignment: .center)
             .minimumScaleFactor(0.5)
     }

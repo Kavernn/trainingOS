@@ -46,13 +46,13 @@ struct AddCardioSheet: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("DURÉE (MIN)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("30", text: $durationMin).keyboardType(.decimalPad)
-                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                             }
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("DISTANCE (\(UnitSettings.shared.distanceUnit))").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $distanceKm).keyboardType(.decimalPad)
-                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                             }
                         }
@@ -73,7 +73,7 @@ struct AddCardioSheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                             TextField("Notes...", text: $notes, axis: .vertical)
-                                .font(.system(size: 14)).foregroundColor(.white).tint(.blue)
+                                .font(.system(size: 14)).foregroundColor(.appTextPrimary).tint(.blue)
                                 .lineLimit(3, reservesSpace: true)
                                 .submitLabel(.done)
                                 .onSubmit { hideKeyboard() }

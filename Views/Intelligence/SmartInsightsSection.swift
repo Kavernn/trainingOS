@@ -107,7 +107,7 @@ struct SmartInsightsSection: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(insight.title)
                                 .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                             Text(insight.detail)
                                 .font(.system(size: 12))
                                 .foregroundColor(Color.white.opacity(0.5))

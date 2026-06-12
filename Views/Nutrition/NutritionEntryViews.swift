@@ -114,7 +114,7 @@ struct NutritionEntryRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name ?? "—")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 HStack(spacing: 8) {
                     if let p = entry.proteines { Text("\(Int(p))g prot").font(.appCaption).foregroundColor(.blue) }
                     if let c = entry.glucides  { Text("\(Int(c))g carbs").font(.appCaption).foregroundColor(.yellow) }

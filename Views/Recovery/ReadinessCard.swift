@@ -83,7 +83,7 @@ struct ReadinessCard: View {
                 VStack(spacing: 1) {
                     Text(score.map { String(format: "%.1f", $0) } ?? "—")
                         .font(.system(size: 16, weight: .black))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text("/10")
                         .font(.system(size: 8))
                         .foregroundColor(.gray)

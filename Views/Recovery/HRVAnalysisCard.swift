@@ -204,7 +204,7 @@ struct HRVBaselineProgressView: View {
             }
 
             Text("Continue — ta baseline personnelle se construit.")
-                .font(.system(size: 14, weight: .medium)).foregroundColor(.white)
+                .font(.system(size: 14, weight: .medium)).foregroundColor(.appTextPrimary)
 
             Text(daysLeft > 0
                  ? "\(daysLeft) jour\(daysLeft > 1 ? "s" : "") de plus pour des insights précis."
@@ -375,7 +375,7 @@ private struct HRVFAQItem: View {
                 withAnimation(.easeInOut(duration: 0.22)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 12) {
-                    Text(question).font(.system(size: 14, weight: .semibold)).foregroundColor(.white).multilineTextAlignment(.leading)
+                    Text(question).font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary).multilineTextAlignment(.leading)
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.appCaption.weight(.semibold)).foregroundColor(.gray)
                 }

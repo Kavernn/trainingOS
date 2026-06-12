@@ -134,7 +134,7 @@ private struct ComebackArcDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.white)
+                    Button("Fermer") { dismiss() }.foregroundColor(.appTextPrimary)
                 }
             }
         }

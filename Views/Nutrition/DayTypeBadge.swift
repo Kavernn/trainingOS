@@ -28,7 +28,7 @@ struct DayTypeBadge: View {
                     if let s = session, !s.isEmpty {
                         Text(s)
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text("· \(label)")
                             .font(.system(size: 12))
                             .foregroundColor(color)

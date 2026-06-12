@@ -49,7 +49,7 @@ struct PlateCalculatorSheet: View {
                                 TextField("ex. 100", text: $totalStr)
                                     .keyboardType(.decimalPad)
                                     .font(.system(size: 32, weight: .black, design: .rounded))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                                     .frame(maxWidth: .infinity)
                                 Text(units.label)
                                     .font(.system(size: 18, weight: .semibold))
@@ -91,7 +91,7 @@ struct PlateCalculatorSheet: View {
                                                 .frame(width: 12, height: 12)
                                             Text("\(plate.count) × \(plate.label)")
                                                 .font(.appBody.weight(.semibold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.appTextPrimary)
                                             Spacer()
                                             Text("= \(String(format: "%.2g", plate.value * Double(plate.count))) \(units.label)")
                                                 .font(.appLabel)
@@ -127,7 +127,7 @@ struct PlateCalculatorSheet: View {
                                     } label: {
                                         Text("\(String(format: "%.4g", v))")
                                             .font(.appLabel.weight(.bold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.appTextPrimary)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 10)
                                             .background(Color.white.opacity(0.06))
@@ -165,7 +165,7 @@ struct PlateCalculatorSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Fermer") { dismiss() }
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                 }
             }
             .toolbarBackground(Color.appBg, for: .navigationBar)

@@ -21,12 +21,12 @@ struct SmartAlarmSettingsView: View {
                     Section("Fenêtre de réveil") {
                         DatePicker("Début", selection: $windowStartDate, displayedComponents: .hourAndMinute)
                             .colorScheme(.dark)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .onChange(of: windowStartDate) { _, _ in commitWindowChange() }
 
                         DatePicker("Fin", selection: $windowEndDate, displayedComponents: .hourAndMinute)
                             .colorScheme(.dark)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .onChange(of: windowEndDate) { _, _ in commitWindowChange() }
                     }
                     .listRowBackground(Color.appCard)
@@ -64,7 +64,7 @@ struct SmartAlarmSettingsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Réveil intelligent")
                     .font(.appBody.weight(.medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text("Alarme sur le plus proche point de cycle (90 min)")
                     .font(.system(size: 12))
                     .foregroundColor(Color(white: 0.45))

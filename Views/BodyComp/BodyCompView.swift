@@ -231,7 +231,7 @@ struct CompChip: View {
                 .font(.appMicro.weight(.black)).tracking(1)
                 .foregroundColor(color.opacity(0.7))
             Text(value)
-                .font(.appBody.weight(.bold)).foregroundColor(.white)
+                .font(.appBody.weight(.bold)).foregroundColor(.appTextPrimary)
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -470,7 +470,7 @@ struct MeasurementsCard: View {
                         Image(systemName: item.icon)
                             .font(.appCaption).foregroundColor(item.color).frame(width: 20)
                         Text(item.label)
-                            .font(.appLabel).foregroundColor(.white)
+                            .font(.appLabel).foregroundColor(.appTextPrimary)
                         Spacer()
                         if let d = item.delta, abs(d) >= 0.5 {
                             Text("\(d >= 0 ? "+" : "")\(d, specifier: "%.0f")")
@@ -478,7 +478,7 @@ struct MeasurementsCard: View {
                                 .foregroundColor(d <= 0 ? .green : .orange)
                         }
                         Text("\(item.current, specifier: "%.0f")")
-                            .font(.appBody.weight(.bold)).foregroundColor(.white)
+                            .font(.appBody.weight(.bold)).foregroundColor(.appTextPrimary)
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -570,7 +570,7 @@ struct ComparisonTableCard: View {
                         .font(.appCaption.weight(.semibold)).foregroundColor(.gray)
                         .frame(width: 68, alignment: .center)
                     Text(monthLabel(n.date))
-                        .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                         .frame(width: 68, alignment: .center)
                     Text("Δ")
                         .font(.appCaption.weight(.semibold)).foregroundColor(.gray)
@@ -581,13 +581,13 @@ struct ComparisonTableCard: View {
                 ForEach(rows) { row in
                     HStack {
                         Text(row.label)
-                            .font(.appCaption.weight(.medium)).foregroundColor(.white)
+                            .font(.appCaption.weight(.medium)).foregroundColor(.appTextPrimary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Text(row.old ?? "—")
                             .font(.appCaption).foregroundColor(.gray)
                             .frame(width: 68, alignment: .center)
                         Text(row.new ?? "—")
-                            .font(.appCaption.weight(.semibold)).foregroundColor(.white)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             .frame(width: 68, alignment: .center)
                         Group {
                             if let d = row.delta, abs(d) >= 0.05 {
@@ -639,7 +639,7 @@ struct BodyWeightRow: View {
             Spacer()
             Text(units.format(entry.weight))
                 .font(.appBody.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
 
             // Edit button
             Button(action: onEdit) {
@@ -739,7 +739,7 @@ struct BodyWeightSheet: View {
                                 TextField("0.0", text: $weightStr)
                                     .keyboardType(.decimalPad)
                                     .focused($bodyFocus, equals: .weight)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                                     .font(.appTitle)
                                     .padding(12)
                                     .background(Color.appSurfaceInset)
@@ -920,7 +920,7 @@ struct MesureField: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             TextField(placeholder, text: $text)
-                .keyboardType(.decimalPad).foregroundColor(.white)
+                .keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                 .padding(10).background(Color.appSurfaceInset).cornerRadius(8)
         }
     }
@@ -960,7 +960,7 @@ struct WeightChartView: View {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text(String(format: "%.1f", units.display(current)))
                             .font(.system(size: 28, weight: .black))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text(units.label)
                             .font(.appLabel.weight(.regular))
                             .foregroundColor(.gray)
@@ -1104,7 +1104,7 @@ struct BodyProjectionCard: View {
                     HStack {
                         let isBodyFat = proj.goalType == "body_fat"
                         Text(isBodyFat ? "Masse grasse" : "Masse maigre")
-                            .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                            .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                         Spacer()
                         if let date = proj.projectedDate {
                             Text(formatDate(date))
@@ -1121,7 +1121,7 @@ struct BodyProjectionCard: View {
                                 .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                             let unit = proj.goalType == "body_fat" ? "%" : " lbs"
                             Text(String(format: "%.1f\(unit)", proj.current))
-                                .font(.appBody.weight(.black)).foregroundColor(.white)
+                                .font(.appBody.weight(.black)).foregroundColor(.appTextPrimary)
                         }
                         Image(systemName: "arrow.right")
                             .font(.appCaption).foregroundColor(.gray)

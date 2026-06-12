@@ -36,7 +36,7 @@ struct HealthDashboardView: View {
                                             .font(.appLabel.weight(.regular)).foregroundColor(.purple)
                                         Text(msg)
                                             .font(.appCaption.weight(.medium))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.appTextPrimary)
                                             .multilineTextAlignment(.leading)
                                         Spacer()
                                         Image(systemName: "chevron.right")
@@ -394,7 +394,7 @@ struct TrainingSummaryCard: View {
                 if let dur = summary.trainingDurationMin {
                     VStack(spacing: 2) {
                         Text(String(format: "%.0f min", dur))
-                            .font(.appTitle.weight(.black)).foregroundColor(.white)
+                            .font(.appTitle.weight(.black)).foregroundColor(.appTextPrimary)
                         Text("Durée").font(.appCaption).foregroundColor(.gray)
                     }
                 }
@@ -573,7 +573,7 @@ struct MetricPill: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.appCaption).foregroundColor(color)
-            Text(value).font(.appCaption.weight(.semibold)).foregroundColor(.white)
+            Text(value).font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
         .background(color.opacity(0.1)).cornerRadius(8)

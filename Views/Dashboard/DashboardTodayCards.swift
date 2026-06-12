@@ -132,7 +132,7 @@ struct TodayCardView: View {
                                     .foregroundColor(todayColor.opacity(0.5))
                                     .frame(width: 16)
                                 Text(item.0)
-                                    .font(.appLabel).foregroundColor(.white)
+                                    .font(.appLabel).foregroundColor(.appTextPrimary)
                                     .lineLimit(1)
                                 Spacer()
                                 Text(item.1)
@@ -544,7 +544,7 @@ struct WeekGridView: View {
                             if done {
                                 Image(systemName: "checkmark")
                                     .font(.appMicro.weight(.bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                             } else {
                                 Text(seanceShort(seance))
                                     .font(.appCaption.weight(.bold))
@@ -661,7 +661,7 @@ struct SoirCardView: View {
                         HStack {
                             Circle().fill(sessionColor.opacity(0.25)).frame(width: 5, height: 5)
                             Text(ex)
-                                .font(.appLabel).foregroundColor(.white)
+                                .font(.appLabel).foregroundColor(.appTextPrimary)
                             Spacer()
                             Text(sets)
                                 .font(.appCaption).foregroundColor(.gray)

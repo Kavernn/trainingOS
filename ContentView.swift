@@ -45,6 +45,7 @@ private struct iOSContentView: View {
     @ObservedObject var sync: SyncManager
     @ObservedObject private var api      = APIService.shared
     @ObservedObject private var appState = AppState.shared
+    @ObservedObject private var theme    = AppTheme.shared
     @Binding var selectedTab: Int
 
     private var seanceBadge: Int {
@@ -77,7 +78,7 @@ private struct iOSContentView: View {
         }
         .overlay(alignment: .top) { offlineBanner }
         .overlay(alignment: .bottom) { offlineToast }
-        .tint(.orange)
+        .tint(theme.accent)
         .globalActionFeedback()
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToIntelligence)) { _ in
@@ -111,7 +112,7 @@ private struct iOSContentView: View {
                 Image(systemName: "wifi.slash").font(.appCaption.weight(.semibold))
                 Text("Hors-ligne — données en cache").font(.appCaption.weight(.medium))
             }
-            .foregroundColor(.white)
+            .foregroundColor(.appTextPrimary)
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
             .background(
@@ -133,7 +134,7 @@ private struct iOSContentView: View {
                 Image(systemName: "arrow.triangle.2.circlepath").font(.appLabel.weight(.semibold))
                 Text(msg).font(.appLabel).multilineTextAlignment(.leading)
             }
-            .foregroundColor(.white)
+            .foregroundColor(.appTextPrimary)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(Color(white: 0.15).opacity(0.95))

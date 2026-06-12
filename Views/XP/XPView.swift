@@ -215,7 +215,7 @@ struct XPView: View {
 
             Text(levelTitle)
                 .font(.appTitle.weight(.bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
 
             VStack(spacing: 6) {
                 HStack {
@@ -408,7 +408,7 @@ struct BadgeDetailSheet: View {
             VStack(spacing: 8) {
                 Text(badge.label)
                     .font(.appTitle.weight(.bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(badge.desc)
                     .font(.appLabel.weight(.regular))
                     .foregroundColor(.gray)

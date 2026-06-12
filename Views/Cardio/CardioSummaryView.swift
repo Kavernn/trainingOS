@@ -142,7 +142,7 @@ struct CardioSummaryView: View {
                 .foregroundColor(.teal)
             Text(typeInfo.label)
                 .font(.system(size: 26, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Text(sessionDateStr)
                 .font(.appLabel.weight(.regular))
                 .foregroundColor(.white.opacity(0.5))

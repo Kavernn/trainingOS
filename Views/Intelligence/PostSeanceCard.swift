@@ -33,7 +33,7 @@ struct PostSeanceCard: View {
                             .foregroundColor(.white.opacity(0.40))
                         Text(String(format: "%.1f", rpe))
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text(shortInterpretation(data.rpeInterpretation))
                             .font(.appCaption)
                             .foregroundColor(.white.opacity(0.50))

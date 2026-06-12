@@ -92,7 +92,7 @@ struct NavyCalculatorView: View {
                 .foregroundColor(.yellow)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Formule corrigée")
-                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                 Text("Le calcul du % de gras est plus précis. L'ancienne formule surestimait de quelques points — ton nouveau chiffre est plus fiable.")
                     .font(.appCaption).foregroundColor(.gray)
                     .fixedSize(horizontal: false, vertical: true)
@@ -118,7 +118,7 @@ struct NavyCalculatorView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.gray.opacity(0.5))
             Text("Aucune entrée de poids")
-                .font(.appBody.weight(.semibold)).foregroundColor(.white)
+                .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
             Text("Commence par enregistrer ton poids dans Body Comp.")
                 .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                 .multilineTextAlignment(.center)
@@ -137,7 +137,7 @@ struct NavyCalculatorView: View {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
                 .font(.system(size: 36)).foregroundColor(Color.forge.opacity(0.7))
             Text("Sexe non renseigné")
-                .font(.appBody.weight(.semibold)).foregroundColor(.white)
+                .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
             Text("La formule Navy est différente pour l'homme et la femme. Indique ton sexe dans ton profil pour un calcul précis.")
                 .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                 .multilineTextAlignment(.center)
@@ -156,7 +156,7 @@ struct NavyCalculatorView: View {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundColor(Color.forge)
                 Text("Données manquantes")
-                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
             }
             Text("Pour calculer le % de gras, enregistre aussi :")
                 .font(.appLabel.weight(.regular)).foregroundColor(.gray)
@@ -164,7 +164,7 @@ struct NavyCalculatorView: View {
                 HStack(spacing: 8) {
                     Circle().fill(Color.forge).frame(width: 6, height: 6)
                     Text(field.capitalized)
-                        .font(.appLabel.weight(.regular)).foregroundColor(.white)
+                        .font(.appLabel.weight(.regular)).foregroundColor(.appTextPrimary)
                 }
             }
 
@@ -207,13 +207,13 @@ struct NavyCalculatorView: View {
                             .frame(width: 34, height: 34)
                             .background(Color.white.opacity(0.07))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                     }
                     .buttonStyle(SpringButtonStyle(scale: 0.93))
 
                     Text(String(format: "%.0f cm", heightCm))
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .frame(minWidth: 70)
                         .multilineTextAlignment(.center)
 
@@ -223,7 +223,7 @@ struct NavyCalculatorView: View {
                             .frame(width: 34, height: 34)
                             .background(Color.white.opacity(0.07))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                     }
                     .buttonStyle(SpringButtonStyle(scale: 0.93))
                 }
@@ -262,7 +262,7 @@ struct NavyCalculatorView: View {
             Text(label)
                 .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             Text(value)
-                .font(.appLabel.weight(.bold)).foregroundColor(.white)
+                .font(.appLabel.weight(.bold)).foregroundColor(.appTextPrimary)
         }
     }
 
@@ -291,7 +291,7 @@ struct NavyCalculatorView: View {
                 .foregroundColor(color.opacity(0.75))
             Text(value)
                 .font(.appHeadline.weight(.black))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
             if let sub = subtitle {
@@ -356,7 +356,7 @@ struct NavyCalculatorView: View {
                 .foregroundColor(color)
             Text("Catégorie : \(label)")
                 .font(.appLabel.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Spacer()
             Text(String(format: "%.1f%%", res.pct))
                 .font(.appLabel.weight(.black))

@@ -39,7 +39,7 @@ struct InsightPrincipalCard: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(insight.title)
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(insight.body)
                         .font(.appLabel)

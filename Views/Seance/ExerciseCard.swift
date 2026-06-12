@@ -482,7 +482,7 @@ struct ExerciseCard: View {
                         Image(systemName: "minus.circle.fill").font(.appTitle).foregroundColor(.gray)
                     }.buttonStyle(.plain)
                     Text(evm.formatDuration(evm.sets[i].duration))
-                        .font(.appHeadline).fontWeight(.bold).foregroundColor(.white)
+                        .font(.appHeadline).fontWeight(.bold).foregroundColor(.appTextPrimary)
                         .frame(minWidth: 64, alignment: .center)
                         .padding(.vertical, 6).padding(.horizontal, 12)
                         .background(Color.appSurfaceInset).cornerRadius(8)
@@ -611,7 +611,7 @@ struct ExerciseCard: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(name).font(.appHeadline).fontWeight(.bold).foregroundColor(.white)
+                        Text(name).font(.appHeadline).fontWeight(.bold).foregroundColor(.appTextPrimary)
                         if isReplaced {
                             Text("remplacé")
                                 .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)
@@ -662,9 +662,9 @@ struct ExerciseCard: View {
                     if isTimeBased {
                         Text(r.reps.split(separator: ",").compactMap { Int($0) }
                                 .map { evm.formatDuration($0) }.first ?? "—")
-                            .font(.appLabel).fontWeight(.black).foregroundColor(.white)
+                            .font(.appLabel).fontWeight(.black).foregroundColor(.appTextPrimary)
                     } else {
-                        Text(units.format(r.weight)).font(.appLabel).fontWeight(.black).foregroundColor(.white)
+                        Text(units.format(r.weight)).font(.appLabel).fontWeight(.black).foregroundColor(.appTextPrimary)
                         Text(r.reps).font(.appMicro).foregroundColor(.gray)
                     }
                 }
@@ -869,17 +869,17 @@ struct ExerciseCard: View {
                             Image(systemName: "timer").font(.appCaption).foregroundColor(.gray)
                             Text(r.reps.split(separator: ",").compactMap { Int($0) }
                                     .map { evm.formatDuration($0) }.joined(separator: ", "))
-                                .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
+                                .font(.appLabel).fontWeight(.semibold).foregroundColor(.appTextPrimary)
                         }
                     } else {
                         HStack(spacing: 4) {
                             Image(systemName: "scalemass.fill").font(.appCaption).foregroundColor(.gray)
-                            Text(units.format(r.weight)).font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
+                            Text(units.format(r.weight)).font(.appLabel).fontWeight(.semibold).foregroundColor(.appTextPrimary)
                         }
                         Text("·").foregroundColor(.gray)
                         HStack(spacing: 4) {
                             Image(systemName: "repeat").font(.appCaption).foregroundColor(.gray)
-                            Text(r.reps).font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
+                            Text(r.reps).font(.appLabel).fontWeight(.semibold).foregroundColor(.appTextPrimary)
                         }
                     }
                     if let rpe = r.rpe {
@@ -1581,7 +1581,7 @@ struct EnduranceTimerSection: View {
         case .countdown(let n):
             Text("\(n)")
                 .font(.system(size: 80, weight: .black, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .contentTransition(.numericText())
                 .frame(height: 110)
 
@@ -1600,7 +1600,7 @@ struct EnduranceTimerSection: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 44)).foregroundColor(.green)
                 Text(fmt(targetDur))
-                    .font(.appHeadline).fontWeight(.black).foregroundColor(.white)
+                    .font(.appHeadline).fontWeight(.black).foregroundColor(.appTextPrimary)
                 Text(isLastSet ? "Tous les sets complétés ✓" : "Set \(currentSetIdx + 1) complété")
                     .font(.appCaption).foregroundColor(.gray)
             }

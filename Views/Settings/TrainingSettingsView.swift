@@ -98,7 +98,7 @@ struct TrainingSettingsView: View {
                     .foregroundColor(color)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.appBody.weight(.medium)).foregroundColor(.white)
+                Text(title).font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                 Text(subtitle).font(.appCaption).foregroundColor(.gray.opacity(0.55))
             }
         }
@@ -119,7 +119,7 @@ struct TrainingSettingsView: View {
                     .foregroundColor(color)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.appBody.weight(.medium)).foregroundColor(.white)
+                Text(title).font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                 Text(subtitle).font(.appCaption).foregroundColor(.gray.opacity(0.55))
             }
             Spacer()
@@ -132,7 +132,7 @@ struct TrainingSettingsView: View {
                      ? "\(Int(value.wrappedValue)) \(unit)"
                      : String(format: "%.2g \(unit)", value.wrappedValue))
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
             }
         }
         .padding(.vertical, 3)
@@ -143,7 +143,7 @@ struct TrainingSettingsView: View {
         HStack {
             Text(label)
                 .font(.appBody.weight(.medium))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .frame(width: 40, alignment: .leading)
             Slider(value: Binding(
                 get: { Double(pct.wrappedValue) },

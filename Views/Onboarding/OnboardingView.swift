@@ -65,7 +65,7 @@ struct OnboardingView: View {
             VStack(spacing: 20) {
                 Text("Ton coach.\nTon avantage.")
                     .font(.system(size: 42, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(2)
 
@@ -96,7 +96,7 @@ struct OnboardingView: View {
             VStack(spacing: 10) {
                 Text("Quel est ton\nobjectif ?")
                     .font(.system(size: 34, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 80)
                 Text("Ton coach adapte tout à partir de là.")
@@ -115,7 +115,7 @@ struct OnboardingView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(option.label)
                                     .font(.appHeadline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.appTextPrimary)
                                 Text(option.subtitle)
                                     .font(.appLabel).fontWeight(.regular)
                                     .foregroundColor(Color(white: 0.45))
@@ -145,7 +145,7 @@ struct OnboardingView: View {
             VStack(spacing: 10) {
                 Text("Comment\nt'appelle-tu ?")
                     .font(.system(size: 34, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 80)
                 Text("Ton coach va te parler par ton prénom.")
@@ -156,7 +156,7 @@ struct OnboardingView: View {
 
             TextField("Ex: Vincent", text: $name)
                 .font(.appTitle).fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
                 .tint(Color.forge)
                 .multilineTextAlignment(.center)
                 .autocorrectionDisabled()
@@ -189,7 +189,7 @@ struct OnboardingView: View {
             VStack(spacing: 10) {
                 Text("Ton profil\nphysique")
                     .font(.system(size: 34, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 80)
                 Text("Pour calibrer tes calories, readiness\net recommandations de charge.")
@@ -214,7 +214,7 @@ struct OnboardingView: View {
                     HStack {
                         Text("\(heightInput) cm")
                             .font(.appTitle.weight(.black))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Spacer()
                         Stepper("", value: $heightInput, in: 140...220)
                             .labelsHidden()
@@ -231,7 +231,7 @@ struct OnboardingView: View {
                     HStack {
                         Text(String(format: "%.1f %@", weightInput, isKgSelected ? "kg" : "lbs"))
                             .font(.appTitle.weight(.black))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Spacer()
                         Stepper("", value: $weightInput, in: 30...300, step: 0.5)
                             .labelsHidden()
@@ -284,7 +284,7 @@ struct OnboardingView: View {
             VStack(spacing: 10) {
                 Text("Tu t'entraînes\nen kg ou en lbs ?")
                     .font(.system(size: 34, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 80)
                 Text("Toutes tes charges seront affichées\ndans cette unité.")
@@ -344,7 +344,7 @@ struct OnboardingView: View {
                 VStack(spacing: 10) {
                     Text("Récupération auto")
                         .font(.system(size: 34, weight: .black))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .multilineTextAlignment(.center)
                     Text("Connecte Apple Santé pour importer\nautomatiquement ton sommeil, HRV\net tes calories brûlées.")
                         .font(.appBody)
@@ -494,7 +494,7 @@ struct HRVOnboardingView: View {
             }
             VStack(spacing: 12) {
                 Text("C'est quoi le HRV ?")
-                    .font(.system(size: 26, weight: .bold)).foregroundColor(.white).multilineTextAlignment(.center)
+                    .font(.system(size: 26, weight: .bold)).foregroundColor(.appTextPrimary).multilineTextAlignment(.center)
                 Text("La variabilité de ton rythme cardiaque révèle l'état réel de ton système nerveux — plus fiable que ton ressenti subjectif.")
                     .font(.appBody).foregroundColor(.gray).multilineTextAlignment(.center).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
             }
@@ -514,7 +514,7 @@ struct HRVOnboardingView: View {
             }
             VStack(spacing: 12) {
                 Text("Le protocole du matin")
-                    .font(.system(size: 26, weight: .bold)).foregroundColor(.white).multilineTextAlignment(.center)
+                    .font(.system(size: 26, weight: .bold)).foregroundColor(.appTextPrimary).multilineTextAlignment(.center)
                 Text("Chaque matin, avant de te lever :")
                     .font(.appBody).foregroundColor(.gray)
             }
@@ -538,7 +538,7 @@ struct HRVOnboardingView: View {
             }
             VStack(spacing: 12) {
                 Text("L'app fait le reste")
-                    .font(.system(size: 26, weight: .bold)).foregroundColor(.white).multilineTextAlignment(.center)
+                    .font(.system(size: 26, weight: .bold)).foregroundColor(.appTextPrimary).multilineTextAlignment(.center)
                 Text("Ton Apple Watch collecte en arrière-plan pendant le sommeil. VinceSeven calcule ton score personnalisé chaque matin — rien d'autre à faire.")
                     .font(.appBody).foregroundColor(.gray).multilineTextAlignment(.center).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
             }

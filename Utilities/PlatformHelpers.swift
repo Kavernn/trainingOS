@@ -104,7 +104,7 @@ private struct ActionFeedbackModifier: ViewModifier {
                             .foregroundColor(.orange)
                         Text(fb.message)
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }

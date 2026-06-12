@@ -125,7 +125,7 @@ struct PlateauAlertRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(alert.exerciseName)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text("\(alert.rootCauseLabel) · \(weeksText)")
                         .font(.system(size: 12))
                         .foregroundColor(Color(white: 0.5))
@@ -218,7 +218,7 @@ struct PlateauDetailSheet: View {
             }
             Text(alert.rootCauseLabel)
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             let weeksText = alert.plateauWeeks == 1
                 ? "Tu n'as pas progressé depuis 1 semaine."
                 : "Tu n'as pas progressé depuis \(alert.plateauWeeks) semaines."
@@ -245,7 +245,7 @@ struct PlateauDetailSheet: View {
                 Spacer()
                 Text("\(units.format(alert.workingWeightLbs, decimals: 0)) × \(alert.workingReps) reps")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text("→ e1RM \(units.format(latestE1rm, decimals: 0))")
                     .font(.system(size: 12))
                     .foregroundColor(Color(white: 0.45))
@@ -302,7 +302,7 @@ struct PlateauDetailSheet: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(alert.deloadTypeLabel)
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     if let instruction = alert.deloadPlan?.instruction {
                         Text(instruction)
                             .font(.appLabel)
@@ -401,7 +401,7 @@ struct DeloadPlanSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(alert.deloadTypeLabel)
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     let duration = deloadDuration
                     Text(duration)
                         .font(.appLabel)
@@ -485,7 +485,7 @@ struct DeloadPlanSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Retour à la progression en \(min)-\(max) jours")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     if let msg = alert.reboundMessage {
                         Text(msg)
                             .font(.system(size: 12))
@@ -551,7 +551,7 @@ private struct DeloadExerciseRow: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(exercise.name)
                 .font(.appLabel.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
 
             if deloadType == "rep_range" {
                 repRangeOptions

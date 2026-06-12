@@ -271,14 +271,14 @@ struct AmbientBackground: View {
         ZStack {
             Color.appBg
             RadialGradient(
-                colors: [color.opacity(0.10), .clear],
+                colors: [color.opacity(0.15), .clear],
                 center: .topTrailing,
                 startRadius: 0,
                 endRadius: 300
             )
             // Forge warmth — chaleur de fond constante, indépendante de la couleur d'accent
             RadialGradient(
-                colors: [Color.forge.opacity(0.04), .clear],
+                colors: [Color.forge.opacity(0.08), .clear],
                 center: .bottom,
                 startRadius: 0,
                 endRadius: 220

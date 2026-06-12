@@ -319,7 +319,7 @@ struct ChecklistCardView: View {
             if checked {
                 Image(systemName: "checkmark")
                     .font(.system(size: small ? 9 : 11, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
             }
         }
         .animation(.easeInOut(duration: 0.1), value: checked)

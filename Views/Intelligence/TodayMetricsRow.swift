@@ -88,7 +88,7 @@ struct MetricMiniCard: View {
                     .foregroundColor(iconColor)
                 Text(value)
                     .font(.system(size: valueSize, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                     .minimumScaleFactor(0.8)
                 Spacer(minLength: 0)
             }

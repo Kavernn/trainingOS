@@ -71,7 +71,7 @@ struct EngagementCreationView: View {
 
             Text("Tes engagements pour demain")
                 .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
 
             Text(tomorrowDateLabel)
                 .font(.system(size: 14))
@@ -92,7 +92,7 @@ struct EngagementCreationView: View {
 
                     TextField("Engagement \(i + 1)\u{2026}", text: $texts[i])
                         .font(.system(size: 16))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .tint(amber)
                         .focused($focusedIndex, equals: i)
                         .submitLabel(i < texts.count - 1 ? .next : .done)
@@ -192,7 +192,7 @@ struct EngagementCreationView: View {
                 .foregroundColor(amber)
             Text(confirmedCountLabel)
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Text("Verrouillés pour \(tomorrowDateShort)")
                 .font(.appLabel)
                 .foregroundColor(Color(white: 0.35))

@@ -215,7 +215,7 @@ struct ProfileView: View {
 
             Text(profile?.name ?? "Athlète")
                 .font(.appTitle)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
 
             if !memberSinceText.isEmpty {
                 Text(memberSinceText)
@@ -469,7 +469,7 @@ struct ProfileView: View {
     private func bodyCompWeightCol(latest: BodyWeightEntry, delta: Double?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(units.format(latest.weight))
-                .font(.appTitle).fontWeight(.black).foregroundColor(.white)
+                .font(.appTitle).fontWeight(.black).foregroundColor(.appTextPrimary)
             if let d = delta {
                 HStack(spacing: 3) {
                     Image(systemName: d > 0 ? "arrow.up" : "arrow.down")
@@ -584,7 +584,7 @@ struct ProfileView: View {
         return HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(lift.name)
-                    .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
+                    .font(.appLabel).fontWeight(.semibold).foregroundColor(.appTextPrimary)
                     .lineLimit(1)
                 Text("Détruite le \(dateLabel)")
                     .font(.appCaption).foregroundColor(.gray)
@@ -592,7 +592,7 @@ struct ProfileView: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(units.format(prLbs, decimals: 0)) × \(lift.prReps)")
-                    .font(.appLabel).fontWeight(.bold).foregroundColor(.white)
+                    .font(.appLabel).fontWeight(.bold).foregroundColor(.appTextPrimary)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% — ancienne limite")
                         .font(.appCaption).fontWeight(.semibold).foregroundColor(.green)
@@ -860,7 +860,7 @@ struct ProfileView: View {
             }
             Text("Graveyard")
                 .font(.appBody)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.appCaption)
@@ -883,7 +883,7 @@ struct ProfileView: View {
                     .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(color)
             }
-            Text(label).font(.appBody).foregroundColor(.white)
+            Text(label).font(.appBody).foregroundColor(.appTextPrimary)
             Spacer()
             if let detail {
                 Text(detail).font(.appLabel).fontWeight(.regular).foregroundColor(.gray)
@@ -1073,7 +1073,7 @@ struct ProfileSnapshotPill: View {
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: icon).font(.appBody).foregroundColor(color)
-            Text(value).font(.appHeadline).fontWeight(.bold).foregroundColor(.white)
+            Text(value).font(.appHeadline).fontWeight(.bold).foregroundColor(.appTextPrimary)
             Text(label).font(.appMicro).foregroundColor(.gray)
         }
         .frame(width: 76).padding(.vertical, 14)
@@ -1090,7 +1090,7 @@ struct ProfileStatCard: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon).font(.appTitle).foregroundColor(color)
-            Text(value).font(.appHeadline).fontWeight(.bold).foregroundColor(.white)
+            Text(value).font(.appHeadline).fontWeight(.bold).foregroundColor(.appTextPrimary)
             Text(label).font(.appCaption).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 16)
@@ -1106,7 +1106,7 @@ struct GoalProgressRow: View {
     var body: some View {
         VStack(spacing: 6) {
             HStack {
-                Text(exercise).font(.appLabel).fontWeight(.regular).foregroundColor(.white)
+                Text(exercise).font(.appLabel).fontWeight(.regular).foregroundColor(.appTextPrimary)
                 Spacer()
                 Text("\(units.format(progress.current)) / \(units.format(progress.goal))")
                     .font(.appCaption)
@@ -1134,7 +1134,7 @@ struct ProfileRow: View {
         HStack {
             Text(label).foregroundColor(.gray)
             Spacer()
-            Text(value).foregroundColor(.white).fontWeight(.semibold)
+            Text(value).foregroundColor(.appTextPrimary).fontWeight(.semibold)
         }
     }
 }
@@ -1227,15 +1227,15 @@ struct EditProfileSheet: View {
                     Section("Identité") {
                         LabeledContent("Nom") {
                             TextField("Nom", text: $name)
-                                .multilineTextAlignment(.trailing).foregroundColor(.white)
+                                .multilineTextAlignment(.trailing).foregroundColor(.appTextPrimary)
                         }
                         LabeledContent("Sexe") {
                             TextField("M / F", text: $sex)
-                                .multilineTextAlignment(.trailing).foregroundColor(.white)
+                                .multilineTextAlignment(.trailing).foregroundColor(.appTextPrimary)
                         }
                         LabeledContent("Âge") {
                             TextField("0", text: $age).keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing).foregroundColor(.white)
+                                .multilineTextAlignment(.trailing).foregroundColor(.appTextPrimary)
                         }
                     }
                     .listRowBackground(Color.appCard).foregroundColor(.gray)
@@ -1243,11 +1243,11 @@ struct EditProfileSheet: View {
                     Section("Mesures") {
                         LabeledContent("Poids (\(units.label))") {
                             TextField("0.0", text: $weight).keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing).foregroundColor(.white)
+                                .multilineTextAlignment(.trailing).foregroundColor(.appTextPrimary)
                         }
                         LabeledContent("Taille (cm)") {
                             TextField("0", text: $height).keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing).foregroundColor(.white)
+                                .multilineTextAlignment(.trailing).foregroundColor(.appTextPrimary)
                         }
                     }
                     .listRowBackground(Color.appCard).foregroundColor(.gray)
@@ -1255,11 +1255,11 @@ struct EditProfileSheet: View {
                     Section("Programme") {
                         LabeledContent("Objectif") {
                             TextField("Objectif", text: $goal)
-                                .multilineTextAlignment(.trailing).foregroundColor(.white)
+                                .multilineTextAlignment(.trailing).foregroundColor(.appTextPrimary)
                         }
                         LabeledContent("Niveau") {
                             TextField("Niveau", text: $level)
-                                .multilineTextAlignment(.trailing).foregroundColor(.white)
+                                .multilineTextAlignment(.trailing).foregroundColor(.appTextPrimary)
                         }
                     }
                     .listRowBackground(Color.appCard).foregroundColor(.gray)

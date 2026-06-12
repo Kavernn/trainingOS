@@ -113,7 +113,7 @@ struct NoteCard: View {
             HStack {
                 Text(formattedDate)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Spacer()
                 if let rpe = session.entry.rpe {
                     Text("RPE \(rpe, specifier: "%.1f")")

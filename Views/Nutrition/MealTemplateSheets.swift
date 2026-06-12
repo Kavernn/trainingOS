@@ -31,7 +31,7 @@ struct MealTemplateListSheet: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(template.name)
-                                            .foregroundColor(.white).fontWeight(.semibold)
+                                            .foregroundColor(.appTextPrimary).fontWeight(.semibold)
                                         HStack(spacing: 10) {
                                             Text("\(Int(template.totalCalories)) kcal")
                                                 .font(.system(size: 12)).foregroundColor(Color.forge)
@@ -127,7 +127,7 @@ struct MealTemplateEditorSheet: View {
                 Form {
                     Section("NOM") {
                         TextField("Ex: Petit déjeuner protéiné", text: $name)
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                     }
                     .listRowBackground(Color.appCard)
 
@@ -151,7 +151,7 @@ struct MealTemplateEditorSheet: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     TextField("Nom", text: $item.name)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.appTextPrimary)
                                         .font(.system(size: 14, weight: .semibold))
                                     Text("\(Int(item.calories)) kcal · \(String(format: "%.0fg", item.proteines)) prot")
                                         .font(.caption).foregroundColor(.gray)
@@ -164,25 +164,25 @@ struct MealTemplateEditorSheet: View {
 
                     if showAddItem {
                         Section("NOUVEL ALIMENT") {
-                            TextField("Nom", text: $newItemName).foregroundColor(.white)
+                            TextField("Nom", text: $newItemName).foregroundColor(.appTextPrimary)
                             HStack {
                                 TextField("Calories", text: $newItemCal)
-                                    .keyboardType(.decimalPad).foregroundColor(.white)
+                                    .keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                                 Text("kcal").foregroundColor(.gray).font(.caption)
                             }
                             HStack {
                                 TextField("Protéines", text: $newItemProt)
-                                    .keyboardType(.decimalPad).foregroundColor(.white)
+                                    .keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                                 Text("g").foregroundColor(.gray).font(.caption)
                             }
                             HStack {
                                 TextField("Glucides", text: $newItemGluc)
-                                    .keyboardType(.decimalPad).foregroundColor(.white)
+                                    .keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                                 Text("g").foregroundColor(.gray).font(.caption)
                             }
                             HStack {
                                 TextField("Lipides", text: $newItemLip)
-                                    .keyboardType(.decimalPad).foregroundColor(.white)
+                                    .keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                                 Text("g").foregroundColor(.gray).font(.caption)
                             }
                             Button("Ajouter") {

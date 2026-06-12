@@ -159,7 +159,7 @@ private struct WorkoutDNAInlineContent: View {
                 } else {
                     Text(dna.archetype.label)
                         .font(.system(size: 24, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .minimumScaleFactor(0.8)
                     Text(dna.archetype.tagline)
                         .font(.system(size: 12, weight: .medium))
@@ -214,7 +214,7 @@ private struct WorkoutDNAInlineContent: View {
                 HStack {
                     Text(dna.intensity.label)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Spacer()
                     Text("Compound \(dna.intensity.compoundPct)%")
                         .font(.appCaption)
@@ -792,7 +792,7 @@ private struct ConsistencyStat: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.system(size: 16, weight: .black, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Text(label)
                 .font(.appMicro)
                 .foregroundColor(.gray)
@@ -811,7 +811,7 @@ private struct RecoveryIndicator: View {
             VStack(spacing: 2) {
                 Text(String(format: "%.1f j", recovery.avgRestDays))
                     .font(.system(size: 22, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text("repos moyen")
                     .font(.appCaption)
                     .foregroundColor(.gray)
@@ -860,7 +860,7 @@ private struct SignatureLiftRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(lift.name)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text("\(lift.sessionCount) séances")
                     .font(.appCaption)
                     .foregroundColor(.gray)
@@ -871,7 +871,7 @@ private struct SignatureLiftRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(unitSettings.format(lift.prKg)) × \(lift.prReps)")
                     .font(.appLabel.weight(.bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% sur l'ancienne limite")
                         .font(.system(size: 11, weight: .semibold))
@@ -895,7 +895,7 @@ private struct WorkoutDNAShareSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Text("Ton DNA Card").font(.system(size: 16, weight: .semibold)).foregroundColor(.white).padding(.top, 16)
+                Text("Ton DNA Card").font(.system(size: 16, weight: .semibold)).foregroundColor(.appTextPrimary).padding(.top, 16)
 
                 WorkoutDNAShareCard(dna: dna)
                     .frame(width: 300, height: 380)
@@ -966,7 +966,7 @@ struct WorkoutDNAShareCard: View {
                 // Archetype
                 Text(dna.archetype.label)
                     .font(.system(size: 22, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(.appTextPrimary)
                 Text(dna.archetype.tagline)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(accent)
@@ -1006,10 +1006,10 @@ struct WorkoutDNAShareCard: View {
                     Rectangle().fill(accent.opacity(0.25)).frame(height: 1).padding(.bottom, 10)
                     ForEach(dna.signatureLifts.prefix(3)) { lift in
                         HStack {
-                            Text(lift.name).font(.appMicro.weight(.medium)).foregroundColor(.white.opacity(0.8))
+                            Text(lift.name).font(.appMicro.weight(.medium)).foregroundColor(.appTextPrimary.opacity(0.8))
                             Spacer()
                             Text(UnitSettings.shared.format(lift.prKg))
-                                .font(.appMicro.weight(.bold)).foregroundColor(.white)
+                                .font(.appMicro.weight(.bold)).foregroundColor(.appTextPrimary)
                             if lift.progressionPct > 0 {
                                 Text("+\(Int(lift.progressionPct))%")
                                     .font(.system(size: 8, weight: .semibold)).foregroundColor(.green)
@@ -1068,7 +1068,7 @@ private struct DNAEmptyState: View {
                 .font(.appLabel).foregroundColor(.gray)
             Button(action: onLoad) {
                 Text("Générer mon DNA")
-                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.white.opacity(0.08)).cornerRadius(8)
             }
@@ -1087,7 +1087,7 @@ private struct DNAErrorState: View {
                 .font(.appLabel).foregroundColor(.gray)
             Button(action: onRetry) {
                 Text("Réessayer")
-                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.white.opacity(0.08)).cornerRadius(8)
             }

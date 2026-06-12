@@ -35,7 +35,7 @@ struct ProgramPreviewSheet: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(content.name)
                             .font(.appHeadline.weight(.bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text("4 semaines · 5 jours/semaine · Hypertrophie")
                             .font(.appCaption)
                             .foregroundColor(.gray)
@@ -148,7 +148,7 @@ struct ProgramPreviewSheet: View {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                             Text("Programme ajouté dans Programme !")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                         }
                         .padding(.vertical, 10)
                     } else {
@@ -180,7 +180,7 @@ struct ProgramPreviewSheet: View {
                                     LinearGradient(colors: [.blue, .purple],
                                                    startPoint: .leading, endPoint: .trailing)
                                 )
-                                .foregroundColor(.white)
+                                .foregroundColor(.appTextPrimary)
                                 .cornerRadius(14)
                             }
                             .disabled(isApproving)
@@ -284,7 +284,7 @@ private struct DayCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(day.name)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.appTextPrimary)
                         Text(day.muscleFocus.joined(separator: " · "))
                             .font(.appCaption)
                             .foregroundColor(.gray)
@@ -347,7 +347,7 @@ private struct ProgramExerciseRow: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(exercise.name)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     Text(exercise.muscleGroup)
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
@@ -358,7 +358,7 @@ private struct ProgramExerciseRow: View {
                 VStack(alignment: .trailing, spacing: 1) {
                     Text("\(exercise.sets)×\(exercise.reps)")
                         .font(.appLabel.weight(.black))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                     if let rest = exercise.restSec {
                         Text("\(rest / 60)'\(rest % 60 == 0 ? "" : "\(rest % 60)\"")")
                             .font(.system(size: 10))

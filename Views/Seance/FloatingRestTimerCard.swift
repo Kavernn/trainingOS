@@ -41,7 +41,7 @@ struct FloatingRestTimerCard: View {
 
                     Text(formatTime(remaining))
                         .font(.system(size: 58, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appTextPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                 }
