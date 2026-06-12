@@ -33,6 +33,7 @@ extension APIService {
         if let v = gpsPoints        { body["gps_points"]         = v }
         if let v = coachNote        { body["coach_note"]         = v }
         _ = try await offlinePost(endpoint: "/api/log_cardio", payload: body)
+        CacheInvalidation.cardioLogged.invalidate()
     }
 
     func fetchCardioMetrics(maxHR: Int) async throws -> CardioMetrics {

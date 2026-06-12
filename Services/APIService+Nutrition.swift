@@ -221,6 +221,7 @@ extension APIService {
                                   payload: ["meal_type": mealType])
         UserDefaults.standard.set(DateFormatter.isoDate.string(from: Date()), forKey: "nutrition.last.log.date")
         NotificationService.cancelNutritionReminder()
+        CacheInvalidation.nutritionLogged.invalidate()
     }
 }
 

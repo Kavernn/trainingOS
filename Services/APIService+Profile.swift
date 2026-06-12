@@ -76,6 +76,7 @@ extension APIService {
         if let v = level  { body["level"]  = v }
         if let v = sex    { body["sex"]    = v }
         _ = try await offlinePost(endpoint: "/api/update_profile", payload: body)
+        CacheInvalidation.profileUpdated.invalidate()
     }
 
     func updateProfileSettings(sleepGoalHours: Double? = nil, hrvSensitivity: String? = nil) async throws {

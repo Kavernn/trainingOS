@@ -63,6 +63,7 @@ enum CacheInvalidation {
     case energyLogged
     case foodCatalogUpdated
     case dashboardInvalidated
+    case profileUpdated        // name / age / height / goal / level / sex
 
     // MARK: - Keys
 
@@ -153,6 +154,8 @@ enum CacheInvalidation {
             return ["food_catalog"]
         case .dashboardInvalidated:
             return ["dashboard"]
+        case .profileUpdated:
+            return ["profil_data", "dashboard", "readiness"]
         }
     }
 

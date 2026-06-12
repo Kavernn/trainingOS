@@ -37,6 +37,7 @@ extension APIService {
         if let v = wakeTime      { body["wake_time"]          = v }
         _ = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
         CacheInvalidation.recoveryLogged.invalidate()
+        CacheInvalidation.energyLogged.invalidate()
     }
 
     // MARK: - iOS-side manual > HK protection
