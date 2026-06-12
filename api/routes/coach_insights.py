@@ -114,20 +114,20 @@ def api_daily_insight():
 
     # ── P2a — Record à portée (< 5 % du PR historique) ───────────────────────
     try:
-        from weights import load_weights
-        for ex_name, data in load_weights().items():
-            hist = [e for e in (data.get("history") or []) if e.get("weight")]
-            if len(hist) < 3:
+        import db as _db
+        for p in _db.get_exercise_prs():
+            if p["baseline_count"] < 3:
                 continue
-            pr = max(e["weight"] for e in hist)
-            current = data.get("current_weight") or hist[0].get("weight", 0)
+            pr      = p["pr_weight_lbs"]
+            current = p["current_weight"]
+            name    = p["exercise_name"]
             if 0 < current < pr and current >= pr * 0.95:
                 gap = round(pr - current, 1)
                 return _insight(
                     "opportunity", "bolt.fill",
                     "Record à portée",
-                    f"Tu es à {gap} lbs de ton record sur {ex_name}. C'est le moment de tenter.",
-                    f"{ex_name} · PR {pr:.0f} lbs", "seance", 2,
+                    f"Tu es à {gap} lbs de ton record sur {name}. C'est le moment de tenter.",
+                    f"{name} · PR {pr:.0f} lbs", "seance", 2,
                 )
     except Exception:
         pass

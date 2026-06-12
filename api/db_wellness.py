@@ -3,7 +3,7 @@ import logging
 from typing import Dict, List, Optional
 import db_core
 from db_body import get_body_weight_logs, get_recovery_logs, get_cardio_logs
-from db_sessions import get_workout_sessions, get_all_exercise_history
+from db_sessions import get_workout_sessions, get_all_exercise_history, get_exercise_prs
 from db_profile import get_nutrition_entries_recent
 from utils import _today_mtl
 
@@ -939,23 +939,8 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
         # ── Types avancés ─────────────────────────────────────────────────────
 
         if goal_type == "estimated_1rm":
-            # Best estimated 1RM across all exercises: weight * (1 + reps/30)
-            history = get_all_exercise_history(cutoff_days=90)
-            best = 0.0
-            for logs in history.values():
-                for entry in logs[:10]:  # check last 10 sessions per exercise
-                    w = entry.get("weight") or 0
-                    r = entry.get("reps") or ""
-                    if not w:
-                        continue
-                    # Parse reps: "3x8", "8,8,6", "8"
-                    import re as _re2
-                    nums = [float(x) for x in _re2.findall(r"\d+(?:\.\d+)?", str(r))]
-                    avg_reps = (sum(nums) / len(nums)) if nums else 0
-                    if avg_reps > 0:
-                        orm = w * (1 + avg_reps / 30.0)
-                        if orm > best:
-                            best = orm
+            prs  = get_exercise_prs()
+            best = max((p["pr_e1rm_lbs"] for p in prs), default=0.0)
             return round(best, 1) if best > 0 else None
 
         if goal_type == "monthly_distance":

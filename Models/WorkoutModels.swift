@@ -6,12 +6,16 @@ struct LogExerciseResponse: Codable {
     let newWeight: Double?
     let oneRM: Double?
     let isPR: Bool?
+    let baselineCount: Int?
+    let confidence: String?
 
     enum CodingKeys: String, CodingKey {
         case success
-        case newWeight = "new_weight"
-        case oneRM     = "1rm"
-        case isPR      = "is_pr"
+        case newWeight     = "new_weight"
+        case oneRM         = "1rm"
+        case isPR          = "is_pr"
+        case baselineCount = "baseline_count"
+        case confidence
     }
 }
 

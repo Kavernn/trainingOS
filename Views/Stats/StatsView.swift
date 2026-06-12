@@ -149,9 +149,12 @@ struct StatsView: View {
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
 
     var daysElapsedThisWeek: Int {
+        let cal = Calendar.mtl
         let (mon, _) = weekBounds(weeksAgo: 0)
         guard let monDate = DateFormatter.isoDate.date(from: mon) else { return 7 }
-        return max(1, Int(Date().timeIntervalSince(monDate) / 86400) + 1)
+        let today = cal.startOfDay(for: Date())
+        let days  = cal.dateComponents([.day], from: monDate, to: today).day ?? 0
+        return max(1, days + 1)
     }
 
     var avgSessionDuration: Double {

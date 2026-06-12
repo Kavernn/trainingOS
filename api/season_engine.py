@@ -92,23 +92,13 @@ def _current_war_room_streak() -> int:
 
 
 def _compute_top_prs() -> list[dict]:
-    """Top 5 exercises by max weight ever lifted."""
-    history = db.get_all_exercise_history(full_history=True) or {}
-    prs: list[dict] = []
-    for name, data in history.items():
-        max_w = 0.0
-        max_r = 1
-        for entry in (data if isinstance(data, list) else (data.get("history") or [])):
-            for s in (entry.get("sets") or []):
-                w = s.get("weight") or 0
-                r = s.get("reps") or 1
-                if w > max_w:
-                    max_w = w
-                    max_r = r
-        if max_w > 0:
-            prs.append({"exercise": name, "weight_lbs": max_w, "reps": max_r})
-    prs.sort(key=lambda x: x["weight_lbs"], reverse=True)
-    return prs[:5]
+    """Top 5 exercises by PR weight — read from exercise_prs table (O(1), no history scan)."""
+    prs = db.get_exercise_prs()
+    prs.sort(key=lambda x: x["pr_weight_lbs"], reverse=True)
+    return [
+        {"exercise": p["exercise_name"], "weight_lbs": p["pr_weight_lbs"], "reps": p["pr_reps"]}
+        for p in prs[:5]
+    ]
 
 
 def _ritual_rate_last_n_days(days: int) -> float:
@@ -174,7 +164,7 @@ def compute_season_stats(start_date: str, end_date: str, start_prs: list) -> dic
         _days = (_today() - date.fromisoformat(start_date)).days + 1
     except (ValueError, TypeError, AttributeError):
         _days = 0
-    history = db.get_all_exercise_history(full_history=True) if _days <= 0 else db.get_all_exercise_history(cutoff_days=_days)
+    history = db.get_all_exercise_history(cutoff_days=max(_days, 365)) if _days > 0 else db.get_all_exercise_history(cutoff_days=365)
     history = history or {}
     start_pr_map = {p["exercise"]: p.get("weight_lbs", 0) for p in (start_prs or [])}
     prs_broken = []

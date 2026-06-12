@@ -8,6 +8,13 @@ logger = logging.getLogger("trainingos")
 workout_bp = Blueprint("workout", __name__)
 
 
+def _pr_confidence(baseline_count: int) -> str:
+    if baseline_count < 3:  return "new"
+    if baseline_count < 6:  return "low"
+    if baseline_count < 12: return "medium"
+    return "high"
+
+
 @workout_bp.route("/api/log", methods=["POST"])
 def api_log():
     try:
@@ -50,7 +57,9 @@ def api_log():
                 "1rm":        existing_history[0].get("1rm", 0),
             }), 409
 
-        if force and existing_history and existing_history[0]["date"] == _today_mtl():
+        _is_force_overwrite = (force and bool(existing_history)
+                               and existing_history[0].get("date") == _today_mtl())
+        if _is_force_overwrite:
             weights[exercise]["history"].pop(0)
 
         sets_data = data.get("sets", [])
@@ -84,8 +93,15 @@ def api_log():
         increase  = action == "increase"
         onerm     = estimate_1rm(weight, reps) or 0.0
 
-        prev_1rms = [e.get("1rm", 0) for e in existing_history]
-        is_pr = bool(onerm > 0 and (not prev_1rms or onerm > max(prev_1rms)))
+        # Compare vs all-time PR from table (state before this write)
+        _pr_row = None
+        try:
+            _pr_row = next((p for p in _db.get_exercise_prs() if p["exercise_name"] == exercise), None)
+        except Exception:
+            pass
+        _all_time_1rm   = float((_pr_row or {}).get("pr_e1rm_lbs") or 0)
+        _baseline_count = int((_pr_row or {}).get("baseline_count") or 0)
+        is_pr = bool(onerm > 0 and (_all_time_1rm <= 0 or onerm >= _all_time_1rm * 0.999))
 
         if equipment_type == "bodyweight" and weight == 0:
             bw_logs = _db.get_body_weight_logs(limit=1)
@@ -150,6 +166,13 @@ def api_log():
             )
             if not ok:
                 return jsonify({"error": "Échec de l'enregistrement en base"}), 500
+            try:
+                if _is_force_overwrite:
+                    _db.recompute_exercise_pr(exercise)
+                elif onerm > 0:
+                    _db.upsert_exercise_pr(exercise, onerm, weight, reps, today)
+            except Exception as _pr_exc:
+                logger.warning("PR update skipped for %s: %s", exercise, _pr_exc)
             if session_name:
                 if is_bonus_session:
                     _db.update_workout_session_by_type(today, "bonus", {"session_name": session_name})
@@ -162,13 +185,15 @@ def api_log():
         achieved = check_goals_achieved(weights)
 
         return jsonify({
-            "success":    True,
-            "status":     status,
-            "increase":   increase,
-            "new_weight": new_w,
-            "1rm":        onerm,
-            "is_pr":      is_pr,
-            "achieved":   achieved
+            "success":         True,
+            "status":          status,
+            "increase":        increase,
+            "new_weight":      new_w,
+            "1rm":             onerm,
+            "is_pr":           is_pr,
+            "baseline_count":  _baseline_count,
+            "confidence":      _pr_confidence(_baseline_count),
+            "achieved":        achieved,
         })
     except Exception as e:
         logger.error("api/log error: %s", e, exc_info=True)
@@ -208,6 +233,7 @@ def api_session_edit():
         exercise_edits = data.get("exercises", [])
         if exercise_edits:
             import db as _db
+            from progression import estimate_1rm as _est_1rm
             weights = load_weights()
             for edit in exercise_edits:
                 ex    = edit.get("exercise")
@@ -224,18 +250,13 @@ def api_session_edit():
                         if new_r is not None:
                             entry["reps"] = str(new_r)
                         w = entry["weight"]
-                        reps_list = [int(x) for x in str(entry["reps"]).split(",") if x.strip().isdigit()]
-                        if reps_list and w:
-                            avg_reps = sum(reps_list) / len(reps_list)
-                            entry["1rm"] = round(w * (1 + avg_reps / 30), 1)
+                        entry["1rm"] = _est_1rm(w, str(entry["reps"])) or 0.0
                         updated = True
                         break
                 if not updated:
                     w = float(new_w or 0)
                     r = str(new_r or "")
-                    reps_list = [int(x) for x in r.split(",") if x.strip().isdigit()]
-                    avg_reps  = sum(reps_list) / len(reps_list) if reps_list else 0
-                    one_rm    = round(w * (1 + avg_reps / 30), 1) if w and avg_reps else 0
+                    one_rm = _est_1rm(w, r) or 0.0 if w else 0.0
                     history.insert(0, {"date": date, "weight": w, "reps": r, "1rm": one_rm})
                     weights[ex]["history"] = history[:20]
                 if history:
@@ -245,6 +266,10 @@ def api_session_edit():
                 for entry in history:
                     if entry.get("date") == date:
                         _db.upsert_exercise_log(date, ex, entry.get("weight"), entry.get("reps"))
+                        try:
+                            _db.recompute_exercise_pr(ex)
+                        except Exception as _pr_exc:
+                            logger.warning("PR recompute skipped for %s: %s", ex, _pr_exc)
                         break
 
         return jsonify({"success": True})

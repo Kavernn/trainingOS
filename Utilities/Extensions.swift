@@ -175,6 +175,15 @@ func makeBeep(hz: Double, duration: Double) -> AVAudioPlayer? {
     return player
 }
 
+// MARK: - Montreal timezone calendar (shared helper — _today_mtl() equivalent for iOS)
+extension Calendar {
+    static let mtl: Calendar = {
+        var c = Calendar(identifier: .iso8601)
+        c.timeZone = TimeZone(identifier: "America/Montreal")!
+        return c
+    }()
+}
+
 // MARK: - ISO Week helpers
 extension Date {
     // "YYYY-Www" — ISO 8601 week key, Monday-based

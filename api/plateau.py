@@ -55,12 +55,41 @@ def _round_lbs(w: float, step: float = 5.0) -> float:
 
 # ── Data gathering ────────────────────────────────────────────────────────────
 
+def _deload_dates_in_window(window_start: date, window_end: date) -> set[str]:
+    """Return ISO date strings that fall within deload weeks (week 7 of any 8-week cycle).
+
+    Uses the same cycle_start_date source as get_mesocycle_info() and the same
+    week formula: week = (delta % 56) // 7 + 1, where delta = (d - cycle_start).days.
+    Python's % operator is always non-negative, so negative deltas (dates before
+    cycle_start) are handled correctly via modular arithmetic over 56-day cycles.
+    """
+    try:
+        start_str    = db.get_cycle_start_date() or "2026-04-25"
+        cycle_start  = date.fromisoformat(start_str[:10])
+    except Exception as e:
+        logger.warning("_deload_dates_in_window: %s", e)
+        return set()
+
+    result = set()
+    d = window_start
+    while d <= window_end:
+        week_in_cycle = ((d - cycle_start).days % 56) // 7 + 1
+        if week_in_cycle == 7:
+            result.add(d.isoformat())
+        d += timedelta(days=1)
+    return result
+
+
 def _working_sets(days: int = 28) -> dict[str, list[dict]]:
     """
     Returns {exercise_name: [sessions oldest→newest]} for compound exercises
     in the last N days. One entry per date = max-e1RM set.
+    Deload weeks (week 7 of the 8-week mesocycle) are excluded so that reduced
+    loads during a planned deload cannot trigger a false plateau alert.
     """
-    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
+    today_d       = date.fromisoformat(_today_mtl())
+    cutoff        = (today_d - timedelta(days=days)).isoformat()
+    deload_days   = _deload_dates_in_window(date.fromisoformat(cutoff), today_d)
 
     history       = db.get_all_exercise_history(cutoff_days=28)     # {name: [{date, weight, reps}]} newest-first
     exercises_meta = db.get_exercises() or {}
@@ -76,7 +105,7 @@ def _working_sets(days: int = 28) -> dict[str, list[dict]]:
 
         for entry in entries:
             d = str(entry.get("date", ""))[:10]
-            if d < cutoff:
+            if d < cutoff or d in deload_days:
                 continue
 
             w = float(entry.get("weight") or 0)

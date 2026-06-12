@@ -93,6 +93,9 @@ from db_sessions import (
     bulk_upsert_exercise_logs,
     bulk_apply_session_exercise_patches,
     delete_session_exercise_logs,
+    upsert_exercise_pr,
+    recompute_exercise_pr,
+    get_exercise_prs,
     INT_FIELDS,
     DECIMAL_FIELDS,
 )

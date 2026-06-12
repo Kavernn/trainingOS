@@ -19,6 +19,7 @@ from typing import Optional
 
 import db
 from utils import _today_mtl as _today_iso
+from progression import estimate_1rm as _estimate_1rm
 
 logger = logging.getLogger("trainingos.progressive_overload")
 
@@ -27,14 +28,6 @@ _STALL_THRESHOLD = -5.0  # %
 _MIN_SESSIONS    =  2    # per window to be considered
 
 DAY_NAMES = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
-
-
-def _epley_1rm(weight: float, reps: int) -> float:
-    if reps <= 0 or reps > 15:
-        return weight
-    if reps <= 10:
-        return round(weight * (1.0 + reps / 30.0), 1)    # Epley (1985)
-    return round(weight * (36.0 / (37.0 - reps)), 1)     # Brzycki (1993)
 
 
 def _to_float(v, default: float = 0.0) -> float:
@@ -64,11 +57,11 @@ def _max_1rm_for_entries(entries: list[dict]) -> Optional[float]:
                 sw = _to_float(s.get("weight"), w)
                 sr = _to_int(s.get("reps"), r)
                 if sw > 0:
-                    est = _epley_1rm(sw, sr)
+                    est = _estimate_1rm(sw, str(sr)) or 0.0
                     if best is None or est > best:
                         best = est
         elif w > 0:
-            est = _epley_1rm(w, r)
+            est = _estimate_1rm(w, str(r)) or 0.0
             if best is None or est > best:
                 best = est
     return best

@@ -15,6 +15,7 @@ import logging
 import hashlib
 from datetime import datetime, timezone, timedelta, date
 from utils import _today_mtl as _today_iso
+from progression import estimate_1rm as _estimate_1rm
 
 logger = logging.getLogger("trainingos.graveyard")
 
@@ -42,24 +43,11 @@ def _uid(*parts) -> str:
     return hashlib.md5(raw.encode()).hexdigest()[:16]
 
 
-def _epley_1rm(weight: float, reps: int) -> float:
-    """Estimation 1RM : Epley ≤10 reps, Brzycki 11-20 reps, 0.0 si >20 reps."""
-    if weight <= 0 or reps <= 0:
-        return 0.0
-    if reps == 1:
-        return weight
-    if reps > 20:
-        return 0.0
-    if reps > 10:
-        return round(weight * (36 / (37 - reps)), 1)
-    return round(weight * (1 + reps / 30.0), 1)
-
-
 def _best_1rm_from_entry(entry: dict) -> float:
     sets = entry.get("sets")
     if sets and isinstance(sets, list):
         candidates = [
-            _epley_1rm(float(s.get("weight") or 0), int(s.get("reps") or 0))
+            _estimate_1rm(float(s.get("weight") or 0), str(int(s.get("reps") or 0))) or 0.0
             for s in sets
             if s.get("weight") and s.get("reps")
         ]
@@ -67,7 +55,7 @@ def _best_1rm_from_entry(entry: dict) -> float:
             return max(candidates)
     w = float(entry.get("weight") or 0)
     r = int(str(entry.get("reps") or "0").split(",")[0].strip() or "0")
-    return _epley_1rm(w, r)
+    return _estimate_1rm(w, str(r)) or 0.0
 
 
 # ── PR_KILLED ─────────────────────────────────────────────────────────────────

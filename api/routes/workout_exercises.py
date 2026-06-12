@@ -112,6 +112,11 @@ def api_delete_exercise_log():
 
     import db as _db
     _db.delete_exercise_log_entry(date, exercise)
+    try:
+        _db.recompute_exercise_pr(exercise)
+    except Exception as _pr_exc:
+        import logging as _logging
+        _logging.getLogger("trainingos").warning("PR recompute skipped for %s: %s", exercise, _pr_exc)
 
     return jsonify({"success": True})
 

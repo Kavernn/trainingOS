@@ -1652,3 +1652,216 @@ def delete_session_exercise_logs(session_date: str) -> bool:
                 return False
         db_core.logger.error("delete_session_exercise_logs error: %s", e)
         return False
+
+
+# ── PR maintenu au write ───────────────────────────────────────────────────────
+
+def get_exercise_prs() -> list[dict]:
+    """Retourne toutes les lignes exercise_prs jointes avec exercises(name, current_weight).
+
+    [{exercise_name, pr_weight_lbs, pr_e1rm_lbs, pr_date, pr_reps,
+      baseline_count, current_weight}]
+
+    Remplace les full-scans all-time dans les lecteurs (coach insights, season,
+    M-09 goal progress). Toujours O(1) par exercice — jamais un scan exercise_logs.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> list[dict]:
+        rows = (
+            db_core._client.table("exercise_prs")
+            .select("pr_weight_lbs, pr_e1rm_lbs, pr_date, pr_reps, baseline_count,"
+                    " exercises(name, current_weight)")
+            .execute()
+        ).data or []
+        result = []
+        for r in rows:
+            ex   = r.get("exercises") or {}
+            name = ex.get("name")
+            if not name:
+                continue
+            result.append({
+                "exercise_name":  name,
+                "pr_weight_lbs":  float(r.get("pr_weight_lbs") or 0),
+                "pr_e1rm_lbs":    float(r.get("pr_e1rm_lbs")   or 0),
+                "pr_date":        r.get("pr_date"),
+                "pr_reps":        r.get("pr_reps"),
+                "baseline_count": int(r.get("baseline_count") or 0),
+                "current_weight": float(ex.get("current_weight") or 0),
+            })
+        return result
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_exercise_prs retry error: %s", e2)
+                return []
+        db_core.logger.error("get_exercise_prs error: %s", e)
+        return []
+
+def _baseline_count_for(exercise_id: str) -> int:
+    """COUNT(DISTINCT session_id) pour cet exercice — jamais d'incrément aveugle."""
+    rows = (
+        db_core._client.table("exercise_logs")
+        .select("session_id")
+        .eq("exercise_id", exercise_id)
+        .execute()
+    ).data or []
+    return len(set(r["session_id"] for r in rows if r.get("session_id")))
+
+
+def _avg_reps_int(reps_str: str) -> int:
+    """Représentant entier du nombre de reps pour pr_reps (INTEGER)."""
+    try:
+        parts = [int(x) for x in str(reps_str).replace(";", ",").split(",") if x.strip().isdigit()]
+        return round(sum(parts) / len(parts)) if parts else 1
+    except Exception:
+        return 1
+
+
+def upsert_exercise_pr(
+    exercise_name: str,
+    e1rm_lbs: float,
+    weight_lbs: float,
+    reps_str: str,
+    date: str,
+) -> bool:
+    """Fast-path PR update appelé après chaque log réussi.
+
+    - Si e1rm_lbs bat le PR stocké : upsert complet (nouveau PR).
+    - Sinon : met à jour uniquement baseline_count (confidence mi-04).
+    - baseline_count = COUNT(DISTINCT session_id) — jamais incrémenté aveuglément.
+    - Non-bloquant : les exceptions sont loguées, jamais propagées.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            return False
+
+        baseline = _baseline_count_for(exercise_id)
+
+        current_resp = (
+            db_core._client.table("exercise_prs")
+            .select("pr_e1rm_lbs")
+            .eq("exercise_id", exercise_id)
+            .limit(1)
+            .execute()
+        )
+        current_e1rm = float((current_resp.data[0].get("pr_e1rm_lbs") or 0) if current_resp.data else 0)
+
+        if e1rm_lbs > current_e1rm:
+            db_core._client.table("exercise_prs").upsert(
+                {
+                    "exercise_id":   exercise_id,
+                    "pr_weight_lbs": round(weight_lbs, 2),
+                    "pr_e1rm_lbs":   round(e1rm_lbs, 2),
+                    "pr_date":       date,
+                    "pr_reps":       _avg_reps_int(reps_str),
+                    "baseline_count": baseline,
+                    "updated_at":    "now()",
+                },
+                on_conflict="exercise_id",
+            ).execute()
+        elif current_resp.data:
+            db_core._client.table("exercise_prs").update(
+                {"baseline_count": baseline, "updated_at": "now()"}
+            ).eq("exercise_id", exercise_id).execute()
+
+        return True
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("upsert_exercise_pr retry error: %s", e2)
+                return False
+        db_core.logger.error("upsert_exercise_pr error: %s", e)
+        return False
+
+
+def recompute_exercise_pr(exercise_name: str) -> bool:
+    """Recalcule le PR all-time depuis zéro pour UN exercice.
+
+    Appelé après edit/delete d'un log (le PR stocké peut être devenu fantôme).
+    Scan ciblé sur un seul exercice — pas de full scan global.
+    Non-bloquant : les exceptions sont loguées, jamais propagées.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        from progression import estimate_1rm as _estimate_1rm
+
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            return False
+
+        rows = (
+            db_core._client.table("exercise_logs")
+            .select("weight, reps, session_id, workout_sessions(date)")
+            .eq("exercise_id", exercise_id)
+            .execute()
+        ).data or []
+
+        if not rows:
+            db_core._client.table("exercise_prs").delete().eq("exercise_id", exercise_id).execute()
+            return True
+
+        baseline = len(set(r["session_id"] for r in rows if r.get("session_id")))
+        best_e1rm = 0.0
+        best_weight = 0.0
+        best_reps_str = "1"
+        best_date = ""
+
+        for row in rows:
+            w = float(row.get("weight") or 0)
+            r_str = str(row.get("reps") or "0")
+            d = (row.get("workout_sessions") or {}).get("date", "")
+            if not w or not d:
+                continue
+            e1rm = _estimate_1rm(w, r_str) or 0.0
+            if e1rm > best_e1rm:
+                best_e1rm = e1rm
+                best_weight = w
+                best_reps_str = r_str
+                best_date = d
+
+        if best_e1rm <= 0:
+            return True
+
+        db_core._client.table("exercise_prs").upsert(
+            {
+                "exercise_id":    exercise_id,
+                "pr_weight_lbs":  round(best_weight, 2),
+                "pr_e1rm_lbs":    round(best_e1rm, 2),
+                "pr_date":        best_date,
+                "pr_reps":        _avg_reps_int(best_reps_str),
+                "baseline_count": baseline,
+                "updated_at":     "now()",
+            },
+            on_conflict="exercise_id",
+        ).execute()
+        return True
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("recompute_exercise_pr retry error: %s", e2)
+                return False
+        db_core.logger.error("recompute_exercise_pr error: %s", e)
+        return False

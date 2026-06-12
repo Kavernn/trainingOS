@@ -303,7 +303,7 @@ struct WeekComparisonCard: View {
     var daysElapsed: Int = 7
     @ObservedObject private var units = UnitSettings.shared
 
-    private var isProjecting: Bool { daysElapsed < 7 }
+    private var isProjecting: Bool { daysElapsed >= 3 && daysElapsed < 7 }
     private var projectedSessions: Double {
         isProjecting ? Double(thisWeekSessions) * 7.0 / Double(max(1, daysElapsed)) : Double(thisWeekSessions)
     }
