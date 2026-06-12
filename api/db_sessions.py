@@ -758,7 +758,7 @@ def get_all_exercise_history(cutoff_days: int = 180, full_history: bool = False)
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return {}
     from datetime import date as _date, timedelta
-    cutoff = None if full_history else (_date.today() - timedelta(days=cutoff_days)).isoformat()
+    cutoff = None if full_history else (_date.fromisoformat(_today_mtl()) - timedelta(days=cutoff_days)).isoformat()
     page_size = 1000
 
     def _do() -> dict:

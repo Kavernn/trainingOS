@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 import logging
-from utils import _today_mtl
+from utils import _today_mtl, _now_mtl
 
 logger = logging.getLogger("trainingos")
 
@@ -85,7 +85,7 @@ def api_insights():
         if s.get("completed") or s.get("rpe") is not None:
             sessions[str(d)] = s
 
-    now      = datetime.now()
+    now      = _now_mtl()
     insights = []
 
     def dstr(d): return d.strftime("%Y-%m-%d")

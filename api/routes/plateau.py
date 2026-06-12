@@ -2,6 +2,7 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 import plateau as _plateau
+from utils import _now_mtl
 
 plateau_bp = Blueprint("plateau", __name__)
 
@@ -26,7 +27,7 @@ def api_update_plateau_alert(alert_id):
         return jsonify({"error": "Invalid status"}), 400
 
     patch = {"status": status}
-    now   = datetime.utcnow().isoformat()
+    now   = _now_mtl().isoformat()
     if status == "dismissed":
         patch["dismissed_at"] = now
     elif status == "completed":

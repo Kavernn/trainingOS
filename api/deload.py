@@ -254,10 +254,9 @@ def check_planned_deload() -> dict:
 
 
 def activer_deload(reason: str):
-    from datetime import datetime
     state = {
         "active": True,
-        "since":  datetime.now().strftime("%Y-%m-%d"),
+        "since":  _today_mtl(),
         "reason": reason
     }
     save_deload_state(state)

@@ -171,7 +171,7 @@ def compute_season_stats(start_date: str, end_date: str, start_prs: list) -> dic
 
     # PRs broken — compare start PRs vs best achieved during period
     try:
-        _days = (date.today() - date.fromisoformat(start_date)).days + 1
+        _days = (_today() - date.fromisoformat(start_date)).days + 1
     except (ValueError, TypeError, AttributeError):
         _days = 0
     history = db.get_all_exercise_history(full_history=True) if _days <= 0 else db.get_all_exercise_history(cutoff_days=_days)

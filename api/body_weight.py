@@ -2,6 +2,7 @@ import db
 import math
 from datetime import datetime
 from typing import Optional
+from utils import _now_mtl
 
 
 def compute_navy_bf(
@@ -54,7 +55,7 @@ def load_body_weight() -> list:
 def log_body_weight(poids: float, note: str = "", body_fat: float = None, waist_cm: float = None,
                     neck_cm: float = None, arms_cm: float = None, chest_cm: float = None,
                     thighs_cm: float = None, hips_cm: float = None):
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = _now_mtl().strftime("%Y-%m-%d")
 
     # Auto-calculate body fat via Navy formula when measurements present but BF not provided
     if body_fat is None and waist_cm and neck_cm:

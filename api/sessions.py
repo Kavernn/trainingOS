@@ -2,6 +2,7 @@ from __future__ import annotations
 import db
 import logging
 from datetime import datetime
+from utils import _now_mtl
 
 logger = logging.getLogger("trainingos.sessions")
 
@@ -111,7 +112,7 @@ def log_second_session(
 ):
     """Append a second session to the same day without overwriting the first."""
     sessions = load_sessions()
-    entry = sessions.setdefault(date, {"exos": [], "logged_at": datetime.now().strftime("%Y-%m-%d %H:%M")})
+    entry = sessions.setdefault(date, {"exos": [], "logged_at": _now_mtl().strftime("%Y-%m-%d %H:%M")})
 
     legacy_exos = exos or []
     if blocks is not None and not legacy_exos:
@@ -123,7 +124,7 @@ def log_second_session(
         "rpe":       rpe,
         "comment":   comment,
         "exos":      legacy_exos,
-        "logged_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "logged_at": _now_mtl().strftime("%Y-%m-%d %H:%M"),
     }
     if blocks is not None:
         extra["blocks"] = blocks

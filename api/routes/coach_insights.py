@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 import logging
-from utils import _today_mtl
+from utils import _today_mtl, _hour_mtl
 
 logger = logging.getLogger("trainingos")
 
@@ -315,7 +315,7 @@ def _post_session_nutrition_advice():
         entry = entries[0]
         proteines = entry.get("proteines") or 0
         calories  = entry.get("calories") or 0
-        hour      = datetime.now().hour
+        hour      = _hour_mtl()
 
         cfg = _nutr_cfg() or {}
         prot_target = (

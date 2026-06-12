@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from datetime import datetime
 import logging
 import re
+from utils import _now_mtl
 
 logger = logging.getLogger("trainingos")
 workout_bp = Blueprint("workout", __name__)
@@ -126,7 +127,7 @@ def api_log():
         if not (equipment_type == "bodyweight" and weight == 0):
             weights[exercise]["current_weight"] = round(new_w, 1)
         weights[exercise]["last_reps"] = reps
-        weights[exercise]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
+        weights[exercise]["last_logged"]    = _now_mtl().strftime("%Y-%m-%d %H:%M")
 
         today = session_date or _today_mtl()
         is_evening = is_second or session_type == "evening"

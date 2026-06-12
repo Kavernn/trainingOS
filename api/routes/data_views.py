@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
-from datetime import datetime
+from datetime import datetime, timedelta
+from utils import _now_mtl
 
 data_views_bp = Blueprint("data_views", __name__)
 
@@ -330,7 +331,7 @@ def api_exercise_detail():
     e1rm_current = e1rms[0] if e1rms else None
     e1rm_best    = max(e1rms) if e1rms else None
 
-    cutoff_30d = (datetime.now() - timedelta(days=30)).date()
+    cutoff_30d = (_now_mtl() - timedelta(days=30)).date()
     trend_30d = [
         {"date": h["date"], "e1rm": h["e1rm"]}
         for h in history

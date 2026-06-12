@@ -5,7 +5,7 @@ All weights are in lbs.
 from __future__ import annotations
 import logging, math, time
 from datetime import datetime, date, timedelta
-from utils import _today_mtl
+from utils import _today_mtl, _now_mtl
 from collections import defaultdict, Counter
 from typing import Optional
 
@@ -452,7 +452,7 @@ def detect(force: bool = False) -> dict:
 
         alert = {
             "exercise_name":      exercise_name,
-            "detected_at":        datetime.utcnow().isoformat(),
+            "detected_at":        _now_mtl().isoformat(),
             "plateau_score":      score,
             "plateau_weeks":      plateau_weeks,
             "root_cause":         ctx["root_cause"],
@@ -482,6 +482,6 @@ def detect(force: bool = False) -> dict:
     severity_order = {"critical": 0, "warning": 1, "advisory": 2}
     alerts.sort(key=lambda a: (severity_order.get(a["severity"], 3), -a["plateau_score"]))
 
-    data = {"alerts": alerts, "computed_at": datetime.utcnow().isoformat()}
+    data = {"alerts": alerts, "computed_at": _now_mtl().isoformat()}
     _CACHE = {"ts": now, "data": data}
     return data
