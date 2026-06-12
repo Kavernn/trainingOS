@@ -116,6 +116,7 @@ struct AddCardioSheet: View {
             .alert("Erreur", isPresented: Binding(get: { logError != nil }, set: { if !$0 { logError = nil } })) {
                 Button("OK", role: .cancel) { logError = nil }
             } message: { Text(logError ?? "") }
+            .interactiveDismissDisabled(hasUnsavedData)
         }
     }
 

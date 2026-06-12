@@ -242,12 +242,14 @@ def _suggest_uncapped(
 
     # Reps-based fallback
     rule = REPS_RULES.get(exercise, DEFAULT_REP_RANGE)
+    if not last_reps or last_reps.isspace():
+        return (current_weight, "maintain")
     try:
         reps = parse_reps(last_reps)
         if reps and all(r >= rule["min"] for r in reps):
             return (round(current_weight + inc, 1), "increase")
     except Exception as e:
-        logger.exception("_suggest_uncapped reps parse failed: %s", e)
+        logger.warning("_suggest_uncapped reps parse failed: %s", e)
     return (current_weight, "maintain")
 
 

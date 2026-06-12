@@ -470,6 +470,7 @@ struct FinishSessionSheet: View {
                     loadAIAnalysis()
                 }
             }
+            .interactiveDismissDisabled(hasUnsavedData)
         }
     }
 

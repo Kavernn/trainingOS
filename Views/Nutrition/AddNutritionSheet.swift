@@ -26,6 +26,8 @@ struct AddNutritionSheet: View {
     var onLogged: ((String) -> Void)? = nil
     // N-D2: confirm discard when leaving manual mode
     @State private var showDiscardManualAlert = false
+    @State private var confirmDiscard = false
+    @State private var saveError: String? = nil
     // N-D9: template loading state
     @State private var isLoadingTemplates = true
 
@@ -68,6 +70,12 @@ struct AddNutritionSheet: View {
     private var canSave: Bool {
         if manualMode { return !manName.isEmpty && !manCal.isEmpty }
         return selected != nil && !quantity.isEmpty && p(quantity) > 0
+    }
+
+    private var isDirty: Bool {
+        selected != nil ||
+        !quantity.isEmpty ||
+        (manualMode && (!manName.isEmpty || !manCal.isEmpty))
     }
 
     var body: some View {
@@ -385,7 +393,9 @@ struct AddNutritionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
+                    Button("Annuler") {
+                        if isDirty { confirmDiscard = true } else { dismiss() }
+                    }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     // N-B4: always-tappable button that validates inline
@@ -443,6 +453,16 @@ struct AddNutritionSheet: View {
                 Text(err)
             }
         }
+        .interactiveDismissDisabled(isDirty)
+        .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+            Button("Abandonner", role: .destructive) { dismiss() }
+            Button("Continuer", role: .cancel) {}
+        } message: {
+            Text("Les valeurs saisies seront perdues.")
+        }
+        .alert("Erreur", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(saveError ?? "") }
         .presentationDetents([.medium, .large])
     }
 
@@ -506,22 +526,27 @@ struct AddNutritionSheet: View {
     private func save() {
         Task {
             isSaving = true
-            if manualMode {
-                guard !manName.isEmpty, let cal = Double(manCal.replacingOccurrences(of: ",", with: ".")) else { isSaving = false; return }
-                try? await APIService.shared.addNutritionEntry(
-                    name: manName, calories: cal,
-                    proteines: p(manProt), glucides: p(manGluc), lipides: p(manLip),
-                    mealType: mealType
-                )
-            } else {
-                guard let item = selected, let qty = Double(quantity.replacingOccurrences(of: ",", with: ".")) else { isSaving = false; return }
-                let m = item.macros(for: qty)
-                try? await APIService.shared.addNutritionEntry(
-                    name: item.name, calories: m.cal,
-                    proteines: m.prot, glucides: m.gluc, lipides: m.lip,
-                    mealType: mealType
-                )
-                RecentFoodsStore.record(name: item.name, quantity: qty, unit: item.refUnit)
+            do {
+                if manualMode {
+                    guard !manName.isEmpty, let cal = Double(manCal.replacingOccurrences(of: ",", with: ".")) else { isSaving = false; return }
+                    try await APIService.shared.addNutritionEntry(
+                        name: manName, calories: cal,
+                        proteines: p(manProt), glucides: p(manGluc), lipides: p(manLip),
+                        mealType: mealType
+                    )
+                } else {
+                    guard let item = selected, let qty = Double(quantity.replacingOccurrences(of: ",", with: ".")) else { isSaving = false; return }
+                    let m = item.macros(for: qty)
+                    try await APIService.shared.addNutritionEntry(
+                        name: item.name, calories: m.cal,
+                        proteines: m.prot, glucides: m.gluc, lipides: m.lip,
+                        mealType: mealType
+                    )
+                    RecentFoodsStore.record(name: item.name, quantity: qty, unit: item.refUnit)
+                }
+            } catch {
+                await MainActor.run { isSaving = false; saveError = "Erreur réseau — réessaie" }
+                return
             }
             triggerNotificationFeedback(.success)
             await onSaved()

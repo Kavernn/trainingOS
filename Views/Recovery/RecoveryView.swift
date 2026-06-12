@@ -603,10 +603,16 @@ struct RecoveryView: View {
             .navigationTitle("Récupération")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showSheet) {
-                LogRecoverySheet(onSaved: { await loadData() })
+                LogRecoverySheet(onSaved: {
+                    await loadData()
+                    await MainActor.run { toast = ToastMessage(message: "Récupération enregistrée", style: .success) }
+                })
             }
             .sheet(item: $editTarget) { entry in
-                LogRecoverySheet(prefillEntry: entry, onSaved: { await loadData() })
+                LogRecoverySheet(prefillEntry: entry, onSaved: {
+                    await loadData()
+                    await MainActor.run { toast = ToastMessage(message: "Récupération mise à jour", style: .success) }
+                })
             }
             .sheet(isPresented: $showHRVOnboarding) {
                 HRVOnboardingView(onDone: { showHRVOnboarding = false })

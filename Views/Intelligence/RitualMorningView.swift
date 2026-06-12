@@ -7,6 +7,8 @@ struct EngagementAddressingView: View {
 
     // id → statut local (reflète les taps immédiats avant la réponse serveur)
     @State private var localStatuses: [String: String] = [:]
+    @State private var addressError: String? = nil
+    @State private var advanceError = false
 
     private let amber = Color.appWarning
 
@@ -43,6 +45,13 @@ struct EngagementAddressingView: View {
                 .animation(.easeInOut(duration: 0.25), value: allAddressed)
             }
         }
+        .alert("Erreur", isPresented: Binding(get: { addressError != nil }, set: { if !$0 { addressError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(addressError ?? "") }
+        .alert("Erreur réseau", isPresented: $advanceError) {
+            Button("Réessayer") { advance() }
+            Button("Annuler", role: .cancel) {}
+        } message: { Text("Impossible de passer à l'étape suivante.") }
     }
 
     // MARK: - Header
@@ -118,14 +127,26 @@ struct EngagementAddressingView: View {
         withAnimation(.easeInOut(duration: 0.2)) {
             localStatuses[engagement.id] = status
         }
-        Task { try? await APIService.shared.updateEngagementStatus(id: engagement.id, status: status) }
+        Task {
+            do {
+                try await APIService.shared.updateEngagementStatus(id: engagement.id, status: status)
+            } catch {
+                await MainActor.run {
+                    withAnimation { localStatuses[engagement.id] = nil }
+                    addressError = "Erreur réseau — réessaie"
+                }
+            }
+        }
     }
 
     private func advance() {
         Task {
             CacheService.shared.clear(for: "ritual_today")
-            if let updated = try? await APIService.shared.fetchRitualToday() {
+            do {
+                let updated = try await APIService.shared.fetchRitualToday()
                 await MainActor.run { onSaved(updated) }
+            } catch {
+                await MainActor.run { advanceError = true }
             }
         }
     }

@@ -2,7 +2,7 @@ import SwiftUI
 import Combine
 import LocalAuthentication
 
-// MARK: - Gate
+// MARK: - Gateex
 
 struct OathGateView: View {
     @State private var unlocked = false
@@ -166,8 +166,7 @@ struct OathContentView: View {
 
                 Text("\u{201C}\(oath.text)\u{201D}")
                     .font(.system(size: 20, weight: .light, design: .serif))
-                    .foregroundStyle(.appTextPrimary)
-                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Color.appTextPrimary)                    .multilineTextAlignment(.center)
                     .lineSpacing(6)
                     .padding(.horizontal, 32)
 

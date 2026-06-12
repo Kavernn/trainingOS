@@ -31,10 +31,51 @@ struct LogRecoverySheet: View {
     @State private var showFullMode = false
     @AppStorage("recoveryLogPrefersFull") private var prefersFull = false
     @AppStorage("recoveryLogFullUseCount") private var fullUseCount = 0
+    @State private var initialSnapshot: RecoverySnapshot? = nil
+    @State private var confirmDiscard = false
 
     private let moodEmojis = ["😴", "😕", "😐", "😊", "😄"]
 
     private var isEditing: Bool { prefillEntry != nil }
+
+    private var currentSnapshot: RecoverySnapshot {
+        RecoverySnapshot(
+            selectedDate: selectedDate,
+            sleepHoursStr: sleepHoursStr, sleepQuality: sleepQuality,
+            restingHrStr: restingHrStr, hrvStr: hrvStr,
+            stepsStr: stepsStr, activeEnergyStr: activeEnergyStr,
+            hrMorningStr: hrMorningStr, hrPostWorkoutStr: hrPostWorkoutStr,
+            hrEveningStr: hrEveningStr,
+            soreness: soreness, fatigue: fatigue, energyPre: energyPre,
+            moodScore: moodScore,
+            hasBedtime: hasBedtime, hasWakeTime: hasWakeTime,
+            bedtime: bedtime, wakeTime: wakeTime,
+            notes: notes
+        )
+    }
+
+    private var isDirty: Bool {
+        guard let snap = initialSnapshot else { return false }
+        return selectedDate      != snap.selectedDate      ||
+               sleepHoursStr     != snap.sleepHoursStr     ||
+               sleepQuality      != snap.sleepQuality      ||
+               restingHrStr      != snap.restingHrStr      ||
+               hrvStr            != snap.hrvStr            ||
+               stepsStr          != snap.stepsStr          ||
+               activeEnergyStr   != snap.activeEnergyStr   ||
+               hrMorningStr      != snap.hrMorningStr      ||
+               hrPostWorkoutStr  != snap.hrPostWorkoutStr  ||
+               hrEveningStr      != snap.hrEveningStr      ||
+               soreness          != snap.soreness          ||
+               fatigue           != snap.fatigue           ||
+               energyPre         != snap.energyPre         ||
+               moodScore         != snap.moodScore         ||
+               hasBedtime        != snap.hasBedtime        ||
+               hasWakeTime       != snap.hasWakeTime       ||
+               (hasBedtime  && bedtime  != snap.bedtime)   ||
+               (hasWakeTime && wakeTime != snap.wakeTime)  ||
+               notes             != snap.notes
+    }
 
     private var dateStr: String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
@@ -377,13 +418,25 @@ struct LogRecoverySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
+                    Button("Annuler") {
+                        if isDirty { confirmDiscard = true } else { dismiss() }
+                    }.foregroundColor(Color.forge)
                 }
             }
             .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(apiError ?? "") }
-            .onAppear { prefill() }
+            .interactiveDismissDisabled(isDirty)
+            .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                Button("Abandonner", role: .destructive) { dismiss() }
+                Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Les valeurs saisies seront perdues.")
+            }
+            .onAppear {
+                prefill()
+                initialSnapshot = currentSnapshot
+            }
         }
     }
 
@@ -501,6 +554,28 @@ struct LogRecoverySheet: View {
             }
         }
     }
+}
+
+private struct RecoverySnapshot {
+    var selectedDate: Date
+    var sleepHoursStr: String
+    var sleepQuality: Double
+    var restingHrStr: String
+    var hrvStr: String
+    var stepsStr: String
+    var activeEnergyStr: String
+    var hrMorningStr: String
+    var hrPostWorkoutStr: String
+    var hrEveningStr: String
+    var soreness: Double
+    var fatigue: Double
+    var energyPre: Double
+    var moodScore: Int
+    var hasBedtime: Bool
+    var hasWakeTime: Bool
+    var bedtime: Date
+    var wakeTime: Date
+    var notes: String
 }
 
 struct RecoveryField: View {

@@ -465,6 +465,8 @@ struct ExerciseCard: View {
                             .background(Color.cyan.opacity(0.15))
                             .foregroundColor(.cyan)
                             .cornerRadius(8)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }

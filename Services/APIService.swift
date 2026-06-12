@@ -159,6 +159,7 @@ class APIService: ObservableObject {
         var req = URLRequest(url: url)
         req.httpMethod      = method
         req.timeoutInterval = 15
+        req.setValue("Bearer \(APIConfig.apiKey)", forHTTPHeaderField: "Authorization")
         if method != "DELETE" {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = try JSONSerialization.data(withJSONObject: payload)

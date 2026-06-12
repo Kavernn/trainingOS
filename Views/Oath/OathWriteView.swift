@@ -123,8 +123,7 @@ struct OathWriteView: View {
                 }
                 TextEditor(text: $oathText)
                     .font(.system(size: 18, weight: .light, design: .serif))
-                    .foregroundStyle(.appTextPrimary)
-                    .scrollContentBackground(.hidden)
+                    .foregroundStyle(Color.appTextPrimary)                    .scrollContentBackground(.hidden)
                     .background(.clear)
                     .lineSpacing(5)
                     .tint(.white.opacity(0.6))
@@ -174,8 +173,7 @@ struct OathWriteView: View {
                 if let s = sealed {
                     Text("\u{201C}\(s.text)\u{201D}")
                         .font(.system(size: 18, weight: .light, design: .serif))
-                        .foregroundStyle(.appTextPrimary)
-                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.appTextPrimary)                        .multilineTextAlignment(.center)
                         .lineSpacing(5)
                         .padding(.horizontal, 32)
                 }

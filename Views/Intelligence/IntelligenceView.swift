@@ -61,6 +61,7 @@ struct IntelligenceView: View {
     @State private var patternData: PatternResponse? = nil
     @State private var isLoadingPatterns = false
     @State private var expandedBilan: Set<String> = []
+    @State private var toast: ToastMessage? = nil
 
     // Tab-switch callback injected from ContentView
     var onOpenSession: (() -> Void)? = nil
@@ -312,6 +313,7 @@ struct IntelligenceView: View {
                     .presentationDetents([.large])
                 }
             }
+            .toast($toast)
         }
     }
     }
@@ -1142,7 +1144,9 @@ struct IntelligenceView: View {
                     identifier: "proactive.\(push.dimension)"
                 )
             }
-        } catch { }
+        } catch {
+            await MainActor.run { toast = ToastMessage(message: "Insights indisponibles", style: .error) }
+        }
     }
 
     private func loadProactiveIntelligence() async {
@@ -1174,7 +1178,9 @@ struct IntelligenceView: View {
         do {
             let data = try await APIService.shared.fetchPostSession()
             await MainActor.run { postSessionData = data }
-        } catch { }
+        } catch {
+            await MainActor.run { toast = ToastMessage(message: "Données post-séance indisponibles", style: .error) }
+        }
     }
 
     private func loadContextData() async {

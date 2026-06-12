@@ -344,6 +344,8 @@ final class DashboardViewModel: ObservableObject {
                     // sequential — async let LIFO crash on iOS 26 beta
                     p2.hrvAnalysis = try await APIService.shared.fetchHRVAnalysis()
                     return 0
+                } catch let e as URLError where e.code == .cancelled {
+                    return 0  // task cancelled (navigation) — not an error
                 } catch {
                     self.logger.error("fetchHRVAnalysis: \(error, privacy: .public)")
                     return 0

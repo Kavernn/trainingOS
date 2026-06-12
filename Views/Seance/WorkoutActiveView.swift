@@ -1243,8 +1243,10 @@ struct WorkoutSeanceView: View {
             vm.showSuccess = false
             // W-D1 — clear resume banner on session completion
             vm.isResuming = false
-            // Wait for commitWarning alert to be dismissed before opening recap
-            guard vm.commitWarning == nil else { return }
+            if vm.commitWarning != nil {
+                toast = ToastMessage(message: "Enregistrement partiel — vérifie le récap", style: .error)
+                vm.commitWarning = nil
+            }
             if !vm.prCelebrations.isEmpty {
                 showPRCelebration = true
             } else {
@@ -1292,17 +1294,6 @@ struct WorkoutSeanceView: View {
             Button("OK") { vm.submitError = nil }
         } message: {
             Text(vm.submitError ?? "")
-        }
-        .alert("Séance enregistrée ⚠️", isPresented: Binding(
-            get: { vm.commitWarning != nil },
-            set: { if !$0 { vm.commitWarning = nil } }
-        )) {
-            Button("OK") {
-                vm.commitWarning = nil
-                if !vm.prCelebrations.isEmpty { showPRCelebration = true } else { showRecap = true }
-            }
-        } message: {
-            Text(vm.commitWarning ?? "")
         }
         .alert("Terminer la séance ?", isPresented: $showFinishConfirm) {
             Button("Terminer") { preloadAIAnalysis(); showFinish = true }
