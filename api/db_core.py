@@ -18,13 +18,42 @@ _ON_VERCEL = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
 # Emplacement du SQLite local (fichier persistant en local, jamais utilisé sur Vercel)
 _DEFAULT_LOCAL_DB = os.getenv("APP_LOCAL_DB", os.path.join(os.path.dirname(__file__), "..", ".local_kv.db"))
 
+
+def _make_supabase_client(url: str, key: str):
+    # HTTP/2 multiplexes over a single persistent connection; in serverless pools that
+    # connection goes stale between invocations and raises RemoteProtocolError on the
+    # next request.  Patching create_session on the class forces HTTP/1.1 for all
+    # connections — including after _reconnect() — without touching ClientOptions.
+    try:
+        import httpx
+        from postgrest._sync.client import SyncPostgrestClient
+
+        def _session_http1(self, base_url, headers, timeout, verify=True, proxy=None):
+            return httpx.Client(
+                base_url=base_url,
+                headers=headers,
+                timeout=timeout,
+                verify=verify,
+                proxy=proxy,
+                follow_redirects=True,
+                http2=False,
+            )
+
+        SyncPostgrestClient.create_session = _session_http1
+    except Exception:
+        pass  # postgrest unavailable; proceed without patch
+
+    from supabase import create_client
+    return create_client(url, key)
+
+
 # Client Supabase (si accessible)
 _client = None
 if MODE != "OFFLINE":
     try:
-        from supabase import Client, create_client
+        from supabase import Client
         if _SUPABASE_URL and _SUPABASE_KEY:
-            _client: Client = create_client(_SUPABASE_URL, _SUPABASE_KEY)
+            _client: Client = _make_supabase_client(_SUPABASE_URL, _SUPABASE_KEY)
         else:
             if MODE == "ONLINE":
                 # Pas de credentials → bascule HYBRID pour autoriser cache local
@@ -41,8 +70,7 @@ def _reconnect() -> bool:
     if not (_SUPABASE_URL and _SUPABASE_KEY):
         return False
     try:
-        from supabase import create_client
-        _client = create_client(_SUPABASE_URL, _SUPABASE_KEY)
+        _client = _make_supabase_client(_SUPABASE_URL, _SUPABASE_KEY)
         logger.info("Supabase reconnected")
         return True
     except Exception as e:
