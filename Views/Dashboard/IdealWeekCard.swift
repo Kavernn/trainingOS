@@ -175,7 +175,7 @@ private struct MatchBanner: View {
             }
             Spacer()
             Text("\(matchPct)%")
-                .font(.system(size: 38, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(matchColor)
         }
         .padding(14)

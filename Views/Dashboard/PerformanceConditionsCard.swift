@@ -153,7 +153,7 @@ private struct AlignmentScoreBanner: View {
             Spacer()
             if let score = data.alignmentScore {
                 Text("\(score)%")
-                    .font(.system(size: 38, weight: .black, design: .rounded))
+                    .font(.appCardHero)
                     .foregroundColor(scoreColor)
             }
         }

@@ -27,12 +27,15 @@ struct DisplaySettingsView: View {
 
             List {
                 Section("Apparence") {
-                    HStack(spacing: 10) {
-                        ForEach(AppThemeOption.allCases, id: \.rawValue) { option in
-                            themeCard(option)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(AppThemeOption.allCases, id: \.rawValue) { option in
+                                themeCard(option)
+                            }
                         }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 2)
                     }
-                    .padding(.vertical, 8)
                     .animation(.easeInOut(duration: 0.2), value: pendingTheme)
                 }
                 .listRowBackground(Color.appCard)
@@ -181,7 +184,7 @@ struct DisplaySettingsView: View {
                     .font(.system(size: 11, weight: isPending ? .bold : .regular))
                     .foregroundColor(isPending ? .white : .white.opacity(0.4))
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: 64)
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 12)

@@ -206,7 +206,7 @@ struct ProfileView: View {
                             ProgressView().tint(.white).scaleEffect(0.6)
                         } else {
                             Image(systemName: "camera.fill")
-                                .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
+                                .font(.appLabel).fontWeight(.semibold).foregroundColor(.onAccent)
                         }
                     }
                 }
@@ -307,7 +307,7 @@ struct ProfileView: View {
                 .frame(width: 88, height: 88)
                 .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
             Text(profile?.name?.prefix(1).uppercased() ?? "?")
-                .font(.system(size: 38, weight: .black)).foregroundColor(.white)
+                .font(.system(size: 38, weight: .black)).foregroundColor(.onAccent)
         }
     }
 
@@ -909,7 +909,7 @@ struct ProfileView: View {
                     .font(.appTitle).foregroundColor(Color.forge)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Profil incomplet — l'IA travaille à l'aveugle.")
-                        .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
+                        .font(.appLabel).fontWeight(.semibold).foregroundColor(.appTextPrimary)
                     Text("Taille et âge nécessaires pour calibrer les recommandations.")
                         .font(.appCaption).foregroundColor(.gray)
                 }

@@ -47,7 +47,7 @@ struct ConsistencyCard: View {
                     .foregroundColor(.white.opacity(0.28))
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(data.score.map { "\($0)" } ?? "—")
-                        .font(.system(size: 34, weight: .black, design: .rounded))
+                        .font(.appCardMetric)
                         .foregroundColor(scoreColor)
                     Text("/100")
                         .font(.appCaption)
@@ -153,7 +153,7 @@ private struct ConsistencyScoreBanner: View {
             }
             Spacer()
             Text(data.score.map { "\($0)" } ?? "—")
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(scoreColor)
         }
         .padding(14)

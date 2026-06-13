@@ -57,7 +57,7 @@ struct SessionQualityCard: View {
                             .foregroundColor(.white.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.avgQuality.map { "\(Int($0))" } ?? "—")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             Text("/100")
                                 .font(.appCaption).foregroundColor(.white.opacity(0.30))
@@ -154,7 +154,7 @@ private struct SessionQualityBanner: View {
             }
             Spacer()
             Text(data.avgQuality.map { "\(Int($0))" } ?? "—")
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(trendColor)
         }
         .padding(14)

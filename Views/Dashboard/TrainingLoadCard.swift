@@ -55,7 +55,7 @@ struct TrainingLoadCard: View {
                     .font(.appMicro).tracking(0.8)
                     .foregroundColor(.white.opacity(0.28))
                 Text(data.formattedRatio)
-                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .font(.appCardMetric)
                     .foregroundColor(zoneColor)
             }
             Spacer()
@@ -164,7 +164,7 @@ private struct RatioBanner: View {
             }
             Spacer()
             Text(data.formattedRatio)
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(zoneColor)
         }
         .padding(14)

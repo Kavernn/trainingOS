@@ -61,7 +61,7 @@ struct StressLoadCard: View {
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             let combined = data.weeks.last?.combined
                             Text(combined.map { "\($0)" } ?? "—")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             Text("/100")
                                 .font(.appCaption).foregroundColor(.white.opacity(0.30))
@@ -161,7 +161,7 @@ private struct StressLoadBanner: View {
             }
             Spacer()
             Text(data.weeks.last.map { "\($0.combined)" } ?? "—")
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(trendColor)
         }
         .padding(14)

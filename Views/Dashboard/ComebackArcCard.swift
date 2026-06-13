@@ -52,7 +52,7 @@ struct ComebackArcCard: View {
                     .foregroundColor(.white.opacity(0.28))
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text("\(data.activeSincePct ?? 0)%")
-                        .font(.system(size: 34, weight: .black, design: .rounded))
+                        .font(.appCardMetric)
                         .foregroundColor(arcColor)
                     if let days = data.daysSinceRupture {
                         Text("sur \(days)j")
@@ -159,7 +159,7 @@ private struct ArcBanner: View {
             }
             Spacer()
             Text("\(data.activeSincePct ?? 0)%")
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(arcColor)
         }
         .padding(14)

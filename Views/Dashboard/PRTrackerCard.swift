@@ -120,7 +120,7 @@ private struct PRSummaryBanner: View {
             }
             Spacer()
             Text("\(data.totalPrs)")
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(data.totalPrs > 0 ? Color.appWarning : .white.opacity(0.30))
         }
         .padding(14)

@@ -89,8 +89,6 @@ struct NutritionPerfInsightCard: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .background(insight.accentColor.opacity(0.07))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(insight.accentColor.opacity(0.3), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassCardAccent(insight.accentColor, cornerRadius: 12)
     }
 }

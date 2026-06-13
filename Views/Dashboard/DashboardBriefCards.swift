@@ -67,9 +67,7 @@ struct RecoveryTrioCard: View {
                      subLabel: sleepLabel,
                      color: recovery?.sleepHours != nil ? Color.blue : .gray)
         }
-        .background(accent.opacity(0.06))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(accent.opacity(0.18), lineWidth: 1))
-        .cornerRadius(14)
+        .glassCardAccent(accent, cornerRadius: 14)
     }
 
     private var pillDivider: some View {

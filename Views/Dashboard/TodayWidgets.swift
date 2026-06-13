@@ -160,14 +160,12 @@ private struct MetricChip: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.appCard)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(
-                    isAttention ? Color.orange.opacity(0.25) : Color.white.opacity(0.06),
-                    lineWidth: 1
-                ))
-        )
+        .glassCardAccent(color, cornerRadius: 12)
+        .overlay {
+            if isAttention {
+                RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.5), lineWidth: 1)
+            }
+        }
     }
 }
 

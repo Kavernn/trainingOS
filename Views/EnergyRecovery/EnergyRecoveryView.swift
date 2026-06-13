@@ -639,7 +639,7 @@ private struct EnergyChartSection: View {
             }
         }
         .padding(6)
-        .background(Color.black.opacity(0.7))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }

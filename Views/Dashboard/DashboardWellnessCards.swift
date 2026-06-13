@@ -247,7 +247,7 @@ struct DeloadChipView: View {
                 .foregroundColor(Color.forge)
             Text("Fatigue accumulée détectée — score \(report.fatigueScore)/100")
                 .font(.appLabel)
-                .foregroundColor(.white)
+                .foregroundColor(.appTextPrimary)
             Spacer()
             Text("Niv. \(report.fatigueLevel)")
                 .font(.appCaption.weight(.semibold))

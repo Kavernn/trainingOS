@@ -57,7 +57,7 @@ struct VolumeProgressionCard: View {
                             .foregroundColor(.white.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.currentPctOfPeak.map { "\($0)" } ?? "—")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             Text("%")
                                 .font(.appCaption).foregroundColor(.white.opacity(0.30))
@@ -154,7 +154,7 @@ private struct VolumeSummaryBanner: View {
             }
             Spacer()
             Text(data.currentPctOfPeak.map { "\($0)%" } ?? "—")
-                .font(.system(size: 38, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(trendColor)
         }
         .padding(14)

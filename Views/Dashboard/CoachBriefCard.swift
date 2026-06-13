@@ -84,9 +84,7 @@ struct CoachInsightCard: View {
             .buttonStyle(.plain)
         }
         .padding(14)
-        .background(accentColor.opacity(0.07))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(accentColor.opacity(0.22), lineWidth: 1))
-        .cornerRadius(14)
+        .glassCardAccent(accentColor, cornerRadius: 14)
     }
 
     @ViewBuilder

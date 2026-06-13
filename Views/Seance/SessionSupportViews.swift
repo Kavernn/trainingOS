@@ -210,7 +210,7 @@ struct FinishSessionSheet: View {
                                 Text("DURÉE").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 Text("\(Int(elapsedMin)) min")
                                     .font(.appTitle).fontWeight(.black)
-                                    .foregroundColor(.appTextPrimary)
+                                    .foregroundColor(.forge)
                             }
                             Spacer()
                         }

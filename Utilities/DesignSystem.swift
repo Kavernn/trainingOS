@@ -5,11 +5,25 @@ import SwiftUI
 // Mapping : voir docs/typography_migration.md
 
 extension Font {
-    /// 34pt bold rounded — métriques principales (Phoenix, readiness, chrono)
-    static let appHero = Font.system(size: 34, weight: .bold, design: .rounded)
+    /// 42pt — métriques principales, design et poids lus depuis le thème actif
+    static var appHero: Font {
+        .system(size: 42, weight: AppTheme.shared.displayWeight, design: AppTheme.shared.heroFontDesign)
+    }
 
-    /// 22pt bold rounded — titres de sections, headers de cards
-    static let appTitle = Font.system(size: 22, weight: .bold, design: .rounded)
+    /// 22pt — titres de sections, design et poids lus depuis le thème actif
+    static var appTitle: Font {
+        .system(size: 22, weight: AppTheme.shared.displayWeight, design: AppTheme.shared.titleFontDesign)
+    }
+
+    /// Métrique hero expanded — taille, poids et design lus depuis le thème actif
+    static var appCardHero: Font {
+        .system(size: AppTheme.shared.heroNumberSize, weight: AppTheme.shared.displayWeight, design: AppTheme.shared.heroFontDesign)
+    }
+
+    /// Métrique hero compact (preview) — heroNumberSize - 6, mêmes poids/design
+    static var appCardMetric: Font {
+        .system(size: AppTheme.shared.heroNumberSize - 6, weight: AppTheme.shared.displayWeight, design: AppTheme.shared.heroFontDesign)
+    }
 
     /// 17pt semibold — noms d'exercices, titres de vues
     static let appHeadline = Font.system(size: 17, weight: .semibold, design: .default)
@@ -38,19 +52,18 @@ struct GlassCard: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content
-            .background(
-                RoundedRectangle(cornerRadius: resolvedRadius)
-                    .fill(Color.appCard)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: resolvedRadius)
-                    .stroke(AppTheme.shared.cardBorderColor, lineWidth: AppTheme.shared.cardBorderWidth)
-            )
+        let theme      = AppTheme.shared
+        let style      = theme.cardStyle
+        let borderW    = style == .outlined ? theme.cardBorderWidth * 2.0 : theme.cardBorderWidth
+        let glowColor  = style == .floating ? theme.cardGlowColor   : .clear
+        let shadowColor = (style == .floating || style == .raised) ? theme.cardShadowColor : .clear
+        return content
+            .background(RoundedRectangle(cornerRadius: resolvedRadius).fill(Color.appCard))
+            .overlay(RoundedRectangle(cornerRadius: resolvedRadius).stroke(theme.cardBorderColor, lineWidth: borderW))
             .clipShape(RoundedRectangle(cornerRadius: resolvedRadius))
-            .shadow(color: AppTheme.shared.cardGlowColor, radius: AppTheme.shared.cardGlowRadius, x: 0, y: 0)
-            .shadow(color: AppTheme.shared.cardShadowColor, radius: AppTheme.shared.cardShadowRadius,
-                    x: AppTheme.shared.cardShadowOffset.width, y: AppTheme.shared.cardShadowOffset.height)
+            .shadow(color: glowColor, radius: theme.cardGlowRadius, x: 0, y: 0)
+            .shadow(color: shadowColor, radius: theme.cardShadowRadius,
+                    x: theme.cardShadowOffset.width, y: theme.cardShadowOffset.height)
     }
 }
 
@@ -63,17 +76,27 @@ struct GlassCardAccent: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content
+        let theme       = AppTheme.shared
+        let style       = theme.cardStyle
+        let borderW     = style == .outlined ? theme.cardBorderWidth * 2.0 : theme.cardBorderWidth
+        let glowColor   = style == .floating ? accent.opacity(0.10) : Color.clear
+        let shadowColor = (style == .floating || style == .raised) ? accent.opacity(0.08) : Color.clear
+        return content
             .background(
                 RoundedRectangle(cornerRadius: resolvedRadius)
                     .fill(Color.appCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: resolvedRadius)
+                            .fill(accent.opacity(theme.cardAccentFillOpacity))
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: resolvedRadius)
-                    .stroke(accent.opacity(0.25), lineWidth: 1)
+                    .stroke(accent.opacity(0.25), lineWidth: borderW)
             )
             .clipShape(RoundedRectangle(cornerRadius: resolvedRadius))
-            .shadow(color: accent.opacity(0.10), radius: 12, x: 0, y: 4)
+            .shadow(color: glowColor, radius: 12, x: 0, y: 0)
+            .shadow(color: shadowColor, radius: 8, x: 0, y: 4)
     }
 }
 
@@ -172,7 +195,7 @@ struct FAB: View {
                     .shadow(color: Color.forge.opacity(0.30), radius: 12, x: 0, y: 6)
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.onAccent)
             }
         }
         .buttonStyle(SpringButtonStyle(scale: 0.93))
@@ -187,15 +210,17 @@ struct SectionLabel: View {
     var actionLabel: String = "Voir tout"
 
     var body: some View {
+        let theme = AppTheme.shared
+        let label = theme.sectionTitleUppercased ? title.uppercased() : title
         HStack {
             if let icon = icon {
                 Image(systemName: icon)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.white.opacity(0.4))
             }
-            Text(title)
+            Text(label)
                 .font(.system(size: 11, weight: .semibold))
-                .tracking(1.2)
+                .tracking(theme.sectionTitleTracking)
                 .foregroundColor(.white.opacity(0.4))
             Spacer()
             if let action = action {
@@ -270,6 +295,7 @@ struct AmbientBackground: View {
     var body: some View {
         ZStack {
             Color.appBg
+            IdentityLayerView(style: AppTheme.shared.identityLayer)
             RadialGradient(
                 colors: [color.opacity(0.15), .clear],
                 center: .topTrailing,
@@ -285,6 +311,185 @@ struct AmbientBackground: View {
             )
         }
         .ignoresSafeArea()
+    }
+}
+
+// MARK: - Identity Layer View
+
+struct IdentityLayerView: View {
+    let style: IdentityLayerStyle
+
+    var body: some View {
+        Canvas { ctx, size in
+            switch style {
+            case .none:
+                break
+            case .scanlines(let opacity):
+                Self.drawScanlines(ctx: &ctx, size: size, opacity: opacity)
+            case .neonHalo(let color, let intensity):
+                Self.drawNeonHalo(ctx: &ctx, size: size, color: color, intensity: intensity)
+            case .filmGrain(let opacity):
+                Self.drawFilmGrain(ctx: &ctx, size: size, opacity: opacity)
+            case .goldFiligree(let opacity):
+                Self.drawGoldFiligree(ctx: &ctx, size: size, opacity: opacity)
+            case .cyberGrid(let opacity):
+                Self.drawCyberGrid(ctx: &ctx, size: size, opacity: opacity)
+            case .arcticFrost(let opacity):
+                Self.drawArcticFrost(ctx: &ctx, size: size, opacity: opacity)
+            case .bloodVein(let opacity):
+                Self.drawBloodVein(ctx: &ctx, size: size, opacity: opacity)
+            }
+        }
+        .allowsHitTesting(false)
+        .ignoresSafeArea()
+    }
+
+    // Scanlines horizontales — Matrix
+    private static func drawScanlines(ctx: inout GraphicsContext, size: CGSize, opacity: Double) {
+        let step: CGFloat = 5
+        var y: CGFloat = 1
+        while y < size.height {
+            ctx.fill(Path(CGRect(x: 0, y: y, width: size.width, height: 1)),
+                     with: .color(.white.opacity(opacity)))
+            y += step
+        }
+    }
+
+    // Halo néon en haut d'écran — Tokyo
+    private static func drawNeonHalo(ctx: inout GraphicsContext, size: CGSize, color: Color, intensity: Double) {
+        let cx = size.width / 2
+        let ellipses: [(CGFloat, CGFloat, Double)] = [
+            (size.width * 0.90, 110, intensity * 0.40),
+            (size.width * 0.60, 70,  intensity * 0.28),
+            (size.width * 0.30, 40,  intensity * 0.16)
+        ]
+        for (w, h, alpha) in ellipses {
+            ctx.fill(Path(ellipseIn: CGRect(x: cx - w / 2, y: -h * 0.55, width: w, height: h)),
+                     with: .color(color.opacity(alpha)))
+        }
+        // Fine ligne lumineuse au bord supérieur
+        ctx.fill(Path(CGRect(x: cx - size.width * 0.25, y: 0, width: size.width * 0.50, height: 1.5)),
+                 with: .color(color.opacity(intensity * 0.75)))
+    }
+
+    // Grain de film statique — Sin City
+    private static func drawFilmGrain(ctx: inout GraphicsContext, size: CGSize, opacity: Double) {
+        var rng = Xorshift(seed: 9876)
+        let count = Int(size.width * size.height / 250)
+        for _ in 0..<count {
+            let x = rng.nextFloat() * size.width
+            let y = rng.nextFloat() * size.height
+            let r = rng.nextFloat() * 1.0 + 0.3
+            ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
+                     with: .color(.white.opacity(opacity)))
+        }
+    }
+
+    // Filigrane doré aux 4 coins — Gold Noir
+    private static func drawGoldFiligree(ctx: inout GraphicsContext, size: CGSize, opacity: Double) {
+        let c = Color(hex: "D4AF37").opacity(opacity)
+        let len: CGFloat = 38
+        let m: CGFloat = 18
+        let corners: [(CGPoint, CGPoint, CGPoint)] = [
+            (CGPoint(x: m, y: m + len), CGPoint(x: m, y: m), CGPoint(x: m + len, y: m)),
+            (CGPoint(x: size.width - m - len, y: m), CGPoint(x: size.width - m, y: m), CGPoint(x: size.width - m, y: m + len)),
+            (CGPoint(x: m, y: size.height - m - len), CGPoint(x: m, y: size.height - m), CGPoint(x: m + len, y: size.height - m)),
+            (CGPoint(x: size.width - m - len, y: size.height - m), CGPoint(x: size.width - m, y: size.height - m), CGPoint(x: size.width - m, y: size.height - m - len))
+        ]
+        for (a, corner, d) in corners {
+            var path = Path()
+            path.move(to: a)
+            path.addLine(to: corner)
+            path.addLine(to: d)
+            ctx.stroke(path, with: .color(c), lineWidth: 1.0)
+            ctx.fill(Path(ellipseIn: CGRect(x: corner.x - 2, y: corner.y - 2, width: 4, height: 4)),
+                     with: .color(c))
+        }
+    }
+
+    // Grille cyber — Electric
+    private static func drawCyberGrid(ctx: inout GraphicsContext, size: CGSize, opacity: Double) {
+        let c = Color.white.opacity(opacity)
+        let step: CGFloat = 40
+        var x: CGFloat = 0
+        while x <= size.width {
+            var p = Path()
+            p.move(to: CGPoint(x: x, y: 0))
+            p.addLine(to: CGPoint(x: x, y: size.height))
+            ctx.stroke(p, with: .color(c), lineWidth: 0.5)
+            x += step
+        }
+        var y: CGFloat = 0
+        while y <= size.height {
+            var p = Path()
+            p.move(to: CGPoint(x: 0, y: y))
+            p.addLine(to: CGPoint(x: size.width, y: y))
+            ctx.stroke(p, with: .color(c), lineWidth: 0.5)
+            y += step
+        }
+    }
+
+    // Cristaux hexagonaux dans les coins supérieurs — Arctic
+    private static func drawArcticFrost(ctx: inout GraphicsContext, size: CGSize, opacity: Double) {
+        let c = Color.white.opacity(opacity)
+        func hexPath(center: CGPoint, radius: CGFloat) -> Path {
+            var p = Path()
+            for i in 0..<6 {
+                let angle = CGFloat(i) * .pi / 3 - .pi / 6
+                let pt = CGPoint(x: center.x + cos(angle) * radius,
+                                 y: center.y + sin(angle) * radius)
+                i == 0 ? p.move(to: pt) : p.addLine(to: pt)
+            }
+            p.closeSubpath()
+            return p
+        }
+        let crystals: [(CGPoint, CGFloat)] = [
+            (CGPoint(x: 28, y: 70), 20), (CGPoint(x: 60, y: 42), 13), (CGPoint(x: 52, y: 95), 8),
+            (CGPoint(x: size.width - 28, y: 70), 20), (CGPoint(x: size.width - 60, y: 42), 13),
+            (CGPoint(x: size.width - 52, y: 95), 8)
+        ]
+        for (center, r) in crystals {
+            ctx.stroke(hexPath(center: center, radius: r), with: .color(c), lineWidth: 0.75)
+        }
+    }
+
+    // Nervures organiques dans le coin inférieur gauche — Blood
+    private static func drawBloodVein(ctx: inout GraphicsContext, size: CGSize, opacity: Double) {
+        let c = Color(hex: "C0392B").opacity(opacity)
+        let h = size.height
+        var main = Path()
+        main.move(to: CGPoint(x: 0, y: h))
+        main.addCurve(to: CGPoint(x: 80, y: h - 150),
+                      control1: CGPoint(x: 8, y: h - 60), control2: CGPoint(x: 45, y: h - 110))
+        main.addCurve(to: CGPoint(x: 140, y: h - 240),
+                      control1: CGPoint(x: 108, y: h - 170), control2: CGPoint(x: 128, y: h - 205))
+        ctx.stroke(main, with: .color(c), lineWidth: 1.2)
+        var b1 = Path()
+        b1.move(to: CGPoint(x: 80, y: h - 150))
+        b1.addCurve(to: CGPoint(x: 28, y: h - 210),
+                    control1: CGPoint(x: 58, y: h - 162), control2: CGPoint(x: 38, y: h - 185))
+        ctx.stroke(b1, with: .color(c), lineWidth: 0.7)
+        var b2 = Path()
+        b2.move(to: CGPoint(x: 80, y: h - 150))
+        b2.addCurve(to: CGPoint(x: 118, y: h - 185),
+                    control1: CGPoint(x: 88, y: h - 158), control2: CGPoint(x: 108, y: h - 170))
+        ctx.stroke(b2, with: .color(c), lineWidth: 0.6)
+    }
+}
+
+// MARK: - Xorshift RNG (film grain determinism)
+
+private struct Xorshift: RandomNumberGenerator {
+    private var state: UInt64
+    init(seed: UInt64) { state = seed == 0 ? 1 : seed }
+    mutating func next() -> UInt64 {
+        state ^= state << 13
+        state ^= state >> 7
+        state ^= state << 17
+        return state
+    }
+    mutating func nextFloat() -> CGFloat {
+        CGFloat(next() >> 40) / CGFloat(1 << 24)
     }
 }
 

@@ -145,7 +145,7 @@ private struct TransformationScoreBanner: View {
             }
             Spacer()
             Text("\(score)%")
-                .font(.system(size: 36, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(scoreColor)
         }
         .padding(14)

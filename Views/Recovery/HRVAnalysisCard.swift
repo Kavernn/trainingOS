@@ -268,9 +268,7 @@ struct HRVContextualTipView: View {
                 }
             }
             .padding(10)
-            .background(accentColor.opacity(0.06))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(accentColor.opacity(0.12), lineWidth: 1))
-            .cornerRadius(10)
+            .glassCardAccent(accentColor, cornerRadius: 10)
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }

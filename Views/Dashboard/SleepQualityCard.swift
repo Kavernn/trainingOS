@@ -64,7 +64,7 @@ struct SleepQualityCard: View {
                             .foregroundColor(.white.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.currentScore.map { "\(Int($0))" } ?? "—")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .font(.appCardMetric)
                                 .foregroundColor(scoreColor)
                             Text("/100")
                                 .font(.appCaption).foregroundColor(.white.opacity(0.30))
@@ -155,7 +155,7 @@ private struct SleepQualityBanner: View {
             }
             Spacer()
             Text(data.avgScore.map { "\(Int($0))" } ?? "—")
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(scoreColor)
         }
         .padding(14)

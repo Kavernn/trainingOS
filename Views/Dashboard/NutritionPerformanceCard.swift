@@ -156,7 +156,7 @@ private struct ImpactBanner: View {
             Spacer()
             VStack(spacing: 2) {
                 Text(data.formattedRpeDiff)
-                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .font(.appCardMetric)
                     .foregroundColor(color)
                 Text("RPE")
                     .font(.appMicro.weight(.black)).tracking(1)

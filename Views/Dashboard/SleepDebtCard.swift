@@ -51,7 +51,7 @@ struct SleepDebtAnalyticsCard: View {
                     .foregroundColor(.white.opacity(0.28))
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(data.formattedDebt7d)
-                        .font(.system(size: 32, weight: .black, design: .rounded))
+                        .font(.appCardMetric)
                         .foregroundColor(debtColor)
                     Text(data.isInDebt ? "dette" : "surplus")
                         .font(.appCaption)

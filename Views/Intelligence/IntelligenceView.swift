@@ -957,9 +957,7 @@ struct IntelligenceView: View {
             }
         }
         .padding(12)
-        .background(accent.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accent.opacity(0.2), lineWidth: 1))
+        .glassCardAccent(accent, cornerRadius: 12)
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
     }

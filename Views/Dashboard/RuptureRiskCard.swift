@@ -156,7 +156,7 @@ private struct RuptureScoreBanner: View {
             }
             Spacer()
             Text("\(data.score)")
-                .font(.system(size: 40, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(riskColor)
         }
         .padding(14)

@@ -112,7 +112,7 @@ struct ReadinessScoreCard: View {
 
                 VStack(spacing: 1) {
                     Text("\(score)")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.appCardMetric)
                         .foregroundColor(.appTextPrimary)
                         .contentTransition(.numericText())
                     Text("/ 100")

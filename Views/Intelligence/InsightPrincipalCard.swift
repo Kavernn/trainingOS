@@ -67,12 +67,7 @@ struct InsightPrincipalCard: View {
                 }
             }
             .padding(14)
-            .background(accent.opacity(0.07))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(accent.opacity(0.25), lineWidth: 1)
-            )
-            .cornerRadius(14)
+            .glassCardAccent(accent, cornerRadius: 14)
         }
         .buttonStyle(.plain)
     }

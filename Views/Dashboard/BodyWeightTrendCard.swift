@@ -57,7 +57,7 @@ struct BodyWeightTrendCard: View {
                             .foregroundColor(.white.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.currentWeight.map { String(format: "%.1f", $0) } ?? "—")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             if let pct = data.changePct {
                                 let sign = pct >= 0 ? "+" : ""
@@ -157,7 +157,7 @@ private struct BodyWeightBanner: View {
             }
             Spacer()
             Text(data.currentWeight.map { String(format: "%.1f", $0) } ?? "—")
-                .font(.system(size: 36, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(trendColor)
         }
         .padding(14)

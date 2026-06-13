@@ -142,7 +142,7 @@ private struct BestDayBanner: View {
             }
             Spacer()
             Text(data.bestDayLabel)
-                .font(.system(size: 32, weight: .black, design: .rounded))
+                .font(.appCardMetric)
                 .foregroundColor(Color.trendPositive)
         }
         .padding(14)

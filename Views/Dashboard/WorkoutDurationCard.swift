@@ -57,7 +57,7 @@ struct WorkoutDurationCard: View {
                             .foregroundColor(.white.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.avgDuration.map { "\(Int($0))" } ?? "—")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             Text("min")
                                 .font(.appCaption).foregroundColor(.white.opacity(0.30))
@@ -152,7 +152,7 @@ private struct DurationBanner: View {
             }
             Spacer()
             Text(data.avgDuration.map { "\(Int($0))m" } ?? "—")
-                .font(.system(size: 36, weight: .black, design: .rounded))
+                .font(.appCardHero)
                 .foregroundColor(color)
         }
         .padding(14)

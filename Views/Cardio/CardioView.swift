@@ -289,7 +289,7 @@ struct ActiveSessionBanner: View {
                 Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
-            .background(Color.black.opacity(0.6))
+            .background(Color.appCard)
             .cornerRadius(12)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.5), lineWidth: 1))
         }
