@@ -101,7 +101,11 @@ def insert_pss_record(entry: dict) -> Optional[dict]:
         return None
 
     def _do() -> Optional[dict]:
-        resp = db_core._client.table("pss_records").upsert(entry, on_conflict="date,type").execute()
+        try:
+            resp = db_core._client.table("pss_records").upsert(entry, on_conflict="date,type").execute()
+        except Exception:
+            # Fallback: unique constraint not yet applied in DB — plain insert
+            resp = db_core._client.table("pss_records").insert(entry).execute()
         return resp.data[0] if resp.data else None
 
     try:
