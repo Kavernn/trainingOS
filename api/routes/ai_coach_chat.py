@@ -19,7 +19,10 @@ def api_ai_coach():
     try:
         data        = request.get_json(silent=True) or {}
         prompt      = data.get("prompt", "")
-        context     = (data.get("context", "") or "")[:4096]
+        context     = data.get("context", "") or ""
+        if len(context) > 3072:
+            logger.warning("buildContext exceeds 3072 chars: %d — check IntelligenceView.buildContext()", len(context))
+            context = context[:3072]
         messages_in = data.get("messages", [])
 
         if messages_in:
@@ -289,6 +292,62 @@ def api_ai_coach():
         except Exception:
             pass
 
+        program_context_block = ""
+        try:
+            from db_programs import get_active_program_id, get_full_program
+            from blocks import get_strength_exercises
+
+            pid       = get_active_program_id()
+            full_prog = get_full_program(pid) or {}
+
+            if full_prog:
+                p_lines = ["=== PROGRAMME ACTIF ==="]
+
+                # Structure : workout → exercices clés (schéma)
+                for s_name, sdef in full_prog.items():
+                    exos = get_strength_exercises(sdef) if isinstance(sdef, dict) and "blocks" in sdef else {}
+                    if exos:
+                        ex_parts = [
+                            f"{name[:18]} {scheme.replace('x', '×')}"
+                            for name, scheme in list(exos.items())[:5]
+                        ]
+                        p_lines.append(f"  {s_name}: {' / '.join(ex_parts)}")
+
+                # Historique : 2 dernières séances par type de workout
+                recent_all = _db.get_workout_sessions(limit=60)
+                by_name: dict = {}
+                for s in recent_all:
+                    nm = s.get("session_name")
+                    if nm and nm in full_prog:
+                        by_name.setdefault(nm, []).append(s)
+
+                history_lines = []
+                for s_name in full_prog:
+                    for i, sess in enumerate(by_name.get(s_name, [])[:2]):
+                        date = sess.get("date", "")
+                        dd   = date[5:] if len(date) >= 7 else date  # MM-DD
+                        logs = _db.get_session_exercise_logs(date)
+                        if logs:
+                            ex_parts = []
+                            for log in logs[:4]:
+                                name = log.get("exercise_name", "")[:18]
+                                w    = log.get("weight")
+                                r    = log.get("reps", "")
+                                if w is not None and r:
+                                    ex_parts.append(f"{name} {w}×{r}")
+                            if ex_parts:
+                                history_lines.append(
+                                    f"  {s_name} S-{i + 1}({dd}): {' / '.join(ex_parts)}"
+                                )
+
+                if history_lines:
+                    p_lines.append("HISTORIQUE PAR WORKOUT :")
+                    p_lines.extend(history_lines)
+
+                program_context_block = "\n".join(p_lines)
+        except Exception:
+            pass
+
         spirit_block = ""
         try:
             spirit = _db.get_spirit_metadata(days=7)
@@ -378,6 +437,8 @@ def api_ai_coach():
             system_parts.append(f"DONNÉES ATHLÈTE EN TEMPS RÉEL:\n{context}")
         if last_session_block:
             system_parts.append(last_session_block)
+        if program_context_block:
+            system_parts.append(program_context_block)
         if acwr_block:
             system_parts.append(acwr_block)
         if nutrition_block:

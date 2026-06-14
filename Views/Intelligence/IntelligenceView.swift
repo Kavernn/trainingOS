@@ -1284,10 +1284,6 @@ struct IntelligenceView: View {
             if !flags.isEmpty { t += " \(flags.joined(separator: " "))" }
             lines.append(t)
         }
-        if let acwr = acwrData {
-            lines.append("ACWR:\(String(format: "%.2f", acwr.ratio)) \(acwr.zone.code) aiguë:\(String(format: "%.0f", acwr.acuteLoad)) chr:\(String(format: "%.0f", acwr.chronicLoad))")
-        }
-
         // Mesocycle phase — critical context for RPE targets and volume expectations
         if let meso = mesocycleInfo {
             var mesoLine = "mésocycle: S\(meso.week)/8 \(meso.phase) cibleRPE:\(meso.rpeTarget)"
@@ -1299,27 +1295,23 @@ struct IntelligenceView: View {
         let sched = dash.schedule.sorted { $0.key < $1.key }.map { "\($0.key):\($0.value)" }.joined(separator: " ")
         if !sched.isEmpty { lines.append("prog: \(sched)") }
 
-        // Recent sessions
+        // Fil chrono — rythme et charge uniquement (exercices couverts par last_session_block + programContext)
         let allSessions = sessionsData.isEmpty ? dash.sessions : sessionsData
-        let recent = allSessions.sorted { $0.key > $1.key }.prefix(12)
+        let recent = allSessions.sorted { $0.key > $1.key }.prefix(3)
         if !recent.isEmpty {
-            let count30 = allSessions.filter {
-                $0.key >= DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
-            }.count
-            lines.append("séances(\(count30)/30j):")
-            for (date, s) in recent {
-                let dd = String(date.suffix(5))   // MM-DD
-                var row = dd
-                if let exos = s.exos, !exos.isEmpty { row += " \(exos.joined(separator: "+"))" }
-                if let rpe = s.rpe        { row += " RPE:\(String(format: "%.1f", rpe))" }
-                if let sets = s.totalSets { row += " sets:\(sets)" }
-                if let dur = s.durationMin { row += " \(dur)m" }
-                lines.append("  \(row)")
-            }
+            let fil = recent.map { (date, s) -> String in
+                let dd = String(date.suffix(5))
+                var parts = [dd]
+                if let rpe = s.rpe         { parts.append("RPE:\(String(format: "%.1f", rpe))") }
+                if let sets = s.totalSets  { parts.append("s:\(sets)") }
+                if let dur = s.durationMin { parts.append("\(dur)m") }
+                return parts.joined(separator: " ")
+            }.joined(separator: " | ")
+            lines.append("fil: \(fil)")
         }
 
-        // Recovery (last 8)
-        let recov = recoveryData.prefix(8).compactMap { r -> String? in
+        // Recovery (last 5)
+        let recov = recoveryData.prefix(5).compactMap { r -> String? in
             guard let date = r.date else { return nil }
             let dd = String(date.suffix(5))
             var t = dd
@@ -1348,38 +1340,6 @@ struct IntelligenceView: View {
             }
         }
 
-        // Muscle volume (top 6, 1 line)
-        let muscles = muscleStatsData.sorted { $0.value.volume > $1.value.volume }.prefix(6)
-        if !muscles.isEmpty {
-            let ms = muscles.map { (m, s) in "\(m):\(String(format: "%.0f", UnitSettings.shared.display(s.volume)))\(UnitSettings.shared.label)(\(s.sessions)s)" }.joined(separator: " ")
-            lines.append("muscles: \(ms)")
-        }
-
-        // Nutrition today (1 line)
-        let nt = dash.nutritionTotals; let ns = dash.nutritionSettings
-        var nutr: [String] = []
-        if let cal = nt.calories {
-            var s = "cal:\(String(format: "%.0f", cal))"
-            if let target = ns?.calories, target > 0 {
-                s += "/\(String(format: "%.0f", target))(\(Int((cal / target * 100).rounded()))%)"
-            }
-            nutr.append(s)
-        }
-        if let prot = nt.proteines {
-            var s = "prot:\(String(format: "%.0f", prot))g"
-            if let target = ns?.proteines, target > 0 {
-                s += "/\(String(format: "%.0f", target))g(\(Int((prot / target * 100).rounded()))%)"
-            }
-            nutr.append(s)
-        }
-        if let carbs = nt.glucides { nutr.append("carbs:\(String(format: "%.0f", carbs))g") }
-        if let fat = nt.lipides    { nutr.append("lip:\(String(format: "%.0f", fat))g") }
-        if !nutr.isEmpty { lines.append("nutri: \(nutr.joined(separator: " "))") }
-        let logged7 = nutritionHistory.prefix(7).filter { $0.calories > 0 || $0.proteines > 0 }.count
-        if !nutritionHistory.isEmpty {
-            lines.append("nutri-7j: \(logged7)/\(min(nutritionHistory.count, 7)) jours loggués")
-        }
-
         // Mental health (7d summary)
         if let mental = mentalData {
             var mt: [String] = []
@@ -1400,10 +1360,10 @@ struct IntelligenceView: View {
             lines.append("goals: \(gs)")
         }
 
-        // Lifts (top 12, 1 per line compressed)
+        // Lifts (top 6, 1 per line compressed)
         let lifts = weightsData.compactMap { (name, w) -> (String, WeightData)? in
             w.currentWeight != nil ? (name, w) : nil
-        }.sorted { ($0.1.currentWeight ?? 0) > ($1.1.currentWeight ?? 0) }.prefix(12)
+        }.sorted { ($0.1.currentWeight ?? 0) > ($1.1.currentWeight ?? 0) }.prefix(6)
         if !lifts.isEmpty {
             lines.append("lifts:")
             for (name, w) in lifts {
@@ -1414,7 +1374,11 @@ struct IntelligenceView: View {
             }
         }
 
-        return lines.joined(separator: "\n")
+        let result = lines.joined(separator: "\n")
+        if result.count > 3000 {
+            logger.warning("buildContext over budget: \(result.count) chars (limit 3000)")
+        }
+        return result
     }
 
     private func purgeStaleMemoryEntries() {
