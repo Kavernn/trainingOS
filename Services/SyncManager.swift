@@ -168,6 +168,7 @@ final class SyncManager: ObservableObject {
         req.httpMethod      = mutation.method
         req.httpBody        = mutation.method == "DELETE" ? nil : mutation.payloadData
         req.timeoutInterval = 15
+        req.setValue("Bearer \(APIConfig.apiKey)", forHTTPHeaderField: "Authorization")
         if mutation.method != "DELETE" {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
