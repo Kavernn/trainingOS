@@ -364,7 +364,7 @@ struct PSSRecord: Codable, Identifiable {
     let triggerRatings: [String: Int]
     let streak: Int
     let insights: [String]
-    let proReferral: Bool
+    let proReferral: Bool?
     let submittedAt: String?
 
     enum CodingKeys: String, CodingKey {

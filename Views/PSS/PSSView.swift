@@ -789,7 +789,7 @@ struct PSSResultsContent: View {
 
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if record.proReferral {
+            if record.proReferral == true {
                 HStack(spacing: 10) {
                     Image(systemName: "cross.circle.fill")
                         .font(.system(size: 18)).foregroundColor(.white)
