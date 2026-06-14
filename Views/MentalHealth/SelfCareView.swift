@@ -1,5 +1,18 @@
 import SwiftUI
 
+private struct DefaultHabitSuggestion {
+    let name: String
+    let icon: String
+    let category: String
+}
+
+private let selfCareDefaultSuggestions: [DefaultHabitSuggestion] = [
+    .init(name: "Prendre l'air 10 min",             icon: "wind",      category: "physique"),
+    .init(name: "Écrans off 30 min avant le lit",   icon: "moon.fill", category: "sommeil"),
+    .init(name: "Donner des nouvelles à quelqu'un", icon: "phone.fill", category: "social"),
+    .init(name: "Lire 15 min",                      icon: "book.fill", category: "mental"),
+]
+
 struct SelfCareView: View {
     @State private var today: SelfCareToday?
     @State private var streaks: [SelfCareStreak] = []
@@ -24,10 +37,10 @@ struct SelfCareView: View {
                             Spacer()
                             Text("\(Int((today.rate) * 100))%")
                                 .font(.title3.bold())
-                                .foregroundColor(today.rate >= 0.7 ? .green : .orange)
+                                .foregroundColor(today.rate >= 0.7 ? Color.appSuccess : Color.appWarning)
                         }
                         ProgressView(value: today.rate)
-                            .tint(today.rate >= 0.7 ? .green : .orange)
+                            .tint(today.rate >= 0.7 ? Color.appSuccess : Color.appWarning)
                     }
                     .padding(.vertical, 4)
                 }
@@ -37,6 +50,27 @@ struct SelfCareView: View {
             Section("Habitudes") {
                 if isLoading {
                     ProgressView()
+                } else if (today?.habits ?? []).isEmpty {
+                    ForEach(selfCareDefaultSuggestions, id: \.name) { suggestion in
+                        Button { addDefaultHabit(suggestion) } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: suggestion.icon)
+                                    .foregroundColor(Color.appSuccess)
+                                    .frame(width: 20)
+                                Text(suggestion.name)
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "plus.circle")
+                                    .foregroundColor(Color.forge)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Text("Ces habitudes sont un point de départ. Ajoute, modifie ou retire ce qui ne te correspond pas.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .listRowBackground(Color.clear)
                 } else {
                     ForEach(today?.habits ?? []) { habit in
                         HabitRow(
@@ -101,6 +135,15 @@ struct SelfCareView: View {
         saveLog()
     }
 
+    private func addDefaultHabit(_ suggestion: DefaultHabitSuggestion) {
+        Task {
+            _ = try? await APIService.shared.addSelfCareHabit(
+                name: suggestion.name, icon: suggestion.icon, category: suggestion.category
+            )
+            await loadData()
+        }
+    }
+
     private func saveLog() {
         isSaving = true
         Task {
@@ -156,14 +199,9 @@ private struct StreakRow: View {
             Text(streak.habitName)
                 .font(.subheadline)
             Spacer()
-            HStack(spacing: 4) {
-                Image(systemName: "flame.fill")
-                    .foregroundColor(Color.forge)
-                    .font(.caption)
-                Text("\(streak.currentStreak) j")
-                    .font(.caption.bold())
-                    .foregroundColor(Color.forge)
-            }
+            Text("\(streak.currentStreak) j actifs")
+                .font(.caption.bold())
+                .foregroundColor(Color.forge)
         }
     }
 }

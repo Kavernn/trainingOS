@@ -64,6 +64,13 @@ extension Color {
     static let moonlight = Color(hex: "E8EDF5")      // spirit accent — silver-white (intentional fixed)
     static let voidBg    = Color(red: 0.020, green: 0.031, blue: 0.063)  // spirit deep (intentional fixed)
 
+    // Mood viz palette — violet→teal→green, non-moralistic gradient (intentional fixed)
+    static func moodColor(for score: Int) -> Color {
+        if score >= 8 { return Color.trendPositive }
+        if score >= 5 { return .teal }
+        return Color(hex: "8B5CF6")  // indigo — introspective, not alarming
+    }
+
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0

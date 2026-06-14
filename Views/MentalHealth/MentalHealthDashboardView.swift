@@ -83,7 +83,7 @@ struct MentalHealthDashboardView: View {
                                 .font(.subheadline)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(Color.yellow.opacity(0.15))
+                                .background(Color.forge.opacity(0.15))
                                 .cornerRadius(20)
                         }
                     }
@@ -115,7 +115,7 @@ struct MentalHealthDashboardView: View {
                     ForEach(s.correlations, id: \.self) { corr in
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "link")
-                                .foregroundColor(.blue)
+                                .foregroundColor(Color.appInfo)
                                 .font(.caption)
                             Text(corr)
                                 .font(.subheadline)
@@ -208,16 +208,14 @@ struct MentalHealthDashboardView: View {
 
     private func moodColor(_ avg: Double?) -> Color {
         guard let avg else { return .gray }
-        if avg >= 7 { return .green }
-        if avg >= 5 { return .yellow }
-        return .red
+        return Color.moodColor(for: Int(avg.rounded()))
     }
 
     private func pssColor(_ cat: String) -> Color {
         switch cat {
-        case "low":    return .green
-        case "high":   return .red
-        default:       return .orange
+        case "low":  return Color.appSuccess
+        case "high": return Color.appDanger
+        default:     return Color.appWarning
         }
     }
 
@@ -276,11 +274,7 @@ private struct MHKPICell: View {
 private struct MoodSparklineChart: View {
     let entries: [MoodEntry]
 
-    private func color(for score: Int) -> Color {
-        if score >= 8 { return .green }
-        if score >= 5 { return .yellow }
-        return .red
-    }
+    private func color(for score: Int) -> Color { Color.moodColor(for: score) }
 
     var body: some View {
         let maxScore = entries.map(\.score).max().map { Double($0) } ?? 10

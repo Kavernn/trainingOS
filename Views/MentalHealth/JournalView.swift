@@ -57,7 +57,7 @@ struct JournalView: View {
                     } header: {
                         Label("Prompt du jour", systemImage: "lightbulb.fill")
                             .font(.caption.bold())
-                            .foregroundColor(.yellow)
+                            .foregroundColor(Color.forge)
                     }
                 }
 
@@ -77,7 +77,7 @@ struct JournalView: View {
                                         ProgressView().scaleEffect(0.8)
                                     } else {
                                         Text("Charger plus…")
-                                            .font(.subheadline).foregroundColor(.blue)
+                                            .font(.subheadline).foregroundColor(Color.appInfo)
                                     }
                                     Spacer()
                                 }
@@ -101,7 +101,7 @@ struct JournalView: View {
                 Image(systemName: "square.and.pencil")
                     .font(.title2).foregroundColor(.white)
                     .padding(18)
-                    .background(Color.blue)
+                    .background(Color.appInfo)
                     .clipShape(Circle())
                     .shadow(radius: 4)
             }
@@ -187,7 +187,7 @@ enum JournalPromptEngine {
         if let pss = pssRecord, pss.category == "high" || pss.score >= 27 {
             return ContextualPrompt(
                 prompt: highStressPrompt(pss: pss),
-                signal: .init(label: "Stress élevé détecté", icon: "exclamationmark.triangle.fill", color: .red)
+                signal: .init(label: "Stress élevé détecté", icon: "exclamationmark.triangle.fill", color: Color.appDanger)
             )
         }
 
@@ -212,7 +212,7 @@ enum JournalPromptEngine {
         if let rpe = avgRPE, rpe >= 8.5 {
             return ContextualPrompt(
                 prompt: intenseSessionPrompt(rpe: rpe),
-                signal: .init(label: "Effort intense récent", icon: "flame.fill", color: .red)
+                signal: .init(label: "Effort intense récent", icon: "flame.fill", color: Color.appDanger)
             )
         }
 
@@ -220,7 +220,7 @@ enum JournalPromptEngine {
         if let moodTrend = computeMoodTrend(entries: moodEntries), moodTrend > 0.5 {
             return ContextualPrompt(
                 prompt: positiveMomentumPrompt(),
-                signal: .init(label: "Momentum positif", icon: "arrow.up.heart.fill", color: .green)
+                signal: .init(label: "Momentum positif", icon: "arrow.up.heart.fill", color: Color.appSuccess)
             )
         }
 
@@ -228,14 +228,14 @@ enum JournalPromptEngine {
         if [25, 50, 100, 150, 200].contains(sessionCount) {
             return ContextualPrompt(
                 prompt: "Tu viens d'atteindre \(sessionCount) séances. Qu'est-ce que cette régularité dit de toi ? Qu'est-ce qui a changé depuis le début ?",
-                signal: .init(label: "Milestone \(sessionCount) séances", icon: "trophy.fill", color: .yellow)
+                signal: .init(label: "Milestone \(sessionCount) séances", icon: "trophy.fill", color: Color.forge)
             )
         }
 
         // 7. Neutre — prompt de fond
         return ContextualPrompt(
             prompt: neutralPrompts.randomElement() ?? neutralPrompts[0],
-            signal: .init(label: "Réflexion du jour", icon: "lightbulb.fill", color: .yellow)
+            signal: .init(label: "Réflexion du jour", icon: "lightbulb.fill", color: Color.forge)
         )
     }
 
@@ -275,9 +275,9 @@ enum JournalPromptEngine {
 
     private static func intenseSessionPrompt(rpe: Double) -> String {
         let prompts = [
-            "Tes séances récentes ont été très intenses (RPE ~\(String(format: "%.1f", rpe))/10). Qu'est-ce qui te pousse à aller aussi fort ? Motivation ou fuite ?",
+            "Tes séances récentes ont été très intenses (RPE ~\(String(format: "%.1f", rpe))/10). Qu'est-ce qui te pousse à aller là ? Qu'est-ce que tu cherches dans ces efforts ?",
             "Après des efforts intenses, qu'est-ce qui t'aide le plus à descendre en pression — physiquement et mentalement ?",
-            "Comment sais-tu que tu pousses trop fort ? Quels sont tes signaux d'alarme personnels ?"
+            "Comment tu reconnais quand ton corps ou ta tête a besoin de souffler ?"
         ]
         return prompts[Int(Date().timeIntervalSince1970 / 86400) % prompts.count]
     }
@@ -297,7 +297,10 @@ enum JournalPromptEngine {
         "Quel aspect de ton entraînement te donne le plus de satisfaction ? Pourquoi ce n'est pas toujours ça que tu priorises ?",
         "Si tu pouvais envoyer un message à la version de toi dans 6 mois, que dirais-tu ?",
         "Qu'est-ce que ton corps essaie de te dire en ce moment que tu ignores peut-être ?",
-        "Quelle habitude récente t'a le plus surpris par son impact positif ou négatif ?"
+        "Quelle habitude récente t'a le plus surpris par son impact positif ou négatif ?",
+        "Qu'est-ce qui t'a surpris cette semaine — à la salle ou ailleurs ?",
+        "Une chose que tu ferais différemment si tu recommençais cette semaine ?",
+        "Quel moment de cette semaine mérite d'être noté, même s'il semble petit ?"
     ]
 
     // MARK: - Mood trend helper
@@ -344,9 +347,8 @@ private struct JournalEntryRow: View {
     }
 
     private func moodDot(_ score: Int) -> some View {
-        let color: Color = score >= 7 ? .green : score >= 4 ? .orange : .red
-        return Circle()
-            .fill(color.opacity(0.8))
+        Circle()
+            .fill(Color.moodColor(for: score).opacity(0.8))
             .frame(width: 7, height: 7)
     }
 }
@@ -365,14 +367,7 @@ struct JournalEntrySheet: View {
     @State private var errorMsg: String?
 
     private var moodInt: Int { Int(moodValue.rounded()) }
-    private var moodColor: Color {
-        switch moodInt {
-        case 1...3: return .red
-        case 4...6: return .orange
-        case 7...8: return .yellow
-        default:    return .green
-        }
-    }
+    private var moodColor: Color { Color.moodColor(for: moodInt) }
 
     var body: some View {
         NavigationStack {
@@ -388,9 +383,9 @@ struct JournalEntrySheet: View {
                 }
                 Section {
                     Toggle(isOn: $moodEnabled.animation(.easeInOut(duration: 0.2))) {
-                        Label("Humeur du moment", systemImage: "face.smiling").foregroundColor(.blue)
+                        Label("Humeur du moment", systemImage: "face.smiling").foregroundColor(Color.forge)
                     }
-                    .tint(.blue)
+                    .tint(Color.forge)
                     if moodEnabled {
                         VStack(spacing: 12) {
                             Text("\(moodInt)")
@@ -398,9 +393,11 @@ struct JournalEntrySheet: View {
                                 .frame(maxWidth: .infinity)
                             Slider(value: $moodValue, in: 1...10, step: 1).tint(moodColor)
                             HStack {
-                                Text("😞 Très bas").font(.caption).foregroundColor(.secondary)
+                                Text("😞 Épuisé").font(.caption).foregroundColor(.secondary)
                                 Spacer()
-                                Text("Excellent 😄").font(.caption).foregroundColor(.secondary)
+                                Text("5 — Neutre").font(.caption).foregroundColor(.secondary)
+                                Spacer()
+                                Text("✨ Top shape").font(.caption).foregroundColor(.secondary)
                             }
                         }
                         .padding(.vertical, 4)

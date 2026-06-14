@@ -21,7 +21,7 @@ struct MoodTrackerView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "face.smiling")
                             .font(.system(size: 50))
-                            .foregroundColor(.yellow)
+                            .foregroundColor(Color.forge)
                         Text("Aucune humeur loggée")
                             .font(.headline)
                         Text("Commence à tracker ton humeur pour voir tes tendances.")
@@ -57,7 +57,7 @@ struct MoodTrackerView: View {
                                         ProgressView().scaleEffect(0.8)
                                     } else {
                                         Text("Charger plus…")
-                                            .font(.subheadline).foregroundColor(.yellow)
+                                            .font(.subheadline).foregroundColor(Color.forge)
                                     }
                                     Spacer()
                                 }
@@ -75,7 +75,7 @@ struct MoodTrackerView: View {
                     .font(.title2)
                     .foregroundColor(.white)
                     .padding(18)
-                    .background(Color.yellow)
+                    .background(Color.forge)
                     .clipShape(Circle())
                     .shadow(radius: 4)
             }
@@ -163,13 +163,7 @@ private struct MoodEntryRow: View {
 
 private struct MoodScoreChip: View {
     let score: Int
-    private var color: Color {
-        switch score {
-        case 8...10: return .green
-        case 5...7:  return .yellow
-        default:     return .red
-        }
-    }
+    private var color: Color { Color.moodColor(for: score) }
     var body: some View {
         Text("\(score)/10")
             .font(.caption.bold())
@@ -202,11 +196,15 @@ struct MoodLogSheet: View {
                     Slider(value: $score, in: 1...10, step: 1)
                         .tint(sliderColor)
                     HStack {
-                        Text("😞 Très bas")
+                        Text("😞 Épuisé")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text("Excellent 😄")
+                        Text("5 — Neutre")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("✨ Top shape")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -251,13 +249,7 @@ struct MoodLogSheet: View {
         }
     }
 
-    private var sliderColor: Color {
-        switch Int(score) {
-        case 8...10: return .green
-        case 5...7:  return .yellow
-        default:     return .red
-        }
-    }
+    private var sliderColor: Color { Color.moodColor(for: Int(score)) }
 
     private func submit() {
         isSubmitting = true
@@ -310,9 +302,9 @@ private struct EmotionChip: View {
 
     private var chipColor: Color {
         switch emotion.valence {
-        case  1: return .green
-        case -1: return .red
-        default: return .gray
+        case  1: return Color.appSuccess
+        case -1: return Color.appDanger
+        default: return Color.appTextTertiary
         }
     }
 

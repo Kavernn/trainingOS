@@ -153,7 +153,7 @@ private struct SignalDuJourHeader: View {
 
     private var lssColor: Color {
         guard let s = lss?.score else { return .gray }
-        return s >= 70 ? .green : s >= 40 ? .yellow : .red
+        return s >= 70 ? Color.appSuccess : s >= 40 ? Color.appWarning : Color.appDanger
     }
 
     private var lssLabel: String {
@@ -163,7 +163,7 @@ private struct SignalDuJourHeader: View {
 
     private var moodColor: Color {
         guard let s = todayMood?.score else { return .gray }
-        return s >= 8 ? .green : s >= 5 ? .yellow : .red
+        return Color.moodColor(for: s)
     }
 
     private var isVoid: Bool { tab == .pratique }
@@ -272,7 +272,7 @@ private struct MesuresTab: View {
                 NavigationLink { PSSView() } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "brain.head.profile")
-                            .font(.title2).foregroundColor(.purple)
+                            .font(.title2).foregroundColor(Color.appInfo)
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Stress & PSS")
                                 .font(.headline).foregroundColor(.appTextPrimary)
@@ -283,18 +283,18 @@ private struct MesuresTab: View {
                         Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.4))
                     }
                     .padding(14)
-                    .glassCardAccent(.purple)
+                    .glassCardAccent(Color.appInfo)
                     .padding(.horizontal)
                 }
                 .appearAnimation(delay: 0.06)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     NavigationLink { MoodTrackerView() } label: {
-                        MHMenuCard(icon: "face.smiling.fill", color: .yellow,
+                        MHMenuCard(icon: "face.smiling.fill", color: Color.forge,
                                    title: "Humeur", subtitle: moodSubtitle)
                     }
                     NavigationLink { SelfCareView() } label: {
-                        MHMenuCard(icon: "heart.fill", color: .pink,
+                        MHMenuCard(icon: "heart.fill", color: Color.appSuccess,
                                    title: "Self-Care", subtitle: selfCareSubtitle)
                     }
                     NavigationLink { JournalView() } label: {
@@ -320,14 +320,14 @@ private struct MesuresTab: View {
 
                 NavigationLink { CrisisResourcesView() } label: {
                     HStack {
-                        Image(systemName: "phone.fill").foregroundColor(.red)
+                        Image(systemName: "phone.fill").foregroundColor(Color.appDanger)
                         Text("Ressources en cas de crise")
-                            .foregroundColor(.red).fontWeight(.semibold)
+                            .foregroundColor(Color.appDanger).fontWeight(.semibold)
                         Spacer()
                         Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.4))
                     }
                     .padding()
-                    .glassCard(color: .red, intensity: 0.06)
+                    .glassCard(color: Color.appDanger, intensity: 0.06)
                     .padding(.horizontal)
                 }
                 .appearAnimation(delay: 0.11)
@@ -446,7 +446,7 @@ private struct DisclaimerBanner: View {
     let onDismiss: () -> Void
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "info.circle.fill").foregroundColor(.blue)
+            Image(systemName: "info.circle.fill").foregroundColor(Color.appInfo)
             Text("Cette section est un outil d'auto-suivi. Elle ne remplace pas un professionnel de santé mentale.")
                 .font(.caption).foregroundColor(.white.opacity(0.7))
             Spacer()
@@ -456,7 +456,7 @@ private struct DisclaimerBanner: View {
             }
         }
         .padding(12)
-        .glassCard(color: .blue, intensity: 0.06)
+        .glassCard(color: Color.appInfo, intensity: 0.06)
         .padding(.horizontal)
     }
 }
@@ -473,8 +473,8 @@ private struct MoodQuickLogCard: View {
     }
 
     private var scoreColor: Color {
-        guard let s = todayEntry?.score else { return .yellow }
-        return s >= 8 ? .green : s >= 5 ? .yellow : .red
+        guard let s = todayEntry?.score else { return Color.forge }
+        return Color.moodColor(for: s)
     }
 
     var body: some View {
@@ -527,7 +527,7 @@ private struct MoodSparklineCard: View {
     private var last7: [MoodEntry] { Array(entries.prefix(7).reversed()) }
 
     private func color(for score: Int) -> Color {
-        score >= 8 ? .green : score >= 5 ? .yellow : .red
+        Color.moodColor(for: score)
     }
 
     var body: some View {
