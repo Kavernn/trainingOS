@@ -21,6 +21,7 @@ struct HistoriqueExo: Identifiable {
     let exercise: String
     let weight: Double
     let reps: String
+    let sets: [[String: Any]]?
 }
 
 // MARK: - Main View
@@ -263,7 +264,8 @@ struct HistoriqueView: View {
                     HistoriqueExo(
                         exercise: $0["exercise"] as? String ?? "",
                         weight: $0["weight"] as? Double ?? 0,
-                        reps: $0["reps"] as? String ?? ""
+                        reps: $0["reps"] as? String ?? "",
+                        sets: $0["sets"] as? [[String: Any]]
                     )
                 }
                 return HistoriqueMuscu(
@@ -323,7 +325,7 @@ struct HistoriqueView: View {
             if let idx = muscuSessions.firstIndex(where: { $0.date == date && $0.sessionType == sessionType }) {
                 let updatedExos: [HistoriqueExo] = exos.compactMap { e in
                     guard let w = Double(e.weightStr.replacingOccurrences(of: ",", with: ".")) else { return nil }
-                    return HistoriqueExo(exercise: e.exercise, weight: UnitSettings.shared.toStorage(w), reps: e.reps)
+                    return HistoriqueExo(exercise: e.exercise, weight: UnitSettings.shared.toStorage(w), reps: e.reps, sets: nil)
                 }
                 muscuSessions[idx] = HistoriqueMuscu(
                     date: date, sessionType: sessionType, rpe: rpe, comment: comment,
@@ -524,6 +526,66 @@ struct MuscuSessionCard: View {
         return session.date
     }
 
+    @ViewBuilder
+    private func exoRow(_ exo: HistoriqueExo) -> some View {
+        let isArchived = !activeExercises.isEmpty && !activeExercises.contains(exo.exercise)
+        let sets = exo.sets ?? []
+        if !sets.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(exo.exercise)
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(.appTextPrimary)
+                    if isArchived {
+                        Text("archivé")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(Color.white.opacity(0.07))
+                            .cornerRadius(4)
+                    }
+                }
+                ForEach(Array(sets.enumerated()), id: \.offset) { j, s in
+                    HStack(spacing: 4) {
+                        Text("S\(j + 1)")
+                            .font(.appMicro).fontWeight(.bold)
+                            .foregroundColor(.gray.opacity(0.4))
+                            .frame(width: 16, alignment: .leading)
+                        Text(UnitSettings.shared.format(s["weight"] as? Double ?? exo.weight))
+                            .font(.appMicro).foregroundColor(.white.opacity(0.6))
+                        Text("×").font(.appMicro).foregroundColor(.gray.opacity(0.35))
+                        Text(s["reps"] as? String ?? "—")
+                            .font(.appMicro).foregroundColor(.gray)
+                    }
+                }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 8)
+        } else {
+            HStack {
+                Text(exo.exercise)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                if isArchived {
+                    Text("archivé")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(Color.white.opacity(0.07))
+                        .cornerRadius(4)
+                }
+                Spacer()
+                Text(exo.reps)
+                    .font(.appCaption)
+                    .foregroundColor(.gray)
+                Text(UnitSettings.shared.format(exo.weight))
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(Color.forge)
+                    .frame(width: 70, alignment: .trailing)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 8)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -578,30 +640,7 @@ struct MuscuSessionCard: View {
                     if !session.exos.isEmpty {
                         VStack(spacing: 0) {
                             ForEach(session.exos) { exo in
-                                HStack {
-                                    let isArchived = !activeExercises.isEmpty && !activeExercises.contains(exo.exercise)
-                                    Text(exo.exercise)
-                                        .font(.appLabel.weight(.semibold))
-                                        .foregroundColor(.appTextPrimary)
-                                    if isArchived {
-                                        Text("archivé")
-                                            .font(.system(size: 10, weight: .medium))
-                                            .foregroundColor(.gray)
-                                            .padding(.horizontal, 5).padding(.vertical, 2)
-                                            .background(Color.white.opacity(0.07))
-                                            .cornerRadius(4)
-                                    }
-                                    Spacer()
-                                    Text(exo.reps)
-                                        .font(.appCaption)
-                                        .foregroundColor(.gray)
-                                    Text(UnitSettings.shared.format(exo.weight))
-                                        .font(.appLabel.weight(.semibold))
-                                        .foregroundColor(Color.forge)
-                                        .frame(width: 70, alignment: .trailing)
-                                }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
+                                exoRow(exo)
                                 Divider().background(Color.appSeparatorSubtle).padding(.leading, 14)
                             }
                         }

@@ -528,7 +528,7 @@ def get_exercise_history_grouped_by_session(session_ids: list | None = None) -> 
         while True:
             q = (
                 db_core._client.table("exercise_logs")
-                .select("weight, reps, session_id, exercises(name)")
+                .select("weight, reps, sets_json, session_id, exercises(name)")
                 .range(offset, offset + page_size - 1)
             )
             if session_ids:
@@ -544,6 +544,7 @@ def get_exercise_history_grouped_by_session(session_ids: list | None = None) -> 
                     "exercise": name,
                     "weight":   r.get("weight", 0),
                     "reps":     r.get("reps", ""),
+                    "sets":     r.get("sets_json") or [],
                 })
             if len(rows) < page_size:
                 break

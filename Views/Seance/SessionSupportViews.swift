@@ -421,18 +421,18 @@ struct FinishSessionSheet: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "cross.fill")
                                     .font(.appCaption)
-                                    .foregroundColor(Color(hex: "8B6AFF"))
+                                    .foregroundColor(Color.forge)
                                 Text("Voir le Graveyard")
                                     .font(.appLabel)
-                                    .foregroundColor(Color(hex: "8B6AFF"))
+                                    .foregroundColor(Color.forge)
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .font(.appCaption)
-                                    .foregroundColor(Color(hex: "8B6AFF").opacity(0.5))
+                                    .foregroundColor(Color.forge.opacity(0.5))
                             }
                             .padding(.horizontal, 16).padding(.vertical, 10)
-                            .background(Color(hex: "8B6AFF").opacity(0.08))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: "8B6AFF").opacity(0.2), lineWidth: 1))
+                            .background(Color.forge.opacity(0.08))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.2), lineWidth: 1))
                             .cornerRadius(10)
                         }
                         .padding(.horizontal, 20).padding(.bottom, 24)
@@ -632,15 +632,18 @@ struct SessionRecapSheet: View {
                                 .padding(.horizontal, 16).padding(.bottom, 8)
                             ForEach(Array(snapshot.exercises.enumerated()), id: \.0) { idx, name in
                                 let r = snapshot.logResults[name]
-                                HStack(spacing: 10) {
+                                HStack(alignment: .top, spacing: 10) {
                                     Image(systemName: r != nil ? "checkmark.circle.fill" : "minus.circle")
                                         .font(.appLabel)
                                         .foregroundColor(r != nil ? .green : .orange.opacity(0.5))
-                                    VStack(alignment: .leading, spacing: 2) {
+                                        .padding(.top, 2)
+                                    VStack(alignment: .leading, spacing: 4) {
                                         Text(name)
                                             .font(.appLabel).fontWeight(r != nil ? .semibold : .regular)
                                             .foregroundColor(r != nil ? .white : .gray)
-                                        if let r, !r.reps.isEmpty {
+                                        if let r, !r.sets.isEmpty {
+                                            setRows(sets: r.sets, fallbackWeight: r.weight)
+                                        } else if let r, !r.reps.isEmpty {
                                             Text(r.reps)
                                                 .font(.appCaption)
                                                 .foregroundColor(.gray)
@@ -648,9 +651,11 @@ struct SessionRecapSheet: View {
                                     }
                                     Spacer()
                                     if let r {
-                                        Text(UnitSettings.shared.format(r.weight))
-                                            .font(.appLabel).fontWeight(.bold)
-                                            .foregroundColor(Color.forge)
+                                        if r.sets.isEmpty {
+                                            Text(UnitSettings.shared.format(r.weight))
+                                                .font(.appLabel).fontWeight(.bold)
+                                                .foregroundColor(Color.forge)
+                                        }
                                     } else {
                                         Text("Ignoré")
                                             .font(.appCaption)
@@ -733,6 +738,23 @@ struct SessionRecapSheet: View {
             }
             .navigationTitle("Récapitulatif")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    @ViewBuilder
+    private func setRows(sets: [[String: Any]], fallbackWeight: Double) -> some View {
+        ForEach(Array(sets.enumerated()), id: \.offset) { j, s in
+            HStack(spacing: 4) {
+                Text("S\(j + 1)")
+                    .font(.appMicro).fontWeight(.bold)
+                    .foregroundColor(.gray.opacity(0.4))
+                    .frame(width: 16, alignment: .leading)
+                Text(UnitSettings.shared.format(s["weight"] as? Double ?? fallbackWeight))
+                    .font(.appMicro).foregroundColor(.white.opacity(0.6))
+                Text("×").font(.appMicro).foregroundColor(.gray.opacity(0.35))
+                Text(s["reps"] as? String ?? "—")
+                    .font(.appMicro).foregroundColor(.gray)
+            }
         }
     }
 

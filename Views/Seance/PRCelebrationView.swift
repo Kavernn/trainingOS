@@ -205,6 +205,27 @@ struct PRParticle: Identifiable {
     }
 }
 
+// MARK: - Debug Previews (remove after crash reproduced/fixed)
+#if DEBUG
+#Preview("1 PR") {
+    PRCelebrationView(prs: [
+        (name: "Squat", oneRM: 147.5)
+    ]) { print("dismissed") }
+}
+
+#Preview("3 PRs") {
+    PRCelebrationView(prs: [
+        (name: "Squat", oneRM: 147.5),
+        (name: "Bench Press", oneRM: 102.0),
+        (name: "Deadlift", oneRM: 180.0)
+    ]) { print("dismissed") }
+}
+
+#Preview("Empty — guard case") {
+    PRCelebrationView(prs: []) { print("dismissed") }
+}
+#endif
+
 // MARK: - Confetti (used in AlreadyLoggedSeanceView)
 struct ConfettiPiece: Identifiable {
     let id = UUID()

@@ -1140,7 +1140,7 @@ struct WorkoutSeanceView: View {
                             Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
                                 .font(.appBody).fontWeight(.semibold)
                         }
-                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 14)
                         .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.appSuccess : Color.appWarning)
                         .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
                         .cornerRadius(14)
@@ -1152,7 +1152,7 @@ struct WorkoutSeanceView: View {
                         .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
                         .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
                     }
-                    .disabled(vm.logResults.isEmpty || vm.isFinishing)
+                    .disabled(vm.logResults.isEmpty || vm.isFinishing || showFinishConfirm || showUnloggedWarning || showFinish)
                     .animation(.easeInOut(duration: 0.25), value: vm.logResults.isEmpty)
                     .animation(.spring(response: 0.4, dampingFraction: 0.7), value: completionGlow)
                 }
