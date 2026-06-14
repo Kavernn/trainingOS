@@ -101,12 +101,9 @@ def insert_pss_record(entry: dict) -> Optional[dict]:
         return None
 
     def _do() -> Optional[dict]:
-        try:
-            resp = db_core._client.table("pss_records").upsert(entry, on_conflict="date,type").execute()
-        except Exception:
-            # Fallback: unique constraint not yet applied in DB — plain insert
-            resp = db_core._client.table("pss_records").insert(entry).execute()
-        return resp.data[0] if resp.data else None
+        resp = db_core._client.table("pss_records").upsert(entry, on_conflict="date,type").execute()
+        # PostgREST returns empty data on conflict with no-change — treat as success
+        return resp.data[0] if resp.data else entry
 
     try:
         return _do()
