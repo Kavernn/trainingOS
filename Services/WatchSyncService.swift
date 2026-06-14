@@ -83,6 +83,12 @@ class WatchSyncService: ObservableObject {
         isSyncing = true
         lastError = nil
         defer { isSyncing = false }
+        // Watchdog: safety net if a future HK callback hangs (real fix is sequential fetches above)
+        let watchdog = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(60))
+            self?.isSyncing = false
+        }
+        defer { watchdog.cancel() }
 
         // Sync today
         let snapshot = await hk.fetchTodayHealthSnapshot()
@@ -132,29 +138,17 @@ class WatchSyncService: ObservableObject {
         }
         guard !datesToBackfill.isEmpty else { return }
 
-        // PERF-4: fetch all HK snapshots in parallel, then sync sequentially
-        let hkService = hk
-        var snapshots: [WearableSnapshot] = []
-        await withTaskGroup(of: WearableSnapshot?.self) { group in
-            for date in datesToBackfill {
-                group.addTask {
-                    let t          = await hkService.fetchSnapshotForDate(date)
-                    let sleepHours = await hkService.fetchSleep(for: date)
-                    let hrv        = await hkService.fetchHRV(for: date)
-                    return WearableSnapshot(date: t.date, steps: t.steps, sleepHours: sleepHours,
-                                           restingHr: t.restingHr, hrv: hrv, activeEnergy: nil,
-                                           bodyWeightLbs: nil, bodyFatPct: nil,
-                                           hrMorning: nil, hrPostWorkout: nil, hrEvening: nil,
-                                           workouts: [], spo2: nil, wristTemp: nil,
-                                           bedtime: nil, wakeTime: nil)
-                }
-            }
-            for await snap in group {
-                if let snap { snapshots.append(snap) }
-            }
-        }
-
-        for snap in snapshots {
+        // sequential — withTaskGroup hangs on iOS 26 beta (same LIFO bug as async let)
+        for date in datesToBackfill {
+            let t          = await hk.fetchSnapshotForDate(date)
+            let sleepHours = await hk.fetchSleep(for: date)
+            let hrv        = await hk.fetchHRV(for: date)
+            let snap = WearableSnapshot(date: t.date, steps: t.steps, sleepHours: sleepHours,
+                                        restingHr: t.restingHr, hrv: hrv, activeEnergy: nil,
+                                        bodyWeightLbs: nil, bodyFatPct: nil,
+                                        hrMorning: nil, hrPostWorkout: nil, hrEvening: nil,
+                                        workouts: [], spo2: nil, wristTemp: nil,
+                                        bedtime: nil, wakeTime: nil)
             guard snap.steps != nil || snap.sleepHours != nil
                || snap.restingHr != nil || snap.hrv != nil else { continue }
             do {

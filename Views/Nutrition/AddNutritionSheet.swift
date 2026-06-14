@@ -478,7 +478,13 @@ struct AddNutritionSheet: View {
                 // N-D9: isLoadingTemplates starts true, set false after fetch
                 let remote = await APIService.shared.fetchFoodCatalog()
                 let tmpl   = await APIService.shared.fetchMealTemplates()
-                if !remote.isEmpty { catalog = remote; FoodCatalogStore.save(remote) }
+                if !remote.isEmpty {
+                    let builtIn = FoodCatalogStore.builtInItems()
+                    let builtInNames = Set(builtIn.map { $0.name })
+                    let remoteCustom = remote.filter { !builtInNames.contains($0.name) }
+                    catalog = builtIn + remoteCustom
+                    FoodCatalogStore.save(catalog)
+                }
                 templates = tmpl
                 isLoadingTemplates = false
             }

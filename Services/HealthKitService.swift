@@ -485,56 +485,21 @@ class HealthKitService: ObservableObject {
     func fetchTodayHealthSnapshot() async -> WearableSnapshot {
         let today = DateFormatter.isoDate.string(from: Date())
         let now   = Date()
-
-        enum Field {
-            case steps(Int?), sleep(Double?), rhr(Double?), hrv(Double?)
-            case energy(Double?), workouts([HKWorkout])
-            case weight(Double?), fat(Double?)
-            case hrM(Double?), hrP(Double?), hrE(Double?)
-            case spo2(Double?), wristTemp(Double?)
-            case sleepWindow(SleepWindow?)
-        }
-        var s: Int? = nil; var sl: Double? = nil; var hr: Double? = nil
-        var h: Double? = nil; var ae: Double? = nil; var wkts: [HKWorkout] = []
-        var bw: Double? = nil; var bf: Double? = nil
-        var hrM: Double? = nil; var hrP: Double? = nil; var hrE: Double? = nil
-        var sp: Double? = nil; var wt: Double? = nil
-        var sleepWin: SleepWindow? = nil
-
-        await withTaskGroup(of: Field.self) { group in
-            group.addTask { .steps(await self.fetchTodaySteps()) }
-            group.addTask { .sleep(await self.fetchLastNightSleep()) }
-            group.addTask { .rhr(await self.fetchRestingHR(for: now)) }       // date-scoped
-            group.addTask { .hrv(await self.fetchHRV(for: now)) }             // date-scoped
-            group.addTask { .energy(await self.fetchTodayActiveEnergy()) }
-            group.addTask { .workouts(await self.fetchAllWorkouts(days: 1)) }
-            group.addTask { .weight(await self.fetchLatestBodyWeight()) }
-            group.addTask { .fat(await self.fetchLatestBodyFat()) }
-            group.addTask { .hrM(await self.fetchMorningHR(for: now)) }
-            group.addTask { .hrP(await self.fetchPostWorkoutHR(for: now)) }
-            group.addTask { .hrE(await self.fetchEveningHR(for: now)) }
-            group.addTask { .spo2(await self.fetchSpO2(for: now)) }
-            group.addTask { .wristTemp(await self.fetchWristTemp(for: now)) }
-            group.addTask { .sleepWindow(await self.fetchSleepWindow(for: now)) }
-            for await field in group {
-                switch field {
-                case .steps(let v):       s        = v
-                case .sleep(let v):       sl       = v
-                case .rhr(let v):         hr       = v
-                case .hrv(let v):         h        = v
-                case .energy(let v):      ae       = v
-                case .workouts(let v):    wkts     = v
-                case .weight(let v):      bw       = v
-                case .fat(let v):         bf       = v
-                case .hrM(let v):         hrM      = v
-                case .hrP(let v):         hrP      = v
-                case .hrE(let v):         hrE      = v
-                case .spo2(let v):        sp       = v
-                case .wristTemp(let v):   wt       = v
-                case .sleepWindow(let v): sleepWin = v
-                }
-            }
-        }
+        // sequential — withTaskGroup hangs on iOS 26 beta (same LIFO bug as async let)
+        let s        = await fetchTodaySteps()
+        let sl       = await fetchLastNightSleep()
+        let hr       = await fetchRestingHR(for: now)
+        let h        = await fetchHRV(for: now)
+        let ae       = await fetchTodayActiveEnergy()
+        let wkts     = await fetchAllWorkouts(days: 1)
+        let bw       = await fetchLatestBodyWeight()
+        let bf       = await fetchLatestBodyFat()
+        let hrM      = await fetchMorningHR(for: now)
+        let hrP      = await fetchPostWorkoutHR(for: now)
+        let hrE      = await fetchEveningHR(for: now)
+        let sp       = await fetchSpO2(for: now)
+        let wt       = await fetchWristTemp(for: now)
+        let sleepWin = await fetchSleepWindow(for: now)
 
         let timeFmt: DateFormatter = {
             let f = DateFormatter(); f.dateFormat = "HH:mm"; return f

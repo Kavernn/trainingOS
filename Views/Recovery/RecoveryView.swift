@@ -1299,15 +1299,17 @@ struct RecoveryView: View {
     #else
     private func syncHealthKitNow() async {
         isSyncingHK = true
+        let prevSync = watchSync.lastSyncCompleted
         await watchSync.requestAuthorizationAndSync()
         await loadData()
         lastHKSyncTimestamp = Date().timeIntervalSince1970
         isSyncingHK = false
         if let err = watchSync.lastError {
             apiError = err
-        } else {
+        } else if watchSync.lastSyncCompleted != prevSync {
             syncSuccess.toggle()
         }
+        // if lastSyncCompleted unchanged, sync was blocked by isSyncing guard — no haptic
     }
 
     private func backfillFromHealthKit() async {
