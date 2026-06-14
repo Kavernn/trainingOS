@@ -23,11 +23,11 @@ struct ProteinProgressCard: View {
                 Text("PROTÉINES")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(2)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                 Spacer()
                 Text("Cible : \(Int(target))g")
                     .font(.appCaption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
             }
 
             HStack(spacing: 28) {
@@ -46,7 +46,7 @@ struct ProteinProgressCard: View {
                             .foregroundColor(.appTextPrimary)
                         Text("g")
                             .font(.system(size: 12))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                     }
                 }
                 .frame(width: 110, height: 110)
@@ -65,13 +65,13 @@ struct ProteinProgressCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Encore")
                                 .font(.appCaption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.appTextSecondary)
                             Text("\(Int(remaining))g")
                                 .font(.system(size: 32, weight: .black))
                                 .foregroundColor(.blue)
                             Text("restants")
                                 .font(.appCaption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.appTextSecondary)
                         }
                     }
 
@@ -89,7 +89,7 @@ struct ProteinProgressCard: View {
                         .frame(height: 6)
                         Text("\(Int(pct * 100))% de l'objectif")
                             .font(.system(size: 10))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

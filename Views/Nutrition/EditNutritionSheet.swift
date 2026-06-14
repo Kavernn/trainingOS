@@ -14,6 +14,16 @@ struct EditNutritionSheet: View {
     // N-D10: editable mealType
     @State private var mealType: String
     @State private var isSaving = false
+    @State private var confirmDiscard = false
+
+    private var isDirty: Bool {
+        name      != (entry.name ?? "") ||
+        calories  != (entry.calories.map  { String(Int($0)) }             ?? "") ||
+        proteines != (entry.proteines.map { String(format: "%.1f", $0) } ?? "") ||
+        glucides  != (entry.glucides.map  { String(format: "%.1f", $0) } ?? "") ||
+        lipides   != (entry.lipides.map   { String(format: "%.1f", $0) } ?? "") ||
+        mealType  != (entry.mealType ?? "matin")
+    }
 
     init(entry: NutritionEntry, onSaved: @escaping () async -> Void) {
         self.entry = entry
@@ -62,7 +72,9 @@ struct EditNutritionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
+                    Button("Annuler") {
+                        if isDirty { confirmDiscard = true } else { dismiss() }
+                    }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Sauvegarder") { Task { await save() } }
@@ -70,6 +82,13 @@ struct EditNutritionSheet: View {
                         .disabled(name.isEmpty || calories.isEmpty || isSaving)
                 }
             }
+        }
+        .interactiveDismissDisabled(isDirty)
+        .confirmationDialog("Abandonner les modifications ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+            Button("Abandonner", role: .destructive) { dismiss() }
+            Button("Continuer", role: .cancel) {}
+        } message: {
+            Text("Les valeurs modifiées seront perdues.")
         }
         .presentationDetents([.medium])
     }

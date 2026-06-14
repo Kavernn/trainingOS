@@ -13,7 +13,7 @@ struct MacroSummaryCard: View {
                     Text("CALORIES")
                         .font(.system(size: 10, weight: .bold))
                         .tracking(2)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.appTextSecondary)
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text("\(Int(totals?.calories ?? 0))")
                             .font(.system(size: 40, weight: .black))
@@ -21,7 +21,7 @@ struct MacroSummaryCard: View {
                         if let target = settings?.calories {
                             Text("/ \(Int(target)) kcal")
                                 .font(.system(size: 14))
-                                .foregroundColor(.gray)
+                                .foregroundColor(.appTextSecondary)
                         }
                     }
                 }
@@ -82,7 +82,7 @@ struct MacroBar: View {
             if let t = target {
                 Text("/ \(Int(t))g")
                     .font(.system(size: 10))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.appSurfaceInset).frame(height: 4)
@@ -97,7 +97,7 @@ struct MacroBar: View {
             Text(label)
                 .font(.system(size: 10, weight: .medium))
                 .tracking(1)
-                .foregroundColor(.gray)
+                .foregroundColor(.appTextSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 4)

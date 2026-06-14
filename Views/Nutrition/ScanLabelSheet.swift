@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ScanLabelSheet: View {
     var onSaved: () async -> Void
+    var onLogged: ((String) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     enum ScanStep { case capture, analyzing, review }
@@ -25,6 +26,9 @@ struct ScanLabelSheet: View {
 
     @State private var errorMsg: String? = nil
     @State private var isSaving = false
+    @State private var confirmDiscard = false
+
+    private var isDirty: Bool { pickedImage != nil || step == .review }
 
     @State private var mealType: String = {
         let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
@@ -54,7 +58,9 @@ struct ScanLabelSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
+                    Button("Annuler") {
+                        if isDirty { confirmDiscard = true } else { dismiss() }
+                    }.foregroundColor(Color.forge)
                 }
                 if step == .review {
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -64,6 +70,13 @@ struct ScanLabelSheet: View {
                     }
                 }
             }
+        }
+        .interactiveDismissDisabled(isDirty)
+        .confirmationDialog("Abandonner le scan ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+            Button("Abandonner", role: .destructive) { dismiss() }
+            Button("Continuer", role: .cancel) {}
+        } message: {
+            Text("Les valeurs scannées seront perdues.")
         }
         .presentationDetents([.medium, .large])
     }
@@ -94,7 +107,7 @@ struct ScanLabelSheet: View {
                                 .foregroundColor(Color.forge.opacity(0.7))
                             Text("Prendre une photo de l'étiquette")
                                 .font(.system(size: 14))
-                                .foregroundColor(.gray)
+                                .foregroundColor(.appTextSecondary)
                                 .multilineTextAlignment(.center)
                         }
                         .padding(24)
@@ -110,7 +123,7 @@ struct ScanLabelSheet: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("QUANTITÉ")
-                        .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                        .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.appTextSecondary)
                     TextField("1", text: $quantity)
                         .keyboardType(.decimalPad)
                         .font(.system(size: 16, weight: .semibold)).foregroundColor(.appTextPrimary)
@@ -120,7 +133,7 @@ struct ScanLabelSheet: View {
                 }
                 VStack(alignment: .leading, spacing: 6) {
                     Text("UNITÉ")
-                        .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                        .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.appTextSecondary)
                     Picker("", selection: $unit) {
                         Text("Portion").tag("serving")
                         Text("g").tag("g")
@@ -160,7 +173,7 @@ struct ScanLabelSheet: View {
             Spacer()
             ProgressView().scaleEffect(1.5).tint(Color.forge)
             Text("Analyse en cours…")
-                .font(.appBody).foregroundColor(.gray).padding(.top, 8)
+                .font(.appBody).foregroundColor(.appTextSecondary).padding(.top, 8)
             Spacer()
         }
     }
@@ -173,34 +186,34 @@ struct ScanLabelSheet: View {
                 TextField("Nom", text: $nom).foregroundColor(.appTextPrimary)
                 HStack {
                     TextField("Calories", text: $calories).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
-                    Text("kcal").foregroundColor(.gray).font(.appLabel)
+                    Text("kcal").foregroundColor(.appTextSecondary).font(.appLabel)
                 }
             }.listRowBackground(Color.appCard)
 
             Section("MACROS") {
                 HStack {
                     TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
-                    Text("g").foregroundColor(.gray).font(.appLabel)
+                    Text("g").foregroundColor(.appTextSecondary).font(.appLabel)
                 }
                 HStack {
                     TextField("Glucides", text: $glucides).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
-                    Text("g").foregroundColor(.gray).font(.appLabel)
+                    Text("g").foregroundColor(.appTextSecondary).font(.appLabel)
                 }
                 HStack {
                     TextField("Lipides", text: $lipides).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
-                    Text("g").foregroundColor(.gray).font(.appLabel)
+                    Text("g").foregroundColor(.appTextSecondary).font(.appLabel)
                 }
             }.listRowBackground(Color.appCard)
 
             if p(fibres) > 0 || p(sodium) > 0 {
                 Section("INFORMATIF") {
                     HStack {
-                        Text("Fibres").foregroundColor(.gray)
+                        Text("Fibres").foregroundColor(.appTextSecondary)
                         Spacer()
                         Text("\(fibres)g").foregroundColor(.appTextPrimary)
                     }
                     HStack {
-                        Text("Sodium").foregroundColor(.gray)
+                        Text("Sodium").foregroundColor(.appTextSecondary)
                         Spacer()
                         Text("\(sodium)mg").foregroundColor(.appTextPrimary)
                     }
@@ -221,7 +234,7 @@ struct ScanLabelSheet: View {
             Section {
                 Button("← Refaire le scan") {
                     withAnimation { step = .capture; errorMsg = nil }
-                }.foregroundColor(.gray)
+                }.foregroundColor(.appTextSecondary)
             }.listRowBackground(Color.appCard)
         }
         .scrollContentBackground(.hidden)
@@ -276,6 +289,7 @@ struct ScanLabelSheet: View {
                 source: "scan"
             )
             await onSaved()
+            onLogged?(nom)
             isSaving = false
             dismiss()
         }

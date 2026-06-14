@@ -5,6 +5,7 @@ struct NutritionView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var vm = NutritionViewModel()
     @State private var showAdd = false
+    @State private var showComposer = false
     @State private var showScan = false
     @State private var editTarget: NutritionEntry? = nil
     @State private var showSettings = false
@@ -176,9 +177,28 @@ struct NutritionView: View {
                                 .appearAnimation(delay: 0.28)
 
                             if let gap = macroGap, gap.gaps.protein > 10 || gap.gaps.carbs > 20 {
-                                MacroGapCard(gap: gap)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.30)
+                                MacroGapCard(gap: gap, onLogSuggestion: { name, cal, prot, gluc in
+                                    let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
+                                    let mealType: String
+                                    switch h {
+                                    case 5..<10:  mealType = "matin"
+                                    case 10..<14: mealType = "midi"
+                                    case 14..<20: mealType = "soir"
+                                    default:      mealType = "collation"
+                                    }
+                                    Task {
+                                        try? await APIService.shared.addNutritionEntry(
+                                            name: name, calories: cal,
+                                            proteines: prot, glucides: gluc, lipides: 0,
+                                            mealType: mealType
+                                        )
+                                        await vm.loadData()
+                                        await AlertService.shared.fetch()
+                                        toast = ToastMessage(message: "\(name) ajouté ✓", style: .success)
+                                    }
+                                })
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.30)
                             }
 
                             Spacer(minLength: fabBottomPadding + 72)
@@ -200,6 +220,9 @@ struct NutritionView: View {
                         Button { showScan = true } label: {
                             Image(systemName: "camera.viewfinder").foregroundColor(Color.forge)
                         }
+                        Button { showComposer = true } label: {
+                            Image(systemName: "fork.knife").foregroundColor(Color.forge)
+                        }
                         Button { showSettings = true } label: {
                             Image(systemName: "gearshape").foregroundColor(Color.forge)
                         }
@@ -215,18 +238,30 @@ struct NutritionView: View {
                 }
             }
             .sheet(isPresented: $showScan) {
-                ScanLabelSheet {
+                ScanLabelSheet(onSaved: {
                     await vm.loadData()
                     await AlertService.shared.fetch()
-                }
+                }, onLogged: { name in
+                    toast = ToastMessage(message: "\(name) ajouté ✓", style: .success)
+                })
             }
             .sheet(isPresented: $showAdd) {
                 AddNutritionSheet(onSaved: {
                     await vm.loadData()
                     await AlertService.shared.fetch()
                     await showMealFeedback()
-                }, onLogged: { templateName in
-                    toast = ToastMessage(message: "Repas '\(templateName)' ajouté ✓", style: .success)
+                }, onLogged: { name in
+                    toast = ToastMessage(message: "\(name) ajouté ✓", style: .success)
+                })
+            }
+            .sheet(isPresented: $showComposer) {
+                MealComposerSheet(onSaved: {
+                    await vm.loadData()
+                    await AlertService.shared.fetch()
+                    await showMealFeedback()
+                }, onLogged: { count in
+                    let label = count > 1 ? "\(count) entrées ajoutées ✓" : "Entrée ajoutée ✓"
+                    toast = ToastMessage(message: label, style: .success)
                 })
             }
             .sheet(item: $editTarget) { entry in

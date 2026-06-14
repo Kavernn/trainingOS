@@ -32,11 +32,11 @@ struct GroupedEntryList: View {
                 Text("AUJOURD'HUI")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(2)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                 Spacer()
                 Text("\(entries.count) aliment\(entries.count != 1 ? "s" : "")")
                     .font(.appCaption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
             }
 
             if entries.isEmpty {
@@ -61,7 +61,7 @@ struct GroupedEntryList: View {
                                 .font(.appCaption.weight(.semibold))
                                 .foregroundColor(Color.forge)
                             Text("·")
-                                .foregroundColor(.gray)
+                                .foregroundColor(.appTextSecondary)
                                 .font(.appCaption)
                             Text("\(Int(totalProt))g prot")
                                 .font(.appCaption)

@@ -838,6 +838,28 @@ struct ProfileView: View {
                 Task { await exportData() }
             })
             settingsDivider
+            NavigationLink(destination: SeasonView()) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(Color.teal.opacity(0.18))
+                            .frame(width: 30, height: 30)
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.appLabel).fontWeight(.semibold)
+                            .foregroundColor(.teal)
+                    }
+                    Text("Mes chapitres")
+                        .font(.appBody)
+                        .foregroundColor(.appTextPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.appCaption)
+                        .foregroundColor(.gray.opacity(0.4))
+                }
+                .padding(.horizontal, 14).padding(.vertical, 14)
+            }
+            .buttonStyle(PlainButtonStyle())
+            settingsDivider
             NavigationLink(destination: GraveyardView()) {
                 graveyardRow
             }

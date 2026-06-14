@@ -125,9 +125,9 @@ struct MentalHealthDashboardView: View {
             }
         }
 
-        // Streaks
+        // Consistance
         if !s.topStreaks.isEmpty {
-            MHSectionCard(title: "Top Streaks", icon: "flame.fill") {
+            MHSectionCard(title: "Consistance", icon: "calendar.badge.checkmark") {
                 VStack(spacing: 8) {
                     ForEach(s.topStreaks) { streak in
                         HStack {
@@ -137,35 +137,40 @@ struct MentalHealthDashboardView: View {
                             Text(streak.habitName)
                                 .font(.subheadline)
                             Spacer()
-                            Text("🔥 \(streak.currentStreak) j")
+                            Text("\(streak.currentStreak) j actifs")
                                 .font(.caption.bold())
                                 .foregroundColor(Color.forge)
                         }
                     }
+                    Text("Un jour de pause ne remet pas à zéro ton progrès.")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.45))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
                 }
             }
         }
 
-        // G6: Haunting demons (carryCount >= 5 = obsession psychologique)
+        // Intentions à revisiter (carryCount >= 5)
         let persistentDemons = ritualDemons.filter { $0.carryCount >= 5 }
         if !persistentDemons.isEmpty {
-            MHSectionCard(title: "Intentions bloquées", icon: "moon.stars.fill") {
+            MHSectionCard(title: "Intentions à revisiter", icon: "arrow.triangle.2.circlepath") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Ces intentions réapparaissent depuis plusieurs jours — signal psychologique à adresser.")
+                    Text("Ces intentions reviennent dans tes rituels. Rien à forcer — il est aussi OK de les ajuster ou de les laisser aller.")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.5))
                         .fixedSize(horizontal: false, vertical: true)
                     ForEach(persistentDemons) { demon in
                         HStack(alignment: .top, spacing: 10) {
                             Text("\(demon.carryCount)")
-                                .font(.system(size: 18, weight: .black))
-                                .foregroundColor(.red.opacity(0.8))
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(Color.forge.opacity(0.7))
                                 .frame(width: 32)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\"\(demon.intention)\"")
                                     .font(.appLabel)
                                     .foregroundColor(.white.opacity(0.8))
-                                Text("jours sans résolution")
+                                Text("jours dans tes rituels")
                                     .font(.caption2)
                                     .foregroundColor(.white.opacity(0.4))
                             }

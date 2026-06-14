@@ -174,7 +174,7 @@ private struct DayTypeRow: View {
                     .foregroundColor(.appTextPrimary)
                     .frame(width: 60)
                 Text("kcal")
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                     .font(.system(size: 12))
                 Spacer()
                 TextField(glucPlaceholder, text: $gluc)

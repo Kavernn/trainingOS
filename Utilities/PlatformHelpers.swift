@@ -76,6 +76,16 @@ struct ActionFeedback {
         return ActionFeedback(message: "Score PSS : \(score)/\(maxScore) — \(label)",
                               storageKey: nil, haptic: .impact(.light), duration: 2.0)
     }
+
+    static var moodLogged: ActionFeedback {
+        ActionFeedback(message: "Humeur enregistrée.",
+                       storageKey: nil, haptic: .notification(.success), duration: 1.5)
+    }
+
+    static func habitCompleted(name: String) -> ActionFeedback {
+        ActionFeedback(message: "\(name) — fait.",
+                       storageKey: nil, haptic: .impact(.medium), duration: 1.5)
+    }
 }
 
 final class ActionFeedbackManager: ObservableObject {

@@ -45,7 +45,7 @@ struct DayTypeBadge: View {
                             .foregroundColor(.white.opacity(0.75))
                         Text("·")
                             .font(.system(size: 10))
-                            .foregroundColor(.gray.opacity(0.5))
+                            .foregroundColor(.appTextMuted)
                         Text("\(Int(gluc))g glucides")
                             .font(.appCaption)
                             .foregroundColor(.white.opacity(0.55))

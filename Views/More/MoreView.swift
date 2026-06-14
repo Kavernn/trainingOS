@@ -19,6 +19,13 @@ struct MoreView: View {
                 AmbientBackground(color: Color.forge)
 
                 List {
+                    Section("Apparence") {
+                        MoreRow(icon: "slider.horizontal.3", color: .cyan, title: "Affichage & Thème",
+                                subtitle: "Thème, kg/lbs, objectif de pas") { DisplaySettingsView() }
+                    }
+                    .listRowBackground(glassRowBG(.cyan))
+                    .listRowSeparatorTint(Color.appSeparator)
+
                     Section("Quotidien") {
                         // RitualView a son propre NavigationStack — fullScreenCover évite la collision
                         Button {
@@ -43,8 +50,10 @@ struct MoreView: View {
                     .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Entraînement") {
+                        MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Catalogue")    { CatalogueView() }
                         MoreRow(icon: "calendar",              color: .teal,                    title: "Historique") { HistoriqueView() }
                         MoreRow(icon: "chart.bar.fill",        color: .blue,                    title: "Stats")      { StatsView() }
+                        MoreRow(icon: "note.text",             color: .blue,                    title: "Notes")      { NotesView() }
                         MoreRow(icon: "timer",                 color: Color.forge,                  title: "Timer")      { TimerView() }
                         MoreRow(icon: "mappin.and.ellipse",    color: Color.appWarning,     title: "Gym Finder") { GymFinderView() }
                     }
@@ -65,9 +74,6 @@ struct MoreView: View {
                         MoreRow(icon: "lock.shield.fill",     color: Color.forge,                   title: "War Room",   subtitle: "Résistance aux habitudes difficiles") { WarRoomGateView() }
                         MoreRow(icon: "staroflife.fill",      color: .indigo,                       title: "Workout DNA")   { WorkoutDNASection() }
                         MoreRow(icon: "star.fill",            color: .yellow,                       title: "XP & Niveau")   { XPView() }
-                        MoreRow(icon: "book.pages.fill",      color: Color.appDanger.opacity(0.7), title: "Biographie", subtitle: "Timeline de tes intentions") { RitualBiographyView() }
-                        MoreRow(icon: "calendar.badge.clock", color: .teal,                         title: "Mes chapitres") { SeasonView() }
-                        MoreRow(icon: "seal.fill",            color: .black,                        title: "Mon serment")   { OathGateView() }
                     }
                     .listRowBackground(glassRowBG(.indigo))
                     .listRowSeparatorTint(Color.appSeparator)
@@ -76,8 +82,6 @@ struct MoreView: View {
                         MoreRow(icon: "gearshape.fill",   color: .purple, title: "Paramètres",
                                 subtitle: "Entraînement, nutrition, récupération…") { SettingsView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")        { ProfileView() }
-                        MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Catalogue")    { CatalogueView() }
-                        MoreRow(icon: "note.text",        color: .blue,   title: "Notes")         { NotesView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
                     .listRowSeparatorTint(Color.appSeparator)

@@ -42,18 +42,24 @@ struct SelfCareView: View {
                         HabitRow(
                             habit: habit,
                             isDone: completedIds.contains(habit.id) || pending.contains(habit.id),
-                            onToggle: { toggle(habit.id) }
+                            onToggle: { toggle(habit) }
                         )
                     }
                 }
             }
 
-            // Streaks
+            // Consistance
             if !streaks.isEmpty {
-                Section("Streaks") {
+                Section {
                     ForEach(streaks.prefix(5)) { streak in
                         StreakRow(streak: streak)
                     }
+                    Text("Un jour de pause ne remet pas à zéro ton progrès.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .listRowBackground(Color.clear)
+                } header: {
+                    Text("Consistance")
                 }
             }
         }
@@ -85,11 +91,12 @@ struct SelfCareView: View {
         }
     }
 
-    private func toggle(_ id: String) {
-        if pending.contains(id) {
-            pending.remove(id)
+    private func toggle(_ habit: SelfCareHabit) {
+        if pending.contains(habit.id) {
+            pending.remove(habit.id)
         } else {
-            pending.insert(id)
+            pending.insert(habit.id)
+            ActionFeedbackManager.shared.show(.habitCompleted(name: habit.name))
         }
         saveLog()
     }
@@ -207,6 +214,7 @@ private struct AddHabitSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Nouvelle habitude")
             .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled(!name.trimmingCharacters(in: .whitespaces).isEmpty)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }

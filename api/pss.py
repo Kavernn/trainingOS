@@ -145,6 +145,10 @@ def save_pss_record(
     # Previous record of same type pour delta
     prev = next((r for r in records if r.get("type") == result["type"]), None)
 
+    generated_insights = generate_insights(result, prev, responses if not is_short else None)
+    pro_ref = result["category"] == "high"
+
+    # Dict retourné à Swift (clés attendues par WellnessModels.PSSRecord)
     record = {
         "id":              str(uuid.uuid4()),
         "date":            _today_mtl(),
@@ -159,11 +163,31 @@ def save_pss_record(
         "triggers":        triggers or [],
         "trigger_ratings": trigger_ratings or {},
         "streak":          streak,
-        "pro_referral":    result["category"] == "high",
-        "insights":        generate_insights(result, prev, responses if not is_short else None),
+        "pro_referral":    pro_ref,
+        "insights":        generated_insights,
     }
 
-    db.insert_pss_record(record)
+    # Dict aligné sur les colonnes réelles de pss_records
+    db_record = {
+        "id":                 record["id"],
+        "date":               record["date"],
+        "type":               record["type"],
+        "responses":          record["responses"],
+        "score":              record["score"],
+        "max_score":          record["max_score"],
+        "category":           record["category"],
+        "category_label":     record["category_label"],
+        "inverted_responses": record["inverted_responses"],
+        "note":               notes,
+        "triggers":           triggers or [],
+        "triggers_ratings":   trigger_ratings or {},
+        "streak":             streak,
+        "inside":             generated_insights,
+    }
+
+    saved = db.insert_pss_record(db_record)
+    if saved is None:
+        raise RuntimeError("pss: DB write failed — upsert returned None")
     return record
 
 

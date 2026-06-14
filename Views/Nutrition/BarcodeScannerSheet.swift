@@ -37,13 +37,13 @@ struct BarcodeScannerSheet: View {
                         VStack(spacing: 16) {
                             Image(systemName: "camera.slash.fill")
                                 .font(.system(size: 48))
-                                .foregroundColor(.gray)
+                                .foregroundColor(.appTextSecondary)
                             Text("Accès caméra refusé")
                                 .foregroundColor(.appTextPrimary)
                                 .fontWeight(.semibold)
                             Text("Active l'accès dans Réglages > Confidentialité > Caméra.")
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.appTextSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
                             Button("Ouvrir les Réglages") {

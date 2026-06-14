@@ -2,6 +2,34 @@ import SwiftUI
 
 private let kBaseURL = APIConfig.base
 
+private enum SessionType {
+    case pushA, pushB, pullA, pullB, legs, yoga, recovery, custom
+
+    init(_ name: String) {
+        switch name {
+        case "Push A":             self = .pushA
+        case "Push B":             self = .pushB
+        case "Pull A":             self = .pullA
+        case "Pull B + Full Body": self = .pullB
+        case "Legs":               self = .legs
+        case "Yoga / Tai Chi":     self = .yoga
+        case "Recovery":           self = .recovery
+        default:                   self = .custom
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .pushA, .pushB: return .orange
+        case .pullA, .pullB: return .cyan
+        case .legs:          return .yellow
+        case .yoga:          return .purple
+        case .recovery:      return .green
+        case .custom:        return .gray
+        }
+    }
+}
+
 struct ProgrammeView: View {
     @State private var fullProgram: [String: [String: String]] = [:]
     @State private var exerciseOrder: [String: [String]] = [:]
@@ -111,6 +139,7 @@ struct ProgrammeView: View {
 
     @State private var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
     @State private var exerciseSupersets: [String: [String: SupersetEntry]] = [:]
+    @State private var programSuggestions: [String: [String: ProgressionSuggestion]] = [:]
     @State private var mutationCount = 0
     @State private var lastSaveError = false
 
@@ -163,6 +192,7 @@ struct ProgrammeView: View {
     }
     @State private var undoDeleteItem: UndoDeleteItem? = nil
     @State private var undoDeleteTask: Task<Void, Never>? = nil
+    @State private var saveSuccessMsg: String? = nil
 
     // Multi-programmes
     @State private var programs: [ProgramInfo] = []
@@ -232,6 +262,10 @@ struct ProgrammeView: View {
             guard let mev = muscleMEV[muscle], sets < mev else { return nil }
             return "\(muscle) — \(sets)/\(mev) sets min."
         }.sorted()
+    }
+
+    private func isScheduledThisWeek(_ s: String) -> Bool {
+        schedule.values.contains(s) || eveningSchedule.values.contains(s)
     }
 
     private var todaySessionName: String? {
@@ -488,6 +522,29 @@ struct ProgrammeView: View {
                     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: undoDeleteItem != nil)
                     .zIndex(10)
                 }
+
+                if let msg = saveSuccessMsg {
+                    VStack {
+                        Spacer()
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(Color.forge)
+                            Text(msg)
+                                .font(.appLabel.weight(.medium))
+                                .foregroundColor(.appTextPrimary)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .background(Color.appCard)
+                        .cornerRadius(12)
+                        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, fabBottomPadding)
+                    }
+                    .allowsHitTesting(false)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: saveSuccessMsg != nil)
+                    .zIndex(9)
+                }
             }
             .navigationTitle("Programme")
             .navigationBarTitleDisplayMode(.large)
@@ -598,10 +655,10 @@ struct ProgrammeView: View {
                 Text("Toutes les séances de ce programme seront supprimées. Cette action est irréversible.")
             }
         }
-        .task { await loadData() }
+        .task { await loadData(); await loadSuggestions() }
         .onChange(of: selectedProgramId) { _, newId in
             guard !newId.isEmpty else { return }
-            Task { await loadData(programId: newId) }
+            Task { await loadData(programId: newId); await loadSuggestions() }
         }
     }
 
@@ -682,7 +739,8 @@ struct ProgrammeView: View {
                 }
             },
             supersets:       exerciseSupersets[seance] ?? [:],
-            exerciseWeights: exerciseWeights
+            exerciseWeights: exerciseWeights,
+            suggestions:     programSuggestions[seance] ?? [:]
         )
         .padding(.horizontal, 16)
         .background(
@@ -696,6 +754,7 @@ struct ProgrammeView: View {
         .offset(y: shift)
         .scaleEffect(scale, anchor: .center)
         .zIndex(zIdx)
+        .opacity(isScheduledThisWeek(seance) ? 1.0 : 0.55)
         .animation(.spring(response: 0.25, dampingFraction: 0.85), value: sessionShiftFor(seance))
     }
 
@@ -743,6 +802,20 @@ struct ProgrammeView: View {
             allSessions = sessions
         }
         refreshSessionOrder()
+    }
+
+    private func loadSuggestions() async {
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        let dateStr = fmt.string(from: Date())
+        var result: [String: [String: ProgressionSuggestion]] = [:]
+        for seance in sessionOrder {
+            if let list = try? await APIService.shared.fetchProgressionSuggestions(
+                date: dateStr, sessionType: "morning", sessionName: seance
+            ) {
+                result[seance] = Dictionary(uniqueKeysWithValues: list.map { ($0.exerciseName, $0) })
+            }
+        }
+        await MainActor.run { programSuggestions = result }
     }
 
     private func loadData(programId: String? = nil) async {
@@ -831,6 +904,7 @@ struct ProgrammeView: View {
         await MainActor.run {
             fullProgram[seance, default: [:]][exercise] = scheme
             exerciseOrder[seance, default: []].append(exercise)
+            if !lastSaveError { showSaveSuccess("Exercice ajouté") }
         }
     }
 
@@ -1025,6 +1099,14 @@ struct ProgrammeView: View {
         }
     }
 
+    private func showSaveSuccess(_ msg: String) {
+        withAnimation { saveSuccessMsg = msg }
+        Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            await MainActor.run { withAnimation { saveSuccessMsg = nil } }
+        }
+    }
+
     private func editExercise(seance: String, oldName: String, newName: String, scheme: String) async {
         if oldName != newName {
             // rename synce tous les jours du programme + inventaire
@@ -1044,6 +1126,7 @@ struct ProgrammeView: View {
             await postProgramme(["action": "scheme", "jour": seance, "exercise": oldName, "scheme": scheme])
             await MainActor.run { fullProgram[seance]?[oldName] = scheme }
         }
+        await MainActor.run { if !lastSaveError { showSaveSuccess("Exercice modifié") } }
     }
 }
 
@@ -1185,11 +1268,15 @@ struct PeriodisationCard: View {
                             ForEach(segments, id: \.name) { seg in
                                 VStack(alignment: .center, spacing: 2) {
                                     Text(seg.name)
-                                        .font(.system(size: 8, weight: .bold))
+                                        .font(.appMicro.weight(.bold))
                                         .foregroundColor(seg.color.opacity(0.85))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                     Text(seg.shortScheme)
-                                        .font(.system(size: 8))
+                                        .font(.appMicro)
                                         .foregroundColor(.gray)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
                                 }
                                 .frame(maxWidth: .infinity)
                             }
@@ -1350,22 +1437,14 @@ struct EditableSeanceProgramCard: View {
     var onSessionDragEnded:   (() -> Void)? = nil
     var supersets: [String: SupersetEntry] = [:]
     var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
+    var suggestions: [String: ProgressionSuggestion] = [:]
 
     @State private var expanded    = true
     @State private var dragging:   String? = nil
     @State private var dragY:      CGFloat = 0
     @State private var rowHeights: [String: CGFloat] = [:]
 
-    var color: Color {
-        switch seance {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return .gray
-        }
-    }
+    var color: Color { SessionType(seance).color }
 
     private func trendFor(_ name: String) -> String? {
         guard let entry = exerciseWeights[name], entry.weight != nil else { return nil }
@@ -1480,6 +1559,8 @@ struct EditableSeanceProgramCard: View {
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
                 if let copy = onCopy {
                     Button(action: copy) {
                         Image(systemName: "doc.on.doc")
@@ -1490,6 +1571,8 @@ struct EditableSeanceProgramCard: View {
                             .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 if let paste = onPaste {
                     Button(action: paste) {
@@ -1501,6 +1584,8 @@ struct EditableSeanceProgramCard: View {
                             .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 if let del = onDeleteSeance {
                     Button(action: del) {
@@ -1512,6 +1597,8 @@ struct EditableSeanceProgramCard: View {
                             .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 Image(systemName: expanded ? "chevron.up" : "chevron.down")
                     .font(.appCaption)
@@ -1556,7 +1643,8 @@ struct EditableSeanceProgramCard: View {
                             onTap:         { onEdit(name, scheme) },
                             onDelete:      { onDelete(name) },
                             isSupersetted: supersets[name] != nil,
-                            trend:         trendFor(name)
+                            trend:         trendFor(name),
+                            suggestion:    suggestions[name]
                         )
                     }
                     .background(
@@ -1596,6 +1684,9 @@ struct ExerciseRow: View {
     let onDelete: () -> Void
     var isSupersetted: Bool = false
     var trend: String? = nil
+    var suggestion: ProgressionSuggestion? = nil
+
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         Button(action: onTap) {
@@ -1624,6 +1715,16 @@ struct ExerciseRow: View {
                     .background(color.opacity(0.15))
                     .cornerRadius(6)
                     .lineLimit(1)
+                if let sug = suggestion,
+                   sug.suggestionType == "increase_weight",
+                   let sw = sug.suggestedWeight {
+                    Text("→ \(units.format(sw, decimals: 0))")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 6).padding(.vertical, 3)
+                        .background(Color.green.opacity(0.12))
+                        .cornerRadius(5)
+                }
                 Button {
                     onDelete()
                 } label: {
@@ -1635,6 +1736,8 @@ struct ExerciseRow: View {
                         .cornerRadius(7)
                 }
                 .buttonStyle(.plain)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
             }
             .padding(.horizontal, 16).padding(.vertical, 10)
         }
@@ -1655,6 +1758,9 @@ struct AddExerciseSheet: View {
     @State private var name = ""
     @State private var scheme = "3x8-12"
     @State private var selectedGroup: String? = nil
+    @State private var confirmDiscard = false
+
+    private var isDirty: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
 
     private let muscleGroupOrder = ["Pecs", "Dos", "Jambes", "Épaules", "Biceps", "Triceps", "Fessiers", "Core"]
 
@@ -1830,7 +1936,9 @@ struct AddExerciseSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.gray)
+                    Button("Annuler") {
+                        if isDirty { confirmDiscard = true } else { dismiss() }
+                    }.foregroundColor(.gray)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Enregistrer") {
@@ -1842,6 +1950,13 @@ struct AddExerciseSheet: View {
                     .foregroundColor(canSave ? Color.forge : .gray)
                     .disabled(!canSave)
                 }
+            }
+            .interactiveDismissDisabled(isDirty)
+            .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                Button("Abandonner", role: .destructive) { dismiss() }
+                Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Les valeurs saisies seront perdues.")
             }
         }
     }
@@ -1857,8 +1972,12 @@ struct EditSchemeSheet: View {
     @ObservedObject private var units = UnitSettings.shared
     @State private var name: String = ""
     @State private var scheme: String = ""
+    @State private var initialName: String = ""
+    @State private var initialScheme: String = ""
+    @State private var confirmDiscard = false
 
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty && !scheme.isEmpty }
+    private var isDirty: Bool { name != initialName || scheme != initialScheme }
 
     private var lastLogLabel: String? {
         guard let w = target.lastWeight else { return nil }
@@ -1962,7 +2081,9 @@ struct EditSchemeSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.gray)
+                    Button("Annuler") {
+                        if isDirty { confirmDiscard = true } else { dismiss() }
+                    }.foregroundColor(.gray)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Enregistrer") {
@@ -1975,8 +2096,20 @@ struct EditSchemeSheet: View {
                     .disabled(!canSave)
                 }
             }
+            .interactiveDismissDisabled(isDirty)
+            .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                Button("Abandonner", role: .destructive) { dismiss() }
+                Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Les valeurs saisies seront perdues.")
+            }
         }
-        .onAppear { name = target.exercise; scheme = target.scheme }
+        .onAppear {
+            name = target.exercise
+            scheme = target.scheme
+            initialName = target.exercise
+            initialScheme = target.scheme
+        }
     }
 }
 
@@ -2088,16 +2221,7 @@ struct EditableWeekScheduleCard: View {
         }
     }
 
-    private func seanceColor(_ s: String) -> Color {
-        switch s {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return Color.forge
-        }
-    }
+    private func seanceColor(_ s: String) -> Color { SessionType(s).color }
 }
 
 // MARK: - Evening Schedule Card
@@ -2189,16 +2313,7 @@ struct EveningScheduleCard: View {
         }
     }
 
-    private func sessionColor(_ s: String) -> Color {
-        switch s {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return .blue
-        }
-    }
+    private func sessionColor(_ s: String) -> Color { SessionType(s).color }
 }
 
 /// MARK: - Volume Card
@@ -2347,8 +2462,10 @@ struct CreateSeanceSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
+    @State private var confirmDiscard = false
 
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var isDirty: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         NavigationStack {
@@ -2395,7 +2512,9 @@ struct CreateSeanceSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.gray)
+                    Button("Annuler") {
+                        if isDirty { confirmDiscard = true } else { dismiss() }
+                    }.foregroundColor(.gray)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Créer") {
@@ -2407,6 +2526,13 @@ struct CreateSeanceSheet: View {
                     .foregroundColor(canSave ? Color.forge : .gray)
                     .disabled(!canSave)
                 }
+            }
+            .interactiveDismissDisabled(isDirty)
+            .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                Button("Abandonner", role: .destructive) { dismiss() }
+                Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Les valeurs saisies seront perdues.")
             }
         }
     }

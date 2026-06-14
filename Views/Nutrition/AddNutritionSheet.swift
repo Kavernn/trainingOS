@@ -56,6 +56,19 @@ struct AddNutritionSheet: View {
     @State private var manGluc = ""
     @State private var manLip = ""
 
+    private var lastUsedQty: Double? {
+        guard let sel = selected else { return nil }
+        return RecentFoodsStore.lastQuantity(for: sel.name)
+    }
+
+    private func portionLabel(for item: FoodItem) -> String {
+        switch item.refUnit {
+        case "portion(s)": return "1 portion"
+        case "unité(s)":   return "1 unité"
+        default:           return "\(fmtN(item.refQty)) \(item.refUnit)"
+        }
+    }
+
     private func p(_ s: String) -> Double { Double(s.replacingOccurrences(of: ",", with: ".")) ?? 0 }
     private func fmtN(_ v: Double) -> String {
         v.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(v))" : String(format: "%.1f", v)
@@ -98,7 +111,7 @@ struct AddNutritionSheet: View {
                     if !manualMode {
                         // ── Récents ──────────────────────────────────────
                         if !recentItems.isEmpty && searchText.isEmpty {
-                            Section("RÉCENTS") {
+                            Section("FRÉQUENTS") {
                                 ForEach(recentItems) { item in
                                     Button {
                                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -113,7 +126,7 @@ struct AddNutritionSheet: View {
                                             Spacer()
                                             Text("\(fmtN(item.quantity)) \(item.food.refUnit)")
                                                 .font(.appLabel)
-                                                .foregroundColor(.gray)
+                                                .foregroundColor(.appTextSecondary)
                                         }
                                     }
                                     .buttonStyle(.plain)
@@ -134,9 +147,18 @@ struct AddNutritionSheet: View {
                             .buttonStyle(.plain)
                             .textCase(nil)
                         }) {
-                            // N-D9: show spinner while templates are loading
                             if isLoadingTemplates {
-                                HStack { Spacer(); ProgressView().tint(.gray); Spacer() }
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(0..<3, id: \.self) { _ in
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.white.opacity(0.05))
+                                                .frame(width: 90, height: 36)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             } else if templates.isEmpty {
                                 Button { showManageTemplates = true } label: {
                                     Label("Créer un repas sauvegardé…", systemImage: "fork.knife")
@@ -187,7 +209,7 @@ struct AddNutritionSheet: View {
                             Button { withAnimation { manualMode = true } } label: {
                                 Label("Manuel", systemImage: "pencil")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.appTextSecondary)
                             }
                             .buttonStyle(.plain)
                             .textCase(nil)
@@ -215,7 +237,7 @@ struct AddNutritionSheet: View {
                                 VStack(spacing: 10) {
                                     Text("Aucun résultat pour \"\(searchText)\"")
                                         .font(.appLabel)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(.appTextSecondary)
                                     Button("Saisir manuellement") {
                                         withAnimation { manualMode = true }
                                     }
@@ -266,12 +288,47 @@ struct AddNutritionSheet: View {
                                             .foregroundColor(.appTextPrimary)
                                             .font(.appBody.weight(.semibold))
                                         Text(item.refUnit)
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(.appTextSecondary)
                                             .font(.system(size: 14))
+                                    }
+                                    // Presets quantité
+                                    HStack(spacing: 6) {
+                                        if let last = lastUsedQty {
+                                            Button { quantity = fmtN(last) } label: {
+                                                Text("Dernière · \(fmtN(last)) \(item.refUnit)")
+                                                    .font(.appCaption.weight(.semibold))
+                                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                                    .background(Color.forge.opacity(0.15))
+                                                    .foregroundColor(Color.forge)
+                                                    .cornerRadius(20)
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                        if item.refUnit == "g", item.refQty != 100 {
+                                            Button { quantity = "100" } label: {
+                                                Text("100 g")
+                                                    .font(.appCaption)
+                                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                                    .background(Color.white.opacity(0.06))
+                                                    .foregroundColor(.appTextSecondary)
+                                                    .cornerRadius(20)
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                        Button { quantity = fmtN(item.refQty) } label: {
+                                            Text(portionLabel(for: item))
+                                                .font(.appCaption)
+                                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                                .background(Color.white.opacity(0.06))
+                                                .foregroundColor(.appTextSecondary)
+                                                .cornerRadius(20)
+                                        }
+                                        .buttonStyle(.plain)
+                                        Spacer()
                                     }
                                     Text("Réf : \(fmtN(item.refQty)) \(item.refUnit) = \(Int(item.calories)) kcal")
                                         .font(.appCaption)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(.appTextSecondary)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     if let m = preview {
                                         HStack(spacing: 0) {
@@ -303,7 +360,7 @@ struct AddNutritionSheet: View {
                             TextField("Nom", text: $manName).foregroundColor(.appTextPrimary)
                             HStack {
                                 TextField("Calories (kcal)", text: $manCal).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
-                                Text("kcal").foregroundColor(.gray).font(.appLabel)
+                                Text("kcal").foregroundColor(.appTextSecondary).font(.appLabel)
                             }
                         }.listRowBackground(Color.appCard)
 
@@ -329,7 +386,7 @@ struct AddNutritionSheet: View {
                             } label: {
                                 Label("Retour au catalogue", systemImage: "list.bullet")
                                     .font(.appLabel)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.appTextSecondary)
                             }
                             .buttonStyle(.plain)
                             .confirmationDialog("Revenir au catalogue effacera les données saisies.", isPresented: $showDiscardManualAlert, titleVisibility: .visible) {
@@ -526,6 +583,7 @@ struct AddNutritionSheet: View {
     private func save() {
         Task {
             isSaving = true
+            var loggedName = ""
             do {
                 if manualMode {
                     guard !manName.isEmpty, let cal = Double(manCal.replacingOccurrences(of: ",", with: ".")) else { isSaving = false; return }
@@ -534,6 +592,7 @@ struct AddNutritionSheet: View {
                         proteines: p(manProt), glucides: p(manGluc), lipides: p(manLip),
                         mealType: mealType
                     )
+                    loggedName = manName
                 } else {
                     guard let item = selected, let qty = Double(quantity.replacingOccurrences(of: ",", with: ".")) else { isSaving = false; return }
                     let m = item.macros(for: qty)
@@ -543,12 +602,14 @@ struct AddNutritionSheet: View {
                         mealType: mealType
                     )
                     RecentFoodsStore.record(name: item.name, quantity: qty, unit: item.refUnit)
+                    loggedName = item.name
                 }
             } catch {
                 await MainActor.run { isSaving = false; saveError = "Erreur réseau — réessaie" }
                 return
             }
             triggerNotificationFeedback(.success)
+            onLogged?(loggedName)
             await onSaved()
             isSaving = false
             dismiss()
@@ -570,7 +631,7 @@ struct MacroPreviewPill: View {
                 .foregroundColor(color)
             Text(label)
                 .font(.appMicro.weight(.medium))
-                .foregroundColor(.gray)
+                .foregroundColor(.appTextSecondary)
         }
         .frame(maxWidth: .infinity)
     }

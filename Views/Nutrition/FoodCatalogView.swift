@@ -7,10 +7,16 @@ struct FoodCatalogView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAdd = false
     @State private var editTarget: FoodItem? = nil
-    @State private var pendingDelete: IndexSet? = nil
+    @State private var pendingDeleteId: UUID? = nil
     @State private var showDeleteConfirm = false
+    @State private var searchText = ""
     // N-D7: track sync failures
     @State private var syncFailed = false
+
+    private var filteredItems: [FoodItem] {
+        guard !searchText.isEmpty else { return items }
+        return items.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -38,58 +44,56 @@ struct FoodCatalogView: View {
                         .background(Color.forge.opacity(0.1))
                     }
 
-                    if items.isEmpty {
-                        Spacer()
-                        VStack(spacing: 12) {
-                            Image(systemName: "fork.knife.circle")
-                                .font(.system(size: 48))
-                                .foregroundColor(.gray.opacity(0.35))
-                            Text("Catalogue vide")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.gray)
-                            Text("Tape + pour ajouter un aliment")
-                                .font(.appLabel)
-                                .foregroundColor(.gray.opacity(0.6))
-                        }
-                        Spacer()
-                    } else {
-                        List {
-                            ForEach(items) { item in
-                                Button { editTarget = item } label: {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            HStack {
-                                                Text(item.name)
-                                                    .font(.system(size: 14, weight: .semibold))
-                                                    .foregroundColor(.appTextPrimary)
-                                                Spacer()
-                                                Text("pour \(formatQty(item.refQty)) \(item.refUnit)")
-                                                    .font(.system(size: 12))
-                                                    .foregroundColor(.gray)
+                    List {
+                        ForEach(filteredItems) { item in
+                            Button {
+                                if !item.isBuiltIn { editTarget = item }
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack(spacing: 6) {
+                                            Text(item.name)
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundColor(.appTextPrimary)
+                                            if item.isBuiltIn {
+                                                categoryBadge(item.category)
                                             }
-                                            HStack(spacing: 12) {
-                                                macroChip("\(Int(item.calories)) kcal", .orange)
-                                                macroChip("\(fmt(item.proteines))g P", .blue)
-                                                macroChip("\(fmt(item.glucides))g C", .yellow)
-                                                macroChip("\(fmt(item.lipides))g L", .pink)
-                                            }
+                                            Spacer()
+                                            Text("pour \(formatQty(item.refQty)) \(item.refUnit)")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.appTextSecondary)
                                         }
+                                        HStack(spacing: 12) {
+                                            macroChip("\(Int(item.calories)) kcal", .orange)
+                                            macroChip("\(fmt(item.proteines))g P", .blue)
+                                            macroChip("\(fmt(item.glucides))g C", .yellow)
+                                            macroChip("\(fmt(item.lipides))g L", .pink)
+                                        }
+                                    }
+                                    if !item.isBuiltIn {
                                         Image(systemName: "chevron.right")
                                             .font(.system(size: 12, weight: .semibold))
-                                            .foregroundColor(.gray.opacity(0.35))
+                                            .foregroundColor(.appTextMuted)
                                     }
-                                    .padding(.vertical, 4)
                                 }
-                                .buttonStyle(.plain)
-                                .listRowBackground(Color.appCard)
+                                .padding(.vertical, 4)
                             }
-                            .onDelete { idx in
-                                pendingDelete = idx
-                                showDeleteConfirm = true
+                            .buttonStyle(.plain)
+                            .listRowBackground(Color.appCard)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if !item.isBuiltIn {
+                                    Button(role: .destructive) {
+                                        pendingDeleteId = item.id
+                                        showDeleteConfirm = true
+                                    } label: {
+                                        Label("Supprimer", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
-                        .scrollContentBackground(.hidden)
                     }
+                    .searchable(text: $searchText, prompt: "Rechercher un aliment")
+                    .scrollContentBackground(.hidden)
                 }
             }
             .navigationTitle("Catalogue")
@@ -106,13 +110,13 @@ struct FoodCatalogView: View {
             }
             .confirmationDialog("Supprimer cet aliment du catalogue ?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
                 Button("Supprimer", role: .destructive) {
-                    if let idx = pendingDelete {
-                        items.remove(atOffsets: idx)
+                    if let deleteId = pendingDeleteId {
+                        items.removeAll { $0.id == deleteId }
                         FoodCatalogStore.save(items)
                         Task { await syncCatalog(items) }
                     }
                 }
-                Button("Annuler", role: .cancel) { pendingDelete = nil }
+                Button("Annuler", role: .cancel) { pendingDeleteId = nil }
             }
             .sheet(isPresented: $showAdd) {
                 FoodItemFormView(existing: nil) { newItem in
@@ -151,6 +155,17 @@ struct FoodCatalogView: View {
         } catch {
             syncFailed = true
         }
+    }
+
+    @ViewBuilder
+    private func categoryBadge(_ cat: String) -> some View {
+        let color: Color = cat == "Viande" ? .red : cat == "Fruit" ? .green : cat == "Légume" ? .orange : .gray
+        Text(cat)
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundColor(color)
+            .padding(.horizontal, 5).padding(.vertical, 2)
+            .background(color.opacity(0.15))
+            .cornerRadius(4)
     }
 
     private func macroChip(_ text: String, _ color: Color) -> some View {
@@ -252,22 +267,22 @@ struct FoodItemFormView: View {
                         HStack {
                             TextField("Calories", text: $calories)
                                 .keyboardType(.decimalPad).focused($foodFocus, equals: .calories).foregroundColor(.appTextPrimary)
-                            Text("kcal").foregroundColor(.gray).font(.appLabel)
+                            Text("kcal").foregroundColor(.appTextSecondary).font(.appLabel)
                         }
                         HStack {
                             TextField("Protéines", text: $proteines)
                                 .keyboardType(.decimalPad).focused($foodFocus, equals: .proteines).foregroundColor(.appTextPrimary)
-                            Text("g").foregroundColor(.gray).font(.appLabel)
+                            Text("g").foregroundColor(.appTextSecondary).font(.appLabel)
                         }
                         HStack {
                             TextField("Glucides", text: $glucides)
                                 .keyboardType(.decimalPad).focused($foodFocus, equals: .glucides).foregroundColor(.appTextPrimary)
-                            Text("g").foregroundColor(.gray).font(.appLabel)
+                            Text("g").foregroundColor(.appTextSecondary).font(.appLabel)
                         }
                         HStack {
                             TextField("Lipides", text: $lipides)
                                 .keyboardType(.decimalPad).focused($foodFocus, equals: .lipides).foregroundColor(.appTextPrimary)
-                            Text("g").foregroundColor(.gray).font(.appLabel)
+                            Text("g").foregroundColor(.appTextSecondary).font(.appLabel)
                         }
                     }
                     .listRowBackground(Color.appCard)

@@ -233,6 +233,7 @@ struct MoodLogSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Loguer l'humeur")
             .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }
@@ -268,7 +269,10 @@ struct MoodLogSheet: View {
                     notes:    notes.isEmpty ? nil : notes,
                     triggers: []
                 )
-                await MainActor.run { dismiss() }
+                await MainActor.run {
+                    ActionFeedbackManager.shared.show(.moodLogged)
+                    dismiss()
+                }
             } catch {
                 await MainActor.run {
                     errorMsg = error.localizedDescription

@@ -13,7 +13,7 @@ struct WeeklyProteinChart: View {
             Text("PROTÉINES — 7 DERNIERS JOURS")
                 .font(.system(size: 10, weight: .bold))
                 .tracking(2)
-                .foregroundColor(.gray)
+                .foregroundColor(.appTextSecondary)
 
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(history) { day in
@@ -31,7 +31,7 @@ struct WeeklyProteinChart: View {
                         .frame(height: 60)
                         Text(shortDay(day.date))
                             .font(.appMicro.weight(.medium))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                         Text("\(Int(day.proteines))g")
                             .font(.appMicro.weight(.semibold))
                             .foregroundColor(isToday ? .blue : .gray)
@@ -44,7 +44,7 @@ struct WeeklyProteinChart: View {
                 RoundedRectangle(cornerRadius: 2).fill(Color.blue.opacity(0.3)).frame(width: 20, height: 2)
                 Text("Objectif \(Int(target))g prot")
                     .font(.system(size: 10))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
             }
         }
         .padding(16)
@@ -72,7 +72,7 @@ struct WeeklyCalorieChart: View {
             Text("CALORIES — 7 DERNIERS JOURS")
                 .font(.system(size: 10, weight: .bold))
                 .tracking(2)
-                .foregroundColor(.gray)
+                .foregroundColor(.appTextSecondary)
 
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(history) { day in
@@ -90,7 +90,7 @@ struct WeeklyCalorieChart: View {
                         .frame(height: 60)
                         Text(shortDay(day.date))
                             .font(.appMicro.weight(.medium))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                         Text("\(Int(day.calories))")
                             .font(.appMicro.weight(.semibold))
                             .foregroundColor(isToday ? Color.forge : .gray)
@@ -104,7 +104,7 @@ struct WeeklyCalorieChart: View {
                     RoundedRectangle(cornerRadius: 2).fill(Color.forge.opacity(0.3)).frame(width: 20, height: 2)
                     Text("Objectif \(Int(t)) kcal")
                         .font(.system(size: 10))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.appTextSecondary)
                 }
             }
         }
@@ -189,7 +189,7 @@ struct WeeklyNutritionChart: View {
                 Text(history.count > 31 ? "PAR SEMAINE" : history.count > 7 ? "\(history.count) DERNIERS JOURS" : "7 DERNIERS JOURS")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(2)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                 Spacer()
                 Picker("", selection: $metric) {
                     ForEach(Metric.allCases, id: \.self) { Text($0.rawValue).tag($0) }
@@ -245,7 +245,7 @@ struct WeeklyNutritionChart: View {
                         Spacer()
                         Text("\(Int(day.calories)) kcal · \(Int(day.proteines))g prot")
                             .font(.appCaption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                     }
                     if let t = target {
                         let v = value(for: day)
@@ -277,7 +277,7 @@ struct WeeklyNutritionChart: View {
                     RoundedRectangle(cornerRadius: 2).fill(accentColor.opacity(0.3)).frame(width: 20, height: 2)
                     Text("Objectif \(Int(t))\(metric == .calories ? " kcal" : "g prot")")
                         .font(.system(size: 10))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.appTextSecondary)
                 }
             }
         }

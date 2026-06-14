@@ -34,7 +34,7 @@ struct DailyRemainingCard: View {
                 Text("RESTE AUJOURD'HUI")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(2)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                 Spacer()
             }
 
@@ -42,7 +42,7 @@ struct DailyRemainingCard: View {
                 // N-C1: settings not configured — don't show fake "Objectifs atteints !"
                 Label("Configure tes objectifs pour suivre ta progression", systemImage: "gearshape.fill")
                     .font(.appLabel)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                     .frame(maxWidth: .infinity)
             } else if allDone {
                 VStack(spacing: 6) {
@@ -74,7 +74,7 @@ struct DailyRemainingCard: View {
                             .foregroundColor(Color.forge)
                         Text("kcal restantes")
                             .font(.system(size: 12))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                     }
                     .frame(maxWidth: .infinity)
 
@@ -127,14 +127,14 @@ struct AdherenceScoreCard: View {
                 Text("ADHÉRENCE · \(history.count) JOURS")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(2)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                 Spacer()
             }
 
             if history.count < 3 {
                 Text("Pas encore assez de données · Revenez dans \(3 - history.count) jour(s)")
                     .font(.appLabel)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
             } else {
@@ -158,10 +158,10 @@ struct AdherenceScoreCard: View {
                             .foregroundColor(badge.color)
                         Text("\(successDays)/\(history.count) jours dans les objectifs")
                             .font(.system(size: 12))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                         Text("\(history.count)/\(period) jours loggués · Prot ≥90% · Cal ≤110%")
                             .font(.system(size: 10))
-                            .foregroundColor(Color.gray.opacity(0.6))
+                            .foregroundColor(.appTextMuted)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -223,16 +223,16 @@ struct NutritionPatternsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("TENDANCES")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.appTextSecondary)
 
             HStack(spacing: 0) {
                 VStack(alignment: .center, spacing: 4) {
                     Text("\(Int(avgCal))")
                         .font(.system(size: 24, weight: .black)).foregroundColor(Color.forge)
                     Text("/ \(Int(calTarget)) kcal")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                     Text("moy. calories/j")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                 }
                 .frame(maxWidth: .infinity)
 
@@ -242,9 +242,9 @@ struct NutritionPatternsCard: View {
                     Text("\(Int(avgProt))g")
                         .font(.system(size: 24, weight: .black)).foregroundColor(.blue)
                     Text("/ \(Int(protTarget))g")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                     Text("moy. protéines/j")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                 }
                 .frame(maxWidth: .infinity)
 
@@ -254,9 +254,9 @@ struct NutritionPatternsCard: View {
                     Text("\(bestStreak)")
                         .font(.system(size: 24, weight: .black)).foregroundColor(.green)
                     Text("jours consécutifs")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                     Text("meilleur streak")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -264,7 +264,7 @@ struct NutritionPatternsCard: View {
             if !weekdayAverages.isEmpty {
                 Divider().background(Color.appSeparator)
                 Text("MOYENNE PAR JOUR DE LA SEMAINE")
-                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(Color.gray.opacity(0.6))
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextMuted)
                 let maxAvg = weekdayAverages.map(\.avgCal).max() ?? 1
                 HStack(alignment: .bottom, spacing: 6) {
                     ForEach(weekdayAverages, id: \.label) { item in
@@ -272,7 +272,7 @@ struct NutritionPatternsCard: View {
                         let overTarget = item.avgCal > calTarget * 1.1
                         VStack(spacing: 4) {
                             Text("\(Int(item.avgCal / 100) * 100)")
-                                .font(.system(size: 7)).foregroundColor(.gray)
+                                .font(.system(size: 7)).foregroundColor(.appTextSecondary)
                             GeometryReader { geo in
                                 VStack(spacing: 0) {
                                     Spacer()
@@ -283,7 +283,7 @@ struct NutritionPatternsCard: View {
                             }
                             .frame(height: 36)
                             Text(item.label)
-                                .font(.appMicro).foregroundColor(.gray)
+                                .font(.appMicro).foregroundColor(.appTextSecondary)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -311,6 +311,7 @@ struct NutritionPatternsCard: View {
 
 struct MacroGapCard: View {
     let gap: MacroGap
+    var onLogSuggestion: ((_ name: String, _ cal: Double, _ prot: Double, _ gluc: Double) -> Void)? = nil
 
     private var primaryColor: Color {
         switch gap.primaryGap {
@@ -333,7 +334,7 @@ struct MacroGapCard: View {
             HStack {
                 Image(systemName: "fork.knife").foregroundColor(primaryColor)
                 Text("SUGGESTIONS MACRO GAP")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.appTextSecondary)
                 Spacer()
                 Text("Manque en \(primaryLabel)")
                     .font(.appCaption.weight(.semibold))
@@ -359,7 +360,7 @@ struct MacroGapCard: View {
 
             if !gap.foodSuggestions.isEmpty {
                 Text("ALIMENTS SUGGÉRÉS")
-                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextSecondary)
 
                 ForEach(Array(gap.foodSuggestions.prefix(4).enumerated()), id: \.offset) { _, item in
                     if let name = item["name"]?.value {
@@ -377,6 +378,22 @@ struct MacroGapCard: View {
                             } else if let cal = item["calories_per_100g"]?.value, let d = Double(cal) {
                                 Text(String(format: "%.0f kcal/100g", d))
                                     .font(.appCaption).foregroundColor(.yellow)
+                            }
+                            if onLogSuggestion != nil {
+                                Button {
+                                    let calStr  = item["calories_per_100g"]?.value
+                                    let protStr = item["protein_per_100g"]?.value
+                                    let glucStr = item["carbs_per_100g"]?.value
+                                    let cal:  Double = calStr.flatMap  { Double($0) } ?? 0
+                                    let prot: Double = protStr.flatMap { Double($0) } ?? 0
+                                    let gluc: Double = glucStr.flatMap { Double($0) } ?? 0
+                                    onLogSuggestion?(name, cal, prot, gluc)
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(Color.forge)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 10).padding(.vertical, 7)
@@ -399,7 +416,7 @@ struct MacroGapChip: View {
     let color: Color
     var body: some View {
         VStack(spacing: 2) {
-            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextSecondary)
             Text("\(value)\(unit)").font(.system(size: 14, weight: .black)).foregroundColor(color)
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
@@ -420,7 +437,7 @@ struct NutritionCorrelationsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("OBSERVATIONS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.appTextSecondary)
 
             if isLoading {
                 HStack { Spacer(); ProgressView().tint(.gray); Spacer() }.frame(height: 40)
@@ -464,7 +481,7 @@ struct NutritionCorrelationsCard: View {
             } else {
                 Text("Pas encore assez de données partagées entre nutrition, séances et récupération.\nContinue à tout logger pendant 2–3 semaines.")
                     .font(.system(size: 12))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                     .multilineTextAlignment(.leading)
             }
 
@@ -472,34 +489,34 @@ struct NutritionCorrelationsCard: View {
             if let timing = timingData, timing.trainingDaysAnalyzed >= 5 {
                 Divider().opacity(0.2)
                 Text("TIMING PRÉ/POST SÉANCE")
-                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextSecondary)
                 HStack(spacing: 12) {
                     if let prot = timing.preWorkout.avgProtein {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("PRÉ-WORKOUT").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                            Text("PRÉ-WORKOUT").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextSecondary)
                             Text(String(format: "%.0fg prot", prot))
                                 .font(.appLabel.weight(.black)).foregroundColor(.green)
                             if let cal = timing.preWorkout.avgCalories {
                                 Text(String(format: "%.0f kcal", cal))
-                                    .font(.system(size: 10)).foregroundColor(.gray)
+                                    .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                             }
                         }
                     }
                     if let prot = timing.postWorkout.avgProtein {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("POST-WORKOUT").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                            Text("POST-WORKOUT").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextSecondary)
                             Text(String(format: "%.0fg prot", prot))
                                 .font(.appLabel.weight(.black)).foregroundColor(Color.forge)
                             if let cal = timing.postWorkout.avgCalories {
                                 Text(String(format: "%.0f kcal", cal))
-                                    .font(.system(size: 10)).foregroundColor(.gray)
+                                    .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                                 }
                             }
                         }
                     Spacer()
                 }
                 Text(timing.insight)
-                    .font(.appCaption).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -541,7 +558,7 @@ private struct NutritionCorrInsightRow: View {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.appCaption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
                 Text(title)
                     .font(.appCaption.weight(.semibold))
                     .foregroundColor(.white.opacity(0.85))
@@ -552,19 +569,19 @@ private struct NutritionCorrInsightRow: View {
                         .font(.system(size: 18, weight: .black))
                         .foregroundColor(positive ? .green : .orange)
                     Text(left.label)
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                 }
                 .frame(maxWidth: .infinity)
 
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 10)).foregroundColor(.gray)
+                    .font(.system(size: 10)).foregroundColor(.appTextSecondary)
 
                 VStack(spacing: 2) {
                     Text(right.value)
                         .font(.system(size: 18, weight: .black))
-                        .foregroundColor(.gray.opacity(0.8))
+                        .foregroundColor(.appTextSecondary)
                     Text(right.label)
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -574,7 +591,7 @@ private struct NutritionCorrInsightRow: View {
                     .foregroundColor(positive ? .green : .yellow)
                 Text(note)
                     .font(.system(size: 10))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appTextSecondary)
             }
         }
         .padding(10)

@@ -43,9 +43,6 @@ struct SettingsView: View {
                     MoreRow(icon: "bell.badge.fill", color: .red,
                             title: "Notifications",
                             subtitle: "Rappels, horaires, toggles") { NotificationCenterView() }
-                    MoreRow(icon: "slider.horizontal.3", color: .cyan,
-                            title: "Affichage & Unités",
-                            subtitle: "kg/lbs, objectif de pas, thème") { DisplaySettingsView() }
                     MoreRow(icon: "heart.text.square.fill", color: .pink,
                             title: "Données & Santé",
                             subtitle: "HealthKit, export") { HealthDataSettingsView() }
