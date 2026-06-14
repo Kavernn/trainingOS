@@ -81,7 +81,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                             Text("Effacer")
                                 .font(.system(size: 12))
                         }
-                        .foregroundColor(Color(white: 0.28))
+                        .foregroundColor(.appTextTertiary)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
@@ -90,7 +90,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
             }
 
             Rectangle()
-                .fill(Color.white.opacity(0.07))
+                .fill(Color.appSeparator)
                 .frame(height: 0.5)
 
             if messages.isEmpty {
@@ -105,12 +105,12 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                     .tint(.purple)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
-                    .background(Color.white.opacity(0.05))
+                    .background(Color.appSurfaceInset)
                     .clipShape(RoundedRectangle(cornerRadius: 22))
                     .overlay(
                         RoundedRectangle(cornerRadius: 22)
                             .stroke(
-                                inputFocused ? Color.purple.opacity(0.55) : Color.white.opacity(0.09),
+                                inputFocused ? Color.purple.opacity(0.55) : Color.appSeparator,
                                 lineWidth: 1
                             )
                     )
@@ -127,9 +127,9 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                             .fill(canSend ? Color.purple : Color.white.opacity(0.1))
                         Image(systemName: "arrow.up")
                             .font(.appBody.weight(.bold))
-                            .foregroundColor(canSend ? .white : Color(white: 0.3))
+                            .foregroundColor(canSend ? .white : Color.appTextMuted)
                     }
-                    .frame(width: 38, height: 38)
+                    .frame(width: 44, height: 44)
                 }
                 .disabled(!canSend)
                 .animation(.easeInOut(duration: 0.15), value: canSend)

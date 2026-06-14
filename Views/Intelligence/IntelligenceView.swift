@@ -49,6 +49,7 @@ struct IntelligenceView: View {
     @State private var mesocycleInfo: MesocycleInfo? = nil
     @State private var mentalData: MentalHealthSummary? = nil
     @State private var userHasInteracted = false  // gates auto-scroll; set only when user sends a message
+    @State private var degradedSources: [String] = []
 
     // New intelligence features
     @State private var overtrainingRisk: OvertrainingRisk? = nil
@@ -157,7 +158,7 @@ struct IntelligenceView: View {
                                     }
                                     .foregroundColor(Color.onAccent)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
+                                    .padding(.vertical, 14)
                                     .background(Color.forge)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                 }
@@ -175,6 +176,21 @@ struct IntelligenceView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
                         .padding(.bottom, 8)
+                    }
+
+                    if !degradedSources.isEmpty {
+                        HStack(spacing: 5) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 10))
+                            Text("Données partielles : \(degradedSources.joined(separator: ", "))")
+                                .font(.system(size: 11))
+                        }
+                        .foregroundColor(.appWarning)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.appWarning.opacity(0.08))
+                        .transition(.opacity)
                     }
 
                     // Section content
@@ -220,14 +236,14 @@ struct IntelligenceView: View {
                                             .font(.appLabel)
                                     }
                                     .padding(.horizontal, 12)
-                                    .padding(.vertical, 7)
+                                    .padding(.vertical, 11)
                                     .background(
                                         selectedSection == section
                                             ? Color.purple.opacity(0.22)
-                                            : Color.white.opacity(0.06)
+                                            : Color.appSurfaceInset
                                     )
                                     .foregroundColor(
-                                        selectedSection == section ? .purple : Color(white: 0.55)
+                                        selectedSection == section ? .purple : Color.appTextSecondary
                                     )
                                     .clipShape(Capsule())
                                     .overlay(
@@ -527,7 +543,7 @@ struct IntelligenceView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("MÉSOCYCLE ACTIF")
                         .font(.appCaption.weight(.bold))
-                        .foregroundColor(Color(white: 0.45))
+                        .foregroundColor(.appTextMuted)
                     HStack(alignment: .center, spacing: 16) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("S\(meso.week)/8")
@@ -538,12 +554,12 @@ struct IntelligenceView: View {
                                 .foregroundColor(.purple)
                         }
                         Rectangle()
-                            .fill(Color.white.opacity(0.1))
+                            .fill(Color.appSeparator)
                             .frame(width: 1, height: 44)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("RPE cible")
                                 .font(.appCaption)
-                                .foregroundColor(Color(white: 0.5))
+                                .foregroundColor(.appTextMuted)
                             Text(meso.rpeTarget)
                                 .font(.system(size: 22, weight: .semibold))
                                 .foregroundColor(.appTextPrimary)
@@ -1428,8 +1444,10 @@ struct IntelligenceView: View {
                 let (data, _) = try await URLSession.authed.data(for: req)
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     let reply = json["response"] as? String ?? json["error"] as? String ?? "Erreur inconnue"
+                    let degraded = json["degraded_sources"] as? [String] ?? []
                     await MainActor.run {
                         messages.append(ChatMessage(role: .assistant, content: reply))
+                        degradedSources = degraded
                         isLoading = false
                     }
                 }

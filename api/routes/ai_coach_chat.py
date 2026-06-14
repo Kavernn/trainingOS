@@ -262,6 +262,8 @@ def api_ai_coach():
         except Exception:
             pass
 
+        degraded_sources: list = []
+
         last_session_block = ""
         try:
             recent_ls = _db.get_workout_sessions(limit=1)
@@ -290,7 +292,7 @@ def api_ai_coach():
                             ls_lines.append(f"  {ex} : {', '.join(sets)}")
                         last_session_block = "\n".join(ls_lines)
         except Exception:
-            pass
+            degraded_sources.append("séance")
 
         program_context_block = ""
         try:
@@ -346,7 +348,7 @@ def api_ai_coach():
 
                 program_context_block = "\n".join(p_lines)
         except Exception:
-            pass
+            degraded_sources.append("programme")
 
         spirit_block = ""
         try:
@@ -474,7 +476,7 @@ def api_ai_coach():
             "assistant_response": response_text,
         })
 
-        return jsonify({"response": response_text})
+        return jsonify({"response": response_text, "degraded_sources": degraded_sources})
     except _anthropic.AuthenticationError:
         return jsonify({"error": "Clé ANTHROPIC_API_KEY invalide"}), 500
     except Exception as e:
