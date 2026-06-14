@@ -74,7 +74,6 @@ struct WorkoutSeanceView: View {
     @State private var showRecap = false
     @State private var recapSnapshot: SessionRecapSnapshot? = nil
     @State private var didLoadPreCoaching = false
-    @State private var showPRCelebration = false
 
     // Energy pre-session
     @AppStorage("energy_pre_value") private var energyPre: Int = 3
@@ -1247,18 +1246,10 @@ struct WorkoutSeanceView: View {
                 toast = ToastMessage(message: "Enregistrement partiel — vérifie le récap", style: .error)
                 vm.commitWarning = nil
             }
-            if !vm.prCelebrations.isEmpty {
-                showPRCelebration = true
-            } else {
+            if vm.prCelebrations.isEmpty {
                 showRecap = true
             }
-        }
-        .fullScreenCover(isPresented: $showPRCelebration) {
-            PRCelebrationView(prs: vm.prCelebrations) {
-                vm.prCelebrations = []
-                showPRCelebration = false
-                showRecap = true
-            }
+            // PR path handled by SeanceView — fullScreenCover must survive the view-swap
         }
         .sheet(isPresented: $showRecap, onDismiss: {
             Task {

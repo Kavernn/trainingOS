@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel()
+    @State private var showPRCelebration = false
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,17 @@ struct SeanceView: View {
             Task {
                 let streak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak
                 ActionFeedbackManager.shared.show(.sessionComplete(streak: streak))
+            }
+        }
+        .onChange(of: vm.showSuccess) { success in
+            guard success, !vm.prCelebrations.isEmpty else { return }
+            showPRCelebration = true
+        }
+        .fullScreenCover(isPresented: $showPRCelebration) {
+            PRCelebrationView(prs: vm.prCelebrations) {
+                vm.prCelebrations = []
+                showPRCelebration = false
+                Task { await vm.load() }
             }
         }
     }
