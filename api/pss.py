@@ -178,11 +178,11 @@ def save_pss_record(
         "category":           record["category"],
         "category_label":     record["category_label"],
         "inverted_responses": record["inverted_responses"],
-        "note":               notes,
+        "notes":              notes,
         "triggers":           triggers or [],
-        "triggers_ratings":   trigger_ratings or {},
+        "trigger_ratings":    trigger_ratings or {},
         "streak":             streak,
-        "inside":             generated_insights,
+        "insights":           generated_insights,
     }
 
     saved = db.insert_pss_record(db_record)
