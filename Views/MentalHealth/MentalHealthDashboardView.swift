@@ -137,7 +137,7 @@ struct MentalHealthDashboardView: View {
                             Text(streak.habitName)
                                 .font(.subheadline)
                             Spacer()
-                            Text("\(streak.currentStreak) j actifs")
+                            Text("\(streak.currentStreak) / 14 derniers jours")
                                 .font(.caption.bold())
                                 .foregroundColor(Color.forge)
                         }
