@@ -203,7 +203,7 @@ struct ProfileView: View {
                         Circle().fill(Color.forge).frame(width: 30, height: 30)
                             .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                         if isUploadingPhoto {
-                            ProgressView().tint(.white).scaleEffect(0.6)
+                            ProgressView().tint(.onAccent).scaleEffect(0.6)
                         } else {
                             Image(systemName: "camera.fill")
                                 .font(.appLabel).fontWeight(.semibold).foregroundColor(.onAccent)
@@ -260,7 +260,7 @@ struct ProfileView: View {
                 Text(goal)
                     .font(.appCaption).foregroundColor(.gray)
                     .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Color.white.opacity(0.07))
+                    .background(Color.appSurfaceInset)
                     .clipShape(Capsule())
             }
         }
@@ -272,14 +272,14 @@ struct ProfileView: View {
         if let img = profileImage {
             Image(uiImage: img).resizable().scaledToFill()
                 .frame(width: 88, height: 88).clipShape(Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
+                .overlay(Circle().stroke(Color.appSeparator, lineWidth: 2))
         } else if let urlStr = profile?.photoUrl, let url = URL(string: urlStr) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let img):
                     img.resizable().scaledToFill()
                         .frame(width: 88, height: 88).clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
+                        .overlay(Circle().stroke(Color.appSeparator, lineWidth: 2))
                 case .failure:
                     initialsCircle
                 default:
@@ -292,7 +292,7 @@ struct ProfileView: View {
                   let img = UIImage(data: data) {
             Image(uiImage: img).resizable().scaledToFill()
                 .frame(width: 88, height: 88).clipShape(Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
+                .overlay(Circle().stroke(Color.appSeparator, lineWidth: 2))
         } else {
             initialsCircle
         }
@@ -305,7 +305,7 @@ struct ProfileView: View {
                     colors: [Color.forge.opacity(0.6), Color.appDanger.opacity(0.4)],
                     startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 88, height: 88)
-                .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
+                .overlay(Circle().stroke(Color.appSeparator, lineWidth: 2))
             Text(profile?.name?.prefix(1).uppercased() ?? "?")
                 .font(.system(size: 38, weight: .black)).foregroundColor(.onAccent)
         }
@@ -355,7 +355,7 @@ struct ProfileView: View {
                 Divider().background(Color.appSeparatorStrong).padding(.vertical, 4)
                 phoenixAxisChip(icon: "fork.knife",      label: "NUTRITION",  delta: px.axes.nutrition.delta, color: Color.appSuccess)
             }
-            .background(Color.white.opacity(0.04))
+            .background(Color.appSurfaceInset)
             .cornerRadius(10)
         }
         .padding(16)
@@ -445,9 +445,9 @@ struct ProfileView: View {
                 if let latest {
                     HStack(spacing: 0) {
                         bodyCompWeightCol(latest: latest, delta: delta)
-                        Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 52)
+                        Rectangle().fill(Color.appSeparatorSubtle).frame(width: 1, height: 52)
                         bodyCompFatCol(navyResult: navyResult, isMale: isMale)
-                        Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 52)
+                        Rectangle().fill(Color.appSeparatorSubtle).frame(width: 1, height: 52)
                         weightSparklineMini(histSorted)
                             .frame(width: 72, height: 44)
                             .padding(.leading, 14)
@@ -492,7 +492,7 @@ struct ProfileView: View {
         return VStack(alignment: .leading, spacing: 4) {
             Text(pctStr)
                 .font(.appTitle).fontWeight(.black)
-                .foregroundColor(navyResult != nil ? catColor : .white.opacity(0.3))
+                .foregroundColor(navyResult != nil ? catColor : .appOnSurface.opacity(0.3))
             if navyResult != nil {
                 Text(catLabel)
                     .font(.appCaption).fontWeight(.semibold).foregroundColor(catColor.opacity(0.8))
@@ -511,7 +511,7 @@ struct ProfileView: View {
                 .font(.system(size: 28)).foregroundColor(.gray.opacity(0.4))
             VStack(alignment: .leading, spacing: 4) {
                 Text("Aucune donnée de poids")
-                    .font(.appLabel).fontWeight(.semibold).foregroundColor(.white.opacity(0.6))
+                    .font(.appLabel).fontWeight(.semibold).foregroundColor(.appOnSurface.opacity(0.6))
                 Button("Ajouter maintenant") { showAddWeight = true }
                     .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.forge)
             }
@@ -632,7 +632,7 @@ struct ProfileView: View {
 
             if isEmpty {
                 RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    .strokeBorder(Color.appSeparator, style: StrokeStyle(lineWidth: 1, dash: [4]))
                     .frame(height: 44)
                     .overlay(
                         Text("Pas assez de données")
@@ -1064,7 +1064,7 @@ struct ProfileStatSquare: View {
             }
             Text(value)
                 .font(.system(size: 26, weight: .black))
-                .foregroundColor(isRecord ? Color.statusYellow : .white.opacity(hasData ? 1 : 0.3))
+                .foregroundColor(isRecord ? Color.statusYellow : .appOnSurface.opacity(hasData ? 1 : 0.3))
                 .lineLimit(1).minimumScaleFactor(0.6)
             if let sub = subtitle {
                 Text(sub)

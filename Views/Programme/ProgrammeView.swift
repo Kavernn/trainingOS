@@ -320,7 +320,7 @@ struct ProgrammeView: View {
                                     } label: {
                                         HStack(spacing: 8) {
                                             if isSettingActive {
-                                                ProgressView().tint(.white).scaleEffect(0.8)
+                                                ProgressView().tint(.appSuccess).scaleEffect(0.8)
                                             } else {
                                                 Image(systemName: "checkmark.seal.fill")
                                                     .font(.appLabel.weight(.regular))
@@ -442,7 +442,7 @@ struct ProgrammeView: View {
                                             .foregroundColor(.gray.opacity(0.4))
                                         Text("Aucun programme actif.")
                                             .font(.appBody.weight(.semibold))
-                                            .foregroundColor(.white.opacity(0.75))
+                                            .foregroundColor(.appOnBackground.opacity(0.75))
                                         Text("Importe ton programme ou démarre une séance libre.")
                                             .font(.appLabel.weight(.regular))
                                             .foregroundColor(.gray)
@@ -1169,7 +1169,7 @@ struct PeriodisationCard: View {
                     .font(.appLabel.weight(.bold))
                 Text("Périodisation")
                     .font(.appLabel.weight(.bold))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.appOnSurface.opacity(0.8))
                 Spacer()
                 if started {
                     Button(action: onReset) {
@@ -1195,7 +1195,7 @@ struct PeriodisationCard: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white.opacity(0.07))
+                            .fill(Color.appSeparatorSubtle)
                             .frame(height: 6)
                         RoundedRectangle(cornerRadius: 4)
                             .fill(color)
@@ -1207,7 +1207,7 @@ struct PeriodisationCard: View {
                 HStack {
                     Label(scheme, systemImage: "dumbbell")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(.appOnSurface.opacity(0.65))
                     Spacer()
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) { showTimeline.toggle() }
@@ -1355,16 +1355,16 @@ private struct ProgramTabsView: View {
                         Text(prog.name)
                             .font(.appLabel.weight(isSelected ? .semibold : .regular))
                             .foregroundColor(
-                                isSelected ? .black
-                                : isActive  ? .white
-                                            : .white.opacity(0.55)
+                                isSelected ? .onAccent
+                                : isActive  ? .appOnSurface
+                                            : .appOnSurface.opacity(0.55)
                             )
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(isSelected ? Color.forge : Color.white.opacity(0.08))
+                            .fill(isSelected ? Color.forge : Color.appSurfaceInset)
                     )
                     .onTapGesture { selectedId = prog.id }
                     .contextMenu {
@@ -1817,9 +1817,9 @@ struct AddExerciseSheet: View {
                             } label: {
                                 Text("Tous")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(selectedGroup == nil ? .black : .white.opacity(0.7))
+                                    .foregroundColor(selectedGroup == nil ? .onAccent : .appOnSurface.opacity(0.7))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(selectedGroup == nil ? Color.forge : Color.white.opacity(0.08))
+                                    .background(selectedGroup == nil ? Color.forge : Color.appSurfaceInset)
                                     .cornerRadius(14)
                             }
                             .buttonStyle(.plain)
@@ -1830,9 +1830,9 @@ struct AddExerciseSheet: View {
                                 } label: {
                                     Text(grp)
                                         .font(.appCaption.weight(.semibold))
-                                        .foregroundColor(active ? .black : .white.opacity(0.7))
+                                        .foregroundColor(active ? .onAccent : .appOnSurface.opacity(0.7))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(active ? Color.forge : Color.white.opacity(0.08))
+                                        .background(active ? Color.forge : Color.appSurfaceInset)
                                         .cornerRadius(14)
                                 }
                                 .buttonStyle(.plain)
@@ -1877,7 +1877,7 @@ struct AddExerciseSheet: View {
                                 .padding(.horizontal, 16)
                             }
                             Divider()
-                                .background(Color.white.opacity(0.06))
+                                .background(Color.appSeparatorSubtle)
                                 .padding(.horizontal, 16)
                                 .padding(.top, 2)
                         }
@@ -2062,7 +2062,7 @@ struct EditSchemeSheet: View {
                                 Button { scheme = s } label: {
                                     Text(s)
                                         .font(.appCaption.weight(.medium))
-                                        .foregroundColor(scheme == s ? .black : .white)
+                                        .foregroundColor(scheme == s ? .onAccent : .appOnSurface)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
                                         .background(scheme == s ? Color.forge : Color.appCard)
@@ -2147,7 +2147,7 @@ struct EditableWeekScheduleCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Semaine type")
                         .font(.appLabel.weight(.bold))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                     Text("Appuie sur un jour pour changer la séance")
                         .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.6))
@@ -2253,7 +2253,7 @@ struct EveningScheduleCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Séance du soir")
                         .font(.appLabel.weight(.bold))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                     Text("Optionnel — apparaît sur le dashboard le soir")
                         .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.6))
@@ -2388,7 +2388,7 @@ private struct VolumeCard: View {
                             HStack {
                                 Text(muscle)
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.white.opacity(0.85))
+                                    .foregroundColor(.appOnSurface.opacity(0.85))
                                 Spacer()
                                 Text("\(sets) sets")
                                     .font(.appCaption.weight(.bold))
@@ -2397,7 +2397,7 @@ private struct VolumeCard: View {
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: 3)
-                                        .fill(Color.white.opacity(0.06))
+                                        .fill(Color.appSeparatorSubtle)
                                         .frame(height: 5)
                                     RoundedRectangle(cornerRadius: 3)
                                         .fill(barColor)
@@ -2405,7 +2405,7 @@ private struct VolumeCard: View {
                                     // MEV marker
                                     let mevX = geo.size.width * CGFloat(mevVal) / CGFloat(mavVal)
                                     Rectangle()
-                                        .fill(Color.white.opacity(0.3))
+                                        .fill(Color.appOnSurface.opacity(0.3))
                                         .frame(width: 1, height: 7)
                                         .offset(x: min(mevX, geo.size.width - 1), y: -1)
                                 }
@@ -2494,7 +2494,7 @@ struct CreateSeanceSheet: View {
                                 Button { name = preset } label: {
                                     Text(preset)
                                         .font(.appCaption.weight(.medium))
-                                        .foregroundColor(name == preset ? .black : .white)
+                                        .foregroundColor(name == preset ? .onAccent : .appOnSurface)
                                         .padding(.horizontal, 12).padding(.vertical, 6)
                                         .background(name == preset ? Color.forge : Color.appCard)
                                         .cornerRadius(20)
@@ -2573,7 +2573,7 @@ private struct ActiveProgrammeBanner: View {
                                 .font(.appLabel)
                             Text("Semaine \(week)")
                                 .font(.appLabel.weight(.regular))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.appOnSurface.opacity(0.7))
                         }
                     }
                     if let session = todaySession {
@@ -2604,7 +2604,7 @@ private struct ActiveProgrammeBanner: View {
             if started {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.07)).frame(height: 3)
+                        Capsule().fill(Color.appSeparatorSubtle).frame(height: 3)
                         Capsule()
                             .fill(LinearGradient(colors: [phaseColor.opacity(0.6), phaseColor],
                                                  startPoint: .leading, endPoint: .trailing))
