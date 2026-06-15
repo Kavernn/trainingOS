@@ -442,10 +442,6 @@ struct DashboardView: View {
 
                                 // ── SCROLL PROFOND ────────────────────────────
 
-                                // 17 — Citation
-                                QuoteOfDayView()
-                                    .appearAnimation(delay: 0.34)
-
                                 // 18 — XP
                                 XPChipView(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.38)
