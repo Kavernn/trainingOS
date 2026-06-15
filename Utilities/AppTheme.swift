@@ -593,7 +593,7 @@ final class AppTheme: ObservableObject {
     var accent:      Color { colors.accentDistribution == .surgical ? .white              : colors.accent }
     var accentLight: Color { colors.accentDistribution == .surgical ? .white.opacity(0.7) : colors.accentLight }
     var accentMuted:     Color { colors.accentMuted }
-    var onAccent:        Color { colors.onAccent }
+    var onAccent:        Color { colors.accentDistribution == .surgical ? .black : colors.onAccent }
 
     var background:      Color { colors.background }
     var surfaceCard:     Color { colors.surfaceCard }
