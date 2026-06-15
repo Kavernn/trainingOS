@@ -78,7 +78,7 @@ struct DashboardView: View {
                                             .font(.appLabel)
                                         Text("Certaines données n'ont pas pu être chargées")
                                             .font(.appCaption)
-                                            .foregroundColor(.appOnBackground.opacity(0.8))
+                                            .foregroundColor(Color.appOnBackground.opacity(0.8))
                                         Spacer()
                                         Button {
                                             Task { await vm.loadAll() }
@@ -452,13 +452,9 @@ struct DashboardView: View {
                             .padding(.bottom, 8)
                         }
                         .refreshable {
-                            await api.fetchDashboard()
-                            vm.deload         = try? await APIService.shared.fetchDeloadData()
-                            vm.moodDue        = try? await APIService.shared.checkMoodDue()
-                            await vm.refreshMorningBrief()
-                            vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
-                            vm.bodyBudget     = try? await APIService.shared.fetchBodyBudget()
-                            vm.readinessData  = try? await APIService.shared.fetchReadiness()
+                            await vm.loadAll()
+                            lastRefresh = Date()
+                            checkAndShowMorningReveal()
                         }
 
                         QuickLogBar(

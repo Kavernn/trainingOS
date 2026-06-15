@@ -252,7 +252,7 @@ enum JournalPromptEngine {
             let t = pss.triggers.prefix(2).joined(separator: ", ")
             return "Tu as identifié \(t) comme sources de stress. Lequel affecte le plus ton entraînement, et qu'est-ce que tu pourrais faire concrètement ?"
         }
-        return prompts[Int(Date().timeIntervalSince1970 / 86400) % prompts.count]
+        return prompts[Int(Calendar.mtl.startOfDay(for: Date()).timeIntervalSince1970 / 86400) % prompts.count]
     }
 
     private static func moderateStressPrompt(triggers: [String]) -> String {
@@ -270,7 +270,7 @@ enum JournalPromptEngine {
             "Si un ami traversait ce que tu traverses, que lui dirais-tu ? Applique ça à toi-même.",
             "Qu'est-ce qui draine ton énergie en ce moment, et qu'est-ce qui la recharge — même un peu ?"
         ]
-        return prompts[Int(Date().timeIntervalSince1970 / 86400) % prompts.count]
+        return prompts[Int(Calendar.mtl.startOfDay(for: Date()).timeIntervalSince1970 / 86400) % prompts.count]
     }
 
     private static func intenseSessionPrompt(rpe: Double) -> String {
@@ -279,7 +279,7 @@ enum JournalPromptEngine {
             "Après des efforts intenses, qu'est-ce qui t'aide le plus à descendre en pression — physiquement et mentalement ?",
             "Comment tu reconnais quand ton corps ou ta tête a besoin de souffler ?"
         ]
-        return prompts[Int(Date().timeIntervalSince1970 / 86400) % prompts.count]
+        return prompts[Int(Calendar.mtl.startOfDay(for: Date()).timeIntervalSince1970 / 86400) % prompts.count]
     }
 
     private static func positiveMomentumPrompt() -> String {
@@ -288,7 +288,7 @@ enum JournalPromptEngine {
             "Qu'est-ce qui te motive le plus en ce moment dans ton entraînement ? Qu'est-ce qui a changé ?",
             "Une chose que tu as faite cette semaine dont tu es fier, même si ça semble petit ?"
         ]
-        return prompts[Int(Date().timeIntervalSince1970 / 86400) % prompts.count]
+        return prompts[Int(Calendar.mtl.startOfDay(for: Date()).timeIntervalSince1970 / 86400) % prompts.count]
     }
 
     private static let neutralPrompts: [String] = [

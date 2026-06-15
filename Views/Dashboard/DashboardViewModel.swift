@@ -271,6 +271,7 @@ final class DashboardViewModel: ObservableObject {
     }
 
     func loadAll() async {
+        guard !APILoadingState.shared.isLoading else { return }
         partialLoadWarning = false
         morningBriefFailed = false
 
