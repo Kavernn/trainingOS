@@ -125,7 +125,6 @@
 		CC44D44C781C46D3A5237760 /* APIService+Coach.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8A59EA175A4A018DA8F7AC /* APIService+Coach.swift */; };
 		CF49E6FEF95E455D9F84D443 /* CoachBriefCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */; };
 		CI0001CI0001CI0001CI0001 /* CacheInvalidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CI0002CI0002CI0002CI0002 /* CacheInvalidation.swift */; };
-		CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */; };
 		CMP001AA00300B2F5D0001 /* CompoundModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CMP001AA00300B2F5D0000 /* CompoundModels.swift */; };
 		CMP002AA00300B2F5D0001 /* APIService+Compound.swift in Sources */ = {isa = PBXBuildFile; fileRef = CMP002AA00300B2F5D0000 /* APIService+Compound.swift */; };
 		CST001AA00300B2F5D0001 /* ConsistencyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CST001AA00300B2F5D0000 /* ConsistencyModels.swift */; };
@@ -515,7 +514,6 @@
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
 		CD9E6AAF315054167C4627AE /* APIService+BodyBudget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+BodyBudget.swift"; sourceTree = "<group>"; };
 		CI0002CI0002CI0002CI0002 /* CacheInvalidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidation.swift; sourceTree = "<group>"; };
-		CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardView.swift; sourceTree = "<group>"; };
 		CMP001AA00300B2F5D0000 /* CompoundModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompoundModels.swift; sourceTree = "<group>"; };
 		CMP002AA00300B2F5D0000 /* APIService+Compound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Compound.swift"; sourceTree = "<group>"; };
 		CST001AA00300B2F5D0000 /* ConsistencyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsistencyModels.swift; sourceTree = "<group>"; };
@@ -1236,7 +1234,6 @@
 				DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */,
 				896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */,
 				6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */,
-				CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */,
 				D68B8535D55F4B109509F146 /* MorningRevealView.swift */,
 				919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */,
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */,
@@ -1763,7 +1760,6 @@
 				D665E4572F5D98BA002AE470 /* DashboardReadinessCards.swift in Sources */,
 				D665E4582F5D98BA002AE470 /* DashboardRitualCards.swift in Sources */,
 				WRS0001WRS0001WRS0001001 /* WarRoomStripView.swift in Sources */,
-				CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */,
 				07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */,
 				AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */,
 				AA0020022F5D98BA002AE470 /* StatsView.swift in Sources */,
