@@ -86,7 +86,7 @@ enum CacheInvalidation {
         case .deloadApplied:
             return ["seance_data", "dashboard"]
         case .recoveryLogged:
-            return ["recovery_data", "hrv_analysis"]
+            return ["recovery_data", "hrv_analysis", "readiness"]
         case .pssSubmitted:
             return ["pss_history", "pss_check_due_full", "phoenix_score"]
         case .moodLogged:
@@ -105,7 +105,7 @@ enum CacheInvalidation {
             return ["seance_data", "seance_soir_data"]
         case .wearableSynced:
             return ["recovery_data", "cardio_data", "hrv_analysis",
-                    "sleep_history", "sleep_today", "sleep_stats"]
+                    "sleep_history", "sleep_today", "sleep_stats", "readiness"]
         case .ritualActioned:
             return ["ritual_today", "ritual_streak"]
         case .ritualUpdated:
@@ -145,7 +145,7 @@ enum CacheInvalidation {
         case .plateauDismissed:
             return ["plateau_alerts"]
         case .nutritionLogged:
-            return ["nutrition_data", "dashboard", "phoenix_score"]
+            return ["nutrition_data", "dashboard", "phoenix_score", "readiness"]
         case .cardioLogged:
             return ["cardio_history", "stats_cardio"]
         case .energyLogged:

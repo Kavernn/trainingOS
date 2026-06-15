@@ -92,6 +92,8 @@ def api_delete_recovery():
     import db as _db
     data = request.get_json(silent=True) or {}
     _db.delete_recovery_log(data.get("date", ""))
+    import readiness as _readiness
+    _readiness.invalidate_cache()
     return jsonify({"ok": True})
 
 
@@ -154,6 +156,8 @@ def api_healthkit_sync():
     if not ok:
         return jsonify({"error": "Erreur base de données"}), 500
 
+    import readiness as _readiness
+    _readiness.invalidate_cache()
     return jsonify({"ok": True, "entry": entry})
 
 

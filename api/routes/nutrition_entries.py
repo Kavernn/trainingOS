@@ -27,6 +27,8 @@ def api_nutrition_add():
         meal_type = data.get("meal_type"),
         source    = data.get("source", "manual"),
     )
+    import readiness as _readiness
+    _readiness.invalidate_cache()
     return jsonify({"success": True, "entry": entry, "totals": get_today_totals()})
 
 
@@ -35,6 +37,8 @@ def api_nutrition_delete():
     from nutrition import (delete_entry as nutrition_delete_entry, get_today_totals)
     data = request.get_json(silent=True) or {}
     ok   = nutrition_delete_entry(data.get("id", ""))
+    import readiness as _readiness
+    _readiness.invalidate_cache()
     return jsonify({"success": ok, "totals": get_today_totals()})
 
 
@@ -50,6 +54,8 @@ def api_nutrition_edit():
         patch = {k: data[k] for k in ("nom", "calories", "proteines", "glucides", "lipides", "quantity")
                  if k in data}
         ok = _db.update_nutrition_entry(entry_id, patch)
+        import readiness as _readiness
+        _readiness.invalidate_cache()
         return jsonify({"success": ok, "totals": get_today_totals()})
     except Exception:
         raise
