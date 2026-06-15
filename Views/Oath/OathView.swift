@@ -29,19 +29,19 @@ struct OathGateView: View {
             Spacer()
             Image(systemName: "seal.fill")
                 .font(.system(size: 60, weight: .ultraLight))
-                .foregroundStyle(.appOnSurface.opacity(pulsing ? 0.7 : 0.3))
+                .foregroundStyle(Color.appOnSurface.opacity(pulsing ? 0.7 : 0.3))
                 .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: pulsing)
                 .onAppear { pulsing = true }
 
             VStack(spacing: 8) {
                 Text("MON SERMENT")
                     .font(.system(size: 11, weight: .light, design: .monospaced))
-                    .foregroundStyle(.appOnSurface.opacity(0.4))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     .tracking(6)
                 if authFailed {
                     Text("Authentification requise")
                         .font(.appLabel)
-                        .foregroundStyle(.appOnSurface.opacity(0.4))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.4))
                 }
             }
             Spacer()
@@ -51,7 +51,7 @@ struct OathGateView: View {
             } label: {
                 Text("Déverrouiller")
                     .font(.system(size: 14, weight: .light, design: .monospaced))
-                    .foregroundStyle(.appOnSurface.opacity(0.6))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.6))
                     .tracking(2)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 12)
@@ -104,14 +104,14 @@ struct OathContentView: View {
                 ToolbarItem(placement: .principal) {
                     Text("MON SERMENT")
                         .font(.system(size: 11, weight: .light, design: .monospaced))
-                        .foregroundStyle(.appOnSurface.opacity(0.4))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.4))
                         .tracking(6)
                 }
                 if vm.currentOath != nil {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { showArchive = true } label: {
                             Image(systemName: "clock.arrow.circlepath")
-                                .foregroundStyle(.appOnSurface.opacity(0.4))
+                                .foregroundStyle(Color.appOnSurface.opacity(0.4))
                                 .font(.system(size: 14))
                         }
                     }
@@ -138,10 +138,10 @@ struct OathContentView: View {
             VStack(spacing: 16) {
                 Image(systemName: "seal")
                     .font(.system(size: 48, weight: .ultraLight))
-                    .foregroundStyle(.appOnSurface.opacity(0.2))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.2))
                 Text("Tu n'as pas encore écrit ton serment.")
                     .font(.appBody.weight(.light))
-                    .foregroundStyle(.appOnSurface.opacity(0.5))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.5))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
@@ -173,18 +173,18 @@ struct OathContentView: View {
                 VStack(spacing: 6) {
                     Text("Version \(oath.version)")
                         .font(.system(size: 11, weight: .light, design: .monospaced))
-                        .foregroundStyle(.appOnSurface.opacity(0.3))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.3))
                         .tracking(2)
                     Text(oath.formattedDate)
                         .font(.system(size: 11, weight: .light, design: .monospaced))
-                        .foregroundStyle(.appOnSurface.opacity(0.2))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.2))
                         .tracking(1)
                 }
 
                 Button { showWrite = true } label: {
                     Text("RÉÉCRIRE")
                         .font(.system(size: 11, weight: .light, design: .monospaced))
-                        .foregroundStyle(.appOnSurface.opacity(0.3))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.3))
                         .tracking(4)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 10)
@@ -212,7 +212,7 @@ struct OathArchiveView: View {
                 Color.black.ignoresSafeArea()
                 if versions.isEmpty {
                     Text("Aucune version archivée.")
-                        .foregroundStyle(.appOnSurface.opacity(0.4))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.4))
                         .font(.system(size: 14))
                 } else {
                     ScrollView {
@@ -230,12 +230,12 @@ struct OathArchiveView: View {
                 ToolbarItem(placement: .principal) {
                     Text("VERSIONS")
                         .font(.system(size: 11, weight: .light, design: .monospaced))
-                        .foregroundStyle(.appOnSurface.opacity(0.4))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.4))
                         .tracking(6)
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Fermer") { dismiss() }
-                        .foregroundStyle(.appOnSurface.opacity(0.5))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.5))
                 }
             }
         }
@@ -252,11 +252,11 @@ struct OathArchiveView: View {
                 Spacer()
                 Text(v.formattedDate)
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.appOnSurface.opacity(0.25))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.25))
                 if v.isActive {
                     Text("ACTIF")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundStyle(.appOnSurface.opacity(0.5))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.5))
                         .tracking(2)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
