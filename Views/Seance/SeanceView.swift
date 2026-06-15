@@ -145,7 +145,7 @@ struct AlreadyLoggedSeanceView: View {
                     }
                     Text("Séance complétée")
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.appTextPrimary)
+                        .foregroundColor(.appOnBackground)
                         .opacity(animateHeader ? 1.0 : 0.0)
                         .offset(y: animateHeader ? 0 : 12)
                     Text(data.today)
@@ -475,7 +475,7 @@ struct AlreadyLoggedSeanceView: View {
                                 .foregroundColor(.statusYellow)
                             Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggé\(unloggedExercises.count > 1 ? "s" : "")")
                                 .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.appTextPrimary)
+                                .foregroundColor(.appOnBackground)
                         }
                         VStack(alignment: .leading, spacing: 3) {
                             ForEach(unloggedExercises.prefix(3), id: \.0) { ex in
@@ -1168,7 +1168,7 @@ struct NoProgramEmptyState: View {
 
                 Text("Aucun programme pour aujourd'hui")
                     .font(.appHeadline)
-                    .foregroundColor(.appTextPrimary)
+                    .foregroundColor(.appOnBackground)
                     .multilineTextAlignment(.center)
 
                 Text("Tu peux partir en séance libre ou créer un programme.")

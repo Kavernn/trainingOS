@@ -78,7 +78,7 @@ struct DashboardView: View {
                                             .font(.appLabel)
                                         Text("Certaines données n'ont pas pu être chargées")
                                             .font(.appCaption)
-                                            \.foregroundColor(\.appOnBackground\.opacity(0.8))
+                                            .foregroundColor(.appOnBackground.opacity(0.8))
                                         Spacer()
                                         Button {
                                             Task { await vm.loadAll() }
@@ -479,7 +479,7 @@ struct DashboardView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "wifi.exclamationmark")
                             .font(.system(size: 48)).foregroundColor(.gray)
-                        Text("Connexion impossible").foregroundColor(.appTextPrimary).fontWeight(.semibold)
+                        Text("Connexion impossible").foregroundColor(.appOnBackground).fontWeight(.semibold)
                         Text(err).font(.caption).foregroundColor(.gray).multilineTextAlignment(.center)
                         Button {
                             Task { await api.fetchDashboard() }
