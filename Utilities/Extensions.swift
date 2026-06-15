@@ -65,13 +65,13 @@ extension Color {
     static let voidBg = Color(red: 0.020, green: 0.031, blue: 0.063)  // spirit deep (intentional fixed)
 
     // Couleurs sémantiques — desaturées en mode surgical (Sin City N&B)
-    static var statusGreen:  Color { isSurgical ? Color(white: 0.68) : .statusGreen  }
-    static var statusOrange: Color { isSurgical ? Color(white: 0.55) : .statusOrange }
-    static var statusBlue:   Color { isSurgical ? Color(white: 0.50) : .statusBlue   }
-    static var statusPurple: Color { isSurgical ? Color(white: 0.58) : .statusPurple }
-    static var statusYellow: Color { isSurgical ? Color(white: 0.62) : .statusYellow }
-    static var statusCyan:   Color { isSurgical ? Color(white: 0.52) : .statusCyan   }
-    static var statusRed:    Color { isSurgical ? Color(white: 0.72) : .statusRed    }
+    static var statusGreen:  Color { isSurgical ? Color(white: 0.68) : .green   }
+    static var statusOrange: Color { isSurgical ? Color(white: 0.55) : .orange  }
+    static var statusBlue:   Color { isSurgical ? Color(white: 0.50) : .blue    }
+    static var statusPurple: Color { isSurgical ? Color(white: 0.58) : .purple  }
+    static var statusYellow: Color { isSurgical ? Color(white: 0.62) : .yellow  }
+    static var statusCyan:   Color { isSurgical ? Color(white: 0.52) : .cyan    }
+    static var statusRed:    Color { isSurgical ? Color(white: 0.72) : .red     }
 
     private static var isSurgical: Bool {
         AppTheme.shared.colors.accentDistribution == .surgical
