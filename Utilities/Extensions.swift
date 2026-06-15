@@ -61,6 +61,8 @@ extension Color {
     static var appWarning:         Color { AppTheme.shared.warning }
     static var appInfo:            Color { AppTheme.shared.info }
     static var appTextPrimary:     Color { AppTheme.shared.textPrimary }
+    static var appOnBackground:    Color { AppTheme.shared.onBackground }
+    static var appOnSurface:       Color { AppTheme.shared.onSurface }
     static var appTextSecondary:   Color { AppTheme.shared.textSecondary }
     static var appTextTertiary:    Color { AppTheme.shared.textMuted }
     static var appTextMuted:       Color { AppTheme.shared.textMuted }

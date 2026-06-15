@@ -222,12 +222,12 @@ struct SectionLabel: View {
             if let icon = icon {
                 Image(systemName: icon)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(.appOnBackground.opacity(0.4))
             }
             Text(label)
                 .font(.system(size: 11, weight: .semibold))
                 .tracking(theme.sectionTitleTracking)
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(.appOnBackground.opacity(0.4))
             Spacer()
             if let action = action {
                 Button(actionLabel, action: action)
@@ -417,7 +417,7 @@ struct IdentityLayerView: View {
 
     // Grille cyber — Electric
     private static func drawCyberGrid(ctx: inout GraphicsContext, size: CGSize, opacity: Double) {
-        let c = Color.white.opacity(opacity)
+        let c = Color.appOnBackground.opacity(opacity)
         let step: CGFloat = 40
         var x: CGFloat = 0
         while x <= size.width {

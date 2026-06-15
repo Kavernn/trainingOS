@@ -11,34 +11,37 @@ enum AppThemeOption: String, CaseIterable {
     case matrix     = "matrix"
     case tokyo      = "tokyo"
     case arctic     = "arctic"
-    case goldNoir   = "goldNoir"
-    case desert     = "desert"
+    case goldNoir      = "goldNoir"
+    case desert        = "desert"
+    case electricLight = "electricLight"
 
     var displayName: String {
         switch self {
-        case .monochrome: return "Monochrome"
-        case .sinCity:    return "Sin City"
-        case .blood:      return "Blood"
-        case .electric:   return "Electric"
-        case .matrix:     return "Matrix"
-        case .tokyo:      return "Tokyo"
-        case .arctic:     return "Arctic Frost"
-        case .goldNoir:   return "Gold Noir"
-        case .desert:     return "Desert"
+        case .monochrome:    return "Monochrome"
+        case .sinCity:       return "Sin City"
+        case .blood:         return "Blood"
+        case .electric:      return "Electric"
+        case .matrix:        return "Matrix"
+        case .tokyo:         return "Tokyo"
+        case .arctic:        return "Arctic Frost"
+        case .goldNoir:      return "Gold Noir"
+        case .desert:        return "Desert"
+        case .electricLight: return "Electric Light"
         }
     }
 
     var previewColor: Color {
         switch self {
-        case .monochrome: return Color(hex: "1C1C1E")
-        case .sinCity:    return Color(hex: "FF1E1E")
-        case .blood:      return Color(hex: "C0392B")
-        case .electric:   return Color(hex: "E8FF00")
-        case .matrix:     return Color(hex: "00FF66")
-        case .tokyo:      return Color(hex: "8B5CF6")
-        case .arctic:     return Color(hex: "7DD3FC")
-        case .goldNoir:   return Color(hex: "D4AF37")
-        case .desert:     return Color(hex: "E9C46A")
+        case .monochrome:    return Color(hex: "1C1C1E")
+        case .sinCity:       return Color(hex: "FF1E1E")
+        case .blood:         return Color(hex: "C0392B")
+        case .electric:      return Color(hex: "E8FF00")
+        case .matrix:        return Color(hex: "00FF66")
+        case .tokyo:         return Color(hex: "8B5CF6")
+        case .arctic:        return Color(hex: "7DD3FC")
+        case .goldNoir:      return Color(hex: "D4AF37")
+        case .desert:        return Color(hex: "E9C46A")
+        case .electricLight: return Color(hex: "FFFF33")
         }
     }
 }
@@ -84,6 +87,8 @@ struct AppThemeColors {
     let surfaceElevated: Color
     let surfaceInset:    Color
     let textPrimary:     Color
+    let onBackground:    Color   // texte sur le fond (diverge d'onSurface uniquement en Electric Light)
+    let onSurface:       Color   // texte sur les cards
     let textSecondary:   Color
     let textMuted:       Color
     let separator:       Color
@@ -154,6 +159,8 @@ extension AppThemeColors {
         surfaceElevated: Color(hex: "2C2C2E"),
         surfaceInset:    Color(hex: "0D0D0F"),
         textPrimary:     .white,
+        onBackground:    .white,
+        onSurface:       .white,
         textSecondary:   Color.white.opacity(0.6),
         textMuted:       Color.white.opacity(0.3),
         separator:       Color.white.opacity(0.07),
@@ -201,6 +208,8 @@ extension AppThemeColors {
         surfaceElevated: Color(hex: "160C0A"),
         surfaceInset:    Color(hex: "040202"),
         textPrimary:     .white,
+        onBackground:    .white,
+        onSurface:       .white,
         textSecondary:   Color.white.opacity(0.45),
         textMuted:       Color.white.opacity(0.22),
         separator:       Color.white.opacity(0.06),
@@ -246,6 +255,8 @@ extension AppThemeColors {
         surfaceElevated: Color(hex: "5A1616"),
         surfaceInset:    Color(hex: "300808"),
         textPrimary:     Color(hex: "FFF0E8"),
+        onBackground:    Color(hex: "FFF0E8"),
+        onSurface:       Color(hex: "FFF0E8"),
         textSecondary:   Color(hex: "AAAAAA"),
         textMuted:       Color(hex: "888888"),
         separator:       Color(hex: "C0392B").opacity(0.20),
@@ -292,6 +303,8 @@ extension AppThemeColors {
         surfaceElevated: Color(hex: "222400"),
         surfaceInset:    Color(hex: "0A0B00"),
         textPrimary:     Color(hex: "F5FFB0"),
+        onBackground:    Color(hex: "F5FFB0"),
+        onSurface:       Color(hex: "F5FFB0"),
         textSecondary:   Color(hex: "B8C800"),
         textMuted:       Color(hex: "4A5000"),
         separator:       Color(hex: "FFFF33").opacity(0.15),
@@ -332,12 +345,14 @@ extension AppThemeColors {
         accent:          Color(hex: "00FF66"),
         accentLight:     Color(hex: "66FFB2"),
         accentMuted:     Color(hex: "003311"),
-        onAccent:        Color(hex: "001600"),
-        background:      Color(hex: "001600"),
-        surfaceCard:     Color(hex: "0A1A0A"),
-        surfaceElevated: Color(hex: "142814"),
-        surfaceInset:    Color(hex: "000E00"),
+        onAccent:        Color(hex: "002000"),
+        background:      Color(hex: "002000"),
+        surfaceCard:     Color(hex: "0A2A0A"),
+        surfaceElevated: Color(hex: "143814"),
+        surfaceInset:    Color(hex: "001800"),
         textPrimary:     Color(hex: "00FF66"),
+        onBackground:    Color(hex: "00FF66"),
+        onSurface:       Color(hex: "00FF66"),
         textSecondary:   Color(hex: "00994D"),
         textMuted:       Color(hex: "004422"),
         separator:       Color(hex: "00FF66").opacity(0.08),
@@ -378,11 +393,13 @@ extension AppThemeColors {
         accentLight:     Color(hex: "FF6B9E"),
         accentMuted:     Color(hex: "2D1660"),
         onAccent:        .white,
-        background:      Color(hex: "0E0B20"),
-        surfaceCard:     Color(hex: "16123A"),
-        surfaceElevated: Color(hex: "1E1A4A"),
-        surfaceInset:    Color(hex: "0A0816"),
+        background:      Color(hex: "1A0A48"),
+        surfaceCard:     Color(hex: "221162"),
+        surfaceElevated: Color(hex: "2A1972"),
+        surfaceInset:    Color(hex: "12063A"),
         textPrimary:     Color(hex: "F0E8FF"),
+        onBackground:    Color(hex: "F0E8FF"),
+        onSurface:       Color(hex: "F0E8FF"),
         textSecondary:   Color(hex: "9B8FC0"),
         textMuted:       Color(hex: "554870"),
         separator:       Color(hex: "8B5CF6").opacity(0.08),
@@ -428,6 +445,8 @@ extension AppThemeColors {
         surfaceElevated: Color(hex: "22527C"),
         surfaceInset:    Color(hex: "142D48"),
         textPrimary:     Color(hex: "DFF6FF"),
+        onBackground:    Color(hex: "DFF6FF"),
+        onSurface:       Color(hex: "DFF6FF"),
         textSecondary:   Color(hex: "7BB8D0"),
         textMuted:       Color(hex: "6BA8C4"),
         separator:       Color(hex: "7DD3FC").opacity(0.15),
@@ -467,12 +486,14 @@ extension AppThemeColors {
         accent:          Color(hex: "D4AF37"),
         accentLight:     Color(hex: "FFF7D6"),
         accentMuted:     Color(hex: "2A1C05"),
-        onAccent:        Color(hex: "0B0905"),
-        background:      Color(hex: "0B0905"),
-        surfaceCard:     Color(hex: "14110A"),
-        surfaceElevated: Color(hex: "1C1810"),
-        surfaceInset:    Color(hex: "080603"),
+        onAccent:        Color(hex: "201408"),
+        background:      Color(hex: "201408"),
+        surfaceCard:     Color(hex: "2A1C0E"),
+        surfaceElevated: Color(hex: "322412"),
+        surfaceInset:    Color(hex: "160C05"),
         textPrimary:     Color(hex: "FFF7D6"),
+        onBackground:    Color(hex: "FFF7D6"),
+        onSurface:       Color(hex: "FFF7D6"),
         textSecondary:   Color(hex: "C4A959"),
         textMuted:       Color(hex: "7A6840"),
         separator:       Color(hex: "D4AF37").opacity(0.08),
@@ -507,6 +528,55 @@ extension AppThemeColors {
         sectionTitleUppercased: true
     )
 
+    // Jaune vif dominant — fond #FFFF33, cards sombres (Electric Dark inversé).
+    // accent = noir sur fond jaune ; onAccent = jaune (pour les cards noires).
+    // onBackground ≠ onSurface : seul thème du catalogue où ils divergent.
+    static let electricLight = AppThemeColors(
+        accent:          Color(hex: "0A0A00"),          // noir = "accent" sur fond jaune
+        accentLight:     Color(hex: "1F1F00"),
+        accentMuted:     Color(hex: "FFFF80"),          // jaune pâle = muted du jaune
+        onAccent:        Color(hex: "FFFF33"),          // jaune sur fond noir (boutons)
+        background:      Color(hex: "FFFF33"),          // ALL IN — fond jaune pur
+        surfaceCard:     Color(hex: "0F1000"),          // cards sombres (Electric Dark bg)
+        surfaceElevated: Color(hex: "1A1C00"),
+        surfaceInset:    Color(hex: "060700"),
+        textPrimary:     Color(hex: "F5FFB0"),          // = onSurface — texte sur cards
+        onBackground:    Color(hex: "0A0A00"),          // noir sur fond jaune
+        onSurface:       Color(hex: "F5FFB0"),          // clair sur cards sombres
+        textSecondary:   Color(hex: "B8C800"),
+        textMuted:       Color(hex: "4A5000"),
+        separator:       Color(hex: "0A0A00").opacity(0.12),
+        separatorSubtle: Color(hex: "0A0A00").opacity(0.06),
+        separatorStrong: Color(hex: "0A0A00").opacity(0.25),
+        danger:          Color(hex: "C41A0A"),          // rouge assombri (lisible sur jaune)
+        success:         Color(hex: "007A33"),          // vert foncé (lisible sur jaune)
+        warning:         Color(hex: "8B5E00"),          // ambre foncé
+        info:            Color(hex: "005FA3"),          // bleu foncé
+        cardCornerRadius: 18,
+        cardBorderWidth:  1.5,
+        cardBorderColor:  Color(hex: "FFFF33").opacity(0.45),
+        cardShadowColor:  Color(hex: "FFFF33").opacity(0.35),
+        cardShadowRadius: 12,
+        cardShadowOffset: CGSize(width: 0, height: 4),
+        cardGlowColor:    Color(hex: "FFFF33").opacity(0.55),
+        cardGlowRadius:   35,
+        chartPalette:          [Color(hex: "0A0A00"), Color(hex: "005FA3"), Color(hex: "C41A0A"),
+                                Color(hex: "007A33"), Color(hex: "6B21A8")],
+        glassOpacity:          0.35,
+        accentGradientColors:  [Color(hex: "0A0A00"), Color(hex: "1F1F00")],
+        identityLayer:         .cyberGrid(opacity: 0.08),  // grille noire sur fond jaune
+        heroFontDesign:        .monospaced,
+        titleFontDesign:       .default,
+        displayWeight:         .semibold,
+        cardAccentFillOpacity:   0.42,
+        cardAccentStrokeOpacity: 0.65,
+        cardStyle:               .floating,
+        accentDistribution:      .pervasive,
+        heroNumberSize:          40,
+        sectionTitleTracking:    2.0,
+        sectionTitleUppercased: true
+    )
+
     // Dune, Sahara. Fond L*≈22 (#5C3D2E), chaleur sable visible — le plus clair du catalogue.
     static let desert = AppThemeColors(
         accent:          Color(hex: "E9C46A"),
@@ -518,6 +588,8 @@ extension AppThemeColors {
         surfaceElevated: Color(hex: "7A5542"),
         surfaceInset:    Color(hex: "4A3020"),
         textPrimary:     Color(hex: "FFF0DC"),
+        onBackground:    Color(hex: "FFF0DC"),
+        onSurface:       Color(hex: "FFF0DC"),
         textSecondary:   Color(hex: "C49A6C"),
         textMuted:       Color(hex: "B08070"),
         separator:       Color(hex: "D4A373").opacity(0.18),
@@ -585,8 +657,9 @@ final class AppTheme: ObservableObject {
         case .matrix:     return .matrix
         case .tokyo:      return .tokyo
         case .arctic:     return .arctic
-        case .goldNoir:   return .goldNoir
-        case .desert:     return .desert
+        case .goldNoir:      return .goldNoir
+        case .desert:        return .desert
+        case .electricLight: return .electricLight
         }
     }
 
@@ -602,6 +675,8 @@ final class AppTheme: ObservableObject {
     var surfaceInset:    Color { colors.surfaceInset }
 
     var textPrimary:     Color { colors.textPrimary }
+    var onBackground:    Color { colors.onBackground }
+    var onSurface:       Color { colors.onSurface }
     var textSecondary:   Color { colors.textSecondary }
     var textMuted:       Color { colors.textMuted }
     var separator:       Color { colors.separator }

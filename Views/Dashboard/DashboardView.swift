@@ -78,7 +78,7 @@ struct DashboardView: View {
                                             .font(.appLabel)
                                         Text("Certaines données n'ont pas pu être chargées")
                                             .font(.appCaption)
-                                            .foregroundColor(.white.opacity(0.8))
+                                            \.foregroundColor(\.appOnBackground\.opacity(0.8))
                                         Spacer()
                                         Button {
                                             Task { await vm.loadAll() }
@@ -471,7 +471,7 @@ struct DashboardView: View {
                             onNutritionTap: { showNutritionAddSheet = true }
                         )
                         .overlay(alignment: .top) {
-                            Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
+                            Rectangle().fill(Color.appSeparatorSubtle).frame(height: 0.5)
                         }
                         .background(Color.appBg.opacity(0.96).ignoresSafeArea(edges: .bottom))
                     }
@@ -536,10 +536,10 @@ struct DashboardView: View {
             if let msg = warRoomToastMessage {
                 Text(msg)
                     .font(.appCaption).fontWeight(.medium)
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.appOnSurface)
                     .padding(.horizontal, 16).padding(.vertical, 9)
                     .background(Color.appCard.opacity(0.96))
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.appSeparator, lineWidth: 0.5))
                     .cornerRadius(20)
                     .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
                     .padding(.top, 12)
