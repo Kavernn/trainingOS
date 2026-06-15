@@ -41,12 +41,13 @@ def _is_lower(name: str) -> bool:
 
 
 def _epley(weight_lbs: float, reps: int) -> float:
-    r = min(reps, 20)
-    if r <= 1:
+    if reps > 15:
+        return 0.0
+    if reps <= 1:
         return weight_lbs
-    if r <= 10:
-        return round(weight_lbs * (1.0 + r / 30.0), 1)   # Epley (1985)
-    return round(weight_lbs * (36.0 / (37.0 - r)), 1)    # Brzycki (1993)
+    if reps <= 10:
+        return round(weight_lbs * (1.0 + reps / 30.0), 1)   # Epley (1985)
+    return round(weight_lbs * (36.0 / (37.0 - reps)), 1)    # Brzycki (1993)
 
 
 def _round_lbs(w: float, step: float = 5.0) -> float:
@@ -114,6 +115,8 @@ def _working_sets(days: int = 28) -> dict[str, list[dict]]:
                 continue
 
             e1rm = _epley(w, r)
+            if e1rm <= 0:
+                continue
             existing = best_by_date[ex_name].get(d)
             if existing is None or e1rm > existing["e1rm_lbs"]:
                 best_by_date[ex_name][d] = {

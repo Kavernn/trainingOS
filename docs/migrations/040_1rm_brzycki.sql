@@ -4,9 +4,9 @@
 -- Un user qui programme ses charges sur une surestimation se blesse.
 --
 -- Correction :
---   ≤10 reps   → Epley   : weight * (1 + reps / 30)      — précis dans ce range
---   11–20 reps → Brzycki : weight * (36 / (37 - reps))   — conservateur (sous-estime)
---   >20 reps   → NULL    — trop imprécis, ne pas afficher
+--   ≤10 reps → Epley   : weight * (1 + reps / 30)      — précis dans ce range
+--   11-15    → Brzycki : weight * (36 / (37 - reps))   — conservateur (sous-estime)
+--   >15 reps → NULL    — trop imprécis; Brzycki(16+) aberrant
 --
 -- Référence : Epley (1985), Brzycki (1993).
 --
@@ -22,10 +22,10 @@ SELECT
     sub.latest_weight,
     sub.latest_reps,
     sub.session_count,
-    -- 1RM estimé : Epley ≤10 reps, Brzycki 11-20 reps, NULL >20 reps
+    -- 1RM estimé : Epley ≤10 reps, Brzycki 11-15 reps, NULL >15 reps
     CASE
         WHEN sub.latest_weight IS NULL OR sub.latest_weight <= 0 THEN NULL
-        WHEN sub.max_reps > 20                                   THEN NULL
+        WHEN sub.max_reps > 15                                   THEN NULL
         WHEN sub.max_reps > 10
             THEN ROUND(sub.latest_weight * (36.0 / (37 - sub.max_reps)), 1)
         ELSE ROUND(sub.latest_weight * (1 + sub.max_reps::NUMERIC / 30), 1)
@@ -33,8 +33,7 @@ SELECT
     -- Niveau de confiance de l'estimation
     CASE
         WHEN sub.latest_weight IS NULL OR sub.latest_weight <= 0 THEN NULL
-        WHEN sub.max_reps > 20 THEN 'none'
-        WHEN sub.max_reps > 15 THEN 'low'
+        WHEN sub.max_reps > 15 THEN NULL
         WHEN sub.max_reps > 10 THEN 'medium'
         ELSE                        'high'
     END                                                          AS estimated_1rm_confidence

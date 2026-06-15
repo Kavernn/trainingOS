@@ -18,15 +18,14 @@ SELECT
     sub.session_count,
     CASE
         WHEN sub.latest_weight IS NULL OR sub.latest_weight <= 0 THEN NULL
-        WHEN sub.max_reps > 20                                   THEN NULL
+        WHEN sub.max_reps > 15                                   THEN NULL
         WHEN sub.max_reps > 10
             THEN ROUND(sub.latest_weight * (36.0 / (37 - sub.max_reps)), 1)
         ELSE ROUND(sub.latest_weight * (1 + sub.max_reps::NUMERIC / 30), 1)
     END AS estimated_1rm,
     CASE
         WHEN sub.latest_weight IS NULL OR sub.latest_weight <= 0 THEN NULL
-        WHEN sub.max_reps > 20 THEN 'none'
-        WHEN sub.max_reps > 15 THEN 'low'
+        WHEN sub.max_reps > 15 THEN NULL
         WHEN sub.max_reps > 10 THEN 'medium'
         ELSE                        'high'
     END AS estimated_1rm_confidence

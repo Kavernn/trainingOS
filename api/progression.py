@@ -360,42 +360,38 @@ def next_weight(exercise: str, current_weight: float) -> float:
 
 
 def estimate_1rm(weight: float, reps_str: str) -> float | None:
-    """Estime le 1RM avec sélection de formule selon le range de reps.
+    """Estime le 1RM via le meilleur set (max reps du string).
 
-    ≤10 reps → Epley  (weight × (1 + reps/30))       — précis dans ce range
-    >10 reps → Brzycki (weight × (36 / (37 - reps)))  — conservateur, sous-estime
-                                                          plutôt que surestime (plus sûr)
-    >20 reps → None   — trop imprécis pour programmer des charges; ne pas afficher
-
-    Référence : Epley (1985), Brzycki (1993).
+    ≤10 reps → Epley   weight × (1 + reps/30)       — Epley (1985)
+    11-15    → Brzycki  weight × (36 / (37 - reps))  — Brzycki (1993), conservateur
+    >15 reps → None    — trop imprécis; les engines per-set itèrent avant d'appeler
     """
     try:
         reps = parse_reps(reps_str)
         if not reps:
             return 0.0
-        avg_reps = sum(reps) / len(reps)
-        if avg_reps > 15:
+        max_r = max(reps)
+        if max_r > 15:
             return None
-        if avg_reps > 10:
-            return round(weight * (36 / (37 - avg_reps)), 1)
-        return round(weight * (1 + avg_reps / 30), 1)
+        if max_r > 10:
+            return round(weight * (36 / (37 - max_r)), 1)
+        return round(weight * (1 + max_r / 30), 1)
     except Exception as e:
         logger.exception("estimate_1rm failed: %s", e)
         return 0.0
 
 
-def estimate_1rm_confidence(avg_reps: float) -> str:
+def estimate_1rm_confidence(reps: float) -> str:
     """Niveau de confiance de l'estimation 1RM.
 
-    "high"   : ≤10 reps  — Epley précis, utiliser pour programmer les charges
+    "high"   : ≤10 reps  — Epley précis
     "medium" : 11-15 reps — Brzycki, afficher avec avertissement
-    "low"    : >15 reps  — ne pas utiliser pour programmer les charges
     """
-    if avg_reps <= 10:
+    if reps <= 10:
         return "high"
-    if avg_reps <= 15:
+    if reps <= 15:
         return "medium"
-    return "low"
+    return "medium"
 
 
 def progression_status(reps_str: str, exercise: str) -> str:
