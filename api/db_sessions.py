@@ -38,17 +38,22 @@ def get_workout_sessions(limit: int = 100, offset: int = 0) -> List[dict]:
 
 
 def get_total_session_count() -> int:
-    """Count all completed sessions (all-time) — lightweight, no payload."""
+    """Count all completed training sessions (muscu + HIIT, all-time)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return 0
     try:
-        resp = (
+        muscu = (
             db_core._client.table("workout_sessions")
             .select("id", count="exact")
             .or_("completed.eq.true,rpe.not.is.null")
             .execute()
-        )
-        return resp.count or 0
+        ).count or 0
+        hiit = (
+            db_core._client.table("hiit_logs")
+            .select("id", count="exact")
+            .execute()
+        ).count or 0
+        return muscu + hiit
     except Exception as e:
         db_core.logger.error("get_total_session_count error: %s", e)
         return 0

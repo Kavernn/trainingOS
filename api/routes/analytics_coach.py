@@ -290,7 +290,11 @@ def api_weekly_report():
         if s.get("date") and str(s["date"]) >= week_start
         and (s.get("completed") or s.get("rpe") is not None)
     ]
-    session_count = len(week_sessions)
+    hiit_week = [
+        h for h in (_db.get_hiit_logs(limit=30) or [])
+        if h.get("date") and str(h["date"]) >= week_start
+    ]
+    session_count = len(week_sessions) + len(hiit_week)
 
     def _total_reps(reps_str: str) -> int:
         total = 0
