@@ -37,6 +37,8 @@ struct ProgrammeView: View {
     @State private var eveningSchedule: [String: String] = [:]
     @State private var inventory: [String] = []
     @State private var inventorySchemes: [String: String] = [:]
+    @State private var inventoryPatterns: [String: String] = [:]
+    @State private var inventoryOneRM: [String: Double] = [:]
     @State private var isLoading = true
     @State private var addTarget: SeanceName?
     @State private var editTarget: ExerciseTarget?
@@ -738,9 +740,11 @@ struct ProgrammeView: View {
                     sessionDragY = 0
                 }
             },
-            supersets:       exerciseSupersets[seance] ?? [:],
-            exerciseWeights: exerciseWeights,
-            suggestions:     programSuggestions[seance] ?? [:]
+            supersets:        exerciseSupersets[seance] ?? [:],
+            exerciseWeights:  exerciseWeights,
+            suggestions:      programSuggestions[seance] ?? [:],
+            inventoryPatterns: inventoryPatterns,
+            inventoryOneRM:    inventoryOneRM
         )
         .padding(.horizontal, 16)
         .background(
@@ -766,7 +770,11 @@ struct ProgrammeView: View {
         }
         schedule         = (json["schedule"] as? [String: String]) ?? [:]
         inventory        = (json["inventory"] as? [String]) ?? []
-        inventorySchemes = (json["inventory_schemes"] as? [String: String]) ?? [:]
+        inventorySchemes  = (json["inventory_schemes"]  as? [String: String]) ?? [:]
+        inventoryPatterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
+        if let raw = json["inventory_1rm"] as? [String: Any] {
+            inventoryOneRM = raw.compactMapValues { $0 as? Double }
+        }
         if let order = json["exercise_order"] as? [String: [String]] {
             exerciseOrder = order
         }
@@ -1438,6 +1446,8 @@ struct EditableSeanceProgramCard: View {
     var supersets: [String: SupersetEntry] = [:]
     var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
     var suggestions: [String: ProgressionSuggestion] = [:]
+    var inventoryPatterns: [String: String] = [:]
+    var inventoryOneRM: [String: Double] = [:]
 
     @State private var expanded    = true
     @State private var dragging:   String? = nil
@@ -1463,6 +1473,13 @@ struct EditableSeanceProgramCard: View {
         }
         let extra = exercises.keys.filter { !orderedNames.contains($0) }.sorted()
         return named + extra.map { ($0, exercises[$0]!) }
+    }
+
+    private static let compoundPatterns: Set<String> = [
+        "squat", "hinge", "horizontal_push", "vertical_push", "horizontal_pull", "vertical_pull"
+    ]
+    private var firstCompoundName: String? {
+        orderedPairs.first { Self.compoundPatterns.contains(inventoryPatterns[$0.0] ?? "") }?.0
     }
 
     private var proposedDrop: Int {
@@ -1644,7 +1661,9 @@ struct EditableSeanceProgramCard: View {
                             onDelete:      { onDelete(name) },
                             isSupersetted: supersets[name] != nil,
                             trend:         trendFor(name),
-                            suggestion:    suggestions[name]
+                            suggestion:    suggestions[name],
+                            isCompound:    name == firstCompoundName,
+                            e1rm:          inventoryOneRM[name]
                         )
                     }
                     .background(
@@ -1685,16 +1704,25 @@ struct ExerciseRow: View {
     var isSupersetted: Bool = false
     var trend: String? = nil
     var suggestion: ProgressionSuggestion? = nil
+    var isCompound: Bool = false
+    var e1rm: Double? = nil
 
     @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 10) {
-                Text(name)
-                    .font(.appLabel.weight(.medium))
-                    .foregroundColor(.appTextPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name)
+                        .font(isCompound ? .appBody.weight(.semibold) : .appLabel.weight(.medium))
+                        .foregroundColor(.appTextPrimary)
+                    if let e = e1rm {
+                        Text("~\(units.format(e, decimals: 0)) max est.")
+                            .font(.appMicro)
+                            .foregroundColor(.appTextMuted)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if isSupersetted {
                     Text("SS")
                         .font(.appMicro.weight(.black))

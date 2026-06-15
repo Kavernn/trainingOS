@@ -233,6 +233,8 @@ def api_programme_data():
     inventory_muscles  = {name: info.get("muscles") or []             for name, info in inv.items()}
     inventory_patterns = {name: info.get("pattern") or ""             for name, info in inv.items()}
     exercise_order     = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
+    from db import get_current_1rm_estimates
+    inventory_1rm = {r["name"]: r["estimated_1rm"] for r in get_current_1rm_estimates()}
     return jsonify({
         "full_program":        flat_program,
         "session_order":       list(flat_program.keys()),
@@ -244,6 +246,7 @@ def api_programme_data():
         "inventory_schemes":   inventory_schemes,
         "inventory_muscles":   inventory_muscles,
         "inventory_patterns":  inventory_patterns,
+        "inventory_1rm":       inventory_1rm,
         "exercise_order":      exercise_order,
         "programs":            programs,
         "current_program_id":  program_id,
