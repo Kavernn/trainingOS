@@ -280,7 +280,7 @@ struct CompositionChartCard: View {
                             p.move(to: CGPoint(x: 0, y: y))
                             p.addLine(to: CGPoint(x: w, y: y))
                         }
-                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        .stroke(Color.appSurfaceInset, lineWidth: 1)
                     }
 
                     // Lean line + fill
@@ -711,7 +711,7 @@ struct BodyWeightSheet: View {
                             Button(action: fillFromHealthKit) {
                                 HStack(spacing: 8) {
                                     if isLoadingHK {
-                                        ProgressView().tint(.white).scaleEffect(0.8)
+                                        ProgressView().tint(.onAccent).scaleEffect(0.8)
                                     } else {
                                         Image(systemName: "heart.text.square.fill")
                                             .font(.appBody)
@@ -1005,7 +1005,7 @@ struct WeightChartView: View {
                             path.move(to: CGPoint(x: 0, y: y))
                             path.addLine(to: CGPoint(x: w, y: y))
                         }
-                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                        .stroke(Color.appSurfaceInset, lineWidth: 1)
                         Text(String(format: "%.0f", units.display(val)))
                             .font(.system(size: 8))
                             .foregroundColor(.gray.opacity(0.6))
@@ -1149,7 +1149,7 @@ struct BodyProjectionCard: View {
                         .font(.appCaption).foregroundColor(.gray.opacity(0.7))
                 }
                 .padding(12)
-                .background(Color.white.opacity(0.04))
+                .background(Color.appSurfaceInset)
                 .cornerRadius(10)
             }
         }

@@ -111,7 +111,7 @@ private struct MentalAmePillBar: View {
             pill("Pratique", icon: "moon.fill",     t: .pratique)
         }
         .padding(3)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 11))
+        .background(Color.appSurfaceInset, in: RoundedRectangle(cornerRadius: 11))
     }
 
     private func pill(_ label: String, icon: String, t: MentalAmeTab) -> some View {
@@ -126,12 +126,12 @@ private struct MentalAmePillBar: View {
             }
             .foregroundStyle(tab == t
                 ? (t == .mesures ? Color.teal : Color.moonlight)
-                : Color.white.opacity(0.35)
+                : Color.appOnSurface.opacity(0.35)
             )
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(
-                tab == t ? Color.white.opacity(0.09) : .clear,
+                tab == t ? Color.appSurfaceInset : .clear,
                 in: RoundedRectangle(cornerRadius: 9)
             )
         }
@@ -173,7 +173,7 @@ private struct SignalDuJourHeader: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("ÉQUILIBRE")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
+                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.appOnSurface.opacity(0.4))
                     .tracking(2)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(lss.map { "\($0.score)" } ?? "—")
@@ -182,7 +182,7 @@ private struct SignalDuJourHeader: View {
                     if lss != nil {
                         Text("/ 100")
                             .font(.appMicro.weight(.light))
-                            .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
+                            .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.appOnSurface.opacity(0.4))
                     }
                 }
                 Text(lssLabel)
@@ -190,19 +190,19 @@ private struct SignalDuJourHeader: View {
                     .foregroundStyle(lssColor.opacity(0.8))
                 Text("Sommeil · HRV · Fatigue")
                     .font(.system(size: 8, weight: .light))
-                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.2) : Color.white.opacity(0.25))
+                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.2) : Color.appOnSurface.opacity(0.25))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Rectangle()
-                .fill(isVoid ? Color.moonlight.opacity(0.08) : Color.white.opacity(0.1))
+                .fill(isVoid ? Color.moonlight.opacity(0.08) : Color.appSurfaceInset)
                 .frame(width: 0.5)
                 .padding(.vertical, 6)
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("HUMEUR")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
+                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.appOnSurface.opacity(0.4))
                     .tracking(2)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(todayMood.map { "\($0.score)" } ?? "—")
@@ -211,7 +211,7 @@ private struct SignalDuJourHeader: View {
                     if todayMood != nil {
                         Text("/ 10")
                             .font(.appMicro.weight(.light))
-                            .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
+                            .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.appOnSurface.opacity(0.4))
                     }
                 }
                 Text(todayMood != nil ? "Aujourd'hui" : "Non loggé")
@@ -219,18 +219,18 @@ private struct SignalDuJourHeader: View {
                     .foregroundStyle(todayMood != nil ? moodColor.opacity(0.8) : Color.gray.opacity(0.5))
                 Text("Humeur subjective /10")
                     .font(.system(size: 8, weight: .light))
-                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.2) : Color.white.opacity(0.25))
+                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.2) : Color.appOnSurface.opacity(0.25))
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(10)
         .background {
             RoundedRectangle(cornerRadius: 14)
-                .fill(isVoid ? Color.moonlight.opacity(0.04) : Color.white.opacity(0.05))
+                .fill(isVoid ? Color.moonlight.opacity(0.04) : Color.appSurfaceInset)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14)
                         .strokeBorder(
-                            isVoid ? Color.moonlight.opacity(0.08) : Color.white.opacity(0.08),
+                            isVoid ? Color.moonlight.opacity(0.08) : Color.appSurfaceInset,
                             lineWidth: 0.5
                         )
                 }
@@ -277,10 +277,10 @@ private struct MesuresTab: View {
                             Text("Stress & PSS")
                                 .font(.headline).foregroundColor(.appTextPrimary)
                             Text(stressSubtitle)
-                                .font(.caption).foregroundColor(.white.opacity(0.6))
+                                .font(.caption).foregroundColor(.appOnSurface.opacity(0.6))
                         }
                         Spacer()
-                        Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.4))
+                        Image(systemName: "chevron.right").foregroundColor(.appOnSurface.opacity(0.4))
                     }
                     .padding(14)
                     .glassCardAccent(Color.appInfo)
@@ -310,7 +310,7 @@ private struct MesuresTab: View {
                         Label("Résumé & insights", systemImage: "chart.bar.fill")
                             .foregroundColor(.appTextPrimary)
                         Spacer()
-                        Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.4))
+                        Image(systemName: "chevron.right").foregroundColor(.appOnSurface.opacity(0.4))
                     }
                     .padding()
                     .glassCard(color: .teal, intensity: 0.08)
@@ -324,7 +324,7 @@ private struct MesuresTab: View {
                         Text("Ressources en cas de crise")
                             .foregroundColor(Color.appDanger).fontWeight(.semibold)
                         Spacer()
-                        Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.4))
+                        Image(systemName: "chevron.right").foregroundColor(.appOnSurface.opacity(0.4))
                     }
                     .padding()
                     .glassCard(color: Color.appDanger, intensity: 0.06)
@@ -448,7 +448,7 @@ private struct DisclaimerBanner: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "info.circle.fill").foregroundColor(Color.appInfo)
             Text("Cette section est un outil d'auto-suivi. Elle ne remplace pas un professionnel de santé mentale.")
-                .font(.caption).foregroundColor(.white.opacity(0.7))
+                .font(.caption).foregroundColor(.appOnSurface.opacity(0.7))
             Spacer()
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
@@ -496,22 +496,22 @@ private struct MoodQuickLogCard: View {
                             .font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
                         if !entry.emotions.isEmpty {
                             Text(entry.emotions.prefix(3).joined(separator: " · "))
-                                .font(.caption).foregroundColor(.white.opacity(0.6)).lineLimit(1)
+                                .font(.caption).foregroundColor(.appOnSurface.opacity(0.6)).lineLimit(1)
                         } else {
                             Text("Appuie pour modifier")
-                                .font(.caption).foregroundColor(.white.opacity(0.6))
+                                .font(.caption).foregroundColor(.appOnSurface.opacity(0.6))
                         }
                     } else {
                         Text(moodDue?.isDue == true ? "Note ton humeur" : "Comment tu te sens ?")
                             .font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
                         Text("30 secondes · émotions + score")
-                            .font(.caption).foregroundColor(.white.opacity(0.6))
+                            .font(.caption).foregroundColor(.appOnSurface.opacity(0.6))
                     }
                 }
                 Spacer()
                 Image(systemName: todayEntry == nil ? "plus.circle.fill" : "pencil.circle")
                     .font(.system(size: 22))
-                    .foregroundColor(todayEntry == nil ? .statusYellow : .white.opacity(0.4))
+                    .foregroundColor(todayEntry == nil ? .statusYellow : .appOnSurface.opacity(0.4))
             }
             .padding(14)
             .glassCard(color: todayEntry != nil ? scoreColor : .statusYellow, intensity: 0.08)
@@ -537,7 +537,7 @@ private struct MoodSparklineCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Humeur — 7 derniers jours")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(.appOnSurface.opacity(0.65))
                 .padding(.horizontal, 16)
 
             Chart(last7) { entry in
@@ -554,7 +554,7 @@ private struct MoodSparklineCard: View {
                 AxisMarks(values: [1, 5, 10]) { v in
                     AxisValueLabel {
                         Text("\(v.as(Int.self) ?? 0)")
-                            .font(.appMicro).foregroundColor(.white.opacity(0.65))
+                            .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.65))
                     }
                 }
             }
@@ -579,7 +579,7 @@ struct MHMenuCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: icon).font(.title2).foregroundColor(color)
             Text(title).font(.headline).foregroundColor(.appTextPrimary)
-            Text(subtitle).font(.caption).foregroundColor(.white.opacity(0.6)).lineLimit(2)
+            Text(subtitle).font(.caption).foregroundColor(.appOnSurface.opacity(0.6)).lineLimit(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)

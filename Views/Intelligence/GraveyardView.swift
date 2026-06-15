@@ -50,11 +50,11 @@ struct GraveyardView: View {
         VStack(spacing: 6) {
             Text("\(r.totalCount) LIMITES ENTERRÉES")
                 .font(.appLabel.weight(.black)).tracking(2)
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.appOnSurface.opacity(0.85))
             if let inception = r.inceptionDate {
                 Text("depuis \(frenchDate(inception))")
                     .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.appOnSurface.opacity(0.6))
             }
         }
         .frame(maxWidth: .infinity)
@@ -72,11 +72,11 @@ struct GraveyardView: View {
                 HStack {
                     Text(monthYear)
                         .font(.system(size: 10, weight: .black)).tracking(2)
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(.appOnSurface.opacity(0.55))
                     Spacer()
                     Text("\(items.count) limite\(items.count > 1 ? "s" : "")")
                         .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.appOnSurface.opacity(0.5))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -127,13 +127,13 @@ struct GraveyardView: View {
         VStack(spacing: 16) {
             Image(systemName: "cross.case.fill")
                 .font(.system(size: 40))
-                .foregroundColor(.white.opacity(0.15))
+                .foregroundColor(.appOnSurface.opacity(0.15))
             Text("Le cimetière est vide.")
                 .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(.appOnSurface.opacity(0.5))
             Text("Tu n'as pas encore tué quoi que ce soit.\nContinue — les limites viennent.")
                 .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(.appOnSurface.opacity(0.55))
                 .multilineTextAlignment(.center)
         }
         .padding(40)
@@ -141,10 +141,10 @@ struct GraveyardView: View {
 
     private var graveyardLoadingView: some View {
         VStack(spacing: 12) {
-            ProgressView().tint(.white.opacity(0.3))
+            ProgressView().tint(.appOnSurface.opacity(0.3))
             Text("Exhumation en cours…")
                 .font(.appLabel)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(.appOnSurface.opacity(0.5))
         }
     }
 
@@ -211,7 +211,7 @@ struct TombstoneCard: View {
         switch daysOld {
         case 0..<7:  return Color(hex: "FF8C00")
         case 7..<30: return Color(hex: "A0522D")
-        default:     return Color.white.opacity(0.2)
+        default:     return Color.appOnSurface.opacity(0.2)
         }
     }
 
@@ -244,19 +244,19 @@ struct TombstoneCard: View {
             // Title
             Text(tombstone.title)
                 .font(.appBody.weight(.bold))
-                .foregroundColor(.white.opacity(daysOld < 365 ? 0.92 : 0.6))
+                .foregroundColor(.appOnSurface.opacity(daysOld < 365 ? 0.92 : 0.6))
 
             // Epitaph
             Text(tombstone.epitaph)
                 .font(.system(size: 12, weight: .regular))
-                .foregroundColor(.white.opacity(epitaphOpacity))
+                .foregroundColor(.appOnSurface.opacity(epitaphOpacity))
                 .lineSpacing(3)
 
             // Decay bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.white.opacity(0.06))
+                        .fill(Color.appSurfaceInset)
                         .frame(height: 3)
                     Capsule()
                         .fill(decayBarGradient)
@@ -270,7 +270,7 @@ struct TombstoneCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(Color.appSurfaceInset, lineWidth: 1)
         )
         .overlay(
             // Ember glow at bottom for fresh tombstones
@@ -299,7 +299,7 @@ struct TombstoneCard: View {
             return LinearGradient(colors: [Color(hex: "A0522D"), Color(hex: "8B4513")],
                                   startPoint: .leading, endPoint: .trailing)
         } else {
-            return LinearGradient(colors: [Color.white.opacity(0.25), Color.white.opacity(0.15)],
+            return LinearGradient(colors: [Color.appOnSurface.opacity(0.25), Color.appOnSurface.opacity(0.15)],
                                   startPoint: .leading, endPoint: .trailing)
         }
     }
@@ -343,7 +343,7 @@ struct TombstoneDetailSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fermer") { dismiss() }
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.appOnSurface.opacity(0.5))
                 }
             }
         }
@@ -355,25 +355,25 @@ struct TombstoneDetailSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("CHIFFRES")
                 .font(.appMicro.weight(.black)).tracking(2)
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(.appOnSurface.opacity(0.3))
 
             HStack(spacing: 0) {
                 if let old = tombstone.oldValue {
                     statPill(label: "Ancienne limite", value: formattedValue(old))
                 }
                 if tombstone.oldValue != nil && tombstone.newValue != nil {
-                    Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 40)
+                    Rectangle().fill(Color.appSurfaceInset).frame(width: 1, height: 40)
                 }
                 if let newV = tombstone.newValue {
                     statPill(label: "Ce qui l'a tuée", value: formattedValue(newV))
                 }
                 if let old = tombstone.oldValue, let newV = tombstone.newValue, old > 0 {
-                    Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 40)
+                    Rectangle().fill(Color.appSurfaceInset).frame(width: 1, height: 40)
                     let pct = abs((newV - old) / old * 100)
                     statPill(label: "Différence", value: String(format: "%.1f%%", pct))
                 }
             }
-            .background(Color.white.opacity(0.04))
+            .background(Color.appSurfaceInset)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
@@ -383,10 +383,10 @@ struct TombstoneDetailSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTEXTE")
                 .font(.appMicro.weight(.black)).tracking(2)
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(.appOnSurface.opacity(0.3))
             Text(contextText)
                 .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(.appOnSurface.opacity(0.55))
                 .lineSpacing(4)
         }
     }
@@ -395,10 +395,10 @@ struct TombstoneDetailSheet: View {
         VStack(spacing: 4) {
             Text(label)
                 .font(.appMicro.weight(.bold)).tracking(0.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Text(value)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.appOnSurface.opacity(0.85))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)

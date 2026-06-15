@@ -541,7 +541,7 @@ struct MuscuSessionCard: View {
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.gray)
                             .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(Color.white.opacity(0.07))
+                            .background(Color.appSurfaceInset)
                             .cornerRadius(4)
                     }
                 }
@@ -552,7 +552,7 @@ struct MuscuSessionCard: View {
                             .foregroundColor(.gray.opacity(0.4))
                             .frame(width: 16, alignment: .leading)
                         Text(UnitSettings.shared.format(s["weight"] as? Double ?? exo.weight))
-                            .font(.appMicro).foregroundColor(.white.opacity(0.6))
+                            .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.6))
                         Text("×").font(.appMicro).foregroundColor(.gray.opacity(0.35))
                         Text(s["reps"] as? String ?? "—")
                             .font(.appMicro).foregroundColor(.gray)
@@ -570,7 +570,7 @@ struct MuscuSessionCard: View {
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.gray)
                         .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(Color.white.opacity(0.07))
+                        .background(Color.appSurfaceInset)
                         .cornerRadius(4)
                 }
                 Spacer()
@@ -675,7 +675,7 @@ struct MuscuSessionCard: View {
         }
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSurfaceInset, lineWidth: 1))
         .confirmationDialog("Supprimer cette séance ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }
             Button("Annuler", role: .cancel) {}

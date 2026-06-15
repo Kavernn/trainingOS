@@ -110,7 +110,7 @@ struct SmartInsightsSection: View {
                                 .foregroundColor(.appTextPrimary)
                             Text(insight.detail)
                                 .font(.system(size: 12))
-                                .foregroundColor(Color.white.opacity(0.5))
+                                .foregroundColor(Color.appOnSurface.opacity(0.5))
                         }
                         Spacer()
                     }

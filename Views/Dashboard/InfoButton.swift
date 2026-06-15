@@ -69,7 +69,7 @@ struct TappableMetricCell: View {
             }
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white.opacity(0.04))
+            .background(Color.appSurfaceInset)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
@@ -97,7 +97,7 @@ struct InfoSheetView: View {
                                     .foregroundColor(Color.forge)
                                 Text(entry.definition)
                                     .font(.appLabel.weight(.regular))
-                                    .foregroundColor(.white.opacity(0.85))
+                                    .foregroundColor(.appOnSurface.opacity(0.85))
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(14)

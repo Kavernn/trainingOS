@@ -75,7 +75,7 @@ struct NutritionSummaryView: View {
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.07)).frame(height: 5)
+                            Capsule().fill(Color.appSurfaceInset).frame(height: 5)
                             Capsule()
                                 .fill(overTarget ? Color.appDanger : Color.forge)
                                 .frame(width: max(5, geo.size.width * calPct), height: 5)
@@ -148,7 +148,7 @@ struct NutritionStripView: View {
                 if calTarget > 0 {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.06)).frame(height: 4)
+                            Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                             Capsule()
                                 .fill(overCal ? Color.appDanger : Color.forge)
                                 .frame(width: max(4, geo.size.width * calPct), height: 4)

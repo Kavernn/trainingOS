@@ -76,7 +76,7 @@ struct StepperInput: View {
         }
         .background(Color.appSurfaceInset)
         .cornerRadius(10)
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.09), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSurfaceInset, lineWidth: 1))
         .onChange(of: isManualFocused) { _, focused in
             if !focused { validateInput() }
         }
@@ -102,11 +102,11 @@ struct StepperInput: View {
     private func stepIcon(systemName: String, isHeld: Bool) -> some View {
         ZStack {
             Circle()
-                .fill(Color.white.opacity(isDisabled ? 0 : (isHeld ? 0.1 : 0.04)))
+                .fill(Color.appOnSurface.opacity(isDisabled ? 0 : (isHeld ? 0.1 : 0.04)))
                 .frame(width: 32, height: 32)
             Image(systemName: systemName)
                 .font(.appBody.weight(.semibold))
-                .foregroundColor(isDisabled ? .gray.opacity(0.2) : .white.opacity(isHeld ? 1.0 : 0.9))
+                .foregroundColor(isDisabled ? .gray.opacity(0.2) : .appOnSurface.opacity(isHeld ? 1.0 : 0.9))
         }
         .frame(width: 44, height: 44)
         .scaleEffect(isHeld ? 0.82 : 1.0)

@@ -15,13 +15,13 @@ struct FloatingRestTimerCard: View {
                     Text(name.uppercased())
                         .font(.appCaption.weight(.semibold))
                         .tracking(2)
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(.appOnSurface.opacity(0.4))
                         .lineLimit(1)
                 }
 
                 ZStack {
                     Circle()
-                        .stroke(Color.white.opacity(0.07), lineWidth: 16)
+                        .stroke(Color.appSurfaceInset, lineWidth: 16)
                         .frame(width: 160, height: 160)
 
                     Circle()
@@ -81,9 +81,9 @@ struct FloatingRestTimerCard: View {
                     Button { timer.reset() } label: {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.appHeadline)
-                            .foregroundColor(.white.opacity(0.55))
+                            .foregroundColor(.appOnSurface.opacity(0.55))
                             .frame(width: 50, height: 50)
-                            .background(Color.white.opacity(0.09))
+                            .background(Color.appSurfaceInset)
                             .clipShape(Circle())
                     }
 
@@ -107,9 +107,9 @@ struct FloatingRestTimerCard: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.appLabel.weight(.bold))
-                            .foregroundColor(.white.opacity(0.45))
+                            .foregroundColor(.appOnSurface.opacity(0.45))
                             .frame(width: 50, height: 50)
-                            .background(Color.white.opacity(0.07))
+                            .background(Color.appSurfaceInset)
                             .clipShape(Circle())
                     }
                 }

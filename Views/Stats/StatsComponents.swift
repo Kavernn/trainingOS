@@ -85,7 +85,7 @@ struct SmartInsightsBanner: View {
                             .frame(width: 18)
                         Text(insights[i].text)
                             .font(.appLabel)
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(.appOnSurface.opacity(0.9))
                         Spacer()
                     }
                 }
@@ -150,7 +150,7 @@ struct AdherenceRingsCard: View {
                                 .fill(pillars[i].color)
                                 .frame(width: 8, height: 8)
                             Text(pillars[i].label)
-                                .font(.system(size: 12)).foregroundColor(.white.opacity(0.85))
+                                .font(.system(size: 12)).foregroundColor(.appOnSurface.opacity(0.85))
                             Spacer()
                             if pillars[i].rawDays == .some(0) {
                                 Text("—")

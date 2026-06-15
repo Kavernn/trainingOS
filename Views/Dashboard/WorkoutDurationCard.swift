@@ -36,7 +36,7 @@ struct WorkoutDurationCard: View {
                 HStack(spacing: 6) {
                     Text("DURÉE SÉANCES")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundColor(.appOnSurface.opacity(0.35))
                     Spacer()
                     HStack(spacing: 4) {
                         Image(systemName: trendIcon).font(.appMicro.weight(.semibold))
@@ -47,20 +47,20 @@ struct WorkoutDurationCard: View {
                     .background(trendColor.opacity(0.12))
                     .clipShape(Capsule())
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.white.opacity(0.22))
+                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
                 }
 
                 HStack(alignment: .bottom, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("MOY. PAR SÉANCE")
                             .font(.appMicro).tracking(0.8)
-                            .foregroundColor(.white.opacity(0.28))
+                            .foregroundColor(.appOnSurface.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.avgDuration.map { "\(Int($0))" } ?? "—")
                                 .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             Text("min")
-                                .font(.appCaption).foregroundColor(.white.opacity(0.30))
+                                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.30))
                         }
                     }
                     Spacer()
@@ -88,7 +88,7 @@ private struct DurationSparkline: View {
                 let v = weeks[i].avgMin ?? 0
                 let h = maxVal > 0 ? max(4.0, 36.0 * v / maxVal) : 4.0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
+                    .fill(isLast ? Color.trendPositive : Color.appOnSurface.opacity(0.20))
                     .frame(width: 5, height: h)
             }
         }
@@ -143,12 +143,12 @@ private struct DurationBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("DURÉE DES SÉANCES")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 Text(data.message)
-                    .font(.appCaption).foregroundColor(.white.opacity(0.55))
+                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
                 Text("\(data.sessionsAnalyzed) séances analysées")
-                    .font(.appCaption).foregroundColor(.white.opacity(0.30))
+                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.30))
             }
             Spacer()
             Text(data.avgDuration.map { "\(Int($0))m" } ?? "—")
@@ -168,14 +168,14 @@ private struct DurationWeeklyChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("12 DERNIÈRES SEMAINES (MIN)")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(weeks.indices, id: \.self) { i in
                     let isLast = i == weeks.count - 1
                     let v = weeks[i].avgMin ?? 0
                     let h = maxVal > 0 ? max(8.0, 60.0 * v / maxVal) : 8.0
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
+                        .fill(isLast ? Color.trendPositive : Color.appOnSurface.opacity(0.20))
                         .frame(maxWidth: .infinity).frame(height: h)
                 }
             }
@@ -194,7 +194,7 @@ private struct DurationByLengthCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("RPE MOYEN PAR DURÉE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 12) {
                 ForEach(buckets, id: \.bucket) { b in
                     let rpe = b.avgRpe ?? 0
@@ -202,17 +202,17 @@ private struct DurationByLengthCard: View {
                     VStack(spacing: 5) {
                         Text(b.avgRpe.map { String(format: "%.1f", $0) } ?? "—")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.white.opacity(b.count > 0 ? 0.75 : 0.25))
+                            .foregroundColor(.appOnSurface.opacity(b.count > 0 ? 0.75 : 0.25))
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(b.count > 0 ? Color.trendPositive : Color.white.opacity(0.10))
+                            .fill(b.count > 0 ? Color.trendPositive : Color.appSurfaceInset)
                             .frame(height: h)
                         Text(b.label)
                             .font(.system(size: 8, weight: .medium))
-                            .foregroundColor(.white.opacity(0.35))
+                            .foregroundColor(.appOnSurface.opacity(0.35))
                             .multilineTextAlignment(.center)
                         Text("\(b.count) séances")
                             .font(.system(size: 7))
-                            .foregroundColor(.white.opacity(0.22))
+                            .foregroundColor(.appOnSurface.opacity(0.22))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -231,9 +231,9 @@ private struct DurationExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Text("Durée moyenne hebdomadaire des séances complétées avec duration_min renseigné. La corrélation durée/RPE montre si les séances longues sont plus ou moins intenses. \(analyzed) séances analysées.")
-                .font(.appCaption).foregroundColor(.white.opacity(0.52))
+                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

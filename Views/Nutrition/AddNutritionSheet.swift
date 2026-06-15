@@ -152,7 +152,7 @@ struct AddNutritionSheet: View {
                                     HStack(spacing: 8) {
                                         ForEach(0..<3, id: \.self) { _ in
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.white.opacity(0.05))
+                                                .fill(Color.appSurfaceInset)
                                                 .frame(width: 90, height: 36)
                                         }
                                     }
@@ -228,7 +228,7 @@ struct AddNutritionSheet: View {
                                 .foregroundColor(.appTextPrimary)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 6)
-                                .background(Color.white.opacity(0.06))
+                                .background(Color.appSurfaceInset)
                                 .cornerRadius(8)
                                 .listRowBackground(Color.appCard)
 
@@ -309,7 +309,7 @@ struct AddNutritionSheet: View {
                                                 Text("100 g")
                                                     .font(.appCaption)
                                                     .padding(.horizontal, 10).padding(.vertical, 5)
-                                                    .background(Color.white.opacity(0.06))
+                                                    .background(Color.appSurfaceInset)
                                                     .foregroundColor(.appTextSecondary)
                                                     .cornerRadius(20)
                                             }
@@ -319,7 +319,7 @@ struct AddNutritionSheet: View {
                                             Text(portionLabel(for: item))
                                                 .font(.appCaption)
                                                 .padding(.horizontal, 10).padding(.vertical, 5)
-                                                .background(Color.white.opacity(0.06))
+                                                .background(Color.appSurfaceInset)
                                                 .foregroundColor(.appTextSecondary)
                                                 .cornerRadius(20)
                                         }
@@ -438,7 +438,7 @@ struct AddNutritionSheet: View {
                 if isLoadingBarcode || isLoggingTemplate {
                     Color.black.opacity(0.55).ignoresSafeArea()
                     VStack(spacing: 14) {
-                        ProgressView().tint(.white).scaleEffect(1.4)
+                        ProgressView().tint(.onAccent).scaleEffect(1.4)
                         Text(isLoggingTemplate ? "Enregistrement du repas…" : "Recherche du produit…")
                             .foregroundColor(.appTextPrimary)
                             .font(.system(size: 14, weight: .medium))

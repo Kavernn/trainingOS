@@ -1215,7 +1215,7 @@ struct LogCardioSheet: View {
 
                         Button(action: save) {
                             Group {
-                                if isSaving { ProgressView().tint(.white) }
+                                if isSaving { ProgressView().tint(.onAccent) }
                                 else { Text("Enregistrer").font(.appBody.weight(.semibold)).foregroundColor(.white) }
                             }
                         }

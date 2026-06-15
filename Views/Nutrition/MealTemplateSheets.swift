@@ -74,7 +74,7 @@ struct MealComposerSheet: View {
                     mealTypePicker
                     categoryFilter
                     searchBar
-                    Divider().background(Color.white.opacity(0.08))
+                    Divider().background(Color.appSurfaceInset)
                     foodList
                 }
                 if composedCount > 0 {
@@ -153,7 +153,7 @@ struct MealComposerSheet: View {
                         ),
                         onToggle: { toggle(food) }
                     )
-                    Divider().background(Color.white.opacity(0.06)).padding(.leading, 48)
+                    Divider().background(Color.appSurfaceInset).padding(.leading, 48)
                 }
             }
             .padding(.bottom, composedCount > 0 ? 120 : 24)
@@ -316,7 +316,7 @@ private struct ComposerBottomBar: View {
                 Button(action: onSave) {
                     Group {
                         if isSaving {
-                            ProgressView().tint(.white).frame(width: 100)
+                            ProgressView().tint(.onAccent).frame(width: 100)
                         } else {
                             Text("Ajouter \(count) entrée\(count > 1 ? "s" : "")")
                                 .font(.system(size: 14, weight: .bold))
@@ -355,7 +355,7 @@ struct MealTemplateListSheet: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(.onAccent)
                 } else if templates.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "fork.knife.circle")

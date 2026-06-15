@@ -192,7 +192,7 @@ private struct WorkoutDNAInlineContent: View {
                         .font(.appLabel)
                     Text(dna.ppl.verdict)
                         .font(.appLabel)
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                     Spacer()
                     Text("Score \(dna.ppl.balanceScore)/100")
                         .font(.appCaption)
@@ -236,7 +236,7 @@ private struct WorkoutDNAInlineContent: View {
                             .frame(width: 80, alignment: .leading)
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color.white.opacity(0.06))
+                                Capsule().fill(Color.appSurfaceInset)
                                 Capsule()
                                     .fill(accent)
                                     .frame(width: geo.size.width * CGFloat(m.pct) / 100)
@@ -285,7 +285,7 @@ private struct WorkoutDNAInlineContent: View {
                         .font(.appLabel)
                     Text(dna.recovery.verdict)
                         .font(.appLabel)
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                     Spacer()
                     Text("Optimal: \(String(format: "%.1f", dna.recovery.optimalRestDays))j")
                         .font(.appCaption)
@@ -323,7 +323,7 @@ private struct WorkoutDNAInlineContent: View {
                                 IntensityTimelineBar(month: month)
                             } else {
                                 RoundedRectangle(cornerRadius: 3)
-                                    .fill(Color.white.opacity(0.04))
+                                    .fill(Color.appSurfaceInset)
                                     .frame(height: 48)
                             }
                             Text(String(month.month.suffix(2)))
@@ -378,7 +378,7 @@ private struct WorkoutDNAInlineContent: View {
                                 .lineLimit(1)
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    Capsule().fill(Color.white.opacity(0.06))
+                                    Capsule().fill(Color.appSurfaceInset)
                                     Capsule()
                                         .fill(patternColor(entry.pattern))
                                         .frame(width: geo.size.width * CGFloat(entry.pct) / 100)
@@ -559,7 +559,7 @@ private struct ScorePill: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(Color.white.opacity(0.04))
+        .background(Color.appSurfaceInset)
         .cornerRadius(8)
     }
 }
@@ -681,7 +681,7 @@ private struct PPLBalanceChart: View {
                         .frame(width: 28, alignment: .leading)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.06))
+                            Capsule().fill(Color.appSurfaceInset)
                             Capsule()
                                 .fill(items[i].2)
                                 .frame(width: geo.size.width * CGFloat(items[i].1) / 100)
@@ -771,13 +771,13 @@ private struct ConsistencyGrid: View {
                 let c     = weeks[i]
                 let frac  = CGFloat(c) / CGFloat(maxCount)
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(c == 0 ? Color.white.opacity(0.06) : accent.opacity(0.25 + frac * 0.70))
+                    .fill(c == 0 ? Color.appSurfaceInset : accent.opacity(0.25 + frac * 0.70))
                     .frame(maxWidth: .infinity)
                     .frame(height: 24)
                     .overlay(
                         Text(c > 0 ? "\(c)" : "")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.appOnSurface.opacity(0.7))
                     )
             }
         }
@@ -821,7 +821,7 @@ private struct RecoveryIndicator: View {
             VStack(alignment: .trailing, spacing: 6) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.06))
+                        Capsule().fill(Color.appSurfaceInset)
                         Capsule()
                             .fill(ratioColor)
                             .frame(width: geo.size.width * min(CGFloat(recovery.ratio), 1.5) / 1.5)
@@ -995,7 +995,7 @@ struct WorkoutDNAShareCard: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.05))
+                        .background(Color.appSurfaceInset)
                         .cornerRadius(6)
                     }
                 }
@@ -1047,10 +1047,10 @@ private struct DNASkeleton: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 14) {
-                Capsule().fill(Color.white.opacity(0.05)).frame(width: 72, height: 80)
+                Capsule().fill(Color.appSurfaceInset).frame(width: 72, height: 80)
                 VStack(alignment: .leading, spacing: 8) {
-                    Capsule().fill(Color.white.opacity(0.07)).frame(width: 130, height: 16)
-                    Capsule().fill(Color.white.opacity(0.04)).frame(width: 90, height: 11)
+                    Capsule().fill(Color.appSurfaceInset).frame(width: 130, height: 16)
+                    Capsule().fill(Color.appSurfaceInset).frame(width: 90, height: 11)
                 }
             }
             .padding(.horizontal, 16)
@@ -1070,7 +1070,7 @@ private struct DNAEmptyState: View {
                 Text("Générer mon DNA")
                     .font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
                     .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(Color.white.opacity(0.08)).cornerRadius(8)
+                    .background(Color.appSurfaceInset).cornerRadius(8)
             }
             .buttonStyle(.plain)
         }
@@ -1089,7 +1089,7 @@ private struct DNAErrorState: View {
                 Text("Réessayer")
                     .font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
                     .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(Color.white.opacity(0.08)).cornerRadius(8)
+                    .background(Color.appSurfaceInset).cornerRadius(8)
             }
             .buttonStyle(.plain)
         }

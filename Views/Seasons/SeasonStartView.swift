@@ -57,7 +57,7 @@ struct SeasonStartView: View {
                     Task { await startSeason() }
                 } label: {
                     if isStarting {
-                        ProgressView().tint(.white)
+                        ProgressView().tint(.onAccent)
                     } else {
                         Text("Commencer")
                             .font(.appBody.weight(.semibold))

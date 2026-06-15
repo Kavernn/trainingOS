@@ -332,7 +332,7 @@ struct WorkoutSeanceView: View {
             }
         }
         .background(Color.appCard).cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSurfaceInset, lineWidth: 1))
         .padding(.horizontal, 16)
     }
 
@@ -456,13 +456,13 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder private var remainingSectionHeader: some View {
         HStack(spacing: 8) {
-            Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
+            Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
             Text("À FAIRE")
                 .font(.appMicro).fontWeight(.bold)
                 .tracking(2)
                 .foregroundColor(.gray.opacity(0.4))
                 .fixedSize()
-            Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
+            Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
         }
         .padding(.horizontal, 16)
         .transition(.opacity)
@@ -767,7 +767,7 @@ struct WorkoutSeanceView: View {
                             }
                         } label: {
                             Circle()
-                                .fill(isLogged ? Color.appSuccess : Color.white.opacity(0.22))
+                                .fill(isLogged ? Color.appSuccess : Color.appOnSurface.opacity(0.22))
                                 .frame(width: 8, height: 8)
                         }
                         .buttonStyle(.plain)
@@ -860,7 +860,7 @@ struct WorkoutSeanceView: View {
                     }
                     .animation(.easeInOut(duration: 0.2), value: allDone)
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.07))
+                        .fill(Color.appSurfaceInset)
                         .frame(height: 5)
                         .overlay(
                             GeometryReader { g in
@@ -1132,7 +1132,7 @@ struct WorkoutSeanceView: View {
                     }) {
                         HStack(spacing: 8) {
                             if vm.isFinishing {
-                                ProgressView().tint(.white).scaleEffect(0.8)
+                                ProgressView().tint(.onAccent).scaleEffect(0.8)
                             } else {
                                 Image(systemName: completionGlow ? "flag.checkered" : "checkmark.circle.fill")
                             }

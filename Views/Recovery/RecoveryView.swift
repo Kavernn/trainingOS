@@ -134,7 +134,7 @@ private struct RecoveryDayCell: View {
 
     private var cellBorder: Color {
         switch state {
-        case .value:        return Color.white.opacity(0.07)
+        case .value:        return Color.appSurfaceInset
         case .hkNeeded:     return Color.statusOrange.opacity(0.20)
         case .manualNeeded: return Color.statusBlue.opacity(0.17)
         }
@@ -187,7 +187,7 @@ private struct RecoveryHeroCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(formattedDate)
                         .font(.appLabel)
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                     Text(lastSyncLabel)
                         .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.65))
@@ -211,7 +211,7 @@ private struct RecoveryHeroCard: View {
                     .foregroundColor(isSyncing ? .gray : scoreColor)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color.white.opacity(0.08))
+                    .background(Color.appSurfaceInset)
                     .cornerRadius(8)
                 }
                 .buttonStyle(SpringButtonStyle())
@@ -312,7 +312,7 @@ private struct SleepProgressBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.07)).frame(height: 6)
+                Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                 Capsule().fill(color)
                     .frame(width: geo.size.width * animRatio, height: 6)
             }
@@ -445,7 +445,7 @@ private struct AccordionRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(formattedDate)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(.appOnSurface.opacity(0.9))
                     if let src = entry.source {
                         Text(src == "manual" ? "Manuel" : "Apple Santé")
                             .font(.appMicro)
@@ -482,7 +482,7 @@ private struct AccordionRow: View {
                 .foregroundColor(value != nil ? color : .gray.opacity(0.3))
             Text(value ?? "—")
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(value != nil ? .white.opacity(0.85) : .gray.opacity(0.35))
+                .foregroundColor(value != nil ? .appOnSurface.opacity(0.85) : .gray.opacity(0.35))
         }
     }
 }
@@ -876,7 +876,7 @@ struct RecoveryView: View {
                                 HStack(spacing: 2) {
                                     Image(systemName: "star.fill").font(.appMicro).foregroundColor(Color.statusYellow)
                                     Text(String(format: "%.1f/10", q))
-                                        .font(.appCaption.weight(.semibold)).foregroundColor(.white.opacity(0.8))
+                                        .font(.appCaption.weight(.semibold)).foregroundColor(.appOnSurface.opacity(0.8))
                                 }
                             }
                         }
@@ -1054,7 +1054,7 @@ struct RecoveryView: View {
                                 AccordionRow(entry: entry, onEdit: { editTarget = entry })
                                 if i < recent.count - 1 {
                                     Divider()
-                                        .background(Color.white.opacity(0.05))
+                                        .background(Color.appSurfaceInset)
                                         .padding(.horizontal, 14)
                                 }
                             }
@@ -1066,7 +1066,7 @@ struct RecoveryView: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.07), lineWidth: 1))
+                    .stroke(Color.appSurfaceInset, lineWidth: 1))
             }
         }
     }
@@ -1262,7 +1262,7 @@ struct RecoveryView: View {
                             .padding(.horizontal, 16)
                             if i < log.count - 1 {
                                 Rectangle()
-                                    .fill(Color.white.opacity(0.06))
+                                    .fill(Color.appSurfaceInset)
                                     .frame(height: 0.5)
                                     .padding(.horizontal, 24)
                             }

@@ -59,7 +59,7 @@ struct HRVChart: View {
         let yy   = CGFloat(1.0 - frac) * h
         let val  = yMin + frac * yRng
         Path { p in p.move(to: CGPoint(x: kL, y: yy)); p.addLine(to: CGPoint(x: w, y: yy)) }
-            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+            .stroke(Color.appSurfaceInset, lineWidth: 0.5)
         Text(String(format: "%.0f", val))
             .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
             .frame(width: kL - 4, alignment: .trailing)
@@ -243,7 +243,7 @@ struct RHRChart: View {
         let yy   = CGFloat(1.0 - frac) * h
         let val  = yMin + frac * yRng
         Path { p in p.move(to: CGPoint(x: kL, y: yy)); p.addLine(to: CGPoint(x: w, y: yy)) }
-            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+            .stroke(Color.appSurfaceInset, lineWidth: 0.5)
         Text(String(format: "%.0f", val))
             .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
             .frame(width: kL - 4, alignment: .trailing)
@@ -454,7 +454,7 @@ struct SleepChart: View {
         let yy   = CGFloat(1.0 - frac) * h
         let val  = yMax * frac
         Path { p in p.move(to: CGPoint(x: kL, y: yy)); p.addLine(to: CGPoint(x: w, y: yy)) }
-            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+            .stroke(Color.appSurfaceInset, lineWidth: 0.5)
         Text(String(format: "%.0fh", val))
             .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
             .frame(width: kL - 4, alignment: .trailing)
@@ -617,7 +617,7 @@ struct StepsChart: View {
         let yy   = CGFloat(1.0 - frac) * h
         let val  = yMax * frac
         Path { p in p.move(to: CGPoint(x: kL, y: yy)); p.addLine(to: CGPoint(x: w, y: yy)) }
-            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+            .stroke(Color.appSurfaceInset, lineWidth: 0.5)
         Text(stepsLabel(val))
             .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
             .frame(width: kL - 4, alignment: .trailing)

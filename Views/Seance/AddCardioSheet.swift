@@ -83,7 +83,7 @@ struct AddCardioSheet: View {
 
                         Button(action: submit) {
                             HStack {
-                                if isLogging { ProgressView().tint(.white) }
+                                if isLogging { ProgressView().tint(.onAccent) }
                                 else { Image(systemName: "checkmark.circle.fill") }
                                 Text("Enregistrer Cardio").font(.appBody.weight(.semibold))
                             }

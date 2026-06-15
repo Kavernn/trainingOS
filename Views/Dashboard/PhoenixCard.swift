@@ -37,7 +37,7 @@ private struct PhoenixDetailSheet: View {
                     if let b = budget {
                         Text(b.insight)
                             .font(.appLabel.weight(.regular))
-                            .foregroundColor(.white.opacity(0.75))
+                            .foregroundColor(.appOnSurface.opacity(0.75))
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 4)
@@ -142,11 +142,11 @@ private struct PhoenixCardContent: View {
                 VStack(spacing: 6) {
                     Text("Commence une séance pour activer ton score")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(.appOnSurface.opacity(0.55))
                         .multilineTextAlignment(.center)
                     Text("Il apparaît après ta première semaine d'activité")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.28))
+                        .foregroundColor(.appOnSurface.opacity(0.28))
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, 4)
@@ -178,7 +178,7 @@ private struct PhoenixCardContent: View {
                 if let hint = priorityGuidance {
                     Text(hint)
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(.appOnSurface.opacity(0.45))
                         .multilineTextAlignment(.center)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -193,9 +193,9 @@ private struct PhoenixCardContent: View {
     @ViewBuilder
     private func axesSection(state: PhoenixState) -> some View {
         let g   = score.guidance
-        let div = Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1)
+        let div = Rectangle().fill(Color.appSurfaceInset).frame(width: 1)
         Rectangle()
-            .fill(Color.white.opacity(0.06))
+            .fill(Color.appSurfaceInset)
             .frame(height: 1)
         HStack(alignment: .top, spacing: 0) {
             PhoenixAxisPill(label: "CORPS",  delta: score.axes.workout.delta,   color: state.scoreColor,
@@ -234,7 +234,7 @@ private struct PhoenixCardContent: View {
     @ViewBuilder
     private func budgetSection(_ b: BodyBudgetResponse) -> some View {
         Rectangle()
-            .fill(Color.white.opacity(0.06))
+            .fill(Color.appSurfaceInset)
             .frame(height: 1)
         PillarRow(pillars: b.pillars)
             .padding(.horizontal, 12)
@@ -263,7 +263,7 @@ struct PhoenixAxisPill: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             if hasBaseline {
                 HStack(spacing: 2) {
                     Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
@@ -275,12 +275,12 @@ struct PhoenixAxisPill: View {
             } else {
                 Text("—")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.30))
+                    .foregroundColor(.appOnSurface.opacity(0.30))
             }
             if let g = guidance {
                 Text(g)
                     .font(.appMicro)
-                    .foregroundColor(.white.opacity(0.40))
+                    .foregroundColor(.appOnSurface.opacity(0.40))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -306,10 +306,10 @@ struct PhoenixAxisPillInactive: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)
-                .foregroundColor(.white.opacity(0.20))
+                .foregroundColor(.appOnSurface.opacity(0.20))
             Text("—")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundColor(.white.opacity(0.20))
+                .foregroundColor(.appOnSurface.opacity(0.20))
         }
         .frame(maxWidth: .infinity)
     }
@@ -457,7 +457,7 @@ fileprivate func drawSupernova(_ ctx: inout GraphicsContext, size: CGSize, seeds
     }
     let corePulse = 0.5 + 0.5 * sin(t * 3.0)
     let coreRect = CGRect(x: cx - 8, y: cy - 8, width: 16, height: 16)
-    ctx.fill(Path(ellipseIn: coreRect), with: .color(Color.white.opacity(0.6 * corePulse)))
+    ctx.fill(Path(ellipseIn: coreRect), with: .color(Color.appOnSurface.opacity(0.6 * corePulse)))
     let haloRect = CGRect(x: cx - 20, y: cy - 20, width: 40, height: 40)
     ctx.fill(Path(ellipseIn: haloRect), with: .color(Color(hex: "FFD700").opacity(0.15 * corePulse)))
 }

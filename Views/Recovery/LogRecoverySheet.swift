@@ -104,7 +104,7 @@ struct LogRecoverySheet: View {
                         Button(action: fillFromHealthKit) {
                             HStack(spacing: 8) {
                                 if isLoadingHK {
-                                    ProgressView().tint(.white).scaleEffect(0.8)
+                                    ProgressView().tint(.onAccent).scaleEffect(0.8)
                                 } else {
                                     Image(systemName: "heart.text.square.fill")
                                         .font(.appBody)

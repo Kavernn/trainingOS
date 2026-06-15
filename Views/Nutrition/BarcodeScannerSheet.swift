@@ -24,12 +24,12 @@ struct BarcodeScannerSheet: View {
                         VStack {
                             Spacer()
                             RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(.white.opacity(0.75), lineWidth: 2)
+                                .strokeBorder(.appOnSurface.opacity(0.75), lineWidth: 2)
                                 .frame(width: 280, height: 110)
-                                .shadow(color: .white.opacity(0.15), radius: 8)
+                                .shadow(color: .appOnSurface.opacity(0.15), radius: 8)
                             Text("Pointe vers le code-barres")
                                 .font(.appLabel)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.appOnSurface.opacity(0.8))
                                 .padding(.top, 12)
                             Spacer()
                         }
@@ -59,7 +59,7 @@ struct BarcodeScannerSheet: View {
                         }
                     }
                 } else {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(.onAccent)
                 }
             }
             .navigationTitle("Scanner")

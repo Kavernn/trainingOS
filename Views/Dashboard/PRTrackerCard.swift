@@ -12,7 +12,7 @@ struct PRTrackerCard: View {
                 HStack(spacing: 6) {
                     Text("RECORDS PERSONNELS")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundColor(.appOnSurface.opacity(0.35))
                     Spacer()
                     if data.totalPrs > 0 {
                         HStack(spacing: 4) {
@@ -26,12 +26,12 @@ struct PRTrackerCard: View {
                         .clipShape(Capsule())
                     }
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.white.opacity(0.22))
+                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
                 }
 
                 if data.recentPrs.isEmpty {
                     Text(data.message)
-                        .font(.appCaption).foregroundColor(.white.opacity(0.40))
+                        .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.40))
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(data.recentPrs.prefix(3), id: \.name) { pr in
@@ -63,7 +63,7 @@ private struct PRRow: View {
                 .frame(width: 14)
             Text(pr.name)
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(.white.opacity(0.75))
+                .foregroundColor(.appOnSurface.opacity(0.75))
                 .lineLimit(1)
             Spacer()
             Text(String(format: "%.0f lbs", pr.est1rm))
@@ -113,15 +113,15 @@ private struct PRSummaryBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("RECORDS — 30 DERNIERS JOURS")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 Text(data.message)
-                    .font(.appCaption).foregroundColor(.white.opacity(0.55))
+                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Text("\(data.totalPrs)")
                 .font(.appCardHero)
-                .foregroundColor(data.totalPrs > 0 ? Color.appWarning : .white.opacity(0.30))
+                .foregroundColor(data.totalPrs > 0 ? Color.appWarning : .appOnSurface.opacity(0.30))
         }
         .padding(14)
         .glassCard()
@@ -135,16 +135,16 @@ private struct PRListCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("NOUVEAUX RECORDS")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             ForEach(prs, id: \.name) { pr in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(pr.name)
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.80))
+                            .foregroundColor(.appOnSurface.opacity(0.80))
                         Text(pr.date)
                             .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.30))
+                            .foregroundColor(.appOnSurface.opacity(0.30))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
@@ -154,13 +154,13 @@ private struct PRListCard: View {
                         if let prev = pr.prevBest {
                             Text(String(format: "Préc. %.0f", prev))
                                 .font(.appMicro)
-                                .foregroundColor(.white.opacity(0.28))
+                                .foregroundColor(.appOnSurface.opacity(0.28))
                         }
                     }
                 }
                 .padding(.vertical, 4)
                 if pr.name != prs.last?.name {
-                    Divider().overlay(Color.white.opacity(0.07))
+                    Divider().overlay(Color.appSurfaceInset)
                 }
             }
         }
@@ -176,9 +176,9 @@ private struct PRExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Text("Un PR est détecté quand le 1RM estimé (Epley) des 30 derniers jours atteint ou dépasse le maximum des 180 derniers jours. \(tracked) exercices suivis.")
-                .font(.appCaption).foregroundColor(.white.opacity(0.52))
+                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

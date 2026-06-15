@@ -130,7 +130,7 @@ struct PlateCalculatorSheet: View {
                                             .foregroundColor(.appTextPrimary)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 10)
-                                            .background(Color.white.opacity(0.06))
+                                            .background(Color.appSurfaceInset)
                                             .clipShape(RoundedRectangle(cornerRadius: 10))
                                     }
                                     .buttonStyle(SpringButtonStyle())

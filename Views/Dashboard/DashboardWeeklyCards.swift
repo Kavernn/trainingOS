@@ -27,7 +27,7 @@ struct WeeklyReportTeaser: View {
                     }
                 }
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.appOnSurface.opacity(0.85))
             }
             Spacer()
             Image(systemName: "chevron.right")
@@ -70,7 +70,7 @@ struct WeeklyReportView: View {
                             .font(.appCaption.weight(.bold)).tracking(2)
                             .foregroundColor(.gray)
                         Text("\(report.weekStart) → \(report.weekEnd)")
-                            .font(.appLabel.weight(.regular)).foregroundColor(.white.opacity(0.5))
+                            .font(.appLabel.weight(.regular)).foregroundColor(.appOnSurface.opacity(0.5))
                     }
                     .padding(.top, 8)
 
@@ -103,7 +103,7 @@ struct WeeklyReportView: View {
                         let scoreColor: Color = score >= 75 ? .statusGreen : score >= 50 ? .statusOrange : .appDanger
                         HStack(spacing: 20) {
                             ZStack {
-                                Circle().stroke(Color.white.opacity(0.07), lineWidth: 8).frame(width: 70, height: 70)
+                                Circle().stroke(Color.appSurfaceInset, lineWidth: 8).frame(width: 70, height: 70)
                                 Circle()
                                     .trim(from: 0, to: CGFloat(score) / 100)
                                     .stroke(scoreColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
@@ -171,7 +171,7 @@ struct WeeklyReportView: View {
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "arrow.right.circle.fill")
                                         .font(.appCaption).foregroundColor(.statusPurple)
-                                    Text(tip).font(.appLabel.weight(.regular)).foregroundColor(.white.opacity(0.85))
+                                    Text(tip).font(.appLabel.weight(.regular)).foregroundColor(.appOnSurface.opacity(0.85))
                                         .fixedSize(horizontal: false, vertical: true)
                                     Spacer()
                                 }
@@ -262,8 +262,8 @@ struct QuickLogChip: View {
                     .foregroundColor(done ? Color.gray : .white)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(done ? Color.white.opacity(0.05) : color.opacity(0.12))
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(done ? Color.white.opacity(0.08) : color.opacity(0.3), lineWidth: 1))
+            .background(done ? Color.appSurfaceInset : color.opacity(0.12))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(done ? Color.appSurfaceInset : color.opacity(0.3), lineWidth: 1))
             .cornerRadius(20)
         }
         .buttonStyle(.plain)
@@ -289,7 +289,7 @@ struct ActivityRingCard: View {
             ZStack {
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .stroke(Color.appSurfaceInset, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .rotationEffect(.degrees(135))
                 Circle()
                     .trim(from: 0, to: 0.75 * progress)
@@ -330,7 +330,7 @@ struct ActivityRingCard: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .background(Color.white.opacity(0.04))
+        .background(Color.appSurfaceInset)
         .cornerRadius(14)
     }
 }

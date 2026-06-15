@@ -30,7 +30,7 @@ struct RecoveryScoreChart: View {
                     ForEach([5.0, 7.5, 10.0], id: \.self) { level in
                         let y = geo.size.height * (1 - level / maxS)
                         Path { p in p.move(to: CGPoint(x: 0, y: y)); p.addLine(to: CGPoint(x: geo.size.width, y: y)) }
-                            .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                            .stroke(Color.appSurfaceInset, lineWidth: 1)
                     }
                     if scores.count > 1 {
                         Path { path in
@@ -156,7 +156,7 @@ struct RecoveryCompositeScoreView: View {
                         ForEach([45.0, 70.0], id: \.self) { threshold in
                             let y = geo.size.height * (1 - CGFloat(threshold / maxS))
                             Path { p in p.move(to: .init(x: 0, y: y)); p.addLine(to: .init(x: geo.size.width, y: y)) }
-                                .stroke(Color.white.opacity(0.07), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                                .stroke(Color.appSurfaceInset, style: StrokeStyle(lineWidth: 1, dash: [4]))
                         }
                         Path { p in
                             for (i, pt) in points.enumerated() {
@@ -166,7 +166,7 @@ struct RecoveryCompositeScoreView: View {
                                 else { p.addLine(to: .init(x: x, y: y)) }
                             }
                         }
-                        .stroke(AppTheme.shared.selectedTheme == .monochrome ? Color.white.opacity(0.6) : Color.statusCyan, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                        .stroke(AppTheme.shared.selectedTheme == .monochrome ? Color.appOnSurface.opacity(0.6) : Color.statusCyan, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
 
                         ForEach(Array(points.enumerated()), id: \.0) { i, pt in
                             let c: Color = pt.1 >= 70 ? Color.appSuccess : pt.1 >= 45 ? Color.appWarning : Color.appDanger
@@ -239,7 +239,7 @@ struct ScatterPlotView: View {
                             let y = geo.size.height * CGFloat(1 - f)
                             p.move(to: .init(x: 0, y: y)); p.addLine(to: .init(x: geo.size.width, y: y))
                         }
-                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        .stroke(Color.appSurfaceInset, lineWidth: 1)
                     }
                     // Regression line
                     if data.count >= 5 && abs(r) >= 0.2 {
@@ -542,7 +542,7 @@ struct HRVBaselineCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("MOY. 7J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f ms", avg7))
-                            .font(.system(size: 18, weight: .black)).foregroundColor(.white.opacity(0.8))
+                            .font(.system(size: 18, weight: .black)).foregroundColor(.appOnSurface.opacity(0.8))
                     }
                 }
                 if let baseline = data.hrv30dAvg {
@@ -615,7 +615,7 @@ struct SorenessThresholdCard: View {
 
             if let msg = data.message {
                 Text(msg)
-                    .font(.appLabel).foregroundColor(.white.opacity(0.85))
+                    .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -680,7 +680,7 @@ struct SleepPerformanceInsightView: View {
             if let msg = insight {
                 Text(msg)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(.appOnSurface.opacity(0.85))
                     .padding(.horizontal, 16)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -891,7 +891,7 @@ struct StressCravingsInsightView: View {
             }
             Text(insightText)
                 .font(.appLabel.weight(.semibold))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.appOnSurface.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16).glassCard(color: Color.forge, intensity: 0.04)
@@ -972,10 +972,10 @@ struct SleepDebtCard: View {
                         }
                     }
                 }
-                Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+                Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
                 Text(insightText)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.appOnSurface.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1017,10 +1017,10 @@ struct RecoveryProfileCard: View {
                     Text("(\(sampleSize) séances)").font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
                 }
             }
-            Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+            Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
             Text(insightText)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.appOnSurface.opacity(0.8))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16).glassCard()

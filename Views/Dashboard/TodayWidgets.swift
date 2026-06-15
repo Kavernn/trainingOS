@@ -207,7 +207,7 @@ struct XPChipView: View {
                         Spacer()
                         Text("\(xpInLevel) / 1500 XP")
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.45))
+                            .foregroundColor(.appOnSurface.opacity(0.45))
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {

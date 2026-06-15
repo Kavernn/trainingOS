@@ -52,7 +52,7 @@ struct WeekMomentumStrip: View {
                         VStack(spacing: 4) {
                             ZStack {
                                 Circle()
-                                    .fill(dot.hasSession ? Color.forge : Color.white.opacity(0.07))
+                                    .fill(dot.hasSession ? Color.forge : Color.appSurfaceInset)
                                     .frame(width: 30, height: 30)
                                 if dot.isToday {
                                     Circle()
@@ -67,7 +67,7 @@ struct WeekMomentumStrip: View {
                             }
                             Text(dot.letter)
                                 .font(.appMicro.weight(.medium))
-                                .foregroundColor(dot.isToday ? Color.forge : Color.white.opacity(0.3))
+                                .foregroundColor(dot.isToday ? Color.forge : Color.appOnSurface.opacity(0.3))
                         }
                     }
                 }
@@ -85,7 +85,7 @@ struct WeekMomentumStrip: View {
                     }
                     Text("\(weekCount)/7 jours")
                         .font(.appCaption)
-                        .foregroundColor(Color.white.opacity(0.38))
+                        .foregroundColor(Color.appOnSurface.opacity(0.38))
                 }
             }
 
@@ -99,7 +99,7 @@ struct WeekMomentumStrip: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(streak >= 5 ? Color.forge.opacity(0.25) : Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(streak >= 5 ? Color.forge.opacity(0.25) : Color.appSurfaceInset, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }

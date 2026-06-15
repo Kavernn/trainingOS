@@ -138,12 +138,12 @@ struct DisplaySettingsView: View {
                         .foregroundColor(hasChange ? pendingTheme.previewColor : .statusGreen)
                     Text(hasChange ? "Appliquer « \(pendingTheme.displayName) »" : "Thème appliqué")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(hasChange ? .white : .white.opacity(0.35))
+                        .foregroundColor(hasChange ? .white : .appOnSurface.opacity(0.35))
                     Spacer()
                     if hasChange {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.3))
+                            .foregroundColor(.appOnSurface.opacity(0.3))
                     }
                 }
                 .padding(.vertical, 4)
@@ -167,7 +167,7 @@ struct DisplaySettingsView: View {
                         .frame(width: 40, height: 40)
                         .overlay(
                             Circle()
-                                .strokeBorder(Color.white.opacity(isPending ? 0.9 : 0.15),
+                                .strokeBorder(Color.appOnSurface.opacity(isPending ? 0.9 : 0.15),
                                               lineWidth: isPending ? 2.5 : 1)
                         )
                     if isApplied {
@@ -182,16 +182,16 @@ struct DisplaySettingsView: View {
 
                 Text(option.displayName)
                     .font(.system(size: 11, weight: isPending ? .bold : .regular))
-                    .foregroundColor(isPending ? .white : .white.opacity(0.4))
+                    .foregroundColor(isPending ? .white : .appOnSurface.opacity(0.4))
             }
             .frame(width: 64)
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isPending ? Color.white.opacity(0.07) : Color.clear)
+                    .fill(isPending ? Color.appSurfaceInset : Color.clear)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(isPending ? Color.white.opacity(0.4) : Color.clear,
+                            .strokeBorder(isPending ? Color.appOnSurface.opacity(0.4) : Color.clear,
                                           lineWidth: 1.5)
                     )
             )

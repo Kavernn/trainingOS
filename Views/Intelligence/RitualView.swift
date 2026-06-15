@@ -501,7 +501,7 @@ struct RitualHeatMapView: View {
         return ZStack {
             RoundedRectangle(cornerRadius: 4).fill(color)
             if isToday {
-                RoundedRectangle(cornerRadius: 4).stroke(Color.white.opacity(0.4), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 4).stroke(Color.appOnSurface.opacity(0.4), lineWidth: 1)
             }
             Text("\(day)").font(.appMicro).foregroundColor(outcome != nil ? .white : Color(white: 0.25))
         }

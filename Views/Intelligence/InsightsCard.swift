@@ -90,7 +90,7 @@ struct CorrelationRow: View {
 
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.white.opacity(0.07))
+                        .fill(Color.appSurfaceInset)
                         .frame(height: 4)
 
                     RoundedRectangle(cornerRadius: 2)
@@ -99,7 +99,7 @@ struct CorrelationRow: View {
                         .offset(x: offX)
 
                     Rectangle()
-                        .fill(Color.white.opacity(0.3))
+                        .fill(Color.appOnSurface.opacity(0.3))
                         .frame(width: 1, height: 8)
                         .offset(x: mid - 0.5, y: -2)
                 }
@@ -111,7 +111,7 @@ struct CorrelationRow: View {
                 Spacer()
                 Text("n=\(insight.nPoints)")
                     .font(.system(size: 10))
-                    .foregroundColor(Color.white.opacity(0.25))
+                    .foregroundColor(Color.appOnSurface.opacity(0.25))
             }
             .padding(.leading, 28)
         }

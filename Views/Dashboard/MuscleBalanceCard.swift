@@ -33,14 +33,14 @@ struct MuscleBalanceCard: View {
         HStack(spacing: 6) {
             Text("ÉQUILIBRE MUSCULAIRE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Spacer()
             if let top = data.topCategory {
                 TopCatBadge(icon: data.topCategoryIcon, label: data.topCategoryLabel)
             }
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.22))
+                .foregroundColor(.appOnSurface.opacity(0.22))
         }
     }
 
@@ -159,11 +159,11 @@ private struct RatioBreakdownCard: View {
             HStack {
                 Text("RÉPARTITION")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 Spacer()
                 Text("\(totalAnalyzed) exercices analysés")
                     .font(.appMicro)
-                    .foregroundColor(.white.opacity(0.28))
+                    .foregroundColor(.appOnSurface.opacity(0.28))
             }
             ForEach(rows, id: \.1) { icon, label, color, pct in
                 MuscleCatRow(icon: icon, label: label, color: color, pct: pct)
@@ -188,11 +188,11 @@ private struct MuscleCatRow: View {
                 .frame(width: 16)
             Text(label)
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(.appOnSurface.opacity(0.65))
             Spacer()
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08))
+                    RoundedRectangle(cornerRadius: 3).fill(Color.appSurfaceInset)
                     RoundedRectangle(cornerRadius: 3)
                         .fill(color.opacity(0.70))
                         .frame(width: geo.size.width * CGFloat(pct) / 100)
@@ -215,7 +215,7 @@ private struct ImbalancesCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("DÉSÉQUILIBRES DÉTECTÉS")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             ForEach(imbalances, id: \.key) { imb in
                 HStack(spacing: 10) {
                     Image(systemName: imb.icon)
@@ -225,10 +225,10 @@ private struct ImbalancesCard: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(imb.label)
                             .font(.appLabel.weight(.medium))
-                            .foregroundColor(.white.opacity(0.75))
+                            .foregroundColor(.appOnSurface.opacity(0.75))
                         Text(imb.detail)
                             .font(.appMicro)
-                            .foregroundColor(.white.opacity(0.32))
+                            .foregroundColor(.appOnSurface.opacity(0.32))
                     }
                 }
             }
@@ -243,10 +243,10 @@ private struct BalanceLegendCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("ÉQUILIBRE IDÉAL")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Text("Un programme équilibré vise un ratio push/pull proche de 1:1, avec au moins 15% de volume legs. Le core et le cardio complètent selon tes objectifs.")
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.52))
+                .foregroundColor(.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

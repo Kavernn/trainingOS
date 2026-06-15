@@ -236,7 +236,7 @@ struct NutritionPatternsCard: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                Divider().frame(height: 44).background(Color.white.opacity(0.07))
+                Divider().frame(height: 44).background(Color.appSurfaceInset)
 
                 VStack(alignment: .center, spacing: 4) {
                     Text("\(Int(avgProt))g")
@@ -248,7 +248,7 @@ struct NutritionPatternsCard: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                Divider().frame(height: 44).background(Color.white.opacity(0.07))
+                Divider().frame(height: 44).background(Color.appSurfaceInset)
 
                 VStack(alignment: .center, spacing: 4) {
                     Text("\(bestStreak)")
@@ -397,7 +397,7 @@ struct MacroGapCard: View {
                             }
                         }
                         .padding(.horizontal, 10).padding(.vertical, 7)
-                        .background(Color.white.opacity(0.04))
+                        .background(Color.appSurfaceInset)
                         .cornerRadius(8)
                     }
                 }
@@ -561,7 +561,7 @@ private struct NutritionCorrInsightRow: View {
                     .foregroundColor(.appTextSecondary)
                 Text(title)
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(.appOnSurface.opacity(0.85))
             }
             HStack(spacing: 0) {
                 VStack(spacing: 2) {
@@ -595,7 +595,7 @@ private struct NutritionCorrInsightRow: View {
             }
         }
         .padding(10)
-        .background(Color.white.opacity(0.04))
+        .background(Color.appSurfaceInset)
         .cornerRadius(10)
     }
 }

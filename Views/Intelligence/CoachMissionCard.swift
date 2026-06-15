@@ -94,9 +94,9 @@ struct CoachMissionCard: View {
                 Button(action: onRefreshBrief) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color.white.opacity(0.3))
+                        .foregroundColor(Color.appOnSurface.opacity(0.3))
                         .frame(width: 38, height: 38)
-                        .background(Color.white.opacity(0.06))
+                        .background(Color.appSurfaceInset)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
@@ -129,7 +129,7 @@ private struct MissionShimmer: View {
         VStack(alignment: .leading, spacing: 9) {
             ForEach(0..<4, id: \.self) { i in
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.white.opacity(opacity))
+                    .fill(Color.appOnSurface.opacity(opacity))
                     .frame(maxWidth: i == 3 ? 140 : .infinity)
                     .frame(height: 12)
             }

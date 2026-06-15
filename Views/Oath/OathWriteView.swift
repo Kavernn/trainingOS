@@ -39,34 +39,34 @@ struct OathWriteView: View {
                     VStack(spacing: 20) {
                         Text("TON SERMENT ACTUEL")
                             .font(.system(size: 10, weight: .light, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.3))
+                            .foregroundStyle(.appOnSurface.opacity(0.3))
                             .tracking(4)
                         Text("\u{201C}\(old.text)\u{201D}")
                             .font(.system(size: 16, weight: .light, design: .serif))
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(.appOnSurface.opacity(0.5))
                             .multilineTextAlignment(.center)
                             .lineSpacing(5)
                             .padding(.horizontal, 32)
                     }
                     Divider()
-                        .background(.white.opacity(0.1))
+                        .background(.appOnSurface.opacity(0.1))
                         .padding(.horizontal, 40)
                     Text("Réécrire un serment est un acte grave.\nChaque version est archivée.")
                         .font(.system(size: 14, weight: .light))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.appOnSurface.opacity(0.5))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
                 } else {
                     Image(systemName: "seal")
                         .font(.system(size: 52, weight: .ultraLight))
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(.appOnSurface.opacity(0.3))
                     VStack(spacing: 12) {
                         Text("Un serment définit qui tu deviens.")
                             .font(.system(size: 18, weight: .light))
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.appOnSurface.opacity(0.8))
                         Text("Ces mots n'appartiennent qu'à toi.\nIls ne seront jamais partagés.")
                             .font(.system(size: 14, weight: .light))
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(.appOnSurface.opacity(0.4))
                             .multilineTextAlignment(.center)
                     }
                 }
@@ -78,13 +78,13 @@ struct OathWriteView: View {
             HStack {
                 Button("Annuler") { onDone() }
                     .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(.appOnSurface.opacity(0.3))
                 Spacer()
                 Button(isRewrite ? "Réécrire" : "Continuer") {
                     withAnimation { step = .writing }
                 }
                 .font(.system(size: 14, weight: .medium, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(.appOnSurface.opacity(0.8))
                 .tracking(1)
             }
             .padding(.horizontal, 32)
@@ -101,13 +101,13 @@ struct OathWriteView: View {
                     withAnimation { step = .intro }
                 } label: {
                     Image(systemName: "chevron.left")
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(.appOnSurface.opacity(0.4))
                         .font(.system(size: 16))
                 }
                 Spacer()
                 Text("\(wordCount) mot\(wordCount != 1 ? "s" : "")")
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.white.opacity(wordCount >= 10 ? 0.5 : 0.25))
+                    .foregroundStyle(.appOnSurface.opacity(wordCount >= 10 ? 0.5 : 0.25))
             }
             .padding(.horizontal, 24)
             .padding(.top, 60)
@@ -117,7 +117,7 @@ struct OathWriteView: View {
                 if oathText.isEmpty {
                     Text("Écris ton serment ici…")
                         .font(.system(size: 18, weight: .light, design: .serif))
-                        .foregroundStyle(.white.opacity(0.2))
+                        .foregroundStyle(.appOnSurface.opacity(0.2))
                         .padding(.horizontal, 4)
                         .padding(.top, 8)
                 }
@@ -126,7 +126,7 @@ struct OathWriteView: View {
                     .foregroundStyle(Color.appTextPrimary)                    .scrollContentBackground(.hidden)
                     .background(.clear)
                     .lineSpacing(5)
-                    .tint(.white.opacity(0.6))
+                    .tint(.appOnSurface.opacity(0.6))
             }
             .padding(.horizontal, 24)
 
@@ -138,11 +138,11 @@ struct OathWriteView: View {
             } label: {
                 Text("SCELLER")
                     .font(.system(size: 13, weight: .medium, design: .monospaced))
-                    .foregroundStyle(wordCount >= 10 ? .black : .white.opacity(0.2))
+                    .foregroundStyle(wordCount >= 10 ? .black : .appOnSurface.opacity(0.2))
                     .tracking(3)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(wordCount >= 10 ? .white : .white.opacity(0.05),
+                    .background(wordCount >= 10 ? .white : .appOnSurface.opacity(0.05),
                                 in: RoundedRectangle(cornerRadius: 2))
             }
             .disabled(wordCount < 10 || isSaving)
@@ -168,7 +168,7 @@ struct OathWriteView: View {
             VStack(spacing: 32) {
                 Image(systemName: "seal.fill")
                     .font(.system(size: 48, weight: .ultraLight))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.appOnSurface.opacity(0.6))
 
                 if let s = sealed {
                     Text("\u{201C}\(s.text)\u{201D}")
@@ -180,7 +180,7 @@ struct OathWriteView: View {
 
                 Text("Scellé.")
                     .font(.system(size: 11, weight: .light, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.appOnSurface.opacity(0.4))
                     .tracking(4)
             }
             Spacer()
@@ -189,13 +189,13 @@ struct OathWriteView: View {
             } label: {
                 Text("Je suis prêt")
                     .font(.system(size: 14, weight: .light, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.appOnSurface.opacity(0.7))
                     .tracking(2)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 14)
                     .overlay(
                         RoundedRectangle(cornerRadius: 2)
-                            .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+                            .strokeBorder(.appOnSurface.opacity(0.2), lineWidth: 0.5)
                     )
             }
             .padding(.bottom, 60)

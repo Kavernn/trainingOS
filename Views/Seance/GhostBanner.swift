@@ -54,7 +54,7 @@ struct GhostBanner: View {
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.07)).frame(height: 5)
+                    Capsule().fill(Color.appSurfaceInset).frame(height: 5)
                     Capsule()
                         .fill(beaten
                             ? LinearGradient(colors: [Color.forge, Color.forgeDeep], startPoint: .leading, endPoint: .trailing)

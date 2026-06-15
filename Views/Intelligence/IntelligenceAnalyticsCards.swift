@@ -31,7 +31,7 @@ struct OvertrainingRiskCard: View {
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.08)).frame(height: 6)
+                    RoundedRectangle(cornerRadius: 3).fill(Color.appSurfaceInset).frame(height: 6)
                     RoundedRectangle(cornerRadius: 3).fill(riskColor)
                         .frame(width: geo.size.width * CGFloat(min(risk.riskScore, 6)) / 6, height: 6)
                 }
@@ -43,7 +43,7 @@ struct OvertrainingRiskCard: View {
                     ForEach(risk.flags, id: \.self) { flag in
                         HStack(spacing: 6) {
                             Circle().fill(riskColor).frame(width: 5, height: 5)
-                            Text(flag).font(.system(size: 12)).foregroundColor(.white.opacity(0.8))
+                            Text(flag).font(.system(size: 12)).foregroundColor(.appOnSurface.opacity(0.8))
                         }
                     }
                 }
@@ -89,7 +89,7 @@ struct MesocycleStatusCard: View {
             }
 
             Text(status.description)
-                .font(.appLabel).foregroundColor(.white.opacity(0.85))
+                .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.85))
 
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -196,7 +196,7 @@ struct OneRMProgrammingCard: View {
                                 }
                             }
                             .padding(10)
-                            .background(selected == ex.exercise ? Color.statusPurple.opacity(0.15) : Color.white.opacity(0.05))
+                            .background(selected == ex.exercise ? Color.statusPurple.opacity(0.15) : Color.appSurfaceInset)
                             .cornerRadius(10)
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(selected == ex.exercise ? Color.statusPurple.opacity(0.4) : Color.clear, lineWidth: 1))
                         }

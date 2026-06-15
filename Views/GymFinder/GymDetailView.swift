@@ -28,12 +28,12 @@ struct GymDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Fermer") { dismiss() }
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(.appOnSurface.opacity(0.6))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { vm.toggleFavorite(gym) } label: {
                         Image(systemName: vm.isFavorite(gym) ? "star.fill" : "star")
-                            .foregroundColor(vm.isFavorite(gym) ? Color.forge : .white.opacity(0.5))
+                            .foregroundColor(vm.isFavorite(gym) ? Color.forge : .appOnSurface.opacity(0.5))
                     }
                 }
             }
@@ -73,10 +73,10 @@ struct GymDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: "mappin.circle")
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 Text(gym.address)
                     .font(.appLabel.weight(.regular))
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(.appOnSurface.opacity(0.55))
             }
 
             if let d = gym.distanceMeters {
@@ -119,16 +119,16 @@ struct GymDetailView: View {
             if let hours = gym.openingHours {
                 Text(hours)
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(.appOnSurface.opacity(0.5))
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Appelle pour confirmer avant de te déplacer.")
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.25))
+                    .foregroundColor(.appOnSurface.opacity(0.25))
                     .italic()
             } else {
                 Text("Horaires non disponibles — appelle pour confirmer.")
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                     .italic()
             }
         }
@@ -168,7 +168,7 @@ struct GymDetailView: View {
                                     .foregroundColor(.statusGreen)
                                 Text(eq.label)
                                     .font(.appCaption.weight(.medium))
-                                    .foregroundColor(.white.opacity(0.8))
+                                    .foregroundColor(.appOnSurface.opacity(0.8))
                                 Spacer()
                             }
                             .padding(.horizontal, 8)
@@ -191,7 +191,7 @@ struct GymDetailView: View {
                 if let last = cs.lastUpdated {
                     Text("Mis à jour \(last)")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.25))
+                        .foregroundColor(.appOnSurface.opacity(0.25))
                 }
             }
             .padding(14)
@@ -204,18 +204,18 @@ struct GymDetailView: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label)
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(.appOnSurface.opacity(0.4))
             HStack(spacing: 3) {
                 ForEach(1...5, id: \.self) { i in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(i <= value ? Color.forge : Color.white.opacity(0.1))
+                        .fill(i <= value ? Color.forge : Color.appSurfaceInset)
                         .frame(width: 16, height: 5)
                 }
             }
             HStack {
-                Text(low).font(.appMicro).foregroundColor(.white.opacity(0.25))
+                Text(low).font(.appMicro).foregroundColor(.appOnSurface.opacity(0.25))
                 Spacer()
-                Text(high).font(.appMicro).foregroundColor(.white.opacity(0.25))
+                Text(high).font(.appMicro).foregroundColor(.appOnSurface.opacity(0.25))
             }
             .frame(width: 16 * 5 + 3 * 4)
         }
@@ -328,7 +328,7 @@ struct AdaptWorkoutSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.white.opacity(0.5))
+                    Button("Fermer") { dismiss() }.foregroundColor(.appOnSurface.opacity(0.5))
                 }
             }
         }
@@ -339,7 +339,7 @@ struct AdaptWorkoutSheet: View {
     private var profilePicker: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PROFIL D'ÉQUIPEMENT")
-                .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.appOnSurface.opacity(0.35))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -353,7 +353,7 @@ struct AdaptWorkoutSheet: View {
                                     .font(.appCaption.weight(.medium))
                                     .lineLimit(1)
                             }
-                            .foregroundColor(selected ? .black : .white.opacity(0.65))
+                            .foregroundColor(selected ? .black : .appOnSurface.opacity(0.65))
                             .padding(.horizontal, 12).padding(.vertical, 9)
                             .background(selected ? Color.forge : Color.appCard)
                             .cornerRadius(10)
@@ -369,7 +369,7 @@ struct AdaptWorkoutSheet: View {
                                 Text("Auto (communauté)")
                                     .font(.appCaption.weight(.medium)).lineLimit(1)
                             }
-                            .foregroundColor(autoSelected ? .black : .white.opacity(0.65))
+                            .foregroundColor(autoSelected ? .black : .appOnSurface.opacity(0.65))
                             .padding(.horizontal, 12).padding(.vertical, 9)
                             .background(autoSelected ? Color.forge : Color.appCard)
                             .cornerRadius(10)
@@ -389,7 +389,7 @@ struct AdaptWorkoutSheet: View {
         let needed = vm.workoutEquipmentSuggestion
         return VStack(alignment: .leading, spacing: 10) {
             Text("ÉQUIPEMENT REQUIS")
-                .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.appOnSurface.opacity(0.35))
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(needed, id: \.rawValue) { eq in
@@ -398,7 +398,7 @@ struct AdaptWorkoutSheet: View {
                         Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
                             .font(.appLabel.weight(.regular)).foregroundColor(ok ? .statusGreen : .statusRed)
                         Text(eq.label)
-                            .font(.appCaption.weight(.medium)).foregroundColor(.white.opacity(0.8))
+                            .font(.appCaption.weight(.medium)).foregroundColor(.appOnSurface.opacity(0.8))
                         Spacer()
                     }
                     .padding(8)
@@ -409,7 +409,7 @@ struct AdaptWorkoutSheet: View {
 
             if available.isEmpty && gym.crowdsource == nil {
                 Text("Aucune donnée communauté pour ce gym — sélectionne un profil ci-dessus.")
-                    .font(.appCaption).foregroundColor(.white.opacity(0.35)).italic()
+                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.35)).italic()
             }
         }
         .padding(14).background(Color.appCard).cornerRadius(14)
@@ -424,7 +424,7 @@ struct AdaptWorkoutSheet: View {
         if !subs.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 Text("SUBSTITUTIONS SUGGÉRÉES")
-                    .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                    .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.appOnSurface.opacity(0.35))
 
                 ForEach(subs) { sub in
                     VStack(alignment: .leading, spacing: 6) {
@@ -433,7 +433,7 @@ struct AdaptWorkoutSheet: View {
                                 .font(.appCaption).foregroundColor(Color.statusRed.opacity(0.8))
                                 .strikethrough()
                             Image(systemName: "arrow.right")
-                                .font(.appCaption).foregroundColor(.white.opacity(0.3))
+                                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.3))
                             Text(sub.substitute)
                                 .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             Spacer()
@@ -442,16 +442,16 @@ struct AdaptWorkoutSheet: View {
                         }
                         HStack(spacing: 4) {
                             Image(systemName: "dumbbell.fill")
-                                .font(.appMicro).foregroundColor(.white.opacity(0.3))
+                                .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.3))
                             Text(sub.equipment)
-                                .font(.appCaption).foregroundColor(.white.opacity(0.4))
+                                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.4))
                         }
                         if let note = sub.note {
                             Text(note)
-                                .font(.appCaption).foregroundColor(.white.opacity(0.35)).italic()
+                                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.35)).italic()
                         }
                     }
-                    .padding(10).background(Color.white.opacity(0.04)).cornerRadius(10)
+                    .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                 }
             }
             .padding(14).background(Color.appCard).cornerRadius(14)
@@ -467,7 +467,7 @@ struct AdaptWorkoutSheet: View {
             Image(systemName: "flame.fill")
                 .font(.appLabel.weight(.regular)).foregroundColor(Color.forge).padding(.top, 1)
             Text(WorkoutSubstitutionEngine.coachMessage(missing: missing))
-                .font(.appLabel).foregroundColor(.white.opacity(0.85))
+                .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)

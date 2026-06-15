@@ -180,7 +180,7 @@ struct MuscleBreakdownView: View {
                             let barW = outer.size.width - 168
                             ZStack(alignment: .leading) {
                                 RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.white.opacity(0.06))
+                                    .fill(Color.appSurfaceInset)
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(freshnessColor(daysSince(entry.lastDate)).opacity(0.7))
                                     .frame(width: barW * CGFloat(entry.volume / maxVolume))
@@ -190,7 +190,7 @@ struct MuscleBreakdownView: View {
                             VStack(alignment: .trailing, spacing: 1) {
                                 Text(formatVol(entry.volume))
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.white.opacity(0.8))
+                                    .foregroundColor(.appOnSurface.opacity(0.8))
                                 if let days = daysSince(entry.lastDate) {
                                     Text(days == 0 ? "auj." : "\(days)j")
                                         .font(.appMicro)
@@ -445,17 +445,17 @@ struct VolumeLandmarksCard: View {
 
                             ZStack(alignment: .leading) {
                                 RoundedRectangle(cornerRadius: 3)
-                                    .fill(Color.white.opacity(0.06))
+                                    .fill(Color.appSurfaceInset)
                                     .frame(height: 8)
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(zoneColor(lm.zone).opacity(0.8))
                                     .frame(width: min(barW * ratio, barW), height: 8)
                                 Rectangle()
-                                    .fill(Color.white.opacity(0.4))
+                                    .fill(Color.appOnSurface.opacity(0.4))
                                     .frame(width: 1, height: 12)
                                     .offset(x: barW * Double(lm.mev) / Double(lm.mrv))
                                 Rectangle()
-                                    .fill(Color.white.opacity(0.25))
+                                    .fill(Color.appOnSurface.opacity(0.25))
                                     .frame(width: 1, height: 12)
                                     .offset(x: min(barW * Double(lm.mav) / Double(lm.mrv), barW - 1))
                             }
@@ -495,11 +495,11 @@ struct VolumeLandmarksCard: View {
                             HStack {
                                 Text("\(muscleKey.localizedMuscleGroup) → \(specific)")
                                     .font(.appCaption)
-                                    .foregroundColor(.white.opacity(0.65))
+                                    .foregroundColor(.appOnSurface.opacity(0.65))
                                 Spacer()
                                 Text("\(count) sets")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.white.opacity(0.65))
+                                    .foregroundColor(.appOnSurface.opacity(0.65))
                             }
                         }
                     }
@@ -609,7 +609,7 @@ struct BodyRecompView: View {
     }
 
     @ViewBuilder private func deltaRow(_ d: (lean: Double, fat: Double)) -> some View {
-        Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+        Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
         HStack(spacing: 20) {
             deltaKPI(
                 label: "Masse maigre (30j)",
@@ -981,14 +981,14 @@ struct StrengthCurveChart: View {
                 }
                 .chartXAxis {
                     AxisMarks(values: .stride(by: .month)) { _ in
-                        AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                        AxisGridLine().foregroundStyle(Color.appSurfaceInset)
                         AxisValueLabel(format: .dateTime.month(.abbreviated), centered: true)
                             .foregroundStyle(Color.gray)
                     }
                 }
                 .chartYAxis {
                     AxisMarks { val in
-                        AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                        AxisGridLine().foregroundStyle(Color.appSurfaceInset)
                         AxisValueLabel()
                             .foregroundStyle(Color.gray)
                     }
@@ -1175,7 +1175,7 @@ struct PushPullRatioCard: View {
                                 .frame(width: 36, alignment: .leading)
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.06)).frame(height: 8)
+                                    RoundedRectangle(cornerRadius: 3).fill(Color.appSurfaceInset).frame(height: 8)
                                     RoundedRectangle(cornerRadius: 3).fill(color)
                                         .frame(width: geo.size.width * CGFloat(vol / total), height: 8)
                                 }

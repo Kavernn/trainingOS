@@ -223,7 +223,7 @@ struct AlreadyLoggedSeanceView: View {
                                             .frame(width: 5, height: 5)
                                         Text(exo)
                                             .font(.appLabel)
-                                            .foregroundColor(.white.opacity(0.85))
+                                            .foregroundColor(.appOnSurface.opacity(0.85))
                                         Spacer()
                                         if let w = entry?.weight, w > 0 {
                                             Text(UnitSettings.shared.format(w))
@@ -294,7 +294,7 @@ struct AlreadyLoggedSeanceView: View {
                         }
                         Text(brief)
                             .font(.appLabel)
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(.appOnSurface.opacity(0.85))
                             .lineSpacing(4)
                     }
                     .padding(16)
@@ -353,7 +353,7 @@ struct AlreadyLoggedSeanceView: View {
                                         .frame(width: 5, height: 5)
                                     Text(name)
                                         .font(.appLabel)
-                                        .foregroundColor(.white.opacity(0.75))
+                                        .foregroundColor(.appOnSurface.opacity(0.75))
                                     Spacer()
                                     Text(scheme)
                                         .font(.appCaption)
@@ -427,7 +427,7 @@ struct AlreadyLoggedSeanceView: View {
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 12)
                     .background(Color.appCard)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.appOnSurface.opacity(0.7))
                     .cornerRadius(14)
                 }
                 .buttonStyle(SpringButtonStyle())
@@ -483,7 +483,7 @@ struct AlreadyLoggedSeanceView: View {
                                     Circle().fill(Color.statusYellow.opacity(0.4)).frame(width: 4, height: 4)
                                     Text(ex.0)
                                         .font(.system(size: 12))
-                                        .foregroundColor(.white.opacity(0.7))
+                                        .foregroundColor(.appOnSurface.opacity(0.7))
                                 }
                             }
                             if unloggedExercises.count > 3 {
@@ -668,7 +668,7 @@ struct PostSessionEditSheet: View {
 
                         Button(action: save) {
                             HStack {
-                                if isSaving { ProgressView().tint(.white).scaleEffect(0.8) }
+                                if isSaving { ProgressView().tint(.onAccent).scaleEffect(0.8) }
                                 Text(isSaving ? "Enregistrement…" : "Sauvegarder les modifications")
                                     .font(.appBody.weight(.bold))
                             }
@@ -1082,7 +1082,7 @@ struct FinishRemainingSheet: View {
                                                 .foregroundColor(.statusGreen.opacity(0.7))
                                             Text(ex.name)
                                                 .font(.appLabel)
-                                                .foregroundColor(.white.opacity(0.5))
+                                                .foregroundColor(.appOnSurface.opacity(0.5))
                                             Spacer()
                                             if let w = ex.weight {
                                                 Text(UnitSettings.shared.format(w))
@@ -1319,7 +1319,7 @@ struct FreeSessionPickerView: View {
                                     exerciseRow(item)
                                     if item.id != exos.last?.id {
                                         Divider()
-                                            .background(Color.white.opacity(0.05))
+                                            .background(Color.appSurfaceInset)
                                             .padding(.leading, 56)
                                     }
                                 }
@@ -1374,7 +1374,7 @@ struct FreeSessionPickerView: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(selected ? Color.forge.opacity(0.15) : Color.white.opacity(0.05))
+                        .fill(selected ? Color.forge.opacity(0.15) : Color.appSurfaceInset)
                         .frame(width: 32, height: 32)
                     Image(systemName: selected ? "checkmark" : "plus")
                         .font(.system(size: 12, weight: .bold))

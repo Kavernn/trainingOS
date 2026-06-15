@@ -38,7 +38,7 @@ struct CoachGreetingHeader: View {
                     .foregroundColor(.appTextPrimary)
                 Text(formattedDate + " · Sem. \(dash.week)")
                     .font(.appLabel)
-                    .foregroundColor(Color.white.opacity(0.38))
+                    .foregroundColor(Color.appOnSurface.opacity(0.38))
             }
             Spacer()
             Image(systemName: "brain.head.profile")

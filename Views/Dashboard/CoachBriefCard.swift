@@ -70,7 +70,7 @@ struct CoachInsightCard: View {
                     .foregroundColor(.appTextPrimary)
                 Text(alert.message)
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.75))
+                    .foregroundColor(.appOnSurface.opacity(0.75))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -109,16 +109,16 @@ struct CoachInsightCard: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.appCaption.weight(.medium))
-                            .foregroundColor(.white.opacity(0.35))
+                            .foregroundColor(.appOnSurface.opacity(0.35))
                     }
                     Text(brief.message)
                         .font(.appLabel.weight(.regular))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
                     if let tip {
-                        Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5).padding(.top, 4)
+                        Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5).padding(.top, 4)
                         HStack(alignment: .top, spacing: 6) {
                             Image(systemName: tipIcon(for: tip.domain))
                                 .font(.appCaption)
@@ -127,7 +127,7 @@ struct CoachInsightCard: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(tip.title)
                                     .font(.appCaption.weight(.bold))
-                                    .foregroundColor(.white.opacity(0.9))
+                                    .foregroundColor(.appOnSurface.opacity(0.9))
                                 Text(tip.body)
                                     .font(.appCaption)
                                     .foregroundColor(.gray)

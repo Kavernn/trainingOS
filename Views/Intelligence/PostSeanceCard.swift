@@ -18,7 +18,7 @@ struct PostSeanceCard: View {
                 if let name = data.sessionName, !name.isEmpty {
                     Text(name)
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(.appOnSurface.opacity(0.45))
                 }
             }
 
@@ -30,13 +30,13 @@ struct PostSeanceCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("RPE")
                             .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.40))
+                            .foregroundColor(.appOnSurface.opacity(0.40))
                         Text(String(format: "%.1f", rpe))
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.appTextPrimary)
                         Text(shortInterpretation(data.rpeInterpretation))
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.50))
+                            .foregroundColor(.appOnSurface.opacity(0.50))
                             .lineLimit(1)
                     }
                 }
@@ -44,13 +44,13 @@ struct PostSeanceCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Effort vs baseline")
                             .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.40))
+                            .foregroundColor(.appOnSurface.opacity(0.40))
                         Text(delta > 0 ? "+\(delta)%" : "\(delta)%")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(delta > 10 ? .statusOrange : delta < -10 ? .statusGreen : .white)
                         Text("même type de séance")
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.50))
+                            .foregroundColor(.appOnSurface.opacity(0.50))
                     }
                 }
             }
@@ -64,7 +64,7 @@ struct PostSeanceCard: View {
                         .padding(.top, 1)
                     Text(data.nutritionAdvice)
                         .font(.appLabel)
-                        .foregroundColor(.white.opacity(0.78))
+                        .foregroundColor(.appOnSurface.opacity(0.78))
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }

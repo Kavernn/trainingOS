@@ -91,7 +91,7 @@ struct CreateVariantSheet: View {
                                         .font(.appLabel.weight(.semibold))
                                         .foregroundColor(selectedType == t ? .black : .white)
                                         .padding(.horizontal, 14).padding(.vertical, 8)
-                                        .background(selectedType == t ? Color.forge : Color.white.opacity(0.07))
+                                        .background(selectedType == t ? Color.forge : Color.appSurfaceInset)
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)

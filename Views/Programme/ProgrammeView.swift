@@ -2413,11 +2413,11 @@ private struct VolumeCard: View {
                             .frame(height: 5)
                             HStack {
                                 Text("MEV \(mevVal)")
-                                    .font(.system(size: 8))
+                                    .font(.appMicro)
                                     .foregroundColor(.gray.opacity(0.5))
                                 Spacer()
                                 Text("MAV \(mavVal)")
-                                    .font(.system(size: 8))
+                                    .font(.appMicro)
                                     .foregroundColor(.gray.opacity(0.5))
                             }
                         }

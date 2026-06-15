@@ -26,7 +26,7 @@ struct TrainingLoadCard: View {
             if !data.message.isEmpty {
                 Text(data.message)
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.48))
+                    .foregroundColor(.appOnSurface.opacity(0.48))
                     .fixedSize(horizontal: false, vertical: true)
                     .lineLimit(2)
             }
@@ -39,12 +39,12 @@ struct TrainingLoadCard: View {
         HStack(spacing: 6) {
             Text("ZONE DE CHARGE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Spacer()
             ZoneBadge(zone: data.zone)
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.22))
+                .foregroundColor(.appOnSurface.opacity(0.22))
         }
     }
 
@@ -53,7 +53,7 @@ struct TrainingLoadCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("RATIO ACWR")
                     .font(.appMicro).tracking(0.8)
-                    .foregroundColor(.white.opacity(0.28))
+                    .foregroundColor(.appOnSurface.opacity(0.28))
                 Text(data.formattedRatio)
                     .font(.appCardMetric)
                     .foregroundColor(zoneColor)
@@ -99,14 +99,14 @@ private struct LoadSparkline: View {
                 let v = values[i]
                 let isLast = i == values.count - 1
                 let h = maxVal > 0 ? max(6.0, 40.0 * v / maxVal) : 6.0
-                let barColor: Color = isLast ? zone.color : .white.opacity(0.22)
+                let barColor: Color = isLast ? zone.color : .appOnSurface.opacity(0.22)
                 VStack(spacing: 3) {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(barColor)
                         .frame(width: 12, height: h)
                     Text("S\(i + 1)")
                         .font(.system(size: 7))
-                        .foregroundColor(.white.opacity(isLast ? 0.45 : 0.22))
+                        .foregroundColor(.appOnSurface.opacity(isLast ? 0.45 : 0.22))
                 }
             }
         }
@@ -155,11 +155,11 @@ private struct RatioBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("RATIO ACWR")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 ZoneBadge(zone: data.zone)
                 Text(data.message)
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -179,15 +179,15 @@ private struct LoadBreakdownCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("DÉTAIL DE LA CHARGE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             HStack(spacing: 0) {
                 LoadStat(label: "CHARGE AIGUË", sublabel: "7 jours",
                          value: data.acute.map { String(format: "%.0f", $0) } ?? "—",
                          color: data.zone.color)
-                Divider().background(Color.white.opacity(0.10)).frame(height: 40)
+                Divider().background(Color.appSurfaceInset).frame(height: 40)
                 LoadStat(label: "CHARGE CHRONIQUE", sublabel: "28 jours moy.",
                          value: data.chronic.map { String(format: "%.0f", $0) } ?? "—",
-                         color: .white.opacity(0.55))
+                         color: .appOnSurface.opacity(0.55))
             }
             if data.strengthAcwr != nil || data.cardioAcwr != nil {
                 Divider().background(Color.appSeparatorStrong)
@@ -195,15 +195,15 @@ private struct LoadBreakdownCard: View {
                     if let s = data.strengthAcwr {
                         LoadStat(label: "FORCE", sublabel: "ACWR",
                                  value: s.ratio.map { String(format: "%.2f×", $0) } ?? "—",
-                                 color: .white.opacity(0.70))
+                                 color: .appOnSurface.opacity(0.70))
                     }
                     if data.strengthAcwr != nil && data.cardioAcwr != nil {
-                        Divider().background(Color.white.opacity(0.10)).frame(height: 40)
+                        Divider().background(Color.appSurfaceInset).frame(height: 40)
                     }
                     if let c = data.cardioAcwr {
                         LoadStat(label: "CARDIO", sublabel: "ACWR",
                                  value: c.ratio.map { String(format: "%.2f×", $0) } ?? "—",
-                                 color: .white.opacity(0.70))
+                                 color: .appOnSurface.opacity(0.70))
                     }
                 }
             }
@@ -223,13 +223,13 @@ private struct LoadStat: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(.appMicro.weight(.black)).tracking(1.0)
-                .foregroundColor(.white.opacity(0.30))
+                .foregroundColor(.appOnSurface.opacity(0.30))
             Text(value)
                 .font(.appHeadline.weight(.bold))
                 .foregroundColor(color)
             Text(sublabel)
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.28))
+                .foregroundColor(.appOnSurface.opacity(0.28))
         }
         .frame(maxWidth: .infinity)
     }
@@ -240,17 +240,17 @@ private struct ZoneGuideCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("GUIDE DES ZONES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             ForEach(ZoneRow.all, id: \.label) { row in
                 HStack(spacing: 10) {
                     Circle().fill(row.color).frame(width: 8, height: 8)
                     Text(row.label)
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(.white.opacity(0.72))
+                        .foregroundColor(.appOnSurface.opacity(0.72))
                     Spacer()
                     Text(row.range)
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.38))
+                        .foregroundColor(.appOnSurface.opacity(0.38))
                 }
             }
         }

@@ -460,7 +460,7 @@ struct HRVOnboardingView: View {
                     HStack(spacing: 8) {
                         ForEach(0..<totalPages, id: \.self) { i in
                             Capsule()
-                                .fill(i == page ? pageAccent : Color.white.opacity(0.2))
+                                .fill(i == page ? pageAccent : Color.appOnSurface.opacity(0.2))
                                 .frame(width: i == page ? 20 : 6, height: 6)
                                 .animation(.spring(response: 0.3), value: page)
                         }
@@ -579,10 +579,10 @@ private struct HRVFactChip: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: icon).font(.appCaption).foregroundColor(color)
-            Text(text).font(.appCaption).fontWeight(.medium).foregroundColor(.white.opacity(0.85))
+            Text(text).font(.appCaption).fontWeight(.medium).foregroundColor(.appOnSurface.opacity(0.85))
         }
         .padding(.horizontal, 12).padding(.vertical, 7)
-        .background(Color.white.opacity(0.07)).cornerRadius(20)
+        .background(Color.appSurfaceInset).cornerRadius(20)
     }
 }
 
@@ -594,7 +594,7 @@ private struct HRVProtocolStep: View {
                 Circle().fill(color.opacity(0.15)).frame(width: 36, height: 36)
                 Image(systemName: icon).font(.appBody).foregroundColor(color)
             }
-            Text(text).font(.appBody).foregroundColor(.white.opacity(0.9))
+            Text(text).font(.appBody).foregroundColor(.appOnSurface.opacity(0.9))
             Spacer()
         }
     }
@@ -605,10 +605,10 @@ private struct HRVAutoFeatureRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon).font(.appMicro).foregroundColor(color)
-            Text(text).font(.appLabel).fontWeight(.regular).foregroundColor(.white.opacity(0.8))
+            Text(text).font(.appLabel).fontWeight(.regular).foregroundColor(.appOnSurface.opacity(0.8))
             Spacer()
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(Color.white.opacity(0.05)).cornerRadius(10)
+        .background(Color.appSurfaceInset).cornerRadius(10)
     }
 }

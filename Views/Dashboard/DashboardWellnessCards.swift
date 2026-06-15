@@ -65,7 +65,7 @@ struct LSSGauge: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.white.opacity(0.07))
+                    .fill(Color.appSurfaceInset)
                     .frame(height: 6)
                 Capsule()
                     .fill(LinearGradient(
@@ -120,7 +120,7 @@ struct LSSComponentsRow: View {
                                 GeometryReader { geo in
                                     ZStack(alignment: .bottom) {
                                         RoundedRectangle(cornerRadius: 2)
-                                            .fill(Color.white.opacity(0.07))
+                                            .fill(Color.appSurfaceInset)
                                         RoundedRectangle(cornerRadius: 2)
                                             .fill(scoreColor(v))
                                             .frame(height: geo.size.height * v / 100)
@@ -344,7 +344,7 @@ struct SleepPromptCard: View {
                         .font(.appCaption.weight(.bold))
                         .foregroundColor(.gray)
                         .padding(6)
-                        .background(Color.white.opacity(0.07))
+                        .background(Color.appSurfaceInset)
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -483,7 +483,7 @@ struct DashboardInsightsCard: View {
             ForEach(Array(insights.enumerated()), id: \.element.id) { idx, insight in
                 if idx > 0 {
                     Divider()
-                        .background(Color.white.opacity(0.06))
+                        .background(Color.appSurfaceInset)
                         .padding(.horizontal, 16)
                 }
                 HStack(alignment: .top, spacing: 12) {

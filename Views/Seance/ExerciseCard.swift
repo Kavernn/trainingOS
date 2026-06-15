@@ -139,7 +139,7 @@ struct ExerciseCard: View {
         if alreadyLogged { return Color.appSuccess.opacity(0.42) }
         if isFocused     { return Color.forge.opacity(0.30) }
         if isExpanded    { return Color.forge.opacity(0.12) }
-        return .white.opacity(0.07)
+        return .appOnSurface.opacity(0.07)
     }
 
     private var exoNote: String {
@@ -270,7 +270,7 @@ struct ExerciseCard: View {
                                 .font(.appMicro).fontWeight(.bold)
                                 .frame(width: 22, height: 18)
                                 .foregroundColor(.gray.opacity(0.7))
-                                .background(Color.white.opacity(0.06))
+                                .background(Color.appSurfaceInset)
                                 .cornerRadius(4)
                         }
                         .buttonStyle(.plain)
@@ -693,7 +693,7 @@ struct ExerciseCard: View {
                             }
                         } else if evm.inputHint > 0 {
                             Text(units.format(evm.inputHint))
-                                .font(.appCaption).fontWeight(.semibold).foregroundColor(.white.opacity(0.35))
+                                .font(.appCaption).fontWeight(.semibold).foregroundColor(.appOnSurface.opacity(0.35))
                         }
                         Text(evm.lastReps).font(.appMicro).foregroundColor(.gray.opacity(0.45))
                     }
@@ -707,7 +707,7 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var expandedContent: some View {
-        Divider().background(Color.white.opacity(0.10))
+        Divider().background(Color.appSurfaceInset)
         VStack(alignment: .leading, spacing: 14) {
             expandedTopBar
             if logResult == nil, let s = suggestion, s.suggestionType != "maintain" {
@@ -715,7 +715,7 @@ struct ExerciseCard: View {
             }
             if let h = hint, !h.isEmpty {
                 Text(h).font(.appCaption)
-                    .foregroundColor(.white.opacity(0.42))
+                    .foregroundColor(.appOnSurface.opacity(0.42))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if alreadyLogged && !evm.isEditing { loggedStateDisplay } else { formView }
@@ -779,7 +779,7 @@ struct ExerciseCard: View {
                         Text("Changer").font(.appCaption).fontWeight(.semibold)
                     }
                     .foregroundColor(.gray.opacity(0.7)).padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Color.white.opacity(0.06)).clipShape(Capsule())
+                    .background(Color.appSurfaceInset).clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
             }
@@ -799,7 +799,7 @@ struct ExerciseCard: View {
                     }
                     .foregroundColor(evm.setBySetMode && !evm.repCountMode ? Color.forge : .gray.opacity(0.6))
                     .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(Color.white.opacity(0.05)).clipShape(Capsule())
+                    .background(Color.appSurfaceInset).clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 Button {
@@ -821,7 +821,7 @@ struct ExerciseCard: View {
                     }
                     .foregroundColor(evm.repCountMode ? Color.statusPurple : .gray.opacity(0.6))
                     .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(Color.white.opacity(0.05)).clipShape(Capsule())
+                    .background(Color.appSurfaceInset).clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
             }
@@ -862,7 +862,7 @@ struct ExerciseCard: View {
                 }
             }
             .padding(.vertical, 8).padding(.horizontal, 12)
-            .background(Color.white.opacity(0.04)).cornerRadius(8)
+            .background(Color.appSurfaceInset).cornerRadius(8)
         } else if let r = logResult {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 12) {
@@ -926,7 +926,7 @@ struct ExerciseCard: View {
                     Text("Dernière séance · \(prev.date ?? "")")
                         .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge.opacity(0.6))
                     Text(prevNote.count > 120 ? String(prevNote.prefix(120)) + "…" : prevNote)
-                        .font(.appCaption).foregroundColor(.white.opacity(0.75))
+                        .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.75))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
@@ -1065,7 +1065,7 @@ struct ExerciseCard: View {
         .background(evm.sessionNote.isEmpty ? Color.clear : Color.forge.opacity(0.06))
         .cornerRadius(8)
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-            evm.sessionNote.isEmpty ? Color.white.opacity(0.05) : Color.forge.opacity(0.15), lineWidth: 1))
+            evm.sessionNote.isEmpty ? Color.appSurfaceInset : Color.forge.opacity(0.15), lineWidth: 1))
         if showAdvanced {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { showAdvanced = false }
@@ -1226,7 +1226,7 @@ struct ExerciseCard: View {
                                             .frame(width: 16)
                                         Text(units.format(historyPerSide(s.weight)))
                                             .font(.appMicro).fontWeight(j == 0 && i == 0 ? .semibold : .regular)
-                                            .foregroundColor(i == 0 ? .white.opacity(0.65) : .white.opacity(0.5))
+                                            .foregroundColor(i == 0 ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.5))
                                         Text("×")
                                             .font(.appMicro).foregroundColor(.gray.opacity(0.35))
                                         Text(reps)
@@ -1239,7 +1239,7 @@ struct ExerciseCard: View {
                                     Text("·").foregroundColor(.gray.opacity(0.3)).font(.appMicro)
                                     Text(units.format(historyPerSide(entry.weight ?? 0)))
                                         .font(.appMicro).fontWeight(i == 0 ? .semibold : .regular)
-                                        .foregroundColor(i == 0 ? .white.opacity(0.65) : .white.opacity(0.5))
+                                        .foregroundColor(i == 0 ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.5))
                                     Text(entry.reps ?? "—").font(.appMicro).foregroundColor(i == 0 ? .gray : .gray.opacity(0.6))
                                 }
                                 .padding(.leading, 16)
@@ -1278,7 +1278,7 @@ struct ExerciseCard: View {
                         Spacer()
                         Text("\(undoCountdown)s")
                             .font(.appCaption).fontWeight(.medium)
-                            .foregroundColor(.white.opacity(0.45))
+                            .foregroundColor(.appOnSurface.opacity(0.45))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
@@ -1367,7 +1367,7 @@ struct ExerciseCard: View {
                     .foregroundColor(RPEHelper.color(for: rpe))
             }
             Text(RPEHelper.feedback(for: rpe))
-                .font(.appCaption).foregroundColor(.white.opacity(0.55))
+                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
             if let hint = RPEHelper.progressionHint(for: rpe) {
                 HStack(spacing: 4) {
@@ -1561,7 +1561,7 @@ struct EnduranceTimerSection: View {
             HStack(spacing: 4) {
                 ForEach(0..<totalSets, id: \.self) { i in
                     Circle()
-                        .fill(i < filledDots ? Color.appSuccess : Color.white.opacity(0.12))
+                        .fill(i < filledDots ? Color.appSuccess : Color.appOnSurface.opacity(0.12))
                         .frame(width: 6, height: 6)
                 }
             }
@@ -1574,7 +1574,7 @@ struct EnduranceTimerSection: View {
             VStack(spacing: 6) {
                 Text(fmt(targetDur))
                     .font(.system(size: 52, weight: .black, design: .rounded))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.appOnSurface.opacity(0.9))
                 Text("durée cible")
                     .font(.appCaption).foregroundColor(.gray)
             }
@@ -1614,7 +1614,7 @@ struct EnduranceTimerSection: View {
             )
 
         case .paused:
-            arcTimer(color: Color.white.opacity(0.35))
+            arcTimer(color: Color.appOnSurface.opacity(0.35))
         }
     }
 
@@ -1656,7 +1656,7 @@ struct EnduranceTimerSection: View {
 
         case .running, .warning:
             HStack(spacing: 16) {
-                iconBtn("pause.fill", fg: .white, bg: Color.white.opacity(0.1)) { pauseTimer() }
+                iconBtn("pause.fill", fg: .white, bg: Color.appSurfaceInset) { pauseTimer() }
                 iconBtn("stop.fill",  fg: Color.appDanger.opacity(0.8), bg: Color.appDanger.opacity(0.1)) { stopTimer() }
             }
 

@@ -6,7 +6,7 @@ struct SleepDebtAnalyticsCard: View {
     let data: SleepDebtData
 
     private var debtColor: Color {
-        guard let d = data.debt7d else { return .white.opacity(0.40) }
+        guard let d = data.debt7d else { return .appOnSurface.opacity(0.40) }
         if d <= 0      { return .forge }
         if d < 3       { return Color.trendNeutral }
         return Color.trendNegative
@@ -19,7 +19,7 @@ struct SleepDebtAnalyticsCard: View {
             if let nights = data.nightsToRecover, nights > 0 {
                 Text("~\(nights) nuit\(nights > 1 ? "s" : "") pour rembourser la dette 7J")
                     .font(.appMicro)
-                    .foregroundColor(.white.opacity(0.32))
+                    .foregroundColor(.appOnSurface.opacity(0.32))
             } else if data.debt7d ?? 1 <= 0 {
                 Text("Pas de dette — tu es à jour.")
                     .font(.appMicro)
@@ -34,10 +34,10 @@ struct SleepDebtAnalyticsCard: View {
         HStack(spacing: 6) {
             Image(systemName: "moon.zzz.fill")
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Text("DETTE DE SOMMEIL")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Spacer()
             TrendBadge(trend: data.trend)
         }
@@ -48,14 +48,14 @@ struct SleepDebtAnalyticsCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("7 DERNIÈRES NUITS")
                     .font(.appMicro).tracking(0.8)
-                    .foregroundColor(.white.opacity(0.28))
+                    .foregroundColor(.appOnSurface.opacity(0.28))
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(data.formattedDebt7d)
                         .font(.appCardMetric)
                         .foregroundColor(debtColor)
                     Text(data.isInDebt ? "dette" : "surplus")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.38))
+                        .foregroundColor(.appOnSurface.opacity(0.38))
                 }
             }
             Spacer()
@@ -63,13 +63,13 @@ struct SleepDebtAnalyticsCard: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("MOY. RÉELLE")
                         .font(.appMicro).tracking(0.8)
-                        .foregroundColor(.white.opacity(0.28))
+                        .foregroundColor(.appOnSurface.opacity(0.28))
                     Text(String(format: "%.1fh", avg))
                         .font(.appHeadline.weight(.bold))
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(.appOnSurface.opacity(0.65))
                     Text("/ \(Int(data.target))h cible")
                         .font(.appMicro)
-                        .foregroundColor(.white.opacity(0.28))
+                        .foregroundColor(.appOnSurface.opacity(0.28))
                 }
             }
         }

@@ -78,7 +78,7 @@ struct NutritionSettingsSheet: View {
                         DayTypeRow(icon: "figure.strengthtraining.traditional", color: Color.statusYellow,
                                    label: "Modéré",   calPlaceholder: "2400",   glucPlaceholder: "235",
                                    cal: $moderateCal, gluc: $moderateGluc)
-                        DayTypeRow(icon: "figure.arms.open",                    color: Color(hex: "00BCD4"),
+                        DayTypeRow(icon: "figure.arms.open",                    color: Color.statusCyan,
                                    label: "Léger",    calPlaceholder: "2200",   glucPlaceholder: "185",
                                    cal: $lightCal,    gluc: $lightGluc)
                         DayTypeRow(icon: "moon.fill",                           color: Color.statusBlue,

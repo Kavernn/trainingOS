@@ -59,7 +59,7 @@ struct DashboardCardioCard: View {
             .padding(.bottom, 12)
 
             Divider()
-                .background(Color.white.opacity(0.06))
+                .background(Color.appSurfaceInset)
                 .padding(.horizontal, 16)
 
             // Metrics row
@@ -85,7 +85,7 @@ struct DashboardCardioCard: View {
                     .frame(minWidth: 56)
                 }
                 if let pace = entry.avgPace {
-                    MetricCell(title: "Allure", value: pace + "/km", tint: .white.opacity(0.7), size: .medium)
+                    MetricCell(title: "Allure", value: pace + "/km", tint: .appOnSurface.opacity(0.7), size: .medium)
                         .frame(minWidth: 56)
                 }
                 if let hr = entry.avgHr, hr > 0 {

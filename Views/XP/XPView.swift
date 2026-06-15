@@ -385,7 +385,7 @@ struct BadgeDetailSheet: View {
     var body: some View {
         VStack(spacing: 24) {
             Capsule()
-                .fill(Color.white.opacity(0.15))
+                .fill(Color.appOnSurface.opacity(0.15))
                 .frame(width: 36, height: 4)
                 .padding(.top, 12)
 

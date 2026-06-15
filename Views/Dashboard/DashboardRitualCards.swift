@@ -54,7 +54,7 @@ struct RitualDemonCard: View {
                     if let ts = ritual.engagementsCreatedAt {
                         Text(ts)
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.45))
+                            .foregroundColor(.appOnSurface.opacity(0.45))
                     }
                 }
                 Spacer()
@@ -90,7 +90,7 @@ struct RitualDemonCard: View {
                         .tracking(0.5)
                     Text("Journée clôturée · Crée tes engagements.")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.appOnSurface.opacity(0.5))
                 }
                 Spacer()
                 Image(systemName: "arrow.right")
@@ -125,7 +125,7 @@ struct RitualDemonCard: View {
                         .tracking(0.5)
                     Text("Cycle complété.")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(.appOnSurface.opacity(0.4))
                 }
                 Spacer()
             }
@@ -157,7 +157,7 @@ struct RitualDemonCard: View {
                         .tracking(0.5)
                     Text("Aucun engagement prévu pour demain.")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(.appOnSurface.opacity(0.45))
                 }
                 Spacer()
                 Image(systemName: "arrow.right")
@@ -194,10 +194,10 @@ struct BreathworkNudgeCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Stress élevé détecté")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                     Text("5 min de cohérence cardiaque maintenant.")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.55))
+                        .foregroundColor(.appOnSurface.opacity(0.55))
                 }
 
                 Spacer()
@@ -213,7 +213,7 @@ struct BreathworkNudgeCard: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.03))
+                    .fill(Color.appSurfaceInset)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.teal.opacity(0.2), lineWidth: 1)
@@ -255,10 +255,10 @@ struct QuickWarRoomTriggerSheet: View {
                                 } label: {
                                     Text(ctx.label)
                                         .font(.appCaption.weight(selectedContext == ctx ? .bold : .regular))
-                                        .foregroundColor(selectedContext == ctx ? .black : .white.opacity(0.7))
+                                        .foregroundColor(selectedContext == ctx ? .black : .appOnSurface.opacity(0.7))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 9)
-                                        .background(selectedContext == ctx ? Color.appDanger : Color.white.opacity(0.06))
+                                        .background(selectedContext == ctx ? Color.appDanger : Color.appSurfaceInset)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                 }
                                 .buttonStyle(.plain)
@@ -298,7 +298,7 @@ struct QuickWarRoomTriggerSheet: View {
                             .labelsHidden()
                     }
                     .padding(14)
-                    .background(Color.white.opacity(0.04))
+                    .background(Color.appSurfaceInset)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                     Spacer()
@@ -322,7 +322,7 @@ struct QuickWarRoomTriggerSheet: View {
                     } label: {
                         HStack(spacing: 8) {
                             if isSaving {
-                                ProgressView().tint(.white)
+                                ProgressView().tint(.onAccent)
                             } else if saved {
                                 Image(systemName: "checkmark")
                             } else {
@@ -500,7 +500,7 @@ struct EveningRoutineCard: View {
                 progressBar
                     .padding(.top, 10)
                 Rectangle()
-                    .fill(Color.white.opacity(0.06))
+                    .fill(Color.appSurfaceInset)
                     .frame(height: 1)
                     .padding(.top, 10)
                 itemsList
@@ -516,7 +516,7 @@ struct EveningRoutineCard: View {
                 .fill(Color.appCard)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(allDone ? Color.appSuccess.opacity(0.25) : Color.white.opacity(0.06), lineWidth: 1)
+                        .stroke(allDone ? Color.appSuccess.opacity(0.25) : Color.appSurfaceInset, lineWidth: 1)
                 )
         )
         .onAppear {
@@ -541,8 +541,8 @@ struct EveningRoutineCard: View {
     private var headerRow: some View {
         let icon       = allDone ? "checkmark.circle.fill" : "moon.stars.fill"
         let title      = allDone ? "Routine complétée" : "Routine de soir"
-        let titleColor = allDone ? Color.appSuccess : Color.white.opacity(0.85)
-        let iconColor  = allDone ? Color.appSuccess : Color.white.opacity(0.55)
+        let titleColor = allDone ? Color.appSuccess : Color.appOnSurface.opacity(0.85)
+        let iconColor  = allDone ? Color.appSuccess : Color.appOnSurface.opacity(0.55)
         return HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.appLabel)
@@ -562,16 +562,16 @@ struct EveningRoutineCard: View {
     }
 
     private var timeBadge: some View {
-        let hourColor = softLimitWarning ? Color.forge : Color.white.opacity(0.3)
-        let bgColor   = softLimitWarning ? Color.forge.opacity(0.12) : Color.white.opacity(0.05)
+        let hourColor = softLimitWarning ? Color.forge : Color.appOnSurface.opacity(0.3)
+        let bgColor   = softLimitWarning ? Color.forge.opacity(0.12) : Color.appSurfaceInset
         return HStack(spacing: 3) {
             Text("22h")
                 .font(.appMicro.weight(.medium))
                 .foregroundColor(hourColor)
-            Text("·").font(.appMicro).foregroundColor(.white.opacity(0.2))
+            Text("·").font(.appMicro).foregroundColor(.appOnSurface.opacity(0.2))
             Text("23h30")
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(.appOnSurface.opacity(0.3))
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
@@ -588,7 +588,7 @@ struct EveningRoutineCard: View {
         return GeometryReader { geo in
             let filledWidth = count > 0 ? geo.size.width * CGFloat(count) / 7.0 : 0
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.06)).frame(height: 2)
+                Capsule().fill(Color.appSurfaceInset).frame(height: 2)
                 Capsule()
                     .fill(barColor)
                     .frame(width: filledWidth, height: 2)
@@ -638,17 +638,17 @@ struct EveningRoutineCard: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .stroke(isArmed ? Color.appSuccess.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1.5)
+                        .stroke(isArmed ? Color.appSuccess.opacity(0.6) : Color.appOnSurface.opacity(0.2), lineWidth: 1.5)
                         .frame(width: 20, height: 20)
                     Image(systemName: isArmed ? "bell.fill" : "bell")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(isArmed ? Color.statusGreen : .white.opacity(0.5))
+                        .foregroundColor(isArmed ? Color.statusGreen : .appOnSurface.opacity(0.5))
                 }
                 .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isArmed)
                 Text("🔔").font(.system(size: 14))
                 Text(label)
                     .font(.appCaption)
-                    .foregroundColor(isArmed ? Color.statusGreen.opacity(0.85) : .white.opacity(0.8))
+                    .foregroundColor(isArmed ? Color.statusGreen.opacity(0.85) : .appOnSurface.opacity(0.8))
                 Spacer()
                 if isArmed {
                     Button {
@@ -680,7 +680,7 @@ struct EveningRoutineCard: View {
         field: String
     ) -> some View {
         let isChecked  = checked.wrappedValue
-        let textColor  = isChecked ? Color.white.opacity(0.45) : Color.white.opacity(0.8)
+        let textColor  = isChecked ? Color.appOnSurface.opacity(0.45) : Color.appOnSurface.opacity(0.8)
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) { checked.wrappedValue.toggle() }
@@ -693,7 +693,7 @@ struct EveningRoutineCard: View {
                 Text(label)
                     .font(.appCaption)
                     .foregroundColor(textColor)
-                    .strikethrough(isChecked, color: .white.opacity(0.2))
+                    .strikethrough(isChecked, color: .appOnSurface.opacity(0.2))
                 Spacer()
             }
             .padding(.vertical, 8)
@@ -705,7 +705,7 @@ struct EveningRoutineCard: View {
 
     private var deconnectRow: some View {
         let isChecked = deconnect
-        let textColor = isChecked ? Color.white.opacity(0.45) : Color.white.opacity(0.8)
+        let textColor = isChecked ? Color.appOnSurface.opacity(0.45) : Color.appOnSurface.opacity(0.8)
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) { deconnect.toggle() }
@@ -718,7 +718,7 @@ struct EveningRoutineCard: View {
                 Text("Abrutissement positif")
                     .font(.appCaption)
                     .foregroundColor(textColor)
-                    .strikethrough(isChecked, color: .white.opacity(0.2))
+                    .strikethrough(isChecked, color: .appOnSurface.opacity(0.2))
                 Spacer()
                 if softLimitWarning {
                     Text("22h")
@@ -746,14 +746,14 @@ struct EveningRoutineCard: View {
                     Text("📝").font(.system(size: 14))
                     Text("Priorités demain")
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.45))
-                        .strikethrough(true, color: .white.opacity(0.2))
+                        .foregroundColor(.appOnSurface.opacity(0.45))
+                        .strikethrough(true, color: .appOnSurface.opacity(0.2))
                     Spacer()
                     Text("auto ✓")
                         .font(.appMicro)
-                        .foregroundColor(.white.opacity(0.3))
+                        .foregroundColor(.appOnSurface.opacity(0.3))
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.white.opacity(0.05))
+                        .background(Color.appSurfaceInset)
                         .clipShape(Capsule())
                 }
                 .padding(.vertical, 8)
@@ -764,11 +764,11 @@ struct EveningRoutineCard: View {
                         Text("📝").font(.system(size: 14))
                         Text("Priorités demain")
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.appOnSurface.opacity(0.8))
                         Spacer()
                         Image(systemName: "arrow.right")
                             .font(.appMicro.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.25))
+                            .foregroundColor(.appOnSurface.opacity(0.25))
                     }
                     .padding(.vertical, 8)
                 }
@@ -787,10 +787,10 @@ struct EveningRoutineCard: View {
                 Spacer()
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.25))
+                    .foregroundColor(.appOnSurface.opacity(0.25))
                 Text("Voir les détails")
                     .font(.appMicro)
-                    .foregroundColor(.white.opacity(0.25))
+                    .foregroundColor(.appOnSurface.opacity(0.25))
                 Spacer()
             }
             .padding(.top, 8)
@@ -803,7 +803,7 @@ struct EveningRoutineCard: View {
     private func checkCircle(checked: Bool) -> some View {
         ZStack {
             Circle()
-                .stroke(checked ? Color.appSuccess.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1.5)
+                .stroke(checked ? Color.appSuccess.opacity(0.6) : Color.appOnSurface.opacity(0.2), lineWidth: 1.5)
                 .frame(width: 20, height: 20)
             if checked {
                 Image(systemName: "checkmark")

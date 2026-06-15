@@ -82,7 +82,7 @@ struct TodayCardView: View {
                         .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray)
                         .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color.white.opacity(0.06))
+                        .background(Color.appSurfaceInset)
                         .clipShape(Capsule())
                 }
             }
@@ -133,7 +133,7 @@ struct TodayCardView: View {
                             .padding(.horizontal, 16).padding(.vertical, 7)
                             if idx < exercises.prefix(5).count - 1 {
                                 Divider()
-                                    .background(Color.white.opacity(0.04))
+                                    .background(Color.appSurfaceInset)
                                     .padding(.horizontal, 16)
                             }
                         }
@@ -425,10 +425,10 @@ struct HeatmapView: View {
                     let isToday = idx == last30Days.count - 1
                     ZStack {
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(day.1 ? Color.forge : Color.white.opacity(0.04))
+                            .fill(day.1 ? Color.forge : Color.appSurfaceInset)
                         if isToday {
                             RoundedRectangle(cornerRadius: 3)
-                                .stroke(Color.white.opacity(0.55), lineWidth: 1.5)
+                                .stroke(Color.appOnSurface.opacity(0.55), lineWidth: 1.5)
                         } else if day.1 {
                             RoundedRectangle(cornerRadius: 3)
                                 .stroke(Color.forge.opacity(0.3), lineWidth: 0.5)
@@ -450,7 +450,7 @@ struct HeatmapView: View {
                 }
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.07)).frame(height: 4)
+                        Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                         Capsule()
                             .fill(LinearGradient(colors: [Color.forge, Color.statusYellow], startPoint: .leading, endPoint: .trailing))
                             .frame(width: max(4, geo.size.width * pct), height: 4)
@@ -469,7 +469,7 @@ struct HeatmapView: View {
                 }
                 HStack(spacing: 5) {
                     RoundedRectangle(cornerRadius: 2)
-                        .stroke(Color.white.opacity(0.5), lineWidth: 1.5)
+                        .stroke(Color.appOnSurface.opacity(0.5), lineWidth: 1.5)
                         .frame(width: 12, height: 12)
                     Text("Aujourd'hui")
                         .font(.appCaption).foregroundColor(.gray)
@@ -706,7 +706,7 @@ struct CriticalAlertCard: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(signal.message)
                     .font(.appLabel)
-                    .foregroundColor(.white.opacity(0.92))
+                    .foregroundColor(.appOnSurface.opacity(0.92))
                     .fixedSize(horizontal: false, vertical: true)
                 Button(action: onAction) {
                     Text(signal.actionLabel)

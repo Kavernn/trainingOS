@@ -27,7 +27,7 @@ struct GymFiltersView: View {
                         vm.filters = GymFilters()
                         vm.filters.radiusKm = radius
                     }
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(.appOnSurface.opacity(0.5))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Appliquer") {
@@ -125,13 +125,13 @@ struct GymFiltersView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundColor(selected ? .black : .white.opacity(0.6))
+            .foregroundColor(selected ? .black : .appOnSurface.opacity(0.6))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .background(selected ? Color.forge : Color.appCard.opacity(0.6))
             .cornerRadius(10)
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(
-                selected ? Color.clear : Color.white.opacity(0.06), lineWidth: 1))
+                selected ? Color.clear : Color.appSurfaceInset, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -144,13 +144,13 @@ struct GymFiltersView: View {
         } label: {
             Text(eq.label)
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(selected ? .black : .white.opacity(0.6))
+                .foregroundColor(selected ? .black : .appOnSurface.opacity(0.6))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .background(selected ? Color.forge : Color.appCard.opacity(0.6))
                 .cornerRadius(8)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-                    selected ? Color.clear : Color.white.opacity(0.06), lineWidth: 1))
+                    selected ? Color.clear : Color.appSurfaceInset, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -163,7 +163,7 @@ struct GymFiltersView: View {
             Text(title.uppercased())
                 .font(.appCaption.weight(.semibold))
                 .tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             content()
         }
         .padding(14)

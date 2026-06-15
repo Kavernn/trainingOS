@@ -23,7 +23,7 @@ struct ComebackArcCard: View {
             progressRow
             Text(data.message)
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.48))
+                .foregroundColor(.appOnSurface.opacity(0.48))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(2)
         }
@@ -35,12 +35,12 @@ struct ComebackArcCard: View {
         HStack(spacing: 6) {
             Text("COMEBACK ARC")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Spacer()
             ArcStatusBadge(label: data.arcLabel, colorHex: data.arcColor)
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.22))
+                .foregroundColor(.appOnSurface.opacity(0.22))
         }
     }
 
@@ -49,7 +49,7 @@ struct ComebackArcCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("JOURS ACTIFS")
                     .font(.appMicro).tracking(0.8)
-                    .foregroundColor(.white.opacity(0.28))
+                    .foregroundColor(.appOnSurface.opacity(0.28))
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text("\(data.activeSincePct ?? 0)%")
                         .font(.appCardMetric)
@@ -57,7 +57,7 @@ struct ComebackArcCard: View {
                     if let days = data.daysSinceRupture {
                         Text("sur \(days)j")
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.38))
+                            .foregroundColor(.appOnSurface.opacity(0.38))
                     }
                 }
             }
@@ -99,7 +99,7 @@ private struct ComebackProgressBar: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.08))
+                        .fill(Color.appSurfaceInset)
                         .frame(height: 6)
                     RoundedRectangle(cornerRadius: 3)
                         .fill(color)
@@ -150,11 +150,11 @@ private struct ArcBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("RETOUR EN FORCE")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 ArcStatusBadge(label: data.arcLabel, colorHex: data.arcColor)
                 Text(data.message)
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -174,7 +174,7 @@ private struct RuptureContextCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("CONTEXTE DE LA RUPTURE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
 
             ArcStatRow(label: "Durée de la rupture",
                        value: data.ruptureLength.map { "\($0) jour\($0 > 1 ? "s" : "")" } ?? "—",
@@ -184,7 +184,7 @@ private struct RuptureContextCard: View {
             ArcStatRow(label: "Jours depuis la rupture",
                        value: data.daysSinceRupture.map { "\($0)j" } ?? "—",
                        icon: "calendar",
-                       iconColor: .white.opacity(0.50))
+                       iconColor: .appOnSurface.opacity(0.50))
 
             ArcStatRow(label: "Jours actifs depuis",
                        value: "\(data.activeDays ?? 0) / \(data.daysSinceRupture ?? 0)",
@@ -210,11 +210,11 @@ private struct ArcStatRow: View {
                 .frame(width: 16)
             Text(label)
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(.appOnSurface.opacity(0.65))
             Spacer()
             Text(value)
                 .font(.appCaption.weight(.bold))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.appOnSurface.opacity(0.85))
         }
     }
 }
@@ -224,10 +224,10 @@ private struct ArcExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("C'EST QUOI UN COMEBACK ARC ?")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Text("Une rupture = 2+ jours consécutifs sans entraînement ET sans nutrition loguée. Le comeback arc mesure la vitesse à laquelle tu reprends le rythme après une telle période.")
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.52))
+                .foregroundColor(.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

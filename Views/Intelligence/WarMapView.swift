@@ -83,9 +83,9 @@ struct WarMapView: View {
     private func cellColor(_ status: BattleStatus?) -> Color {
         switch status {
         case .victory: return Color.forge.opacity(0.85)
-        case .lost:    return Color.white.opacity(0.06)
+        case .lost:    return Color.appSurfaceInset
         case .active:  return Color.statusOrange.opacity(0.4)
-        default:       return Color.white.opacity(0.03)
+        default:       return Color.appSurfaceInset
         }
     }
 

@@ -25,7 +25,7 @@ struct RuptureRiskCard: View {
             }
             Text(data.message)
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(.appOnSurface.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
@@ -41,17 +41,17 @@ struct RuptureRiskCard: View {
                 .foregroundColor(riskColor)
             Text("RISQUE DE RUPTURE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Spacer()
             Text("\(data.score)")
                 .font(.appLabel.weight(.black))
                 .foregroundColor(riskColor)
             Text("/100")
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.30))
+                .foregroundColor(.appOnSurface.opacity(0.30))
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.22))
+                .foregroundColor(.appOnSurface.opacity(0.22))
         }
     }
 
@@ -91,7 +91,7 @@ private struct RuptureDetailSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("SIGNAUX ACTIFS")
                                 .font(.appMicro.weight(.black)).tracking(1.5)
-                                .foregroundColor(.white.opacity(0.35))
+                                .foregroundColor(.appOnSurface.opacity(0.35))
                             ForEach(data.signals, id: \.self) { signal in
                                 RuptureSignalRow(signal: signal, data: data, color: riskColor)
                             }
@@ -145,13 +145,13 @@ private struct RuptureScoreBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("SCORE DE RISQUE")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 Text(levelLabel)
                     .font(.appBody.weight(.bold))
                     .foregroundColor(riskColor)
                 Text(data.message)
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.55))
+                    .foregroundColor(.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -179,7 +179,7 @@ private struct RuptureSignalRow: View {
                 .frame(width: 20)
             Text(data.signalLabel(signal))
                 .font(.appLabel)
-                .foregroundColor(.white.opacity(0.78))
+                .foregroundColor(.appOnSurface.opacity(0.78))
         }
     }
 }
@@ -193,16 +193,16 @@ private struct RuptureHistoryCard: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("HISTORIQUE DE DÉRAPAGE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
 
             HStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(data.totalEpisodes)")
                         .font(.appHeadline.weight(.bold))
-                        .foregroundColor(.white.opacity(0.80))
+                        .foregroundColor(.appOnSurface.opacity(0.80))
                     Text("épisodes détectés")
                         .font(.appMicro)
-                        .foregroundColor(.white.opacity(0.32))
+                        .foregroundColor(.appOnSurface.opacity(0.32))
                 }
                 if data.similarEpisodes > 0 {
                     VStack(alignment: .leading, spacing: 2) {
@@ -211,7 +211,7 @@ private struct RuptureHistoryCard: View {
                             .foregroundColor(Color(hex: data.riskColorHex))
                         Text("similaires au contexte actuel")
                             .font(.appMicro)
-                            .foregroundColor(.white.opacity(0.32))
+                            .foregroundColor(.appOnSurface.opacity(0.32))
                     }
                 }
             }
@@ -230,7 +230,7 @@ private struct RuptureContextCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTEXTE 7 DERNIERS JOURS")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
 
             HStack(spacing: 0) {
                 RuptureContextStat(
@@ -239,7 +239,7 @@ private struct RuptureContextCard: View {
                     value: "\(ctx.workoutCount)"
                 )
                 if let sleep = ctx.avgSleep {
-                    Divider().background(Color.white.opacity(0.10)).frame(height: 36)
+                    Divider().background(Color.appSurfaceInset).frame(height: 36)
                     RuptureContextStat(
                         icon: "moon.zzz.fill",
                         label: "Sommeil moy.",
@@ -247,7 +247,7 @@ private struct RuptureContextCard: View {
                     )
                 }
                 if let pss = ctx.avgPss {
-                    Divider().background(Color.white.opacity(0.10)).frame(height: 36)
+                    Divider().background(Color.appSurfaceInset).frame(height: 36)
                     RuptureContextStat(
                         icon: "brain.head.profile",
                         label: "PSS moy.",
@@ -270,13 +270,13 @@ private struct RuptureContextStat: View {
         VStack(spacing: 3) {
             Image(systemName: icon)
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.42))
+                .foregroundColor(.appOnSurface.opacity(0.42))
             Text(value)
                 .font(.appLabel.weight(.bold))
-                .foregroundColor(.white.opacity(0.80))
+                .foregroundColor(.appOnSurface.opacity(0.80))
             Text(label)
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.30))
+                .foregroundColor(.appOnSurface.opacity(0.30))
         }
         .frame(maxWidth: .infinity)
     }

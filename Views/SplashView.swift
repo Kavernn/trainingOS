@@ -169,7 +169,7 @@ struct SplashView: View {
                         let gradient = ctx.resolve(
                             GraphicsContext.Shading.linearGradient(
                                 Gradient(colors: [.clear,
-                                                  Color.white.opacity(0.55 * scanlineOpacity),
+                                                  Color.appOnBackground.opacity(0.55 * scanlineOpacity),
                                                   .clear]),
                                 startPoint: CGPoint(x: 0, y: scanlineY),
                                 endPoint:   CGPoint(x: sw, y: scanlineY)
@@ -388,7 +388,7 @@ struct SplashView: View {
 
                             ZStack(alignment: .leading) {
                                 Capsule()
-                                    .fill(Color.white.opacity(0.07))
+                                    .fill(Color.appSurfaceInset)
                                     .frame(width: 260, height: 2)
                                 Capsule()
                                     .fill(LinearGradient(
@@ -495,7 +495,7 @@ struct SplashView: View {
             let a = 0.20 * (1.0 - r3p)
             var ring = Path()
             ring.addEllipse(in: CGRect(x: center.x - r, y: center.y - r, width: r*2, height: r*2))
-            ctx.stroke(ring, with: .color(Color.white.opacity(a)), lineWidth: 1.0)
+            ctx.stroke(ring, with: .color(Color.appOnBackground.opacity(a)), lineWidth: 1.0)
         }
     }
 

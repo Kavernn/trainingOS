@@ -36,7 +36,7 @@ struct SessionQualityCard: View {
                 HStack(spacing: 6) {
                     Text("QUALITÉ SÉANCES")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundColor(.appOnSurface.opacity(0.35))
                     Spacer()
                     HStack(spacing: 4) {
                         Image(systemName: trendIcon).font(.appMicro.weight(.semibold))
@@ -47,20 +47,20 @@ struct SessionQualityCard: View {
                     .background(trendColor.opacity(0.12))
                     .clipShape(Capsule())
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.white.opacity(0.22))
+                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
                 }
 
                 HStack(alignment: .bottom, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("MOY. QUALITÉ")
                             .font(.appMicro).tracking(0.8)
-                            .foregroundColor(.white.opacity(0.28))
+                            .foregroundColor(.appOnSurface.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.avgQuality.map { "\(Int($0))" } ?? "—")
                                 .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             Text("/100")
-                                .font(.appCaption).foregroundColor(.white.opacity(0.30))
+                                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.30))
                         }
                     }
                     Spacer()
@@ -90,7 +90,7 @@ private struct SessionQualitySparkline: View {
                 let q = weeks[i].avgQuality ?? 0
                 let h = maxQ > 0 ? max(4.0, 36.0 * q / maxQ) : 4.0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
+                    .fill(isLast ? Color.trendPositive : Color.appOnSurface.opacity(0.20))
                     .frame(width: 6, height: h)
             }
         }
@@ -147,9 +147,9 @@ private struct SessionQualityBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("QUALITÉ DES SÉANCES")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 Text(data.message)
-                    .font(.appCaption).foregroundColor(.white.opacity(0.55))
+                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -170,7 +170,7 @@ private struct SessionQualityWeekChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("8 DERNIÈRES SEMAINES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(weeks.indices, id: \.self) { i in
                     let w = weeks[i]
@@ -180,13 +180,13 @@ private struct SessionQualityWeekChart: View {
                     VStack(spacing: 4) {
                         Text(w.avgQuality.map { "\(Int($0))" } ?? "—")
                             .font(.system(size: 8, weight: .semibold))
-                            .foregroundColor(isLast ? .white.opacity(0.65) : .white.opacity(0.28))
+                            .foregroundColor(isLast ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.28))
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(isLast ? Color.trendPositive : Color.white.opacity(0.20))
+                            .fill(isLast ? Color.trendPositive : Color.appOnSurface.opacity(0.20))
                             .frame(height: h)
                         Text("S\(i + 1)")
                             .font(.system(size: 7))
-                            .foregroundColor(isLast ? .white.opacity(0.50) : .white.opacity(0.22))
+                            .foregroundColor(isLast ? .appOnSurface.opacity(0.50) : .appOnSurface.opacity(0.22))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -209,9 +209,9 @@ private struct SessionQualityBestCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("MEILLEURE SÉANCE")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 Text(session.date)
-                    .font(.appCaption).foregroundColor(.white.opacity(0.55))
+                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
             }
             Spacer()
             Text("\(Int(session.score))")
@@ -228,9 +228,9 @@ private struct SessionQualityExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Text("Score composé : RPE (40 %), diversité d'exercices (35 %, cible 8 exos = 100 %), volume de sets (25 %, cible 20 sets = 100 %). Agrégé par semaine sur les 8 dernières semaines.")
-                .font(.appCaption).foregroundColor(.white.opacity(0.52))
+                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

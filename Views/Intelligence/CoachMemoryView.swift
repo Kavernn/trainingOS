@@ -74,7 +74,7 @@ struct CoachMemoryView: View {
                 .foregroundColor(.statusPurple)
             Text("Ces faits sont injectés dans chaque conversation pour que le coach te connaisse dans le temps.")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(.appOnSurface.opacity(0.6))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
@@ -162,7 +162,7 @@ private struct MemoryEntryRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.content)
                     .font(.appLabel)
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.appOnSurface.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Confiance : \(Int(entry.confidence * 100))% · \(entry.updatedAt)")
                     .font(.system(size: 10))
@@ -176,7 +176,7 @@ private struct MemoryEntryRow: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.gray.opacity(0.5))
                     .padding(6)
-                    .background(Color.white.opacity(0.05))
+                    .background(Color.appSurfaceInset)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)

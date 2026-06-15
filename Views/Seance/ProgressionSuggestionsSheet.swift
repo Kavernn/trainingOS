@@ -264,7 +264,7 @@ private struct SuggestionRow: View {
             // Ligne 3 : justification courte
             Text(suggestion.reason)
                 .font(.system(size: 12))
-                .foregroundColor(Color.white.opacity(0.45))
+                .foregroundColor(Color.appOnSurface.opacity(0.45))
                 .fixedSize(horizontal: false, vertical: true)
 
             // Ligne 4 : actions (rep_progress → pas de bouton Appliquer, juste OK)
@@ -277,7 +277,7 @@ private struct SuggestionRow: View {
                             .foregroundColor(.gray)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 7)
-                            .background(Color.white.opacity(0.07))
+                            .background(Color.appSurfaceInset)
                             .cornerRadius(10)   // F11
                     }
 
@@ -323,7 +323,7 @@ private struct SuggestionRow: View {
             }
         }
         .padding(14)
-        .background(Color.white.opacity(0.07))  // F13 — 0.07 vs 0.05
+        .background(Color.appSurfaceInset)  // F13 — 0.07 vs 0.05
         .cornerRadius(14)
         .padding(.horizontal)
     }
@@ -364,7 +364,7 @@ private struct MaintainRow: View {
                 .frame(width: 18)
             Text(suggestion.exerciseName)
                 .font(.appLabel)
-                .foregroundColor(Color.white.opacity(0.55))
+                .foregroundColor(Color.appOnSurface.opacity(0.55))
             Spacer()
             if let w = suggestion.currentWeight {
                 Text(UnitSettings.shared.format(w))
@@ -374,7 +374,7 @@ private struct MaintainRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 9)
-        .background(Color.white.opacity(0.04))
+        .background(Color.appSurfaceInset)
         .cornerRadius(10)
         .padding(.horizontal)
     }

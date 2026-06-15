@@ -12,7 +12,7 @@ struct DayTypeBadge: View {
         switch type {
         case "heavy":    return ("dumbbell.fill",                       "Lourd · surplus léger",   Color.appWarning)
         case "moderate": return ("figure.strengthtraining.traditional", "Modéré · maintenance",    Color.statusYellow)
-        case "light":    return ("figure.arms.open",                    "Léger · léger déficit",   Color(hex: "00BCD4"))
+        case "light":    return ("figure.arms.open",                    "Léger · léger déficit",   Color.statusCyan)
         default:         return ("moon.fill",                           "Repos · déficit",         Color.statusBlue)
         }
     }
@@ -42,13 +42,13 @@ struct DayTypeBadge: View {
                     HStack(spacing: 8) {
                         Text("\(Int(cal)) kcal")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.75))
+                            .foregroundColor(.appOnSurface.opacity(0.75))
                         Text("·")
                             .font(.system(size: 10))
                             .foregroundColor(.appTextMuted)
                         Text("\(Int(gluc))g glucides")
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.55))
+                            .foregroundColor(.appOnSurface.opacity(0.55))
                     }
                 }
             }

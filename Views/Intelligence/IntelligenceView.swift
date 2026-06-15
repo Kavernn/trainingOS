@@ -547,7 +547,7 @@ struct IntelligenceView: View {
                     }
                 }
                 .padding(16)
-                .background(Color.white.opacity(0.04))
+                .background(Color.appSurfaceInset)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .padding(.horizontal, 16)
             }
@@ -659,7 +659,7 @@ struct IntelligenceView: View {
             bilanSignauxStrip
 
             Divider()
-                .background(Color.white.opacity(0.08))
+                .background(Color.appSurfaceInset)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 4)
 
@@ -731,7 +731,7 @@ struct IntelligenceView: View {
             Button { openWeeklyReport() } label: {
                 HStack(spacing: 10) {
                     if isLoadingWeeklyReport {
-                        ProgressView().tint(.white).scaleEffect(0.8)
+                        ProgressView().tint(.onAccent).scaleEffect(0.8)
                     } else {
                         Image(systemName: "chart.bar.doc.horizontal").font(.system(size: 14))
                     }
@@ -743,7 +743,7 @@ struct IntelligenceView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(14)
-                .background(Color.white.opacity(0.05))
+                .background(Color.appSurfaceInset)
                 .foregroundColor(.appTextPrimary)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
@@ -786,7 +786,7 @@ struct IntelligenceView: View {
             .frame(maxWidth: .infinity)
         }
         .padding(14)
-        .background(Color.white.opacity(0.04))
+        .background(Color.appSurfaceInset)
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
@@ -898,7 +898,7 @@ struct IntelligenceView: View {
                 .transition(.opacity)
             }
         }
-        .background(Color.white.opacity(0.03))
+        .background(Color.appSurfaceInset)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 16)
     }
@@ -993,7 +993,7 @@ struct IntelligenceView: View {
                         }
                     }
                     .padding(12)
-                    .background(Color.white.opacity(0.03))
+                    .background(Color.appSurfaceInset)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.horizontal, 16)
                 }

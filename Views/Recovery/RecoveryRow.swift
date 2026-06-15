@@ -81,7 +81,7 @@ struct RecoveryRow: View {
             // ── Expanded secondary section ────────────────────────────────
             if expanded {
                 Rectangle()
-                    .fill(Color.white.opacity(0.06))
+                    .fill(Color.appSurfaceInset)
                     .frame(height: 0.5)
                     .padding(.horizontal, 12)
 
@@ -132,7 +132,7 @@ struct RecoveryRow: View {
                 .foregroundColor(isNil ? .gray.opacity(0.3) : color)
             Text(value)
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(isNil ? .gray.opacity(0.35) : .white.opacity(0.9))
+                .foregroundColor(isNil ? .gray.opacity(0.35) : .appOnSurface.opacity(0.9))
         }
     }
 
@@ -140,7 +140,7 @@ struct RecoveryRow: View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.appMicro).foregroundColor(color)
             VStack(alignment: .leading, spacing: 0) {
-                Text(value).font(.appCaption.weight(.semibold)).foregroundColor(.white.opacity(0.9))
+                Text(value).font(.appCaption.weight(.semibold)).foregroundColor(.appOnSurface.opacity(0.9))
                 Text(label).font(.system(size: 8)).foregroundColor(.gray.opacity(0.55))
             }
         }

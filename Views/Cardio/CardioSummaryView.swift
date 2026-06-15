@@ -145,7 +145,7 @@ struct CardioSummaryView: View {
                 .foregroundColor(.appTextPrimary)
             Text(sessionDateStr)
                 .font(.appLabel.weight(.regular))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(.appOnSurface.opacity(0.5))
         }
     }
 
@@ -194,7 +194,7 @@ struct CardioSummaryView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("SPLITS")
                     .font(.appCaption.weight(.bold)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(.appOnSurface.opacity(0.4))
                     .padding(.horizontal, 16)
 
                 VStack(spacing: 1) {
@@ -216,7 +216,7 @@ struct CardioSummaryView: View {
         return HStack {
             Text("Km \(split.km)")
                 .font(.appLabel)
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.appOnSurface.opacity(0.7))
             Spacer()
             Text(splitPace)
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
@@ -224,7 +224,7 @@ struct CardioSummaryView: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 16)
-        .background(Color.white.opacity(0.05))
+        .background(Color.appSurfaceInset)
     }
 
     // MARK: - HealthKit Section
@@ -234,7 +234,7 @@ struct CardioSummaryView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("DONNÉES SANTÉ")
                     .font(.appCaption.weight(.bold)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(.appOnSurface.opacity(0.4))
                     .padding(.horizontal, 16)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -259,13 +259,13 @@ struct CardioSummaryView: View {
                     .font(.appTitle.weight(.regular))
                     .foregroundColor(.teal.opacity(0.5))
                 VStack(alignment: .leading, spacing: 6) {
-                    RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.1)).frame(height: 11)
-                    RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.07)).frame(width: 160, height: 11)
+                    RoundedRectangle(cornerRadius: 4).fill(Color.appSurfaceInset).frame(height: 11)
+                    RoundedRectangle(cornerRadius: 4).fill(Color.appSurfaceInset).frame(width: 160, height: 11)
                 }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white.opacity(0.05))
+            .background(Color.appSurfaceInset)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal, 16)
         } else if let note = coachNote {
@@ -281,12 +281,12 @@ struct CardioSummaryView: View {
                     if note.isPersonalized {
                         Text("Basé sur tes données")
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.35))
+                            .foregroundColor(.appOnSurface.opacity(0.35))
                     }
                 }
                 Text(note.message)
                     .font(.appLabel.weight(.regular))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(.appOnSurface.opacity(0.85))
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -335,10 +335,10 @@ struct CardioSummaryView: View {
             Button { showCancelConfirm = true } label: {
                 Text("Annuler — ne pas sauvegarder")
                     .font(.appBody)
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(.appOnSurface.opacity(0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.1), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSurfaceInset, lineWidth: 1))
             }
             .disabled(isSaving)
             .padding(.horizontal, 16)
@@ -450,8 +450,8 @@ private struct StaticRouteMapView: View {
                     .resizable()
                     .scaledToFill()
             } else {
-                Color.white.opacity(0.05)
-                    .overlay(ProgressView().tint(.white.opacity(0.5)))
+                Color.appSurfaceInset
+                    .overlay(ProgressView().tint(.appOnSurface.opacity(0.5)))
             }
         }
         .onAppear { Task { await generate() } }
@@ -711,7 +711,7 @@ private struct SummaryMetric: View {
         VStack(spacing: 4) {
             Text(label)
                 .font(.appCaption.weight(.bold)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(.appOnSurface.opacity(0.4))
             Text(value)
                 .font(.appTitle)
                 .foregroundColor(color)

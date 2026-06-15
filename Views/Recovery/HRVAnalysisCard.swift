@@ -214,7 +214,7 @@ struct HRVBaselineProgressView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.08))
+                        .fill(Color.appSurfaceInset)
                         .frame(height: 8)
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.statusCyan)
@@ -254,7 +254,7 @@ struct HRVContextualTipView: View {
                     .padding(.top, 1)
                 Text(message)
                     .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.appOnSurface.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 Button {
@@ -316,7 +316,7 @@ private struct HRVNudgeBanner: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon).font(.appLabel).foregroundColor(color)
-            Text(message).font(.system(size: 12)).foregroundColor(.white.opacity(0.75)).fixedSize(horizontal: false, vertical: true)
+            Text(message).font(.system(size: 12)).foregroundColor(.appOnSurface.opacity(0.75)).fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(color.opacity(0.07))

@@ -1052,7 +1052,7 @@ struct InventoryFormSheet: View {
                 }
             }
             TextField("Nom alternatif (ex: Bench Press)", text: $alternateName)
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(.appOnSurface.opacity(0.6))
                 .font(.appLabel.weight(.regular))
         } header: {
             sectionHeader("Nom *")
@@ -1158,7 +1158,7 @@ struct InventoryFormSheet: View {
                             .padding(.vertical, 7)
                             .background(sel ? Color.forge : Color.appSurfaceInset)
                             .cornerRadius(10)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.appSurfaceInset, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }
@@ -1246,7 +1246,7 @@ struct InventoryFormSheet: View {
                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                     .background(sel ? Color.forge : Color.appSurfaceInset)
                                     .cornerRadius(16)
-                                    .overlay(Capsule().stroke(sel ? .clear : Color.white.opacity(0.15), lineWidth: 1))
+                                    .overlay(Capsule().stroke(sel ? .clear : Color.appOnSurface.opacity(0.15), lineWidth: 1))
                             }
                             .buttonStyle(.plain)
                         }
@@ -1401,7 +1401,7 @@ struct InventoryFormSheet: View {
                             .padding(.vertical, 8)
                             .background(sel ? Color.forge : Color.appSurfaceInset)
                             .cornerRadius(10)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.appSurfaceInset, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }
@@ -1474,14 +1474,14 @@ private struct CatalogueSkeletonView: View {
             ForEach(0..<12, id: \.self) { i in
                 HStack(spacing: 12) {
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.white.opacity(0.07))
+                        .fill(Color.appSurfaceInset)
                         .frame(width: 32, height: 32)
                     VStack(alignment: .leading, spacing: 6) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white.opacity(0.07))
+                            .fill(Color.appSurfaceInset)
                             .frame(width: CGFloat([140, 110, 160, 90, 130][i % 5]), height: 12)
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white.opacity(0.05))
+                            .fill(Color.appSurfaceInset)
                             .frame(width: CGFloat([80, 60, 100, 70, 90][i % 5]), height: 9)
                     }
                     Spacer()
@@ -1588,7 +1588,7 @@ struct ExerciseMediaSheet: View {
                                         .foregroundColor(.statusYellow)
                                     Text(t)
                                         .font(.appLabel.weight(.regular))
-                                        .foregroundColor(.white.opacity(0.85))
+                                        .foregroundColor(.appOnSurface.opacity(0.85))
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
@@ -1775,7 +1775,7 @@ struct CatalogueExerciseDetailView: View {
                     Spacer()
                     Text(frenchDate(last.date))
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                     if let w = last.weight {
                         Text("· \(Int(w))lbs × \(last.reps)")
                             .font(.appCaption)
@@ -1865,7 +1865,7 @@ struct CatalogueExerciseDetailView: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(frenchDateShort(entry.date))
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.appOnSurface.opacity(0.8))
                     }
                     .frame(width: 56, alignment: .trailing)
 
@@ -2270,7 +2270,7 @@ struct ClassificationGapsSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         if applyingName == gap.name {
-                            ProgressView().tint(.white).scaleEffect(0.7)
+                            ProgressView().tint(.onAccent).scaleEffect(0.7)
                         } else {
                             Image(systemName: "checkmark")
                         }
@@ -2295,7 +2295,7 @@ struct ClassificationGapsSheet: View {
                         .foregroundColor(.gray)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 7)
-                        .background(Color.white.opacity(0.07))
+                        .background(Color.appSurfaceInset)
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
@@ -2315,7 +2315,7 @@ struct ClassificationGapsSheet: View {
                 .foregroundColor(.gray)
             + Text(value)
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.appOnSurface.opacity(0.85))
         }
     }
 

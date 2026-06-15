@@ -14,7 +14,7 @@ struct WarRoomStripView: View {
                     .foregroundColor(Color.appDanger.opacity(0.75))
                 Text("War Room")
                     .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.appOnSurface.opacity(0.6))
             }
 
             Spacer()
@@ -26,20 +26,20 @@ struct WarRoomStripView: View {
                         .foregroundColor(Color.statusGreen.opacity(0.7))
                     Text("Journée loggée")
                         .font(.appCaption).fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(.appOnSurface.opacity(0.45))
                 }
             } else {
                 resultButton
                 Text("·")
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.25))
+                    .foregroundColor(.appOnSurface.opacity(0.25))
                 temptationButton
             }
         }
         .padding(.horizontal, 12)
         .frame(height: 44)
         .background(Color.appCard)
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 0.5))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSurfaceInset, lineWidth: 0.5))
         .cornerRadius(10)
     }
 
@@ -51,13 +51,13 @@ struct WarRoomStripView: View {
                 Text(hasResult ? "Résultat ✓" : "Résultat →")
                     .font(.appCaption).fontWeight(.semibold)
             }
-            .foregroundColor(hasResult ? .white.opacity(0.3) : .white)
+            .foregroundColor(hasResult ? .appOnSurface.opacity(0.3) : .white)
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(hasResult ? Color.white.opacity(0.04) : Color(hex: "0a1a0a"))
+                    .fill(hasResult ? Color.appSurfaceInset : Color(hex: "0a1a0a"))
                     .overlay(Capsule().stroke(
-                        hasResult ? Color.white.opacity(0.08) : Color.statusGreen.opacity(0.5),
+                        hasResult ? Color.appSurfaceInset : Color.statusGreen.opacity(0.5),
                         lineWidth: 0.5
                     ))
             )
@@ -74,13 +74,13 @@ struct WarRoomStripView: View {
                 Text(hasTemptation ? "Tentation ✓" : "Tentation →")
                     .font(.appCaption).fontWeight(.semibold)
             }
-            .foregroundColor(hasTemptation ? .white.opacity(0.3) : .white)
+            .foregroundColor(hasTemptation ? .appOnSurface.opacity(0.3) : .white)
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(hasTemptation ? Color.white.opacity(0.04) : Color(hex: "1a0505"))
+                    .fill(hasTemptation ? Color.appSurfaceInset : Color(hex: "1a0505"))
                     .overlay(Capsule().stroke(
-                        hasTemptation ? Color.white.opacity(0.08) : Color.appDanger.opacity(0.6),
+                        hasTemptation ? Color.appSurfaceInset : Color.appDanger.opacity(0.6),
                         lineWidth: 0.5
                     ))
             )

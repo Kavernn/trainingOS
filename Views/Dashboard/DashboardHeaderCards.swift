@@ -31,7 +31,7 @@ struct DashboardSkeletonView: View {
                     SkeletonBar(width: 180, height: 12)
                 }
                 .padding(16)
-                .background(Color.white.opacity(0.04))
+                .background(Color.appSurfaceInset)
                 .cornerRadius(16)
 
                 // DailyMetricsRow — 4 tiles
@@ -44,7 +44,7 @@ struct DashboardSkeletonView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.04))
+                        .background(Color.appSurfaceInset)
                         .cornerRadius(12)
                     }
                 }
@@ -69,7 +69,7 @@ struct SkeletonBar: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: radius)
-            .fill(Color.white.opacity(opacity))
+            .fill(Color.appOnSurface.opacity(opacity))
             .frame(width: width, height: height)
             .onAppear {
                 withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
@@ -144,7 +144,7 @@ struct DashboardStatusBar: View {
                         .frame(width: 6, height: 6)
                     Text(dash.today)
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                         .lineLimit(1)
                 }
 

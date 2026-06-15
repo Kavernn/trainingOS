@@ -144,7 +144,7 @@ struct NoteCard: View {
         .background(Color.appCard)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(session.entry.comment?.isEmpty == false ? Color.statusBlue.opacity(0.2) : Color.white.opacity(0.05), lineWidth: 1)
+                .stroke(session.entry.comment?.isEmpty == false ? Color.statusBlue.opacity(0.2) : Color.appSurfaceInset, lineWidth: 1)
         )
         .cornerRadius(12)
     }

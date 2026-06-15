@@ -87,7 +87,7 @@ struct BodyCompHistoryView: View {
             .chartYAxis {
                 AxisMarks(position: .trailing) { value in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                        .foregroundStyle(Color.white.opacity(0.06))
+                        .foregroundStyle(Color.appSurfaceInset)
                     AxisValueLabel {
                         if let v = value.as(Double.self) {
                             Text(String(format: "%.0f%%", v))
@@ -99,7 +99,7 @@ struct BodyCompHistoryView: View {
             .chartXAxis {
                 AxisMarks { value in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                        .foregroundStyle(Color.white.opacity(0.06))
+                        .foregroundStyle(Color.appSurfaceInset)
                     AxisValueLabel {
                         if let d = value.as(Date.self) {
                             Text(d, format: .dateTime.month(.abbreviated).day())

@@ -23,7 +23,7 @@ struct PerformanceConditionsCard: View {
             conditionRows
             Text(data.message)
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.50))
+                .foregroundColor(.appOnSurface.opacity(0.50))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(2)
         }
@@ -32,7 +32,7 @@ struct PerformanceConditionsCard: View {
     }
 
     private var scoreColor: Color {
-        guard let s = data.alignmentScore else { return .white.opacity(0.35) }
+        guard let s = data.alignmentScore else { return .appOnSurface.opacity(0.35) }
         if s >= 80 { return .forge }
         if s >= 50 { return Color.trendNeutral }
         return Color.trendNegative
@@ -42,7 +42,7 @@ struct PerformanceConditionsCard: View {
         HStack(spacing: 6) {
             Text("RECETTE DU SUCCÈS")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Spacer()
             if let score = data.alignmentScore {
                 Text("\(score)%")
@@ -51,7 +51,7 @@ struct PerformanceConditionsCard: View {
             }
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.white.opacity(0.22))
+                .foregroundColor(.appOnSurface.opacity(0.22))
         }
     }
 
@@ -73,23 +73,23 @@ private struct ConditionRowCompact: View {
         HStack(spacing: 8) {
             Image(systemName: condition.matchToday ? "checkmark.circle.fill" : "circle")
                 .font(.appLabel)
-                .foregroundColor(condition.matchToday ? .forge : .white.opacity(0.22))
+                .foregroundColor(condition.matchToday ? .forge : .appOnSurface.opacity(0.22))
 
             Image(systemName: condition.icon)
                 .font(.system(size: 10))
-                .foregroundColor(.white.opacity(0.38))
+                .foregroundColor(.appOnSurface.opacity(0.38))
                 .frame(width: 14)
 
             Text(condition.label)
                 .font(.appCaption)
-                .foregroundColor(condition.matchToday ? .white.opacity(0.80) : .white.opacity(0.42))
+                .foregroundColor(condition.matchToday ? .appOnSurface.opacity(0.80) : .appOnSurface.opacity(0.42))
                 .lineLimit(1)
 
             Spacer()
 
             Text("\(condition.frequency)%")
                 .font(.appMicro.weight(.semibold))
-                .foregroundColor(.white.opacity(0.28))
+                .foregroundColor(.appOnSurface.opacity(0.28))
         }
     }
 }
@@ -130,7 +130,7 @@ private struct AlignmentScoreBanner: View {
     let data: PerformanceConditionsData
 
     private var scoreColor: Color {
-        guard let s = data.alignmentScore else { return .white.opacity(0.40) }
+        guard let s = data.alignmentScore else { return .appOnSurface.opacity(0.40) }
         if s >= 80 { return .forge }
         if s >= 50 { return Color.trendNeutral }
         return Color.trendNegative
@@ -141,13 +141,13 @@ private struct AlignmentScoreBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("ALIGNEMENT AUJOURD'HUI")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.appOnSurface.opacity(0.35))
                 Text("\(data.matched)/\(data.total) conditions réunies")
                     .font(.appBody.weight(.semibold))
-                    .foregroundColor(.white.opacity(0.80))
+                    .foregroundColor(.appOnSurface.opacity(0.80))
                 Text(data.message)
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.50))
+                    .foregroundColor(.appOnSurface.opacity(0.50))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -171,7 +171,7 @@ private struct ConditionsFullList: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("CONDITIONS IDENTIFIÉES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
 
             ForEach(data.conditions, id: \.key) { cond in
                 ConditionDetailRow(condition: cond)
@@ -185,7 +185,7 @@ private struct ConditionsFullList: View {
 private struct ConditionDetailRow: View {
     let condition: PerformanceCondition
 
-    private var matchColor: Color { condition.matchToday ? .forge : .white.opacity(0.28) }
+    private var matchColor: Color { condition.matchToday ? .forge : .appOnSurface.opacity(0.28) }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -197,17 +197,17 @@ private struct ConditionDetailRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(condition.label)
                     .font(.appLabel.weight(.medium))
-                    .foregroundColor(condition.matchToday ? .white.opacity(0.88) : .white.opacity(0.50))
+                    .foregroundColor(condition.matchToday ? .appOnSurface.opacity(0.88) : .appOnSurface.opacity(0.50))
                 Text("Présente dans \(condition.frequency)% de tes meilleures séances")
                     .font(.appMicro)
-                    .foregroundColor(.white.opacity(0.30))
+                    .foregroundColor(.appOnSurface.opacity(0.30))
             }
 
             Spacer()
 
             Image(systemName: condition.icon)
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.28))
+                .foregroundColor(.appOnSurface.opacity(0.28))
         }
         .padding(.vertical, 4)
     }
@@ -222,10 +222,10 @@ private struct HowItWorksCard: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
             Text("Basé sur le contexte des 20% de tes séances les plus intenses (RPE le plus élevé). Les conditions présentes dans ≥55% de ces séances forment ta recette personnelle.")
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(.appOnSurface.opacity(0.45))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

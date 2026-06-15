@@ -205,7 +205,7 @@ struct NavyCalculatorView: View {
                         Image(systemName: "minus")
                             .font(.appLabel.weight(.bold))
                             .frame(width: 34, height: 34)
-                            .background(Color.white.opacity(0.07))
+                            .background(Color.appSurfaceInset)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .foregroundColor(.appTextPrimary)
                     }
@@ -221,7 +221,7 @@ struct NavyCalculatorView: View {
                         Image(systemName: "plus")
                             .font(.appLabel.weight(.bold))
                             .frame(width: 34, height: 34)
-                            .background(Color.white.opacity(0.07))
+                            .background(Color.appSurfaceInset)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .foregroundColor(.appTextPrimary)
                     }

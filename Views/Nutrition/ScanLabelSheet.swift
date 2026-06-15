@@ -88,10 +88,10 @@ struct ScanLabelSheet: View {
             Button { showCameraPicker = true } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.white.opacity(0.04))
+                        .fill(Color.appSurfaceInset)
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.white.opacity(0.15),
+                                .stroke(Color.appOnSurface.opacity(0.15),
                                         style: StrokeStyle(lineWidth: 1.5, dash: [6]))
                         )
                     if let img = pickedImage {
@@ -128,7 +128,7 @@ struct ScanLabelSheet: View {
                         .keyboardType(.decimalPad)
                         .font(.system(size: 16, weight: .semibold)).foregroundColor(.appTextPrimary)
                         .padding(12)
-                        .background(Color.white.opacity(0.06))
+                        .background(Color.appSurfaceInset)
                         .cornerRadius(10)
                 }
                 VStack(alignment: .leading, spacing: 6) {

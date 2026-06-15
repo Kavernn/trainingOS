@@ -69,7 +69,7 @@ struct ProgramPreviewSheet: View {
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
-                                .background(selectedWeek == week.week - 1 ? color.opacity(0.25) : Color.white.opacity(0.05))
+                                .background(selectedWeek == week.week - 1 ? color.opacity(0.25) : Color.appSurfaceInset)
                                 .foregroundColor(selectedWeek == week.week - 1 ? color : .gray)
                                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(
                                     selectedWeek == week.week - 1 ? color.opacity(0.6) : Color.clear, lineWidth: 1))
@@ -158,7 +158,7 @@ struct ProgramPreviewSheet: View {
                                     .font(.appBody.weight(.semibold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
-                                    .background(Color.white.opacity(0.07))
+                                    .background(Color.appSurfaceInset)
                                     .foregroundColor(.gray)
                                     .cornerRadius(14)
                             }
@@ -167,7 +167,7 @@ struct ProgramPreviewSheet: View {
                             } label: {
                                 HStack(spacing: 8) {
                                     if isApproving {
-                                        ProgressView().tint(.white).scaleEffect(0.85)
+                                        ProgressView().tint(.onAccent).scaleEffect(0.85)
                                     } else {
                                         Image(systemName: "checkmark")
                                     }
@@ -313,7 +313,7 @@ private struct DayCard: View {
                                        categoryColors: categoryColors)
                         if idx < day.exercises.count - 1 {
                             Divider()
-                                .background(Color.white.opacity(0.04))
+                                .background(Color.appSurfaceInset)
                                 .padding(.leading, 44)
                         }
                     }

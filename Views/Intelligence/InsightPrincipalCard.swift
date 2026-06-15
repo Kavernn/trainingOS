@@ -43,7 +43,7 @@ struct InsightPrincipalCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Text(insight.body)
                         .font(.appLabel)
-                        .foregroundColor(.white.opacity(0.78))
+                        .foregroundColor(.appOnSurface.opacity(0.78))
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                 }

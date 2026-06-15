@@ -599,7 +599,7 @@ struct PSSQuestionnaireSheet: View {
                     }
                     Button(action: submitQuestionnaire) {
                         HStack(spacing: 8) {
-                            if isSaving { ProgressView().tint(.white).scaleEffect(0.8) }
+                            if isSaving { ProgressView().tint(.onAccent).scaleEffect(0.8) }
                             Text(isSaving ? "Calcul…" : "Calculer mon score")
                                 .font(.appBody.weight(.semibold))
                         }
@@ -797,7 +797,7 @@ struct PSSResultsContent: View {
                         Text("Consultation professionnelle recommandée")
                             .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                         Text("Ton niveau de stress est élevé. Parle à un professionnel de santé mentale.")
-                            .font(.appCaption).foregroundColor(.white.opacity(0.80))
+                            .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.80))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -816,7 +816,7 @@ struct PSSResultsContent: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(10)
-                .background(Color.white.opacity(0.03))
+                .background(Color.appSurfaceInset)
                 .cornerRadius(8)
             }
         }
@@ -833,7 +833,7 @@ struct PSSResultsContent: View {
                 .foregroundColor(.appTextPrimary)
                 .lineLimit(3...5)
                 .padding(12)
-                .background(Color.white.opacity(0.05))
+                .background(Color.appSurfaceInset)
                 .cornerRadius(10)
                 // P-C2: enforce 500 char limit
                 .onChange(of: notes) { _, new in
@@ -902,7 +902,7 @@ struct PSSQuestionCard: View {
                 if let example = Self.examples[question.id] {
                     Text(example)
                         .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundColor(.appOnSurface.opacity(0.35))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -934,13 +934,13 @@ struct PSSResponseButton: View {
                     .foregroundColor(isSelected ? .white : .gray.opacity(0.6))
                 Text(label)
                     .font(.system(size: 7, weight: .medium))
-                    .foregroundColor(isSelected ? .white.opacity(0.8) : .gray.opacity(0.5))
+                    .foregroundColor(isSelected ? .appOnSurface.opacity(0.8) : .gray.opacity(0.5))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(isSelected ? Color.statusPurple.opacity(0.7) : Color.white.opacity(0.04))
+            .background(isSelected ? Color.statusPurple.opacity(0.7) : Color.appSurfaceInset)
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
@@ -978,12 +978,12 @@ struct TriggerRatingSection: View {
                                         .foregroundColor(ratings[trigger] == val ? .white : .gray.opacity(0.5))
                                     Text(labels[val])
                                         .font(.system(size: 7))
-                                        .foregroundColor(ratings[trigger] == val ? .white.opacity(0.7) : .gray.opacity(0.4))
+                                        .foregroundColor(ratings[trigger] == val ? .appOnSurface.opacity(0.7) : .gray.opacity(0.4))
                                         .lineLimit(1)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 7)
-                                .background(ratings[trigger] == val ? Color.forge.opacity(0.6) : Color.white.opacity(0.04))
+                                .background(ratings[trigger] == val ? Color.forge.opacity(0.6) : Color.appSurfaceInset)
                                 .cornerRadius(7)
                             }
                             .buttonStyle(.plain)
@@ -1196,7 +1196,7 @@ struct PSSTrendChart: View {
             .chartXAxis(.hidden)
             .chartYAxis {
                 AxisMarks(values: [0, 13, 26, 40]) { value in
-                    AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                    AxisGridLine().foregroundStyle(Color.appSurfaceInset)
                     AxisValueLabel()
                         .font(.appMicro)
                         .foregroundStyle(Color.gray)

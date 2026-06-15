@@ -94,12 +94,12 @@ struct MetricMiniCard: View {
             }
             Text(label)
                 .font(.system(size: labelSize))
-                .foregroundColor(Color.white.opacity(0.4))
+                .foregroundColor(Color.appOnSurface.opacity(0.4))
                 .lineLimit(1)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.white.opacity(0.07))
+                        .fill(Color.appSurfaceInset)
                         .frame(height: 3)
                     RoundedRectangle(cornerRadius: 2)
                         .fill(fillColor.opacity(0.85))

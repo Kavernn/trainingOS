@@ -9,7 +9,7 @@ struct VelocityCompoundCard: View {
     var body: some View {
         HStack(spacing: 0) {
             VelocityPanel(data: velocity)
-            Rectangle().fill(Color.white.opacity(0.07)).frame(width: 1)
+            Rectangle().fill(Color.appSurfaceInset).frame(width: 1)
             CompoundPanel(data: compound)
         }
         .glassCard()
@@ -24,7 +24,7 @@ private struct VelocityPanel: View {
     private var accentColor: Color {
         switch data.label {
         case "accélération": return .forge
-        case "stable":       return Color.white.opacity(0.70)
+        case "stable":       return Color.appOnSurface.opacity(0.70)
         case "décélération": return .statusOrange
         default:             return .appDanger
         }
@@ -60,7 +60,7 @@ private struct VelocityPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("VÉLOCITÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
 
             HStack(spacing: 4) {
                 Image(systemName: labelIcon)
@@ -80,7 +80,7 @@ private struct VelocityPanel: View {
             if !trendText.isEmpty {
                 Text(trendText)
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.38))
+                    .foregroundColor(.appOnSurface.opacity(0.38))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -97,7 +97,7 @@ private struct CompoundPanel: View {
         switch data.trend {
         case "hausse": return .forge
         case "baisse": return .appDanger
-        default:       return Color.white.opacity(0.55)
+        default:       return Color.appOnSurface.opacity(0.55)
         }
     }
 
@@ -117,7 +117,7 @@ private struct CompoundPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("COMPOSÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.white.opacity(0.35))
+                .foregroundColor(.appOnSurface.opacity(0.35))
 
             HStack(spacing: 4) {
                 Image(systemName: trendIcon)
@@ -129,12 +129,12 @@ private struct CompoundPanel: View {
 
             Text(data.formattedScore)
                 .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundColor(data.isAboveBaseline ? .forge : .white.opacity(0.75))
+                .foregroundColor(data.isAboveBaseline ? .forge : .appOnSurface.opacity(0.75))
                 .contentTransition(.numericText())
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.08)).frame(height: 4)
+                    Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                     Capsule()
                         .fill(trendColor.opacity(0.70))
                         .frame(width: geo.size.width * consistencyWidth, height: 4)
@@ -144,11 +144,11 @@ private struct CompoundPanel: View {
 
             Text("\(String(format: "%.0f", data.baseConsistency))% actif · \(data.currentStreak)j streak")
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.38))
+                .foregroundColor(.appOnSurface.opacity(0.38))
 
             Text(data.formattedDelta + " vs 30j")
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.38))
+                .foregroundColor(.appOnSurface.opacity(0.38))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)

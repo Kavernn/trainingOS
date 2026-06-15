@@ -215,7 +215,7 @@ struct WeeklyNutritionChart: View {
                                     .fill(isSelected ? accentColor : (isToday ? accentColor : accentColor.opacity(isCompact ? 0.5 : 0.35)))
                                     .frame(height: max(geo.size.height * pct, 3))
                                     .overlay(isSelected ? RoundedRectangle(cornerRadius: isCompact ? 2 : 4)
-                                        .stroke(Color.white.opacity(0.4), lineWidth: 1.5) : nil)
+                                        .stroke(Color.appOnSurface.opacity(0.4), lineWidth: 1.5) : nil)
                             }
                         }
                         .frame(height: 60)
@@ -257,7 +257,7 @@ struct WeeklyNutritionChart: View {
                             .foregroundColor(ok ? Color.appSuccess : Color.appDanger)
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color.white.opacity(0.06)).frame(height: 4)
+                                Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                                 Capsule()
                                     .fill(ok ? Color.appSuccess : Color.appDanger)
                                     .frame(width: max(4, geo.size.width * min(pct, 1.0)), height: 4)
@@ -267,7 +267,7 @@ struct WeeklyNutritionChart: View {
                     }
                 }
                 .padding(10)
-                .background(Color.white.opacity(0.04))
+                .background(Color.appSurfaceInset)
                 .cornerRadius(8)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }

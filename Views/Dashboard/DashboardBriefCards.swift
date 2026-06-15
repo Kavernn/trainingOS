@@ -72,7 +72,7 @@ struct RecoveryTrioCard: View {
 
     private var pillDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.07))
+            .fill(Color.appSurfaceInset)
             .frame(width: 1)
             .padding(.vertical, 10)
     }
@@ -147,7 +147,7 @@ struct MomentumStripView: View {
                         .foregroundColor(.appTextPrimary)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.07)).frame(height: 4)
+                            Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                             Capsule()
                                 .fill(weekSessions >= weekTarget ? Color.appSuccess : Color.statusCyan)
                                 .frame(width: max(4, geo.size.width * min(Double(weekSessions) / Double(weekTarget), 1.0)), height: 4)
@@ -163,7 +163,7 @@ struct MomentumStripView: View {
 
             if showStreak {
                 Rectangle()
-                    .fill(Color.white.opacity(0.07))
+                    .fill(Color.appSurfaceInset)
                     .frame(width: 1)
                     .padding(.vertical, 10)
 

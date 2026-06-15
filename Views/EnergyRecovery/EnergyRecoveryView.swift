@@ -180,7 +180,7 @@ struct EnergyHeaderCard: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .stroke(Color.white.opacity(0.08), lineWidth: 6)
+                        .stroke(Color.appSurfaceInset, lineWidth: 6)
                         .frame(width: 68, height: 68)
                     Circle()
                         .trim(from: 0, to: CGFloat(score) / 100)
@@ -340,7 +340,7 @@ private struct EnergyBreakdownCard: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Dépense active (HealthKit)")
                                 .font(.appCaption.weight(.medium))
-                                .foregroundColor(.white.opacity(0.75))
+                                .foregroundColor(.appOnSurface.opacity(0.75))
                             if isRestDay && ae > 800 {
                                 Text("Activité élevée malgré le repos")
                                     .font(.appCaption)
@@ -395,7 +395,7 @@ private struct EnergyBreakdownCard: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.white.opacity(0.06))
+                        .fill(Color.appSurfaceInset)
                         .frame(height: 4)
                     RoundedRectangle(cornerRadius: 3)
                         .fill(color)
@@ -419,7 +419,7 @@ private struct EnergyErrorCard: View {
                 .foregroundColor(Color.forge)
             Text(message)
                 .font(.appLabel.weight(.regular))
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.appOnSurface.opacity(0.8))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
@@ -559,7 +559,7 @@ private struct EnergyChartSection: View {
                 if let sel = selectedDay {
                     RuleMark(x: .value("Sélection", sel.shortDate))
                         .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4]))
-                        .foregroundStyle(Color.white.opacity(0.3))
+                        .foregroundStyle(Color.appOnSurface.opacity(0.3))
                         .annotation(position: .top, alignment: .center) {
                             dayAnnotation(sel)
                         }
@@ -569,7 +569,7 @@ private struct EnergyChartSection: View {
             .chartYAxis {
                 AxisMarks(values: .automatic(desiredCount: 4)) { val in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.4))
-                        .foregroundStyle(Color.white.opacity(0.08))
+                        .foregroundStyle(Color.appSurfaceInset)
                     AxisValueLabel {
                         if let v = val.as(Int.self) {
                             Text("\(v / 100 * 100)")
@@ -844,11 +844,11 @@ private struct UnifiedRecoverySleepSection: View {
     private var heroRow: some View {
         HStack(spacing: 12) {
             readinessHero
-            Divider().frame(height: 56).background(Color.white.opacity(0.08))
+            Divider().frame(height: 56).background(Color.appSurfaceInset)
             sleepHero
         }
         .padding(12)
-        .background(Color.white.opacity(0.03))
+        .background(Color.appSurfaceInset)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -866,7 +866,7 @@ private struct UnifiedRecoverySleepSection: View {
         return HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(0.08), lineWidth: 5)
+                    .stroke(Color.appSurfaceInset, lineWidth: 5)
                     .frame(width: 52, height: 52)
                 Circle()
                     .trim(from: 0, to: CGFloat(score ?? 0) / 100)
@@ -919,7 +919,7 @@ private struct UnifiedRecoverySleepSection: View {
         return HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(0.08), lineWidth: 5)
+                    .stroke(Color.appSurfaceInset, lineWidth: 5)
                     .frame(width: 52, height: 52)
                 Circle()
                     .trim(from: 0, to: CGFloat(min(hours ?? 0, 10) / 10.0))
@@ -1122,10 +1122,10 @@ private struct UnifiedRecoverySleepSection: View {
                 Text("Compléter manuellement")
                     .font(.appCaption.weight(.semibold))
             }
-            .foregroundColor(.white.opacity(0.7))
+            .foregroundColor(.appOnSurface.opacity(0.7))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(Color.white.opacity(0.06))
+            .background(Color.appSurfaceInset)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
@@ -1292,14 +1292,14 @@ private struct Recovery14dChart: View {
                         y: .value("Tendance", max(0, min(100, y0))),
                         series: .value("S", "Tendance")
                     )
-                    .foregroundStyle(Color.white.opacity(0.45))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.45))
                     .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4]))
                     LineMark(
                         x: .value("Date", last.label),
                         y: .value("Tendance", max(0, min(100, yN))),
                         series: .value("S", "Tendance")
                     )
-                    .foregroundStyle(Color.white.opacity(0.45))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.45))
                     .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4]))
                 }
             }
@@ -1314,7 +1314,7 @@ private struct Recovery14dChart: View {
             .chartYAxis {
                 AxisMarks(values: [0.0, 50.0, 75.0, 100.0]) { val in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.4))
-                        .foregroundStyle(Color.white.opacity(0.08))
+                        .foregroundStyle(Color.appSurfaceInset)
                     AxisValueLabel {
                         if let v = val.as(Double.self) {
                             Text("\(Int(v))")
@@ -1414,7 +1414,7 @@ private struct Sleep10dChart: View {
             .chartYAxis {
                 AxisMarks(values: [0.0, 4.0, 6.0, 7.0, 8.0, 10.0]) { val in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.4))
-                        .foregroundStyle(Color.white.opacity(0.07))
+                        .foregroundStyle(Color.appSurfaceInset)
                     AxisValueLabel {
                         if let v = val.as(Double.self) {
                             Text("\(Int(v))h")

@@ -36,7 +36,7 @@ struct NutritionComplianceChart: View {
                         p.move(to: CGPoint(x: 0, y: y))
                         p.addLine(to: CGPoint(x: geo.size.width, y: y))
                     }
-                    .stroke(Color.white.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .stroke(Color.appOnSurface.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 }
             )
 
@@ -168,7 +168,7 @@ struct ProteinComplianceView: View {
                             .frame(height: 14)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 3)
-                                    .stroke(Color.white.opacity(0.05), lineWidth: 0.5)
+                                    .stroke(Color.appSurfaceInset, lineWidth: 0.5)
                             )
                     }
                 }
@@ -360,7 +360,7 @@ struct MacrosDayTypeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(Color.white.opacity(0.04))
+        .background(Color.appSurfaceInset)
         .cornerRadius(10)
     }
 
@@ -432,7 +432,7 @@ struct NutritionVsPerfView: View {
                 if let msg = insight {
                     Text(msg)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.appOnSurface.opacity(0.8))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

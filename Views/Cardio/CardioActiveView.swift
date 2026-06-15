@@ -30,7 +30,7 @@ struct CardioTypeSelectionSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             Capsule()
-                .fill(Color.white.opacity(0.2))
+                .fill(Color.appOnSurface.opacity(0.2))
                 .frame(width: 36, height: 4)
                 .padding(.top, 12)
                 .padding(.bottom, 20)
@@ -93,7 +93,7 @@ private struct CardioTypeCard: View {
             VStack(spacing: 10) {
                 Image(systemName: type.icon)
                     .font(.system(size: 28, weight: .medium))
-                    .foregroundColor(isSelected ? Color.statusCyan : .white.opacity(0.7))
+                    .foregroundColor(isSelected ? Color.statusCyan : .appOnSurface.opacity(0.7))
                     .frame(height: 34)
 
                 Text(type.label)
@@ -102,7 +102,7 @@ private struct CardioTypeCard: View {
 
                 Text(type.description)
                     .font(.appCaption)
-                    .foregroundColor(.white.opacity(isSelected ? 0.7 : 0.4))
+                    .foregroundColor(.appOnSurface.opacity(isSelected ? 0.7 : 0.4))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -110,10 +110,10 @@ private struct CardioTypeCard: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)
             .padding(.horizontal, 8)
-            .background(isSelected ? Color.statusCyan.opacity(0.15) : Color.white.opacity(0.05))
+            .background(isSelected ? Color.statusCyan.opacity(0.15) : Color.appSurfaceInset)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color.statusCyan : Color.white.opacity(0.08), lineWidth: isSelected ? 1.5 : 1)
+                    .stroke(isSelected ? Color.statusCyan : Color.appSurfaceInset, lineWidth: isSelected ? 1.5 : 1)
             )
             .cornerRadius(16)
         }
@@ -288,10 +288,10 @@ private struct ActiveLayout: View {
                         Text("Réduire")
                             .font(.appLabel)
                     }
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.appOnSurface.opacity(0.6))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
-                    .background(Color.white.opacity(0.08))
+                    .background(Color.appSurfaceInset)
                     .clipShape(Capsule())
                 }
                 Spacer()
@@ -329,9 +329,9 @@ private struct ActiveLayout: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.white.opacity(0.08))
+                    .background(Color.appSurfaceInset)
                     .foregroundColor(.appTextPrimary)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.2), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appOnSurface.opacity(0.2), lineWidth: 1))
                     .cornerRadius(14)
                 }
 
@@ -485,7 +485,7 @@ private struct MetricsBlock: View {
     private func tertiaryText(_ value: String, opacity: Double = 0.6) -> some View {
         Text(value)
             .font(.appTitle.weight(.medium))
-            .foregroundColor(.white.opacity(opacity))
+            .foregroundColor(.appOnSurface.opacity(opacity))
     }
 }
 

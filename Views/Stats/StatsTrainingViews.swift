@@ -141,7 +141,7 @@ private struct ACWRSparkline: View {
                                 else { path.move(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.appOnSurface.opacity(0.8), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         // Dots coloured by zone
                         ForEach(Array(trend.enumerated()), id: \.0) { i, week in
@@ -261,7 +261,7 @@ struct BadgesView: View {
                     .font(.appLabel.weight(.bold))
                 Text("Badges")
                     .font(.appLabel.weight(.bold))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.appOnSurface.opacity(0.8))
                 Spacer()
                 let count = badges.filter(\.earned).count
                 Text("\(count)/\(badges.count)")
@@ -283,8 +283,8 @@ struct BadgesView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .background(badge.earned ? badge.color.opacity(0.1) : Color.white.opacity(0.03))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(badge.earned ? badge.color.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1))
+                    .background(badge.earned ? badge.color.opacity(0.1) : Color.appSurfaceInset)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(badge.earned ? badge.color.opacity(0.3) : Color.appSurfaceInset, lineWidth: 1))
                     .cornerRadius(10)
                 }
             }
@@ -401,7 +401,7 @@ struct WeekComparisonCard: View {
 
             // Verdict
             let verdict = weekVerdict
-            Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+            Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
             Text(verdict.text)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(verdict.color)
@@ -644,7 +644,7 @@ struct RPEChartView: View {
                     ForEach([5.0, 7.0, 10.0], id: \.self) { level in
                         let y = geo.size.height * (1 - level / maxY)
                         Path { p in p.move(to: CGPoint(x: 0, y: y)); p.addLine(to: CGPoint(x: geo.size.width, y: y)) }
-                            .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                            .stroke(Color.appSurfaceInset, lineWidth: 1)
                         Text("\(Int(level))")
                             .font(.appMicro).foregroundColor(.gray.opacity(0.5))
                             .position(x: 12, y: y)
@@ -872,7 +872,7 @@ struct EnergyTrendView: View {
                     ForEach([1, 3, 5], id: \.self) { level in
                         let y = geo.size.height * (1 - CGFloat(level - 1) / 4.0)
                         Path { p in p.move(to: CGPoint(x: 0, y: y)); p.addLine(to: CGPoint(x: geo.size.width, y: y)) }
-                            .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                            .stroke(Color.appSurfaceInset, lineWidth: 1)
                         Text("\(level)").font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
                             .position(x: 10, y: y)
                     }

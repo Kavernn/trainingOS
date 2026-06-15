@@ -41,7 +41,7 @@ struct SessionPickerSheet: View {
                                         .foregroundColor(isActive ? Color.forge : .gray.opacity(0.4))
                                     Text(session)
                                         .font(.appBody).fontWeight(isActive ? .semibold : .regular)
-                                        .foregroundColor(isActive ? .white : .white.opacity(0.75))
+                                        .foregroundColor(isActive ? .white : .appOnSurface.opacity(0.75))
                                     Spacer()
                                 }
                                 .padding(.horizontal, 20)
@@ -114,7 +114,7 @@ struct WorkoutSummarySheet: View {
                                             .foregroundColor(Color.forge.opacity(0.6))
                                         Text(name)
                                             .font(.appBody)
-                                            .foregroundColor(.white.opacity(0.75))
+                                            .foregroundColor(.appOnSurface.opacity(0.75))
                                         Spacer()
                                     }
                                     .padding(.horizontal, 20).padding(.vertical, 14)
@@ -255,7 +255,7 @@ struct FinishSessionSheet: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("EFFORT GLOBAL").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                             Text("Combien de reps aurais-tu pu faire en plus ?")
-                                .font(.appLabel).foregroundColor(.white.opacity(0.75))
+                                .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.75))
                             let selectedRIR = Binding<Int>(
                                 get: { RPEHelper.rirFromRPE(rpe) },
                                 set: { rpe = RPEHelper.rirToRPE($0) }
@@ -379,7 +379,7 @@ struct FinishSessionSheet: View {
 
                                 if let analysis = aiAnalysis {
                                     Text(analysis)
-                                        .font(.appLabel).foregroundColor(.white.opacity(0.85))
+                                        .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.85))
                                         .padding(12).background(Color.statusPurple.opacity(0.08))
                                         .cornerRadius(10)
                                 }
@@ -710,7 +710,7 @@ struct SessionRecapSheet: View {
                                     .padding(.top, 1)
                                 Text(snapshot.comment)
                                     .font(.appLabel)
-                                    .foregroundColor(.white.opacity(0.85))
+                                    .foregroundColor(.appOnSurface.opacity(0.85))
                                     .multilineTextAlignment(.leading)
                                 Spacer()
                             }
@@ -750,7 +750,7 @@ struct SessionRecapSheet: View {
                     .foregroundColor(.gray.opacity(0.4))
                     .frame(width: 16, alignment: .leading)
                 Text(UnitSettings.shared.format(s["weight"] as? Double ?? fallbackWeight))
-                    .font(.appMicro).foregroundColor(.white.opacity(0.6))
+                    .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.6))
                 Text("×").font(.appMicro).foregroundColor(.gray.opacity(0.35))
                 Text(s["reps"] as? String ?? "—")
                     .font(.appMicro).foregroundColor(.gray)
@@ -986,7 +986,7 @@ struct CoachingChip: View {
                         .font(.appLabel).fontWeight(.black).foregroundColor(typeColor)
                 }
                 Text(suggestion.reason)
-                    .font(.appCaption).foregroundColor(.white.opacity(0.65))
+                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.65))
                     .lineLimit(1)
                 Spacer()
                 Button("Ignorer") { ignored = true }

@@ -98,7 +98,7 @@ struct PatternPinnedChip: View {
                             .foregroundColor(colorFromName(pattern.color).opacity(0.7))
                         Text(pattern.headline)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(.appOnSurface.opacity(0.85))
                             .lineLimit(expanded ? nil : 2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -148,10 +148,10 @@ struct PatternPinnedChip: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.03))
+                .fill(Color.appSurfaceInset)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                        .stroke(Color.appSurfaceInset, lineWidth: 1)
                 )
         )
     }
@@ -171,7 +171,7 @@ private struct PatternBarChart: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 8)
-        .background(Color.white.opacity(0.03))
+        .background(Color.appSurfaceInset)
         .cornerRadius(10)
     }
 }
@@ -185,7 +185,7 @@ private struct PatternBarRow: View {
         HStack(spacing: 8) {
             Text(bar.label)
                 .font(.appCaption)
-                .foregroundColor(.white.opacity(0.65))
+                .foregroundColor(.appOnSurface.opacity(0.65))
                 .frame(width: 110, alignment: .leading)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -193,7 +193,7 @@ private struct PatternBarRow: View {
             GeometryReader { geo in
                 let w = geo.size.width * CGFloat(min(1.0, max(0.05, bar.frac)))
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.05))
+                    Capsule().fill(Color.appSurfaceInset)
                     Capsule().fill(color).frame(width: w)
                 }
             }
@@ -262,10 +262,10 @@ private struct EffectBadge: View {
     var body: some View {
         Text("+\(Int(pct))%")
             .font(.system(size: 11, weight: .bold, design: .rounded))
-            .foregroundColor(.white.opacity(0.7))
+            .foregroundColor(.appOnSurface.opacity(0.7))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(Color.white.opacity(0.07))
+            .background(Color.appSurfaceInset)
             .clipShape(Capsule())
     }
 }
@@ -328,7 +328,7 @@ struct PatternDailyChip: View {
                     }
                     Text(pattern.headline)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.appOnSurface.opacity(0.85))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }

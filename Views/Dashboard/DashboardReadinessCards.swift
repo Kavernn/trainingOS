@@ -47,7 +47,7 @@ struct SleepStagingBar: View {
             }
         }
         .padding(14)
-        .background(Color.white.opacity(0.04))
+        .background(Color.appSurfaceInset)
         .cornerRadius(14)
     }
 }
@@ -99,7 +99,7 @@ struct ReadinessScoreCard: View {
             ZStack {
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(Color.white.opacity(0.08),
+                    .stroke(Color.appSurfaceInset,
                             style: StrokeStyle(lineWidth: 10, lineCap: .round))
                     .rotationEffect(.degrees(135))
 
@@ -152,7 +152,7 @@ struct ReadinessScoreCard: View {
             Spacer(minLength: 0)
         }
         .padding(16)
-        .background(Color.white.opacity(0.05))
+        .background(Color.appSurfaceInset)
         .cornerRadius(16)
     }
 }
