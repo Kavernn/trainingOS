@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 struct DailyBrief: Codable {
     let date: String
