@@ -32,6 +32,10 @@ struct DailyBriefView: View {
                 }
             } else {
                 BriefFallbackView()
+                if let insight = activeInsight, !insight.isEmpty {
+                    Divider().background(Color.appSeparator)
+                    signauxSection(insight)
+                }
             }
         }
         .padding(16)

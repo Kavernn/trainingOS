@@ -46,6 +46,32 @@ def _build_context(brief_data: dict) -> str:
     return "\n".join(lines)
 
 
+def _build_fallback_brief(brief_data: dict) -> dict:
+    """Generate a brief from morning_brief data without calling Claude."""
+    rec = brief_data.get("recommendation", "go")
+    adjustments = brief_data.get("adjustments", [])
+    session = brief_data.get("session_today", "")
+    lss = brief_data.get("lss")
+    flags = brief_data.get("flags", {})
+
+    parts = []
+    if lss is not None:
+        parts.append(f"Readiness à {lss}/100 aujourd'hui.")
+    if flags.get("hrv_drop"):
+        parts.append("HRV en baisse — évite les efforts maximaux.")
+    elif flags.get("sleep_deprivation"):
+        parts.append("Sommeil insuffisant — réduis l'intensité.")
+    elif flags.get("training_overload"):
+        parts.append("Surcharge cumulée — déload recommandé.")
+    elif rec == "go":
+        parts.append("Paramètres dans la norme — séance sans contrainte.")
+    lecture = " ".join(parts) or "Données en cours de chargement."
+
+    reco = adjustments[:2] if adjustments else ([f"Séance {session} prévue."] if session else ["Bonne séance."])
+
+    return {"use_quote": True, "mot": None, "lecture": lecture, "recommandation": reco}
+
+
 def _call_claude(context: str, triggers: dict) -> dict:
     """Call Claude once and return parsed brief dict."""
     import anthropic as _anthropic
@@ -129,7 +155,11 @@ def get_daily_brief():
         triggers = _check_triggers(brief_data)
         context = _build_context(brief_data)
 
-        result = _call_claude(context, triggers)
+        try:
+            result = _call_claude(context, triggers)
+        except Exception as claude_err:
+            logger.warning("daily_brief Claude call failed, using fallback: %s", claude_err)
+            result = _build_fallback_brief(brief_data)
 
         use_quote = bool(result.get("use_quote", True))
         mot = None if use_quote else (result.get("mot") or None)
