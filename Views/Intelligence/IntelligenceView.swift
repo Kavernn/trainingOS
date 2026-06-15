@@ -5,6 +5,7 @@ import OSLog
 private let logger = Logger(subsystem: "TrainingOS", category: "Intelligence")
 
 struct IntelligenceView: View {
+    @EnvironmentObject private var theme: AppTheme
     @State private var messages: [ChatMessage] = []
     @AppStorage("intelligence_history") private var historyData: String = "[]"
     @State private var input = ""

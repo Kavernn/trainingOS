@@ -5,6 +5,7 @@ import Combine
 
 struct DashboardView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var theme: AppTheme
     @StateObject private var vm = DashboardViewModel()
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var loadingState = APILoadingState.shared

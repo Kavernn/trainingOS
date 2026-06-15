@@ -590,8 +590,8 @@ final class AppTheme: ObservableObject {
     }
 
     // Raccourcis directs
-    var accent:          Color { colors.accent }
-    var accentLight:     Color { colors.accentLight }
+    var accent:      Color { colors.accentDistribution == .surgical ? .white              : colors.accent }
+    var accentLight: Color { colors.accentDistribution == .surgical ? .white.opacity(0.7) : colors.accentLight }
     var accentMuted:     Color { colors.accentMuted }
     var onAccent:        Color { colors.onAccent }
 

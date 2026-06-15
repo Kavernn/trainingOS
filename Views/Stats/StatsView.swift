@@ -71,6 +71,7 @@ enum StatsPeriod: String, CaseIterable {
 
 // MARK: - Main View
 struct StatsView: View {
+    @EnvironmentObject private var theme: AppTheme
     @ObservedObject var units = UnitSettings.shared
     @State var weights:          [String: WeightData]    = [:]
     @State var sessions:         [String: SessionEntry]  = [:]
@@ -117,11 +118,9 @@ struct StatsView: View {
     @State var graveyardCount:   Int                    = 0
     @State var deloadStatus:     DeloadStatusData?      = nil
     @State var intensityData:    IntensityData?         = nil
-    // ── Streak — source serveur unique (P1.2) ───────────────────────────────
+    // ── Streak — source serveur unique (/api/stats/streaks) ─────────────────
     @State var streakData: StreakResponse? = nil
     // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
-    @State var cachedCurrentStreak: Int = 0
-    @State var cachedBestStreak: Int = 0
     @State var cachedWeeklyVolume: Double = 0
     @State var cachedPersonalRecords: [(String, Double)] = []
 
@@ -142,8 +141,8 @@ struct StatsView: View {
         return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
     }
 
-    var currentStreak: Int { streakData?.currentStreak ?? cachedCurrentStreak }
-    var bestStreak: Int    { streakData?.bestStreak    ?? cachedBestStreak }
+    var currentStreak: Int { streakData?.currentStreak ?? 0 }
+    var bestStreak: Int    { streakData?.bestStreak    ?? 0 }
     var weeklyVolume: Double { cachedWeeklyVolume }
 
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
@@ -554,8 +553,6 @@ struct StatsView: View {
 
     func recalcKPIs() {
         let fmt = DateFormatter.isoDate
-
-        // Streak now comes from server (P1.2); cachedCurrentStreak/bestStreak kept as fallback only
 
         var iso = Calendar(identifier: .iso8601)
         iso.timeZone = TimeZone.current
