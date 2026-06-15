@@ -57,9 +57,12 @@ struct GlassCard: ViewModifier {
         let borderW    = style == .outlined ? theme.cardBorderWidth * 2.0 : theme.cardBorderWidth
         let glowColor  = style == .floating ? theme.cardGlowColor   : .clear
         let shadowColor = (style == .floating || style == .raised) ? theme.cardShadowColor : .clear
+        let borderCol  = theme.colors.accentDistribution == .surgical
+            ? Color.white.opacity(0.08)
+            : theme.cardBorderColor
         return content
             .background(RoundedRectangle(cornerRadius: resolvedRadius).fill(Color.appCard))
-            .overlay(RoundedRectangle(cornerRadius: resolvedRadius).stroke(theme.cardBorderColor, lineWidth: borderW))
+            .overlay(RoundedRectangle(cornerRadius: resolvedRadius).stroke(borderCol, lineWidth: borderW))
             .clipShape(RoundedRectangle(cornerRadius: resolvedRadius))
             .shadow(color: glowColor, radius: theme.cardGlowRadius, x: 0, y: 0)
             .shadow(color: shadowColor, radius: theme.cardShadowRadius,
@@ -79,20 +82,23 @@ struct GlassCardAccent: ViewModifier {
         let theme       = AppTheme.shared
         let style       = theme.cardStyle
         let borderW     = style == .outlined ? theme.cardBorderWidth * 2.0 : theme.cardBorderWidth
-        let glowColor   = style == .floating ? accent.opacity(0.10) : Color.clear
-        let shadowColor = (style == .floating || style == .raised) ? accent.opacity(0.08) : Color.clear
+        let isSurgical  = theme.colors.accentDistribution == .surgical
+        let glowColor   = style == .floating && !isSurgical ? accent.opacity(0.10) : Color.clear
+        let shadowColor = (style == .floating || style == .raised) && !isSurgical ? accent.opacity(0.08) : Color.clear
+        let fillColor   = isSurgical ? Color.clear : accent.opacity(theme.cardAccentFillOpacity)
+        let strokeColor = isSurgical ? Color.white.opacity(0.08) : accent.opacity(theme.colors.cardAccentStrokeOpacity)
         return content
             .background(
                 RoundedRectangle(cornerRadius: resolvedRadius)
                     .fill(Color.appCard)
                     .overlay(
                         RoundedRectangle(cornerRadius: resolvedRadius)
-                            .fill(accent.opacity(theme.cardAccentFillOpacity))
+                            .fill(fillColor)
                     )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: resolvedRadius)
-                    .stroke(accent.opacity(0.25), lineWidth: borderW)
+                    .stroke(strokeColor, lineWidth: borderW)
             )
             .clipShape(RoundedRectangle(cornerRadius: resolvedRadius))
             .shadow(color: glowColor, radius: 12, x: 0, y: 0)
@@ -302,13 +308,15 @@ struct AmbientBackground: View {
                 startRadius: 0,
                 endRadius: 300
             )
-            // Forge warmth — chaleur de fond constante, indépendante de la couleur d'accent
-            RadialGradient(
-                colors: [Color.forge.opacity(0.08), .clear],
-                center: .bottom,
-                startRadius: 0,
-                endRadius: 220
-            )
+            if AppTheme.shared.colors.accentDistribution == .pervasive {
+                // Forge warmth — chaleur de fond constante, indépendante de la couleur d'accent
+                RadialGradient(
+                    colors: [Color.forge.opacity(0.08), .clear],
+                    center: .bottom,
+                    startRadius: 0,
+                    endRadius: 220
+                )
+            }
         }
         .ignoresSafeArea()
     }

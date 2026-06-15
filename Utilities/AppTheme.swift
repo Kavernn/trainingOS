@@ -52,6 +52,13 @@ enum CardStyle {
     case raised     // border + shadow, no glow         (Gold Noir, Desert)
 }
 
+// MARK: - Accent Distribution
+
+enum AccentDistribution {
+    case pervasive  // accent sur toutes les surfaces structurelles
+    case surgical   // accent réservé aux foregrounds explicites uniquement
+}
+
 // MARK: - Identity Layer Style
 
 enum IdentityLayerStyle {
@@ -113,8 +120,12 @@ struct AppThemeColors {
     // Opacité du fond accentué sur les cards primaires (GlassCardAccent)
     let cardAccentFillOpacity: Double
 
+    // Opacité du stroke accent sur les cards primaires (GlassCardAccent) — 0.25 standard, réduit pour les thèmes discrets
+    let cardAccentStrokeOpacity: Double
+
     // Style structurel des cards — levier visuel principal de différenciation entre thèmes
     let cardStyle: CardStyle
+    let accentDistribution: AccentDistribution
 
     // Taille de base des métriques hero dans les cartes Dashboard
     // appCardHero = heroNumberSize, appCardMetric = heroNumberSize - 6
@@ -168,14 +179,18 @@ extension AppThemeColors {
         heroFontDesign:        .default,
         titleFontDesign:       .default,
         displayWeight:         .thin,
-        cardAccentFillOpacity: 0.04,
-        cardStyle:             .flat,
+        cardAccentFillOpacity:   0.04,
+        cardAccentStrokeOpacity: 0.25,
+        cardStyle:               .flat,
+        accentDistribution:      .pervasive,
         heroNumberSize:        36,
         sectionTitleTracking:  2.0,
         sectionTitleUppercased: true
     )
 
     // Film noir, détective. Tout est noir et blanc sauf le sang.
+    // accentDistribution: .surgical — le rouge #FF1E1E ne touche AUCUNE surface structurelle.
+    // Séparateurs/bordures/fills = blanc@opacity. Le rouge sort uniquement en foreground explicite.
     static let sinCity = AppThemeColors(
         accent:          Color(hex: "FF1E1E"),
         accentLight:     Color(hex: "FF5555"),
@@ -185,22 +200,22 @@ extension AppThemeColors {
         surfaceCard:     Color(hex: "0E0908"),
         surfaceElevated: Color(hex: "160C0A"),
         surfaceInset:    Color(hex: "040202"),
-        textPrimary:     Color(hex: "F0F0F0"),
-        textSecondary:   Color(hex: "888888"),
-        textMuted:       Color(hex: "505050"),
-        separator:       Color(hex: "FF1E1E").opacity(0.08),
-        separatorSubtle: Color(hex: "FF1E1E").opacity(0.04),
-        separatorStrong: Color(hex: "FF1E1E").opacity(0.18),
+        textPrimary:     .white,
+        textSecondary:   Color.white.opacity(0.45),
+        textMuted:       Color.white.opacity(0.22),
+        separator:       Color.white.opacity(0.06),
+        separatorSubtle: Color.white.opacity(0.03),
+        separatorStrong: Color.white.opacity(0.10),
         danger:          Color(hex: "FF5500"),
         success:         Color(hex: "32D74B"),
         warning:         Color(hex: "FFD60A"),
         info:            Color(hex: "64D2FF"),
         cardCornerRadius: 2,
-        cardBorderWidth:  1.0,
-        cardBorderColor:  Color(hex: "FF1E1E").opacity(0.22),
-        cardShadowColor:  Color(hex: "FF1E1E").opacity(0.20),
-        cardShadowRadius: 6,
-        cardShadowOffset: CGSize(width: 0, height: 3),
+        cardBorderWidth:  0.5,
+        cardBorderColor:  Color.white.opacity(0.08),
+        cardShadowColor:  .clear,
+        cardShadowRadius: 0,
+        cardShadowOffset: .zero,
         cardGlowColor:    .clear,
         cardGlowRadius:   0,
         chartPalette:          [Color(hex: "FF1E1E"), Color(hex: "FF5555"), Color(hex: "CC0000"),
@@ -211,8 +226,10 @@ extension AppThemeColors {
         heroFontDesign:        .default,
         titleFontDesign:       .default,
         displayWeight:         .black,
-        cardAccentFillOpacity: 0.08,
-        cardStyle:             .flat,
+        cardAccentFillOpacity:   0.0,
+        cardAccentStrokeOpacity: 0.0,
+        cardStyle:               .flat,
+        accentDistribution:      .surgical,
         heroNumberSize:        42,
         sectionTitleTracking:  1.5,
         sectionTitleUppercased: true
@@ -254,10 +271,12 @@ extension AppThemeColors {
         heroFontDesign:        .rounded,
         titleFontDesign:       .rounded,
         displayWeight:         .heavy,
-        cardAccentFillOpacity: 0.08,
-        cardStyle:             .floating,
-        heroNumberSize:        44,
-        sectionTitleTracking:  0.8,
+        cardAccentFillOpacity:   0.08,
+        cardAccentStrokeOpacity: 0.25,
+        cardStyle:               .floating,
+        accentDistribution:      .pervasive,
+        heroNumberSize:          44,
+        sectionTitleTracking:    0.8,
         sectionTitleUppercased: false
     )
 
@@ -297,10 +316,12 @@ extension AppThemeColors {
         heroFontDesign:        .monospaced,
         titleFontDesign:       .default,
         displayWeight:         .semibold,
-        cardAccentFillOpacity: 0.10,
-        cardStyle:             .floating,
-        heroNumberSize:        40,
-        sectionTitleTracking:  2.0,
+        cardAccentFillOpacity:   0.10,
+        cardAccentStrokeOpacity: 0.25,
+        cardStyle:               .floating,
+        accentDistribution:      .pervasive,
+        heroNumberSize:          40,
+        sectionTitleTracking:    2.0,
         sectionTitleUppercased: true
     )
 
@@ -341,8 +362,10 @@ extension AppThemeColors {
         heroFontDesign:        .monospaced,
         titleFontDesign:       .monospaced,
         displayWeight:         .medium,
-        cardAccentFillOpacity: 0.12,
-        cardStyle:             .outlined,
+        cardAccentFillOpacity:   0.12,
+        cardAccentStrokeOpacity: 0.25,
+        cardStyle:               .outlined,
+        accentDistribution:      .pervasive,
         heroNumberSize:        38,
         sectionTitleTracking:  2.5,
         sectionTitleUppercased: true
@@ -384,10 +407,12 @@ extension AppThemeColors {
         heroFontDesign:        .rounded,
         titleFontDesign:       .rounded,
         displayWeight:         .bold,
-        cardAccentFillOpacity: 0.10,
-        cardStyle:             .floating,
-        heroNumberSize:        44,
-        sectionTitleTracking:  0.3,
+        cardAccentFillOpacity:   0.10,
+        cardAccentStrokeOpacity: 0.25,
+        cardStyle:               .floating,
+        accentDistribution:      .pervasive,
+        heroNumberSize:          44,
+        sectionTitleTracking:    0.3,
         sectionTitleUppercased: false
     )
 
@@ -427,10 +452,12 @@ extension AppThemeColors {
         heroFontDesign:        .rounded,
         titleFontDesign:       .rounded,
         displayWeight:         .light,
-        cardAccentFillOpacity: 0.10,
-        cardStyle:             .floating,
-        heroNumberSize:        40,
-        sectionTitleTracking:  1.2,
+        cardAccentFillOpacity:   0.10,
+        cardAccentStrokeOpacity: 0.25,
+        cardStyle:               .floating,
+        accentDistribution:      .pervasive,
+        heroNumberSize:          40,
+        sectionTitleTracking:    1.2,
         sectionTitleUppercased: false
     )
 
@@ -470,8 +497,10 @@ extension AppThemeColors {
         heroFontDesign:        .serif,
         titleFontDesign:       .serif,
         displayWeight:         .semibold,
-        cardAccentFillOpacity: 0.07,
-        cardStyle:             .raised,
+        cardAccentFillOpacity:   0.07,
+        cardAccentStrokeOpacity: 0.16,
+        cardStyle:               .raised,
+        accentDistribution:      .pervasive,
         heroNumberSize:        36,
         sectionTitleTracking:  1.8,
         sectionTitleUppercased: true
@@ -513,8 +542,10 @@ extension AppThemeColors {
         heroFontDesign:        .default,
         titleFontDesign:       .default,
         displayWeight:         .medium,
-        cardAccentFillOpacity: 0.09,
-        cardStyle:             .raised,
+        cardAccentFillOpacity:   0.09,
+        cardAccentStrokeOpacity: 0.25,
+        cardStyle:               .raised,
+        accentDistribution:      .pervasive,
         heroNumberSize:        40,
         sectionTitleTracking:  0.5,
         sectionTitleUppercased: false
