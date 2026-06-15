@@ -22,7 +22,7 @@ RIR fallback: avg_rir provided → rpe_approx = 10 − avg_rir.
 """
 from __future__ import annotations
 import logging
-from datetime import datetime
+from datetime import date as _date_cls, datetime
 
 logger = logging.getLogger("trainingos.progression")
 
@@ -177,12 +177,13 @@ def compute_progression_rate(history: list[dict]) -> float | None:
     """
     if not history or len(history) < 2:
         return None
-    now = datetime.now()
+    from utils import _today_mtl
+    today = _date_cls.fromisoformat(_today_mtl())
     entries: list[tuple[float, float]] = []
     for e in history:
         try:
-            d = datetime.fromisoformat(e.get("date", ""))
-            age_days = (now - d).days
+            d = _date_cls.fromisoformat(str(e.get("date", ""))[:10])
+            age_days = (today - d).days
             if age_days <= 28 and e.get("1rm"):
                 entries.append((age_days, float(e["1rm"])))
         except Exception as e:

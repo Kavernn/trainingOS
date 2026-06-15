@@ -20,7 +20,9 @@ def _time_str_mtl() -> str:
         from zoneinfo import ZoneInfo
         return datetime.now(ZoneInfo("America/Montreal")).strftime("%H:%M")
     except Exception:
-        return datetime.now().strftime("%H:%M")
+        from datetime import timedelta
+        utc_off = timedelta(hours=-5)  # EST fallback (MTL without DST)
+        return datetime.now(timezone(utc_off)).strftime("%H:%M")
 
 
 # ---------------------------------------------------------------------------

@@ -77,6 +77,18 @@ extension Color {
         AppTheme.shared.colors.accentDistribution == .surgical
     }
 
+    // Couleur canonique d'un type de séance — unique source de vérité, surgical-aware
+    static func sessionTypeColor(_ type: String) -> Color {
+        let low = type.lowercased()
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .statusGreen }
+        if low.contains("pull")   { return .statusCyan }
+        if low.contains("push") || low.contains("upper") { return .statusOrange }
+        if low.contains("legs") || low.contains("lower") { return .statusYellow }
+        if low.contains("yoga")   { return .statusPurple }
+        if low.contains("full body") { return .statusCyan }
+        return .statusBlue
+    }
+
     // Mood viz palette — violet→teal→green, non-moralistic gradient (intentional fixed)
     static func moodColor(for score: Int) -> Color {
         if score >= 8 { return Color.trendPositive }
@@ -112,7 +124,7 @@ extension DateFormatter {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone.current
+        f.timeZone = TimeZone(identifier: "America/Montreal") ?? .current
         return f
     }()
 

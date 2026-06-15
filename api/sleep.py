@@ -12,7 +12,7 @@ Endpoints exposés dans index.py :
 """
 from __future__ import annotations
 
-from datetime import date as date_cls, datetime, timedelta
+from datetime import date as date_cls, datetime, timedelta, timezone
 import uuid
 
 import db
@@ -115,7 +115,7 @@ def save_sleep_entry(
         "duration_color":   _duration_color(duration),
         "notes":            notes,
         "insights":         _insights(duration, quality, history),
-        "logged_at":        datetime.now().isoformat(),
+        "logged_at":        datetime.now(timezone.utc).isoformat(),
     }
 
     # Source de vérité : recovery_logs — sleep_records est archivée, ne plus alimenter.
