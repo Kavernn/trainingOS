@@ -537,7 +537,7 @@ extension AppThemeColors {
         accentMuted:     Color(hex: "FFFF80"),          // jaune pâle = muted du jaune
         onAccent:        Color(hex: "FFFF33"),          // jaune sur fond noir (boutons)
         background:      Color(hex: "FFFF33"),          // ALL IN — fond jaune pur
-        surfaceCard:     Color(hex: "0F1000"),          // cards sombres (Electric Dark bg)
+        surfaceCard:     Color(hex: "1F1D00"),          // cards olive sombre, teinte jaune
         surfaceElevated: Color(hex: "1A1C00"),
         surfaceInset:    Color(hex: "060700"),
         textPrimary:     Color(hex: "F5FFB0"),          // = onSurface — texte sur cards

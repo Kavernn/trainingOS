@@ -7,7 +7,7 @@ struct PillarRow: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            PillarCell(label: "Training",   value: pillars.training,  color: .teal)
+            PillarCell(label: "Training",   value: pillars.training,  color: .statusCyan)
             Divider().frame(height: 28).background(Color.appSurfaceInset)
             PillarCell(label: "Stress",     value: pillars.stress,    color: Color(red: 0.55, green: 0.47, blue: 0.9))
             Divider().frame(height: 28).background(Color.appSurfaceInset)

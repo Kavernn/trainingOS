@@ -70,23 +70,28 @@ extension Color {
     static var appSeparator:       Color { AppTheme.shared.separator }
     static var appSeparatorSubtle: Color { AppTheme.shared.separatorSubtle }
     static var appSeparatorStrong: Color { AppTheme.shared.separatorStrong }
-    static var trendPositive: Color { isSurgical ? Color(white: 0.68) : Color(hex: "34C759") }
+    static var trendPositive: Color { isSurgical ? Color(white: 0.68) : isElectricLight ? Color(hex: "FFFF33") : Color(hex: "34C759") }
     static var trendNeutral:  Color { isSurgical ? Color(white: 0.50) : Color(hex: "FF9500") }
     static var trendNegative: Color { isSurgical ? Color(white: 0.35) : Color(hex: "FF6B6B") }
+    static var accentOnSurface: Color { isElectricLight ? Color(hex: "FFFF33") : AppTheme.shared.accent }
     static var moonlight:     Color { isSurgical ? Color(white: 0.80) : Color(hex: "E8EDF5") }
     static let voidBg = Color(red: 0.020, green: 0.031, blue: 0.063)  // spirit deep (intentional fixed)
 
     // Couleurs sémantiques — desaturées en mode surgical (Sin City N&B)
     static var statusGreen:  Color { isSurgical ? Color(white: 0.68) : .green   }
     static var statusOrange: Color { isSurgical ? Color(white: 0.55) : .orange  }
-    static var statusBlue:   Color { isSurgical ? Color(white: 0.50) : .blue    }
+    static var statusBlue:   Color { isSurgical ? Color(white: 0.50) : isElectricLight ? Color(hex: "FFFF33") : .blue    }
     static var statusPurple: Color { isSurgical ? Color(white: 0.58) : .purple  }
     static var statusYellow: Color { isSurgical ? Color(white: 0.62) : .yellow  }
-    static var statusCyan:   Color { isSurgical ? Color(white: 0.52) : .cyan    }
+    static var statusCyan:   Color { isSurgical ? Color(white: 0.52) : isElectricLight ? Color(hex: "FFFF33") : .cyan    }
     static var statusRed:    Color { isSurgical ? Color(white: 0.72) : .red     }
 
     private static var isSurgical: Bool {
         AppTheme.shared.colors.accentDistribution == .surgical
+    }
+
+    private static var isElectricLight: Bool {
+        AppTheme.shared.selectedTheme == .electricLight
     }
 
     // Couleur canonique d'un type de séance — unique source de vérité, surgical-aware
@@ -104,7 +109,7 @@ extension Color {
     // Mood viz palette — violet→teal→green, non-moralistic gradient (intentional fixed)
     static func moodColor(for score: Int) -> Color {
         if score >= 8 { return Color.trendPositive }
-        if score >= 5 { return .teal }
+        if score >= 5 { return .statusCyan }
         return Color(hex: "8B5CF6")  // indigo — introspective, not alarming
     }
 

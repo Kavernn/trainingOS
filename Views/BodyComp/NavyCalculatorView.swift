@@ -144,7 +144,7 @@ struct NavyCalculatorView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .glassCardAccent(Color.forge)
+        .glassCardAccent(Color.accentOnSurface)
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -183,7 +183,7 @@ struct NavyCalculatorView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCardAccent(Color.forge)
+        .glassCardAccent(Color.accentOnSurface)
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }

@@ -302,20 +302,22 @@ struct AmbientBackground: View {
         ZStack {
             Color.appBg
             IdentityLayerView(style: AppTheme.shared.identityLayer)
-            RadialGradient(
-                colors: [color.opacity(0.15), .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 300
-            )
-            if AppTheme.shared.colors.accentDistribution == .pervasive {
-                // Forge warmth — chaleur de fond constante, indépendante de la couleur d'accent
+            if AppTheme.shared.selectedTheme != .electricLight {
                 RadialGradient(
-                    colors: [Color.forge.opacity(0.08), .clear],
-                    center: .bottom,
+                    colors: [color.opacity(0.15), .clear],
+                    center: .topTrailing,
                     startRadius: 0,
-                    endRadius: 220
+                    endRadius: 300
                 )
+                if AppTheme.shared.colors.accentDistribution == .pervasive {
+                    // Forge warmth — chaleur de fond constante, indépendante de la couleur d'accent
+                    RadialGradient(
+                        colors: [Color.forge.opacity(0.08), .clear],
+                        center: .bottom,
+                        startRadius: 0,
+                        endRadius: 220
+                    )
+                }
             }
         }
         .ignoresSafeArea()

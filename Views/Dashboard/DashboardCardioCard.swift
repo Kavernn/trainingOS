@@ -5,7 +5,7 @@ struct DashboardCardioCard: View {
 
     private var accentColor: Color {
         switch entry.type {
-        case "course": return .teal
+        case "course": return .statusCyan
         case "vélo":   return .statusCyan
         case "marche": return .statusGreen
         default:       return .statusBlue
