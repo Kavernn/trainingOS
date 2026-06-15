@@ -19,6 +19,27 @@ struct MoreView: View {
                 AmbientBackground(color: Color.forge)
 
                 List {
+                    Section {
+                        NavigationLink(destination: ProfileView()) {
+                            HStack(spacing: 14) {
+                                profileAvatar
+                                    .frame(width: 52, height: 52)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(api.dashboard?.profile.name ?? "Profil")
+                                        .font(.appBody.weight(.semibold))
+                                        .foregroundColor(.appTextPrimary)
+                                    Text("Voir le profil")
+                                        .font(.appCaption)
+                                        .foregroundColor(.gray.opacity(0.6))
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                        }
+                    }
+                    .listRowBackground(glassRowBG(.statusPurple))
+                    .listRowSeparatorTint(Color.appSeparator)
+
                     Section("Apparence") {
                         MoreRow(icon: "slider.horizontal.3", color: .statusCyan, title: "Affichage & Thème",
                                 subtitle: "Thème, kg/lbs, objectif de pas") { DisplaySettingsView() }
@@ -81,7 +102,6 @@ struct MoreView: View {
                     Section("Réglages") {
                         MoreRow(icon: "gearshape.fill",   color: .statusPurple, title: "Paramètres",
                                 subtitle: "Entraînement, nutrition, récupération…") { SettingsView() }
-                        MoreRow(icon: "person.fill",      color: .statusPurple, title: "Profil")        { ProfileView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
                     .listRowSeparatorTint(Color.appSeparator)
@@ -102,6 +122,38 @@ struct MoreView: View {
             .onReceive(NotificationCenter.default.publisher(for: .navigateToRecovery)) { _ in
                 showRecoveryDirect = true
             }
+        }
+    }
+
+    @ViewBuilder
+    private var profileAvatar: some View {
+        let p = api.dashboard?.profile
+        if let urlStr = p?.photoUrl, let url = URL(string: urlStr) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let img):
+                    img.resizable().scaledToFill().clipShape(Circle())
+                default:
+                    profileInitialsCircle
+                }
+            }
+        } else if let b64 = p?.photoB64,
+                  let data = Data(base64Encoded: b64.components(separatedBy: ",").last ?? ""),
+                  let ui = UIImage(data: data) {
+            Image(uiImage: ui).resizable().scaledToFill().clipShape(Circle())
+        } else {
+            profileInitialsCircle
+        }
+    }
+
+    private var profileInitialsCircle: some View {
+        ZStack {
+            Circle()
+                .fill(LinearGradient(colors: [Color.statusPurple.opacity(0.35), Color.forge.opacity(0.25)],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+            Text(api.dashboard?.profile.name?.prefix(1).uppercased() ?? "?")
+                .font(.system(size: 22, weight: .black))
+                .foregroundColor(.white)
         }
     }
 

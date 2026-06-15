@@ -11,7 +11,6 @@ struct DashboardView: View {
     @ObservedObject private var loadingState = APILoadingState.shared
     @ObservedObject private var alertService = AlertService.shared
     @State private var showMoodSheet = false
-    @State private var showChecklist = false
     @State private var showSleepSheet = false
     @State private var showSeasonClose = false
     @State private var sleepPromptDismissedThisSession = false
@@ -98,7 +97,7 @@ struct DashboardView: View {
                                 }
 
                                 // 1 — Status bar
-                                DashboardStatusBar(dash: dash, streakData: vm.streakData, showChecklist: $showChecklist)
+                                DashboardStatusBar(dash: dash, streakData: vm.streakData)
                                     .appearAnimation(delay: 0.03)
 
                                 // 1b — Routine de soir (visible dès 20h, et jusqu'à 3h pour couchers tardifs)
@@ -580,23 +579,7 @@ struct DashboardView: View {
             }
             .presentationDetents([.medium])
         }
-        .sheet(isPresented: $showChecklist) {
-            NavigationStack {
-                ScrollView {
-                    ChecklistCardView()
-                        .padding(16)
-                }
-                .navigationTitle("Avant de partir")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Fermer") { showChecklist = false }
-                    }
-                }
-                .background(Color.appBg.ignoresSafeArea())
-            }
-            .presentationDetents([.medium, .large])
-        }
+
         .alert("Erreur", isPresented: Binding(
             get: { actionErrorMessage != nil },
             set: { if !$0 { actionErrorMessage = nil } }

@@ -68,6 +68,8 @@ def _build_fallback_brief(brief_data: dict) -> dict:
     lecture = " ".join(parts) or "Données en cours de chargement."
 
     reco = adjustments[:2] if adjustments else ([f"Séance {session} prévue."] if session else ["Bonne séance."])
+    if flags.get("hrv_drop") or flags.get("sleep_deprivation"):
+        reco.append("Ce soir : fais ta routine du soir")
 
     return {"use_quote": True, "mot": None, "lecture": lecture, "recommandation": reco}
 
@@ -82,7 +84,7 @@ def _call_claude(context: str, triggers: dict) -> dict:
 
     trigger_note = ""
     if triggers.get("recovery_needed"):
-        trigger_note = "TRIGGER ACTIF: récupération — oriente le mot vers la récupération/patience si use_quote=false."
+        trigger_note = "TRIGGER ACTIF: récupération — oriente le mot vers la récupération/patience si use_quote=false. Inclus dans recommandation: \"Ce soir : fais ta routine du soir\"."
     elif triggers.get("momentum"):
         trigger_note = "TRIGGER ACTIF: momentum — oriente le mot vers la constance/lancée si use_quote=false."
 
