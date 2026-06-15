@@ -221,7 +221,7 @@ extension AppThemeColors {
         chartPalette:          [Color(hex: "FF1E1E"), Color(hex: "FF5555"), Color(hex: "CC0000"),
                                 Color(hex: "FF8080"), Color(hex: "880000")],
         glassOpacity:          0.06,
-        accentGradientColors:  [Color(hex: "FF1E1E"), Color(hex: "8B0000")],
+        accentGradientColors:  [.white, Color(hex: "C0C0C0")],
         identityLayer:         .filmGrain(opacity: 0.035),
         heroFontDesign:        .default,
         titleFontDesign:       .default,

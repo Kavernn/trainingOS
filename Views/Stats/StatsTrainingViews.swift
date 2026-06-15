@@ -1333,3 +1333,38 @@ struct Top5FrequencyView: View {
         .padding(16).glassCard()
     }
 }
+
+// MARK: - Preview ACWR danger zone (Sin City N&B test)
+// Vérifier que le rouge surgit UNIQUEMENT ici en mode surgical.
+// À supprimer après validation device.
+#Preview("ACWR — Danger (Sin City)") {
+    let dangerZone = ACWRData(
+        ratio: 1.65,
+        acuteLoad: 825,
+        chronicLoad: 500,
+        zone: ACWRZone(
+            code: "danger",
+            label: "Danger (surmenage)",
+            color: "red",
+            recommendation: "Réduire l'intensité immédiatement. Risque de blessure élevé."
+        ),
+        trend: [
+            ACWRWeek(week: "S-7", ratio: 0.95, acute: 460, chronic: 480),
+            ACWRWeek(week: "S-6", ratio: 1.05, acute: 510, chronic: 490),
+            ACWRWeek(week: "S-5", ratio: 1.10, acute: 550, chronic: 500),
+            ACWRWeek(week: "S-4", ratio: 1.20, acute: 600, chronic: 500),
+            ACWRWeek(week: "S-3", ratio: 1.35, acute: 675, chronic: 500),
+            ACWRWeek(week: "S-2", ratio: 1.50, acute: 750, chronic: 500),
+            ACWRWeek(week: "S-1", ratio: 1.65, acute: 825, chronic: 500)
+        ],
+        confidence: "high",
+        daysOfData: 28
+    )
+    ScrollView {
+        ACWRCardView(data: dangerZone)
+            .padding()
+    }
+    .background(Color.appBg)
+    .environmentObject(AppTheme.shared)
+    .onAppear { AppTheme.shared.applyTheme(.sinCity) }
+}

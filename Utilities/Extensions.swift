@@ -43,8 +43,14 @@ extension Color {
     static var appCard:            Color { AppTheme.shared.surfaceCard }
     static var appBgSecondary:     Color { AppTheme.shared.surfaceElevated }
     static var appSurfaceInset:    Color { AppTheme.shared.surfaceInset }
-    static var forge:              Color { AppTheme.shared.accent }
-    static var forgeDeep:          Color { AppTheme.shared.accentLight }
+    static var forge: Color {
+        let t = AppTheme.shared
+        return t.colors.accentDistribution == .surgical ? .white : t.accent
+    }
+    static var forgeDeep: Color {
+        let t = AppTheme.shared
+        return t.colors.accentDistribution == .surgical ? Color.white.opacity(0.7) : t.accentLight
+    }
     static var appAccentUltraLight:Color { AppTheme.shared.accentMuted }
     static var appDanger:          Color { AppTheme.shared.danger }
     static var appSuccess:         Color { AppTheme.shared.success }
