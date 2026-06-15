@@ -25,8 +25,8 @@ struct RecoveryPerformanceBanner: View {
         }
 
         guard let score = recoveryScore else { return nil }
-        if score < 4.0  { return .low(score) }
-        if score <= 6.5 { return .moderate }
+        if score < 40.0  { return .low(score) }
+        if score <= 65.0 { return .moderate }
         return .good(score)
     }
 
@@ -44,7 +44,7 @@ struct RecoveryPerformanceBanner: View {
                     .red)
         case .low(let s):
             return ("exclamationmark.triangle.fill",
-                    "Récupération à \(String(format: "%.1f", s))/10 — réduis le volume de ta séance aujourd'hui.",
+                    "Récupération à \(Int(s))/100 — réduis le volume de ta séance aujourd'hui.",
                     Color.forge)
         case .moderate:
             return ("bolt.fill",
@@ -52,7 +52,7 @@ struct RecoveryPerformanceBanner: View {
                     Color(red: 1, green: 0.6, blue: 0))
         case .good(let s):
             return ("checkmark.circle.fill",
-                    "Bonne récupération (\(String(format: "%.1f", s))/10) — conditions optimales pour ta séance.",
+                    "Bonne récupération (\(Int(s))/100) — conditions optimales pour ta séance.",
                     .green)
         }
     }

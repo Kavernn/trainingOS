@@ -191,7 +191,7 @@ def api_smart_day():
 
     today = date_cls.fromisoformat(_today_mtl()).isoformat()
     summary      = get_daily_health_summary(today)
-    recovery     = summary.get("recovery_score")      # 0–10
+    recovery     = summary.get("recovery_score")      # 0–100
     hrv          = summary.get("hrv")
     resting_hr   = summary.get("resting_heart_rate")
 
@@ -219,39 +219,39 @@ def api_smart_day():
         acwr = None
 
     if recovery is not None:
-        score = recovery  # 0–10
+        score = recovery  # 0–100
     else:
-        score = 5.0
+        score = 50.0
 
     if hrv is not None:
-        if hrv >= 60:   score = min(10, score + 1)
-        elif hrv < 30:  score = max(0,  score - 1.5)
+        if hrv >= 60:   score = min(100, score + 10)
+        elif hrv < 30:  score = max(0,   score - 15)
 
     if acwr is not None and acwr > 1.5:
-        score = max(0, score - 2)
+        score = max(0, score - 20)
 
-    if score >= 7:
+    if score >= 70:
         intensity  = "normale"
-        confidence = round(min(0.95, 0.70 + score / 100), 2)
+        confidence = round(min(0.95, 0.70 + score / 1000), 2)
         if days_rest == 0:
             reason = "Récupération optimale — séance normale recommandée."
         else:
-            reason = f"Récupération optimale ({score:.1f}/10) — c'est le moment de pousser."
+            reason = f"Récupération optimale ({int(score)}/100) — c'est le moment de pousser."
         cta = "💪 Entraîne-toi"
-    elif score >= 5:
+    elif score >= 50:
         intensity  = "réduite"
-        confidence = round(min(0.85, 0.55 + score / 100), 2)
-        reason = f"Récupération modérée ({score:.1f}/10) — privilégie un volume réduit ou technique."
+        confidence = round(min(0.85, 0.55 + score / 1000), 2)
+        reason = f"Récupération modérée ({int(score)}/100) — privilégie un volume réduit ou technique."
         cta = "🟡 Volume réduit"
     elif days_rest >= 3:
         intensity  = "normale"
         confidence = 0.60
-        reason = f"Récupération faible ({score:.1f}/10) mais {days_rest} jours sans séance — écoute ton corps."
+        reason = f"Récupération faible ({int(score)}/100) mais {days_rest} jours sans séance — écoute ton corps."
         cta = "⚠️ Léger ou repos"
     else:
         intensity  = "repos"
-        confidence = round(min(0.90, 0.65 + (10 - score) / 20), 2)
-        reason = f"Récupération insuffisante ({score:.1f}/10) — repos actif ou mobilité."
+        confidence = round(min(0.90, 0.65 + (100 - score) / 200), 2)
+        reason = f"Récupération insuffisante ({int(score)}/100) — repos actif ou mobilité."
         cta = "😴 Repos recommandé"
 
     suggested_session: str | None = None

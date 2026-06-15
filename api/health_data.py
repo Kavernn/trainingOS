@@ -33,7 +33,7 @@ def _load_cardio_log() -> list:
     return db.get_cardio_logs() or []
 
 
-# ── Score de récupération (0 – 10) ──────────────────────────────────────────
+# ── Score de récupération (0 – 100) ─────────────────────────────────────────
 
 def compute_recovery_score(
     entry: dict,
@@ -89,7 +89,6 @@ def compute_recovery_score(
     base = score / weight
 
     # Delta FC cardiaque — modificateur ±5% (non pondéré — données rarement renseignées)
-    # delta faible = clearance autonomique rapide = récupération cardiaque avancée.
     hr_m = entry.get("hr_morning")
     hr_p = entry.get("hr_post_workout")
     if hr_m is not None and hr_p is not None:
@@ -99,7 +98,7 @@ def compute_recovery_score(
         elif delta > 20:
             base = max(0.0,  base * 0.95)
 
-    return round(base, 1)
+    return round(base * 10, 1)  # 0-100
 
 
 # ── Totaux nutritionnels pour une date ───────────────────────────────────────
@@ -139,7 +138,7 @@ def merge_health_metrics(target_date: str) -> dict:
       "resting_heart_rate": float,   # bpm
       "hrv": float,                  # ms SDNN
       "soreness": float,             # 0-10
-      "recovery_score": float,       # 0-10 composite
+      "recovery_score": float,       # 0-100 composite
       "heart_rate_avg": float,       # bpm pendant cardio
 
       # Composition corporelle

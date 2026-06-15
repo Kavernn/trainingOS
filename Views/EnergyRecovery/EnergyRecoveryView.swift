@@ -91,7 +91,7 @@ struct EnergyRecoveryView: View {
             energy       = e
             history      = h ?? []
             recoveryLog  = rec ?? []
-            dailySummary = readiness.map { DailySummary(recoveryScore: Double($0.score) / 10.0) }
+            dailySummary = readiness.map { DailySummary(recoveryScore: Double($0.score)) }
             hrvAnalysis  = hrv
             sleepHistory = sleepPg?.items ?? []
             sleepStats   = sstats
@@ -687,7 +687,7 @@ private struct UnifiedRecoverySleepSection: View {
     private var sleepToday: SleepEntry? { sleepHistory.first }
 
     private var readinessScore: Double? {
-        if let s = summary?.recoveryScore { return s * 10 }
+        if let s = summary?.recoveryScore { return s }
         if let h = hrv?.hrvScore          { return h }
         return nil
     }
@@ -1471,7 +1471,7 @@ private struct DynamicSuggestionsSection: View {
         let sleepHours    = sleepToday?.durationHours ?? 0
         let fatigue       = recoveryToday?.fatigue ?? 0
         let soreness      = recoveryToday?.soreness ?? 0
-        let readiness     = summary?.recoveryScore.map { $0 * 10 } ?? hrv?.hrvScore
+        let readiness     = summary?.recoveryScore ?? hrv?.hrvScore
         let hrvZone       = hrv?.hrvZone ?? ""
 
         let tooEarly = energy?.isTooEarly == true

@@ -243,10 +243,10 @@ def api_overtraining_risk():
         rec_score = compute_recovery_score(today_rec)
         detail["recovery_score"] = rec_score
         if rec_score is not None:
-            if rec_score < 4:
+            if rec_score < 40:
                 risk += 2
-                flags.append(f"Récupération faible ({rec_score}/10)")
-            elif rec_score < 6:
+                flags.append(f"Récupération faible ({rec_score}/100)")
+            elif rec_score < 60:
                 risk += 1
 
     if risk >= 5:

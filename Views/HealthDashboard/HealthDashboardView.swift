@@ -156,18 +156,18 @@ struct RecoveryScoreRing: View {
 
     private var score: Double { summary.recoveryScore ?? 0 }
     private var scoreColor: Color {
-        if score >= 7 { return .green }
-        if score >= 5 { return .yellow }
+        if score >= 70 { return .green }
+        if score >= 50 { return .yellow }
         return .red
     }
 
     var body: some View {
         HStack(spacing: 20) {
-            ProgressRing(progress: score / 10, color: scoreColor, size: 100, lineWidth: 12,
+            ProgressRing(progress: score / 100, color: scoreColor, size: 100, lineWidth: 12,
                          backgroundColor: scoreColor.opacity(0.15), animation: .easeOut(duration: 0.8)) {
                 VStack(spacing: 2) {
                     if let s = summary.recoveryScore {
-                        Text(String(format: "%.1f", s))
+                        Text("\(Int(s))")
                             .font(.system(size: 26, weight: .black))
                             .foregroundColor(scoreColor)
                     } else {
@@ -175,7 +175,7 @@ struct RecoveryScoreRing: View {
                             .font(.system(size: 26, weight: .black))
                             .foregroundColor(.gray)
                     }
-                    Text("/ 10").font(.appCaption).foregroundColor(.gray)
+                    Text("/ 100").font(.appCaption).foregroundColor(.gray)
                 }
             }
 
@@ -204,9 +204,9 @@ struct RecoveryScoreRing: View {
 
     private var scoreLabel: String {
         if summary.recoveryScore == nil { return "Aucune donnée" }
-        if score >= 8 { return "Excellente" }
-        if score >= 6 { return "Bonne" }
-        if score >= 4 { return "Moyenne" }
+        if score >= 80 { return "Excellente" }
+        if score >= 60 { return "Bonne" }
+        if score >= 40 { return "Moyenne" }
         return "Faible"
     }
 }
@@ -749,15 +749,15 @@ struct DayStatusHeaderView: View {
 
     private var recoveryScore: Double { summary.recoveryScore ?? 0 }
     private var recoveryColor: Color {
-        if recoveryScore >= 7 { return .green }
-        if recoveryScore >= 5 { return .yellow }
+        if recoveryScore >= 70 { return .green }
+        if recoveryScore >= 50 { return .yellow }
         return .red
     }
     private var recoveryLabel: String {
         guard summary.recoveryScore != nil else { return "Aucune donnée" }
-        if recoveryScore >= 8 { return "Excellente" }
-        if recoveryScore >= 6 { return "Bonne" }
-        if recoveryScore >= 4 { return "Moyenne" }
+        if recoveryScore >= 80 { return "Excellente" }
+        if recoveryScore >= 60 { return "Bonne" }
+        if recoveryScore >= 40 { return "Moyenne" }
         return "Faible"
     }
 
@@ -770,19 +770,19 @@ struct DayStatusHeaderView: View {
                         .stroke(recoveryColor.opacity(0.15), lineWidth: 12)
                         .frame(width: 90, height: 90)
                     Circle()
-                        .trim(from: 0, to: CGFloat(recoveryScore / 10))
+                        .trim(from: 0, to: CGFloat(recoveryScore / 100))
                         .stroke(recoveryColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .frame(width: 90, height: 90)
                         .animation(.easeOut(duration: 0.8), value: recoveryScore)
                     VStack(spacing: 1) {
                         if let s = summary.recoveryScore {
-                            Text(String(format: "%.1f", s))
+                            Text("\(Int(s))")
                                 .font(.appTitle.weight(.black)).foregroundColor(recoveryColor)
                         } else {
                             Text("—").font(.appTitle.weight(.black)).foregroundColor(.gray)
                         }
-                        Text("/ 10").font(.appMicro).foregroundColor(.gray)
+                        Text("/ 100").font(.appMicro).foregroundColor(.gray)
                     }
                 }
 
@@ -890,7 +890,7 @@ struct HealthDayDetailSheet: View {
                     Section("Récupération") {
                         if let rec = day.recoveryScore {
                             DetailMetricRow(icon: "bolt.fill", color: Color.forge, label: "Score",
-                                            value: String(format: "%.1f / 10", rec))
+                                            value: "\(Int(rec)) / 100")
                         }
                         if let soreness = day.soreness {
                             DetailMetricRow(icon: "figure.strengthtraining.traditional", color: Color.forge,
