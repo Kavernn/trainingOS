@@ -142,7 +142,6 @@ def get_daily_brief():
         try:
             import db as _db
             if _db._client:
-                from datetime import datetime, timezone
                 _db._client.table("daily_brief").upsert({
                     "date":           today,
                     "use_quote":      use_quote,
