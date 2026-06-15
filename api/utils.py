@@ -59,9 +59,10 @@ def get_nutrition_time_context(target_date: str | None = None) -> dict:
     wake_time_str = "07:00"
     try:
         import db as _db
-        recs = _db.get_sleep_records(limit=1) or []
-        if recs and recs[0].get("wake_time"):
-            wake_time_str = str(recs[0]["wake_time"])[:5]
+        recs = _db.get_recovery_logs(limit=7) or []
+        recent = next((r for r in recs if r.get("wake_time")), None)
+        if recent:
+            wake_time_str = str(recent["wake_time"])[:5]
     except Exception:
         pass
 

@@ -112,7 +112,7 @@ def _ritual_rate_last_n_days(days: int) -> float:
 
 
 def _sleep_avg_last_n_days(days: int) -> Optional[float]:
-    records = db.get_sleep_records(limit=days + 5)
+    records = db.get_recovery_logs(limit=days + 5)
     cutoff = str(_today() - timedelta(days=days))
     hrs = [r.get("sleep_hours") for r in records
            if r.get("date", "") >= cutoff and r.get("sleep_hours")]

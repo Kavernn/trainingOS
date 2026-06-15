@@ -6,7 +6,7 @@ from db_body import get_recovery_logs, get_body_weight_logs
 from db_sessions import get_workout_sessions
 from utils import _today_mtl
 from db_wellness import (
-    get_mood_logs, get_pss_records, get_sleep_records,
+    get_mood_logs, get_pss_records,
     get_self_care_habits, get_self_care_log, get_sessions_for_correlations,
     get_nutrition_entries_recent,
 )

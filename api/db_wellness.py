@@ -968,8 +968,8 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
 
         if goal_type == "sleep_streak":
             from datetime import date as _date, timedelta
-            recs  = get_sleep_records(limit=365)
-            dates = {r["date"][:10] for r in recs if r.get("date")}
+            recs  = get_recovery_logs(limit=365)
+            dates = {r["date"][:10] for r in recs if r.get("date") and r.get("sleep_hours")}
             streak, d = 0, _date.fromisoformat(_today_mtl())
             while d.isoformat() in dates:
                 streak += 1
