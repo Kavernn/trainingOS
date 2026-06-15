@@ -113,19 +113,19 @@ struct RecoveryCompositeScoreView: View {
     }
 
     private func sleepStatus(_ r: RecoveryEntry) -> ComponentStatus {
-        guard let h = r.sleepHours else { return .statusYellow }
-        return h >= 7 ? .statusGreen : h >= 5.5 ? .statusYellow : .statusRed
+        guard let h = r.sleepHours else { return .yellow }
+        return h >= 7 ? .green : h >= 5.5 ? .yellow : .red
     }
     private func hrvStatus(_ r: RecoveryEntry) -> ComponentStatus {
-        guard let h = r.hrv, h > 0 else { return .statusYellow }
-        return h >= 50 ? .statusGreen : h >= 35 ? .statusYellow : .statusRed
+        guard let h = r.hrv, h > 0 else { return .yellow }
+        return h >= 50 ? .green : h >= 35 ? .yellow : .red
     }
     private func sorenessStatus(_ r: RecoveryEntry) -> ComponentStatus {
-        guard let s = r.soreness else { return .statusYellow }
-        return s <= 3 ? .statusGreen : s <= 6 ? .statusYellow : .statusRed
+        guard let s = r.soreness else { return .yellow }
+        return s <= 3 ? .green : s <= 6 ? .yellow : .red
     }
     private func statusColor(_ s: ComponentStatus) -> Color {
-        switch s { case .statusGreen: return Color.appSuccess; case .statusYellow: return Color.statusYellow; case .statusRed: return Color.appDanger }
+        switch s { case .green: return Color.appSuccess; case .yellow: return Color.statusYellow; case .red: return Color.appDanger }
     }
     private func componentDot(_ label: String, _ status: ComponentStatus) -> some View {
         HStack(spacing: 4) {
@@ -184,7 +184,7 @@ struct RecoveryCompositeScoreView: View {
                     componentDot("Soreness", sorenessStatus(last))
                 }
                 let allStatuses = [sleepStatus(last), hrvStatus(last), sorenessStatus(last)]
-                if let s = score(last), s >= 45, allStatuses.contains(.statusRed) {
+                if let s = score(last), s >= 45, allStatuses.contains(.red) {
                     Text("Score OK, mais un indicateur est en alerte")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(Color.forge)
