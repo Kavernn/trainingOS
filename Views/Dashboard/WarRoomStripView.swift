@@ -14,7 +14,7 @@ struct WarRoomStripView: View {
                     .foregroundColor(Color.appDanger.opacity(0.75))
                 Text("War Room")
                     .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(.appOnSurface.opacity(0.6))
+                    .foregroundColor(Color.appOnSurface.opacity(0.6))
             }
 
             Spacer()
@@ -26,13 +26,13 @@ struct WarRoomStripView: View {
                         .foregroundColor(Color.statusGreen.opacity(0.7))
                     Text("Journée loggée")
                         .font(.appCaption).fontWeight(.medium)
-                        .foregroundColor(.appOnSurface.opacity(0.45))
+                        .foregroundColor(Color.appOnSurface.opacity(0.45))
                 }
             } else {
                 resultButton
                 Text("·")
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.25))
+                    .foregroundColor(Color.appOnSurface.opacity(0.25))
                 temptationButton
             }
         }
@@ -51,7 +51,7 @@ struct WarRoomStripView: View {
                 Text(hasResult ? "Résultat ✓" : "Résultat →")
                     .font(.appCaption).fontWeight(.semibold)
             }
-            .foregroundColor(hasResult ? .appOnSurface.opacity(0.3) : .white)
+            .foregroundColor(hasResult ? Color.appOnSurface.opacity(0.3) : .white)
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(
                 Capsule()
@@ -74,7 +74,7 @@ struct WarRoomStripView: View {
                 Text(hasTemptation ? "Tentation ✓" : "Tentation →")
                     .font(.appCaption).fontWeight(.semibold)
             }
-            .foregroundColor(hasTemptation ? .appOnSurface.opacity(0.3) : .white)
+            .foregroundColor(hasTemptation ? Color.appOnSurface.opacity(0.3) : .white)
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(
                 Capsule()

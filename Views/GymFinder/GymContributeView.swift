@@ -29,7 +29,7 @@ struct GymContributeView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Annuler") { dismiss() }
-                        .foregroundColor(.appOnSurface.opacity(0.5))
+                        .foregroundColor(Color.appOnSurface.opacity(0.5))
                 }
             }
         }
@@ -42,7 +42,7 @@ struct GymContributeView: View {
             VStack(spacing: 14) {
                 Text("Tu aides tous les combattants qui passeront par \(gym.name).")
                     .font(.appLabel.weight(.regular))
-                    .foregroundColor(.appOnSurface.opacity(0.4))
+                    .foregroundColor(Color.appOnSurface.opacity(0.4))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
                     .padding(.top, 6)
@@ -53,7 +53,7 @@ struct GymContributeView: View {
 
                 Text("Contribution 100% anonyme. Aucun lien avec ton profil.")
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.25))
+                    .foregroundColor(Color.appOnSurface.opacity(0.25))
                     .multilineTextAlignment(.center)
 
                 Button { Task { await submit() } } label: {
@@ -90,7 +90,7 @@ struct GymContributeView: View {
             }
             Text("Laisse vide si tu ne sais pas")
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.25))
+                .foregroundColor(Color.appOnSurface.opacity(0.25))
         }
     }
 
@@ -106,10 +106,10 @@ struct GymContributeView: View {
                         HStack(spacing: 6) {
                             Image(systemName: selected ? "checkmark.square.fill" : "square")
                                 .font(.appLabel.weight(.regular))
-                                .foregroundColor(selected ? .statusGreen : .appOnSurface.opacity(0.3))
+                                .foregroundColor(selected ? .statusGreen : Color.appOnSurface.opacity(0.3))
                             Text(eq.label)
                                 .font(.appCaption)
-                                .foregroundColor(selected ? .white : .appOnSurface.opacity(0.45))
+                                .foregroundColor(selected ? .white : Color.appOnSurface.opacity(0.45))
                             Spacer()
                         }
                         .padding(8)
@@ -137,7 +137,7 @@ struct GymContributeView: View {
             HStack {
                 Text(label)
                     .font(.appLabel)
-                    .foregroundColor(.appOnSurface.opacity(0.7))
+                    .foregroundColor(Color.appOnSurface.opacity(0.7))
                 Spacer()
                 Text("\(value.wrappedValue)/5")
                     .font(.appCaption)
@@ -146,7 +146,7 @@ struct GymContributeView: View {
             HStack(spacing: 0) {
                 Text(low)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.25))
+                    .foregroundColor(Color.appOnSurface.opacity(0.25))
                     .frame(width: 52, alignment: .leading)
                 HStack(spacing: 8) {
                     ForEach(1...5, id: \.self) { i in
@@ -160,7 +160,7 @@ struct GymContributeView: View {
                 }
                 Text(high)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.25))
+                    .foregroundColor(Color.appOnSurface.opacity(0.25))
                     .frame(width: 52, alignment: .trailing)
             }
         }
@@ -199,7 +199,7 @@ struct GymContributeView: View {
                 .foregroundColor(.appTextPrimary)
             Text("Ta contribution aide les autres à trouver où se battre.")
                 .font(.appLabel.weight(.regular))
-                .foregroundColor(.appOnSurface.opacity(0.45))
+                .foregroundColor(Color.appOnSurface.opacity(0.45))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             Button("Fermer") { dismiss() }
@@ -218,7 +218,7 @@ struct GymContributeView: View {
             Text(title.uppercased())
                 .font(.appCaption.weight(.semibold))
                 .tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             content()
         }
         .padding(14)

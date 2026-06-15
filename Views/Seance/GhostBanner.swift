@@ -58,7 +58,7 @@ struct GhostBanner: View {
                     Capsule()
                         .fill(beaten
                             ? LinearGradient(colors: [Color.forge, Color.forgeDeep], startPoint: .leading, endPoint: .trailing)
-                            : LinearGradient(colors: [.statusPurple.opacity(0.8), .statusBlue.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
+                            : LinearGradient(colors: [Color.statusPurple.opacity(0.8), Color.statusBlue.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
                         )
                         .frame(width: geo.size.width * progress, height: 5)
                         .animation(.spring(response: 0.5), value: progress)

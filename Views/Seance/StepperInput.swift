@@ -106,7 +106,7 @@ struct StepperInput: View {
                 .frame(width: 32, height: 32)
             Image(systemName: systemName)
                 .font(.appBody.weight(.semibold))
-                .foregroundColor(isDisabled ? .gray.opacity(0.2) : .appOnSurface.opacity(isHeld ? 1.0 : 0.9))
+                .foregroundColor(isDisabled ? .gray.opacity(0.2) : Color.appOnSurface.opacity(isHeld ? 1.0 : 0.9))
         }
         .frame(width: 44, height: 44)
         .scaleEffect(isHeld ? 0.82 : 1.0)

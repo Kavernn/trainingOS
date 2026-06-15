@@ -48,7 +48,7 @@ struct CoachMemoryView: View {
                         Button("Tout effacer", role: .destructive) {
                             confirmDeleteAll = true
                         }
-                        .foregroundColor(.statusRed.opacity(0.7))
+                        .foregroundColor(Color.statusRed.opacity(0.7))
                         .font(.appLabel)
                     }
                 }
@@ -74,7 +74,7 @@ struct CoachMemoryView: View {
                 .foregroundColor(.statusPurple)
             Text("Ces faits sont injectés dans chaque conversation pour que le coach te connaisse dans le temps.")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.appOnSurface.opacity(0.6))
+                .foregroundColor(Color.appOnSurface.opacity(0.6))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
@@ -87,7 +87,7 @@ struct CoachMemoryView: View {
         VStack(spacing: 16) {
             Image(systemName: "brain.head.profile")
                 .font(.system(size: 44))
-                .foregroundColor(.statusPurple.opacity(0.35))
+                .foregroundColor(Color.statusPurple.opacity(0.35))
             Text("Mémoire vide")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.appTextPrimary)
@@ -162,7 +162,7 @@ private struct MemoryEntryRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.content)
                     .font(.appLabel)
-                    .foregroundColor(.appOnSurface.opacity(0.9))
+                    .foregroundColor(Color.appOnSurface.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Confiance : \(Int(entry.confidence * 100))% · \(entry.updatedAt)")
                     .font(.system(size: 10))

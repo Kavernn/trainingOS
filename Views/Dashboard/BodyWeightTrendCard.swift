@@ -36,7 +36,7 @@ struct BodyWeightTrendCard: View {
                 HStack(spacing: 6) {
                     Text("POIDS")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     HStack(spacing: 4) {
                         Image(systemName: trendIcon).font(.appMicro.weight(.semibold))
@@ -47,14 +47,14 @@ struct BodyWeightTrendCard: View {
                     .background(trendColor.opacity(0.12))
                     .clipShape(Capsule())
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
+                        .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 HStack(alignment: .bottom, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ACTUEL (LBS)")
                             .font(.appMicro).tracking(0.8)
-                            .foregroundColor(.appOnSurface.opacity(0.28))
+                            .foregroundColor(Color.appOnSurface.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.currentWeight.map { String(format: "%.1f", $0) } ?? "—")
                                 .font(.appCardMetric)
@@ -62,7 +62,7 @@ struct BodyWeightTrendCard: View {
                             if let pct = data.changePct {
                                 let sign = pct >= 0 ? "+" : ""
                                 Text("\(sign)\(String(format: "%.1f", pct))%")
-                                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.35))
+                                    .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.35))
                             }
                         }
                     }
@@ -150,9 +150,9 @@ private struct BodyWeightBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("TENDANCE DU POIDS")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 Text(data.message)
-                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                    .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -176,7 +176,7 @@ private struct BodyWeightWeeklyChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("12 DERNIÈRES SEMAINES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(avgs.indices, id: \.self) { i in
                     let isLast = i == avgs.count - 1
@@ -191,10 +191,10 @@ private struct BodyWeightWeeklyChart: View {
             .frame(height: 68, alignment: .bottom)
             HStack {
                 Text(String(format: "%.1f lbs", minVal))
-                    .font(.system(size: 8)).foregroundColor(.appOnSurface.opacity(0.25))
+                    .font(.system(size: 8)).foregroundColor(Color.appOnSurface.opacity(0.25))
                 Spacer()
                 Text(String(format: "%.1f lbs", maxVal))
-                    .font(.system(size: 8)).foregroundColor(.appOnSurface.opacity(0.25))
+                    .font(.system(size: 8)).foregroundColor(Color.appOnSurface.opacity(0.25))
             }
         }
         .padding(14)
@@ -209,16 +209,16 @@ private struct BodyWeightRangeCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("RANGE 90 JOURS")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             HStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("BAS").font(.appMicro).foregroundColor(.appOnSurface.opacity(0.28))
+                    Text("BAS").font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.28))
                     Text(data.rangeLow.map { String(format: "%.1f", $0) } ?? "—")
                         .font(.system(size: 20, weight: .black, design: .rounded))
                         .foregroundColor(Color.trendPositive)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("HAUT").font(.appMicro).foregroundColor(.appOnSurface.opacity(0.28))
+                    Text("HAUT").font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.28))
                     Text(data.rangeHigh.map { String(format: "%.1f", $0) } ?? "—")
                         .font(.system(size: 20, weight: .black, design: .rounded))
                         .foregroundColor(Color.trendNeutral)
@@ -226,10 +226,10 @@ private struct BodyWeightRangeCard: View {
                 if let pct = data.currentPctOfRange {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("POSITION").font(.appMicro).foregroundColor(.appOnSurface.opacity(0.28))
+                        Text("POSITION").font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.28))
                         Text("\(pct)%")
                             .font(.system(size: 20, weight: .black, design: .rounded))
-                            .foregroundColor(.appOnSurface.opacity(0.70))
+                            .foregroundColor(Color.appOnSurface.opacity(0.70))
                     }
                 }
             }

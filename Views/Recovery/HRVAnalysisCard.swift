@@ -93,7 +93,7 @@ struct HRVAnalysisCard: View {
             if let msg = analysis.contextualMessage {
                 Text(msg)
                     .font(.system(size: 12))
-                    .foregroundColor(analysis.hrvZone == "red" ? .statusRed.opacity(0.9) : .gray)
+                    .foregroundColor(analysis.hrvZone == "red" ? Color.statusRed.opacity(0.9) : .gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -108,7 +108,7 @@ struct HRVAnalysisCard: View {
                         Text("FAQ")
                             .font(.appCaption.weight(.medium))
                     }
-                    .foregroundColor(.statusCyan.opacity(0.8))
+                    .foregroundColor(Color.statusCyan.opacity(0.8))
                 }
             }
         }
@@ -254,7 +254,7 @@ struct HRVContextualTipView: View {
                     .padding(.top, 1)
                 Text(message)
                     .font(.system(size: 12))
-                    .foregroundColor(.appOnSurface.opacity(0.8))
+                    .foregroundColor(Color.appOnSurface.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 Button {
@@ -316,7 +316,7 @@ private struct HRVNudgeBanner: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon).font(.appLabel).foregroundColor(color)
-            Text(message).font(.system(size: 12)).foregroundColor(.appOnSurface.opacity(0.75)).fixedSize(horizontal: false, vertical: true)
+            Text(message).font(.system(size: 12)).foregroundColor(Color.appOnSurface.opacity(0.75)).fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(color.opacity(0.07))

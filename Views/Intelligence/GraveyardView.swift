@@ -50,11 +50,11 @@ struct GraveyardView: View {
         VStack(spacing: 6) {
             Text("\(r.totalCount) LIMITES ENTERRÉES")
                 .font(.appLabel.weight(.black)).tracking(2)
-                .foregroundColor(.appOnSurface.opacity(0.85))
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
             if let inception = r.inceptionDate {
                 Text("depuis \(frenchDate(inception))")
                     .font(.system(size: 12))
-                    .foregroundColor(.appOnSurface.opacity(0.6))
+                    .foregroundColor(Color.appOnSurface.opacity(0.6))
             }
         }
         .frame(maxWidth: .infinity)
@@ -72,11 +72,11 @@ struct GraveyardView: View {
                 HStack {
                     Text(monthYear)
                         .font(.system(size: 10, weight: .black)).tracking(2)
-                        .foregroundColor(.appOnSurface.opacity(0.55))
+                        .foregroundColor(Color.appOnSurface.opacity(0.55))
                     Spacer()
                     Text("\(items.count) limite\(items.count > 1 ? "s" : "")")
                         .font(.system(size: 10))
-                        .foregroundColor(.appOnSurface.opacity(0.5))
+                        .foregroundColor(Color.appOnSurface.opacity(0.5))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -127,13 +127,13 @@ struct GraveyardView: View {
         VStack(spacing: 16) {
             Image(systemName: "cross.case.fill")
                 .font(.system(size: 40))
-                .foregroundColor(.appOnSurface.opacity(0.15))
+                .foregroundColor(Color.appOnSurface.opacity(0.15))
             Text("Le cimetière est vide.")
                 .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.appOnSurface.opacity(0.5))
+                .foregroundColor(Color.appOnSurface.opacity(0.5))
             Text("Tu n'as pas encore tué quoi que ce soit.\nContinue — les limites viennent.")
                 .font(.system(size: 14))
-                .foregroundColor(.appOnSurface.opacity(0.55))
+                .foregroundColor(Color.appOnSurface.opacity(0.55))
                 .multilineTextAlignment(.center)
         }
         .padding(40)
@@ -141,10 +141,10 @@ struct GraveyardView: View {
 
     private var graveyardLoadingView: some View {
         VStack(spacing: 12) {
-            ProgressView().tint(.appOnSurface.opacity(0.3))
+            ProgressView().tint(Color.appOnSurface.opacity(0.3))
             Text("Exhumation en cours…")
                 .font(.appLabel)
-                .foregroundColor(.appOnSurface.opacity(0.5))
+                .foregroundColor(Color.appOnSurface.opacity(0.5))
         }
     }
 
@@ -244,12 +244,12 @@ struct TombstoneCard: View {
             // Title
             Text(tombstone.title)
                 .font(.appBody.weight(.bold))
-                .foregroundColor(.appOnSurface.opacity(daysOld < 365 ? 0.92 : 0.6))
+                .foregroundColor(Color.appOnSurface.opacity(daysOld < 365 ? 0.92 : 0.6))
 
             // Epitaph
             Text(tombstone.epitaph)
                 .font(.system(size: 12, weight: .regular))
-                .foregroundColor(.appOnSurface.opacity(epitaphOpacity))
+                .foregroundColor(Color.appOnSurface.opacity(epitaphOpacity))
                 .lineSpacing(3)
 
             // Decay bar
@@ -343,7 +343,7 @@ struct TombstoneDetailSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fermer") { dismiss() }
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.appOnSurface.opacity(0.5))
+                        .foregroundColor(Color.appOnSurface.opacity(0.5))
                 }
             }
         }
@@ -355,7 +355,7 @@ struct TombstoneDetailSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("CHIFFRES")
                 .font(.appMicro.weight(.black)).tracking(2)
-                .foregroundColor(.appOnSurface.opacity(0.3))
+                .foregroundColor(Color.appOnSurface.opacity(0.3))
 
             HStack(spacing: 0) {
                 if let old = tombstone.oldValue {
@@ -383,10 +383,10 @@ struct TombstoneDetailSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("CONTEXTE")
                 .font(.appMicro.weight(.black)).tracking(2)
-                .foregroundColor(.appOnSurface.opacity(0.3))
+                .foregroundColor(Color.appOnSurface.opacity(0.3))
             Text(contextText)
                 .font(.system(size: 14))
-                .foregroundColor(.appOnSurface.opacity(0.55))
+                .foregroundColor(Color.appOnSurface.opacity(0.55))
                 .lineSpacing(4)
         }
     }
@@ -395,10 +395,10 @@ struct TombstoneDetailSheet: View {
         VStack(spacing: 4) {
             Text(label)
                 .font(.appMicro.weight(.bold)).tracking(0.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text(value)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundColor(.appOnSurface.opacity(0.85))
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)

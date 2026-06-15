@@ -94,7 +94,7 @@ struct GymFinderView: View {
                 Button { vm.changeRadius(km) } label: {
                     Text("\(km) km")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(vm.filters.radiusKm == km ? .black : .appOnSurface.opacity(0.7))
+                        .foregroundColor(vm.filters.radiusKm == km ? .black : Color.appOnSurface.opacity(0.7))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
                         .background(Capsule().fill(vm.filters.radiusKm == km ? Color.forge : Color.appCard))
@@ -119,7 +119,7 @@ struct GymFinderView: View {
                         .foregroundColor(.appTextPrimary)
                     Text("Filtrer : \(vm.workoutEquipmentSuggestion.map(\.label).joined(separator: ", "))")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.5))
+                        .foregroundColor(Color.appOnSurface.opacity(0.5))
                         .lineLimit(1)
                 }
                 Spacer()
@@ -148,7 +148,7 @@ struct GymFinderView: View {
                      ? "Recherche…"
                      : "\(vm.filteredGyms.count) gym\(vm.filteredGyms.count == 1 ? "" : "s")")
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.5))
+                    .foregroundColor(Color.appOnSurface.opacity(0.5))
             }
             Spacer()
             Button {
@@ -156,7 +156,7 @@ struct GymFinderView: View {
             } label: {
                 Image(systemName: listExpanded ? "chevron.down" : "chevron.up")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.4))
+                    .foregroundColor(Color.appOnSurface.opacity(0.4))
             }
         }
         .padding(.horizontal, 16)
@@ -196,10 +196,10 @@ struct GymFinderView: View {
                 .foregroundColor(Color.forge.opacity(0.5))
             Text("Aucun gym trouvé dans ce rayon")
                 .font(.appBody.weight(.semibold))
-                .foregroundColor(.appOnSurface.opacity(0.7))
+                .foregroundColor(Color.appOnSurface.opacity(0.7))
             Text("Élargis le rayon ou continue le combat sans équipement.")
                 .font(.appLabel.weight(.regular))
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
         }
@@ -214,7 +214,7 @@ struct GymFinderView: View {
                 .foregroundColor(Color.forge.opacity(0.5))
             Text("Aucun résultat avec ces filtres")
                 .font(.appBody.weight(.semibold))
-                .foregroundColor(.appOnSurface.opacity(0.7))
+                .foregroundColor(Color.appOnSurface.opacity(0.7))
             Button("Réinitialiser les filtres") {
                 let radius = vm.filters.radiusKm
                 vm.filters = GymFilters()
@@ -238,7 +238,7 @@ struct GymFinderView: View {
                     .foregroundColor(.appTextPrimary)
                 Text("Gym Finder utilise ta position localement pour trouver les salles à proximité. Ta position n'est jamais envoyée à nos serveurs.")
                     .font(.appLabel.weight(.regular))
-                    .foregroundColor(.appOnSurface.opacity(0.45))
+                    .foregroundColor(Color.appOnSurface.opacity(0.45))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
             }
@@ -314,7 +314,7 @@ struct GymCard: View {
                 HStack(spacing: 5) {
                     Text(gym.distanceFormatted)
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(.appOnSurface.opacity(0.45))
+                        .foregroundColor(Color.appOnSurface.opacity(0.45))
 
                     if let open = gym.isOpenNow {
                         Circle()
@@ -322,14 +322,14 @@ struct GymCard: View {
                             .frame(width: 5, height: 5)
                         Text(open ? "Ouvert" : "Fermé")
                             .font(.appCaption)
-                            .foregroundColor(open ? .statusGreen : .statusRed.opacity(0.9))
+                            .foregroundColor(open ? .statusGreen : Color.statusRed.opacity(0.9))
                     }
 
                     Text("·")
-                        .foregroundColor(.appOnSurface.opacity(0.2))
+                        .foregroundColor(Color.appOnSurface.opacity(0.2))
                     Text(gym.gymType.label)
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                 }
 
                 if let price = gym.crowdsource?.dropInPrice {
@@ -343,7 +343,7 @@ struct GymCard: View {
 
             Image(systemName: "chevron.right")
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(.appOnSurface.opacity(0.2))
+                .foregroundColor(Color.appOnSurface.opacity(0.2))
         }
         .padding(14)
         .background(Color.appCard)

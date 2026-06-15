@@ -818,7 +818,7 @@ struct WorkoutSeanceView: View {
                         } label: {
                             Image(systemName: showSummary ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
                                 .font(.appTitle)
-                                .foregroundColor(showSummary ? .statusCyan : .statusCyan.opacity(0.5))
+                                .foregroundColor(showSummary ? .statusCyan : Color.statusCyan.opacity(0.5))
                         }
                         .padding(.leading, 8)
                         Button {
@@ -836,7 +836,7 @@ struct WorkoutSeanceView: View {
                             } label: {
                                 Image(systemName: "xmark.circle")
                                     .font(.appTitle)
-                                    .foregroundColor(.statusRed.opacity(0.6))
+                                    .foregroundColor(Color.statusRed.opacity(0.6))
                             }
                             .padding(.leading, 8)
                         }
@@ -890,7 +890,7 @@ struct WorkoutSeanceView: View {
                                  ? "Bonne nutrition hier — conditions optimales"
                                  : "Nutrition de la veille sous ton seuil optimal (\(hint.macro))")
                                 .font(.appCaption)
-                                .foregroundColor(hint.isAbove ? .statusGreen.opacity(0.85) : .statusOrange.opacity(0.85))
+                                .foregroundColor(hint.isAbove ? Color.statusGreen.opacity(0.85) : Color.statusOrange.opacity(0.85))
                                 .lineLimit(1)
                             Spacer()
                         }
@@ -920,7 +920,7 @@ struct WorkoutSeanceView: View {
                         if vm.isResuming && energyPreDate == data.todayDate && !energyConfirmed {
                             Text("Mise à jour ?")
                                 .font(.appMicro).fontWeight(.medium)
-                                .foregroundColor(.statusYellow.opacity(0.6))
+                                .foregroundColor(Color.statusYellow.opacity(0.6))
                         }
                         Spacer()
                         if energyConfirmed {
@@ -930,7 +930,7 @@ struct WorkoutSeanceView: View {
                                 .transition(.scale.combined(with: .opacity))
                         } else if energyPreDate == data.todayDate {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.appMicro).foregroundColor(.statusGreen.opacity(0.6))
+                                .font(.appMicro).foregroundColor(Color.statusGreen.opacity(0.6))
                         }
                     }
                     .padding(.horizontal, 10).padding(.vertical, 7)
@@ -964,7 +964,7 @@ struct WorkoutSeanceView: View {
                             }
                         }
                         .font(.appCaption).fontWeight(.semibold)
-                        .foregroundColor(.statusRed.opacity(0.8))
+                        .foregroundColor(Color.statusRed.opacity(0.8))
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.statusRed.opacity(0.1))
                         .cornerRadius(6)

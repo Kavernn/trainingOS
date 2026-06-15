@@ -27,7 +27,7 @@ struct WeeklyReportTeaser: View {
                     }
                 }
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(.appOnSurface.opacity(0.85))
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
             }
             Spacer()
             Image(systemName: "chevron.right")
@@ -70,7 +70,7 @@ struct WeeklyReportView: View {
                             .font(.appCaption.weight(.bold)).tracking(2)
                             .foregroundColor(.gray)
                         Text("\(report.weekStart) → \(report.weekEnd)")
-                            .font(.appLabel.weight(.regular)).foregroundColor(.appOnSurface.opacity(0.5))
+                            .font(.appLabel.weight(.regular)).foregroundColor(Color.appOnSurface.opacity(0.5))
                     }
                     .padding(.top, 8)
 
@@ -171,7 +171,7 @@ struct WeeklyReportView: View {
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "arrow.right.circle.fill")
                                         .font(.appCaption).foregroundColor(.statusPurple)
-                                    Text(tip).font(.appLabel.weight(.regular)).foregroundColor(.appOnSurface.opacity(0.85))
+                                    Text(tip).font(.appLabel.weight(.regular)).foregroundColor(Color.appOnSurface.opacity(0.85))
                                         .fixedSize(horizontal: false, vertical: true)
                                     Spacer()
                                 }

@@ -432,7 +432,7 @@ struct NutritionVsPerfView: View {
                 if let msg = insight {
                     Text(msg)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.appOnSurface.opacity(0.8))
+                        .foregroundColor(Color.appOnSurface.opacity(0.8))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

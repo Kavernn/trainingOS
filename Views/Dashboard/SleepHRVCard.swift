@@ -21,7 +21,7 @@ struct SleepHRVCard: View {
                 HStack(spacing: 6) {
                     Text("SOMMEIL × HRV")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     if data.hasData {
                         Text(bestLabel)
@@ -32,14 +32,14 @@ struct SleepHRVCard: View {
                             .clipShape(Capsule())
                     }
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
+                        .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 if data.hasData {
                     SleepHRVBucketBars(buckets: data.buckets, bestBucket: data.bestBucket)
                 } else {
                     Text("Pas assez de données")
-                        .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.35))
+                        .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.35))
                 }
             }
             .padding(14)
@@ -72,14 +72,14 @@ private struct SleepHRVBucketBars: View {
                     if let hrv = b.avgHrv {
                         Text("\(Int(hrv))")
                             .font(.appMicro.weight(.semibold))
-                            .foregroundColor(isBest ? .appOnSurface.opacity(0.8) : .appOnSurface.opacity(0.35))
+                            .foregroundColor(isBest ? Color.appOnSurface.opacity(0.8) : Color.appOnSurface.opacity(0.35))
                     }
                     RoundedRectangle(cornerRadius: 3)
                         .fill(isBest ? Color.trendPositive : Color.appOnSurface.opacity(0.20))
                         .frame(height: h)
                     Text(b.label)
                         .font(.system(size: 8))
-                        .foregroundColor(isBest ? .appOnSurface.opacity(0.55) : .appOnSurface.opacity(0.25))
+                        .foregroundColor(isBest ? Color.appOnSurface.opacity(0.55) : Color.appOnSurface.opacity(0.25))
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity)
@@ -126,12 +126,12 @@ private struct SleepHRVBanner: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("CORRÉLATION SOMMEIL / HRV")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text(data.message)
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
             Text("\(data.sessionsAnalyzed) nuits analysées")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.35))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.35))
         }
         .padding(14)
         .glassCard()
@@ -149,7 +149,7 @@ private struct SleepHRVDetailChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("HRV MOYEN PAR DURÉE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 12) {
                 ForEach(data.buckets, id: \.bucket) { b in
                     let isBest = b.bucket == data.bestBucket
@@ -159,21 +159,21 @@ private struct SleepHRVDetailChart: View {
                         if let avg = b.avgHrv {
                             Text("\(Int(avg)) ms")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(isBest ? .appOnSurface.opacity(0.85) : .appOnSurface.opacity(0.40))
+                                .foregroundColor(isBest ? Color.appOnSurface.opacity(0.85) : Color.appOnSurface.opacity(0.40))
                         } else {
                             Text("—")
                                 .font(.system(size: 10))
-                                .foregroundColor(.appOnSurface.opacity(0.25))
+                                .foregroundColor(Color.appOnSurface.opacity(0.25))
                         }
                         RoundedRectangle(cornerRadius: 4)
                             .fill(isBest ? Color.trendPositive : Color.appOnSurface.opacity(0.20))
                             .frame(height: h)
                         Text(b.label)
                             .font(.appMicro.weight(.medium))
-                            .foregroundColor(isBest ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.30))
+                            .foregroundColor(isBest ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.30))
                         Text("\(b.count) nuits")
                             .font(.system(size: 8))
-                            .foregroundColor(.appOnSurface.opacity(0.22))
+                            .foregroundColor(Color.appOnSurface.opacity(0.22))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -190,9 +190,9 @@ private struct SleepHRVExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("Les nuits sont regroupées par durée (< 7 h, 7–8 h, > 8 h). Le HRV moyen est calculé pour chaque groupe à partir des 120 derniers jours de recovery logs.")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

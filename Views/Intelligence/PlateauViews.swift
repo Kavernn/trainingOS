@@ -66,14 +66,14 @@ struct PlateauSection: View {
         HStack(spacing: 8) {
             if loadError {
                 Image(systemName: "exclamationmark.triangle")
-                    .foregroundColor(.statusOrange.opacity(0.7))
+                    .foregroundColor(Color.statusOrange.opacity(0.7))
                     .font(.appLabel)
                 Text("Chargement échoué — réessaie plus tard")
                     .font(.appLabel)
                     .foregroundColor(Color(white: 0.45))
             } else {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.statusGreen.opacity(0.7))
+                    .foregroundColor(Color.statusGreen.opacity(0.7))
                     .font(.appLabel)
                 Text("Aucun adversaire actif. Tu progresses.")
                     .font(.appLabel)
@@ -628,7 +628,7 @@ private struct DeloadExerciseRow: View {
                         .foregroundColor(Color(white: 0.45))
                     Text(volText)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.statusBlue.opacity(0.8))
+                        .foregroundColor(Color.statusBlue.opacity(0.8))
                 }
             }
         }

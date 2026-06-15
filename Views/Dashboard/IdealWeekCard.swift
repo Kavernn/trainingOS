@@ -30,7 +30,7 @@ struct IdealWeekCard: View {
     }
 
     private var matchColor: Color {
-        guard let m = data.matchPct else { return .appOnSurface.opacity(0.40) }
+        guard let m = data.matchPct else { return Color.appOnSurface.opacity(0.40) }
         if m >= 80 { return .forge }
         if m >= 50 { return Color.trendNeutral }
         return Color.trendNegative
@@ -40,7 +40,7 @@ struct IdealWeekCard: View {
         HStack(spacing: 6) {
             Text("SEMAINE IDÉALE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Spacer()
             if let m = data.matchPct {
                 Text("\(m)%")
@@ -49,7 +49,7 @@ struct IdealWeekCard: View {
             }
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.22))
+                .foregroundColor(Color.appOnSurface.opacity(0.22))
         }
     }
 
@@ -103,14 +103,14 @@ private struct WeekStatMini: View {
         VStack(spacing: 3) {
             Image(systemName: icon)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
             HStack(alignment: .lastTextBaseline, spacing: 2) {
                 Text("\(current)")
                     .font(.appLabel.weight(.bold))
                     .foregroundColor(color)
                 Text("/\(ideal)")
                     .font(.appMicro)
-                    .foregroundColor(.appOnSurface.opacity(0.30))
+                    .foregroundColor(Color.appOnSurface.opacity(0.30))
             }
         }
         .frame(maxWidth: .infinity)
@@ -168,10 +168,10 @@ private struct MatchBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("ALIGNEMENT CETTE SEMAINE")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 Text("vs ta meilleure semaine sur \(totalWeeks)")
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.50))
+                    .foregroundColor(Color.appOnSurface.opacity(0.50))
             }
             Spacer()
             Text("\(matchPct)%")
@@ -192,15 +192,15 @@ private struct ComparisonCard: View {
             HStack {
                 Text("COMPARAISON")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 Spacer()
                 Text("Actuel")
                     .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.forge.opacity(0.80))
+                    .foregroundColor(Color.forge.opacity(0.80))
                     .frame(width: 50, alignment: .trailing)
                 Text("Record")
                     .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                     .frame(width: 50, alignment: .trailing)
             }
 
@@ -241,11 +241,11 @@ private struct CompRow: View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
                 .frame(width: 16)
             Text(label)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.65))
+                .foregroundColor(Color.appOnSurface.opacity(0.65))
             Spacer()
             Text(String(format: format, current))
                 .font(.appCaption.weight(.bold))
@@ -253,7 +253,7 @@ private struct CompRow: View {
                 .frame(width: 50, alignment: .trailing)
             Text(String(format: format, ideal))
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
                 .frame(width: 50, alignment: .trailing)
         }
     }
@@ -266,7 +266,7 @@ private struct GapsCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("AXES D'AMÉLIORATION")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             ForEach(gaps, id: \.key) { gap in
                 HStack(spacing: 10) {
                     Image(systemName: gap.icon)
@@ -276,10 +276,10 @@ private struct GapsCard: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(gap.label)
                             .font(.appLabel.weight(.medium))
-                            .foregroundColor(.appOnSurface.opacity(0.75))
+                            .foregroundColor(Color.appOnSurface.opacity(0.75))
                         Text("\(Int(gap.current)) cette semaine vs \(Int(gap.ideal)) lors de ta meilleure")
                             .font(.appMicro)
-                            .foregroundColor(.appOnSurface.opacity(0.32))
+                            .foregroundColor(Color.appOnSurface.opacity(0.32))
                     }
                 }
             }

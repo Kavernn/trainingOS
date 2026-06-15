@@ -17,7 +17,7 @@ struct NarrativeCard: View {
             }
             Text(text)
                 .font(.system(size: 14))
-                .foregroundColor(.appOnSurface.opacity(0.9))
+                .foregroundColor(Color.appOnSurface.opacity(0.9))
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
         }

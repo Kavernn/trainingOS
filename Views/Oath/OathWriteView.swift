@@ -49,7 +49,7 @@ struct OathWriteView: View {
                             .padding(.horizontal, 32)
                     }
                     Divider()
-                        .background(.appOnSurface.opacity(0.1))
+                        .background(Color.appOnSurface.opacity(0.1))
                         .padding(.horizontal, 40)
                     Text("Réécrire un serment est un acte grave.\nChaque version est archivée.")
                         .font(.system(size: 14, weight: .light))
@@ -126,7 +126,7 @@ struct OathWriteView: View {
                     .foregroundStyle(Color.appTextPrimary)                    .scrollContentBackground(.hidden)
                     .background(.clear)
                     .lineSpacing(5)
-                    .tint(.appOnSurface.opacity(0.6))
+                    .tint(Color.appOnSurface.opacity(0.6))
             }
             .padding(.horizontal, 24)
 
@@ -138,11 +138,11 @@ struct OathWriteView: View {
             } label: {
                 Text("SCELLER")
                     .font(.system(size: 13, weight: .medium, design: .monospaced))
-                    .foregroundStyle(wordCount >= 10 ? .black : .appOnSurface.opacity(0.2))
+                    .foregroundStyle(wordCount >= 10 ? .black : Color.appOnSurface.opacity(0.2))
                     .tracking(3)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(wordCount >= 10 ? .white : .appOnSurface.opacity(0.05),
+                    .background(wordCount >= 10 ? .white : Color.appOnSurface.opacity(0.05),
                                 in: RoundedRectangle(cornerRadius: 2))
             }
             .disabled(wordCount < 10 || isSaving)
@@ -195,7 +195,7 @@ struct OathWriteView: View {
                     .padding(.vertical, 14)
                     .overlay(
                         RoundedRectangle(cornerRadius: 2)
-                            .strokeBorder(.appOnSurface.opacity(0.2), lineWidth: 0.5)
+                            .strokeBorder(Color.appOnSurface.opacity(0.2), lineWidth: 0.5)
                     )
             }
             .padding(.bottom, 60)

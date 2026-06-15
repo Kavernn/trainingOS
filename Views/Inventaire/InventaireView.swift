@@ -1052,7 +1052,7 @@ struct InventoryFormSheet: View {
                 }
             }
             TextField("Nom alternatif (ex: Bench Press)", text: $alternateName)
-                .foregroundColor(.appOnSurface.opacity(0.6))
+                .foregroundColor(Color.appOnSurface.opacity(0.6))
                 .font(.appLabel.weight(.regular))
         } header: {
             sectionHeader("Nom *")
@@ -1588,7 +1588,7 @@ struct ExerciseMediaSheet: View {
                                         .foregroundColor(.statusYellow)
                                     Text(t)
                                         .font(.appLabel.weight(.regular))
-                                        .foregroundColor(.appOnSurface.opacity(0.85))
+                                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
@@ -1775,7 +1775,7 @@ struct CatalogueExerciseDetailView: View {
                     Spacer()
                     Text(frenchDate(last.date))
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                     if let w = last.weight {
                         Text("· \(Int(w))lbs × \(last.reps)")
                             .font(.appCaption)
@@ -1865,7 +1865,7 @@ struct CatalogueExerciseDetailView: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(frenchDateShort(entry.date))
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.appOnSurface.opacity(0.8))
+                            .foregroundColor(Color.appOnSurface.opacity(0.8))
                     }
                     .frame(width: 56, alignment: .trailing)
 
@@ -2315,7 +2315,7 @@ struct ClassificationGapsSheet: View {
                 .foregroundColor(.gray)
             + Text(value)
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(.appOnSurface.opacity(0.85))
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
         }
     }
 

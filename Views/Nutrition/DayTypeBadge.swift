@@ -42,13 +42,13 @@ struct DayTypeBadge: View {
                     HStack(spacing: 8) {
                         Text("\(Int(cal)) kcal")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.appOnSurface.opacity(0.75))
+                            .foregroundColor(Color.appOnSurface.opacity(0.75))
                         Text("·")
                             .font(.system(size: 10))
                             .foregroundColor(.appTextMuted)
                         Text("\(Int(gluc))g glucides")
                             .font(.appCaption)
-                            .foregroundColor(.appOnSurface.opacity(0.55))
+                            .foregroundColor(Color.appOnSurface.opacity(0.55))
                     }
                 }
             }

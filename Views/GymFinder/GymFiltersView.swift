@@ -27,7 +27,7 @@ struct GymFiltersView: View {
                         vm.filters = GymFilters()
                         vm.filters.radiusKm = radius
                     }
-                    .foregroundColor(.appOnSurface.opacity(0.5))
+                    .foregroundColor(Color.appOnSurface.opacity(0.5))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Appliquer") {
@@ -125,7 +125,7 @@ struct GymFiltersView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundColor(selected ? .black : .appOnSurface.opacity(0.6))
+            .foregroundColor(selected ? .black : Color.appOnSurface.opacity(0.6))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .background(selected ? Color.forge : Color.appCard.opacity(0.6))
@@ -144,7 +144,7 @@ struct GymFiltersView: View {
         } label: {
             Text(eq.label)
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(selected ? .black : .appOnSurface.opacity(0.6))
+                .foregroundColor(selected ? .black : Color.appOnSurface.opacity(0.6))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .background(selected ? Color.forge : Color.appCard.opacity(0.6))
@@ -163,7 +163,7 @@ struct GymFiltersView: View {
             Text(title.uppercased())
                 .font(.appCaption.weight(.semibold))
                 .tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             content()
         }
         .padding(14)

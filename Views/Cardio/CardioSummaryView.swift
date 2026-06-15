@@ -145,7 +145,7 @@ struct CardioSummaryView: View {
                 .foregroundColor(.appTextPrimary)
             Text(sessionDateStr)
                 .font(.appLabel.weight(.regular))
-                .foregroundColor(.appOnSurface.opacity(0.5))
+                .foregroundColor(Color.appOnSurface.opacity(0.5))
         }
     }
 
@@ -194,7 +194,7 @@ struct CardioSummaryView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("SPLITS")
                     .font(.appCaption.weight(.bold)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.4))
+                    .foregroundColor(Color.appOnSurface.opacity(0.4))
                     .padding(.horizontal, 16)
 
                 VStack(spacing: 1) {
@@ -216,7 +216,7 @@ struct CardioSummaryView: View {
         return HStack {
             Text("Km \(split.km)")
                 .font(.appLabel)
-                .foregroundColor(.appOnSurface.opacity(0.7))
+                .foregroundColor(Color.appOnSurface.opacity(0.7))
             Spacer()
             Text(splitPace)
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
@@ -234,7 +234,7 @@ struct CardioSummaryView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("DONNÉES SANTÉ")
                     .font(.appCaption.weight(.bold)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.4))
+                    .foregroundColor(Color.appOnSurface.opacity(0.4))
                     .padding(.horizontal, 16)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -281,12 +281,12 @@ struct CardioSummaryView: View {
                     if note.isPersonalized {
                         Text("Basé sur tes données")
                             .font(.appCaption)
-                            .foregroundColor(.appOnSurface.opacity(0.35))
+                            .foregroundColor(Color.appOnSurface.opacity(0.35))
                     }
                 }
                 Text(note.message)
                     .font(.appLabel.weight(.regular))
-                    .foregroundColor(.appOnSurface.opacity(0.85))
+                    .foregroundColor(Color.appOnSurface.opacity(0.85))
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -335,7 +335,7 @@ struct CardioSummaryView: View {
             Button { showCancelConfirm = true } label: {
                 Text("Annuler — ne pas sauvegarder")
                     .font(.appBody)
-                    .foregroundColor(.appOnSurface.opacity(0.4))
+                    .foregroundColor(Color.appOnSurface.opacity(0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSurfaceInset, lineWidth: 1))
@@ -451,7 +451,7 @@ private struct StaticRouteMapView: View {
                     .scaledToFill()
             } else {
                 Color.appSurfaceInset
-                    .overlay(ProgressView().tint(.appOnSurface.opacity(0.5)))
+                    .overlay(ProgressView().tint(Color.appOnSurface.opacity(0.5)))
             }
         }
         .onAppear { Task { await generate() } }
@@ -711,7 +711,7 @@ private struct SummaryMetric: View {
         VStack(spacing: 4) {
             Text(label)
                 .font(.appCaption.weight(.bold)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.4))
+                .foregroundColor(Color.appOnSurface.opacity(0.4))
             Text(value)
                 .font(.appTitle)
                 .foregroundColor(color)

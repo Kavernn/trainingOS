@@ -579,7 +579,7 @@ private struct HRVFactChip: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: icon).font(.appCaption).foregroundColor(color)
-            Text(text).font(.appCaption).fontWeight(.medium).foregroundColor(.appOnSurface.opacity(0.85))
+            Text(text).font(.appCaption).fontWeight(.medium).foregroundColor(Color.appOnSurface.opacity(0.85))
         }
         .padding(.horizontal, 12).padding(.vertical, 7)
         .background(Color.appSurfaceInset).cornerRadius(20)
@@ -594,7 +594,7 @@ private struct HRVProtocolStep: View {
                 Circle().fill(color.opacity(0.15)).frame(width: 36, height: 36)
                 Image(systemName: icon).font(.appBody).foregroundColor(color)
             }
-            Text(text).font(.appBody).foregroundColor(.appOnSurface.opacity(0.9))
+            Text(text).font(.appBody).foregroundColor(Color.appOnSurface.opacity(0.9))
             Spacer()
         }
     }
@@ -605,7 +605,7 @@ private struct HRVAutoFeatureRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon).font(.appMicro).foregroundColor(color)
-            Text(text).font(.appLabel).fontWeight(.regular).foregroundColor(.appOnSurface.opacity(0.8))
+            Text(text).font(.appLabel).fontWeight(.regular).foregroundColor(Color.appOnSurface.opacity(0.8))
             Spacer()
         }
         .padding(.horizontal, 16).padding(.vertical, 10)

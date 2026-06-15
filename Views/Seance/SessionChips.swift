@@ -24,7 +24,7 @@ struct MesocycleChip: View {
                 .foregroundColor(.gray.opacity(0.5))
             Text(info.phase)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.appOnSurface.opacity(0.75))
+                .foregroundColor(Color.appOnSurface.opacity(0.75))
             Text("·")
                 .font(.system(size: 10))
                 .foregroundColor(.gray.opacity(0.5))

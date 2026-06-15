@@ -187,7 +187,7 @@ private struct RecoveryHeroCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(formattedDate)
                         .font(.appLabel)
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                     Text(lastSyncLabel)
                         .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.65))
@@ -445,7 +445,7 @@ private struct AccordionRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(formattedDate)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.appOnSurface.opacity(0.9))
+                        .foregroundColor(Color.appOnSurface.opacity(0.9))
                     if let src = entry.source {
                         Text(src == "manual" ? "Manuel" : "Apple Santé")
                             .font(.appMicro)
@@ -482,7 +482,7 @@ private struct AccordionRow: View {
                 .foregroundColor(value != nil ? color : .gray.opacity(0.3))
             Text(value ?? "—")
                 .font(.appCaption.weight(.semibold))
-                .foregroundColor(value != nil ? .appOnSurface.opacity(0.85) : .gray.opacity(0.35))
+                .foregroundColor(value != nil ? Color.appOnSurface.opacity(0.85) : .gray.opacity(0.35))
         }
     }
 }
@@ -876,7 +876,7 @@ struct RecoveryView: View {
                                 HStack(spacing: 2) {
                                     Image(systemName: "star.fill").font(.appMicro).foregroundColor(Color.statusYellow)
                                     Text(String(format: "%.1f/10", q))
-                                        .font(.appCaption.weight(.semibold)).foregroundColor(.appOnSurface.opacity(0.8))
+                                        .font(.appCaption.weight(.semibold)).foregroundColor(Color.appOnSurface.opacity(0.8))
                                 }
                             }
                         }

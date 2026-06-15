@@ -70,7 +70,7 @@ struct CoachInsightCard: View {
                     .foregroundColor(.appTextPrimary)
                 Text(alert.message)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.75))
+                    .foregroundColor(Color.appOnSurface.opacity(0.75))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -109,11 +109,11 @@ struct CoachInsightCard: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.appCaption.weight(.medium))
-                            .foregroundColor(.appOnSurface.opacity(0.35))
+                            .foregroundColor(Color.appOnSurface.opacity(0.35))
                     }
                     Text(brief.message)
                         .font(.appLabel.weight(.regular))
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
@@ -127,7 +127,7 @@ struct CoachInsightCard: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(tip.title)
                                     .font(.appCaption.weight(.bold))
-                                    .foregroundColor(.appOnSurface.opacity(0.9))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.9))
                                 Text(tip.body)
                                     .font(.appCaption)
                                     .foregroundColor(.gray)

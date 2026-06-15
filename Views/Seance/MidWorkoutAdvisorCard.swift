@@ -56,7 +56,7 @@ struct MidWorkoutAdvisorCard: View {
                         .foregroundColor(advice.color.opacity(0.7))
                     Text(advice.message)
                         .font(.system(size: 12))
-                        .foregroundColor(.appOnSurface.opacity(0.8))
+                        .foregroundColor(Color.appOnSurface.opacity(0.8))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)

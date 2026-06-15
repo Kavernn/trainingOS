@@ -400,7 +400,7 @@ struct IntelligenceView: View {
                 // No daily pattern (data insufficient)
                 HStack(spacing: 8) {
                     Image(systemName: "chart.dots.scatter")
-                        .foregroundColor(.statusPurple.opacity(0.5))
+                        .foregroundColor(Color.statusPurple.opacity(0.5))
                     Text("Pas encore assez de données — reviens dans quelques semaines.")
                         .font(.appLabel)
                         .foregroundColor(Color(white: 0.45))
@@ -976,7 +976,7 @@ struct IntelligenceView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(entry.type.rawValue)
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.statusPurple.opacity(0.7))
+                                .foregroundColor(Color.statusPurple.opacity(0.7))
                             Text(entry.content)
                                 .font(.appLabel)
                                 .foregroundColor(Color(white: 0.82))

@@ -28,14 +28,14 @@ struct OptimalDayCard: View {
         HStack(spacing: 6) {
             Text("JOUR OPTIMAL")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Spacer()
             if let best = data.bestDay {
                 BestDayBadge(label: data.byDay.first(where: { $0.dow == best })?.short ?? "—")
             }
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.22))
+                .foregroundColor(Color.appOnSurface.opacity(0.22))
         }
     }
 
@@ -76,7 +76,7 @@ private struct DayDot: View {
     }
 
     private var dotColor: Color {
-        guard day.hasData else { return .appOnSurface.opacity(0.07) }
+        guard day.hasData else { return Color.appOnSurface.opacity(0.07) }
         if isBest { return Color.trendPositive }
         return Color.trendNeutral.opacity(0.4 + intensity * 0.6)
     }
@@ -88,7 +88,7 @@ private struct DayDot: View {
                 .frame(height: isBest ? 28 : max(8, 24 * intensity))
             Text(day.short)
                 .font(.system(size: 7))
-                .foregroundColor(isBest ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.28))
+                .foregroundColor(isBest ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.28))
         }
         .frame(maxWidth: .infinity, minHeight: 36, alignment: .bottom)
     }
@@ -130,15 +130,15 @@ private struct BestDayBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("TON MEILLEUR JOUR")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 if let rpe = data.bestDayRpe {
                     Text("RPE moyen \(String(format: "%.1f", rpe))")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.55))
+                        .foregroundColor(Color.appOnSurface.opacity(0.55))
                 }
                 Text("Basé sur \(data.sessionsAnalyzed) séances")
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.38))
+                    .foregroundColor(Color.appOnSurface.opacity(0.38))
             }
             Spacer()
             Text(data.bestDayLabel)
@@ -158,15 +158,15 @@ private struct DayBreakdownCard: View {
             HStack {
                 Text("PAR JOUR DE SEMAINE")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 Spacer()
                 Text("RPE moy.")
                     .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                     .frame(width: 55, alignment: .trailing)
                 Text("Séances")
                     .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                     .frame(width: 50, alignment: .trailing)
             }
             ForEach(data.byDay, id: \.dow) { day in
@@ -186,7 +186,7 @@ private struct DayDetailRow: View {
     private var accent: Color {
         if isBest  { return Color.trendPositive }
         if isWorst { return Color.trendNegative }
-        return .appOnSurface.opacity(0.65)
+        return Color.appOnSurface.opacity(0.65)
     }
 
     var body: some View {
@@ -212,7 +212,7 @@ private struct DayDetailRow: View {
                 .frame(width: 55, alignment: .trailing)
             Text(day.hasData ? "\(day.sessionCount)" : "—")
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
                 .frame(width: 50, alignment: .trailing)
         }
     }

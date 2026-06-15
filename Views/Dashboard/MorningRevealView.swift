@@ -70,11 +70,11 @@ struct MorningRevealView: View {
                 if !showReveal {
                     VStack(spacing: 14) {
                         ProgressView()
-                            .tint(.appOnSurface.opacity(0.4))
+                            .tint(Color.appOnSurface.opacity(0.4))
                             .scaleEffect(1.1)
                         Text("Lecture du terrain...")
                             .font(.appLabel)
-                            .foregroundColor(.appOnSurface.opacity(0.35))
+                            .foregroundColor(Color.appOnSurface.opacity(0.35))
                     }
                     .transition(.opacity)
                 }
@@ -119,7 +119,7 @@ struct MorningRevealView: View {
 
                             Text(morningBrief.message)
                                 .font(.appLabel)
-                                .foregroundColor(.appOnSurface.opacity(0.6))
+                                .foregroundColor(Color.appOnSurface.opacity(0.6))
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(3)
                                 .padding(.horizontal, 36)
@@ -256,7 +256,7 @@ private struct RevealComponentChip: View {
                 .foregroundColor(.appTextPrimary)
             Text(label)
                 .font(.appMicro.weight(.medium))
-                .foregroundColor(.appOnSurface.opacity(0.45))
+                .foregroundColor(Color.appOnSurface.opacity(0.45))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)

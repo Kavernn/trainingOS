@@ -549,7 +549,7 @@ struct SleepChart: View {
                             .font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
                         if e.source == "healthkit" {
                             Image(systemName: "applewatch")
-                                .font(.system(size: 6)).foregroundColor(.statusBlue.opacity(0.5))
+                                .font(.system(size: 6)).foregroundColor(Color.statusBlue.opacity(0.5))
                         }
                     }
                     .frame(maxWidth: .infinity)

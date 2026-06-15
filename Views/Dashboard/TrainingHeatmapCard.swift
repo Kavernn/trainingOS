@@ -14,10 +14,10 @@ struct TrainingHeatmapCard: View {
                 HStack(spacing: 6) {
                     Text("HEATMAP")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
+                        .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 HeatmapCompactGrid(weeks: data.weeks)
@@ -47,7 +47,7 @@ private struct HeatmapCompactGrid: View {
                 ForEach(dayLabels.indices, id: \.self) { i in
                     Text(dayLabels[i])
                         .font(.system(size: 7))
-                        .foregroundColor(.appOnSurface.opacity(0.20))
+                        .foregroundColor(Color.appOnSurface.opacity(0.20))
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -104,11 +104,11 @@ private struct HeatmapSummaryBanner: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("HEATMAP — 12 SEMAINES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text(data.message)
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
             Text("\(data.sessionsTracked) séances sur la période")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.30))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.30))
         }
         .padding(14)
         .glassCard()
@@ -122,7 +122,7 @@ private struct HeatmapFullGrid: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("GRILLE 12 SEMAINES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
 
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
@@ -130,7 +130,7 @@ private struct HeatmapFullGrid: View {
                     ForEach(fullDays.indices, id: \.self) { i in
                         Text(fullDays[i])
                             .font(.appMicro.weight(.medium))
-                            .foregroundColor(.appOnSurface.opacity(0.25))
+                            .foregroundColor(Color.appOnSurface.opacity(0.25))
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -169,14 +169,14 @@ private struct HeatmapAdherenceChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ADHÉRENCE AU PLAN")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
 
             let entries = data.trainingDayAdherence
 
             if entries.isEmpty {
                 Text("Programme non configuré — configure ton programme pour voir l'adhérence par jour.")
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.40))
+                    .foregroundColor(Color.appOnSurface.opacity(0.40))
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 HStack(alignment: .bottom, spacing: 8) {
@@ -192,10 +192,10 @@ private struct HeatmapAdherenceChart: View {
                                 .frame(height: h)
                             Text(allLabels[item.dayIndex])
                                 .font(.system(size: 9))
-                                .foregroundColor(.appOnSurface.opacity(0.45))
+                                .foregroundColor(Color.appOnSurface.opacity(0.45))
                             Text("\(item.entry.actual)/\(item.entry.planned)")
                                 .font(.system(size: 7))
-                                .foregroundColor(.appOnSurface.opacity(0.28))
+                                .foregroundColor(Color.appOnSurface.opacity(0.28))
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -213,9 +213,9 @@ private struct HeatmapExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("Chaque case représente un jour avec au moins une séance complétée. La grille couvre les 12 dernières semaines. L'adhérence mesure le ratio séances réalisées / jours d'entraînement planifiés — les jours de repos sont exclus.")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

@@ -41,7 +41,7 @@ struct SessionPickerSheet: View {
                                         .foregroundColor(isActive ? Color.forge : .gray.opacity(0.4))
                                     Text(session)
                                         .font(.appBody).fontWeight(isActive ? .semibold : .regular)
-                                        .foregroundColor(isActive ? .white : .appOnSurface.opacity(0.75))
+                                        .foregroundColor(isActive ? .white : Color.appOnSurface.opacity(0.75))
                                     Spacer()
                                 }
                                 .padding(.horizontal, 20)
@@ -114,7 +114,7 @@ struct WorkoutSummarySheet: View {
                                             .foregroundColor(Color.forge.opacity(0.6))
                                         Text(name)
                                             .font(.appBody)
-                                            .foregroundColor(.appOnSurface.opacity(0.75))
+                                            .foregroundColor(Color.appOnSurface.opacity(0.75))
                                         Spacer()
                                     }
                                     .padding(.horizontal, 20).padding(.vertical, 14)
@@ -232,7 +232,7 @@ struct FinishSessionSheet: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: result != nil ? "checkmark.circle.fill" : "minus.circle")
                                         .font(.appLabel)
-                                        .foregroundColor(result != nil ? .statusGreen : .statusOrange.opacity(0.6))
+                                        .foregroundColor(result != nil ? .statusGreen : Color.statusOrange.opacity(0.6))
                                     Text(name)
                                         .font(.appLabel)
                                         .foregroundColor(result != nil ? .white : .gray)
@@ -255,7 +255,7 @@ struct FinishSessionSheet: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("EFFORT GLOBAL").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                             Text("Combien de reps aurais-tu pu faire en plus ?")
-                                .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.75))
+                                .font(.appLabel).foregroundColor(Color.appOnSurface.opacity(0.75))
                             let selectedRIR = Binding<Int>(
                                 get: { RPEHelper.rirFromRPE(rpe) },
                                 set: { rpe = RPEHelper.rirToRPE($0) }
@@ -271,8 +271,8 @@ struct FinishSessionSheet: View {
                             if let hint = RPEHelper.progressionHint(for: rpe) {
                                 HStack(spacing: 5) {
                                     Image(systemName: "arrow.up.forward.circle")
-                                        .font(.appCaption).foregroundColor(.statusCyan.opacity(0.7))
-                                    Text(hint).font(.appCaption).foregroundColor(.statusCyan.opacity(0.7))
+                                        .font(.appCaption).foregroundColor(Color.statusCyan.opacity(0.7))
+                                    Text(hint).font(.appCaption).foregroundColor(Color.statusCyan.opacity(0.7))
                                 }
                             }
                         }
@@ -374,12 +374,12 @@ struct FinishSessionSheet: View {
                                 if aiError {
                                     Text("Analyse IA indisponible — réessaie")
                                         .font(.appCaption)
-                                        .foregroundColor(.statusRed.opacity(0.8))
+                                        .foregroundColor(Color.statusRed.opacity(0.8))
                                 }
 
                                 if let analysis = aiAnalysis {
                                     Text(analysis)
-                                        .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.85))
+                                        .font(.appLabel).foregroundColor(Color.appOnSurface.opacity(0.85))
                                         .padding(12).background(Color.statusPurple.opacity(0.08))
                                         .cornerRadius(10)
                                 }
@@ -618,7 +618,7 @@ struct SessionRecapSheet: View {
                                 Spacer()
                                 Image(systemName: "chart.bar.fill")
                                     .font(.system(size: 28))
-                                    .foregroundColor(.statusPurple.opacity(0.5))
+                                    .foregroundColor(Color.statusPurple.opacity(0.5))
                             }
                             .padding(16)
                             .background(Color.appCard).cornerRadius(14)
@@ -635,7 +635,7 @@ struct SessionRecapSheet: View {
                                 HStack(alignment: .top, spacing: 10) {
                                     Image(systemName: r != nil ? "checkmark.circle.fill" : "minus.circle")
                                         .font(.appLabel)
-                                        .foregroundColor(r != nil ? .statusGreen : .statusOrange.opacity(0.5))
+                                        .foregroundColor(r != nil ? .statusGreen : Color.statusOrange.opacity(0.5))
                                         .padding(.top, 2)
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(name)
@@ -710,7 +710,7 @@ struct SessionRecapSheet: View {
                                     .padding(.top, 1)
                                 Text(snapshot.comment)
                                     .font(.appLabel)
-                                    .foregroundColor(.appOnSurface.opacity(0.85))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.85))
                                     .multilineTextAlignment(.leading)
                                 Spacer()
                             }
@@ -750,7 +750,7 @@ struct SessionRecapSheet: View {
                     .foregroundColor(.gray.opacity(0.4))
                     .frame(width: 16, alignment: .leading)
                 Text(UnitSettings.shared.format(s["weight"] as? Double ?? fallbackWeight))
-                    .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.6))
+                    .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.6))
                 Text("×").font(.appMicro).foregroundColor(.gray.opacity(0.35))
                 Text(s["reps"] as? String ?? "—")
                     .font(.appMicro).foregroundColor(.gray)
@@ -986,7 +986,7 @@ struct CoachingChip: View {
                         .font(.appLabel).fontWeight(.black).foregroundColor(typeColor)
                 }
                 Text(suggestion.reason)
-                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.65))
+                    .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.65))
                     .lineLimit(1)
                 Spacer()
                 Button("Ignorer") { ignored = true }

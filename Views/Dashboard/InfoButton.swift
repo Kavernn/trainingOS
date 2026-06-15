@@ -97,7 +97,7 @@ struct InfoSheetView: View {
                                     .foregroundColor(Color.forge)
                                 Text(entry.definition)
                                     .font(.appLabel.weight(.regular))
-                                    .foregroundColor(.appOnSurface.opacity(0.85))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.85))
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(14)

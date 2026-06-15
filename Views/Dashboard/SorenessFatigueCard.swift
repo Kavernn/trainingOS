@@ -30,7 +30,7 @@ struct SorenessFatigueCard: View {
                 HStack(spacing: 6) {
                     Text("COURBATURES & FATIGUE")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     Text(statusLabel)
                         .font(.system(size: 10, weight: .semibold))
@@ -39,7 +39,7 @@ struct SorenessFatigueCard: View {
                         .background(statusColor.opacity(0.12))
                         .clipShape(Capsule())
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
+                        .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 HStack(spacing: 16) {
@@ -68,13 +68,13 @@ private struct RecoveryGauge: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.appMicro).tracking(0.6)
-                .foregroundColor(.appOnSurface.opacity(0.28))
+                .foregroundColor(Color.appOnSurface.opacity(0.28))
             HStack(alignment: .lastTextBaseline, spacing: 2) {
                 Text(value.map { String(format: "%.0f", $0) } ?? "—")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundColor(color)
                 Text("/10")
-                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.28))
+                    .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.28))
             }
         }
     }
@@ -149,13 +149,13 @@ private struct SorenessBanner: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("SURMENAGE & RÉCUPÉRATION")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             if data.overreachingWeeks > 0 {
                 Text("\(data.overreachingWeeks) sem. de surmenage détectées (courbatures + fatigue > 6)")
                     .font(.appCaption).foregroundColor(Color.trendNegative.opacity(0.85))
             }
             Text(data.message)
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
@@ -174,7 +174,7 @@ private struct SorenessWeeklyChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(weeks.indices, id: \.self) { i in
                     let isLast = i == weeks.count - 1
@@ -183,7 +183,7 @@ private struct SorenessWeeklyChart: View {
                     VStack(spacing: 4) {
                         Text(weeks[i].avg.map { String(format: "%.0f", $0) } ?? "—")
                             .font(.system(size: 7, weight: .semibold))
-                            .foregroundColor(isLast ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.25))
+                            .foregroundColor(isLast ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.25))
                         RoundedRectangle(cornerRadius: 3)
                             .fill(isLast ? color : color.opacity(0.35))
                             .frame(height: h)
@@ -203,9 +203,9 @@ private struct SorenessExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("Moyenne hebdomadaire des scores de courbatures et de fatigue perçue (1–10) issus des recovery logs. Une semaine de surmenage = courbatures ET fatigue > 6 en moyenne sur la semaine.")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

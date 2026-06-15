@@ -57,7 +57,7 @@ struct OathGateView: View {
                     .padding(.vertical, 12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 2)
-                            .strokeBorder(.appOnSurface.opacity(0.15), lineWidth: 0.5)
+                            .strokeBorder(Color.appOnSurface.opacity(0.15), lineWidth: 0.5)
                     )
             }
             .padding(.bottom, 60)
@@ -190,7 +190,7 @@ struct OathContentView: View {
                         .padding(.vertical, 10)
                         .overlay(
                             RoundedRectangle(cornerRadius: 2)
-                                .strokeBorder(.appOnSurface.opacity(0.15), lineWidth: 0.5)
+                                .strokeBorder(Color.appOnSurface.opacity(0.15), lineWidth: 0.5)
                         )
                 }
 
@@ -247,7 +247,7 @@ struct OathArchiveView: View {
             HStack {
                 Text("V\(v.version)")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(v.isActive ? .white : .appOnSurface.opacity(0.3))
+                    .foregroundStyle(v.isActive ? .white : Color.appOnSurface.opacity(0.3))
                     .tracking(2)
                 Spacer()
                 Text(v.formattedDate)
@@ -262,18 +262,18 @@ struct OathArchiveView: View {
                         .padding(.vertical, 2)
                         .overlay(
                             RoundedRectangle(cornerRadius: 2)
-                                .strokeBorder(.appOnSurface.opacity(0.2), lineWidth: 0.5)
+                                .strokeBorder(Color.appOnSurface.opacity(0.2), lineWidth: 0.5)
                         )
                 }
             }
             Text(v.text)
                 .font(.system(size: 14, weight: .light, design: .serif))
-                .foregroundStyle(v.isActive ? .appOnSurface.opacity(0.85) : .appOnSurface.opacity(0.3))
+                .foregroundStyle(v.isActive ? Color.appOnSurface.opacity(0.85) : Color.appOnSurface.opacity(0.3))
                 .lineSpacing(4)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(.appOnSurface.opacity(v.isActive ? 0.04 : 0.0))
+        .background(Color.appOnSurface.opacity(v.isActive ? 0.04 : 0.0))
     }
 }
 

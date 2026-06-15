@@ -80,7 +80,7 @@ struct BodyCompHistoryView: View {
                         .annotation(position: .top, alignment: .leading) {
                             Text("Correction formule")
                                 .font(.appMicro)
-                                .foregroundColor(.statusYellow.opacity(0.75))
+                                .foregroundColor(Color.statusYellow.opacity(0.75))
                         }
                 }
             }
@@ -174,7 +174,7 @@ struct BodyCompHistoryView: View {
         VStack(spacing: 12) {
             Image(systemName: "figure.arms.open")
                 .font(.system(size: 48))
-                .foregroundColor(.statusGreen.opacity(0.5))
+                .foregroundColor(Color.statusGreen.opacity(0.5))
             Text("Aucune mesure enregistrée")
                 .font(.appBody.weight(.semibold))
                 .foregroundColor(.gray)

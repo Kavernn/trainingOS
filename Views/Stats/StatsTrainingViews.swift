@@ -261,7 +261,7 @@ struct BadgesView: View {
                     .font(.appLabel.weight(.bold))
                 Text("Badges")
                     .font(.appLabel.weight(.bold))
-                    .foregroundColor(.appOnSurface.opacity(0.8))
+                    .foregroundColor(Color.appOnSurface.opacity(0.8))
                 Spacer()
                 let count = badges.filter(\.earned).count
                 Text("\(count)/\(badges.count)")

@@ -144,7 +144,7 @@ struct MentalHealthDashboardView: View {
                     }
                     Text("Un jour de pause ne remet pas à zéro ton progrès.")
                         .font(.caption)
-                        .foregroundColor(.appOnSurface.opacity(0.45))
+                        .foregroundColor(Color.appOnSurface.opacity(0.45))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 4)
                 }
@@ -158,7 +158,7 @@ struct MentalHealthDashboardView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Ces intentions reviennent dans tes rituels. Rien à forcer — il est aussi OK de les ajuster ou de les laisser aller.")
                         .font(.caption)
-                        .foregroundColor(.appOnSurface.opacity(0.5))
+                        .foregroundColor(Color.appOnSurface.opacity(0.5))
                         .fixedSize(horizontal: false, vertical: true)
                     ForEach(persistentDemons) { demon in
                         HStack(alignment: .top, spacing: 10) {
@@ -169,10 +169,10 @@ struct MentalHealthDashboardView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\"\(demon.intention)\"")
                                     .font(.appLabel)
-                                    .foregroundColor(.appOnSurface.opacity(0.8))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.8))
                                 Text("jours dans tes rituels")
                                     .font(.caption2)
-                                    .foregroundColor(.appOnSurface.opacity(0.4))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.4))
                             }
                         }
                     }
@@ -259,10 +259,10 @@ private struct MHKPICell: View {
                 .foregroundColor(color)
             Text(unit)
                 .font(.caption2)
-                .foregroundColor(.appOnSurface.opacity(0.65))
+                .foregroundColor(Color.appOnSurface.opacity(0.65))
             Text(label)
                 .font(.caption2)
-                .foregroundColor(.appOnSurface.opacity(0.65))
+                .foregroundColor(Color.appOnSurface.opacity(0.65))
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

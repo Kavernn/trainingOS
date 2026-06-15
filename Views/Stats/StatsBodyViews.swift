@@ -190,7 +190,7 @@ struct MuscleBreakdownView: View {
                             VStack(alignment: .trailing, spacing: 1) {
                                 Text(formatVol(entry.volume))
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.appOnSurface.opacity(0.8))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.8))
                                 if let days = daysSince(entry.lastDate) {
                                     Text(days == 0 ? "auj." : "\(days)j")
                                         .font(.appMicro)
@@ -495,11 +495,11 @@ struct VolumeLandmarksCard: View {
                             HStack {
                                 Text("\(muscleKey.localizedMuscleGroup) → \(specific)")
                                     .font(.appCaption)
-                                    .foregroundColor(.appOnSurface.opacity(0.65))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.65))
                                 Spacer()
                                 Text("\(count) sets")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.appOnSurface.opacity(0.65))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.65))
                             }
                         }
                     }

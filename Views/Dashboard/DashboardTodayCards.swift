@@ -706,7 +706,7 @@ struct CriticalAlertCard: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(signal.message)
                     .font(.appLabel)
-                    .foregroundColor(.appOnSurface.opacity(0.92))
+                    .foregroundColor(Color.appOnSurface.opacity(0.92))
                     .fixedSize(horizontal: false, vertical: true)
                 Button(action: onAction) {
                     Text(signal.actionLabel)

@@ -542,7 +542,7 @@ struct HRVBaselineCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("MOY. 7J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f ms", avg7))
-                            .font(.system(size: 18, weight: .black)).foregroundColor(.appOnSurface.opacity(0.8))
+                            .font(.system(size: 18, weight: .black)).foregroundColor(Color.appOnSurface.opacity(0.8))
                     }
                 }
                 if let baseline = data.hrv30dAvg {
@@ -615,7 +615,7 @@ struct SorenessThresholdCard: View {
 
             if let msg = data.message {
                 Text(msg)
-                    .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.85))
+                    .font(.appLabel).foregroundColor(Color.appOnSurface.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -680,7 +680,7 @@ struct SleepPerformanceInsightView: View {
             if let msg = insight {
                 Text(msg)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.85))
+                    .foregroundColor(Color.appOnSurface.opacity(0.85))
                     .padding(.horizontal, 16)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -891,7 +891,7 @@ struct StressCravingsInsightView: View {
             }
             Text(insightText)
                 .font(.appLabel.weight(.semibold))
-                .foregroundColor(.appOnSurface.opacity(0.85))
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16).glassCard(color: Color.forge, intensity: 0.04)
@@ -975,7 +975,7 @@ struct SleepDebtCard: View {
                 Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
                 Text(insightText)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.8))
+                    .foregroundColor(Color.appOnSurface.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1020,7 +1020,7 @@ struct RecoveryProfileCard: View {
             Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
             Text(insightText)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.appOnSurface.opacity(0.8))
+                .foregroundColor(Color.appOnSurface.opacity(0.8))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16).glassCard()

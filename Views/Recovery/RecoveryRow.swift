@@ -60,7 +60,7 @@ struct RecoveryRow: View {
                                 .font(.appCaption)
                                 .frame(width: 26, height: 26)
                                 .background(Color.appDanger.opacity(0.1))
-                                .foregroundColor(.statusRed.opacity(0.7))
+                                .foregroundColor(Color.statusRed.opacity(0.7))
                                 .clipShape(RoundedRectangle(cornerRadius: 7))
                         }
                         .buttonStyle(.plain)
@@ -132,7 +132,7 @@ struct RecoveryRow: View {
                 .foregroundColor(isNil ? .gray.opacity(0.3) : color)
             Text(value)
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(isNil ? .gray.opacity(0.35) : .appOnSurface.opacity(0.9))
+                .foregroundColor(isNil ? .gray.opacity(0.35) : Color.appOnSurface.opacity(0.9))
         }
     }
 
@@ -140,7 +140,7 @@ struct RecoveryRow: View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.appMicro).foregroundColor(color)
             VStack(alignment: .leading, spacing: 0) {
-                Text(value).font(.appCaption.weight(.semibold)).foregroundColor(.appOnSurface.opacity(0.9))
+                Text(value).font(.appCaption.weight(.semibold)).foregroundColor(Color.appOnSurface.opacity(0.9))
                 Text(label).font(.system(size: 8)).foregroundColor(.gray.opacity(0.55))
             }
         }

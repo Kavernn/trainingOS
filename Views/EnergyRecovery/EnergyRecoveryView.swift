@@ -340,7 +340,7 @@ private struct EnergyBreakdownCard: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Dépense active (HealthKit)")
                                 .font(.appCaption.weight(.medium))
-                                .foregroundColor(.appOnSurface.opacity(0.75))
+                                .foregroundColor(Color.appOnSurface.opacity(0.75))
                             if isRestDay && ae > 800 {
                                 Text("Activité élevée malgré le repos")
                                     .font(.appCaption)
@@ -419,7 +419,7 @@ private struct EnergyErrorCard: View {
                 .foregroundColor(Color.forge)
             Text(message)
                 .font(.appLabel.weight(.regular))
-                .foregroundColor(.appOnSurface.opacity(0.8))
+                .foregroundColor(Color.appOnSurface.opacity(0.8))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
@@ -1122,7 +1122,7 @@ private struct UnifiedRecoverySleepSection: View {
                 Text("Compléter manuellement")
                     .font(.appCaption.weight(.semibold))
             }
-            .foregroundColor(.appOnSurface.opacity(0.7))
+            .foregroundColor(Color.appOnSurface.opacity(0.7))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(Color.appSurfaceInset)

@@ -54,7 +54,7 @@ struct RitualDemonCard: View {
                     if let ts = ritual.engagementsCreatedAt {
                         Text(ts)
                             .font(.appCaption)
-                            .foregroundColor(.appOnSurface.opacity(0.45))
+                            .foregroundColor(Color.appOnSurface.opacity(0.45))
                     }
                 }
                 Spacer()
@@ -90,7 +90,7 @@ struct RitualDemonCard: View {
                         .tracking(0.5)
                     Text("Journée clôturée · Crée tes engagements.")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.5))
+                        .foregroundColor(Color.appOnSurface.opacity(0.5))
                 }
                 Spacer()
                 Image(systemName: "arrow.right")
@@ -125,7 +125,7 @@ struct RitualDemonCard: View {
                         .tracking(0.5)
                     Text("Cycle complété.")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.4))
+                        .foregroundColor(Color.appOnSurface.opacity(0.4))
                 }
                 Spacer()
             }
@@ -157,7 +157,7 @@ struct RitualDemonCard: View {
                         .tracking(0.5)
                     Text("Aucun engagement prévu pour demain.")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.45))
+                        .foregroundColor(Color.appOnSurface.opacity(0.45))
                 }
                 Spacer()
                 Image(systemName: "arrow.right")
@@ -194,10 +194,10 @@ struct BreathworkNudgeCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Stress élevé détecté")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                     Text("5 min de cohérence cardiaque maintenant.")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.55))
+                        .foregroundColor(Color.appOnSurface.opacity(0.55))
                 }
 
                 Spacer()
@@ -255,7 +255,7 @@ struct QuickWarRoomTriggerSheet: View {
                                 } label: {
                                     Text(ctx.label)
                                         .font(.appCaption.weight(selectedContext == ctx ? .bold : .regular))
-                                        .foregroundColor(selectedContext == ctx ? .black : .appOnSurface.opacity(0.7))
+                                        .foregroundColor(selectedContext == ctx ? .black : Color.appOnSurface.opacity(0.7))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 9)
                                         .background(selectedContext == ctx ? Color.appDanger : Color.appSurfaceInset)
@@ -568,10 +568,10 @@ struct EveningRoutineCard: View {
             Text("22h")
                 .font(.appMicro.weight(.medium))
                 .foregroundColor(hourColor)
-            Text("·").font(.appMicro).foregroundColor(.appOnSurface.opacity(0.2))
+            Text("·").font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.2))
             Text("23h30")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.3))
+                .foregroundColor(Color.appOnSurface.opacity(0.3))
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
@@ -642,13 +642,13 @@ struct EveningRoutineCard: View {
                         .frame(width: 20, height: 20)
                     Image(systemName: isArmed ? "bell.fill" : "bell")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(isArmed ? Color.statusGreen : .appOnSurface.opacity(0.5))
+                        .foregroundColor(isArmed ? Color.statusGreen : Color.appOnSurface.opacity(0.5))
                 }
                 .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isArmed)
                 Text("🔔").font(.system(size: 14))
                 Text(label)
                     .font(.appCaption)
-                    .foregroundColor(isArmed ? Color.statusGreen.opacity(0.85) : .appOnSurface.opacity(0.8))
+                    .foregroundColor(isArmed ? Color.statusGreen.opacity(0.85) : Color.appOnSurface.opacity(0.8))
                 Spacer()
                 if isArmed {
                     Button {
@@ -693,7 +693,7 @@ struct EveningRoutineCard: View {
                 Text(label)
                     .font(.appCaption)
                     .foregroundColor(textColor)
-                    .strikethrough(isChecked, color: .appOnSurface.opacity(0.2))
+                    .strikethrough(isChecked, color: Color.appOnSurface.opacity(0.2))
                 Spacer()
             }
             .padding(.vertical, 8)
@@ -718,7 +718,7 @@ struct EveningRoutineCard: View {
                 Text("Abrutissement positif")
                     .font(.appCaption)
                     .foregroundColor(textColor)
-                    .strikethrough(isChecked, color: .appOnSurface.opacity(0.2))
+                    .strikethrough(isChecked, color: Color.appOnSurface.opacity(0.2))
                 Spacer()
                 if softLimitWarning {
                     Text("22h")
@@ -746,12 +746,12 @@ struct EveningRoutineCard: View {
                     Text("📝").font(.system(size: 14))
                     Text("Priorités demain")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.45))
-                        .strikethrough(true, color: .appOnSurface.opacity(0.2))
+                        .foregroundColor(Color.appOnSurface.opacity(0.45))
+                        .strikethrough(true, color: Color.appOnSurface.opacity(0.2))
                     Spacer()
                     Text("auto ✓")
                         .font(.appMicro)
-                        .foregroundColor(.appOnSurface.opacity(0.3))
+                        .foregroundColor(Color.appOnSurface.opacity(0.3))
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Color.appSurfaceInset)
                         .clipShape(Capsule())
@@ -764,11 +764,11 @@ struct EveningRoutineCard: View {
                         Text("📝").font(.system(size: 14))
                         Text("Priorités demain")
                             .font(.appCaption)
-                            .foregroundColor(.appOnSurface.opacity(0.8))
+                            .foregroundColor(Color.appOnSurface.opacity(0.8))
                         Spacer()
                         Image(systemName: "arrow.right")
                             .font(.appMicro.weight(.semibold))
-                            .foregroundColor(.appOnSurface.opacity(0.25))
+                            .foregroundColor(Color.appOnSurface.opacity(0.25))
                     }
                     .padding(.vertical, 8)
                 }
@@ -787,10 +787,10 @@ struct EveningRoutineCard: View {
                 Spacer()
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.25))
+                    .foregroundColor(Color.appOnSurface.opacity(0.25))
                 Text("Voir les détails")
                     .font(.appMicro)
-                    .foregroundColor(.appOnSurface.opacity(0.25))
+                    .foregroundColor(Color.appOnSurface.opacity(0.25))
                 Spacer()
             }
             .padding(.top, 8)

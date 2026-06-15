@@ -31,7 +31,7 @@ struct PortraitJ90Card: View {
         HStack(alignment: .center, spacing: 6) {
             Text("PORTRAIT J-90")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Spacer()
             if let score = data.transformationScore {
                 let scoreColor: Color = score >= 50 ? .forge : Color.trendNegative
@@ -41,7 +41,7 @@ struct PortraitJ90Card: View {
             }
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.22))
+                .foregroundColor(Color.appOnSurface.opacity(0.22))
         }
     }
 
@@ -57,7 +57,7 @@ struct PortraitJ90Card: View {
     private var footerRow: some View {
         Text("\(data.improvingCount)/\(data.totalWithBaseline) dimensions en progression vs il y a \(data.referenceOffsetDays)J")
             .font(.appMicro)
-            .foregroundColor(.appOnSurface.opacity(0.32))
+            .foregroundColor(Color.appOnSurface.opacity(0.32))
     }
 }
 
@@ -74,11 +74,11 @@ private struct DimRowCompact: View {
         HStack(spacing: 8) {
             Image(systemName: dim.icon)
                 .font(.system(size: 10))
-                .foregroundColor(.appOnSurface.opacity(0.40))
+                .foregroundColor(Color.appOnSurface.opacity(0.40))
                 .frame(width: 14)
             Text(dim.label)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.62))
+                .foregroundColor(Color.appOnSurface.opacity(0.62))
             Spacer()
             Text(dim.formattedDelta)
                 .font(.appCaption.weight(.semibold))
@@ -138,10 +138,10 @@ private struct TransformationScoreBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("SCORE DE TRANSFORMATION")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 Text("\(improving)/\(total) dimensions en progression")
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.55))
+                    .foregroundColor(Color.appOnSurface.opacity(0.55))
             }
             Spacer()
             Text("\(score)%")
@@ -164,19 +164,19 @@ private struct DimensionDetailTable: View {
             HStack {
                 Text("DIMENSION")
                     .font(.appMicro.weight(.black)).tracking(1.2)
-                    .foregroundColor(.appOnSurface.opacity(0.30))
+                    .foregroundColor(Color.appOnSurface.opacity(0.30))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Text("MAINTENANT")
                     .font(.appMicro.weight(.black)).tracking(1.2)
-                    .foregroundColor(.appOnSurface.opacity(0.30))
+                    .foregroundColor(Color.appOnSurface.opacity(0.30))
                     .frame(width: 70, alignment: .trailing)
                 Text("J-\(referenceOffset)")
                     .font(.appMicro.weight(.black)).tracking(1.2)
-                    .foregroundColor(.appOnSurface.opacity(0.30))
+                    .foregroundColor(Color.appOnSurface.opacity(0.30))
                     .frame(width: 50, alignment: .trailing)
                 Text("DELTA")
                     .font(.appMicro.weight(.black)).tracking(1.2)
-                    .foregroundColor(.appOnSurface.opacity(0.30))
+                    .foregroundColor(Color.appOnSurface.opacity(0.30))
                     .frame(width: 48, alignment: .trailing)
             }
             .padding(.horizontal, 14)
@@ -189,7 +189,7 @@ private struct DimensionDetailTable: View {
             if dimensions.contains(where: { !$0.hasBaseline }) {
                 Text("Données insuffisantes pour certaines dimensions (< 90J d'historique)")
                     .font(.appMicro)
-                    .foregroundColor(.appOnSurface.opacity(0.28))
+                    .foregroundColor(Color.appOnSurface.opacity(0.28))
                     .padding(.horizontal, 14)
                     .padding(.bottom, 10)
             }
@@ -216,22 +216,22 @@ private struct DimDetailRow: View {
             HStack(spacing: 6) {
                 Image(systemName: dim.icon)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.42))
+                    .foregroundColor(Color.appOnSurface.opacity(0.42))
                     .frame(width: 16)
                 Text(dim.label)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.72))
+                    .foregroundColor(Color.appOnSurface.opacity(0.72))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(fmt(dim.recent))
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(.appOnSurface.opacity(0.65))
+                .foregroundColor(Color.appOnSurface.opacity(0.65))
                 .frame(width: 70, alignment: .trailing)
 
             Text(fmt(dim.ref))
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
                 .frame(width: 50, alignment: .trailing)
 
             HStack(spacing: 3) {

@@ -144,7 +144,7 @@ struct DashboardStatusBar: View {
                         .frame(width: 6, height: 6)
                     Text(dash.today)
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                         .lineLimit(1)
                 }
 

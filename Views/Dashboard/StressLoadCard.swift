@@ -37,7 +37,7 @@ struct StressLoadCard: View {
                 HStack(spacing: 6) {
                     Text("STRESS INDEX")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     if data.hasData {
                         HStack(spacing: 4) {
@@ -50,21 +50,21 @@ struct StressLoadCard: View {
                         .clipShape(Capsule())
                     }
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
+                        .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 HStack(alignment: .bottom, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("CHARGE COMBINÉE")
                             .font(.appMicro).tracking(0.8)
-                            .foregroundColor(.appOnSurface.opacity(0.28))
+                            .foregroundColor(Color.appOnSurface.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             let combined = data.weeks.last?.combined
                             Text(combined.map { "\($0)" } ?? "—")
                                 .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             Text("/100")
-                                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.30))
+                                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.30))
                         }
                     }
                     Spacer()
@@ -150,13 +150,13 @@ private struct StressLoadBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("STRESS LOAD INDEX")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 if let t = data.currentTrainingStress, let p = data.currentPssStress {
                     Text("Physique : \(t)/100 · Mental : \(p)/100")
-                        .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.50))
+                        .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.50))
                 }
                 Text(data.message)
-                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                    .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -178,7 +178,7 @@ private struct StressLoadWeeksChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("5 DERNIÈRES SEMAINES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(weeks.indices, id: \.self) { i in
                     let w = weeks[i]
@@ -187,13 +187,13 @@ private struct StressLoadWeeksChart: View {
                     VStack(spacing: 4) {
                         Text("\(w.combined)")
                             .font(.system(size: 8, weight: .semibold))
-                            .foregroundColor(isLast ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.28))
+                            .foregroundColor(isLast ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.28))
                         RoundedRectangle(cornerRadius: 3)
                             .fill(isLast ? Color.trendNeutral : Color.appOnSurface.opacity(0.20))
                             .frame(height: h)
                         Text("S\(i + 1)")
                             .font(.system(size: 7))
-                            .foregroundColor(isLast ? .appOnSurface.opacity(0.50) : .appOnSurface.opacity(0.22))
+                            .foregroundColor(isLast ? Color.appOnSurface.opacity(0.50) : Color.appOnSurface.opacity(0.22))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -210,9 +210,9 @@ private struct StressLoadExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("Deux signaux combinés : la charge d'entraînement (RPE hebdo normalisé 0–100) et le stress perçu PSS-4 (normalisé 0–100). Le dominant est le signal le plus élevé (>15 pts d'écart).")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

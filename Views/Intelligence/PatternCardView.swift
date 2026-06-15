@@ -98,7 +98,7 @@ struct PatternPinnedChip: View {
                             .foregroundColor(colorFromName(pattern.color).opacity(0.7))
                         Text(pattern.headline)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.appOnSurface.opacity(0.85))
+                            .foregroundColor(Color.appOnSurface.opacity(0.85))
                             .lineLimit(expanded ? nil : 2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -185,7 +185,7 @@ private struct PatternBarRow: View {
         HStack(spacing: 8) {
             Text(bar.label)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.65))
+                .foregroundColor(Color.appOnSurface.opacity(0.65))
                 .frame(width: 110, alignment: .leading)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -262,7 +262,7 @@ private struct EffectBadge: View {
     var body: some View {
         Text("+\(Int(pct))%")
             .font(.system(size: 11, weight: .bold, design: .rounded))
-            .foregroundColor(.appOnSurface.opacity(0.7))
+            .foregroundColor(Color.appOnSurface.opacity(0.7))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(Color.appSurfaceInset)
@@ -328,7 +328,7 @@ struct PatternDailyChip: View {
                     }
                     Text(pattern.headline)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -379,7 +379,7 @@ struct MacroThresholdDetail: View {
                 HStack(spacing: 5) {
                     Image(systemName: "target")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.statusPurple.opacity(0.7))
+                        .foregroundColor(Color.statusPurple.opacity(0.7))
                     Text("SEUIL PERSONNEL CALCULÉ")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(Color(white: 0.4))

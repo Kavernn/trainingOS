@@ -19,7 +19,7 @@ struct ReadinessBadge: View {
                     .foregroundColor(.gray)
                 Text(r.why)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.70))
+                    .foregroundColor(Color.appOnSurface.opacity(0.70))
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -79,7 +79,7 @@ struct ReadinessSheet: View {
 
                         Text(readiness.why)
                             .font(.appLabel.weight(.regular))
-                            .foregroundColor(.appOnSurface.opacity(0.80))
+                            .foregroundColor(Color.appOnSurface.opacity(0.80))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(16)
@@ -96,7 +96,7 @@ struct ReadinessSheet: View {
                                 .padding(.top, 1)
                             Text(adj)
                                 .font(.appLabel)
-                                .foregroundColor(.appOnSurface.opacity(0.85))
+                                .foregroundColor(Color.appOnSurface.opacity(0.85))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(12)
@@ -173,7 +173,7 @@ struct ReadinessSheet: View {
                                 Text("Trouver un gym à proximité")
                                     .font(.appLabel)
                             }
-                            .foregroundColor(.appOnSurface.opacity(0.55))
+                            .foregroundColor(Color.appOnSurface.opacity(0.55))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(Color.appCard)

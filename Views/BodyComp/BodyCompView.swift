@@ -148,7 +148,7 @@ struct BodyCompView: View {
                                 Text("\(diff >= 0 ? "+" : "")\(units.format(diff))")
                                     .font(.appCaption.weight(.semibold))
                             }
-                            .foregroundColor(diff >= 0 ? .statusOrange.opacity(0.8) : .statusGreen.opacity(0.8))
+                            .foregroundColor(diff >= 0 ? Color.statusOrange.opacity(0.8) : Color.statusGreen.opacity(0.8))
                             Text("vs hier")
                                 .font(.appMicro)
                                 .foregroundColor(.gray.opacity(0.5))
@@ -658,7 +658,7 @@ struct BodyWeightRow: View {
                     .font(.appLabel.weight(.semibold))
                     .frame(width: 32, height: 32)
                     .background(Color.statusRed.opacity(0.1))
-                    .foregroundColor(.statusRed.opacity(0.8))
+                    .foregroundColor(Color.statusRed.opacity(0.8))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
@@ -768,7 +768,7 @@ struct BodyWeightSheet: View {
                                     )
                                 if fatInvalid {
                                     Text("Valeur entre 3% et 60%")
-                                        .font(.appCaption).foregroundColor(.statusRed.opacity(0.8))
+                                        .font(.appCaption).foregroundColor(Color.statusRed.opacity(0.8))
                                 }
                             }
                         }

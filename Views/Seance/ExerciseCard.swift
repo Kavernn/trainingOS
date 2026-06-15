@@ -139,7 +139,7 @@ struct ExerciseCard: View {
         if alreadyLogged { return Color.appSuccess.opacity(0.42) }
         if isFocused     { return Color.forge.opacity(0.30) }
         if isExpanded    { return Color.forge.opacity(0.12) }
-        return .appOnSurface.opacity(0.07)
+        return Color.appOnSurface.opacity(0.07)
     }
 
     private var exoNote: String {
@@ -693,7 +693,7 @@ struct ExerciseCard: View {
                             }
                         } else if evm.inputHint > 0 {
                             Text(units.format(evm.inputHint))
-                                .font(.appCaption).fontWeight(.semibold).foregroundColor(.appOnSurface.opacity(0.35))
+                                .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.appOnSurface.opacity(0.35))
                         }
                         Text(evm.lastReps).font(.appMicro).foregroundColor(.gray.opacity(0.45))
                     }
@@ -715,7 +715,7 @@ struct ExerciseCard: View {
             }
             if let h = hint, !h.isEmpty {
                 Text(h).font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.42))
+                    .foregroundColor(Color.appOnSurface.opacity(0.42))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if alreadyLogged && !evm.isEditing { loggedStateDisplay } else { formView }
@@ -926,7 +926,7 @@ struct ExerciseCard: View {
                     Text("Dernière séance · \(prev.date ?? "")")
                         .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge.opacity(0.6))
                     Text(prevNote.count > 120 ? String(prevNote.prefix(120)) + "…" : prevNote)
-                        .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.75))
+                        .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.75))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
@@ -1226,7 +1226,7 @@ struct ExerciseCard: View {
                                             .frame(width: 16)
                                         Text(units.format(historyPerSide(s.weight)))
                                             .font(.appMicro).fontWeight(j == 0 && i == 0 ? .semibold : .regular)
-                                            .foregroundColor(i == 0 ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.5))
+                                            .foregroundColor(i == 0 ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.5))
                                         Text("×")
                                             .font(.appMicro).foregroundColor(.gray.opacity(0.35))
                                         Text(reps)
@@ -1239,7 +1239,7 @@ struct ExerciseCard: View {
                                     Text("·").foregroundColor(.gray.opacity(0.3)).font(.appMicro)
                                     Text(units.format(historyPerSide(entry.weight ?? 0)))
                                         .font(.appMicro).fontWeight(i == 0 ? .semibold : .regular)
-                                        .foregroundColor(i == 0 ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.5))
+                                        .foregroundColor(i == 0 ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.5))
                                     Text(entry.reps ?? "—").font(.appMicro).foregroundColor(i == 0 ? .gray : .gray.opacity(0.6))
                                 }
                                 .padding(.leading, 16)
@@ -1278,7 +1278,7 @@ struct ExerciseCard: View {
                         Spacer()
                         Text("\(undoCountdown)s")
                             .font(.appCaption).fontWeight(.medium)
-                            .foregroundColor(.appOnSurface.opacity(0.45))
+                            .foregroundColor(Color.appOnSurface.opacity(0.45))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
@@ -1367,7 +1367,7 @@ struct ExerciseCard: View {
                     .foregroundColor(RPEHelper.color(for: rpe))
             }
             Text(RPEHelper.feedback(for: rpe))
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
             if let hint = RPEHelper.progressionHint(for: rpe) {
                 HStack(spacing: 4) {
@@ -1574,7 +1574,7 @@ struct EnduranceTimerSection: View {
             VStack(spacing: 6) {
                 Text(fmt(targetDur))
                     .font(.system(size: 52, weight: .black, design: .rounded))
-                    .foregroundColor(.appOnSurface.opacity(0.9))
+                    .foregroundColor(Color.appOnSurface.opacity(0.9))
                 Text("durée cible")
                     .font(.appCaption).foregroundColor(.gray)
             }

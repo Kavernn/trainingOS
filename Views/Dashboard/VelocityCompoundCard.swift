@@ -60,7 +60,7 @@ private struct VelocityPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("VÉLOCITÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
 
             HStack(spacing: 4) {
                 Image(systemName: labelIcon)
@@ -80,7 +80,7 @@ private struct VelocityPanel: View {
             if !trendText.isEmpty {
                 Text(trendText)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.38))
+                    .foregroundColor(Color.appOnSurface.opacity(0.38))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -117,7 +117,7 @@ private struct CompoundPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("COMPOSÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
 
             HStack(spacing: 4) {
                 Image(systemName: trendIcon)
@@ -129,7 +129,7 @@ private struct CompoundPanel: View {
 
             Text(data.formattedScore)
                 .font(.system(size: 22, weight: .black, design: .rounded))
-                .foregroundColor(data.isAboveBaseline ? .forge : .appOnSurface.opacity(0.75))
+                .foregroundColor(data.isAboveBaseline ? .forge : Color.appOnSurface.opacity(0.75))
                 .contentTransition(.numericText())
 
             GeometryReader { geo in
@@ -144,11 +144,11 @@ private struct CompoundPanel: View {
 
             Text("\(String(format: "%.0f", data.baseConsistency))% actif · \(data.currentStreak)j streak")
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
 
             Text(data.formattedDelta + " vs 30j")
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)

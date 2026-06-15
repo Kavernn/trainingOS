@@ -797,7 +797,7 @@ struct PSSResultsContent: View {
                         Text("Consultation professionnelle recommandée")
                             .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                         Text("Ton niveau de stress est élevé. Parle à un professionnel de santé mentale.")
-                            .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.80))
+                            .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.80))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -902,7 +902,7 @@ struct PSSQuestionCard: View {
                 if let example = Self.examples[question.id] {
                     Text(example)
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -934,7 +934,7 @@ struct PSSResponseButton: View {
                     .foregroundColor(isSelected ? .white : .gray.opacity(0.6))
                 Text(label)
                     .font(.system(size: 7, weight: .medium))
-                    .foregroundColor(isSelected ? .appOnSurface.opacity(0.8) : .gray.opacity(0.5))
+                    .foregroundColor(isSelected ? Color.appOnSurface.opacity(0.8) : .gray.opacity(0.5))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
@@ -978,7 +978,7 @@ struct TriggerRatingSection: View {
                                         .foregroundColor(ratings[trigger] == val ? .white : .gray.opacity(0.5))
                                     Text(labels[val])
                                         .font(.system(size: 7))
-                                        .foregroundColor(ratings[trigger] == val ? .appOnSurface.opacity(0.7) : .gray.opacity(0.4))
+                                        .foregroundColor(ratings[trigger] == val ? Color.appOnSurface.opacity(0.7) : .gray.opacity(0.4))
                                         .lineLimit(1)
                                 }
                                 .frame(maxWidth: .infinity)

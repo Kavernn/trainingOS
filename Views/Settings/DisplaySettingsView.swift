@@ -138,12 +138,12 @@ struct DisplaySettingsView: View {
                         .foregroundColor(hasChange ? pendingTheme.previewColor : .statusGreen)
                     Text(hasChange ? "Appliquer « \(pendingTheme.displayName) »" : "Thème appliqué")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(hasChange ? .white : .appOnSurface.opacity(0.35))
+                        .foregroundColor(hasChange ? .white : Color.appOnSurface.opacity(0.35))
                     Spacer()
                     if hasChange {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.appOnSurface.opacity(0.3))
+                            .foregroundColor(Color.appOnSurface.opacity(0.3))
                     }
                 }
                 .padding(.vertical, 4)
@@ -182,7 +182,7 @@ struct DisplaySettingsView: View {
 
                 Text(option.displayName)
                     .font(.system(size: 11, weight: isPending ? .bold : .regular))
-                    .foregroundColor(isPending ? .white : .appOnSurface.opacity(0.4))
+                    .foregroundColor(isPending ? .white : Color.appOnSurface.opacity(0.4))
             }
             .frame(width: 64)
             .padding(.vertical, 10)

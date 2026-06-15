@@ -30,14 +30,14 @@ struct WeeklyMomentumCard: View {
         HStack(spacing: 6) {
             Text("MOMENTUM HEBDO")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Spacer()
             if let t = data.trendPct {
                 TrendBadge(trendPct: t, icon: data.trendIcon)
             }
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.22))
+                .foregroundColor(Color.appOnSurface.opacity(0.22))
         }
     }
 
@@ -46,14 +46,14 @@ struct WeeklyMomentumCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("SCORE")
                     .font(.appMicro).tracking(0.8)
-                    .foregroundColor(.appOnSurface.opacity(0.28))
+                    .foregroundColor(Color.appOnSurface.opacity(0.28))
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text(data.score.map { "\($0)" } ?? "—")
                         .font(.appCardMetric)
                         .foregroundColor(scoreColor)
                     Text("/100")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.30))
+                        .foregroundColor(Color.appOnSurface.opacity(0.30))
                 }
             }
             Spacer()
@@ -126,7 +126,7 @@ private struct PillarDot: View {
         VStack(spacing: 3) {
             Image(systemName: icon)
                 .font(.system(size: 10))
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
             Text("\(score)")
                 .font(.appMicro.weight(.bold))
                 .foregroundColor(color)
@@ -177,15 +177,15 @@ private struct ScoreBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("CETTE SEMAINE")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 if let prev = data.prevAvg {
                     Text("Moy. 4 sem. : \(prev)/100")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.50))
+                        .foregroundColor(Color.appOnSurface.opacity(0.50))
                 }
                 Text(data.message)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.55))
+                    .foregroundColor(Color.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -214,7 +214,7 @@ private struct PillarBreakdownCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("DÉTAIL PAR PILIER")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             ForEach(rows, id: \.1) { row in
                 MomentumPillarRow(icon: row.0, label: row.1, score: row.2, weight: row.3)
             }
@@ -240,14 +240,14 @@ private struct MomentumPillarRow: View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
                 .frame(width: 16)
             Text(label)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.65))
+                .foregroundColor(Color.appOnSurface.opacity(0.65))
             Text("×\(Int(weight * 100))%")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.28))
+                .foregroundColor(Color.appOnSurface.opacity(0.28))
             Spacer()
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -279,7 +279,7 @@ private struct HistoryCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("HISTORIQUE 4 SEMAINES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
 
             HStack(alignment: .bottom, spacing: 8) {
                 ForEach(history.indices, id: \.self) { i in
@@ -291,7 +291,7 @@ private struct HistoryCard: View {
                             .frame(height: barH)
                         Text("S-\(history.count - i)")
                             .font(.system(size: 7))
-                            .foregroundColor(.appOnSurface.opacity(0.28))
+                            .foregroundColor(Color.appOnSurface.opacity(0.28))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -308,7 +308,7 @@ private struct HistoryCard: View {
                             .frame(height: barH)
                         Text("Cette sem.")
                             .font(.system(size: 7))
-                            .foregroundColor(.appOnSurface.opacity(0.50))
+                            .foregroundColor(Color.appOnSurface.opacity(0.50))
                     }
                     .frame(maxWidth: .infinity)
                 }

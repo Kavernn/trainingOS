@@ -24,12 +24,12 @@ struct BarcodeScannerSheet: View {
                         VStack {
                             Spacer()
                             RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(.appOnSurface.opacity(0.75), lineWidth: 2)
+                                .strokeBorder(Color.appOnSurface.opacity(0.75), lineWidth: 2)
                                 .frame(width: 280, height: 110)
-                                .shadow(color: .appOnSurface.opacity(0.15), radius: 8)
+                                .shadow(color: Color.appOnSurface.opacity(0.15), radius: 8)
                             Text("Pointe vers le code-barres")
                                 .font(.appLabel)
-                                .foregroundColor(.appOnSurface.opacity(0.8))
+                                .foregroundColor(Color.appOnSurface.opacity(0.8))
                                 .padding(.top, 12)
                             Spacer()
                         }

@@ -16,11 +16,11 @@ struct SessionProgressionCard: View {
                 HStack {
                     Text("PROGRESSION PAR SÉANCE")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.appMicro)
-                        .foregroundColor(.appOnSurface.opacity(0.22))
+                        .foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 VStack(spacing: 6) {
@@ -49,7 +49,7 @@ private struct SessionProgressionRow: View {
         switch entry.trend {
         case "up":   return Color.trendPositive
         case "down": return Color.trendNegative
-        default:     return .appOnSurface.opacity(0.38)
+        default:     return Color.appOnSurface.opacity(0.38)
         }
     }
 
@@ -62,7 +62,7 @@ private struct SessionProgressionRow: View {
 
             Text(entry.sessionName)
                 .font(.appLabel.weight(.medium))
-                .foregroundColor(.appOnSurface.opacity(0.80))
+                .foregroundColor(Color.appOnSurface.opacity(0.80))
                 .lineLimit(1)
 
             Spacer()
@@ -79,7 +79,7 @@ private struct SessionProgressionRow: View {
 
             Text(entry.relativeDate)
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.28))
+                .foregroundColor(Color.appOnSurface.opacity(0.28))
         }
     }
 }
@@ -134,7 +134,7 @@ private struct SessionProgressionDetailCard: View {
             HStack {
                 Text(entry.sessionName)
                     .font(.appLabel.weight(.bold))
-                    .foregroundColor(.appOnSurface.opacity(0.88))
+                    .foregroundColor(Color.appOnSurface.opacity(0.88))
                 Spacer()
                 HStack(spacing: 4) {
                     Image(systemName: entry.trendIcon)
@@ -150,7 +150,7 @@ private struct SessionProgressionDetailCard: View {
 
             Text(entry.relativeDate)
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.30))
+                .foregroundColor(Color.appOnSurface.opacity(0.30))
 
             Divider().background(Color.appSeparatorStrong)
 
@@ -177,7 +177,7 @@ private struct SessionProgressionDetailCard: View {
 
             Text("\(entry.occurrences) occurrences analysées")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.22))
+                .foregroundColor(Color.appOnSurface.opacity(0.22))
         }
         .padding(14)
         .glassCard()
@@ -191,22 +191,22 @@ private struct MetricBlock: View {
     let delta: Double?
 
     private var deltaColor: Color {
-        guard let d = delta else { return .appOnSurface.opacity(0.38) }
-        return d > 0 ? Color.trendPositive : (d < 0 ? Color.trendNegative : .appOnSurface.opacity(0.38))
+        guard let d = delta else { return Color.appOnSurface.opacity(0.38) }
+        return d > 0 ? Color.trendPositive : (d < 0 ? Color.trendNegative : Color.appOnSurface.opacity(0.38))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.30))
+                .foregroundColor(Color.appOnSurface.opacity(0.30))
             Text(value)
                 .font(.appLabel.weight(.semibold))
-                .foregroundColor(.appOnSurface.opacity(0.85))
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
             if let b = baseline {
                 Text(b)
                     .font(.appMicro)
-                    .foregroundColor(.appOnSurface.opacity(0.28))
+                    .foregroundColor(Color.appOnSurface.opacity(0.28))
             }
             if let d = delta {
                 let sign = d >= 0 ? "+" : ""
@@ -224,10 +224,10 @@ private struct SessionProgressionExplainer: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("Chaque séance est comparée à ses 4 occurrences précédentes du même type. Le volume (kg×reps total) et la durée sont les métriques de base. La tendance est haussière si le dernier volume dépasse la moyenne de +5% ou plus.")
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.50))
+                .foregroundColor(Color.appOnSurface.opacity(0.50))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

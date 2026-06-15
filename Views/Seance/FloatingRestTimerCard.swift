@@ -15,7 +15,7 @@ struct FloatingRestTimerCard: View {
                     Text(name.uppercased())
                         .font(.appCaption.weight(.semibold))
                         .tracking(2)
-                        .foregroundColor(.appOnSurface.opacity(0.4))
+                        .foregroundColor(Color.appOnSurface.opacity(0.4))
                         .lineLimit(1)
                 }
 
@@ -81,7 +81,7 @@ struct FloatingRestTimerCard: View {
                     Button { timer.reset() } label: {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.appHeadline)
-                            .foregroundColor(.appOnSurface.opacity(0.55))
+                            .foregroundColor(Color.appOnSurface.opacity(0.55))
                             .frame(width: 50, height: 50)
                             .background(Color.appSurfaceInset)
                             .clipShape(Circle())
@@ -107,7 +107,7 @@ struct FloatingRestTimerCard: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.appLabel.weight(.bold))
-                            .foregroundColor(.appOnSurface.opacity(0.45))
+                            .foregroundColor(Color.appOnSurface.opacity(0.45))
                             .frame(width: 50, height: 50)
                             .background(Color.appSurfaceInset)
                             .clipShape(Circle())

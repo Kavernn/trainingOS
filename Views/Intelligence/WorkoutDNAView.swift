@@ -192,7 +192,7 @@ private struct WorkoutDNAInlineContent: View {
                         .font(.appLabel)
                     Text(dna.ppl.verdict)
                         .font(.appLabel)
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                     Spacer()
                     Text("Score \(dna.ppl.balanceScore)/100")
                         .font(.appCaption)
@@ -285,7 +285,7 @@ private struct WorkoutDNAInlineContent: View {
                         .font(.appLabel)
                     Text(dna.recovery.verdict)
                         .font(.appLabel)
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                     Spacer()
                     Text("Optimal: \(String(format: "%.1f", dna.recovery.optimalRestDays))j")
                         .font(.appCaption)
@@ -777,7 +777,7 @@ private struct ConsistencyGrid: View {
                     .overlay(
                         Text(c > 0 ? "\(c)" : "")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundColor(.appOnSurface.opacity(0.7))
+                            .foregroundColor(Color.appOnSurface.opacity(0.7))
                     )
             }
         }
@@ -1006,7 +1006,7 @@ struct WorkoutDNAShareCard: View {
                     Rectangle().fill(accent.opacity(0.25)).frame(height: 1).padding(.bottom, 10)
                     ForEach(dna.signatureLifts.prefix(3)) { lift in
                         HStack {
-                            Text(lift.name).font(.appMicro.weight(.medium)).foregroundColor(.appTextPrimary.opacity(0.8))
+                            Text(lift.name).font(.appMicro.weight(.medium)).foregroundColor(Color.appTextPrimary.opacity(0.8))
                             Spacer()
                             Text(UnitSettings.shared.format(lift.prLbs))
                                 .font(.appMicro.weight(.bold)).foregroundColor(.appTextPrimary)

@@ -223,7 +223,7 @@ struct AlreadyLoggedSeanceView: View {
                                             .frame(width: 5, height: 5)
                                         Text(exo)
                                             .font(.appLabel)
-                                            .foregroundColor(.appOnSurface.opacity(0.85))
+                                            .foregroundColor(Color.appOnSurface.opacity(0.85))
                                         Spacer()
                                         if let w = entry?.weight, w > 0 {
                                             Text(UnitSettings.shared.format(w))
@@ -290,11 +290,11 @@ struct AlreadyLoggedSeanceView: View {
                             Text("BILAN IA")
                                 .font(.system(size: 10, weight: .bold))
                                 .tracking(2)
-                                .foregroundColor(.statusPurple.opacity(0.8))
+                                .foregroundColor(Color.statusPurple.opacity(0.8))
                         }
                         Text(brief)
                             .font(.appLabel)
-                            .foregroundColor(.appOnSurface.opacity(0.85))
+                            .foregroundColor(Color.appOnSurface.opacity(0.85))
                             .lineSpacing(4)
                     }
                     .padding(16)
@@ -313,7 +313,7 @@ struct AlreadyLoggedSeanceView: View {
                             Text("Recharger le bilan")
                                 .font(.appLabel)
                         }
-                        .foregroundColor(.statusPurple.opacity(0.8))
+                        .foregroundColor(Color.statusPurple.opacity(0.8))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                         .background(Color.statusPurple.opacity(0.08))
@@ -353,7 +353,7 @@ struct AlreadyLoggedSeanceView: View {
                                         .frame(width: 5, height: 5)
                                     Text(name)
                                         .font(.appLabel)
-                                        .foregroundColor(.appOnSurface.opacity(0.75))
+                                        .foregroundColor(Color.appOnSurface.opacity(0.75))
                                     Spacer()
                                     Text(scheme)
                                         .font(.appCaption)
@@ -427,7 +427,7 @@ struct AlreadyLoggedSeanceView: View {
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 12)
                     .background(Color.appCard)
-                    .foregroundColor(.appOnSurface.opacity(0.7))
+                    .foregroundColor(Color.appOnSurface.opacity(0.7))
                     .cornerRadius(14)
                 }
                 .buttonStyle(SpringButtonStyle())
@@ -483,7 +483,7 @@ struct AlreadyLoggedSeanceView: View {
                                     Circle().fill(Color.statusYellow.opacity(0.4)).frame(width: 4, height: 4)
                                     Text(ex.0)
                                         .font(.system(size: 12))
-                                        .foregroundColor(.appOnSurface.opacity(0.7))
+                                        .foregroundColor(Color.appOnSurface.opacity(0.7))
                                 }
                             }
                             if unloggedExercises.count > 3 {
@@ -1079,15 +1079,15 @@ struct FinishRemainingSheet: View {
                                         HStack(spacing: 8) {
                                             Image(systemName: "checkmark.circle.fill")
                                                 .font(.appLabel)
-                                                .foregroundColor(.statusGreen.opacity(0.7))
+                                                .foregroundColor(Color.statusGreen.opacity(0.7))
                                             Text(ex.name)
                                                 .font(.appLabel)
-                                                .foregroundColor(.appOnSurface.opacity(0.5))
+                                                .foregroundColor(Color.appOnSurface.opacity(0.5))
                                             Spacer()
                                             if let w = ex.weight {
                                                 Text(UnitSettings.shared.format(w))
                                                     .font(.system(size: 12, weight: .semibold))
-                                                    .foregroundColor(.statusGreen.opacity(0.6))
+                                                    .foregroundColor(Color.statusGreen.opacity(0.6))
                                             }
                                             if let r = ex.reps {
                                                 Text("· \(r)")

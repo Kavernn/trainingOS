@@ -36,7 +36,7 @@ struct VolumeProgressionCard: View {
                 HStack(spacing: 6) {
                     Text("VOLUME")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     HStack(spacing: 4) {
                         Image(systemName: trendIcon).font(.appMicro.weight(.semibold))
@@ -47,20 +47,20 @@ struct VolumeProgressionCard: View {
                     .background(trendColor.opacity(0.12))
                     .clipShape(Capsule())
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
+                        .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 HStack(alignment: .bottom, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("CHARGE PEAK")
                             .font(.appMicro).tracking(0.8)
-                            .foregroundColor(.appOnSurface.opacity(0.28))
+                            .foregroundColor(Color.appOnSurface.opacity(0.28))
                         HStack(alignment: .lastTextBaseline, spacing: 4) {
                             Text(data.currentPctOfPeak.map { "\($0)" } ?? "—")
                                 .font(.appCardMetric)
                                 .foregroundColor(trendColor)
                             Text("%")
-                                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.30))
+                                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.30))
                         }
                     }
                     Spacer()
@@ -143,13 +143,13 @@ private struct VolumeSummaryBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("PROGRESSION DU VOLUME")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 if let peak = data.peakLoad {
                     Text("Peak semaine : \(Int(peak)) RPE cumulé")
-                        .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.50))
+                        .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.50))
                 }
                 Text(data.message)
-                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                    .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -170,7 +170,7 @@ private struct VolumeWeeklyChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("13 DERNIÈRES SEMAINES")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(loads.indices, id: \.self) { i in
                     let isLast = i == loads.count - 1
@@ -193,9 +193,9 @@ private struct VolumeExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("La charge hebdomadaire est la somme des RPE de toutes les séances complétées. La tendance compare la moyenne des 3 dernières semaines aux 3 semaines précédentes (±10 %).")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

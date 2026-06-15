@@ -37,7 +37,7 @@ private struct PhoenixDetailSheet: View {
                     if let b = budget {
                         Text(b.insight)
                             .font(.appLabel.weight(.regular))
-                            .foregroundColor(.appOnSurface.opacity(0.75))
+                            .foregroundColor(Color.appOnSurface.opacity(0.75))
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 4)
@@ -142,11 +142,11 @@ private struct PhoenixCardContent: View {
                 VStack(spacing: 6) {
                     Text("Commence une séance pour activer ton score")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.appOnSurface.opacity(0.55))
+                        .foregroundColor(Color.appOnSurface.opacity(0.55))
                         .multilineTextAlignment(.center)
                     Text("Il apparaît après ta première semaine d'activité")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.28))
+                        .foregroundColor(Color.appOnSurface.opacity(0.28))
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, 4)
@@ -178,7 +178,7 @@ private struct PhoenixCardContent: View {
                 if let hint = priorityGuidance {
                     Text(hint)
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.45))
+                        .foregroundColor(Color.appOnSurface.opacity(0.45))
                         .multilineTextAlignment(.center)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -263,7 +263,7 @@ struct PhoenixAxisPill: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             if hasBaseline {
                 HStack(spacing: 2) {
                     Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
@@ -275,12 +275,12 @@ struct PhoenixAxisPill: View {
             } else {
                 Text("—")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundColor(.appOnSurface.opacity(0.30))
+                    .foregroundColor(Color.appOnSurface.opacity(0.30))
             }
             if let g = guidance {
                 Text(g)
                     .font(.appMicro)
-                    .foregroundColor(.appOnSurface.opacity(0.40))
+                    .foregroundColor(Color.appOnSurface.opacity(0.40))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -306,10 +306,10 @@ struct PhoenixAxisPillInactive: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)
-                .foregroundColor(.appOnSurface.opacity(0.20))
+                .foregroundColor(Color.appOnSurface.opacity(0.20))
             Text("—")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundColor(.appOnSurface.opacity(0.20))
+                .foregroundColor(Color.appOnSurface.opacity(0.20))
         }
         .frame(maxWidth: .infinity)
     }

@@ -21,7 +21,7 @@ struct NutritionPerformanceCard: View {
             comparisonRow
             Text(data.message)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.48))
+                .foregroundColor(Color.appOnSurface.opacity(0.48))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(2)
         }
@@ -33,12 +33,12 @@ struct NutritionPerformanceCard: View {
         HStack(spacing: 6) {
             Text("NUTRITION × PERFORMANCE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Spacer()
             ImpactBadge(direction: data.impactDirection)
             Image(systemName: "chevron.right")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.22))
+                .foregroundColor(Color.appOnSurface.opacity(0.22))
         }
     }
 
@@ -50,7 +50,7 @@ struct NutritionPerformanceCard: View {
                 VStack(spacing: 3) {
                     Text("ΔRPE")
                         .font(.appMicro).tracking(0.8)
-                        .foregroundColor(.appOnSurface.opacity(0.28))
+                        .foregroundColor(Color.appOnSurface.opacity(0.28))
                     Text(data.formattedRpeDiff)
                         .font(.appLabel.weight(.bold))
                         .foregroundColor(Color(hex: data.impactDirection.colorHex))
@@ -89,20 +89,20 @@ private struct RPEStatMini: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(.appMicro).tracking(0.5)
-                .foregroundColor(.appOnSurface.opacity(0.28))
+                .foregroundColor(Color.appOnSurface.opacity(0.28))
                 .multilineTextAlignment(.center)
             if let r = rpe {
                 Text(String(format: "%.1f", r))
                     .font(.appLabel.weight(.bold))
-                    .foregroundColor(.appOnSurface.opacity(0.85))
+                    .foregroundColor(Color.appOnSurface.opacity(0.85))
             } else {
                 Text("—")
                     .font(.appLabel)
-                    .foregroundColor(.appOnSurface.opacity(0.28))
+                    .foregroundColor(Color.appOnSurface.opacity(0.28))
             }
             Text("\(count) séances")
                 .font(.appMicro)
-                .foregroundColor(.appOnSurface.opacity(0.28))
+                .foregroundColor(Color.appOnSurface.opacity(0.28))
         }
         .frame(maxWidth: .infinity)
     }
@@ -147,10 +147,10 @@ private struct ImpactBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("IMPACT NUTRITION J-1")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 Text(data.message)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.55))
+                    .foregroundColor(Color.appOnSurface.opacity(0.55))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -175,20 +175,20 @@ private struct BreakdownCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("DÉTAIL PAR CONDITION")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
 
             HStack {
                 Text("Condition")
                     .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 Spacer()
                 Text("RPE moy.")
                     .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                     .frame(width: 65, alignment: .trailing)
                 Text("Séances")
                     .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                     .frame(width: 55, alignment: .trailing)
             }
 
@@ -209,11 +209,11 @@ private struct BreakdownCard: View {
             HStack {
                 Text("Séances analysées")
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.50))
+                    .foregroundColor(Color.appOnSurface.opacity(0.50))
                 Spacer()
                 Text("\(data.sessionsAnalyzed)")
                     .font(.appCaption.weight(.bold))
-                    .foregroundColor(.appOnSurface.opacity(0.75))
+                    .foregroundColor(Color.appOnSurface.opacity(0.75))
             }
         }
         .padding(14)
@@ -235,15 +235,15 @@ private struct DetailRow: View {
                 .foregroundColor(iconColor.opacity(0.80))
             Text(label)
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.65))
+                .foregroundColor(Color.appOnSurface.opacity(0.65))
             Spacer()
             Text(rpe.map { String(format: "%.1f", $0) } ?? "—")
                 .font(.appCaption.weight(.bold))
-                .foregroundColor(.appOnSurface.opacity(0.85))
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
                 .frame(width: 65, alignment: .trailing)
             Text("\(count)")
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.38))
+                .foregroundColor(Color.appOnSurface.opacity(0.38))
                 .frame(width: 55, alignment: .trailing)
         }
     }
@@ -254,10 +254,10 @@ private struct ExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT ÇA FONCTIONNE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("On compare ton RPE moyen les jours où tu avais logué ta nutrition la veille, versus les jours sans. Plus l'écart est élevé, plus la nutrition impacte tes performances.")
                 .font(.appCaption)
-                .foregroundColor(.appOnSurface.opacity(0.52))
+                .foregroundColor(Color.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

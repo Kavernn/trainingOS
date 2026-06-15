@@ -22,7 +22,7 @@ struct BehavioralPRsCard: View {
             HStack(spacing: 6) {
                 Text("RECORDS COMPORTEMENTAUX")
                     .font(.appMicro.weight(.black)).tracking(1.5)
-                    .foregroundColor(.appOnSurface.opacity(0.35))
+                    .foregroundColor(Color.appOnSurface.opacity(0.35))
                 Spacer()
                 if data.activePRs > 0 {
                     Text("\(data.activePRs) actif\(data.activePRs > 1 ? "s" : "")")
@@ -34,7 +34,7 @@ struct BehavioralPRsCard: View {
                 }
                 Image(systemName: "chevron.right")
                     .font(.appMicro)
-                    .foregroundColor(.appOnSurface.opacity(0.22))
+                    .foregroundColor(Color.appOnSurface.opacity(0.22))
             }
 
             VStack(spacing: 6) {
@@ -53,18 +53,18 @@ struct BehavioralPRsCard: View {
 private struct PRRowCompact: View {
     let pr: BehavioralPR
 
-    private var activeColor: Color { pr.isActive ? .forge : .appOnSurface.opacity(0.28) }
+    private var activeColor: Color { pr.isActive ? .forge : Color.appOnSurface.opacity(0.28) }
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: pr.icon)
                 .font(.system(size: 12))
-                .foregroundColor(pr.isActive ? .forge : .appOnSurface.opacity(0.35))
+                .foregroundColor(pr.isActive ? .forge : Color.appOnSurface.opacity(0.35))
                 .frame(width: 18)
 
             Text(pr.label)
                 .font(.appCaption)
-                .foregroundColor(pr.isActive ? .appOnSurface.opacity(0.80) : .appOnSurface.opacity(0.45))
+                .foregroundColor(pr.isActive ? Color.appOnSurface.opacity(0.80) : Color.appOnSurface.opacity(0.45))
                 .lineLimit(1)
 
             Spacer()
@@ -75,7 +75,7 @@ private struct PRRowCompact: View {
                     .foregroundColor(activeColor)
                 Text("rec: \(pr.formattedBest)")
                     .font(.appMicro)
-                    .foregroundColor(.appOnSurface.opacity(0.28))
+                    .foregroundColor(Color.appOnSurface.opacity(0.28))
             }
 
             if pr.isActive {
@@ -136,7 +136,7 @@ private struct ActivePRsBanner: View {
                     .foregroundColor(.forge)
                 Text("Tu vis en ce moment ton meilleur niveau sur ces dimensions")
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(0.55))
+                    .foregroundColor(Color.appOnSurface.opacity(0.55))
             }
             Spacer()
         }
@@ -152,7 +152,7 @@ private struct ActivePRsBanner: View {
 private struct PRDetailCard: View {
     let pr: BehavioralPR
 
-    private var accentColor: Color { pr.isActive ? .forge : .appOnSurface.opacity(0.30) }
+    private var accentColor: Color { pr.isActive ? .forge : Color.appOnSurface.opacity(0.30) }
     private var progress: Double {
         guard let v = pr.value, pr.bestEver > 0 else { return 0 }
         return min(1.0, v / pr.bestEver)
@@ -167,7 +167,7 @@ private struct PRDetailCard: View {
                     .frame(width: 24)
                 Text(pr.label)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(pr.isActive ? .appOnSurface.opacity(0.90) : .appOnSurface.opacity(0.55))
+                    .foregroundColor(pr.isActive ? Color.appOnSurface.opacity(0.90) : Color.appOnSurface.opacity(0.55))
                 Spacer()
                 if pr.isActive {
                     Text("EN VIE")
@@ -183,7 +183,7 @@ private struct PRDetailCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("MAINTENANT")
                         .font(.appMicro).tracking(0.8)
-                        .foregroundColor(.appOnSurface.opacity(0.28))
+                        .foregroundColor(Color.appOnSurface.opacity(0.28))
                     Text(pr.formattedValue)
                         .font(.appHeadline.weight(.bold))
                         .foregroundColor(accentColor)
@@ -192,10 +192,10 @@ private struct PRDetailCard: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("RECORD")
                         .font(.appMicro).tracking(0.8)
-                        .foregroundColor(.appOnSurface.opacity(0.28))
+                        .foregroundColor(Color.appOnSurface.opacity(0.28))
                     Text(pr.formattedBest)
                         .font(.appHeadline.weight(.bold))
-                        .foregroundColor(.appOnSurface.opacity(pr.isActive ? 0.90 : 0.50))
+                        .foregroundColor(Color.appOnSurface.opacity(pr.isActive ? 0.90 : 0.50))
                 }
             }
 
@@ -214,7 +214,7 @@ private struct PRDetailCard: View {
             if !pr.setDate.isEmpty {
                 Text("Établi le \(pr.setDate)")
                     .font(.appMicro)
-                    .foregroundColor(.appOnSurface.opacity(0.25))
+                    .foregroundColor(Color.appOnSurface.opacity(0.25))
             }
         }
         .padding(14)

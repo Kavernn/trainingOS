@@ -21,7 +21,7 @@ struct EnergyPerformanceCard: View {
                 HStack(spacing: 6) {
                     Text("ÉNERGIE × PERFORMANCE")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     if data.hasData {
                         Text("Meilleur: \(bestLabel)")
@@ -32,14 +32,14 @@ struct EnergyPerformanceCard: View {
                             .clipShape(Capsule())
                     }
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
+                        .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 if data.hasData {
                     EnergyBucketBars(buckets: data.buckets, best: data.bestEnergy)
                 } else {
                     Text("Pas assez de données")
-                        .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.35))
+                        .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.35))
                 }
             }
             .padding(14)
@@ -70,14 +70,14 @@ private struct EnergyBucketBars: View {
                     if let rpe = b.avgRpe {
                         Text(String(format: "%.1f", rpe))
                             .font(.appMicro.weight(.semibold))
-                            .foregroundColor(isBest ? .appOnSurface.opacity(0.80) : .appOnSurface.opacity(0.35))
+                            .foregroundColor(isBest ? Color.appOnSurface.opacity(0.80) : Color.appOnSurface.opacity(0.35))
                     }
                     RoundedRectangle(cornerRadius: 3)
                         .fill(isBest ? Color.trendPositive : Color.appOnSurface.opacity(0.20))
                         .frame(height: h)
                     Text(b.bucket == "low" ? "Bas" : b.bucket == "medium" ? "Moyen" : "Élevé")
                         .font(.system(size: 8))
-                        .foregroundColor(isBest ? .appOnSurface.opacity(0.55) : .appOnSurface.opacity(0.25))
+                        .foregroundColor(isBest ? Color.appOnSurface.opacity(0.55) : Color.appOnSurface.opacity(0.25))
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -123,13 +123,13 @@ private struct EnergyPerfBanner: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("ÉNERGIE PRÉ-SÉANCE VS RPE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text(data.message)
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
             if let diff = data.rpeDiff {
                 Text("Écart Élevé vs Bas : \(String(format: "%.1f", diff)) RPE")
-                    .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.35))
+                    .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.35))
             }
         }
         .padding(14)
@@ -146,7 +146,7 @@ private struct EnergyPerfDetailChart: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("RPE MOYEN PAR NIVEAU D'ÉNERGIE")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             HStack(alignment: .bottom, spacing: 14) {
                 ForEach(data.buckets, id: \.bucket) { b in
                     let isBest = b.bucket == data.bestEnergy
@@ -156,20 +156,20 @@ private struct EnergyPerfDetailChart: View {
                         if let rpe = b.avgRpe {
                             Text(String(format: "%.1f", rpe))
                                 .font(.appCaption.weight(.semibold))
-                                .foregroundColor(isBest ? .appOnSurface.opacity(0.85) : .appOnSurface.opacity(0.40))
+                                .foregroundColor(isBest ? Color.appOnSurface.opacity(0.85) : Color.appOnSurface.opacity(0.40))
                         } else {
-                            Text("—").font(.appCaption).foregroundColor(.appOnSurface.opacity(0.25))
+                            Text("—").font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.25))
                         }
                         RoundedRectangle(cornerRadius: 4)
                             .fill(isBest ? Color.trendPositive : Color.appOnSurface.opacity(0.20))
                             .frame(height: h)
                         Text(b.label)
                             .font(.appMicro.weight(.medium))
-                            .foregroundColor(isBest ? .appOnSurface.opacity(0.65) : .appOnSurface.opacity(0.30))
+                            .foregroundColor(isBest ? Color.appOnSurface.opacity(0.65) : Color.appOnSurface.opacity(0.30))
                             .multilineTextAlignment(.center)
                         Text("\(b.count) séances")
                             .font(.system(size: 8))
-                            .foregroundColor(.appOnSurface.opacity(0.22))
+                            .foregroundColor(Color.appOnSurface.opacity(0.22))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -188,9 +188,9 @@ private struct EnergyPerfExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("Les séances sont groupées par niveau d'énergie pré-séance (1–3, 4–6, 7–10). Le RPE moyen de chaque groupe révèle si ton niveau d'énergie influence ton effort perçu. \(analyzed) séances analysées.")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

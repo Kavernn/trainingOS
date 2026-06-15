@@ -43,7 +43,7 @@ struct OvertrainingRiskCard: View {
                     ForEach(risk.flags, id: \.self) { flag in
                         HStack(spacing: 6) {
                             Circle().fill(riskColor).frame(width: 5, height: 5)
-                            Text(flag).font(.system(size: 12)).foregroundColor(.appOnSurface.opacity(0.8))
+                            Text(flag).font(.system(size: 12)).foregroundColor(Color.appOnSurface.opacity(0.8))
                         }
                     }
                 }
@@ -89,7 +89,7 @@ struct MesocycleStatusCard: View {
             }
 
             Text(status.description)
-                .font(.appLabel).foregroundColor(.appOnSurface.opacity(0.85))
+                .font(.appLabel).foregroundColor(Color.appOnSurface.opacity(0.85))
 
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -138,7 +138,7 @@ struct PainJournalCard: View {
                         Text(ex.exercise)
                             .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                         Text(ex.zones.joined(separator: " · "))
-                            .font(.appCaption).foregroundColor(.statusRed.opacity(0.8))
+                            .font(.appCaption).foregroundColor(Color.statusRed.opacity(0.8))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {

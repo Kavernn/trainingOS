@@ -46,7 +46,7 @@ struct NutritionPerfInsightCard: View {
                         .foregroundColor(insight.accentColor)
                     Text(insight.detail)
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.7))
+                        .foregroundColor(Color.appOnSurface.opacity(0.7))
                         .lineLimit(expanded ? nil : 1)
                 }
 
@@ -81,7 +81,7 @@ struct NutritionPerfInsightCard: View {
                         .foregroundColor(insight.accentColor.opacity(0.7))
                     Text(insight.actionHint)
                         .font(.system(size: 12))
-                        .foregroundColor(.appOnSurface.opacity(0.75))
+                        .foregroundColor(Color.appOnSurface.opacity(0.75))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 12)

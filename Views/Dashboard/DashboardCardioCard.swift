@@ -85,14 +85,14 @@ struct DashboardCardioCard: View {
                     .frame(minWidth: 56)
                 }
                 if let pace = entry.avgPace {
-                    MetricCell(title: "Allure", value: pace + "/km", tint: .appOnSurface.opacity(0.7), size: .medium)
+                    MetricCell(title: "Allure", value: pace + "/km", tint: Color.appOnSurface.opacity(0.7), size: .medium)
                         .frame(minWidth: 56)
                 }
                 if let hr = entry.avgHr, hr > 0 {
                     MetricCell(
                         title: "FC moy",
                         value: String(format: "%.0f bpm", hr),
-                        tint: .statusRed.opacity(0.8),
+                        tint: Color.statusRed.opacity(0.8),
                         size: .medium
                     )
                     .frame(minWidth: 56)

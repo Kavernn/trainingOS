@@ -561,7 +561,7 @@ private struct NutritionCorrInsightRow: View {
                     .foregroundColor(.appTextSecondary)
                 Text(title)
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.appOnSurface.opacity(0.85))
+                    .foregroundColor(Color.appOnSurface.opacity(0.85))
             }
             HStack(spacing: 0) {
                 VStack(spacing: 2) {

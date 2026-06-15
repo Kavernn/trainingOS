@@ -18,7 +18,7 @@ struct ProgressiveOverloadCard: View {
                 HStack(spacing: 6) {
                     Text("SURCHARGE PROGRESSIVE")
                         .font(.appMicro.weight(.black)).tracking(1.5)
-                        .foregroundColor(.appOnSurface.opacity(0.35))
+                        .foregroundColor(Color.appOnSurface.opacity(0.35))
                     Spacer()
                     HStack(spacing: 4) {
                         Image(systemName: hasGainers ? "arrow.up.right" : "arrow.right")
@@ -31,12 +31,12 @@ struct ProgressiveOverloadCard: View {
                     .background(summaryColor.opacity(0.12))
                     .clipShape(Capsule())
                     Image(systemName: "chevron.right")
-                        .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.22))
+                        .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.22))
                 }
 
                 if data.topGainers.isEmpty && data.stalled.isEmpty {
                     Text("Données insuffisantes pour comparer les périodes")
-                        .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.35))
+                        .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.35))
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(data.topGainers.prefix(2), id: \.name) { ex in
@@ -75,7 +75,7 @@ private struct OverloadExerciseRow: View {
                 .frame(width: 14)
             Text(exercise.name)
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(.appOnSurface.opacity(0.75))
+                .foregroundColor(Color.appOnSurface.opacity(0.75))
                 .lineLimit(1)
             Spacer()
             Text("\(sign)\(String(format: "%.1f", exercise.pct))%")
@@ -127,12 +127,12 @@ private struct OverloadSummaryBanner: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("SURCHARGE PROGRESSIVE — 4 SEM. VS 4 SEM.")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text(data.message)
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.55))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
             Text("\(data.exercisesTracked) exercices comparés")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.30))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.30))
         }
         .padding(14)
         .glassCard()
@@ -150,16 +150,16 @@ private struct OverloadSection: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             ForEach(exercises, id: \.name) { ex in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ex.name)
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.appOnSurface.opacity(0.80))
+                            .foregroundColor(Color.appOnSurface.opacity(0.80))
                         Text("Avant \(Int(ex.prior)) → Maintenant \(Int(ex.recent))")
                             .font(.system(size: 10))
-                            .foregroundColor(.appOnSurface.opacity(0.35))
+                            .foregroundColor(Color.appOnSurface.opacity(0.35))
                     }
                     Spacer()
                     let sign = ex.pct >= 0 ? "+" : ""
@@ -185,9 +185,9 @@ private struct OverloadExplainerCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("COMMENT C'EST CALCULÉ")
                 .font(.appMicro.weight(.black)).tracking(1.5)
-                .foregroundColor(.appOnSurface.opacity(0.35))
+                .foregroundColor(Color.appOnSurface.opacity(0.35))
             Text("Compare l'estimation de 1RM max (formule Epley : poids × (1 + reps/30)) entre les 4 dernières semaines et les 4 précédentes. Nécessite ≥ 2 séances par période. \(tracked) exercices analysés.")
-                .font(.appCaption).foregroundColor(.appOnSurface.opacity(0.52))
+                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.52))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)

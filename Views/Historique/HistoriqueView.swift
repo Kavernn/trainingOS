@@ -552,7 +552,7 @@ struct MuscuSessionCard: View {
                             .foregroundColor(.gray.opacity(0.4))
                             .frame(width: 16, alignment: .leading)
                         Text(UnitSettings.shared.format(s["weight"] as? Double ?? exo.weight))
-                            .font(.appMicro).foregroundColor(.appOnSurface.opacity(0.6))
+                            .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.6))
                         Text("×").font(.appMicro).foregroundColor(.gray.opacity(0.35))
                         Text(s["reps"] as? String ?? "—")
                             .font(.appMicro).foregroundColor(.gray)

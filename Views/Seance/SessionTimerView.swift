@@ -16,7 +16,7 @@ struct SessionTimerView: View {
             Text(formattedTime)
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
         }
-        .foregroundColor(chrono.isPaused ? Color.forge.opacity(0.75) : .statusCyan.opacity(0.75))
+        .foregroundColor(chrono.isPaused ? Color.forge.opacity(0.75) : Color.statusCyan.opacity(0.75))
         .padding(.horizontal, 8).padding(.vertical, 5)
         .background(chrono.isPaused ? Color.forge.opacity(0.1) : Color.statusCyan.opacity(0.08))
         .cornerRadius(8)

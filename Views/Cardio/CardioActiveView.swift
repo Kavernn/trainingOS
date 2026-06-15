@@ -93,7 +93,7 @@ private struct CardioTypeCard: View {
             VStack(spacing: 10) {
                 Image(systemName: type.icon)
                     .font(.system(size: 28, weight: .medium))
-                    .foregroundColor(isSelected ? Color.statusCyan : .appOnSurface.opacity(0.7))
+                    .foregroundColor(isSelected ? Color.statusCyan : Color.appOnSurface.opacity(0.7))
                     .frame(height: 34)
 
                 Text(type.label)
@@ -102,7 +102,7 @@ private struct CardioTypeCard: View {
 
                 Text(type.description)
                     .font(.appCaption)
-                    .foregroundColor(.appOnSurface.opacity(isSelected ? 0.7 : 0.4))
+                    .foregroundColor(Color.appOnSurface.opacity(isSelected ? 0.7 : 0.4))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -288,7 +288,7 @@ private struct ActiveLayout: View {
                         Text("Réduire")
                             .font(.appLabel)
                     }
-                    .foregroundColor(.appOnSurface.opacity(0.6))
+                    .foregroundColor(Color.appOnSurface.opacity(0.6))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
                     .background(Color.appSurfaceInset)
@@ -485,7 +485,7 @@ private struct MetricsBlock: View {
     private func tertiaryText(_ value: String, opacity: Double = 0.6) -> some View {
         Text(value)
             .font(.appTitle.weight(.medium))
-            .foregroundColor(.appOnSurface.opacity(opacity))
+            .foregroundColor(Color.appOnSurface.opacity(opacity))
     }
 }
 

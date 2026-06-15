@@ -442,7 +442,7 @@ struct ProgrammeView: View {
                                             .foregroundColor(.gray.opacity(0.4))
                                         Text("Aucun programme actif.")
                                             .font(.appBody.weight(.semibold))
-                                            .foregroundColor(.appOnBackground.opacity(0.75))
+                                            .foregroundColor(Color.appOnBackground.opacity(0.75))
                                         Text("Importe ton programme ou démarre une séance libre.")
                                             .font(.appLabel.weight(.regular))
                                             .foregroundColor(.gray)
@@ -1169,7 +1169,7 @@ struct PeriodisationCard: View {
                     .font(.appLabel.weight(.bold))
                 Text("Périodisation")
                     .font(.appLabel.weight(.bold))
-                    .foregroundColor(.appOnSurface.opacity(0.8))
+                    .foregroundColor(Color.appOnSurface.opacity(0.8))
                 Spacer()
                 if started {
                     Button(action: onReset) {
@@ -1207,7 +1207,7 @@ struct PeriodisationCard: View {
                 HStack {
                     Label(scheme, systemImage: "dumbbell")
                         .font(.appCaption)
-                        .foregroundColor(.appOnSurface.opacity(0.65))
+                        .foregroundColor(Color.appOnSurface.opacity(0.65))
                     Spacer()
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) { showTimeline.toggle() }
@@ -1357,7 +1357,7 @@ private struct ProgramTabsView: View {
                             .foregroundColor(
                                 isSelected ? .onAccent
                                 : isActive  ? .appOnSurface
-                                            : .appOnSurface.opacity(0.55)
+                                            : Color.appOnSurface.opacity(0.55)
                             )
                     }
                     .padding(.horizontal, 14)
@@ -1817,7 +1817,7 @@ struct AddExerciseSheet: View {
                             } label: {
                                 Text("Tous")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(selectedGroup == nil ? .onAccent : .appOnSurface.opacity(0.7))
+                                    .foregroundColor(selectedGroup == nil ? .onAccent : Color.appOnSurface.opacity(0.7))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                     .background(selectedGroup == nil ? Color.forge : Color.appSurfaceInset)
                                     .cornerRadius(14)
@@ -1830,7 +1830,7 @@ struct AddExerciseSheet: View {
                                 } label: {
                                     Text(grp)
                                         .font(.appCaption.weight(.semibold))
-                                        .foregroundColor(active ? .onAccent : .appOnSurface.opacity(0.7))
+                                        .foregroundColor(active ? .onAccent : Color.appOnSurface.opacity(0.7))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
                                         .background(active ? Color.forge : Color.appSurfaceInset)
                                         .cornerRadius(14)
@@ -2147,7 +2147,7 @@ struct EditableWeekScheduleCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Semaine type")
                         .font(.appLabel.weight(.bold))
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                     Text("Appuie sur un jour pour changer la séance")
                         .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.6))
@@ -2253,7 +2253,7 @@ struct EveningScheduleCard: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Séance du soir")
                         .font(.appLabel.weight(.bold))
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                     Text("Optionnel — apparaît sur le dashboard le soir")
                         .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.6))
@@ -2388,7 +2388,7 @@ private struct VolumeCard: View {
                             HStack {
                                 Text(muscle)
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.appOnSurface.opacity(0.85))
+                                    .foregroundColor(Color.appOnSurface.opacity(0.85))
                                 Spacer()
                                 Text("\(sets) sets")
                                     .font(.appCaption.weight(.bold))
@@ -2573,7 +2573,7 @@ private struct ActiveProgrammeBanner: View {
                                 .font(.appLabel)
                             Text("Semaine \(week)")
                                 .font(.appLabel.weight(.regular))
-                                .foregroundColor(.appOnSurface.opacity(0.7))
+                                .foregroundColor(Color.appOnSurface.opacity(0.7))
                         }
                     }
                     if let session = todaySession {

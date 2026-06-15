@@ -252,7 +252,7 @@ private struct SuggestionRow: View {
                     if delta != 0 {
                         Text(delta > 0 ? "+\(UnitSettings.shared.format(delta))" : UnitSettings.shared.format(delta))
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(delta > 0 ? typeColor.opacity(0.7) : .statusRed.opacity(0.7))
+                            .foregroundColor(delta > 0 ? typeColor.opacity(0.7) : Color.statusRed.opacity(0.7))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background((delta > 0 ? typeColor : Color.statusRed).opacity(0.1))

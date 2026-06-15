@@ -105,7 +105,7 @@ struct CapsuleLockedCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(capsule.formattedCreatedDate)
                     .font(.appLabel).fontWeight(.semibold)
-                    .foregroundColor(.appOnSurface.opacity(0.85))
+                    .foregroundColor(Color.appOnSurface.opacity(0.85))
                 Text(capsule.message != nil ? "Message inclus" : "Capsule scellée")
                     .font(.appCaption)
                     .foregroundColor(.gray)
@@ -160,7 +160,7 @@ struct CapsuleUnlockedCard: View {
                         .tracking(1.2)
                     Text("Capsule du \(capsule.formattedCreatedDate)")
                         .font(.appLabel)
-                        .foregroundColor(.appOnSurface.opacity(0.85))
+                        .foregroundColor(Color.appOnSurface.opacity(0.85))
                 }
 
                 Spacer()
@@ -200,7 +200,7 @@ private struct CapsuleEmptyState: View {
                 .foregroundColor(capsuleGoldDim.opacity(0.35))
             Text("Capture cet instant")
                 .font(.appLabel).fontWeight(.semibold)
-                .foregroundColor(.appOnSurface.opacity(0.65))
+                .foregroundColor(Color.appOnSurface.opacity(0.65))
             Text("Scelle tes stats d'aujourd'hui et découvre ta progression dans 1, 3 ou 6 mois.")
                 .font(.appCaption)
                 .foregroundColor(.gray)
@@ -467,7 +467,7 @@ struct TimeCapsuleCreateView: View {
                 Button { onCreated(); dismiss() } label: {
                     Text("Fermer")
                         .font(.appBody).fontWeight(.medium)
-                        .foregroundColor(.appOnSurface.opacity(0.55))
+                        .foregroundColor(Color.appOnSurface.opacity(0.55))
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity)
@@ -762,7 +762,7 @@ struct TimeCapsuleRevealView: View {
                     }
                     Text(msg)
                         .font(.system(size: 19, weight: .medium, design: .serif))
-                        .foregroundColor(.appOnSurface.opacity(0.90))
+                        .foregroundColor(Color.appOnSurface.opacity(0.90))
                         .lineSpacing(7)
                         .italic()
                 }
@@ -952,7 +952,7 @@ private struct ComparisonRow: View {
 
             Text(metric.before)
                 .font(.appCaption).fontWeight(.medium)
-                .foregroundColor(.appOnSurface.opacity(0.55))
+                .foregroundColor(Color.appOnSurface.opacity(0.55))
                 .frame(maxWidth: .infinity, alignment: .center)
 
             Image(systemName: "arrow.right")
@@ -1084,7 +1084,7 @@ struct TimeCapsuleShareCard: View {
 
                 Text("\(capsule.formattedCreatedDate)  →  Aujourd'hui")
                     .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(.appOnSurface.opacity(0.8))
+                    .foregroundColor(Color.appOnSurface.opacity(0.8))
 
                 Rectangle().fill(capsuleGoldDim.opacity(0.35)).frame(height: 1)
 
@@ -1098,7 +1098,7 @@ struct TimeCapsuleShareCard: View {
                             Spacer()
                             Text("\(m.before) → \(m.after)")
                                 .font(.appMicro).fontWeight(.medium)
-                                .foregroundColor(.appOnSurface.opacity(0.75))
+                                .foregroundColor(Color.appOnSurface.opacity(0.75))
                             Text(m.delta)
                                 .font(.appMicro).fontWeight(.bold)
                                 .foregroundColor(m.isNeutral ? .gray
@@ -1113,7 +1113,7 @@ struct TimeCapsuleShareCard: View {
                     Rectangle().fill(capsuleGoldDim.opacity(0.2)).frame(height: 1)
                     Text("« \(msg) »")
                         .font(.system(size: 10, weight: .medium, design: .serif))
-                        .foregroundColor(.appOnSurface.opacity(0.65))
+                        .foregroundColor(Color.appOnSurface.opacity(0.65))
                         .italic()
                         .lineLimit(2)
                 }

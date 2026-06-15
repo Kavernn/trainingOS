@@ -9,12 +9,12 @@ struct WarmupGuidanceBanner: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "flame.fill")
                 .font(.appLabel)
-                .foregroundColor(.statusYellow.opacity(0.8))
+                .foregroundColor(Color.statusYellow.opacity(0.8))
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Échauffement recommandé")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.statusYellow.opacity(0.9))
+                    .foregroundColor(Color.statusYellow.opacity(0.9))
                 Text(guidance)
                     .font(.appCaption)
                     .foregroundColor(.gray.opacity(0.85))

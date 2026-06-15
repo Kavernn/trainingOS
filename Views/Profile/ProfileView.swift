@@ -492,7 +492,7 @@ struct ProfileView: View {
         return VStack(alignment: .leading, spacing: 4) {
             Text(pctStr)
                 .font(.appTitle).fontWeight(.black)
-                .foregroundColor(navyResult != nil ? catColor : .appOnSurface.opacity(0.3))
+                .foregroundColor(navyResult != nil ? catColor : Color.appOnSurface.opacity(0.3))
             if navyResult != nil {
                 Text(catLabel)
                     .font(.appCaption).fontWeight(.semibold).foregroundColor(catColor.opacity(0.8))
@@ -511,7 +511,7 @@ struct ProfileView: View {
                 .font(.system(size: 28)).foregroundColor(.gray.opacity(0.4))
             VStack(alignment: .leading, spacing: 4) {
                 Text("Aucune donnée de poids")
-                    .font(.appLabel).fontWeight(.semibold).foregroundColor(.appOnSurface.opacity(0.6))
+                    .font(.appLabel).fontWeight(.semibold).foregroundColor(Color.appOnSurface.opacity(0.6))
                 Button("Ajouter maintenant") { showAddWeight = true }
                     .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.forge)
             }
@@ -1064,7 +1064,7 @@ struct ProfileStatSquare: View {
             }
             Text(value)
                 .font(.system(size: 26, weight: .black))
-                .foregroundColor(isRecord ? Color.statusYellow : .appOnSurface.opacity(hasData ? 1 : 0.3))
+                .foregroundColor(isRecord ? Color.statusYellow : Color.appOnSurface.opacity(hasData ? 1 : 0.3))
                 .lineLimit(1).minimumScaleFactor(0.6)
             if let sub = subtitle {
                 Text(sub)
