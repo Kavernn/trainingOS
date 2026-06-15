@@ -71,10 +71,20 @@ def get_all_time_volume_lbs() -> float:
 
 
 def get_session_streaks() -> dict:
-    """Return current and all-time longest workout streak."""
+    """Return current and all-time longest workout streak.
+
+    Unified source: muscu (completed/rpe) + HIIT + cardio.
+    Mirrors the logic in api/routes/analytics_stats.py:api_stats_streaks().
+    """
     from datetime import date as _date, timedelta
+    from db_body import get_hiit_logs, get_cardio_logs
+
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return {"current": 0, "longest": 0}
+
+    all_dates: set = set()
+
+    # 1. Muscu sessions — same condition as canonical endpoint
     try:
         resp = (
             db_core._client.table("workout_sessions")
@@ -83,30 +93,46 @@ def get_session_streaks() -> dict:
             .order("date")
             .execute()
         )
-        dates = sorted(set(r["date"] for r in (resp.data or []) if r.get("date")))
+        for r in (resp.data or []):
+            d = r.get("date")
+            if d:
+                all_dates.add(d)
     except Exception as e:
-        db_core.logger.error("get_session_streaks error: %s", e)
+        db_core.logger.error("get_session_streaks muscu error: %s", e)
+
+    # 2. HIIT logs
+    for h in get_hiit_logs(limit=730):
+        d = h.get("date")
+        if d:
+            all_dates.add(d)
+
+    # 3. Cardio logs
+    for c in get_cardio_logs(limit=730):
+        d = c.get("date")
+        if d:
+            all_dates.add(d)
+
+    if not all_dates:
         return {"current": 0, "longest": 0}
 
-    if not dates:
-        return {"current": 0, "longest": 0}
+    today_str = _today_mtl()
+    today = _date.fromisoformat(today_str)
 
-    all_set = set(dates)
+    # Current streak
     current = 0
-    d = _date.fromisoformat(_today_mtl())
-    if d.isoformat() not in all_set:
-        d -= timedelta(days=1)
-    while current < 365:
-        if d.isoformat() in all_set:
+    d = today if today_str in all_dates else today - timedelta(days=1)
+    while current < 730:
+        if d.isoformat() in all_dates:
             current += 1
             d -= timedelta(days=1)
         else:
             break
 
+    # Longest streak
+    sorted_dates = sorted(_date.fromisoformat(s) for s in all_dates)
     longest = run = 0
     prev = None
-    for d_str in dates:
-        d_obj = _date.fromisoformat(d_str)
+    for d_obj in sorted_dates:
         run = run + 1 if (prev and (d_obj - prev).days == 1) else 1
         longest = max(longest, run)
         prev = d_obj

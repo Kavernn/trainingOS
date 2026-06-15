@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WeekMomentumStrip: View {
     let dash: DashboardData
+    var streakData: StreakResponse? = nil
 
     private static let isoFmt: DateFormatter = {
         let f = DateFormatter()
@@ -38,17 +39,7 @@ struct WeekMomentumStrip: View {
         }
     }
 
-    private var streak: Int {
-        guard let todayMidnight = Self.isoFmt.date(from: dash.todayDate) else { return 0 }
-        let base = todayMidnight.timeIntervalSince1970
-        var count = 0
-        for i in 0..<365 {
-            let d = Date(timeIntervalSince1970: base - Double(i) * 86400)
-            let str = Self.isoFmt.string(from: d)
-            if dash.sessions[str] != nil { count += 1 } else { break }
-        }
-        return count
-    }
+    private var streak: Int { streakData?.currentStreak ?? 0 }
 
     private var weekCount: Int { dots.filter { $0.hasSession }.count }
 

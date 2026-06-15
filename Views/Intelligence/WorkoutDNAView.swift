@@ -869,7 +869,7 @@ private struct SignatureLiftRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(unitSettings.format(lift.prKg)) × \(lift.prReps)")
+                Text("\(unitSettings.format(lift.prLbs)) × \(lift.prReps)")
                     .font(.appLabel.weight(.bold))
                     .foregroundColor(.appTextPrimary)
                 if lift.progressionPct > 0 {
@@ -1008,7 +1008,7 @@ struct WorkoutDNAShareCard: View {
                         HStack {
                             Text(lift.name).font(.appMicro.weight(.medium)).foregroundColor(.appTextPrimary.opacity(0.8))
                             Spacer()
-                            Text(UnitSettings.shared.format(lift.prKg))
+                            Text(UnitSettings.shared.format(lift.prLbs))
                                 .font(.appMicro.weight(.bold)).foregroundColor(.appTextPrimary)
                             if lift.progressionPct > 0 {
                                 Text("+\(Int(lift.progressionPct))%")

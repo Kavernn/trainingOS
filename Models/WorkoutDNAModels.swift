@@ -169,7 +169,7 @@ struct DNASignatureLift: Codable, Identifiable {
     var id: String { name }
     let name: String
     let sessionCount: Int
-    let prKg: Double
+    let prLbs: Double
     let prReps: Int
     let prDate: String
     let firstDate: String
@@ -179,7 +179,7 @@ struct DNASignatureLift: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case name, recency
         case sessionCount   = "session_count"
-        case prKg           = "pr_kg"
+        case prLbs          = "pr_lbs"
         case prReps         = "pr_reps"
         case prDate         = "pr_date"
         case firstDate      = "first_date"

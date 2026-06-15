@@ -54,8 +54,15 @@ def api_ai_propose():
             logger.error("ai/propose JSON decode error: %s — raw=%s", e, raw[:200])
             return jsonify({"error": "Réponse non structurée du modèle"}), 500
         return jsonify({"proposals": proposals})
-    except Exception:
-        raise
+    except _anthropic.BadRequestError as e:
+        logger.error("ai/propose Anthropic 400: %s", e)
+        return jsonify({"error": "Service IA indisponible — crédits insuffisants."}), 402
+    except _anthropic.APIError as e:
+        logger.error("ai/propose Anthropic API error: %s", e)
+        return jsonify({"error": "Service IA temporairement indisponible."}), 503
+    except Exception as e:
+        logger.error("ai/propose unexpected error: %s", e)
+        return jsonify({"error": "Erreur interne du serveur."}), 500
 
 
 @ai_coach_tools_bp.route("/api/ai/narrative", methods=["POST"])
@@ -92,8 +99,15 @@ def api_ai_narrative():
         )
         narrative = message.content[0].text.strip()
         return jsonify({"narrative": narrative, "week": week})
-    except Exception:
-        raise
+    except _anthropic.BadRequestError as e:
+        logger.error("ai/narrative Anthropic 400: %s", e)
+        return jsonify({"error": "Service IA indisponible — crédits insuffisants."}), 402
+    except _anthropic.APIError as e:
+        logger.error("ai/narrative Anthropic API error: %s", e)
+        return jsonify({"error": "Service IA temporairement indisponible."}), 503
+    except Exception as e:
+        logger.error("ai/narrative unexpected error: %s", e)
+        return jsonify({"error": "Erreur interne du serveur."}), 500
 
 
 @ai_coach_tools_bp.route("/api/ai/post_workout", methods=["POST"])
@@ -189,6 +203,12 @@ def api_ai_post_workout():
         )
         brief = message.content[0].text.strip()
         return jsonify({"brief": brief})
+    except _anthropic.BadRequestError as e:
+        logger.error("ai/post_workout Anthropic 400: %s", e)
+        return jsonify({"error": "Service IA indisponible — crédits insuffisants."}), 402
+    except _anthropic.APIError as e:
+        logger.error("ai/post_workout Anthropic API error: %s", e)
+        return jsonify({"error": "Service IA temporairement indisponible."}), 503
     except Exception as e:
-        logger.error("post_workout error: %s", e)
-        return jsonify({"error": str(e)}), 500
+        logger.error("ai/post_workout unexpected error: %s", e)
+        return jsonify({"error": "Erreur interne du serveur."}), 500

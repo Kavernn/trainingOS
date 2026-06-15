@@ -360,7 +360,7 @@ def api_weekly_report():
     if cal_target > 0 and nutr_days:
         compliant = sum(
             1 for d in nutr_days
-            if d.get("total_calories") and abs(d["total_calories"] - cal_target) / cal_target <= 0.10
+            if d.get("calories") and abs(d["calories"] - cal_target) / cal_target <= 0.10
         )
         nutrition_compliance = round(compliant / len(nutr_days) * 100)
     else:

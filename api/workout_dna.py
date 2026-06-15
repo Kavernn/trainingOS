@@ -322,7 +322,7 @@ def _compute_signature_lifts(history: dict) -> list:
         lifts[name] = {
             "name":            name,
             "session_count":   len(session_dates),
-            "pr_kg":           pr_weight,
+            "pr_lbs":          pr_weight,
             "pr_reps":         pr_reps,
             "pr_date":         pr_date,
             "first_date":      first_date,

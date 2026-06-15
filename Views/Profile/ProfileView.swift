@@ -579,7 +579,6 @@ struct ProfileView: View {
     }
 
     private func prRow(_ lift: DNASignatureLift) -> some View {
-        let prLbs     = lift.prKg * 2.20462
         let dateLabel = shortDate(lift.prDate)
         return HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
@@ -591,7 +590,7 @@ struct ProfileView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(units.format(prLbs, decimals: 0)) × \(lift.prReps)")
+                Text("\(units.format(lift.prLbs, decimals: 0)) × \(lift.prReps)")
                     .font(.appLabel).fontWeight(.bold).foregroundColor(.appTextPrimary)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% — ancienne limite")

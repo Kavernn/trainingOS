@@ -111,6 +111,11 @@ def api_stats_streaks():
         if d:
             session_dates.add(d)
 
+    for c in _db.get_cardio_logs(limit=730):
+        d = c.get("date")
+        if d:
+            session_dates.add(d)
+
     # Today: include if exercise logs exist even without rpe/completed
     today_exos = _db.get_session_exercise_logs(today_str)
     today_logged = today_str in session_dates or bool(today_exos)
@@ -190,10 +195,10 @@ def api_macro_gap():
     target_carb = settings.get("glucides_target") or 250
     target_fat  = settings.get("lipides_target")  or 80
 
-    actual_cal  = today_data.get("total_calories", 0) or 0
-    actual_prot = today_data.get("total_protein",  0) or 0
-    actual_carb = today_data.get("total_carbs",    0) or 0
-    actual_fat  = today_data.get("total_fat",      0) or 0
+    actual_cal  = today_data.get("calories",  0) or 0
+    actual_prot = today_data.get("proteines", 0) or 0
+    actual_carb = today_data.get("glucides",  0) or 0
+    actual_fat  = today_data.get("lipides",   0) or 0
 
     gap_cal  = max(0, target_cal  - actual_cal)
     gap_prot = max(0, target_prot - actual_prot)
@@ -224,7 +229,7 @@ def api_macro_gap():
             template_suggestions.append(t)
         elif primary_gap == "carbs" and float(t.get("total_carbs") or 0) >= 40:
             template_suggestions.append(t)
-        elif primary_gap == "calories" and float(t.get("total_calories") or 0) >= 300:
+        elif primary_gap == "calories" and sum(float(i.get("calories", 0)) for i in (t.get("items") or [])) >= 300:
             template_suggestions.append(t)
 
     return jsonify({

@@ -92,22 +92,7 @@ struct DashboardStatusBar: View {
         return f.string(from: Date()).capitalized
     }
 
-    private var currentStreak: Int {
-        if let s = streakData { return s.currentStreak }
-        // iOS 26 : pas de Calendar.startOfDay — arithmétique pure (évite crash 0x8BADF00D)
-        let fmt = DateFormatter.isoDate
-        let todayStr = fmt.string(from: Date())
-        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
-        let base = todayMidnight.timeIntervalSince1970
-        var count = 0
-        for i in 0..<365 {
-            let key = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
-            if dash.sessions[key] != nil { count += 1 }
-            else if i == 0 { continue }
-            else { break }
-        }
-        return count
-    }
+    private var currentStreak: Int { streakData?.currentStreak ?? 0 }
 
     private var isLoggedToday: Bool {
         dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
