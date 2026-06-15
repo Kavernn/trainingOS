@@ -41,12 +41,12 @@ struct RecoveryScoreChart: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(AppTheme.shared.selectedTheme == .monochrome ? Color.white : Color.blue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(AppTheme.shared.selectedTheme == .monochrome ? Color.white : Color.statusBlue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(Array(scores.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
                             let y = geo.size.height * (1 - CGFloat(entry.1 / maxS))
-                            let col: Color = entry.1 >= 7 ? .green : entry.1 >= 4 ? .yellow : .red
+                            let col: Color = entry.1 >= 7 ? Color.appSuccess : entry.1 >= 4 ? Color.statusYellow : Color.appDanger
                             Circle().fill(col).frame(width: 6, height: 6).position(x: x, y: y)
                         }
                     }
@@ -60,28 +60,28 @@ struct RecoveryScoreChart: View {
                     Text("Dernière:").font(.appCaption).foregroundColor(.gray)
                     Text(String(format: "%.1f / 10", s))
                         .font(.appCaption.weight(.bold))
-                        .foregroundColor(s >= 7 ? .green : s >= 4 ? .yellow : .red)
+                        .foregroundColor(s >= 7 ? Color.appSuccess : s >= 4 ? Color.statusYellow : Color.appDanger)
                 }
             }
             if let last = log.last {
                 HStack(spacing: 16) {
                     if let hrv = last.hrv, hrv > 0 {
                         HStack(spacing: 4) {
-                            Image(systemName: "waveform.path.ecg").font(.system(size: 10)).foregroundColor(.cyan)
-                            Text("HRV \(Int(hrv))ms").font(.system(size: 10, weight: .semibold)).foregroundColor(.cyan)
+                            Image(systemName: "waveform.path.ecg").font(.system(size: 10)).foregroundColor(Color.statusCyan)
+                            Text("HRV \(Int(hrv))ms").font(.system(size: 10, weight: .semibold)).foregroundColor(Color.statusCyan)
                         }
                     }
                     if let hr = last.restingHr, hr > 0 {
                         HStack(spacing: 4) {
-                            Image(systemName: "heart.fill").font(.system(size: 10)).foregroundColor(.red)
-                            Text("FC repos \(Int(hr)) bpm").font(.system(size: 10, weight: .semibold)).foregroundColor(.red)
+                            Image(systemName: "heart.fill").font(.system(size: 10)).foregroundColor(Color.appDanger)
+                            Text("FC repos \(Int(hr)) bpm").font(.system(size: 10, weight: .semibold)).foregroundColor(Color.appDanger)
                         }
                     }
                     Spacer()
                 }
             }
         }
-        .padding(16).glassCard(color: .blue, intensity: 0.05)
+        .padding(16).glassCard(color: Color.statusBlue, intensity: 0.05)
     }
 }
 
@@ -125,7 +125,7 @@ struct RecoveryCompositeScoreView: View {
         return s <= 3 ? .green : s <= 6 ? .yellow : .red
     }
     private func statusColor(_ s: ComponentStatus) -> Color {
-        switch s { case .green: return .green; case .yellow: return .yellow; case .red: return .red }
+        switch s { case .green: return Color.appSuccess; case .yellow: return Color.statusYellow; case .red: return Color.appDanger }
     }
     private func componentDot(_ label: String, _ status: ComponentStatus) -> some View {
         HStack(spacing: 4) {
@@ -141,7 +141,7 @@ struct RecoveryCompositeScoreView: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 if let last = points.last {
-                    let c: Color = last.1 >= 70 ? .green : last.1 >= 45 ? .orange : .red
+                    let c: Color = last.1 >= 70 ? Color.appSuccess : last.1 >= 45 ? Color.appWarning : Color.appDanger
                     Text(String(format: "%.0f/100", last.1))
                         .font(.system(size: 14, weight: .black)).foregroundColor(c)
                 }
@@ -166,10 +166,10 @@ struct RecoveryCompositeScoreView: View {
                                 else { p.addLine(to: .init(x: x, y: y)) }
                             }
                         }
-                        .stroke(AppTheme.shared.selectedTheme == .monochrome ? Color.white.opacity(0.6) : Color.teal, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                        .stroke(AppTheme.shared.selectedTheme == .monochrome ? Color.white.opacity(0.6) : Color.statusCyan, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
 
                         ForEach(Array(points.enumerated()), id: \.0) { i, pt in
-                            let c: Color = pt.1 >= 70 ? .green : pt.1 >= 45 ? .orange : .red
+                            let c: Color = pt.1 >= 70 ? Color.appSuccess : pt.1 >= 45 ? Color.appWarning : Color.appDanger
                             Circle().fill(c).frame(width: 6, height: 6)
                                 .position(x: CGFloat(i) * step, y: geo.size.height * (1 - CGFloat(pt.1 / maxS)))
                         }
@@ -314,10 +314,10 @@ struct MoodStressTrendView: View {
             if n >= 2 {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("Humeur").font(.appMicro.weight(.semibold)).foregroundColor(.purple)
+                        Text("Humeur").font(.appMicro.weight(.semibold)).foregroundColor(Color.statusPurple)
                         Spacer()
                         Text(String(format: "Moy. %.1f / 10", avgMood))
-                            .font(.appMicro).foregroundColor(.purple.opacity(0.7))
+                            .font(.appMicro).foregroundColor(Color.statusPurple.opacity(0.7))
                     }
                     GeometryReader { geo in
                         let moodPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
@@ -334,12 +334,12 @@ struct MoodStressTrendView: View {
                                         i == 0 ? p.move(to: pt) : p.addLine(to: pt)
                                     }
                                 }
-                                .stroke(Color.purple, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+                                .stroke(Color.statusPurple, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
                             }
                             ForEach(Array(pssHistory.prefix(5)), id: \.id) { rec in
                                 if let idx = recentData.firstIndex(where: { $0.date == rec.date }) {
                                     let x = geo.size.width * CGFloat(idx) / CGFloat(n - 1)
-                                    let c: Color = rec.category == "low" ? .green : rec.category == "moderate" ? .orange : .red
+                                    let c: Color = rec.category == "low" ? Color.appSuccess : rec.category == "moderate" ? Color.appWarning : Color.appDanger
                                     Circle().fill(c).frame(width: 8, height: 8).position(x: x, y: geo.size.height * 0.5)
                                 }
                             }
@@ -381,9 +381,9 @@ struct MoodStressTrendView: View {
             }
 
             HStack(spacing: 12) {
-                Label("Humeur (1–10)", systemImage: "circle.fill").font(.appMicro).foregroundColor(.purple)
+                Label("Humeur (1–10)", systemImage: "circle.fill").font(.appMicro).foregroundColor(Color.statusPurple)
                 Label("Bien-être (0–100)", systemImage: "circle.fill").font(.appMicro).foregroundColor(Color.forge)
-                Label("PSS", systemImage: "circle.fill").font(.appMicro).foregroundColor(.green)
+                Label("PSS", systemImage: "circle.fill").font(.appMicro).foregroundColor(Color.statusGreen)
             }
         }
         .padding(14)
@@ -406,7 +406,7 @@ struct SelfCareStreaksView: View {
                 if let c = compliance {
                     Text(String(format: "Compliance 30j: %.0f%%", c.rate30d * 100))
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(c.rate30d >= 0.6 ? .green : .orange)
+                        .foregroundColor(c.rate30d >= 0.6 ? Color.appSuccess : Color.appWarning)
                 }
             }
             if let c = compliance, !c.daily.isEmpty {
@@ -447,7 +447,7 @@ struct SelfCareHeatStrip: View {
             ForEach(last30) { entry in
                 let intensity = maxCount > 0 ? Double(entry.count) / Double(maxCount) : 0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.teal.opacity(0.2 + intensity * 0.8))
+                    .fill(Color.statusCyan.opacity(0.2 + intensity * 0.8))
                     .frame(height: 14)
             }
         }
@@ -487,9 +487,9 @@ struct PSSHistoryView: View {
 
     private func pssColor(_ cat: String) -> Color {
         switch cat {
-        case "low":      return .green
-        case "moderate": return .orange
-        default:         return .red
+        case "low":      return Color.appSuccess
+        case "moderate": return Color.appWarning
+        default:         return Color.appDanger
         }
     }
 }
@@ -500,7 +500,7 @@ struct HRVBaselineCard: View {
     let data: HRVAnalysis
 
     private var accentColor: Color {
-        data.hrvZone != nil ? data.zoneColor : (data.flagRest ? .red : .cyan)
+        data.hrvZone != nil ? data.zoneColor : (data.flagRest ? Color.appDanger : Color.statusCyan)
     }
 
     var body: some View {
@@ -515,14 +515,14 @@ struct HRVBaselineCard: View {
                 Spacer()
                 if data.streakAlert {
                     Text("⚠️ FATIGUE \(data.consecutiveLowDays)J")
-                        .font(.system(size: 10, weight: .black)).foregroundColor(.red)
+                        .font(.system(size: 10, weight: .black)).foregroundColor(Color.appDanger)
                         .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color.red.opacity(0.12)).clipShape(Capsule())
+                        .background(Color.appDanger.opacity(0.12)).clipShape(Capsule())
                 } else if data.flagRest {
                     Text("⚠️ REPOS")
-                        .font(.system(size: 10, weight: .black)).foregroundColor(.red)
+                        .font(.system(size: 10, weight: .black)).foregroundColor(Color.appDanger)
                         .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color.red.opacity(0.12)).clipShape(Capsule())
+                        .background(Color.appDanger.opacity(0.12)).clipShape(Capsule())
                 }
             }
 
@@ -549,7 +549,7 @@ struct HRVBaselineCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("BASELINE 30J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f ms", baseline))
-                            .font(.system(size: 18, weight: .black)).foregroundColor(.cyan)
+                            .font(.system(size: 18, weight: .black)).foregroundColor(Color.statusCyan)
                     }
                 }
                 if let cv = data.hrvCv {
@@ -557,7 +557,7 @@ struct HRVBaselineCard: View {
                         Text("CV 30J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f%%", cv))
                             .font(.system(size: 18, weight: .black))
-                            .foregroundColor(cv < 10 ? .green : cv < 20 ? .orange : .red)
+                            .foregroundColor(cv < 10 ? Color.appSuccess : cv < 20 ? Color.appWarning : Color.appDanger)
                     }
                 } else if let sd = data.sd30d {
                     VStack(alignment: .leading, spacing: 2) {
@@ -583,11 +583,11 @@ struct HRVBaselineCard: View {
             if let msg = data.contextualMessage {
                 Text(msg)
                     .font(.system(size: 12))
-                    .foregroundColor(data.hrvZone == "red" ? .red.opacity(0.9) : .gray)
+                    .foregroundColor(data.hrvZone == "red" ? Color.appDanger.opacity(0.9) : .gray)
                     .fixedSize(horizontal: false, vertical: true)
             } else if let dev = data.deviationFrom30d {
                 Text(dev >= 0 ? String(format: "+%.0f ms vs baseline 30j", dev) : String(format: "%.0f ms vs baseline 30j", dev))
-                    .font(.appCaption).foregroundColor(dev >= 0 ? .green : .orange)
+                    .font(.appCaption).foregroundColor(dev >= 0 ? Color.appSuccess : Color.appWarning)
             }
 
             Text("\(data.dataPoints30d) jours de données (30j)")
@@ -608,7 +608,7 @@ struct SorenessThresholdCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: "bolt.heart.fill").foregroundColor(.red)
+                Image(systemName: "bolt.heart.fill").foregroundColor(Color.appDanger)
                 Text("SEUIL COURBATURES PERSONNEL")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             }
@@ -624,14 +624,14 @@ struct SorenessThresholdCard: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("FAIBLE VOL").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.1f/10", low))
-                            .font(.appBody.weight(.black)).foregroundColor(.green)
+                            .font(.appBody.weight(.black)).foregroundColor(Color.appSuccess)
                     }
                 }
                 if let high = data.avgSorenessHighVol {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("FORT VOL").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.1f/10", high))
-                            .font(.appBody.weight(.black)).foregroundColor(.red)
+                            .font(.appBody.weight(.black)).foregroundColor(Color.appDanger)
                     }
                 }
                 if let thresh = data.thresholdVol {
@@ -675,7 +675,7 @@ struct SleepPerformanceInsightView: View {
                 xLabel: "Qualité sommeil J-1 (1–10)",
                 yLabel: "Volume séance J",
                 title: "SOMMEIL → PERFORMANCE",
-                color: .blue
+                color: Color.statusBlue
             )
             if let msg = insight {
                 Text(msg)
@@ -719,22 +719,22 @@ struct WellnessTrendView: View {
                     let restingHrVals = recovery.compactMap { $0.restingHr }
 
                     if !sleepVals.isEmpty {
-                        WellnessSparkline(label: "Sommeil", values: movingAvg(sleepVals), color: .blue, range: 1...10)
+                        WellnessSparkline(label: "Sommeil", values: movingAvg(sleepVals), color: Color.statusBlue, range: 1...10)
                     }
                     if !sorenessVals.isEmpty {
                         WellnessSparkline(label: "Douleurs", values: movingAvg(sorenessVals), color: Color.forge, range: 1...10, invertTrend: true)
                     }
                     if !fatigueVals.isEmpty {
-                        WellnessSparkline(label: "Fatigue", values: movingAvg(fatigueVals), color: .purple, range: 1...10, invertTrend: true)
+                        WellnessSparkline(label: "Fatigue", values: movingAvg(fatigueVals), color: Color.statusPurple, range: 1...10, invertTrend: true)
                     }
                     if !stepsVals.isEmpty {
-                        WellnessSparkline(label: "Pas (k)", values: movingAvg(stepsVals), color: .cyan, range: 0...20)
+                        WellnessSparkline(label: "Pas (k)", values: movingAvg(stepsVals), color: Color.statusCyan, range: 0...20)
                     }
                     if !energyVals.isEmpty {
-                        WellnessSparkline(label: "Énergie", values: movingAvg(energyVals), color: .green, range: 1...10)
+                        WellnessSparkline(label: "Énergie", values: movingAvg(energyVals), color: Color.appSuccess, range: 1...10)
                     }
                     if !restingHrVals.isEmpty {
-                        WellnessSparkline(label: "FC repos", values: movingAvg(restingHrVals), color: .red, range: 40...100, invertTrend: true)
+                        WellnessSparkline(label: "FC repos", values: movingAvg(restingHrVals), color: Color.appDanger, range: 40...100, invertTrend: true)
                     }
                 }
             }
@@ -757,7 +757,7 @@ private struct WellnessSparkline: View {
         let diff = recent - earlier
         if abs(diff) < 0.3 { return .gray }
         let isGood = invertTrend ? diff < 0 : diff > 0
-        return isGood ? .green : .red
+        return isGood ? Color.appSuccess : Color.appDanger
     }
 
     var body: some View {
@@ -933,9 +933,9 @@ struct SleepDebtCard: View {
     }
 
     private var debtColor: Color {
-        if totalDebt < 2 { return .green }
-        if totalDebt < 5 { return .orange }
-        return .red
+        if totalDebt < 2 { return Color.appSuccess }
+        if totalDebt < 5 { return Color.appWarning }
+        return Color.appDanger
     }
 
     private var insightText: String {
@@ -989,9 +989,9 @@ struct RecoveryProfileCard: View {
     let sampleSize: Int
 
     private var profileColor: Color {
-        if avgDays <= 1.5 { return .green }
-        if avgDays <= 3.0 { return .orange }
-        return .red
+        if avgDays <= 1.5 { return Color.appSuccess }
+        if avgDays <= 3.0 { return Color.appWarning }
+        return Color.appDanger
     }
 
     private var insightText: String {

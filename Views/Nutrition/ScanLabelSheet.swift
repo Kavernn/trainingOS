@@ -145,7 +145,7 @@ struct ScanLabelSheet: View {
 
             if let err = errorMsg {
                 Text(err)
-                    .font(.appLabel).foregroundColor(.red)
+                    .font(.appLabel).foregroundColor(Color.appDanger)
                     .multilineTextAlignment(.center)
             }
 

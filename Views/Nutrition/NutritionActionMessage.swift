@@ -79,10 +79,10 @@ struct NutritionActionMessage: View {
     private func msgColor(_ state: MsgState) -> Color {
         switch state {
         case .noEntries:       return .gray
-        case .proteinLow:      return .red
-        case .proteinClose:    return .orange
-        case .proteinOnTarget: return .blue
-        case .allOnTarget:     return .green
+        case .proteinLow:      return Color.appDanger
+        case .proteinClose:    return Color.appWarning
+        case .proteinOnTarget: return Color.statusBlue
+        case .allOnTarget:     return Color.appSuccess
         }
     }
 }

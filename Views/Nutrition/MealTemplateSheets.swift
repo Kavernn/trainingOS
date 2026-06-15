@@ -296,7 +296,7 @@ private struct ComposerBottomBar: View {
         VStack(spacing: 6) {
             if let error {
                 Text(error)
-                    .font(.appCaption).foregroundColor(.red)
+                    .font(.appCaption).foregroundColor(Color.appDanger)
             }
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -307,9 +307,9 @@ private struct ComposerBottomBar: View {
                         Text("\(Int(cal)) kcal")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.appTextPrimary)
-                        Text("P \(fmt(prot))g").font(.appCaption).foregroundColor(.blue)
+                        Text("P \(fmt(prot))g").font(.appCaption).foregroundColor(Color.statusBlue)
                         Text("G \(fmt(gluc))g").font(.appCaption).foregroundColor(Color.forge)
-                        Text("L \(fmt(lip))g").font(.appCaption).foregroundColor(.pink)
+                        Text("L \(fmt(lip))g").font(.appCaption).foregroundColor(Color.statusRed)
                     }
                 }
                 Spacer()

@@ -27,7 +27,7 @@ struct PRCelebrationView: View {
             Color.appBg.ignoresSafeArea()
 
             RadialGradient(
-                colors: [Color.yellow.opacity(showContent ? 0.22 : 0), Color.clear],
+                colors: [Color.statusYellow.opacity(showContent ? 0.22 : 0), Color.clear],
                 center: .center, startRadius: 0, endRadius: 350
             )
             .ignoresSafeArea()
@@ -71,19 +71,19 @@ struct PRCelebrationView: View {
                         // Trophy ring
                         ZStack {
                             Circle()
-                                .stroke(Color.yellow.opacity(0.2), lineWidth: 1.5)
+                                .stroke(Color.statusYellow.opacity(0.2), lineWidth: 1.5)
                                 .frame(width: 160, height: 160)
                             Circle()
                                 .fill(
                                     RadialGradient(
-                                        colors: [Color.yellow.opacity(0.25), Color.yellow.opacity(0.04)],
+                                        colors: [Color.statusYellow.opacity(0.25), Color.statusYellow.opacity(0.04)],
                                         center: .center, startRadius: 0, endRadius: 80
                                     )
                                 )
                                 .frame(width: 140, height: 140)
                             Image(systemName: "trophy.fill")
                                 .font(.system(size: 62, weight: .bold))
-                                .foregroundColor(.yellow)
+                                .foregroundColor(Color.statusYellow)
                         }
                         .scaleEffect(showContent ? 1 : 0.2)
 
@@ -91,7 +91,7 @@ struct PRCelebrationView: View {
                         VStack(spacing: 14) {
                             Text(prs.count == 1 ? "LIMITE DÉTRUITE" : "LIMITES DÉTRUITES")
                                 .font(.appCaption.weight(.black)).tracking(3)
-                                .foregroundColor(.yellow.opacity(0.7))
+                                .foregroundColor(Color.statusYellow.opacity(0.7))
 
                             if prs.count == 1, let pr = prs.first {
                                 Text(pr.name)
@@ -102,10 +102,10 @@ struct PRCelebrationView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "arrow.up.right")
                                         .font(.appLabel.weight(.bold))
-                                        .foregroundColor(.yellow)
+                                        .foregroundColor(Color.statusYellow)
                                     Text("Nouvelle frontière : \(units.format(pr.oneRM))")
                                         .font(.appHeadline.weight(.bold))
-                                        .foregroundColor(.yellow)
+                                        .foregroundColor(Color.statusYellow)
                                 }
                             } else {
                                 VStack(spacing: 8) {
@@ -122,10 +122,10 @@ struct PRCelebrationView: View {
                                                 Text(units.format(pr.oneRM))
                                                     .font(.system(size: 14, weight: .bold))
                                             }
-                                            .foregroundColor(.yellow)
+                                            .foregroundColor(Color.statusYellow)
                                         }
                                         .padding(.horizontal, 20).padding(.vertical, 8)
-                                        .background(Color.yellow.opacity(0.07))
+                                        .background(Color.statusYellow.opacity(0.07))
                                         .clipShape(RoundedRectangle(cornerRadius: 10))
                                     }
                                 }
@@ -145,7 +145,7 @@ struct PRCelebrationView: View {
                             .foregroundColor(Color.appBg)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.yellow)
+                            .background(Color.statusYellow)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(SpringButtonStyle())
@@ -188,7 +188,7 @@ struct PRParticle: Identifiable {
     let isCircle: Bool
 
     static func generate(count: Int) -> [PRParticle] {
-        let colors: [Color] = [.yellow, .orange, Color(hex: "F5C518"), .white, .cyan, .green, .pink]
+        let colors: [Color] = [Color.statusYellow, Color.appWarning, Color(hex: "F5C518"), .white, Color.statusCyan, Color.appSuccess, Color.statusRed]
         return (0..<count).map { i in
             let angle = Double.random(in: 0..<(2 * .pi))
             let distance = CGFloat.random(in: 80...260)
@@ -237,7 +237,7 @@ struct ConfettiPiece: Identifiable {
 }
 
 struct ConfettiView: View {
-    private let colors: [Color] = [.orange, .green, .cyan, .yellow, .pink, .purple]
+    private let colors: [Color] = [Color.appWarning, Color.appSuccess, Color.statusCyan, Color.statusYellow, Color.statusRed, Color.statusPurple]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pieces: [ConfettiPiece] = []
     @State private var animate = false

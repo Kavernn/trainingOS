@@ -177,7 +177,9 @@ extension APIService {
 
         let days = week1?.days ?? []
         let programmeURL = try buildURL(path: "/api/programme")
-        await withTaskGroup(of: Void.self) { group in
+
+        var failedSeances: [String] = []
+        await withTaskGroup(of: (String, Bool).self) { group in
             for day in days {
                 let name = day.name; let pid = programmeId
                 group.addTask {
@@ -188,15 +190,23 @@ extension APIService {
                         "action": "create_seance", "jour": name, "program_id": pid
                     ])
                     do {
-                        _ = try await URLSession.authed.data(for: req)
+                        let (_, resp) = try await URLSession.authed.data(for: req)
+                        return (name, (200...299).contains((resp as? HTTPURLResponse)?.statusCode ?? 0))
                     } catch {
                         workoutLogger.warning("create_seance failed [\(name)]: \(error)")
+                        return (name, false)
                     }
                 }
             }
+            for await (name, ok) in group where !ok { failedSeances.append(name) }
+        }
+        guard failedSeances.isEmpty else {
+            throw NSError(domain: "API", code: 500, userInfo: [NSLocalizedDescriptionKey:
+                "Séances non créées : \(failedSeances.sorted().joined(separator: ", "))"])
         }
 
-        await withTaskGroup(of: Void.self) { group in
+        var failedExercises: [String] = []
+        await withTaskGroup(of: (String, Bool).self) { group in
             for day in days {
                 for ex in day.exercises {
                     let dayName = day.name; let exName = ex.name
@@ -210,13 +220,20 @@ extension APIService {
                             "exercise": exName, "scheme": scheme, "program_id": pid
                         ])
                         do {
-                            _ = try await URLSession.authed.data(for: req)
+                            let (_, resp) = try await URLSession.authed.data(for: req)
+                            return ("\(exName) (\(dayName))", (200...299).contains((resp as? HTTPURLResponse)?.statusCode ?? 0))
                         } catch {
                             workoutLogger.warning("add_exercise failed [\(exName)/\(dayName)]: \(error)")
+                            return ("\(exName) (\(dayName))", false)
                         }
                     }
                 }
             }
+            for await (label, ok) in group where !ok { failedExercises.append(label) }
+        }
+        guard failedExercises.isEmpty else {
+            throw NSError(domain: "API", code: 500, userInfo: [NSLocalizedDescriptionKey:
+                "Exercices non ajoutés : \(failedExercises.sorted().joined(separator: ", "))"])
         }
 
         if !content.schedule.isEmpty {
@@ -224,10 +241,9 @@ extension APIService {
             schedReq.httpMethod = "POST"
             schedReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
             schedReq.httpBody = try JSONSerialization.data(withJSONObject: ["schedule": content.schedule])
-            do {
-                _ = try await URLSession.authed.data(for: schedReq)
-            } catch {
-                workoutLogger.warning("morning_schedule update failed: \(error)")
+            let (_, schedResp) = try await URLSession.authed.data(for: schedReq)
+            if let http = schedResp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                workoutLogger.warning("morning_schedule update failed: HTTP \(http.statusCode) — planning à reconfigurer manuellement")
             }
         }
 
@@ -238,10 +254,10 @@ extension APIService {
             "id": gp.id,
             "programme_id": programmeId
         ])
-        do {
-            _ = try await URLSession.authed.data(for: approveReq)
-        } catch {
-            workoutLogger.warning("programme approve failed: \(error)")
+        let (_, approveResp) = try await URLSession.authed.data(for: approveReq)
+        if let http = approveResp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw NSError(domain: "API", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey:
+                "Approbation programme échouée : HTTP \(http.statusCode)"])
         }
 
         CacheInvalidation.programmeApproved.invalidate()

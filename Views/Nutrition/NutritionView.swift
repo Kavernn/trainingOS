@@ -42,7 +42,7 @@ struct NutritionView: View {
                             if showSettingsBanner {
                                 HStack(spacing: 10) {
                                     Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundColor(.yellow)
+                                        .foregroundColor(Color.statusYellow)
                                     Text("Cibles nutritionnelles non définies — l'app calcule dans le vide.")
                                         .font(.appLabel)
                                         .foregroundColor(.appTextPrimary)
@@ -53,10 +53,10 @@ struct NutritionView: View {
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
-                                .background(Color.yellow.opacity(0.1))
+                                .background(Color.statusYellow.opacity(0.1))
                                 .cornerRadius(10)
                                 .overlay(RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.yellow.opacity(0.3), lineWidth: 1))
+                                    .stroke(Color.statusYellow.opacity(0.3), lineWidth: 1))
                                 .padding(.horizontal, 16)
                             }
 
@@ -279,7 +279,7 @@ struct NutritionView: View {
             .overlay(alignment: .bottom) {
                 if showUndoBanner {
                     HStack(spacing: 12) {
-                        Image(systemName: "trash").foregroundColor(.red)
+                        Image(systemName: "trash").foregroundColor(Color.appDanger)
                         Text("Supprimé.")
                             .font(.appLabel)
                             .foregroundColor(.appTextPrimary)

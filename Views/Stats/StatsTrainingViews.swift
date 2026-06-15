@@ -97,7 +97,7 @@ private struct ACWRSparkline: View {
     let trend: [ACWRWeek]
 
     private let thresholds: [(Double, Color)] = [
-        (1.5, .red), (1.3, .orange), (0.8, .blue)
+        (1.5, Color.appDanger), (1.3, Color.appWarning), (0.8, Color.statusBlue)
     ]
 
     var body: some View {
@@ -117,7 +117,7 @@ private struct ACWRSparkline: View {
                     let bandTop  = h * (1 - CGFloat(1.3 / maxVal))
                     let bandBot  = h * (1 - CGFloat(0.8 / maxVal))
                     Rectangle()
-                        .fill(Color.green.opacity(0.07))
+                        .fill(Color.appSuccess.opacity(0.07))
                         .frame(width: w, height: max(0, bandBot - bandTop))
                         .offset(x: 0, y: bandTop)
 
@@ -170,9 +170,9 @@ private struct ACWRSparkline: View {
 
     private func dotColor(_ ratio: Double) -> Color {
         if ratio == 0   { return .gray }
-        if ratio < 0.8  { return .blue }
-        if ratio <= 1.3 { return .green }
-        if ratio <= 1.5 { return .orange }
+        if ratio < 0.8  { return Color.statusBlue }
+        if ratio <= 1.3 { return Color.appSuccess }
+        if ratio <= 1.5 { return Color.appWarning }
         return .red
     }
 }
@@ -203,9 +203,9 @@ struct SessionHeatmapView: View {
     private func cellColor(_ t: CellType) -> Color {
         switch t {
         case .none:  return Color.appSurfaceInset
-        case .muscu: return .orange
-        case .hiit:  return .blue
-        case .both:  return .purple
+        case .muscu: return Color.statusOrange
+        case .hiit:  return Color.statusBlue
+        case .both:  return Color.statusPurple
         }
     }
 
@@ -235,11 +235,11 @@ struct SessionHeatmapView: View {
                     Text("Muscu").font(.appCaption).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
-                    Circle().fill(Color.blue).frame(width: 8, height: 8)
+                    Circle().fill(Color.statusBlue).frame(width: 8, height: 8)
                     Text("HIIT").font(.appCaption).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
-                    Circle().fill(Color.purple).frame(width: 8, height: 8)
+                    Circle().fill(Color.statusPurple).frame(width: 8, height: 8)
                     Text("Les 2").font(.appCaption).foregroundColor(.gray)
                 }
             }

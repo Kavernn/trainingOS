@@ -45,7 +45,7 @@ struct CardioView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .teal)
+                AmbientBackground(color: Color.statusCyan)
                 if isLoading {
                     AppLoadingView()
                 } else {
@@ -69,12 +69,12 @@ struct CardioView: View {
 
                             // 3 — KPI grid
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                                KPICard(value: "\(totalSessions)", label: "Sessions", color: .teal)
-                                KPICard(value: String(format: "%.1f km", totalDistanceKm), label: "Distance tot.", color: .blue)
+                                KPICard(value: "\(totalSessions)", label: "Sessions", color: Color.statusCyan)
+                                KPICard(value: String(format: "%.1f km", totalDistanceKm), label: "Distance tot.", color: Color.statusBlue)
                                 KPICard(value: totalDurationMin > 0 ? String(format: "%.0f min", totalDurationMin) : "—",
                                         label: "Durée tot.", color: Color.forge)
                                 KPICard(value: avgRpe > 0 ? String(format: "%.1f", avgRpe) : "—",
-                                        label: "RPE moy.", color: .red)
+                                        label: "RPE moy.", color: Color.appDanger)
                             }
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
@@ -126,7 +126,7 @@ struct CardioView: View {
                             Image(systemName: "location.fill").font(.appLabel.weight(.regular))
                             Text("GPS").font(.appLabel)
                         }
-                        .foregroundColor(sessionManager.sessionState != .idle ? .red : .teal)
+                        .foregroundColor(sessionManager.sessionState != .idle ? Color.appDanger : Color.statusCyan)
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -249,7 +249,7 @@ struct CardioHeaderSection: View {
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 18).padding(.vertical, 14)
-                .background(Color.teal)
+                .background(Color.statusCyan)
                 .cornerRadius(14)
             }
             .buttonStyle(SpringButtonStyle())
@@ -265,9 +265,9 @@ struct CardioHeaderSection: View {
                 Spacer()
                 if monthDistanceKm > 0 {
                     HStack(spacing: 4) {
-                        Image(systemName: "calendar").font(.appCaption).foregroundColor(.teal.opacity(0.7))
+                        Image(systemName: "calendar").font(.appCaption).foregroundColor(Color.statusCyan.opacity(0.7))
                         Text(String(format: "%.1f km ce mois", monthDistanceKm))
-                            .font(.appCaption.weight(.medium)).foregroundColor(.teal.opacity(0.8))
+                            .font(.appCaption.weight(.medium)).foregroundColor(Color.statusCyan.opacity(0.8))
                     }
                 }
             }
@@ -282,7 +282,7 @@ struct ActiveSessionBanner: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 10) {
-                Circle().fill(Color.red).frame(width: 8, height: 8)
+                Circle().fill(Color.appDanger).frame(width: 8, height: 8)
                 Text("Session en cours — Tap pour reprendre")
                     .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                 Spacer()
@@ -291,7 +291,7 @@ struct ActiveSessionBanner: View {
             .padding(.horizontal, 14).padding(.vertical, 10)
             .background(Color.appCard)
             .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.5), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appDanger.opacity(0.5), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -322,7 +322,7 @@ struct CardioGuidesSection: View {
             if let v = hkVO2Max {
                 CardioMetricCard(
                     icon: "lungs",
-                    color: .mint,
+                    color: Color.statusCyan,
                     title: "VO2 max (Apple Watch)",
                     value: String(format: "%.1f mL/kg/min", v),
                     badge: vo2CategoryLabel(v),
@@ -386,17 +386,17 @@ struct CardioGuidesSection: View {
 
     var vo2maxColor: Color {
         guard let v = metrics.vo2maxEstimated else { return .gray }
-        if v >= 50 { return .green }
-        if v >= 40 { return .teal }
-        return .orange
+        if v >= 50 { return Color.appSuccess }
+        if v >= 40 { return Color.statusCyan }
+        return Color.appWarning
     }
 
     func acwrColor(_ zone: String) -> Color {
         switch zone {
-        case "optimal":  return .green
-        case "under":    return .blue
-        case "over":     return .orange
-        case "critical": return .red
+        case "optimal":  return Color.appSuccess
+        case "under":    return Color.statusBlue
+        case "over":     return Color.appWarning
+        case "critical": return Color.appDanger
         default:         return .gray
         }
     }
@@ -501,7 +501,7 @@ struct CardioMetricDetailSheet: View {
 
                         // Conseil
                         if !guide.isEmpty {
-                            metricSection(title: "CONSEIL", icon: "lightbulb.fill", iconColor: .yellow, content: guide)
+                            metricSection(title: "CONSEIL", icon: "lightbulb.fill", iconColor: Color.statusYellow, content: guide)
                         }
 
                         // Méthodologie
@@ -546,7 +546,7 @@ struct FCZonesSummaryCard: View {
     @State private var showDetail = false
 
     private let zoneNames  = ["Z1 Récup.", "Z2 Aérobie", "Z3 Modéré", "Z4 Seuil", "Z5 VO2max"]
-    private let zoneColors: [Color] = [.blue, .green, .yellow, .orange, .red]
+    private let zoneColors: [Color] = [Color.statusBlue, Color.appSuccess, Color.statusYellow, Color.appWarning, Color.appDanger]
 
     var zoneRanges: [(String, Color, String)] {
         [
@@ -569,7 +569,7 @@ struct FCZonesSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: "heart.fill").font(.appLabel.weight(.regular)).foregroundColor(.pink)
+                Image(systemName: "heart.fill").font(.appLabel.weight(.regular)).foregroundColor(Color.statusRed)
                 Text("ZONES FC — FCmax \(zones.maxHr) bpm")
                     .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
                 Spacer()
@@ -596,11 +596,11 @@ struct FCZonesSummaryCard: View {
         .padding(14)
         .background(Color.appCard)
         .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.pink.opacity(0.12), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusRed.opacity(0.12), lineWidth: 1))
         .onTapGesture { showDetail = true }
         .sheet(isPresented: $showDetail) {
             CardioMetricDetailSheet(
-                icon: "heart.fill", color: .pink,
+                icon: "heart.fill", color: Color.statusRed,
                 title: "Zones FC",
                 value: "FCmax \(zones.maxHr) bpm",
                 badge: hrSourceLabel,
@@ -617,18 +617,18 @@ struct PaceZonesCard: View {
 
     var rows: [(String, Color, String)] {
         [
-            ("Easy",      .blue,   paceZones.easy),
-            ("Moderate",  .green,  paceZones.moderate),
-            ("Tempo",     .yellow, paceZones.tempo),
-            ("Threshold", Color.forge, paceZones.threshold),
-            ("Race",      .red,    paceZones.race),
+            ("Easy",      Color.statusBlue,   paceZones.easy),
+            ("Moderate",  Color.appSuccess,   paceZones.moderate),
+            ("Tempo",     Color.statusYellow, paceZones.tempo),
+            ("Threshold", Color.forge,        paceZones.threshold),
+            ("Race",      Color.appDanger,    paceZones.race),
         ]
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: "speedometer").font(.appLabel.weight(.regular)).foregroundColor(.blue)
+                Image(systemName: "speedometer").font(.appLabel.weight(.regular)).foregroundColor(Color.statusBlue)
                 Text("PACE ZONES")
                     .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
             }
@@ -651,7 +651,7 @@ struct PaceZonesCard: View {
         .padding(14)
         .background(Color.appCard)
         .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.12), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusBlue.opacity(0.12), lineWidth: 1))
     }
 }
 
@@ -700,7 +700,7 @@ struct CardioHistoryDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.teal)
+                    Button("Fermer") { dismiss() }.foregroundColor(Color.statusCyan)
                 }
             }
         }
@@ -731,19 +731,19 @@ struct CardioHistoryDetailSheet: View {
 
         // Métriques
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            if let v = e.distanceKm   { DetailKPI(label: "Distance",   value: String(format: "%.2f km", v),      color: .teal) }
-            if let v = e.durationMin  { DetailKPI(label: "Durée",      value: String(format: "%.0f min", v),     color: .blue) }
-            if let v = e.avgPace      { DetailKPI(label: "Allure",     value: v + " /km",                        color: .green) }
-            if let v = e.avgHr        { DetailKPI(label: "FC moyenne", value: String(format: "%.0f bpm", v),     color: .red) }
+            if let v = e.distanceKm   { DetailKPI(label: "Distance",   value: String(format: "%.2f km", v),      color: Color.statusCyan) }
+            if let v = e.durationMin  { DetailKPI(label: "Durée",      value: String(format: "%.0f min", v),     color: Color.statusBlue) }
+            if let v = e.avgPace      { DetailKPI(label: "Allure",     value: v + " /km",                        color: Color.appSuccess) }
+            if let v = e.avgHr        { DetailKPI(label: "FC moyenne", value: String(format: "%.0f bpm", v),     color: Color.appDanger) }
             if let v = e.calories     { DetailKPI(label: "Calories",   value: String(format: "%.0f kcal", v),    color: Color.forge) }
-            if let v = e.cadence      { DetailKPI(label: "Cadence",    value: String(format: "%.0f spm", v),     color: .purple) }
-            if let v = e.rpe          { DetailKPI(label: "RPE",        value: String(format: "%.1f / 10", v),    color: .red) }
+            if let v = e.cadence      { DetailKPI(label: "Cadence",    value: String(format: "%.0f spm", v),     color: Color.statusPurple) }
+            if let v = e.rpe          { DetailKPI(label: "RPE",        value: String(format: "%.1f / 10", v),    color: Color.appDanger) }
         }
 
         // GPS indicator
         if e.gpsPoints?.isEmpty == false {
             HStack(spacing: 8) {
-                Image(systemName: "location.fill").foregroundColor(.teal).font(.appLabel.weight(.regular))
+                Image(systemName: "location.fill").foregroundColor(Color.statusCyan).font(.appLabel.weight(.regular))
                 Text("Session GPS enregistrée — \(e.gpsPoints?.count ?? 0) points")
                     .font(.appLabel.weight(.regular)).foregroundColor(.secondary)
             }
@@ -765,8 +765,8 @@ struct CardioHistoryDetailSheet: View {
         // Header
         HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.15)).frame(width: 52, height: 52)
-                Text("HIIT").font(.appCaption.weight(.black)).foregroundColor(.red)
+                RoundedRectangle(cornerRadius: 12).fill(Color.appDanger.opacity(0.15)).frame(width: 52, height: 52)
+                Text("HIIT").font(.appCaption.weight(.black)).foregroundColor(Color.appDanger)
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(e.sessionType ?? "HIIT").font(.appHeadline.weight(.bold)).foregroundColor(.appTextPrimary)
@@ -777,10 +777,10 @@ struct CardioHistoryDetailSheet: View {
         .padding(16).background(Color.appCard).cornerRadius(14)
 
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            if let v = e.rounds   { DetailKPI(label: "Rounds",    value: "\(v)",               color: .red) }
+            if let v = e.rounds   { DetailKPI(label: "Rounds",    value: "\(v)",               color: Color.appDanger) }
             if let v = e.workTime { DetailKPI(label: "Work",      value: "\(v)s",              color: Color.forge) }
-            if let v = e.restTime { DetailKPI(label: "Repos",     value: "\(v)s",              color: .green) }
-            if let v = e.rpe      { DetailKPI(label: "RPE",       value: String(format: "%.1f / 10", v), color: .red) }
+            if let v = e.restTime { DetailKPI(label: "Repos",     value: "\(v)s",              color: Color.appSuccess) }
+            if let v = e.rpe      { DetailKPI(label: "RPE",       value: String(format: "%.1f / 10", v), color: Color.appDanger) }
         }
 
         if let notes = e.notes, !notes.isEmpty {
@@ -801,10 +801,10 @@ struct CardioHistoryDetailSheet: View {
 
     func cardioColor(_ type: String?) -> Color {
         switch type {
-        case "course": return .teal;    case "vélo":      return .yellow
-        case "natation": return .blue;  case "marche":    return .green
-        case "elliptique": return .purple
-        default: return .orange
+        case "course": return Color.statusCyan;    case "vélo":      return Color.statusYellow
+        case "natation": return Color.statusBlue;  case "marche":    return Color.appSuccess
+        case "elliptique": return Color.statusPurple
+        default: return Color.appWarning
         }
     }
 
@@ -844,11 +844,11 @@ struct HIITHistoryRow: View {
             // HIIT badge (replaces type icon)
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.red.opacity(0.15))
+                    .fill(Color.appDanger.opacity(0.15))
                     .frame(width: 42, height: 42)
                 Text("HIIT")
                     .font(.appMicro.weight(.black))
-                    .foregroundColor(.red)
+                    .foregroundColor(Color.appDanger)
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -866,8 +866,8 @@ struct HIITHistoryRow: View {
                     Text(String(format: "RPE %.1f", rpe))
                         .font(.appCaption.weight(.semibold))
                         .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color.red.opacity(0.12))
-                        .foregroundColor(.red)
+                        .background(Color.appDanger.opacity(0.12))
+                        .foregroundColor(Color.appDanger)
                         .cornerRadius(6)
                 }
             }
@@ -876,8 +876,8 @@ struct HIITHistoryRow: View {
                 Image(systemName: "trash")
                     .font(.appCaption)
                     .frame(width: 30, height: 30)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundColor(.red.opacity(0.8))
+                    .background(Color.appDanger.opacity(0.1))
+                    .foregroundColor(Color.appDanger.opacity(0.8))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
@@ -885,7 +885,7 @@ struct HIITHistoryRow: View {
         .padding(12)
         .background(Color.appCard)
         .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.08), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appDanger.opacity(0.08), lineWidth: 1))
         .confirmationDialog("Supprimer cette séance ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }
             Button("Annuler", role: .cancel) {}
@@ -921,11 +921,11 @@ struct HRZonesCard: View {
     @State private var maxHRStr = ""
 
     private let zones: [(name: String, min: Double, max: Double, color: Color)] = [
-        ("Z1 Récup.",   0.50, 0.60, .blue),
-        ("Z2 Aérobie",  0.60, 0.70, .green),
-        ("Z3 Seuil",    0.70, 0.80, .yellow),
+        ("Z1 Récup.",   0.50, 0.60, Color.statusBlue),
+        ("Z2 Aérobie",  0.60, 0.70, Color.appSuccess),
+        ("Z3 Seuil",    0.70, 0.80, Color.statusYellow),
         ("Z4 Anaéro.", 0.80, 0.90, Color.forge),
-        ("Z5 VO2max",  0.90, 1.00, .red)
+        ("Z5 VO2max",  0.90, 1.00, Color.appDanger)
     ]
 
     private func zoneCounts() -> [Int] {
@@ -951,7 +951,7 @@ struct HRZonesCard: View {
                     maxHRStr = "\(maxHR)"
                     showMaxHRInput = true
                 }
-                .font(.appCaption).foregroundColor(.teal)
+                .font(.appCaption).foregroundColor(Color.statusCyan)
             }
             VStack(spacing: 5) {
                 ForEach(zones.indices, id: \.self) { i in
@@ -993,7 +993,7 @@ struct CardioProgressionCard: View {
     let msg: String
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "arrow.up.circle.fill").font(.appTitle.weight(.regular)).foregroundColor(.teal)
+            Image(systemName: "arrow.up.circle.fill").font(.appTitle.weight(.regular)).foregroundColor(Color.statusCyan)
             VStack(alignment: .leading, spacing: 2) {
                 Text("PROGRESSION — \(type.uppercased())")
                     .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
@@ -1002,8 +1002,8 @@ struct CardioProgressionCard: View {
             }
             Spacer()
         }
-        .padding(12).background(Color.teal.opacity(0.08))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.teal.opacity(0.2), lineWidth: 1))
+        .padding(12).background(Color.statusCyan.opacity(0.08))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusCyan.opacity(0.2), lineWidth: 1))
         .cornerRadius(12)
     }
 }
@@ -1037,7 +1037,7 @@ struct CardioRow: View {
             VStack(alignment: .trailing, spacing: 3) {
                 if let d = entry.distanceKm {
                     Text(String(format: "%.2f km", d))
-                        .font(.appLabel.weight(.bold)).foregroundColor(.teal)
+                        .font(.appLabel.weight(.bold)).foregroundColor(Color.statusCyan)
                 }
                 HStack(spacing: 6) {
                     if let dur = entry.durationMin {
@@ -1046,7 +1046,7 @@ struct CardioRow: View {
                     }
                     if let pace = entry.avgPace {
                         Label(pace + "/km", systemImage: "speedometer")
-                            .font(.appCaption).foregroundColor(.blue)
+                            .font(.appCaption).foregroundColor(Color.statusBlue)
                     }
                 }
                 HStack(spacing: 6) {
@@ -1056,7 +1056,7 @@ struct CardioRow: View {
                     }
                     if let cal = entry.calories {
                         Label(String(format: "%.0f kcal", cal), systemImage: "flame.fill")
-                            .font(.appCaption).foregroundColor(.red)
+                            .font(.appCaption).foregroundColor(Color.appDanger)
                     }
                 }
             }
@@ -1065,8 +1065,8 @@ struct CardioRow: View {
                 Image(systemName: "trash")
                     .font(.appCaption)
                     .frame(width: 30, height: 30)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundColor(.red.opacity(0.8))
+                    .background(Color.appDanger.opacity(0.1))
+                    .foregroundColor(Color.appDanger.opacity(0.8))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
@@ -1082,12 +1082,12 @@ struct CardioRow: View {
 
     var typeColor: Color {
         switch entry.type {
-        case "course":    return .teal
-        case "vélo":      return .yellow
-        case "natation":  return .blue
-        case "marche":    return .green
-        case "elliptique":return .purple
-        default:          return .orange
+        case "course":    return Color.statusCyan
+        case "vélo":      return Color.statusYellow
+        case "natation":  return Color.statusBlue
+        case "marche":    return Color.appSuccess
+        case "elliptique":return Color.statusPurple
+        default:          return Color.appWarning
         }
     }
 
@@ -1122,10 +1122,10 @@ struct CardioDistanceChart: View {
                     VStack(spacing: 2) {
                         if dist > 0 {
                             Text(String(format: "%.1f", dist))
-                                .font(.system(size: 7)).foregroundColor(.teal.opacity(0.8))
+                                .font(.system(size: 7)).foregroundColor(Color.statusCyan.opacity(0.8))
                         }
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(isLast ? Color.teal : Color.teal.opacity(0.4))
+                            .fill(isLast ? Color.statusCyan : Color.statusCyan.opacity(0.4))
                             .frame(height: max(CGFloat(pct) * 60, 2))
                     }
                     .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
@@ -1133,7 +1133,7 @@ struct CardioDistanceChart: View {
             }
             .frame(height: 70)
         }
-        .padding(16).glassCard(color: .teal, intensity: 0.05)
+        .padding(16).glassCard(color: Color.statusCyan, intensity: 0.05)
     }
 }
 
@@ -1176,7 +1176,7 @@ struct LogCardioSheet: View {
                                             Text(t.capitalized)
                                                 .font(.appLabel)
                                                 .padding(.horizontal, 14).padding(.vertical, 8)
-                                                .background(selectedType == t ? Color.teal : Color.appSurfaceInset)
+                                                .background(selectedType == t ? Color.statusCyan : Color.appSurfaceInset)
                                                 .foregroundColor(selectedType == t ? .white : .gray)
                                                 .cornerRadius(20)
                                         }
@@ -1220,7 +1220,7 @@ struct LogCardioSheet: View {
                             }
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(Color.teal).cornerRadius(14)
+                        .background(Color.statusCyan).cornerRadius(14)
                         .buttonStyle(SpringButtonStyle())
                     }
                     .padding(20)

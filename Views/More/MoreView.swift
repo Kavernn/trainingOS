@@ -20,10 +20,10 @@ struct MoreView: View {
 
                 List {
                     Section("Apparence") {
-                        MoreRow(icon: "slider.horizontal.3", color: .cyan, title: "Affichage & Thème",
+                        MoreRow(icon: "slider.horizontal.3", color: .statusCyan, title: "Affichage & Thème",
                                 subtitle: "Thème, kg/lbs, objectif de pas") { DisplaySettingsView() }
                     }
-                    .listRowBackground(glassRowBG(.cyan))
+                    .listRowBackground(glassRowBG(.statusCyan))
                     .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Quotidien") {
@@ -51,37 +51,37 @@ struct MoreView: View {
 
                     Section("Entraînement") {
                         MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Catalogue")    { CatalogueView() }
-                        MoreRow(icon: "calendar",              color: .teal,                    title: "Historique") { HistoriqueView() }
-                        MoreRow(icon: "chart.bar.fill",        color: .blue,                    title: "Stats")      { StatsView() }
-                        MoreRow(icon: "note.text",             color: .blue,                    title: "Notes")      { NotesView() }
+                        MoreRow(icon: "calendar",              color: .statusCyan,              title: "Historique") { HistoriqueView() }
+                        MoreRow(icon: "chart.bar.fill",        color: .statusBlue,              title: "Stats")      { StatsView() }
+                        MoreRow(icon: "note.text",             color: .statusBlue,              title: "Notes")      { NotesView() }
                         MoreRow(icon: "timer",                 color: Color.forge,                  title: "Timer")      { TimerView() }
                         MoreRow(icon: "mappin.and.ellipse",    color: Color.appWarning,     title: "Gym Finder") { GymFinderView() }
                     }
-                    .listRowBackground(glassRowBG(.blue))
+                    .listRowBackground(glassRowBG(.statusBlue))
                     .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Corps & Santé") {
-                        MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Tableau santé")         { HealthDashboardView() }
-                        MoreRow(icon: "scalemass.fill",         color: .green,  title: "Composition")           { BodyCompView() }
-                        MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")                { CardioView() }
-                        MoreRow(icon: "brain.fill",            color: .teal,   title: "Mental & Âme",
+                        MoreRow(icon: "heart.text.square.fill", color: .statusCyan,    title: "Tableau santé")         { HealthDashboardView() }
+                        MoreRow(icon: "scalemass.fill",         color: .appSuccess,    title: "Composition")           { BodyCompView() }
+                        MoreRow(icon: "figure.run",             color: .statusCyan,    title: "Cardio")                { CardioView() }
+                        MoreRow(icon: "brain.fill",            color: .statusCyan,    title: "Mental & Âme",
                                 subtitle: "Mesures · Pratique · The Void")                { MentalAmeView() }
                     }
-                    .listRowBackground(glassRowBG(.green))
+                    .listRowBackground(glassRowBG(.appSuccess))
                     .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Esprit & Identité") {
                         MoreRow(icon: "lock.shield.fill",     color: Color.forge,                   title: "War Room",   subtitle: "Résistance aux habitudes difficiles") { WarRoomGateView() }
-                        MoreRow(icon: "staroflife.fill",      color: .indigo,                       title: "Workout DNA")   { WorkoutDNASection() }
-                        MoreRow(icon: "star.fill",            color: .yellow,                       title: "XP & Niveau")   { XPView() }
+                        MoreRow(icon: "staroflife.fill",      color: .statusPurple,                 title: "Workout DNA")   { WorkoutDNASection() }
+                        MoreRow(icon: "star.fill",            color: .statusYellow,                 title: "XP & Niveau")   { XPView() }
                     }
-                    .listRowBackground(glassRowBG(.indigo))
+                    .listRowBackground(glassRowBG(.statusPurple))
                     .listRowSeparatorTint(Color.appSeparator)
 
                     Section("Réglages") {
-                        MoreRow(icon: "gearshape.fill",   color: .purple, title: "Paramètres",
+                        MoreRow(icon: "gearshape.fill",   color: .statusPurple, title: "Paramètres",
                                 subtitle: "Entraînement, nutrition, récupération…") { SettingsView() }
-                        MoreRow(icon: "person.fill",      color: .purple, title: "Profil")        { ProfileView() }
+                        MoreRow(icon: "person.fill",      color: .statusPurple, title: "Profil")        { ProfileView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
                     .listRowSeparatorTint(Color.appSeparator)

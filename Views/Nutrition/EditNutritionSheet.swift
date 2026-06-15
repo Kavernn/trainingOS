@@ -14,6 +14,7 @@ struct EditNutritionSheet: View {
     // N-D10: editable mealType
     @State private var mealType: String
     @State private var isSaving = false
+    @State private var saveError: String? = nil
     @State private var confirmDiscard = false
 
     private var isDirty: Bool {
@@ -64,6 +65,13 @@ struct EditNutritionSheet: View {
                         TextField("Glucides",  text: $glucides).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                         TextField("Lipides",   text: $lipides).keyboardType(.decimalPad).foregroundColor(.appTextPrimary)
                     }.listRowBackground(Color.appCard)
+                    if let err = saveError {
+                        Section {
+                            Text(err)
+                                .font(.appLabel.weight(.regular))
+                                .foregroundColor(.red)
+                        }.listRowBackground(Color.appCard)
+                    }
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -97,21 +105,20 @@ struct EditNutritionSheet: View {
         guard let eid = entry.entryId,
               let cal = Double(calories.replacingOccurrences(of: ",", with: ".")) else { return }
         isSaving = true
+        saveError = nil
         // N-D10: include mealType in update payload
         var body: [String: Any] = ["id": eid, "nom": name, "calories": cal, "meal_type": mealType]
         if let v = Double(proteines.replacingOccurrences(of: ",", with: ".")) { body["proteines"] = v }
         if let v = Double(glucides.replacingOccurrences(of: ",", with: "."))  { body["glucides"]  = v }
         if let v = Double(lipides.replacingOccurrences(of: ",", with: "."))   { body["lipides"]   = v }
-        guard let url = URL(string: "\(APIConfig.base)/api/nutrition/edit") else {
-            isSaving = false; return
+        do {
+            _ = try await APIService.shared.offlinePost(endpoint: "/api/nutrition/edit", payload: body)
+            await onSaved()
+            isSaving = false
+            dismiss()
+        } catch {
+            saveError = "Erreur réseau — réessaie"
+            isSaving = false
         }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        _ = try? await URLSession.authed.data(for: req)
-        await onSaved()
-        isSaving = false
-        dismiss()
     }
 }

@@ -62,11 +62,11 @@ struct NutritionSettingsSheet: View {
                     Section(header: Text("MACROS FIXES (TOUS LES JOURS)")) {
                         HStack {
                             TextField("180", text: $proteines).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
-                            Text("g protéines").foregroundColor(.blue).font(.appLabel)
+                            Text("g protéines").foregroundColor(Color.statusBlue).font(.appLabel)
                         }
                         HStack {
                             TextField("75", text: $lipides).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
-                            Text("g lipides").foregroundColor(.pink).font(.appLabel)
+                            Text("g lipides").foregroundColor(Color.statusRed).font(.appLabel)
                         }
                     }
                     .listRowBackground(Color.appCard)
@@ -75,13 +75,13 @@ struct NutritionSettingsSheet: View {
                         DayTypeRow(icon: "dumbbell.fill",                       color: Color.forge,
                                    label: "Lourd",    calPlaceholder: "2550",   glucPlaceholder: "270",
                                    cal: $heavyCal,    gluc: $heavyGluc)
-                        DayTypeRow(icon: "figure.strengthtraining.traditional", color: .yellow,
+                        DayTypeRow(icon: "figure.strengthtraining.traditional", color: Color.statusYellow,
                                    label: "Modéré",   calPlaceholder: "2400",   glucPlaceholder: "235",
                                    cal: $moderateCal, gluc: $moderateGluc)
                         DayTypeRow(icon: "figure.arms.open",                    color: Color(hex: "00BCD4"),
                                    label: "Léger",    calPlaceholder: "2200",   glucPlaceholder: "185",
                                    cal: $lightCal,    gluc: $lightGluc)
-                        DayTypeRow(icon: "moon.fill",                           color: .blue,
+                        DayTypeRow(icon: "moon.fill",                           color: Color.statusBlue,
                                    label: "Repos",    calPlaceholder: "2100",   glucPlaceholder: "160",
                                    cal: $restCalT,    gluc: $restGluc)
                     }
@@ -183,7 +183,7 @@ private struct DayTypeRow: View {
                     .frame(width: 50)
                     .multilineTextAlignment(.trailing)
                 Text("g glucides")
-                    .foregroundColor(.yellow)
+                    .foregroundColor(Color.statusYellow)
                     .font(.system(size: 12))
             }
         }

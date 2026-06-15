@@ -68,7 +68,7 @@ struct CardioTypeSelectionSheet: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
-                .background(selectedId.isEmpty ? Color.teal.opacity(0.3) : Color.teal)
+                .background(selectedId.isEmpty ? Color.statusCyan.opacity(0.3) : Color.statusCyan)
                 .foregroundColor(selectedId.isEmpty ? Color.black.opacity(0.4) : .black)
                 .cornerRadius(16)
             }
@@ -93,7 +93,7 @@ private struct CardioTypeCard: View {
             VStack(spacing: 10) {
                 Image(systemName: type.icon)
                     .font(.system(size: 28, weight: .medium))
-                    .foregroundColor(isSelected ? .teal : .white.opacity(0.7))
+                    .foregroundColor(isSelected ? Color.statusCyan : .white.opacity(0.7))
                     .frame(height: 34)
 
                 Text(type.label)
@@ -110,10 +110,10 @@ private struct CardioTypeCard: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)
             .padding(.horizontal, 8)
-            .background(isSelected ? Color.teal.opacity(0.15) : Color.white.opacity(0.05))
+            .background(isSelected ? Color.statusCyan.opacity(0.15) : Color.white.opacity(0.05))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color.teal : Color.white.opacity(0.08), lineWidth: isSelected ? 1.5 : 1)
+                    .stroke(isSelected ? Color.statusCyan : Color.white.opacity(0.08), lineWidth: isSelected ? 1.5 : 1)
             )
             .cornerRadius(16)
         }
@@ -129,7 +129,7 @@ struct CardioActiveView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .teal).ignoresSafeArea()
+            AmbientBackground(color: Color.statusCyan).ignoresSafeArea()
 
             switch session.sessionState {
             case .idle:
@@ -228,7 +228,7 @@ private struct CardioIdleView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(Color.teal)
+                    .background(Color.statusCyan)
                     .foregroundColor(.black)
                     .cornerRadius(16)
                 }
@@ -345,7 +345,7 @@ private struct ActiveLayout: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.teal)
+                    .background(Color.statusCyan)
                     .foregroundColor(.black)
                     .cornerRadius(14)
                 }
@@ -423,10 +423,10 @@ private struct MetricsBlock: View {
                 Text("Max : \(session.maxPaceString)")
                     .font(.appLabel.weight(.semibold))
             }
-            .foregroundColor(.yellow.opacity(0.9))
+            .foregroundColor(Color.statusYellow.opacity(0.9))
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
-            .background(Color.yellow.opacity(0.12))
+            .background(Color.statusYellow.opacity(0.12))
             .clipShape(Capsule())
             .padding(.top, 2)
         }

@@ -20,12 +20,12 @@ struct DailyRemainingCard: View {
     private var allDone: Bool         { settings != nil && remainingCal <= 0 && remainingProt <= 0 }
 
     private var suggestion: (icon: String, text: String, color: Color) {
-        if allDone           { return ("checkmark.seal.fill", "Objectifs atteints !", .green) }
-        if remainingProt >= 40 { return ("fork.knife", "Repas complet protéiné", .blue) }
-        if remainingProt >= 20 { return ("cup.and.saucer.fill", "Collation protéinée", .blue) }
-        if remainingProt >= 5  { return ("takeoutbag.and.cup.and.straw.fill", "Shake ou skyr", .blue) }
-        if remainingCal > 200  { return ("leaf.fill", "Légumes ou fruit", .green) }
-        return ("checkmark.seal.fill", "Objectifs atteints !", .green)
+        if allDone           { return ("checkmark.seal.fill", "Objectifs atteints !", Color.appSuccess) }
+        if remainingProt >= 40 { return ("fork.knife", "Repas complet protéiné", Color.statusBlue) }
+        if remainingProt >= 20 { return ("cup.and.saucer.fill", "Collation protéinée", Color.statusBlue) }
+        if remainingProt >= 5  { return ("takeoutbag.and.cup.and.straw.fill", "Shake ou skyr", Color.statusBlue) }
+        if remainingCal > 200  { return ("leaf.fill", "Légumes ou fruit", Color.appSuccess) }
+        return ("checkmark.seal.fill", "Objectifs atteints !", Color.appSuccess)
     }
 
     var body: some View {
@@ -48,7 +48,7 @@ struct DailyRemainingCard: View {
                 VStack(spacing: 6) {
                     Label("Objectifs atteints !", systemImage: "checkmark.seal.fill")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.green)
+                        .foregroundColor(Color.appSuccess)
                         .scaleEffect(goalScale)
                         .onChange(of: allDone) { done in
                             if done && !prevAllDone {
@@ -62,7 +62,7 @@ struct DailyRemainingCard: View {
                     if calorieSurplus > 200 {
                         Label("Surplus de \(Int(calorieSurplus)) kcal — reste léger ce soir", systemImage: "exclamationmark.triangle.fill")
                             .font(.appCaption)
-                            .foregroundColor(.yellow)
+                            .foregroundColor(Color.statusYellow)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -115,9 +115,9 @@ struct AdherenceScoreCard: View {
         history.isEmpty ? 0 : Int(Double(successDays) / Double(history.count) * 100)
     }
     private var badge: (text: String, color: Color) {
-        if score >= 85 { return ("Super semaine", .green) }
-        if score >= 60 { return ("En progression", .yellow) }
-        return ("À améliorer", .red)
+        if score >= 85 { return ("Super semaine", Color.appSuccess) }
+        if score >= 60 { return ("En progression", Color.statusYellow) }
+        return ("À améliorer", Color.appDanger)
     }
     private var pct: Double { Double(score) / 100.0 }
 
@@ -240,7 +240,7 @@ struct NutritionPatternsCard: View {
 
                 VStack(alignment: .center, spacing: 4) {
                     Text("\(Int(avgProt))g")
-                        .font(.system(size: 24, weight: .black)).foregroundColor(.blue)
+                        .font(.system(size: 24, weight: .black)).foregroundColor(Color.statusBlue)
                     Text("/ \(Int(protTarget))g")
                         .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                     Text("moy. protéines/j")
@@ -252,7 +252,7 @@ struct NutritionPatternsCard: View {
 
                 VStack(alignment: .center, spacing: 4) {
                     Text("\(bestStreak)")
-                        .font(.system(size: 24, weight: .black)).foregroundColor(.green)
+                        .font(.system(size: 24, weight: .black)).foregroundColor(Color.appSuccess)
                     Text("jours consécutifs")
                         .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                     Text("meilleur streak")
@@ -277,7 +277,7 @@ struct NutritionPatternsCard: View {
                                 VStack(spacing: 0) {
                                     Spacer()
                                     RoundedRectangle(cornerRadius: 3)
-                                        .fill(overTarget ? Color.red.opacity(0.5) : Color.forge.opacity(0.45))
+                                        .fill(overTarget ? Color.appDanger.opacity(0.5) : Color.forge.opacity(0.45))
                                         .frame(height: max(geo.size.height * pct, 4))
                                 }
                             }
@@ -315,9 +315,9 @@ struct MacroGapCard: View {
 
     private var primaryColor: Color {
         switch gap.primaryGap {
-        case "protein": return .green
-        case "carbs":   return .orange
-        default:        return .yellow
+        case "protein": return Color.appSuccess
+        case "carbs":   return Color.appWarning
+        default:        return Color.statusYellow
         }
     }
 
@@ -344,16 +344,16 @@ struct MacroGapCard: View {
             // Gap summary
             HStack(spacing: 12) {
                 if gap.gaps.protein > 5 {
-                    MacroGapChip(label: "P", value: Int(gap.gaps.protein), unit: "g", color: .green)
+                    MacroGapChip(label: "P", value: Int(gap.gaps.protein), unit: "g", color: Color.appSuccess)
                 }
                 if gap.gaps.carbs > 10 {
                     MacroGapChip(label: "G", value: Int(gap.gaps.carbs), unit: "g", color: Color.forge)
                 }
                 if gap.gaps.fat > 5 {
-                    MacroGapChip(label: "L", value: Int(gap.gaps.fat), unit: "g", color: .yellow)
+                    MacroGapChip(label: "L", value: Int(gap.gaps.fat), unit: "g", color: Color.statusYellow)
                 }
                 if gap.gaps.calories > 100 {
-                    MacroGapChip(label: "Kcal", value: Int(gap.gaps.calories), unit: "", color: .red)
+                    MacroGapChip(label: "Kcal", value: Int(gap.gaps.calories), unit: "", color: Color.appDanger)
                 }
                 Spacer()
             }
@@ -371,13 +371,13 @@ struct MacroGapCard: View {
                             Spacer()
                             if let prot = item["protein_per_100g"]?.value, let d = Double(prot) {
                                 Text(String(format: "%.0fg prot/100g", d))
-                                    .font(.appCaption).foregroundColor(.green)
+                                    .font(.appCaption).foregroundColor(Color.appSuccess)
                             } else if let carb = item["carbs_per_100g"]?.value, let d = Double(carb) {
                                 Text(String(format: "%.0fg gluc/100g", d))
                                     .font(.appCaption).foregroundColor(Color.forge)
                             } else if let cal = item["calories_per_100g"]?.value, let d = Double(cal) {
                                 Text(String(format: "%.0f kcal/100g", d))
-                                    .font(.appCaption).foregroundColor(.yellow)
+                                    .font(.appCaption).foregroundColor(Color.statusYellow)
                             }
                             if onLogSuggestion != nil {
                                 Button {
@@ -495,7 +495,7 @@ struct NutritionCorrelationsCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("PRÉ-WORKOUT").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextSecondary)
                             Text(String(format: "%.0fg prot", prot))
-                                .font(.appLabel.weight(.black)).foregroundColor(.green)
+                                .font(.appLabel.weight(.black)).foregroundColor(Color.appSuccess)
                             if let cal = timing.preWorkout.avgCalories {
                                 Text(String(format: "%.0f kcal", cal))
                                     .font(.system(size: 10)).foregroundColor(.appTextSecondary)
@@ -567,7 +567,7 @@ private struct NutritionCorrInsightRow: View {
                 VStack(spacing: 2) {
                     Text(left.value)
                         .font(.system(size: 18, weight: .black))
-                        .foregroundColor(positive ? .green : .orange)
+                        .foregroundColor(positive ? Color.appSuccess : Color.appWarning)
                     Text(left.label)
                         .font(.system(size: 10)).foregroundColor(.appTextSecondary)
                 }
@@ -588,7 +588,7 @@ private struct NutritionCorrInsightRow: View {
             HStack(spacing: 4) {
                 Image(systemName: positive ? "checkmark.circle.fill" : "minus.circle.fill")
                     .font(.system(size: 10))
-                    .foregroundColor(positive ? .green : .yellow)
+                    .foregroundColor(positive ? Color.appSuccess : Color.statusYellow)
                 Text(note)
                     .font(.system(size: 10))
                     .foregroundColor(.appTextSecondary)
@@ -637,9 +637,9 @@ struct NutritionQualityBadge: View {
     }
 
     private var qualityColor: Color {
-        if score > 75 { return .green }
-        if score >= 50 { return .orange }
-        return .red
+        if score > 75 { return Color.appSuccess }
+        if score >= 50 { return Color.appWarning }
+        return Color.appDanger
     }
 }
 
@@ -681,7 +681,7 @@ struct WorkoutTimingCard: View {
                 : "Continue sur ta lancée, fenêtre anabolique active."
             return Guidance(
                 icon: "arrow.triangle.2.circlepath",
-                color: .green,
+                color: Color.appSuccess,
                 title: "Récupération post-entraînement",
                 body: msg
             )
@@ -689,7 +689,7 @@ struct WorkoutTimingCard: View {
         if (19...23).contains(hour) && protDeficit > 20 {
             return Guidance(
                 icon: "moon.stars.fill",
-                color: .blue,
+                color: Color.statusBlue,
                 title: "Protéines avant de dormir",
                 body: "Il te manque \(Int(protDeficit))g de protéines. Skyr ou cottage cheese pour la nuit."
             )
@@ -697,7 +697,7 @@ struct WorkoutTimingCard: View {
         if (15...19).contains(hour) && calDeficit < -200 {
             return Guidance(
                 icon: "exclamationmark.triangle.fill",
-                color: .red,
+                color: Color.appDanger,
                 title: "Surplus calorique",
                 body: "Tu as dépassé ton objectif de \(Int(-calDeficit)) kcal. Reste léger ce soir."
             )

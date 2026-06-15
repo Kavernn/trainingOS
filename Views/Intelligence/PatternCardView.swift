@@ -12,10 +12,10 @@ struct PatternDailyCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
                     .font(.appCaption.weight(.bold))
-                    .foregroundColor(.purple)
+                    .foregroundColor(.statusPurple)
                 Text("Pattern détecté")
                     .font(.appCaption.weight(.bold))
-                    .foregroundColor(.purple)
+                    .foregroundColor(.statusPurple)
                     .tracking(0.4)
                 if pattern.isNew {
                     Text("NEW")
@@ -23,7 +23,7 @@ struct PatternDailyCard: View {
                         .foregroundColor(.black)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
-                        .background(Color.yellow)
+                        .background(Color.statusYellow)
                         .clipShape(Capsule())
                 }
                 Spacer()
@@ -51,10 +51,10 @@ struct PatternDailyCard: View {
                         Text(pattern.pinned ? "Suivi" : "Suivre")
                             .font(.system(size: 12, weight: .medium))
                     }
-                    .foregroundColor(pattern.pinned ? .purple : Color(white: 0.5))
+                    .foregroundColor(pattern.pinned ? .statusPurple : Color(white: 0.5))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background((pattern.pinned ? Color.purple : Color.white).opacity(0.09))
+                    .background((pattern.pinned ? Color.statusPurple : Color.white).opacity(0.09))
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -228,10 +228,10 @@ private struct PatternFamilyBadge: View {
 
     private func familyColor(_ f: String) -> Color {
         switch f {
-        case "A": return .purple
-        case "B": return .teal
-        case "C": return .orange
-        case "D": return .red
+        case "A": return .statusPurple
+        case "B": return .statusCyan
+        case "C": return .appWarning
+        case "D": return .appDanger
         case "E": return Color(red: 0.85, green: 0.2, blue: 0.2)   // war-room red
         case "F": return Color(red: 0.3, green: 0.75, blue: 0.65)  // spirit teal-green
         case "G": return Color(red: 0.75, green: 0.3, blue: 0.85)  // reset violet
@@ -247,7 +247,7 @@ private struct ConfidenceChip: View {
     var body: some View {
         HStack(spacing: 4) {
             Circle()
-                .fill(confidence == "forte" ? Color.green : Color.yellow)
+                .fill(confidence == "forte" ? Color.appSuccess : Color.statusYellow)
                 .frame(width: 6, height: 6)
             Text("Confiance \(confidence) · \(n) pts")
                 .font(.system(size: 10))
@@ -289,8 +289,8 @@ private struct PatternTrendChip: View {
 
     private var trendColor: Color {
         switch trend.direction {
-        case "rising":  return .green
-        case "falling": return .red
+        case "rising":  return .appSuccess
+        case "falling": return .appDanger
         default:        return .gray
         }
     }
@@ -322,7 +322,7 @@ struct PatternDailyChip: View {
                                 .foregroundColor(.black)
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 1)
-                                .background(Color.yellow)
+                                .background(Color.statusYellow)
                                 .clipShape(Capsule())
                         }
                     }
@@ -379,7 +379,7 @@ struct MacroThresholdDetail: View {
                 HStack(spacing: 5) {
                     Image(systemName: "target")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.purple.opacity(0.7))
+                        .foregroundColor(.statusPurple.opacity(0.7))
                     Text("SEUIL PERSONNEL CALCULÉ")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(Color(white: 0.4))
@@ -390,7 +390,7 @@ struct MacroThresholdDetail: View {
                     .foregroundColor(.appTextPrimary)
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(pattern.confidence == "forte" ? Color.green : Color.yellow)
+                        .fill(pattern.confidence == "forte" ? Color.appSuccess : Color.statusYellow)
                         .frame(width: 5, height: 5)
                     Text("Basé sur \(pattern.n) paires — corrélation \(pattern.confidence)")
                         .font(.appCaption)
@@ -399,8 +399,8 @@ struct MacroThresholdDetail: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Color.purple.opacity(0.06))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.12), lineWidth: 1))
+            .background(Color.statusPurple.opacity(0.06))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.statusPurple.opacity(0.12), lineWidth: 1))
             .cornerRadius(10)
         }
     }
@@ -425,16 +425,16 @@ struct PatternCardSkeleton: View {
 
 private func colorFromName(_ name: String) -> Color {
     switch name {
-    case "purple":  return .purple
-    case "blue":    return .blue
-    case "green":   return .green
-    case "teal":    return .teal
-    case "orange":  return .orange
-    case "red":     return .red
-    case "yellow":  return .yellow
-    case "indigo":  return .indigo
-    case "pink":    return Color.pink
-    case "cyan":    return Color.cyan
-    default:        return .purple
+    case "purple":  return .statusPurple
+    case "blue":    return .statusBlue
+    case "green":   return .appSuccess
+    case "teal":    return .statusCyan
+    case "orange":  return .appWarning
+    case "red":     return .appDanger
+    case "yellow":  return .statusYellow
+    case "indigo":  return .statusPurple
+    case "pink":    return .statusRed
+    case "cyan":    return .statusCyan
+    default:        return .statusPurple
     }
 }

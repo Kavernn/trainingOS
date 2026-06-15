@@ -15,7 +15,7 @@ struct NutritionComplianceChart: View {
                 ForEach(days.suffix(30)) { day in
                     let cal = day.calories ?? 0
                     let pct = targetCal > 0 ? min(cal / targetCal, 1.4) : 0
-                    let color: Color = pct >= 0.9 && pct <= 1.1 ? .green : pct < 0.9 ? .orange : .red
+                    let color: Color = pct >= 0.9 && pct <= 1.1 ? Color.appSuccess : pct < 0.9 ? Color.appWarning : Color.appDanger
                     VStack(spacing: 2) {
                         Text(String(format: "%.0f", cal))
                             .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
@@ -45,7 +45,7 @@ struct NutritionComplianceChart: View {
                     .font(.system(size: 10)).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
-                    Circle().fill(Color.green).frame(width: 6, height: 6)
+                    Circle().fill(Color.appSuccess).frame(width: 6, height: 6)
                     Text("±10%").font(.appMicro).foregroundColor(.gray)
                 }
             }
@@ -77,7 +77,7 @@ struct RPEDistributionView: View {
 
     var total: Int { distribution.map(\.1).reduce(0, +) }
 
-    private let colors: [Color] = [.green, .teal, .yellow, .orange, .red]
+    private let colors: [Color] = [Color.appSuccess, Color.statusCyan, Color.statusYellow, Color.appWarning, Color.appDanger]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -152,11 +152,11 @@ struct ProteinComplianceView: View {
             }
 
             HStack(spacing: 0) {
-                compKPI("\(Int(complianceRate * 100))%", "jours atteints", complianceRate >= 0.8 ? .green : complianceRate >= 0.5 ? .orange : .red)
+                compKPI("\(Int(complianceRate * 100))%", "jours atteints", complianceRate >= 0.8 ? Color.appSuccess : complianceRate >= 0.5 ? Color.appWarning : Color.appDanger)
                 Divider().background(Color.appSeparator).frame(height: 36)
-                compKPI("\(hitCount)/\(statuses.count)", "jours trackés", .blue)
+                compKPI("\(hitCount)/\(statuses.count)", "jours trackés", Color.statusBlue)
                 Divider().background(Color.appSeparator).frame(height: 36)
-                compKPI("\(Int(avgProteines))g", "moy. / jour", avgProteines >= protTarget ? .green : .orange)
+                compKPI("\(Int(avgProteines))g", "moy. / jour", avgProteines >= protTarget ? Color.appSuccess : Color.appWarning)
             }
 
             if !statuses.isEmpty {
@@ -164,7 +164,7 @@ struct ProteinComplianceView: View {
                 LazyVGrid(columns: columns, spacing: 4) {
                     ForEach(statuses) { day in
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(day.hit ? Color.green : day.partial ? Color.orange : Color.appSurfaceInset)
+                            .fill(day.hit ? Color.appSuccess : day.partial ? Color.appWarning : Color.appSurfaceInset)
                             .frame(height: 14)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 3)
@@ -174,7 +174,7 @@ struct ProteinComplianceView: View {
                 }
 
                 HStack(spacing: 12) {
-                    legendDot(.green,           "Objectif atteint")
+                    legendDot(Color.appSuccess,  "Objectif atteint")
                     legendDot(Color.forge,          "≥ 75%")
                     legendDot(Color.appSurfaceInset, "< 75%")
                 }
@@ -223,8 +223,8 @@ struct MacrosBreakdownView: View {
             let avgCal = avgMacro(\.calories)
 
             HStack(spacing: 10) {
-                StatsMacroBar(label: "Glucides", value: avgG, target: target.glucides, color: .blue, unit: "g")
-                StatsMacroBar(label: "Lipides",  value: avgL, target: target.lipides,  color: .yellow, unit: "g")
+                StatsMacroBar(label: "Glucides", value: avgG, target: target.glucides, color: Color.statusBlue, unit: "g")
+                StatsMacroBar(label: "Lipides",  value: avgL, target: target.lipides,  color: Color.statusYellow, unit: "g")
                 StatsMacroBar(label: "Protéines",value: avgP, target: target.proteines,color: Color.forge, unit: "g")
             }
 
@@ -255,7 +255,7 @@ private struct StatsMacroBar: View {
     }
     var compliance: Color {
         guard target != nil else { return color }
-        return pct >= 0.9 && pct <= 1.1 ? .green : pct < 0.9 ? .orange : .red
+        return pct >= 0.9 && pct <= 1.1 ? Color.appSuccess : pct < 0.9 ? Color.appWarning : Color.appDanger
     }
 
     var body: some View {
@@ -290,7 +290,7 @@ struct ProteinWeightRatioView: View {
                 Spacer()
                 Text(String(format: "Moy. %.2f g/lb", avg))
                     .font(.appCaption.weight(.bold))
-                    .foregroundColor(avg >= 0.8 ? .green : .orange)
+                    .foregroundColor(avg >= 0.8 ? Color.appSuccess : Color.appWarning)
             }
             GeometryReader { geo in
                 let step = data.count > 1 ? geo.size.width / CGFloat(data.count - 1) : geo.size.width
@@ -299,13 +299,13 @@ struct ProteinWeightRatioView: View {
                     let yTop = geo.size.height * (1 - CGFloat(1.2 / maxR))
                     let yBot = geo.size.height * (1 - CGFloat(0.8 / maxR))
                     Rectangle()
-                        .fill(Color.green.opacity(0.08))
+                        .fill(Color.appSuccess.opacity(0.08))
                         .frame(width: geo.size.width, height: yBot - yTop)
                         .position(x: geo.size.width/2, y: (yTop + yBot)/2)
                     // Target line
                     let yTarget = geo.size.height * (1 - CGFloat(target / maxR))
                     Path { p in p.move(to: .init(x: 0, y: yTarget)); p.addLine(to: .init(x: geo.size.width, y: yTarget)) }
-                        .stroke(Color.green.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                        .stroke(Color.appSuccess.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [4]))
                     // Line chart
                     if data.count >= 2 {
                         Path { p in
@@ -340,7 +340,7 @@ struct MacrosDayTypeView: View {
             if let t = data.training, let r = data.rest {
                 HStack(spacing: 12) {
                     macroColumn(label: "Entraînement", bucket: t, color: Color.forge, n: data.nTraining)
-                    macroColumn(label: "Repos", bucket: r, color: .blue, n: data.nRest)
+                    macroColumn(label: "Repos", bucket: r, color: Color.statusBlue, n: data.nRest)
                 }
             }
         }
@@ -354,8 +354,8 @@ struct MacrosDayTypeView: View {
             Text(label).font(.appCaption.weight(.bold)).foregroundColor(color)
             Text("(\(n) jours)").font(.appMicro).foregroundColor(.gray)
             macroRow("Calories", String(format: "%.0f kcal", bucket.avgCal), color)
-            macroRow("Protéines", String(format: "%.0f g", bucket.avgProt), .green)
-            macroRow("Glucides", String(format: "%.0f g", bucket.avgCarbs), .yellow)
+            macroRow("Protéines", String(format: "%.0f g", bucket.avgProt), Color.appSuccess)
+            macroRow("Glucides", String(format: "%.0f g", bucket.avgCarbs), Color.statusYellow)
             macroRow("Lipides", String(format: "%.0f g", bucket.avgFat), Color.forge)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -466,7 +466,7 @@ struct NutritionVsPerfView: View {
                     else { path.addLine(to: CGPoint(x: x, y: y)) }
                 }
             }
-            .stroke(Color.green, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [4, 3]))
+            .stroke(Color.appSuccess, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [4, 3]))
         }
         .frame(height: 60)
 
@@ -476,7 +476,7 @@ struct NutritionVsPerfView: View {
                 Text("Volume").font(.appMicro).foregroundColor(.gray)
             }
             HStack(spacing: 4) {
-                Rectangle().fill(Color.green).frame(width: 16, height: 2)
+                Rectangle().fill(Color.appSuccess).frame(width: 16, height: 2)
                 Text("Adherence macros").font(.appMicro).foregroundColor(.gray)
             }
         }

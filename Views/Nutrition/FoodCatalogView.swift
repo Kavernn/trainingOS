@@ -64,10 +64,10 @@ struct FoodCatalogView: View {
                                                 .foregroundColor(.appTextSecondary)
                                         }
                                         HStack(spacing: 12) {
-                                            macroChip("\(Int(item.calories)) kcal", .orange)
-                                            macroChip("\(fmt(item.proteines))g P", .blue)
-                                            macroChip("\(fmt(item.glucides))g C", .yellow)
-                                            macroChip("\(fmt(item.lipides))g L", .pink)
+                                            macroChip("\(Int(item.calories)) kcal", Color.appWarning)
+                                            macroChip("\(fmt(item.proteines))g P", Color.statusBlue)
+                                            macroChip("\(fmt(item.glucides))g C", Color.statusYellow)
+                                            macroChip("\(fmt(item.lipides))g L", Color.statusRed)
                                         }
                                     }
                                     if !item.isBuiltIn {
@@ -159,7 +159,7 @@ struct FoodCatalogView: View {
 
     @ViewBuilder
     private func categoryBadge(_ cat: String) -> some View {
-        let color: Color = cat == "Viande" ? .red : cat == "Fruit" ? .green : cat == "Légume" ? .orange : .gray
+        let color: Color = cat == "Viande" ? Color.appDanger : cat == "Fruit" ? Color.appSuccess : cat == "Légume" ? Color.appWarning : .gray
         Text(cat)
             .font(.system(size: 9, weight: .semibold))
             .foregroundColor(color)
@@ -258,7 +258,7 @@ struct FoodItemFormView: View {
                         if !refQty.isEmpty && Double(refQty.replacingOccurrences(of: ",", with: ".")) == nil {
                             Text("Doit être un nombre")
                                 .font(.caption)
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.appDanger)
                         }
                     }
                     .listRowBackground(Color.appCard)

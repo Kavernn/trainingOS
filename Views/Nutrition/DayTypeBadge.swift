@@ -10,10 +10,10 @@ struct DayTypeBadge: View {
 
     private var config: (icon: String, label: String, color: Color) {
         switch type {
-        case "heavy":    return ("dumbbell.fill",                       "Lourd · surplus léger",   .orange)
-        case "moderate": return ("figure.strengthtraining.traditional", "Modéré · maintenance",    .yellow)
+        case "heavy":    return ("dumbbell.fill",                       "Lourd · surplus léger",   Color.appWarning)
+        case "moderate": return ("figure.strengthtraining.traditional", "Modéré · maintenance",    Color.statusYellow)
         case "light":    return ("figure.arms.open",                    "Léger · léger déficit",   Color(hex: "00BCD4"))
-        default:         return ("moon.fill",                           "Repos · déficit",         .blue)
+        default:         return ("moon.fill",                           "Repos · déficit",         Color.statusBlue)
         }
     }
 

@@ -6,11 +6,11 @@ struct MesocycleChip: View {
 
     private var color: Color {
         switch info.phaseLabel {
-        case "S1–S2": return .blue
-        case "S3–S4": return .orange
-        case "S5–S6": return .red
-        case "S7":    return .green
-        default:      return .purple
+        case "S1–S2": return Color.statusBlue
+        case "S3–S4": return Color.statusOrange
+        case "S5–S6": return Color.appDanger
+        case "S7":    return Color.appSuccess
+        default:      return Color.statusPurple
         }
     }
 
@@ -49,10 +49,10 @@ struct ReadinessChip: View {
 
     private var swiftColor: Color {
         switch color {
-        case "green":  return .green
-        case "yellow": return .yellow
-        case "orange": return .orange
-        case "red":    return .red
+        case "green":  return Color.appSuccess
+        case "yellow": return Color.statusYellow
+        case "orange": return Color.statusOrange
+        case "red":    return Color.appDanger
         default:       return .gray
         }
     }

@@ -89,7 +89,7 @@ private struct RecoveryDayCell: View {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(color.opacity(0.28))
                     HStack(spacing: 3) {
-                        Image(systemName: "heart.fill").font(.appMicro).foregroundColor(.red.opacity(0.65))
+                        Image(systemName: "heart.fill").font(.appMicro).foregroundColor(Color.appDanger.opacity(0.65))
                         Text("Sync Santé").font(.appCaption.weight(.bold)).foregroundColor(Color.forge.opacity(0.9))
                     }
                     Text(label)
@@ -102,8 +102,8 @@ private struct RecoveryDayCell: View {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(color.opacity(0.28))
                     HStack(spacing: 3) {
-                        Image(systemName: "pencil").font(.appMicro).foregroundColor(.blue.opacity(0.75))
-                        Text("Saisir").font(.appCaption.weight(.bold)).foregroundColor(.blue.opacity(0.85))
+                        Image(systemName: "pencil").font(.appMicro).foregroundColor(Color.statusBlue.opacity(0.75))
+                        Text("Saisir").font(.appCaption.weight(.bold)).foregroundColor(Color.statusBlue.opacity(0.85))
                     }
                     Text(label)
                         .font(.appMicro.weight(.medium))
@@ -127,16 +127,16 @@ private struct RecoveryDayCell: View {
     private var cellBg: Color {
         switch state {
         case .value:        return Color.appCard
-        case .hkNeeded:     return Color.orange.opacity(0.06)
-        case .manualNeeded: return Color.blue.opacity(0.06)
+        case .hkNeeded:     return Color.statusOrange.opacity(0.06)
+        case .manualNeeded: return Color.statusBlue.opacity(0.06)
         }
     }
 
     private var cellBorder: Color {
         switch state {
         case .value:        return Color.white.opacity(0.07)
-        case .hkNeeded:     return Color.orange.opacity(0.20)
-        case .manualNeeded: return Color.blue.opacity(0.17)
+        case .hkNeeded:     return Color.statusOrange.opacity(0.20)
+        case .manualNeeded: return Color.statusBlue.opacity(0.17)
         }
     }
 }
@@ -159,18 +159,18 @@ private struct RecoveryHeroCard: View {
 
     private var scoreColor: Color {
         guard score != nil else { return .gray }
-        if scoreInt >= 80 { return .green }
+        if scoreInt >= 80 { return Color.appSuccess }
         if scoreInt >= 60 { return Color(red: 1.0, green: 0.78, blue: 0.0) }
-        if scoreInt >= 40 { return .orange }
-        return .red
+        if scoreInt >= 40 { return Color.statusOrange }
+        return Color.appDanger
     }
 
     private var gradientTop: Color {
         guard score != nil else { return .gray.opacity(0.12) }
-        if scoreInt >= 80 { return .green.opacity(0.28) }
+        if scoreInt >= 80 { return Color.appSuccess.opacity(0.28) }
         if scoreInt >= 60 { return Color(red: 1.0, green: 0.78, blue: 0.0).opacity(0.22) }
-        if scoreInt >= 40 { return .orange.opacity(0.24) }
-        return .red.opacity(0.24)
+        if scoreInt >= 40 { return Color.statusOrange.opacity(0.24) }
+        return Color.appDanger.opacity(0.24)
     }
 
     private var verdictLabel: String {
@@ -247,15 +247,15 @@ private struct RecoveryHeroCard: View {
                 heroPill(icon: "waveform.path.ecg",
                          label: "HRV",
                          value: hrv.map { String(format: "%.0f ms", $0) },
-                         color: .green)
+                         color: Color.appSuccess)
                 heroPill(icon: "moon.zzz.fill",
                          label: "Sommeil",
                          value: sleepHours.map { String(format: "%.1f h", $0) },
-                         color: .blue)
+                         color: Color.statusBlue)
                 heroPill(icon: "heart.fill",
                          label: "FC repos",
                          value: restingHr.map { String(format: "%.0f bpm", $0) },
-                         color: .red)
+                         color: Color.appDanger)
             }
             .padding(.horizontal, 14)
             .padding(.bottom, 16)
@@ -341,10 +341,10 @@ private struct RecoverySleepBarChart: View {
     }()
 
     private func barColor(_ h: Double) -> Color {
-        if h < 5 { return .red }
-        if h < goalHours * 0.85 { return .orange }
-        if h <= goalHours * 1.15 { return .green }
-        return .blue
+        if h < 5 { return Color.appDanger }
+        if h < goalHours * 0.85 { return Color.statusOrange }
+        if h <= goalHours * 1.15 { return Color.appSuccess }
+        return Color.statusBlue
     }
 
     private func dayLabel(_ iso: String) -> String {
@@ -356,11 +356,11 @@ private struct RecoverySleepBarChart: View {
         let yMax = max((entries.compactMap(\.sleepHours).max() ?? 9) + 0.5, goalHours + 0.5)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 5) {
-                Image(systemName: "moon.zzz.fill").font(.appMicro).foregroundColor(.blue)
+                Image(systemName: "moon.zzz.fill").font(.appMicro).foregroundColor(Color.statusBlue)
                 Text("SOMMEIL — \(entries.count) JOURS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text(String(format: "Obj. %.0fh", goalHours))
-                    .font(.appMicro.weight(.semibold)).foregroundColor(.green.opacity(0.7))
+                    .font(.appMicro.weight(.semibold)).foregroundColor(Color.appSuccess.opacity(0.7))
             }
             GeometryReader { geo in
                 let w = geo.size.width
@@ -374,7 +374,7 @@ private struct RecoverySleepBarChart: View {
                         p.move(to: CGPoint(x: 0, y: goalY))
                         p.addLine(to: CGPoint(x: w, y: goalY))
                     }
-                    .stroke(Color.green.opacity(0.35),
+                    .stroke(Color.appSuccess.opacity(0.35),
                             style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
 
                     // Bars + quality dots
@@ -391,7 +391,7 @@ private struct RecoverySleepBarChart: View {
 
                         // Quality dot
                         if let q = entry.sleepQuality {
-                            let qColor: Color = q >= 7 ? .green : (q >= 4 ? .yellow : .red)
+                            let qColor: Color = q >= 7 ? Color.appSuccess : (q >= 4 ? Color.statusYellow : Color.appDanger)
                             Circle()
                                 .fill(qColor)
                                 .frame(width: 5, height: 5)
@@ -457,13 +457,13 @@ private struct AccordionRow: View {
                 Group {
                     metricChip(icon: "moon.zzz.fill",
                                value: entry.sleepHours.map { String(format: "%.1fh", $0) },
-                               color: .blue)
+                               color: Color.statusBlue)
                     metricChip(icon: "waveform.path.ecg",
                                value: entry.hrv.map { String(format: "%.0f", $0) },
-                               color: .green)
+                               color: Color.appSuccess)
                     metricChip(icon: "heart.fill",
                                value: entry.restingHr.map { String(format: "%.0f", $0) },
-                               color: .red)
+                               color: Color.appDanger)
                 }
                 Image(systemName: "pencil")
                     .font(.appMicro)
@@ -752,7 +752,7 @@ struct RecoveryView: View {
         let manualAction: () -> Void = {
             if let e = entry { editTarget = e } else { showSheet = true }
         }
-        let hkvColor = hrvAnalysis?.zoneColor ?? Color.green
+        let hkvColor = hrvAnalysis?.zoneColor ?? Color.appSuccess
 
         func hk(_ v: String?) -> RecoveryMetricState { v.map { .value($0) } ?? .hkNeeded }
         func man(_ v: String?) -> RecoveryMetricState { v.map { .value($0) } ?? .manualNeeded }
@@ -762,11 +762,11 @@ struct RecoveryView: View {
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                RecoveryDayCell(icon: "moon.zzz.fill", label: "Sommeil", color: .blue,
+                RecoveryDayCell(icon: "moon.zzz.fill", label: "Sommeil", color: Color.statusBlue,
                                 state: hk(entry?.sleepHours.map { String(format: "%.1fh", $0) }),
                                 infoEntry: .sleepDurationMetric,
                                 onAction: { Task { await syncHealthKitNow() } })
-                RecoveryDayCell(icon: "heart.fill", label: "FC repos", color: .red,
+                RecoveryDayCell(icon: "heart.fill", label: "FC repos", color: Color.appDanger,
                                 state: hk(entry?.restingHr.map { String(format: "%.0f bpm", $0) }),
                                 infoEntry: .restingHrMetric,
                                 onAction: { Task { await syncHealthKitNow() } })
@@ -774,21 +774,21 @@ struct RecoveryView: View {
                                 state: hk(entry?.hrv.map { String(format: "%.0f ms", $0) }),
                                 infoEntry: .hrvMetric,
                                 onAction: { Task { await syncHealthKitNow() } })
-                RecoveryDayCell(icon: "figure.walk", label: "Pas", color: .teal,
+                RecoveryDayCell(icon: "figure.walk", label: "Pas", color: Color.statusCyan,
                                 state: hk(stepsVal),
                                 infoEntry: .stepsMetric,
                                 onAction: { Task { await syncHealthKitNow() } })
-                RecoveryDayCell(icon: "flame.fill", label: "Énergie active", color: .orange,
+                RecoveryDayCell(icon: "flame.fill", label: "Énergie active", color: Color.statusOrange,
                                 state: hk(entry?.activeEnergy.map { String(format: "%.0f kcal", $0) }),
                                 infoEntry: .activeEnergyMetric,
                                 onAction: { Task { await syncHealthKitNow() } })
-                RecoveryDayCell(icon: "star.fill", label: "Qualité sommeil", color: .purple,
+                RecoveryDayCell(icon: "star.fill", label: "Qualité sommeil", color: Color.statusPurple,
                                 state: man(entry?.sleepQuality.map { String(format: "%.1f/10", $0) }),
                                 infoEntry: .sleepQualityMetric, onAction: manualAction)
-                RecoveryDayCell(icon: "bolt.fill", label: "Courbatures", color: .yellow,
+                RecoveryDayCell(icon: "bolt.fill", label: "Courbatures", color: Color.statusYellow,
                                 state: man(entry?.soreness.map { String(format: "%.1f/10", $0) }),
                                 infoEntry: .sorenessMetric, onAction: manualAction)
-                RecoveryDayCell(icon: "battery.25percent", label: "Fatigue", color: .red,
+                RecoveryDayCell(icon: "battery.25percent", label: "Fatigue", color: Color.appDanger,
                                 state: man(entry?.fatigue.map { String(format: "%.1f/10", $0) }),
                                 infoEntry: .fatigueMetric, onAction: manualAction)
                 RecoveryDayCell(icon: "bolt.circle.fill", label: "Énergie pré", color: .mint,
@@ -800,7 +800,7 @@ struct RecoveryView: View {
                 || hkSpO2 != nil || hkWristTemp != nil {
                 let postColor = Color(red: 1, green: 0.42, blue: 0.12)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    RecoveryDayCell(icon: "sunrise.fill", label: "FC matin", color: .cyan,
+                    RecoveryDayCell(icon: "sunrise.fill", label: "FC matin", color: Color.statusCyan,
                                     state: hk(entry?.hrMorning.map { String(format: "%.0f", $0) }),
                                     infoEntry: .hrMorningMetric,
                                     onAction: { Task { await syncHealthKitNow() } })
@@ -812,7 +812,7 @@ struct RecoveryView: View {
                                     state: hk(entry?.hrEvening.map { String(format: "%.0f", $0) }),
                                     infoEntry: .hrEveningMetric,
                                     onAction: { Task { await syncHealthKitNow() } })
-                    RecoveryDayCell(icon: "lungs.fill", label: "SpO2", color: .blue,
+                    RecoveryDayCell(icon: "lungs.fill", label: "SpO2", color: Color.statusBlue,
                                     state: hk(hkSpO2.map { String(format: "%.0f%%", $0) }),
                                     infoEntry: .spo2Metric,
                                     onAction: { Task { await syncHealthKitNow() } })
@@ -840,13 +840,13 @@ struct RecoveryView: View {
             // ── Hero ──────────────────────────────────────
             if let h = hours {
                 let ratio = min(h / goal, 1.0)
-                let dColor: Color = h < 5 ? .red : (h < goal * 0.85 ? .orange : .green)
+                let dColor: Color = h < 5 ? Color.appDanger : (h < goal * 0.85 ? Color.statusOrange : Color.appSuccess)
 
                 VStack(spacing: 0) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 5) {
-                                Image(systemName: "moon.zzz.fill").font(.appMicro).foregroundColor(.blue)
+                                Image(systemName: "moon.zzz.fill").font(.appMicro).foregroundColor(Color.statusBlue)
                                 Text("SOMMEIL").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                             }
                             HStack(alignment: .firstTextBaseline, spacing: 3) {
@@ -874,7 +874,7 @@ struct RecoveryView: View {
                                 .foregroundColor(dColor)
                             if let q = quality {
                                 HStack(spacing: 2) {
-                                    Image(systemName: "star.fill").font(.appMicro).foregroundColor(.yellow)
+                                    Image(systemName: "star.fill").font(.appMicro).foregroundColor(Color.statusYellow)
                                     Text(String(format: "%.1f/10", q))
                                         .font(.appCaption.weight(.semibold)).foregroundColor(.white.opacity(0.8))
                                 }
@@ -907,12 +907,12 @@ struct RecoveryView: View {
         Group {
             if let hrM = todayEntry?.hrMorning, let rhr = todayEntry?.restingHr {
                 let delta = hrM - rhr
-                let dColor: Color = delta < 10 ? .green : (delta < 20 ? .orange : .red)
+                let dColor: Color = delta < 10 ? Color.appSuccess : (delta < 20 ? Color.statusOrange : Color.appDanger)
                 HStack(spacing: 0) {
                     VStack(spacing: 3) {
                         Text("FC MATIN").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                         Text(String(format: "%.0f bpm", hrM))
-                            .font(.system(size: 22, weight: .black, design: .rounded)).foregroundColor(.cyan)
+                            .font(.system(size: 22, weight: .black, design: .rounded)).foregroundColor(Color.statusCyan)
                     }
                     .frame(maxWidth: .infinity)
                     VStack(spacing: 3) {
@@ -924,7 +924,7 @@ struct RecoveryView: View {
                     VStack(spacing: 3) {
                         Text("FC REPOS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                         Text(String(format: "%.0f bpm", rhr))
-                            .font(.system(size: 22, weight: .black, design: .rounded)).foregroundColor(.red)
+                            .font(.system(size: 22, weight: .black, design: .rounded)).foregroundColor(Color.appDanger)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -947,11 +947,11 @@ struct RecoveryView: View {
                 let avg = pts.reduce(0, +) / Double(pts.count)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "waveform.path.ecg").font(.appMicro).foregroundColor(.green)
+                        Image(systemName: "waveform.path.ecg").font(.appMicro).foregroundColor(Color.appSuccess)
                         Text("HRV — \(pts.count) JOURS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                         Spacer()
                         Text(String(format: "%.0f ms moy.", avg))
-                            .font(.appCaption.weight(.semibold)).foregroundColor(.green)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(Color.appSuccess)
                     }
                     GeometryReader { geo in
                         let w = geo.size.width
@@ -965,7 +965,7 @@ struct RecoveryView: View {
                                     p.move(to: CGPoint(x: 0, y: by))
                                     p.addLine(to: CGPoint(x: w, y: by))
                                 }
-                                .stroke(Color.green.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                                .stroke(Color.appSuccess.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             }
                             // area fill
                             Path { p in
@@ -981,7 +981,7 @@ struct RecoveryView: View {
                                 p.closeSubpath()
                             }
                             .fill(
-                                LinearGradient(colors: [Color.green.opacity(0.18), Color.green.opacity(0)],
+                                LinearGradient(colors: [Color.appSuccess.opacity(0.18), Color.appSuccess.opacity(0)],
                                                startPoint: .top, endPoint: .bottom)
                             )
                             // line
@@ -994,12 +994,12 @@ struct RecoveryView: View {
                                     p.addLine(to: CGPoint(x: x, y: y))
                                 }
                             }
-                            .stroke(Color.green.opacity(0.75), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                            .stroke(Color.appSuccess.opacity(0.75), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
                             // last dot
                             if let last = pts.last {
                                 let lx = CGFloat(pts.count - 1) * step
                                 let ly = h - CGFloat((last - mn) / rng) * h
-                                Circle().fill(Color.green).frame(width: 7, height: 7)
+                                Circle().fill(Color.appSuccess).frame(width: 7, height: 7)
                                     .position(x: lx, y: ly)
                             }
                         }
@@ -1082,24 +1082,24 @@ struct RecoveryView: View {
                 if !entriesMissingHK.isEmpty && !backfillDone {
                     HStack(spacing: 10) {
                         Image(systemName: "heart.text.square.fill")
-                            .font(.appLabel).foregroundColor(.red)
+                            .font(.appLabel).foregroundColor(Color.appDanger)
                         Text("\(entriesMissingHK.count) entrée\(entriesMissingHK.count > 1 ? "s" : "") sans FC/HRV")
                             .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                             .lineLimit(1)
                         Spacer()
                         Button { Task { await backfillFromHealthKit() } } label: {
                             if isBackfilling {
-                                ProgressView().tint(.red).scaleEffect(0.65)
+                                ProgressView().tint(Color.appDanger).scaleEffect(0.65)
                             } else {
                                 Text("Sync")
-                                    .font(.appCaption.weight(.semibold)).foregroundColor(.red)
+                                    .font(.appCaption.weight(.semibold)).foregroundColor(Color.appDanger)
                             }
                         }
                         .disabled(isBackfilling)
                     }
                     .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(Color.red.opacity(0.07))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.14), lineWidth: 1))
+                    .background(Color.appDanger.opacity(0.07))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appDanger.opacity(0.14), lineWidth: 1))
                     .cornerRadius(10)
                     .padding(.horizontal, 16)
                     .appearAnimation(delay: 0)
@@ -1118,24 +1118,24 @@ struct RecoveryView: View {
                 // KPI grid — récupération
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     KPICard(value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
-                            label: "Sommeil moy.", color: .blue,
+                            label: "Sommeil moy.", color: Color.statusBlue,
                             subtitle: countSleep > 0 ? "sur \(countSleep) logs" : nil)
                     KPICard(value: avgSleepQuality > 0 ? String(format: "%.1f/10", avgSleepQuality) : "—",
-                            label: "Qualité moy.", color: .purple,
+                            label: "Qualité moy.", color: Color.statusPurple,
                             subtitle: countSleepQuality > 0 ? "sur \(countSleepQuality) logs" : nil)
                     KPICard(value: avgRestHR > 0 ? String(format: "%.0f bpm", avgRestHR) : "—",
-                            label: "FC repos moy.", color: .red,
+                            label: "FC repos moy.", color: Color.appDanger,
                             subtitle: countRestHR > 0 ? "sur \(countRestHR) logs" : nil)
                     KPICard(value: avgSteps > 0 ? String(format: "%.0f", avgSteps) : "—",
-                            label: "Pas moy./jour", color: .green,
+                            label: "Pas moy./jour", color: Color.appSuccess,
                             subtitle: countSteps > 0 ? "sur \(countSteps) logs" : nil)
                     KPICard(value: avgActiveEnergy > 0 ? String(format: "%.0f kcal", avgActiveEnergy) : "—",
-                            label: "Énergie active", color: .orange,
+                            label: "Énergie active", color: Color.statusOrange,
                             subtitle: countActiveEnergy > 0 ? "sur \(countActiveEnergy) logs" : nil)
                     KPICard(
                         value: avgHRV > 0 ? String(format: "%.0f ms", avgHRV) : "—",
                         label: "HRV moy.",
-                        color: hrvAnalysis?.zoneColor ?? .green,
+                        color: hrvAnalysis?.zoneColor ?? Color.appSuccess,
                         subtitle: countHRV > 0 ? "sur \(countHRV) logs" : nil
                     )
                 }
@@ -1145,7 +1145,7 @@ struct RecoveryView: View {
                 if avgFatigue > 0 {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         KPICard(value: String(format: "%.1f/10", avgFatigue),
-                                label: "Fatigue moy.", color: avgFatigue >= 7 ? .red : (avgFatigue >= 4 ? .orange : .green))
+                                label: "Fatigue moy.", color: avgFatigue >= 7 ? Color.appDanger : (avgFatigue >= 4 ? Color.statusOrange : Color.appSuccess))
                     }
                     .padding(.horizontal, 16)
                     .appearAnimation(delay: 0.025)
@@ -1154,11 +1154,11 @@ struct RecoveryView: View {
                 if avgHRMorning > 0 || avgHRPostWorkout > 0 || avgHREvening > 0 {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         KPICard(value: avgHRMorning > 0 ? String(format: "%.0f bpm", avgHRMorning) : "—",
-                                label: "FC matin moy.", color: .cyan)
+                                label: "FC matin moy.", color: Color.statusCyan)
                         KPICard(value: avgHRPostWorkout > 0 ? String(format: "%.0f bpm", avgHRPostWorkout) : "—",
-                                label: "FC post séance", color: .orange)
+                                label: "FC post séance", color: Color.statusOrange)
                         KPICard(value: avgHREvening > 0 ? String(format: "%.0f bpm", avgHREvening) : "—",
-                                label: "FC soir moy.", color: .blue)
+                                label: "FC soir moy.", color: Color.statusBlue)
                     }
                     .padding(.horizontal, 16)
                     .appearAnimation(delay: 0.03)
@@ -1201,7 +1201,7 @@ struct RecoveryView: View {
                 if hrvEntries.filter({ $0.hrv != nil }).count >= 2 {
                     HRVChart(entries: hrvEntries,
                              baseline: hrvAnalysis?.hrv7dAvg,
-                             zoneColor: hrvAnalysis?.zoneColor ?? .green)
+                             zoneColor: hrvAnalysis?.zoneColor ?? Color.appSuccess)
                         .padding(.horizontal, 16)
                         .appearAnimation(delay: 0.05)
                 }

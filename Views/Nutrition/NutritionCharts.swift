@@ -24,7 +24,7 @@ struct WeeklyProteinChart: View {
                             VStack(spacing: 0) {
                                 Spacer()
                                 RoundedRectangle(cornerRadius: 4)
-                                    .fill(isToday ? Color.blue : Color.blue.opacity(0.4))
+                                    .fill(isToday ? Color.statusBlue : Color.statusBlue.opacity(0.4))
                                     .frame(height: max(geo.size.height * pct, 4))
                             }
                         }
@@ -34,14 +34,14 @@ struct WeeklyProteinChart: View {
                             .foregroundColor(.appTextSecondary)
                         Text("\(Int(day.proteines))g")
                             .font(.appMicro.weight(.semibold))
-                            .foregroundColor(isToday ? .blue : .gray)
+                            .foregroundColor(isToday ? Color.statusBlue : .gray)
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
 
             HStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 2).fill(Color.blue.opacity(0.3)).frame(width: 20, height: 2)
+                RoundedRectangle(cornerRadius: 2).fill(Color.statusBlue.opacity(0.3)).frame(width: 20, height: 2)
                 Text("Objectif \(Int(target))g prot")
                     .font(.system(size: 10))
                     .foregroundColor(.appTextSecondary)
@@ -148,7 +148,7 @@ struct WeeklyNutritionChart: View {
         }
     }
 
-    private var accentColor: Color { metric == .calories ? Color.forge : .blue }
+    private var accentColor: Color { metric == .calories ? Color.forge : Color.statusBlue }
 
     private func value(for day: NutritionDayHistory) -> Double {
         metric == .calories ? day.calories : day.proteines
@@ -254,12 +254,12 @@ struct WeeklyNutritionChart: View {
                         Label(ok ? "Dans l'objectif" : "Hors objectif",
                               systemImage: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
                             .font(.appCaption)
-                            .foregroundColor(ok ? .green : .red)
+                            .foregroundColor(ok ? Color.appSuccess : Color.appDanger)
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 Capsule().fill(Color.white.opacity(0.06)).frame(height: 4)
                                 Capsule()
-                                    .fill(ok ? Color.green : Color.red)
+                                    .fill(ok ? Color.appSuccess : Color.appDanger)
                                     .frame(width: max(4, geo.size.width * min(pct, 1.0)), height: 4)
                             }
                         }

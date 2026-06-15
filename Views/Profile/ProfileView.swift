@@ -12,7 +12,7 @@ func dnaArchetypeAccent(_ key: String) -> Color {
     case "grinder":     return Color(red: 0.13, green: 0.77, blue: 0.37)
     case "warrior":     return Color(red: 0.66, green: 0.33, blue: 0.97)
     case "athlete":     return Color(red: 0.08, green: 0.72, blue: 0.64)
-    default:            return .orange
+    default:            return Color.appWarning
     }
 }
 
@@ -302,7 +302,7 @@ struct ProfileView: View {
         ZStack {
             Circle()
                 .fill(LinearGradient(
-                    colors: [Color.forge.opacity(0.6), Color.red.opacity(0.4)],
+                    colors: [Color.forge.opacity(0.6), Color.appDanger.opacity(0.4)],
                     startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 88, height: 88)
                 .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
@@ -342,7 +342,7 @@ struct ProfileView: View {
                             Text(String(format: "%.1f cette semaine", abs(delta7d)))
                                 .font(.appCaption)
                         }
-                        .foregroundColor(delta7d >= 0 ? .green : .red)
+                        .foregroundColor(delta7d >= 0 ? Color.appSuccess : Color.appDanger)
                     }
                 }
                 Spacer()
@@ -351,9 +351,9 @@ struct ProfileView: View {
             HStack(spacing: 0) {
                 phoenixAxisChip(icon: "dumbbell.fill",   label: "FORCE",      delta: px.axes.workout.delta,   color: Color.forge)
                 Divider().background(Color.appSeparatorStrong).padding(.vertical, 4)
-                phoenixAxisChip(icon: "brain.head.profile", label: "MENTAL",  delta: px.axes.stress.delta,    color: .purple)
+                phoenixAxisChip(icon: "brain.head.profile", label: "MENTAL",  delta: px.axes.stress.delta,    color: Color.statusPurple)
                 Divider().background(Color.appSeparatorStrong).padding(.vertical, 4)
-                phoenixAxisChip(icon: "fork.knife",      label: "NUTRITION",  delta: px.axes.nutrition.delta, color: .green)
+                phoenixAxisChip(icon: "fork.knife",      label: "NUTRITION",  delta: px.axes.nutrition.delta, color: Color.appSuccess)
             }
             .background(Color.white.opacity(0.04))
             .cornerRadius(10)
@@ -377,7 +377,7 @@ struct ProfileView: View {
                     Text(String(format: "%.1f", abs(delta)))
                         .font(.appMicro).fontWeight(.semibold)
                 }
-                .foregroundColor(delta >= 0 ? .green : .red)
+                .foregroundColor(delta >= 0 ? Color.appSuccess : Color.appDanger)
             } else {
                 Text("—").font(.appMicro).foregroundColor(.gray.opacity(0.4))
             }
@@ -401,20 +401,20 @@ struct ProfileView: View {
             )
             ProfileStatSquare(
                 value: currentStreak > 0 ? "\(currentStreak)j" : "—",
-                label: "STREAK", icon: "flame.fill", color: .red,
+                label: "STREAK", icon: "flame.fill", color: Color.appDanger,
                 subtitle: longestStreak > 0 ? "record \(longestStreak)j" : nil,
                 isRecord: currentStreak > 0 && currentStreak >= longestStreak,
                 hasData: currentStreak > 0
             )
             ProfileStatSquare(
                 value: allTimeVolumeLbs > 0 ? allTimeVolumeFormatted : "—",
-                label: "VOLUME ALL-TIME", icon: "scalemass.fill", color: .blue,
+                label: "VOLUME ALL-TIME", icon: "scalemass.fill", color: Color.statusBlue,
                 subtitle: nil,
                 hasData: allTimeVolumeLbs > 0
             )
             ProfileStatSquare(
                 value: "\(sessionsThisMonth)",
-                label: "JOURS ACTIFS CE MOIS", icon: "calendar", color: .green,
+                label: "JOURS ACTIFS CE MOIS", icon: "calendar", color: Color.appSuccess,
                 subtitle: nil,
                 hasData: true
             )
@@ -477,7 +477,7 @@ struct ProfileView: View {
                     Text(units.format(abs(d)))
                         .font(.appCaption).fontWeight(.semibold)
                 }
-                .foregroundColor(d <= 0 ? .green : .orange)
+                .foregroundColor(d <= 0 ? Color.appSuccess : Color.appWarning)
             }
             Text("POIDS").font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
         }
@@ -560,7 +560,7 @@ struct ProfileView: View {
                         .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                     Spacer()
                     Image(systemName: "trophy.fill")
-                        .font(.appCaption).foregroundColor(.yellow.opacity(0.8))
+                        .font(.appCaption).foregroundColor(Color.statusYellow.opacity(0.8))
                 }
                 .padding(.bottom, 12)
 
@@ -594,7 +594,7 @@ struct ProfileView: View {
                     .font(.appLabel).fontWeight(.bold).foregroundColor(.appTextPrimary)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% — ancienne limite")
-                        .font(.appCaption).fontWeight(.semibold).foregroundColor(.green)
+                        .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.appSuccess)
                 }
             }
             Image(systemName: "chevron.right")
@@ -643,7 +643,7 @@ struct ProfileView: View {
             }
 
             if !trendLabel.isEmpty {
-                let trendColor: Color = trendPositive == nil ? .gray : (trendPositive! ? .green : .red)
+                let trendColor: Color = trendPositive == nil ? .gray : (trendPositive! ? Color.appSuccess : Color.appDanger)
                 Text(trendLabel)
                     .font(.appMicro).fontWeight(.semibold)
                     .foregroundColor(trendColor)
@@ -680,7 +680,7 @@ struct ProfileView: View {
         let minS   = scores.min() ?? 0
         let maxS   = max(scores.max() ?? 1, minS + 1)
         let improving  = (scores.last ?? 0) <= (scores.first ?? 0)
-        let lineColor: Color = improving ? .green : .red
+        let lineColor: Color = improving ? Color.appSuccess : Color.appDanger
         return Canvas { ctx, size in
             guard scores.count >= 2 else { return }
             let step = size.width / CGFloat(scores.count - 1)
@@ -824,16 +824,16 @@ struct ProfileView: View {
 
     private var settingsCard: some View {
         VStack(spacing: 0) {
-            settingsRow(icon: "trophy.fill",         color: .yellow,  label: "Objectif & niveau",
+            settingsRow(icon: "trophy.fill",         color: Color.statusYellow,  label: "Objectif & niveau",
                         detail: profile?.goal.flatMap { $0.isEmpty ? nil : $0 },
                         action: { showEdit = true })
             settingsDivider
-            settingsRow(icon: "waveform.path.ecg", color: .cyan, label: "Revoir l'intro HRV", detail: nil, action: {
+            settingsRow(icon: "waveform.path.ecg", color: Color.statusCyan, label: "Revoir l'intro HRV", detail: nil, action: {
                 hrvOnboardingDone = false
                 showHRVOnboarding = true
             })
             settingsDivider
-            settingsRow(icon: "square.and.arrow.up", color: .green,   label: "Export données", detail: nil,    action: {
+            settingsRow(icon: "square.and.arrow.up", color: Color.appSuccess,   label: "Export données", detail: nil,    action: {
                 Task { await exportData() }
             })
             settingsDivider
@@ -841,11 +841,11 @@ struct ProfileView: View {
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 7)
-                            .fill(Color.teal.opacity(0.18))
+                            .fill(Color.statusCyan.opacity(0.18))
                             .frame(width: 30, height: 30)
                         Image(systemName: "calendar.badge.clock")
                             .font(.appLabel).fontWeight(.semibold)
-                            .foregroundColor(.teal)
+                            .foregroundColor(Color.statusCyan)
                     }
                     Text("Mes chapitres")
                         .font(.appBody)
@@ -1059,12 +1059,12 @@ struct ProfileStatSquare: View {
                     .foregroundColor(color.opacity(hasData ? 1 : 0.35))
                 if isRecord {
                     Image(systemName: "trophy.fill")
-                        .font(.appMicro).foregroundColor(.yellow)
+                        .font(.appMicro).foregroundColor(Color.statusYellow)
                 }
             }
             Text(value)
                 .font(.system(size: 26, weight: .black))
-                .foregroundColor(isRecord ? .yellow : .white.opacity(hasData ? 1 : 0.3))
+                .foregroundColor(isRecord ? Color.statusYellow : .white.opacity(hasData ? 1 : 0.3))
                 .lineLimit(1).minimumScaleFactor(0.6)
             if let sub = subtitle {
                 Text(sub)
@@ -1131,14 +1131,14 @@ struct GoalProgressRow: View {
                 Spacer()
                 Text("\(units.format(progress.current)) / \(units.format(progress.goal))")
                     .font(.appCaption)
-                    .foregroundColor(progress.achieved ? .green : .gray)
+                    .foregroundColor(progress.achieved ? Color.appSuccess : .gray)
             }
             GeometryReader { geo in
                 let pct = progress.goal > 0 ? min(progress.current / progress.goal, 1.0) : 0
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                     Capsule()
-                        .fill(progress.achieved ? Color.green : Color.orange)
+                        .fill(progress.achieved ? Color.appSuccess : Color.appWarning)
                         .frame(width: geo.size.width * pct, height: 4)
                 }
             }

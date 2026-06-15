@@ -17,7 +17,7 @@ struct MacroSummaryCard: View {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text("\(Int(totals?.calories ?? 0))")
                             .font(.system(size: 40, weight: .black))
-                            .foregroundColor((totals?.calories ?? 0) > (settings?.calories ?? .infinity) ? .red : Color.forge)
+                            .foregroundColor((totals?.calories ?? 0) > (settings?.calories ?? .infinity) ? Color.appDanger : Color.forge)
                         if let target = settings?.calories {
                             Text("/ \(Int(target)) kcal")
                                 .font(.system(size: 14))
@@ -29,11 +29,11 @@ struct MacroSummaryCard: View {
                 if let target = settings?.calories, target > 0 {
                     let pct = min((totals?.calories ?? 0) / target, 1.0)
                     let over = (totals?.calories ?? 0) > target
-                    ProgressRing(progress: pct, color: over ? .red : Color.forge,
+                    ProgressRing(progress: pct, color: over ? Color.appDanger : Color.forge,
                                  size: 60, lineWidth: 8, animation: .easeOut) {
                         Text("\(Int(pct * 100))%")
                             .font(.appLabel.weight(.bold))
-                            .foregroundColor(over ? .red : Color.forge)
+                            .foregroundColor(over ? Color.appDanger : Color.forge)
                     }
                 }
             }
@@ -44,7 +44,7 @@ struct MacroSummaryCard: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                         Capsule()
-                            .fill(pct > 1 ? Color.red : Color.forge)
+                            .fill(pct > 1 ? Color.appDanger : Color.forge)
                             .frame(width: geo.size.width * pct, height: 6)
                     }
                 }
@@ -55,11 +55,11 @@ struct MacroSummaryCard: View {
             Divider().background(Color.appSeparator)
 
             HStack(spacing: 0) {
-                MacroBar(label: "Prot", current: totals?.proteines ?? 0, target: settings?.proteines, color: .blue)
+                MacroBar(label: "Prot", current: totals?.proteines ?? 0, target: settings?.proteines, color: Color.statusBlue)
                 Divider().background(Color.appSeparator).frame(height: 40)
-                MacroBar(label: "Carbs", current: totals?.glucides ?? 0, target: settings?.glucides, color: .yellow)
+                MacroBar(label: "Carbs", current: totals?.glucides ?? 0, target: settings?.glucides, color: Color.statusYellow)
                 Divider().background(Color.appSeparator).frame(height: 40)
-                MacroBar(label: "Lip", current: totals?.lipides ?? 0, target: settings?.lipides, color: .pink)
+                MacroBar(label: "Lip", current: totals?.lipides ?? 0, target: settings?.lipides, color: Color.statusRed)
             }
         }
         .padding(16)

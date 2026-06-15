@@ -20,11 +20,11 @@ private enum SessionType {
 
     var color: Color {
         switch self {
-        case .pushA, .pushB: return .orange
-        case .pullA, .pullB: return .cyan
-        case .legs:          return .yellow
-        case .yoga:          return .purple
-        case .recovery:      return .green
+        case .pushA, .pushB: return .statusOrange
+        case .pullA, .pullB: return .statusCyan
+        case .legs:          return .statusYellow
+        case .yoga:          return .statusPurple
+        case .recovery:      return .appSuccess
         case .custom:        return .gray
         }
     }
@@ -130,10 +130,10 @@ struct ProgrammeView: View {
     }
     private var phaseColor: Color {
         switch currentPhase {
-        case .hypertrophie: return .orange
-        case .force:        return .red
-        case .peak:         return .yellow
-        case .deload:       return .green
+        case .hypertrophie: return .statusOrange
+        case .force:        return .appDanger
+        case .peak:         return .statusYellow
+        case .deload:       return .appSuccess
         }
     }
 
@@ -330,10 +330,10 @@ struct ProgrammeView: View {
                                         }
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 10)
-                                        .background(Color.green.opacity(0.15))
-                                        .foregroundColor(.green)
+                                        .background(Color.appSuccess.opacity(0.15))
+                                        .foregroundColor(.appSuccess)
                                         .cornerRadius(10)
-                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.3), lineWidth: 1))
+                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSuccess.opacity(0.3), lineWidth: 1))
                                     }
                                     .buttonStyle(.plain)
                                     .disabled(isSettingActive)
@@ -566,7 +566,7 @@ struct ProgrammeView: View {
                                 Text("Erreur réseau")
                                     .font(.appCaption.weight(.semibold))
                             }
-                            .foregroundColor(.red)
+                            .foregroundColor(Color.appDanger)
                             .transition(.opacity)
                         }
                         Button { showCreateSeance = true } label: {
@@ -1155,10 +1155,10 @@ struct PeriodisationCard: View {
     }
 
     private let segments: [PhaseSegment] = [
-        PhaseSegment(name: "Hypertrophie", shortScheme: "3-4×8-12", color: .orange,  weeks: 1...4),
-        PhaseSegment(name: "Force",        shortScheme: "4-5×4-6",  color: .red,     weeks: 5...8),
-        PhaseSegment(name: "Peak",         shortScheme: "5×1-3",    color: .yellow,  weeks: 9...10),
-        PhaseSegment(name: "Deload",       shortScheme: "3×10-12",  color: .green,   weeks: 11...11),
+        PhaseSegment(name: "Hypertrophie", shortScheme: "3-4×8-12", color: .statusOrange, weeks: 1...4),
+        PhaseSegment(name: "Force",        shortScheme: "4-5×4-6",  color: .appDanger,    weeks: 5...8),
+        PhaseSegment(name: "Peak",         shortScheme: "5×1-3",    color: .statusYellow, weeks: 9...10),
+        PhaseSegment(name: "Deload",       shortScheme: "3×10-12",  color: .appSuccess,   weeks: 11...11),
     ]
 
     var body: some View {
@@ -1349,7 +1349,7 @@ private struct ProgramTabsView: View {
                     HStack(spacing: 5) {
                         if isActive {
                             Circle()
-                                .fill(Color.green)
+                                .fill(Color.appSuccess)
                                 .frame(width: 6, height: 6)
                         }
                         Text(prog.name)
@@ -1578,9 +1578,9 @@ struct EditableSeanceProgramCard: View {
                     Button(action: paste) {
                         Image(systemName: "doc.on.clipboard")
                             .font(.appLabel.weight(.regular))
-                            .foregroundColor(.cyan.opacity(0.7))
+                            .foregroundColor(Color.statusCyan.opacity(0.7))
                             .padding(7)
-                            .background(Color.cyan.opacity(0.08))
+                            .background(Color.statusCyan.opacity(0.08))
                             .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
@@ -1591,9 +1591,9 @@ struct EditableSeanceProgramCard: View {
                     Button(action: del) {
                         Image(systemName: "trash")
                             .font(.appLabel.weight(.regular))
-                            .foregroundColor(.red.opacity(0.6))
+                            .foregroundColor(Color.appDanger.opacity(0.6))
                             .padding(7)
-                            .background(Color.red.opacity(0.08))
+                            .background(Color.appDanger.opacity(0.08))
                             .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
@@ -1706,7 +1706,7 @@ struct ExerciseRow: View {
                 if let t = trend {
                     Text(t)
                         .font(.appCaption.weight(.bold))
-                        .foregroundColor(t == "↑" ? .green : t == "↓" ? .red : Color(white: 0.5))
+                        .foregroundColor(t == "↑" ? Color.appSuccess : t == "↓" ? Color.appDanger : Color(white: 0.5))
                 }
                 Text(scheme)
                     .font(.appCaption.weight(.bold))
@@ -1720,9 +1720,9 @@ struct ExerciseRow: View {
                    let sw = sug.suggestedWeight {
                     Text("→ \(units.format(sw, decimals: 0))")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.green)
+                        .foregroundColor(Color.appSuccess)
                         .padding(.horizontal, 6).padding(.vertical, 3)
-                        .background(Color.green.opacity(0.12))
+                        .background(Color.appSuccess.opacity(0.12))
                         .cornerRadius(5)
                 }
                 Button {
@@ -1730,9 +1730,9 @@ struct ExerciseRow: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.appLabel.weight(.regular))
-                        .foregroundColor(.red.opacity(0.6))
+                        .foregroundColor(Color.appDanger.opacity(0.6))
                         .padding(6)
-                        .background(Color.red.opacity(0.08))
+                        .background(Color.appDanger.opacity(0.08))
                         .cornerRadius(7)
                 }
                 .buttonStyle(.plain)
@@ -2240,14 +2240,14 @@ struct EveningScheduleCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "moon.stars.fill")
                         .font(.appCaption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(Color.statusBlue)
                     Text("SOIR")
                         .font(.appCaption.weight(.black))
                         .tracking(2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(Color.statusBlue)
                 }
                 .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.blue.opacity(0.12))
+                .background(Color.statusBlue.opacity(0.12))
                 .cornerRadius(6)
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -2297,7 +2297,7 @@ struct EveningScheduleCard: View {
         .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.25), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusBlue.opacity(0.25), lineWidth: 1))
     }
 
     private func shortLabel(_ s: String) -> String {
@@ -2341,14 +2341,14 @@ private struct VolumeCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chart.bar.fill")
                         .font(.appCaption.weight(.bold))
-                        .foregroundColor(.purple)
+                        .foregroundColor(Color.statusPurple)
                     Text("VOLUME HEBDO")
                         .font(.appCaption.weight(.black))
                         .tracking(1.5)
-                        .foregroundColor(.purple)
+                        .foregroundColor(Color.statusPurple)
                 }
                 .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.purple.opacity(0.1))
+                .background(Color.statusPurple.opacity(0.1))
                 .cornerRadius(6)
 
                 Spacer()
@@ -2382,7 +2382,7 @@ private struct VolumeCard: View {
                         let mevVal = mev[muscle] ?? 0
                         let mavVal = mav[muscle] ?? 12
                         let fraction = CGFloat(min(sets, mavVal)) / CGFloat(mavVal)
-                        let barColor: Color = sets < mevVal ? .red : sets <= mavVal ? .green : .orange
+                        let barColor: Color = sets < mevVal ? .appDanger : sets <= mavVal ? .appSuccess : .appWarning
 
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
@@ -2451,7 +2451,7 @@ private struct VolumeCard: View {
         .padding(14)
         .background(Color.appCard)
         .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusPurple.opacity(0.2), lineWidth: 1))
     }
 }
 

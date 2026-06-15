@@ -14,7 +14,7 @@ struct GroupedEntryList: View {
         "matin": "sunrise.fill", "midi": "sun.max.fill", "soir": "moon.fill", "collation": "leaf.fill"
     ]
     private let mealColors: [String: Color] = [
-        "matin": .yellow, "midi": .orange, "soir": .purple, "collation": .green
+        "matin": Color.statusYellow, "midi": Color.appWarning, "soir": Color.statusPurple, "collation": Color.appSuccess
     ]
 
     private var grouped: [(key: String, items: [NutritionEntry])] {
@@ -65,7 +65,7 @@ struct GroupedEntryList: View {
                                 .font(.appCaption)
                             Text("\(Int(totalProt))g prot")
                                 .font(.appCaption)
-                                .foregroundColor(.blue)
+                                .foregroundColor(Color.statusBlue)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
@@ -116,9 +116,9 @@ struct NutritionEntryRow: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.appTextPrimary)
                 HStack(spacing: 8) {
-                    if let p = entry.proteines { Text("\(Int(p))g prot").font(.appCaption).foregroundColor(.blue) }
-                    if let c = entry.glucides  { Text("\(Int(c))g carbs").font(.appCaption).foregroundColor(.yellow) }
-                    if let l = entry.lipides   { Text("\(Int(l))g lip").font(.appCaption).foregroundColor(.pink) }
+                    if let p = entry.proteines { Text("\(Int(p))g prot").font(.appCaption).foregroundColor(Color.statusBlue) }
+                    if let c = entry.glucides  { Text("\(Int(c))g carbs").font(.appCaption).foregroundColor(Color.statusYellow) }
+                    if let l = entry.lipides   { Text("\(Int(l))g lip").font(.appCaption).foregroundColor(Color.statusRed) }
                 }
             }
             Spacer()
@@ -136,7 +136,7 @@ struct NutritionEntryRow: View {
             Button { confirmDelete = true } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 14))
-                    .foregroundColor(.red.opacity(0.7))
+                    .foregroundColor(Color.appDanger.opacity(0.7))
                     .padding(.leading, 8)
             }
         }
@@ -161,10 +161,10 @@ struct NutritionEntryRow: View {
 
     private func mealTypeColor(_ type: String) -> Color {
         switch type {
-        case "matin":     return .yellow
-        case "midi":      return .orange
-        case "soir":      return .purple
-        case "collation": return .green
+        case "matin":     return Color.statusYellow
+        case "midi":      return Color.appWarning
+        case "soir":      return Color.statusPurple
+        case "collation": return Color.appSuccess
         default:          return .gray
         }
     }

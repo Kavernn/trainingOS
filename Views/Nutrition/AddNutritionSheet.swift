@@ -202,7 +202,7 @@ struct AddNutritionSheet: View {
                             Button { showBarcodeScanner = true } label: {
                                 Label("Scanner", systemImage: "barcode.viewfinder")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.green)
+                                    .foregroundColor(Color.appSuccess)
                             }
                             .buttonStyle(.plain)
                             .textCase(nil)
@@ -261,11 +261,11 @@ struct AddNutritionSheet: View {
                                             Text(item.name)
                                                 .font(.appLabel)
                                                 .padding(.horizontal, 12).padding(.vertical, 7)
-                                                .background(isSel ? Color.blue.opacity(0.35) : Color.blue.opacity(0.12))
-                                                .foregroundColor(isSel ? .white : .blue)
+                                                .background(isSel ? Color.statusBlue.opacity(0.35) : Color.statusBlue.opacity(0.12))
+                                                .foregroundColor(isSel ? .white : Color.statusBlue)
                                                 .cornerRadius(20)
                                                 .overlay(RoundedRectangle(cornerRadius: 20)
-                                                    .stroke(isSel ? Color.blue : Color.blue.opacity(0.25),
+                                                    .stroke(isSel ? Color.statusBlue : Color.statusBlue.opacity(0.25),
                                                             lineWidth: isSel ? 1.5 : 1))
                                         }
                                         .buttonStyle(.plain)
@@ -282,7 +282,7 @@ struct AddNutritionSheet: View {
                                     HStack(spacing: 10) {
                                         Image(systemName: "scalemass.fill")
                                             .font(.appLabel)
-                                            .foregroundColor(.blue.opacity(0.7))
+                                            .foregroundColor(Color.statusBlue.opacity(0.7))
                                         TextField("Quantité", text: $quantity)
                                             .keyboardType(.decimalPad)
                                             .foregroundColor(.appTextPrimary)
@@ -332,10 +332,10 @@ struct AddNutritionSheet: View {
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     if let m = preview {
                                         HStack(spacing: 0) {
-                                            MacroPreviewPill(value: m.cal,  label: "kcal",    color: .orange)
-                                            MacroPreviewPill(value: m.prot, label: "g prot",  color: .blue)
-                                            MacroPreviewPill(value: m.gluc, label: "g carbs", color: .yellow)
-                                            MacroPreviewPill(value: m.lip,  label: "g lip",   color: .pink)
+                                            MacroPreviewPill(value: m.cal,  label: "kcal",    color: Color.appWarning)
+                                            MacroPreviewPill(value: m.prot, label: "g prot",  color: Color.statusBlue)
+                                            MacroPreviewPill(value: m.gluc, label: "g carbs", color: Color.statusYellow)
+                                            MacroPreviewPill(value: m.lip,  label: "g lip",   color: Color.statusRed)
                                         }
                                     }
                                 }
@@ -353,7 +353,7 @@ struct AddNutritionSheet: View {
                                 Spacer()
                                 Label(barcodeNote, systemImage: "barcode.viewfinder")
                                     .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.green.opacity(0.85))
+                                    .foregroundColor(Color.appSuccess.opacity(0.85))
                                     .textCase(nil)
                             }
                         }) {
@@ -408,27 +408,27 @@ struct AddNutritionSheet: View {
                         Section {
                             HStack(spacing: 8) {
                                 Image(systemName: "exclamationmark.circle.fill")
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Color.appDanger)
                                 if !manualMode && selected == nil {
                                     Text("Sélectionne un aliment dans le catalogue")
                                         .font(.appLabel)
-                                        .foregroundColor(.red)
+                                        .foregroundColor(Color.appDanger)
                                 } else if !manualMode && (quantity.isEmpty || p(quantity) <= 0) {
                                     Text("Entre une quantité valide (nombre > 0)")
                                         .font(.appLabel)
-                                        .foregroundColor(.red)
+                                        .foregroundColor(Color.appDanger)
                                 } else if manualMode && manName.isEmpty {
                                     Text("Entre le nom de l'aliment")
                                         .font(.appLabel)
-                                        .foregroundColor(.red)
+                                        .foregroundColor(Color.appDanger)
                                 } else if manualMode && manCal.isEmpty {
                                     Text("Entre les calories (kcal)")
                                         .font(.appLabel)
-                                        .foregroundColor(.red)
+                                        .foregroundColor(Color.appDanger)
                                 }
                             }
                         }
-                        .listRowBackground(Color.red.opacity(0.08))
+                        .listRowBackground(Color.appDanger.opacity(0.08))
                     }
 
                 }

@@ -22,15 +22,7 @@ struct TodayCardView: View {
         dash.hasPartialLogs || SessionDraftStore.hasAnyDraft(date: dash.todayDate)
     }
 
-    var todayColor: Color {
-        let low = dash.today.lowercased()
-        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .green }
-        if low.contains("pull")  { return .cyan }
-        if low.contains("push") || low.contains("upper") { return .orange }
-        if low.contains("legs") || low.contains("lower") { return .yellow }
-        if low.contains("yoga")  { return .purple }
-        return .blue
-    }
+    var todayColor: Color { Color.sessionTypeColor(dash.today) }
 
     var todayIcon: String {
         let low = dash.today.lowercased()
@@ -56,12 +48,12 @@ struct TodayCardView: View {
                     Circle().fill(todayColor.opacity(0.15)).frame(width: 36, height: 36)
                     Image(systemName: isLoggedToday ? "checkmark" : todayIcon)
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(isLoggedToday ? .green : todayColor)
+                        .foregroundColor(isLoggedToday ? Color.statusGreen : todayColor)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(dash.today)
                         .font(.appHeadline.weight(.bold))
-                        .foregroundColor(isLoggedToday ? .green : todayColor)
+                        .foregroundColor(isLoggedToday ? Color.statusGreen : todayColor)
                         .lineLimit(1)
                 }
                 Spacer()
@@ -80,9 +72,9 @@ struct TodayCardView: View {
                             .background(Color.forge.opacity(0.12))
                             .clipShape(Capsule())
                         } else {
-                            PulsingDot(color: .green)
+                            PulsingDot(color: Color.statusGreen)
                             Text("Complété")
-                                .font(.appCaption.weight(.semibold)).foregroundColor(.green)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(Color.statusGreen)
                         }
                     }
                 } else if !exercises.isEmpty {
@@ -233,7 +225,7 @@ struct TodayCardView: View {
                 }
             }
         }
-        .glassCardAccent(isLoggedToday ? .green : todayColor)
+        .glassCardAccent(isLoggedToday ? Color.statusGreen : todayColor)
         .cornerRadius(16)
         .sheet(isPresented: $showReadinessSheet) {
             if let r = readiness {
@@ -258,15 +250,15 @@ struct TodaySessionRecap: View {
                     RecapMetric(value: String(format: "%.1f", rpe), label: "RPE", color: rpeColor(rpe))
                 }
                 if let total = totalWorkoutMin, total > 0 {
-                    RecapMetric(value: "\(Int(total)) min", label: total > (session.durationMin ?? 0) + 1 ? "Total séances" : "Durée", color: .blue)
+                    RecapMetric(value: "\(Int(total)) min", label: total > (session.durationMin ?? 0) + 1 ? "Total séances" : "Durée", color: Color.statusBlue)
                 } else if let dur = session.durationMin {
-                    RecapMetric(value: String(format: "%.0f min", dur), label: "Durée", color: .blue)
+                    RecapMetric(value: String(format: "%.0f min", dur), label: "Durée", color: Color.statusBlue)
                 }
                 if let energy = session.energyPre {
                     RecapMetric(
                         value: String(repeating: "⚡", count: energy),
                         label: "Énergie",
-                        color: .yellow
+                        color: Color.statusYellow
                     )
                 }
                 Spacer()
@@ -384,9 +376,9 @@ struct StatsRowView: View {
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             StatPill(value: "\(totalSessions)", label: "SÉANCES", color: Color.forge)
-            StatPill(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE MOY", color: .purple)
-            StatPill(value: "\(weekSessions)", label: "CETTE SEMAINE", color: .cyan)
-            StatPill(value: totalVolume, label: "VOLUME TOTAL", color: .green)
+            StatPill(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE MOY", color: Color.statusPurple)
+            StatPill(value: "\(weekSessions)", label: "CETTE SEMAINE", color: Color.statusCyan)
+            StatPill(value: totalVolume, label: "VOLUME TOTAL", color: Color.appSuccess)
         }
     }
 }
@@ -460,7 +452,7 @@ struct HeatmapView: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.white.opacity(0.07)).frame(height: 4)
                         Capsule()
-                            .fill(LinearGradient(colors: [Color.forge, .yellow], startPoint: .leading, endPoint: .trailing))
+                            .fill(LinearGradient(colors: [Color.forge, Color.statusYellow], startPoint: .leading, endPoint: .trailing))
                             .frame(width: max(4, geo.size.width * pct), height: 4)
                     }
                 }
@@ -579,18 +571,7 @@ struct WeekGridView: View {
         return String(s.prefix(6)).uppercased()
     }
 
-    private func seanceColor(_ s: String) -> Color {
-        let low = s.lowercased()
-        if low.contains("upper")    { return .orange }
-        if low.contains("lower")    { return .yellow }
-        if low.contains("push")     { return .orange }
-        if low.contains("pull")     { return .cyan }
-        if low.contains("legs")     { return .yellow }
-        if low.contains("yoga")     { return .purple }
-        if low.contains("recovery") { return .green }
-        if low.contains("full body"){ return .mint }
-        return .gray
-    }
+    private func seanceColor(_ s: String) -> Color { Color.sessionTypeColor(s) }
 }
 
 // MARK: - SoirCardView
@@ -600,16 +581,7 @@ struct SoirCardView: View {
 
     private var sessionName: String { data.todaySoir ?? "Séance du soir" }
 
-    private var sessionColor: Color {
-        switch sessionName {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return .blue
-        }
-    }
+    private var sessionColor: Color { Color.sessionTypeColor(sessionName) }
 
     private var sessionIcon: String {
         switch sessionName {
@@ -633,21 +605,21 @@ struct SoirCardView: View {
                     Circle().fill(sessionColor.opacity(0.15)).frame(width: 36, height: 36)
                     Image(systemName: data.alreadyLogged ? "checkmark" : sessionIcon)
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(data.alreadyLogged ? .green : sessionColor)
+                        .foregroundColor(data.alreadyLogged ? Color.statusGreen : sessionColor)
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     Text("CE SOIR")
                         .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                     Text(sessionName)
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(data.alreadyLogged ? .green : sessionColor)
+                        .foregroundColor(data.alreadyLogged ? Color.statusGreen : sessionColor)
                 }
                 Spacer()
                 if data.alreadyLogged {
                     HStack(spacing: 5) {
-                        PulsingDot(color: .green)
+                        PulsingDot(color: Color.statusGreen)
                         Text("Complété")
-                            .font(.appCaption.weight(.semibold)).foregroundColor(.green)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(Color.statusGreen)
                     }
                 }
             }
@@ -700,7 +672,7 @@ struct SoirCardView: View {
                 .padding(.top, 12)
             }
         }
-        .glassCardAccent(data.alreadyLogged ? .green : sessionColor)
+        .glassCardAccent(data.alreadyLogged ? Color.statusGreen : sessionColor)
         .cornerRadius(16)
     }
 }
@@ -728,7 +700,7 @@ struct CriticalAlertCard: View {
         HStack(spacing: 12) {
             Image(systemName: signal.icon)
                 .font(.appBody.weight(.semibold))
-                .foregroundColor(.red)
+                .foregroundColor(Color.appDanger)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 5) {
@@ -739,7 +711,7 @@ struct CriticalAlertCard: View {
                 Button(action: onAction) {
                     Text(signal.actionLabel)
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(Color.red.opacity(0.85))
+                        .foregroundColor(Color.appDanger.opacity(0.85))
                         .underline()
                 }
                 .buttonStyle(.plain)
@@ -749,12 +721,12 @@ struct CriticalAlertCard: View {
 
             Image(systemName: "chevron.left")
                 .font(.appCaption.weight(.medium))
-                .foregroundColor(.red.opacity(0.4))
+                .foregroundColor(Color.appDanger.opacity(0.4))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(Color.red.opacity(0.10))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.28), lineWidth: 1))
+        .background(Color.appDanger.opacity(0.10))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appDanger.opacity(0.28), lineWidth: 1))
         .cornerRadius(12)
         .offset(x: dragOffset)
         .opacity(cardOpacity)

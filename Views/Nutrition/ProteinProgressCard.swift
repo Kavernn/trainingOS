@@ -12,9 +12,9 @@ struct ProteinProgressCard: View {
     private var isOver: Bool { current > target }
 
     private var ringColor: Color {
-        if isOver { return .red }
-        if isReached { return .green }
-        return .blue
+        if isOver { return Color.appDanger }
+        if isReached { return Color.appSuccess }
+        return Color.statusBlue
     }
 
     var body: some View {
@@ -56,11 +56,11 @@ struct ProteinProgressCard: View {
                     if isOver {
                         Label("+\(Int(current - target))g au-delà de la cible.", systemImage: "exclamationmark.triangle.fill")
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(.red)
+                            .foregroundColor(Color.appDanger)
                     } else if isReached {
                         Label("Cible atteinte.", systemImage: "checkmark.circle.fill")
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(.green)
+                            .foregroundColor(Color.appSuccess)
                     } else {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Encore")
@@ -68,7 +68,7 @@ struct ProteinProgressCard: View {
                                 .foregroundColor(.appTextSecondary)
                             Text("\(Int(remaining))g")
                                 .font(.system(size: 32, weight: .black))
-                                .foregroundColor(.blue)
+                                .foregroundColor(Color.statusBlue)
                             Text("restants")
                                 .font(.appCaption)
                                 .foregroundColor(.appTextSecondary)

@@ -35,19 +35,19 @@ struct NavyBodyFatResult {
     func category(isMale: Bool) -> (label: String, color: Color) {
         if isMale {
             switch pct {
-            case ..<6:  return ("Essential", .yellow)
-            case ..<14: return ("Athlète",   .cyan)
-            case ..<18: return ("Fitness",   .green)
-            case ..<25: return ("Moyen",     .blue)
-            default:    return ("Obèse",     .red)
+            case ..<6:  return ("Essential", Color.statusYellow)
+            case ..<14: return ("Athlète",   Color.statusCyan)
+            case ..<18: return ("Fitness",   Color.appSuccess)
+            case ..<25: return ("Moyen",     Color.statusBlue)
+            default:    return ("Obèse",     Color.appDanger)
             }
         } else {
             switch pct {
-            case ..<14: return ("Essential", .yellow)
-            case ..<21: return ("Athlète",   .cyan)
-            case ..<25: return ("Fitness",   .green)
-            case ..<32: return ("Moyen",     .blue)
-            default:    return ("Obèse",     .red)
+            case ..<14: return ("Essential", Color.statusYellow)
+            case ..<21: return ("Athlète",   Color.statusCyan)
+            case ..<25: return ("Fitness",   Color.appSuccess)
+            case ..<32: return ("Moyen",     Color.statusBlue)
+            default:    return ("Obèse",     Color.appDanger)
             }
         }
     }
