@@ -27,6 +27,11 @@ class DailyBriefService: ObservableObject {
     private let cacheDataKey = "daily_brief_v1_data"
     private let cacheDateKey = "daily_brief_v1_date"
 
+    func forceRefresh() async {
+        UserDefaults.standard.removeObject(forKey: cacheDateKey)
+        await loadIfNeeded()
+    }
+
     func loadIfNeeded() async {
         let todayStr = DateFormatter.isoDate.string(from: Date())
 

@@ -2,8 +2,6 @@ import SwiftUI
 
 struct CoachMissionCard: View {
     let dash: DashboardData
-    let briefText: String
-    let isBriefLoading: Bool
     let onOpenSession: (() -> Void)?
     let onRefreshBrief: () -> Void
 
@@ -77,22 +75,6 @@ struct CoachMissionCard: View {
 
             Divider().background(Color.appSeparator)
 
-            if isBriefLoading && briefText.isEmpty {
-                MissionShimmer()
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-            } else if !briefText.isEmpty {
-                Text(briefText)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(.white.opacity(0.82))
-                    .lineSpacing(5)
-                    .lineLimit(5)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-            } else {
-                Color.clear.frame(height: 8)
-            }
-
             HStack(spacing: 10) {
                 Button(action: { onOpenSession?() }) {
                     HStack(spacing: 8) {
@@ -109,22 +91,15 @@ struct CoachMissionCard: View {
                 }
                 .buttonStyle(ScaleButtonStyle())
 
-                if isBriefLoading {
-                    ProgressView()
-                        .tint(Color.white.opacity(0.35))
-                        .scaleEffect(0.8)
+                Button(action: onRefreshBrief) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.3))
                         .frame(width: 38, height: 38)
-                } else {
-                    Button(action: onRefreshBrief) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color.white.opacity(0.3))
-                            .frame(width: 38, height: 38)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .buttonStyle(.plain)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 16)

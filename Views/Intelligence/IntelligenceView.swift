@@ -353,10 +353,8 @@ struct IntelligenceView: View {
                 if let dash = api.dashboard {
                     CoachMissionCard(
                         dash: dash,
-                        briefText: "",
-                        isBriefLoading: false,
                         onOpenSession: onOpenSession,
-                        onRefreshBrief: { Task { await dailyBriefService.loadIfNeeded() } }
+                        onRefreshBrief: { Task { await dailyBriefService.forceRefresh() } }
                     )
                     .padding(.horizontal, 16)
                 }
