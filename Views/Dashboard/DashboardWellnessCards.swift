@@ -49,7 +49,7 @@ struct LSSSparklineRow: View {
                 Text("\(d >= 0 ? "+" : "")\(String(format: "%.0f", d)) pts vs moy 7j")
                     .font(.appCaption)
             }
-            .foregroundColor(d >= 5 ? .green : d <= -5 ? .orange : .gray)
+            .foregroundColor(d >= 5 ? Color.statusGreen : d <= -5 ? Color.statusOrange : .gray)
 
             Spacer()
         }
@@ -69,7 +69,7 @@ struct LSSGauge: View {
                     .frame(height: 6)
                 Capsule()
                     .fill(LinearGradient(
-                        colors: [.red, .orange, .yellow, .green],
+                        colors: [Color.statusRed, Color.statusOrange, Color.statusYellow, Color.statusGreen],
                         startPoint: .leading, endPoint: .trailing
                     ))
                     .frame(width: geo.size.width * score / 100, height: 6)
@@ -142,9 +142,9 @@ struct LSSComponentsRow: View {
     }
 
     private func scoreColor(_ v: Double) -> Color {
-        if v >= 70 { return .green }
-        if v >= 45 { return .yellow }
-        return .red
+        if v >= 70 { return Color.appSuccess }
+        if v >= 45 { return Color.statusYellow }
+        return Color.appDanger
     }
 }
 
@@ -154,10 +154,10 @@ struct PeakPredictionCard: View {
 
     private func levelColor(_ level: String) -> Color {
         switch level {
-        case "go":         return .green
-        case "go_caution": return .yellow
-        case "reduce":     return .orange
-        default:           return .red
+        case "go":         return Color.appSuccess
+        case "go_caution": return Color.statusYellow
+        case "reduce":     return Color.appWarning
+        default:           return Color.appDanger
         }
     }
 
@@ -171,7 +171,7 @@ struct PeakPredictionCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.appCaption.weight(.bold)).foregroundColor(.purple)
+                    .font(.appCaption.weight(.bold)).foregroundColor(Color.statusPurple)
                 Text("PRÉVISION 7 JOURS")
                     .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
@@ -269,10 +269,10 @@ struct MoodCardView: View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle().fill(Color.yellow.opacity(0.15)).frame(width: 40, height: 40)
+                    Circle().fill(Color.statusYellow.opacity(0.15)).frame(width: 40, height: 40)
                     Image(systemName: "face.smiling.fill")
                         .font(.appHeadline.weight(.regular))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(Color.statusYellow)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ÉTAT INTERNE")
@@ -288,7 +288,7 @@ struct MoodCardView: View {
                     .foregroundColor(.gray)
             }
             .padding(14)
-            .glassCard(color: .yellow, intensity: 0.05)
+            .glassCard(color: Color.statusYellow, intensity: 0.05)
             .cornerRadius(16)
         }
         .buttonStyle(SpringButtonStyle())
@@ -320,10 +320,10 @@ struct SleepPromptCard: View {
     }
 
     private var durationColor: Color {
-        if durationHours < 6  { return .red }
-        if durationHours < 7  { return .yellow }
-        if durationHours <= 9 { return .green }
-        return .blue
+        if durationHours < 6  { return Color.appDanger }
+        if durationHours < 7  { return Color.statusYellow }
+        if durationHours <= 9 { return Color.appSuccess }
+        return Color.statusBlue
     }
 
     var body: some View {
@@ -332,7 +332,7 @@ struct SleepPromptCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "moon.zzz.fill")
                     .font(.appBody)
-                    .foregroundColor(.blue)
+                    .foregroundColor(Color.statusBlue)
                 Text("Ton sommeil cette nuit")
                     .font(.appBody.weight(.semibold))
                     .foregroundColor(.appTextPrimary)
@@ -353,7 +353,7 @@ struct SleepPromptCard: View {
             if hkImported {
                 Label("Horaires détectés depuis Santé", systemImage: "heart.fill")
                     .font(.appCaption)
-                    .foregroundColor(.red.opacity(0.8))
+                    .foregroundColor(Color.statusRed.opacity(0.8))
             }
 
             // Pickers
@@ -420,8 +420,8 @@ struct SleepPromptCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.blue.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.blue.opacity(0.25), lineWidth: 1))
+                .fill(Color.statusBlue.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.statusBlue.opacity(0.25), lineWidth: 1))
         )
         .task { await tryHealthKitImport() }
     }
@@ -467,9 +467,9 @@ struct DashboardInsightsCard: View {
 
     private func color(for level: String) -> Color {
         switch level {
-        case "warning": return .orange
-        case "success": return .green
-        default:        return .blue
+        case "warning": return Color.appWarning
+        case "success": return Color.appSuccess
+        default:        return Color.statusBlue
         }
     }
 
@@ -511,7 +511,7 @@ struct DashboardInsightsCard: View {
 
             Spacer(minLength: 4)
         }
-        .glassCard(color: .purple, intensity: 0.05)
+        .glassCard(color: Color.statusPurple, intensity: 0.05)
     }
 }
 
@@ -524,9 +524,9 @@ struct LSSMiniCard: View {
 
     private var color: Color {
         guard let s = today?.score else { return .gray }
-        if s >= 70 { return .green }
-        if s >= 40 { return .orange }
-        return .red
+        if s >= 70 { return Color.appSuccess }
+        if s >= 40 { return Color.appWarning }
+        return Color.appDanger
     }
 
     private var delta: Double? {
@@ -564,7 +564,7 @@ struct LSSMiniCard: View {
                                     Text("\(d >= 0 ? "+" : "")\(Int(d))")
                                         .font(.appCaption)
                                 }
-                                .foregroundColor(d >= 3 ? .green : d <= -3 ? .orange : .gray)
+                                .foregroundColor(d >= 3 ? Color.statusGreen : d <= -3 ? Color.statusOrange : .gray)
                             }
                         }
                     }

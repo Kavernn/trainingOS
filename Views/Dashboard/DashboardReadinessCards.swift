@@ -11,7 +11,7 @@ struct SleepStagingBar: View {
             HStack {
                 Image(systemName: "moon.zzz.fill")
                     .font(.appCaption)
-                    .foregroundColor(.blue)
+                    .foregroundColor(Color.statusBlue)
                 Text("PHASES DE SOMMEIL")
                     .font(.appMicro.weight(.bold)).tracking(1.5)
                     .foregroundColor(.gray)
@@ -25,13 +25,13 @@ struct SleepStagingBar: View {
             GeometryReader { geo in
                 HStack(spacing: 2) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(red: 0.2, green: 0.3, blue: 0.9))
+                        .fill(Color.statusBlue)
                         .frame(width: max(0, geo.size.width * CGFloat(stages.deepHours / total)))
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.purple)
+                        .fill(Color.statusPurple)
                         .frame(width: max(0, geo.size.width * CGFloat(stages.remHours / total)))
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.blue.opacity(0.6))
+                        .fill(Color.statusBlue.opacity(0.6))
                         .frame(maxWidth: .infinity)
                 }
                 .frame(height: 10)
@@ -41,9 +41,9 @@ struct SleepStagingBar: View {
 
             // Legend
             HStack(spacing: 16) {
-                StageLegendItem(color: Color(red: 0.2, green: 0.3, blue: 0.9), label: "Profond", hours: stages.deepHours)
-                StageLegendItem(color: .purple, label: "REM", hours: stages.remHours)
-                StageLegendItem(color: .blue.opacity(0.7), label: "Léger", hours: stages.coreHours)
+                StageLegendItem(color: Color.statusBlue, label: "Profond", hours: stages.deepHours)
+                StageLegendItem(color: Color.statusPurple, label: "REM", hours: stages.remHours)
+                StageLegendItem(color: Color.statusBlue.opacity(0.7), label: "Léger", hours: stages.coreHours)
             }
         }
         .padding(14)
@@ -77,10 +77,10 @@ struct ReadinessScoreCard: View {
 
     private var scoreColor: Color {
         switch score {
-        case 76...100: return .green
-        case 61...75:  return Color(red: 0.85, green: 0.75, blue: 0.1)
-        case 41...60:  return .orange
-        default:       return .red
+        case 76...100: return Color.appSuccess
+        case 61...75:  return Color.statusYellow
+        case 41...60:  return Color.appWarning
+        default:       return Color.appDanger
         }
     }
 

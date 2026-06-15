@@ -634,12 +634,12 @@ struct DashboardView: View {
 
     var todayAccentColor: Color {
         let low = (api.dashboard?.today ?? "").lowercased()
-        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .green }
-        if low.contains("pull")  { return .cyan }
-        if low.contains("push") || low.contains("upper") { return .orange }
-        if low.contains("legs") || low.contains("lower") { return .yellow }
-        if low.contains("yoga")  { return .purple }
-        return .blue
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .statusGreen  }
+        if low.contains("pull")  { return .statusCyan   }
+        if low.contains("push") || low.contains("upper") { return .statusOrange }
+        if low.contains("legs") || low.contains("lower") { return .statusYellow }
+        if low.contains("yoga")  { return .statusPurple }
+        return .statusBlue
     }
 
     private func handleAlertAction(signal: CriticalSignal, dash: DashboardData) {

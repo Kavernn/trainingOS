@@ -100,16 +100,16 @@ struct DashboardStatusBar: View {
 
     private var todayColor: Color {
         let low = dash.today.lowercased()
-        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .green }
-        if low.contains("pull")  { return .cyan }
-        if low.contains("push") || low.contains("upper") { return .orange }
-        if low.contains("legs") || low.contains("lower") { return .yellow }
-        if low.contains("yoga")  { return .purple }
-        return .blue
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return Color.statusGreen }
+        if low.contains("pull")  { return Color.statusCyan }
+        if low.contains("push") || low.contains("upper") { return Color.statusOrange }
+        if low.contains("legs") || low.contains("lower") { return Color.statusYellow }
+        if low.contains("yoga")  { return Color.statusPurple }
+        return Color.statusBlue
     }
 
     private var dotColor: Color {
-        if isLoggedToday { return .green }
+        if isLoggedToday { return Color.statusGreen }
         let low = dash.today.lowercased()
         if low.contains("repos") || low.contains("recovery") || low.contains("rest") {
             return Color.secondary

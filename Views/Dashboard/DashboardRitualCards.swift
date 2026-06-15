@@ -393,7 +393,7 @@ struct QuickBattleSheet: View {
                     if saved {
                         Label("Enregistré", systemImage: "checkmark")
                             .font(.appLabel)
-                            .foregroundColor(.green)
+                            .foregroundColor(Color.appSuccess)
                     }
 
                     Spacer()
@@ -554,7 +554,7 @@ struct EveningRoutineCard: View {
             if allDone {
                 Text("\(checkedCount)/7")
                     .font(.appMicro.weight(.medium))
-                    .foregroundColor(.green.opacity(0.7))
+                    .foregroundColor(Color.statusGreen.opacity(0.7))
             } else {
                 timeBadge
             }
@@ -642,13 +642,13 @@ struct EveningRoutineCard: View {
                         .frame(width: 20, height: 20)
                     Image(systemName: isArmed ? "bell.fill" : "bell")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(isArmed ? .green : .white.opacity(0.5))
+                        .foregroundColor(isArmed ? Color.statusGreen : .white.opacity(0.5))
                 }
                 .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isArmed)
                 Text("🔔").font(.system(size: 14))
                 Text(label)
                     .font(.appCaption)
-                    .foregroundColor(isArmed ? .green.opacity(0.85) : .white.opacity(0.8))
+                    .foregroundColor(isArmed ? Color.statusGreen.opacity(0.85) : .white.opacity(0.8))
                 Spacer()
                 if isArmed {
                     Button {
@@ -808,7 +808,7 @@ struct EveningRoutineCard: View {
             if checked {
                 Image(systemName: "checkmark")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.green)
+                    .foregroundColor(Color.statusGreen)
                     .transition(.scale.combined(with: .opacity))
             }
         }

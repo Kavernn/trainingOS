@@ -6,12 +6,13 @@ struct ACWRCardView: View {
     let data: ACWRData
 
     private var zoneColor: Color {
+        let surgical = AppTheme.shared.colors.accentDistribution == .surgical
         switch data.zone.code {
-        case "optimal":  return .green
-        case "caution":  return .orange
-        case "danger":   return .red
-        case "under":    return .blue
-        default:         return .gray
+        case "optimal":  return surgical ? Color(white: 0.65) : .green
+        case "caution":  return surgical ? Color(white: 0.55) : .orange
+        case "danger":   return .red   // sang — toujours rouge, même en surgical
+        case "under":    return surgical ? Color(white: 0.50) : .blue
+        default:         return surgical ? Color(white: 0.45) : .gray
         }
     }
 

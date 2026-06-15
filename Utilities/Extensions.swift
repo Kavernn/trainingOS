@@ -58,11 +58,24 @@ extension Color {
     static var appSeparator:       Color { AppTheme.shared.separator }
     static var appSeparatorSubtle: Color { AppTheme.shared.separatorSubtle }
     static var appSeparatorStrong: Color { AppTheme.shared.separatorStrong }
-    static let trendPositive = Color(hex: "34C759")  // data viz — positive trend indicator (intentional fixed)
-    static let trendNeutral  = Color(hex: "FF9500")  // data viz — neutral/stable indicator (intentional fixed)
-    static let trendNegative = Color(hex: "FF6B6B")  // data viz — negative trend indicator (intentional fixed)
-    static let moonlight = Color(hex: "E8EDF5")      // spirit accent — silver-white (intentional fixed)
-    static let voidBg    = Color(red: 0.020, green: 0.031, blue: 0.063)  // spirit deep (intentional fixed)
+    static var trendPositive: Color { isSurgical ? Color(white: 0.68) : Color(hex: "34C759") }
+    static var trendNeutral:  Color { isSurgical ? Color(white: 0.50) : Color(hex: "FF9500") }
+    static var trendNegative: Color { isSurgical ? Color(white: 0.35) : Color(hex: "FF6B6B") }
+    static var moonlight:     Color { isSurgical ? Color(white: 0.80) : Color(hex: "E8EDF5") }
+    static let voidBg = Color(red: 0.020, green: 0.031, blue: 0.063)  // spirit deep (intentional fixed)
+
+    // Couleurs sémantiques — desaturées en mode surgical (Sin City N&B)
+    static var statusGreen:  Color { isSurgical ? Color(white: 0.68) : .green  }
+    static var statusOrange: Color { isSurgical ? Color(white: 0.55) : .orange }
+    static var statusBlue:   Color { isSurgical ? Color(white: 0.50) : .blue   }
+    static var statusPurple: Color { isSurgical ? Color(white: 0.58) : .purple }
+    static var statusYellow: Color { isSurgical ? Color(white: 0.62) : .yellow }
+    static var statusCyan:   Color { isSurgical ? Color(white: 0.52) : .cyan   }
+    static var statusRed:    Color { isSurgical ? Color(white: 0.72) : .red    }
+
+    private static var isSurgical: Bool {
+        AppTheme.shared.colors.accentDistribution == .surgical
+    }
 
     // Mood viz palette — violet→teal→green, non-moralistic gradient (intentional fixed)
     static func moodColor(for score: Int) -> Color {

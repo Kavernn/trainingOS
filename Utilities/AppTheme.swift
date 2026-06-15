@@ -218,8 +218,8 @@ extension AppThemeColors {
         cardShadowOffset: .zero,
         cardGlowColor:    .clear,
         cardGlowRadius:   0,
-        chartPalette:          [Color(hex: "FF1E1E"), Color(hex: "FF5555"), Color(hex: "CC0000"),
-                                Color(hex: "FF8080"), Color(hex: "880000")],
+        chartPalette:          [.white, Color(white: 0.75), Color(white: 0.55),
+                                Color(white: 0.38), Color(white: 0.22)],
         glassOpacity:          0.06,
         accentGradientColors:  [.white, Color(hex: "C0C0C0")],
         identityLayer:         .filmGrain(opacity: 0.035),
@@ -606,10 +606,10 @@ final class AppTheme: ObservableObject {
     var separator:       Color { colors.separator }
     var separatorSubtle: Color { colors.separatorSubtle }
     var separatorStrong: Color { colors.separatorStrong }
-    var danger:          Color { colors.danger }
-    var success:         Color { colors.success }
-    var warning:         Color { colors.warning }
-    var info:            Color { colors.info }
+    var danger:  Color { colors.accentDistribution == .surgical ? Color(white: 0.72) : colors.danger  }
+    var success: Color { colors.accentDistribution == .surgical ? Color(white: 0.68) : colors.success }
+    var warning: Color { colors.accentDistribution == .surgical ? Color(white: 0.55) : colors.warning }
+    var info:    Color { colors.accentDistribution == .surgical ? Color(white: 0.50) : colors.info    }
 
     var cardCornerRadius: CGFloat { colors.cardCornerRadius }
     var cardBorderWidth:  CGFloat { colors.cardBorderWidth }
