@@ -146,7 +146,7 @@ struct GymDetailView: View {
                 HStack {
                     Image(systemName: "checkmark.seal.fill")
                         .font(.appLabel.weight(.regular))
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                     Text("Communauté — \(cs.contributionCount) contribution\(cs.contributionCount == 1 ? "" : "s")")
                         .font(.appLabel.weight(.semibold))
                         .foregroundColor(.appTextPrimary)
@@ -165,7 +165,7 @@ struct GymDetailView: View {
                             HStack(spacing: 5) {
                                 Image(systemName: "checkmark")
                                     .font(.appMicro.weight(.bold))
-                                    .foregroundColor(.green)
+                                    .foregroundColor(.statusGreen)
                                 Text(eq.label)
                                     .font(.appCaption.weight(.medium))
                                     .foregroundColor(.white.opacity(0.8))
@@ -258,7 +258,7 @@ struct GymDetailView: View {
                 outlineButton(
                     label: visitLogged ? "Enregistré ✓" : "J'y suis entraîné",
                     icon: "checkmark.circle.fill",
-                    tint: .green
+                    tint: .statusGreen
                 ) {
                     guard !visitLogged else { return }
                     vm.logVisit(to: gym)
@@ -396,7 +396,7 @@ struct AdaptWorkoutSheet: View {
                     let ok = available.contains(eq)
                     HStack(spacing: 6) {
                         Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .font(.appLabel.weight(.regular)).foregroundColor(ok ? .green : .red)
+                            .font(.appLabel.weight(.regular)).foregroundColor(ok ? .statusGreen : .statusRed)
                         Text(eq.label)
                             .font(.appCaption.weight(.medium)).foregroundColor(.white.opacity(0.8))
                         Spacer()
@@ -430,7 +430,7 @@ struct AdaptWorkoutSheet: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text(sub.originalEquipment)
-                                .font(.appCaption).foregroundColor(.red.opacity(0.8))
+                                .font(.appCaption).foregroundColor(Color.statusRed.opacity(0.8))
                                 .strikethrough()
                             Image(systemName: "arrow.right")
                                 .font(.appCaption).foregroundColor(.white.opacity(0.3))

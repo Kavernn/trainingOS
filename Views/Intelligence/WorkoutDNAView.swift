@@ -188,7 +188,7 @@ private struct WorkoutDNAInlineContent: View {
                 PPLBalanceChart(ppl: dna.ppl, accent: accent)
                 HStack {
                     Image(systemName: dna.ppl.balanceScore >= 70 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundColor(dna.ppl.balanceScore >= 70 ? .green : .orange)
+                        .foregroundColor(dna.ppl.balanceScore >= 70 ? .statusGreen : .statusOrange)
                         .font(.appLabel)
                     Text(dna.ppl.verdict)
                         .font(.appLabel)
@@ -281,7 +281,7 @@ private struct WorkoutDNAInlineContent: View {
                 RecoveryIndicator(recovery: dna.recovery)
                 HStack {
                     Image(systemName: dna.recovery.verdict == "Optimal" ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundColor(dna.recovery.verdict == "Optimal" ? .green : .orange)
+                        .foregroundColor(dna.recovery.verdict == "Optimal" ? .statusGreen : .statusOrange)
                         .font(.appLabel)
                     Text(dna.recovery.verdict)
                         .font(.appLabel)
@@ -520,9 +520,9 @@ private struct PatternRatioPill: View {
     let warn: Double
 
     private var pillColor: Color {
-        if value < warn { return .red }
-        if abs(value - ideal) / max(ideal, 0.01) > 0.35 { return .orange }
-        return .green
+        if value < warn { return .statusRed }
+        if abs(value - ideal) / max(ideal, 0.01) > 0.35 { return .statusOrange }
+        return .statusGreen
     }
 
     var body: some View {
@@ -837,8 +837,8 @@ private struct RecoveryIndicator: View {
     }
 
     private var ratioColor: Color {
-        if recovery.ratio < 0.75 || recovery.ratio > 1.30 { return .orange }
-        return .green
+        if recovery.ratio < 0.75 || recovery.ratio > 1.30 { return .statusOrange }
+        return .statusGreen
     }
 }
 
@@ -875,7 +875,7 @@ private struct SignatureLiftRow: View {
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% sur l'ancienne limite")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                 }
             }
         }
@@ -1012,7 +1012,7 @@ struct WorkoutDNAShareCard: View {
                                 .font(.appMicro.weight(.bold)).foregroundColor(.appTextPrimary)
                             if lift.progressionPct > 0 {
                                 Text("+\(Int(lift.progressionPct))%")
-                                    .font(.system(size: 8, weight: .semibold)).foregroundColor(.green)
+                                    .font(.system(size: 8, weight: .semibold)).foregroundColor(.statusGreen)
                             }
                         }
                         .padding(.bottom, 4)

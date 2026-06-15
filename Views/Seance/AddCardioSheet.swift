@@ -31,8 +31,8 @@ struct AddCardioSheet: View {
                                     ForEach(types, id: \.self) { t in
                                         Button(t) { cardioType = t }
                                             .padding(.horizontal, 12).padding(.vertical, 6)
-                                            .background(cardioType == t ? Color.blue.opacity(0.2) : Color.appSurfaceInset)
-                                            .foregroundColor(cardioType == t ? .blue : .gray)
+                                            .background(cardioType == t ? Color.statusBlue.opacity(0.2) : Color.appSurfaceInset)
+                                            .foregroundColor(cardioType == t ? .statusBlue : .gray)
                                             .cornerRadius(8)
                                             .font(.appLabel)
                                     }
@@ -73,7 +73,7 @@ struct AddCardioSheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                             TextField("Notes...", text: $notes, axis: .vertical)
-                                .font(.system(size: 14)).foregroundColor(.appTextPrimary).tint(.blue)
+                                .font(.system(size: 14)).foregroundColor(.appTextPrimary).tint(.statusBlue)
                                 .lineLimit(3, reservesSpace: true)
                                 .submitLabel(.done)
                                 .onSubmit { hideKeyboard() }
@@ -88,7 +88,7 @@ struct AddCardioSheet: View {
                                 Text("Enregistrer Cardio").font(.appBody.weight(.semibold))
                             }
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(durationMin.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                            .background(durationMin.isEmpty ? Color.gray.opacity(0.3) : Color.statusBlue)
                             .foregroundColor(.white).cornerRadius(14)
                         }
                         .disabled(isLogging || durationMin.isEmpty)

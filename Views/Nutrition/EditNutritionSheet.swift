@@ -69,7 +69,7 @@ struct EditNutritionSheet: View {
                         Section {
                             Text(err)
                                 .font(.appLabel.weight(.regular))
-                                .foregroundColor(.red)
+                                .foregroundColor(.statusRed)
                         }.listRowBackground(Color.appCard)
                     }
                 }

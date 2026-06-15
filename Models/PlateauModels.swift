@@ -54,9 +54,9 @@ struct PlateauAlert: Codable, Identifiable {
 
     var severityColor: Color {
         switch severity {
-        case "critical": return .red
-        case "warning":  return .orange
-        default:         return .yellow
+        case "critical": return .statusRed
+        case "warning":  return .statusOrange
+        default:         return .statusYellow
         }
     }
 

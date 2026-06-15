@@ -9,11 +9,11 @@ struct PostSeanceCard: View {
             HStack(spacing: 7) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.green)
+                    .foregroundColor(.statusGreen)
                 Text("Séance terminée".uppercased())
                     .font(.system(size: 10, weight: .black))
                     .tracking(1.5)
-                    .foregroundColor(.green)
+                    .foregroundColor(.statusGreen)
                 Spacer()
                 if let name = data.sessionName, !name.isEmpty {
                     Text(name)
@@ -47,7 +47,7 @@ struct PostSeanceCard: View {
                             .foregroundColor(.white.opacity(0.40))
                         Text(delta > 0 ? "+\(delta)%" : "\(delta)%")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(delta > 10 ? .orange : delta < -10 ? .green : .white)
+                            .foregroundColor(delta > 10 ? .statusOrange : delta < -10 ? .statusGreen : .white)
                         Text("même type de séance")
                             .font(.appCaption)
                             .foregroundColor(.white.opacity(0.50))
@@ -60,7 +60,7 @@ struct PostSeanceCard: View {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "fork.knife")
                         .font(.appCaption)
-                        .foregroundColor(.green.opacity(0.75))
+                        .foregroundColor(.statusGreen.opacity(0.75))
                         .padding(.top, 1)
                     Text(data.nutritionAdvice)
                         .font(.appLabel)

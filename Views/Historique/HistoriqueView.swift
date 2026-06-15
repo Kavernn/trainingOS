@@ -443,7 +443,7 @@ struct TimelineRow: View {
                     }
                     if item.hiitCount > 0 {
                         Label("\(item.hiitCount) HIIT", systemImage: "bolt.fill")
-                            .font(.appCaption.weight(.semibold)).foregroundColor(.red)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.statusRed)
                     }
                 }
                 if !item.exercises.isEmpty {
@@ -600,10 +600,10 @@ struct MuscuSessionCard: View {
                                 Text("BONUS")
                                     .font(.appMicro.weight(.black))
                                     .tracking(1)
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(.statusPurple)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
-                                    .background(Color.purple.opacity(0.15))
+                                    .background(Color.statusPurple.opacity(0.15))
                                     .clipShape(Capsule())
                             }
                         }
@@ -648,7 +648,7 @@ struct MuscuSessionCard: View {
 
                     if !session.comment.isEmpty {
                         HStack {
-                            Image(systemName: "quote.bubble").font(.appCaption).foregroundColor(.blue)
+                            Image(systemName: "quote.bubble").font(.appCaption).foregroundColor(.statusBlue)
                             Text(session.comment).font(.appLabel.weight(.regular)).foregroundColor(.gray).italic()
                         }
                         .padding(.horizontal, 14)
@@ -659,13 +659,13 @@ struct MuscuSessionCard: View {
                         Button { onEdit() } label: {
                             Label("Modifier", systemImage: "pencil")
                                 .font(.appCaption.weight(.semibold))
-                                .foregroundColor(.blue)
+                                .foregroundColor(.statusBlue)
                         }
                         Spacer()
                         Button(role: .destructive) { confirmDelete = true } label: {
                             Label("Supprimer", systemImage: "trash")
                                 .font(.appCaption.weight(.semibold))
-                                .foregroundColor(.red)
+                                .foregroundColor(.statusRed)
                         }
                     }
                     .padding(.horizontal, 14)
@@ -729,13 +729,13 @@ struct HIITSessionCard: View {
                 VStack(spacing: 8) {
                     HStack(spacing: 16) {
                         if let wt = session.workTime {
-                            LabelValue(label: "WORK", value: "\(wt)s", color: .orange)
+                            LabelValue(label: "WORK", value: "\(wt)s", color: .statusOrange)
                         }
                         if let rt = session.restTime {
-                            LabelValue(label: "REST", value: "\(rt)s", color: .green)
+                            LabelValue(label: "REST", value: "\(rt)s", color: .statusGreen)
                         }
                         if let rpe = session.rpe {
-                            LabelValue(label: "RPE", value: String(format: "%.1f", rpe), color: .purple)
+                            LabelValue(label: "RPE", value: String(format: "%.1f", rpe), color: .statusPurple)
                         }
                     }
                     .padding(.horizontal, 14)
@@ -743,7 +743,7 @@ struct HIITSessionCard: View {
 
                     if let notes = session.notes, !notes.isEmpty {
                         HStack {
-                            Image(systemName: "quote.bubble").font(.appCaption).foregroundColor(.blue)
+                            Image(systemName: "quote.bubble").font(.appCaption).foregroundColor(.statusBlue)
                             Text(notes).font(.appLabel.weight(.regular)).foregroundColor(.gray).italic()
                             Spacer()
                         }
@@ -762,7 +762,7 @@ struct HIITSessionCard: View {
                         Button(role: .destructive) { confirmDelete = true } label: {
                             Label("Supprimer", systemImage: "trash")
                                 .font(.appCaption.weight(.semibold))
-                                .foregroundColor(.red)
+                                .foregroundColor(.statusRed)
                         }
                     }
                     .padding(.horizontal, 14)

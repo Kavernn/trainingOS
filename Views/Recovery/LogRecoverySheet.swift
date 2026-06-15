@@ -115,7 +115,7 @@ struct LogRecoverySheet: View {
                             .foregroundColor(.appTextPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color.red.opacity(0.85))
+                            .background(Color.statusRed.opacity(0.85))
                             .cornerRadius(12)
                         }
                         .disabled(isLoadingHK)
@@ -137,7 +137,7 @@ struct LogRecoverySheet: View {
                                         Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         Spacer()
                                         Text(String(format: "%.0f / 10", sleepQuality))
-                                            .font(.appLabel.weight(.bold)).foregroundColor(.blue)
+                                            .font(.appLabel.weight(.bold)).foregroundColor(.statusBlue)
                                     }
                                     Slider(value: $sleepQuality, in: 1...10, step: 1).tint(Color.forge)
                                 }
@@ -148,7 +148,7 @@ struct LogRecoverySheet: View {
                                         Text("HEURE COUCHER").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                     }
                                     .toggleStyle(.switch)
-                                    .tint(.blue)
+                                    .tint(.statusBlue)
                                 }
                                 if hasBedtime {
                                     DatePicker("", selection: $bedtime, displayedComponents: .hourAndMinute)
@@ -161,7 +161,7 @@ struct LogRecoverySheet: View {
                                         Text("HEURE RÉVEIL").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                     }
                                     .toggleStyle(.switch)
-                                    .tint(.blue)
+                                    .tint(.statusBlue)
                                 }
                                 if hasWakeTime {
                                     DatePicker("", selection: $wakeTime, displayedComponents: .hourAndMinute)
@@ -253,7 +253,7 @@ struct LogRecoverySheet: View {
                             // Fréquence cardiaque
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "heart.fill").font(.system(size: 10)).foregroundColor(.red)
+                                    Image(systemName: "heart.fill").font(.system(size: 10)).foregroundColor(.statusRed)
                                     Text("FRÉQUENCE CARDIAQUE (bpm)").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                 }
                                 HStack(spacing: 12) {
@@ -295,7 +295,7 @@ struct LogRecoverySheet: View {
                                             Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
                                         } else {
                                             Text(String(format: "%.0f / 10", sleepQuality))
-                                                .font(.appLabel.weight(.bold)).foregroundColor(.blue)
+                                                .font(.appLabel.weight(.bold)).foregroundColor(.statusBlue)
                                         }
                                     }
                                     Slider(value: $sleepQuality, in: 0...10, step: 1).tint(Color.forge)
@@ -481,15 +481,15 @@ struct LogRecoverySheet: View {
     }
 
     private func sorenessColor(_ v: Double) -> Color {
-        if v >= 7 { return .red }; if v >= 4 { return .orange }; return .green
+        if v >= 7 { return .statusRed }; if v >= 4 { return .statusOrange }; return .statusGreen
     }
 
     private func fatigueColor(_ v: Double) -> Color {
-        if v >= 7 { return .red }; if v >= 4 { return .orange }; return .green
+        if v >= 7 { return .statusRed }; if v >= 4 { return .statusOrange }; return .statusGreen
     }
 
     private func energyPreColor(_ v: Double) -> Color {
-        if v >= 7 { return .green }; if v >= 4 { return .orange }; return .red
+        if v >= 7 { return .statusGreen }; if v >= 4 { return .statusOrange }; return .statusRed
     }
 
     private func fillFromHealthKit() {

@@ -83,7 +83,7 @@ struct SeanceSoirView: View {
                 Color.appBg.ignoresSafeArea()
 
                 if vm.isLoading {
-                    ProgressView().tint(.blue)
+                    ProgressView().tint(.statusBlue)
                 } else if let data = vm.seanceData {
                     seanceContent(data: data)
                 } else if let err = vm.error {
@@ -91,7 +91,7 @@ struct SeanceSoirView: View {
                 } else {
                     VStack(spacing: 12) {
                         Image(systemName: "moon.zzz.fill")
-                            .font(.system(size: 48)).foregroundColor(.blue)
+                            .font(.system(size: 48)).foregroundColor(.statusBlue)
                         Text("Pas de séance du soir ce soir")
                             .foregroundColor(.gray)
                     }

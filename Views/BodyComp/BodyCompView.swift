@@ -27,7 +27,7 @@ struct BodyCompView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .green)
+                AmbientBackground(color: .statusGreen)
                 if isLoading {
                     AppLoadingView()
                 } else {
@@ -148,7 +148,7 @@ struct BodyCompView: View {
                                 Text("\(diff >= 0 ? "+" : "")\(units.format(diff))")
                                     .font(.appCaption.weight(.semibold))
                             }
-                            .foregroundColor(diff >= 0 ? .orange.opacity(0.8) : .green.opacity(0.8))
+                            .foregroundColor(diff >= 0 ? .statusOrange.opacity(0.8) : .statusGreen.opacity(0.8))
                             Text("vs hier")
                                 .font(.appMicro)
                                 .foregroundColor(.gray.opacity(0.5))
@@ -162,13 +162,13 @@ struct BodyCompView: View {
                 let lean = w * (1 - bf / 100)
                 let fat  = w * bf / 100
                 HStack(spacing: 8) {
-                    CompChip(label: "MASSE MAIGRE", value: units.format(lean), color: .green)
-                    CompChip(label: "MASSE GRASSE", value: "\(units.format(fat)) · \(String(format: "%.1f", bf))%", color: .blue)
+                    CompChip(label: "MASSE MAIGRE", value: units.format(lean), color: .statusGreen)
+                    CompChip(label: "MASSE GRASSE", value: "\(units.format(fat)) · \(String(format: "%.1f", bf))%", color: .statusBlue)
                 }
             }
         }
         .padding(16)
-        .glassCardAccent(.green)
+        .glassCardAccent(.statusGreen)
         .cornerRadius(16)
         .padding(.horizontal, 16)
         .appearAnimation(delay: 0.05)
@@ -198,8 +198,8 @@ struct BodyCompView: View {
 
     var tendanceColor: Color {
         let t = tendance.lowercased()
-        if t.contains("hausse") || t.contains("+") { return .orange }
-        if t.contains("baisse") || t.contains("↓") { return .green }
+        if t.contains("hausse") || t.contains("+") { return .statusOrange }
+        if t.contains("baisse") || t.contains("↓") { return .statusGreen }
         return .gray
     }
 
@@ -259,8 +259,8 @@ struct CompositionChartCard: View {
                     .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 12) {
-                    LegendDot(color: .green, label: "Masse maigre")
-                    LegendDot(color: .blue,  label: "Masse grasse")
+                    LegendDot(color: .statusGreen, label: "Masse maigre")
+                    LegendDot(color: .statusBlue,  label: "Masse grasse")
                 }
             }
 
@@ -291,10 +291,10 @@ struct CompositionChartCard: View {
                                 if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
                             }
                         }
-                        .stroke(Color.green, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.statusGreen, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
 
                         ForEach(leanSeries.indices, id: \.self) { i in
-                            Circle().fill(Color.green).frame(width: 5, height: 5)
+                            Circle().fill(Color.statusGreen).frame(width: 5, height: 5)
                                 .position(x: xPos(i), y: yPos(leanSeries[i]))
                         }
                     }
@@ -307,10 +307,10 @@ struct CompositionChartCard: View {
                                 if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
                             }
                         }
-                        .stroke(Color.blue, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.statusBlue, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
 
                         ForEach(fatSeries.indices, id: \.self) { i in
-                            Circle().fill(Color.blue).frame(width: 5, height: 5)
+                            Circle().fill(Color.statusBlue).frame(width: 5, height: 5)
                                 .position(x: xPos(i), y: yPos(fatSeries[i]))
                         }
                     }
@@ -323,10 +323,10 @@ struct CompositionChartCard: View {
                 HStack {
                     Spacer()
                     Text("Maigre \(units.format(last.weight * (1 - bf/100)))")
-                        .font(.appCaption.weight(.semibold)).foregroundColor(.green)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.statusGreen)
                     Text("·").foregroundColor(.gray)
                     Text("Gras \(units.format(last.weight * bf/100))")
-                        .font(.appCaption.weight(.semibold)).foregroundColor(.blue)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.statusBlue)
                     Spacer()
                 }
             }
@@ -354,7 +354,7 @@ struct WHRCard: View {
 
     private var thresholds: (good: Double, ok: Double) { isMale ? (0.90, 0.95) : (0.85, 0.90) }
     private var statusColor: Color {
-        ratio < thresholds.good ? .green : ratio < thresholds.ok ? .orange : .red
+        ratio < thresholds.good ? .statusGreen : ratio < thresholds.ok ? .statusOrange : .statusRed
     }
     private var statusLabel: String {
         ratio < thresholds.good ? "Excellent" : ratio < thresholds.ok ? "Correct" : "À surveiller"
@@ -388,9 +388,9 @@ struct WHRCard: View {
 
                 ZStack(alignment: .leading) {
                     HStack(spacing: 0) {
-                        Rectangle().fill(Color.green.opacity(0.25)).frame(width: goodX)
+                        Rectangle().fill(Color.statusGreen.opacity(0.25)).frame(width: goodX)
                         Rectangle().fill(Color.forge.opacity(0.25)).frame(width: okX - goodX)
-                        Rectangle().fill(Color.red.opacity(0.25))
+                        Rectangle().fill(Color.statusRed.opacity(0.25))
                     }
                     .clipShape(Capsule()).frame(height: 8)
 
@@ -429,11 +429,11 @@ struct MeasurementsCard: View {
         guard let l = entries.first else { return [] }
         let ref = entries.count > 1 ? entries.last : nil
         let defs: [(String, String, Color, Double?, Double?)] = [
-            ("Taille",    "arrow.left.and.right",                   .purple, l.waistCm,  ref?.waistCm),
+            ("Taille",    "arrow.left.and.right",                   .statusPurple, l.waistCm,  ref?.waistCm),
             ("Cou",       "bolt.ring.closed",                       .teal,   l.neckCm,   ref?.neckCm),
             ("Bras",      "figure.strengthtraining.traditional",     Color.forge, l.armsCm,   ref?.armsCm),
-            ("Poitrine",  "heart.fill",                             .red,    l.chestCm,  ref?.chestCm),
-            ("Cuisses",   "figure.walk",                            .blue,   l.thighsCm, ref?.thighsCm),
+            ("Poitrine",  "heart.fill",                             .statusRed,    l.chestCm,  ref?.chestCm),
+            ("Cuisses",   "figure.walk",                            .statusBlue,   l.thighsCm, ref?.thighsCm),
             ("Hanches",   "oval.portrait",                          .pink,   l.hipsCm,   ref?.hipsCm),
         ]
         return defs.compactMap { label, icon, color, cur, refVal in
@@ -475,7 +475,7 @@ struct MeasurementsCard: View {
                         if let d = item.delta, abs(d) >= 0.5 {
                             Text("\(d >= 0 ? "+" : "")\(d, specifier: "%.0f")")
                                 .font(.appCaption.weight(.semibold))
-                                .foregroundColor(d <= 0 ? .green : .orange)
+                                .foregroundColor(d <= 0 ? .statusGreen : .statusOrange)
                         }
                         Text("\(item.current, specifier: "%.0f")")
                             .font(.appBody.weight(.bold)).foregroundColor(.appTextPrimary)
@@ -593,7 +593,7 @@ struct ComparisonTableCard: View {
                             if let d = row.delta, abs(d) >= 0.05 {
                                 let good = row.higherIsBetter ? d > 0 : d < 0
                                 Text("\(d >= 0 ? "+" : "")\(d, specifier: abs(d) < 10 ? "%.1f" : "%.0f")")
-                                    .foregroundColor(good ? .green : .orange)
+                                    .foregroundColor(good ? .statusGreen : .statusOrange)
                             } else {
                                 Text("=").foregroundColor(.gray)
                             }
@@ -628,12 +628,12 @@ struct BodyWeightRow: View {
                 if let bf = entry.bodyFat {
                     Text("\(bf, specifier: "%.1f")% gras")
                         .font(.appCaption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.statusBlue)
                 }
                 if let wc = entry.waistCm {
                     Text("Tour: \(wc, specifier: "%.0f") cm")
                         .font(.appCaption)
-                        .foregroundColor(.purple)
+                        .foregroundColor(.statusPurple)
                 }
             }
             Spacer()
@@ -657,8 +657,8 @@ struct BodyWeightRow: View {
                 Image(systemName: "trash")
                     .font(.appLabel.weight(.semibold))
                     .frame(width: 32, height: 32)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundColor(.red.opacity(0.8))
+                    .background(Color.statusRed.opacity(0.1))
+                    .foregroundColor(.statusRed.opacity(0.8))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
@@ -722,7 +722,7 @@ struct BodyWeightSheet: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(Color.red.opacity(0.85))
+                                .background(Color.statusRed.opacity(0.85))
                                 .cornerRadius(12)
                             }
                             .disabled(isLoadingHK)
@@ -757,18 +757,18 @@ struct BodyWeightSheet: View {
                                 TextField("—", text: $bodyFatStr)
                                     .keyboardType(.decimalPad)
                                     .focused($bodyFocus, equals: .bodyFat)
-                                    .foregroundColor(fatInvalid ? .red : .white)
+                                    .foregroundColor(fatInvalid ? .statusRed : .white)
                                     .font(.appTitle)
                                     .padding(12)
                                     .background(Color.appSurfaceInset)
                                     .cornerRadius(10)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color.red.opacity(fatInvalid ? 0.7 : 0), lineWidth: 1.5)
+                                            .stroke(Color.statusRed.opacity(fatInvalid ? 0.7 : 0), lineWidth: 1.5)
                                     )
                                 if fatInvalid {
                                     Text("Valeur entre 3% et 60%")
-                                        .font(.appCaption).foregroundColor(.red.opacity(0.8))
+                                        .font(.appCaption).foregroundColor(.statusRed.opacity(0.8))
                                 }
                             }
                         }
@@ -939,7 +939,7 @@ struct WeightChartView: View {
 
     private var deltaColor: Color {
         if abs(delta) < 0.2 { return .gray }
-        return delta < 0 ? .green : .orange
+        return delta < 0 ? .statusGreen : .statusOrange
     }
 
     private func shortDate(_ iso: String) -> String {
@@ -1094,7 +1094,7 @@ struct BodyProjectionCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .foregroundColor(.cyan)
+                    .foregroundColor(.statusCyan)
                 Text("PROJECTIONS OBJECTIFS")
                     .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             }
@@ -1109,7 +1109,7 @@ struct BodyProjectionCard: View {
                         if let date = proj.projectedDate {
                             Text(formatDate(date))
                                 .font(.appCaption.weight(.bold))
-                                .foregroundColor(.cyan)
+                                .foregroundColor(.statusCyan)
                         } else {
                             Text("Tendance insuffisante")
                                 .font(.appCaption).foregroundColor(.gray)
@@ -1130,7 +1130,7 @@ struct BodyProjectionCard: View {
                                 .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                             let unit = proj.goalType == "body_fat" ? "%" : " lbs"
                             Text(String(format: "%.1f\(unit)", proj.target))
-                                .font(.appBody.weight(.black)).foregroundColor(.cyan)
+                                .font(.appBody.weight(.black)).foregroundColor(.statusCyan)
                         }
                         Spacer()
                         if let r2 = proj.r2 {
@@ -1139,7 +1139,7 @@ struct BodyProjectionCard: View {
                                     .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 Text(String(format: "%.0f%%", r2 * 100))
                                     .font(.appLabel.weight(.bold))
-                                    .foregroundColor(r2 >= 0.7 ? .green : r2 >= 0.4 ? .yellow : .orange)
+                                    .foregroundColor(r2 >= 0.7 ? .statusGreen : r2 >= 0.4 ? .statusYellow : .statusOrange)
                             }
                         }
                     }

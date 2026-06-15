@@ -406,7 +406,7 @@ struct JournalEntrySheet: View {
                     Text("Humeur (optionnel)")
                 }
                 if let err = errorMsg {
-                    Section { Text(err).foregroundColor(.red).font(.caption) }
+                    Section { Text(err).foregroundColor(.statusRed).font(.caption) }
                 }
             }
             .scrollDismissesKeyboard(.interactively)

@@ -20,7 +20,7 @@ struct HealthDashboardView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .cyan)
+                AmbientBackground(color: .statusCyan)
 
                 if isLoading {
                     AppLoadingView()
@@ -33,7 +33,7 @@ struct HealthDashboardView: View {
                                 NavigationLink(destination: PSSView()) {
                                     HStack(spacing: 10) {
                                         Image(systemName: "brain.head.profile")
-                                            .font(.appLabel.weight(.regular)).foregroundColor(.purple)
+                                            .font(.appLabel.weight(.regular)).foregroundColor(.statusPurple)
                                         Text(msg)
                                             .font(.appCaption.weight(.medium))
                                             .foregroundColor(.appTextPrimary)
@@ -43,7 +43,7 @@ struct HealthDashboardView: View {
                                             .font(.appCaption).foregroundColor(.gray)
                                     }
                                     .padding(12)
-                                    .glassCard(color: .purple, intensity: 0.07)
+                                    .glassCard(color: .statusPurple, intensity: 0.07)
                                     .cornerRadius(12)
                                 }
                                 .buttonStyle(.plain)
@@ -156,9 +156,9 @@ struct RecoveryScoreRing: View {
 
     private var score: Double { summary.recoveryScore ?? 0 }
     private var scoreColor: Color {
-        if score >= 70 { return .green }
-        if score >= 50 { return .yellow }
-        return .red
+        if score >= 70 { return .statusGreen }
+        if score >= 50 { return .statusYellow }
+        return .statusRed
     }
 
     var body: some View {
@@ -219,7 +219,7 @@ struct DataSourcesRow: View {
     private func sourceConfig(_ s: String) -> (String, Color) {
         switch s {
         case "healthkit": return ("apple.logo", .white)
-        case "wearable":  return ("applewatch", .cyan)
+        case "wearable":  return ("applewatch", .statusCyan)
         default:          return ("hand.point.up.fill", Color.forge)
         }
     }
@@ -264,25 +264,25 @@ struct HealthKPIGrid: View {
             if let steps = summary.steps {
                 let delta = yesterday?.steps.map { steps - $0 }
                 let goalPct = stepsGoal > 0 ? "\(min(100, steps * 100 / stepsGoal))%" : nil
-                StatCard(value: "\(steps)", label: "Pas", color: .green,
+                StatCard(value: "\(steps)", label: "Pas", color: .statusGreen,
                          subtitle: goalPct.map { steps >= stepsGoal ? "✓ objectif" : "\($0) de l'objectif" },
                          delta: delta.map { deltaInt($0, invertGood: false) })
             }
             if let sleep = summary.sleepDuration {
                 let delta = yesterday?.sleepDuration.map { sleep - $0 }
-                StatCard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .blue,
+                StatCard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .statusBlue,
                          delta: delta.map { deltaDouble($0, unit: "h", invertGood: false) })
             }
             if let hr = effectiveHR {
                 let delta = hrIsLive ? nil : yesterday?.restingHeartRate.map { hr - $0 }
                 StatCard(value: String(format: "%.0f bpm", hr),
-                         label: hrIsLive ? "FC repos ◆ live" : "FC repos", color: .red,
+                         label: hrIsLive ? "FC repos ◆ live" : "FC repos", color: .statusRed,
                          delta: delta.map { deltaDouble($0, unit: "", invertGood: true) })
             }
             if let hrv = effectiveHRV {
                 let delta = hrvIsLive ? nil : yesterday?.hrv.map { hrv - $0 }
                 StatCard(value: String(format: "%.0f ms", hrv),
-                         label: hrvIsLive ? "HRV ◆ live" : "HRV", color: .cyan,
+                         label: hrvIsLive ? "HRV ◆ live" : "HRV", color: .statusCyan,
                          delta: delta.map { deltaDouble($0, unit: " ms", invertGood: false) })
             }
         }
@@ -291,13 +291,13 @@ struct HealthKPIGrid: View {
     private func deltaInt(_ val: Int, invertGood: Bool) -> (String, Color) {
         let isGood = invertGood ? val < 0 : val >= 0
         let sign = val >= 0 ? "↑+" : "↓"
-        return ("\(sign)\(val)", isGood ? .green : .red)
+        return ("\(sign)\(val)", isGood ? .statusGreen : .statusRed)
     }
 
     private func deltaDouble(_ val: Double, unit: String, invertGood: Bool) -> (String, Color) {
         let isGood = invertGood ? val < 0 : val >= 0
         let sign = val >= 0 ? "↑+" : "↓"
-        return ("\(sign)\(String(format: "%.1f", val))\(unit)", isGood ? .green : .red)
+        return ("\(sign)\(String(format: "%.1f", val))\(unit)", isGood ? .statusGreen : .statusRed)
     }
 }
 
@@ -322,14 +322,14 @@ struct BodyMetricsCard: View {
                 if let bf = summary.bodyFatPct {
                     VStack(spacing: 2) {
                         Text(String(format: "%.1f%%", bf))
-                            .font(.appTitle.weight(.black)).foregroundColor(.blue)
+                            .font(.appTitle.weight(.black)).foregroundColor(.statusBlue)
                         Text("Masse grasse").font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 if let wc = summary.waistCm {
                     VStack(spacing: 2) {
                         Text(String(format: "%.0f cm", wc))
-                            .font(.appTitle.weight(.black)).foregroundColor(.purple)
+                            .font(.appTitle.weight(.black)).foregroundColor(.statusPurple)
                         Text("Tour taille").font(.appCaption).foregroundColor(.gray)
                     }
                 }
@@ -363,10 +363,10 @@ struct CardioSummaryCard: View {
                     MetricPill(value: String(format: "%.0f min", m), icon: "timer", color: Color.forge)
                 }
                 if let p = summary.pace {
-                    MetricPill(value: p, icon: "speedometer", color: .blue)
+                    MetricPill(value: p, icon: "speedometer", color: .statusBlue)
                 }
                 if let hr = summary.heartRateAvg {
-                    MetricPill(value: String(format: "%.0f bpm", hr), icon: "heart.fill", color: .red)
+                    MetricPill(value: String(format: "%.0f bpm", hr), icon: "heart.fill", color: .statusRed)
                 }
             }
         }
@@ -404,7 +404,7 @@ struct TrainingSummaryCard: View {
                             ForEach(1...5, id: \.self) { i in
                                 Image(systemName: i <= e ? "bolt.fill" : "bolt")
                                     .font(.appCaption)
-                                    .foregroundColor(i <= e ? .yellow : .gray.opacity(0.3))
+                                    .foregroundColor(i <= e ? .statusYellow : .gray.opacity(0.3))
                             }
                         }
                         Text("Énergie").font(.appCaption).foregroundColor(.gray)
@@ -441,13 +441,13 @@ struct NutritionSummaryHealthCard: View {
                     MacroChip(value: "\(Int(cal))", label: "kcal", color: Color.forge)
                 }
                 if let p = summary.protein {
-                    MacroChip(value: "\(Int(p))g", label: "protéines", color: .red)
+                    MacroChip(value: "\(Int(p))g", label: "protéines", color: .statusRed)
                 }
                 if let c = summary.carbs {
-                    MacroChip(value: "\(Int(c))g", label: "glucides", color: .yellow)
+                    MacroChip(value: "\(Int(c))g", label: "glucides", color: .statusYellow)
                 }
                 if let f = summary.fat {
-                    MacroChip(value: "\(Int(f))g", label: "lipides", color: .blue)
+                    MacroChip(value: "\(Int(f))g", label: "lipides", color: .statusBlue)
                 }
             }
         }
@@ -482,7 +482,7 @@ struct WeeklySleepChart: View {
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
                     let pct = maxH > 0 ? item.1 / maxH : 0
-                    let color: Color = item.1 >= 7 ? .blue : (item.1 >= 5 ? Color.forge : .red)
+                    let color: Color = item.1 >= 7 ? .statusBlue : (item.1 >= 5 ? Color.forge : .statusRed)
                     let isLast = i == data.count - 1
                     VStack(spacing: 3) {
                         Text(String(format: "%.0fh", item.1))
@@ -502,7 +502,7 @@ struct WeeklySleepChart: View {
             }
             .frame(height: 80)
         }
-        .padding(14).glassCard(color: .blue, intensity: 0.05)
+        .padding(14).glassCard(color: .statusBlue, intensity: 0.05)
         .sheet(item: $selectedDay) { day in
             HealthDayDetailSheet(day: day)
         }
@@ -536,7 +536,7 @@ struct WeeklyStepsChart: View {
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
                     let pct = Double(item.1) / Double(maxSteps)
-                    let color: Color = item.1 >= 10000 ? .green : (item.1 >= 6000 ? .orange : .red)
+                    let color: Color = item.1 >= 10000 ? .statusGreen : (item.1 >= 6000 ? .statusOrange : .statusRed)
                     let isLast = i == data.count - 1
                     VStack(spacing: 3) {
                         Text(item.1 >= 1000 ? "\(item.1 / 1000)k" : "\(item.1)")
@@ -556,7 +556,7 @@ struct WeeklyStepsChart: View {
             }
             .frame(height: 80)
         }
-        .padding(14).glassCard(color: .green, intensity: 0.05)
+        .padding(14).glassCard(color: .statusGreen, intensity: 0.05)
         .sheet(item: $selectedDay) { day in
             HealthDayDetailSheet(day: day)
         }
@@ -605,10 +605,10 @@ struct LifeStressCard: View {
 
     private var color: Color {
         switch score.score {
-        case 80...: return .green
-        case 60..<80: return .yellow
-        case 40..<60: return .orange
-        default: return .red
+        case 80...: return .statusGreen
+        case 60..<80: return .statusYellow
+        case 40..<60: return .statusOrange
+        default: return .statusRed
         }
     }
 
@@ -646,9 +646,9 @@ struct LifeStressCard: View {
                     ForEach(activeFlags, id: \.0) { label, _ in
                         Text(label)
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.red)
+                            .foregroundColor(.statusRed)
                             .padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(Color.red.opacity(0.12))
+                            .background(Color.statusRed.opacity(0.12))
                             .cornerRadius(5)
                     }
                 }
@@ -660,7 +660,7 @@ struct LifeStressCard: View {
                     ForEach(score.recommendations, id: \.self) { rec in
                         HStack(alignment: .top, spacing: 6) {
                             Image(systemName: "lightbulb.fill")
-                                .font(.appCaption).foregroundColor(.yellow)
+                                .font(.appCaption).foregroundColor(.statusYellow)
                             Text(rec)
                                 .font(.appCaption).foregroundColor(.gray)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -723,7 +723,7 @@ struct LifeStressTrendChart: View {
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
                     let pct = item.1 / 100.0
-                    let barColor: Color = item.1 >= 80 ? .green : (item.1 >= 60 ? .yellow : (item.1 >= 40 ? .orange : .red))
+                    let barColor: Color = item.1 >= 80 ? .statusGreen : (item.1 >= 60 ? .statusYellow : (item.1 >= 40 ? .statusOrange : .statusRed))
                     let isLast = i == data.count - 1
                     VStack(spacing: 2) {
                         Text(String(format: "%.0f", item.1))
@@ -749,9 +749,9 @@ struct DayStatusHeaderView: View {
 
     private var recoveryScore: Double { summary.recoveryScore ?? 0 }
     private var recoveryColor: Color {
-        if recoveryScore >= 70 { return .green }
-        if recoveryScore >= 50 { return .yellow }
-        return .red
+        if recoveryScore >= 70 { return .statusGreen }
+        if recoveryScore >= 50 { return .statusYellow }
+        return .statusRed
     }
     private var recoveryLabel: String {
         guard summary.recoveryScore != nil else { return "Aucune donnée" }
@@ -794,7 +794,7 @@ struct DayStatusHeaderView: View {
 
                     // LSS — indicateur secondaire
                     if let lss = lifeStress {
-                        let lssColor: Color = lss.score >= 80 ? .green : lss.score >= 60 ? .yellow : lss.score >= 40 ? .orange : .red
+                        let lssColor: Color = lss.score >= 80 ? .statusGreen : lss.score >= 60 ? .statusYellow : lss.score >= 40 ? .statusOrange : .statusRed
                         let lssLabel: String = lss.score >= 80 ? "Récup. optimale" : lss.score >= 60 ? "Bonne forme" : lss.score >= 40 ? "Fatigue modérée" : "Surmenage"
                         HStack(spacing: 4) {
                             Text("Life Stress")
@@ -829,9 +829,9 @@ struct DayStatusHeaderView: View {
                         ForEach(active, id: \.0) { label, _ in
                             Text(label)
                                 .font(.appCaption.weight(.semibold))
-                                .foregroundColor(.red)
+                                .foregroundColor(.statusRed)
                                 .padding(.horizontal, 7).padding(.vertical, 3)
-                                .background(Color.red.opacity(0.12))
+                                .background(Color.statusRed.opacity(0.12))
                                 .cornerRadius(5)
                         }
                         Spacer()
@@ -858,17 +858,17 @@ struct HealthDayDetailSheet: View {
             List {
                 if let sleep = day.sleepDuration {
                     Section("Sommeil") {
-                        DetailMetricRow(icon: "moon.fill", color: .blue, label: "Durée",
+                        DetailMetricRow(icon: "moon.fill", color: .statusBlue, label: "Durée",
                                         value: String(format: "%.1fh", sleep))
                         if let q = day.sleepQuality {
-                            DetailMetricRow(icon: "star.fill", color: .yellow, label: "Qualité",
+                            DetailMetricRow(icon: "star.fill", color: .statusYellow, label: "Qualité",
                                             value: String(format: "%.0f%%", q))
                         }
                     }
                 }
                 Section("Activité") {
                     if let steps = day.steps {
-                        DetailMetricRow(icon: "figure.walk", color: .green, label: "Pas",
+                        DetailMetricRow(icon: "figure.walk", color: .statusGreen, label: "Pas",
                                         value: "\(steps)" + (steps >= stepsGoal ? " ✓" : ""))
                     }
                     if let active = day.activeMinutes {
@@ -878,11 +878,11 @@ struct HealthDayDetailSheet: View {
                 }
                 Section("Cardio") {
                     if let hr = day.restingHeartRate {
-                        DetailMetricRow(icon: "heart.fill", color: .red, label: "FC repos",
+                        DetailMetricRow(icon: "heart.fill", color: .statusRed, label: "FC repos",
                                         value: String(format: "%.0f bpm", hr))
                     }
                     if let hrv = day.hrv {
-                        DetailMetricRow(icon: "waveform.path.ecg", color: .cyan, label: "HRV",
+                        DetailMetricRow(icon: "waveform.path.ecg", color: .statusCyan, label: "HRV",
                                         value: String(format: "%.0f ms", hrv))
                     }
                 }
@@ -903,7 +903,7 @@ struct HealthDayDetailSheet: View {
                         DetailMetricRow(icon: "scalemass.fill", color: Color.forge, label: "Poids",
                                         value: units.format(w))
                         if let bf = day.bodyFatPct {
-                            DetailMetricRow(icon: "chart.pie.fill", color: .blue, label: "Masse grasse",
+                            DetailMetricRow(icon: "chart.pie.fill", color: .statusBlue, label: "Masse grasse",
                                             value: String(format: "%.1f%%", bf))
                         }
                     }

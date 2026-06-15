@@ -35,32 +35,32 @@ struct TodayMetricsRow: View {
 
             MetricMiniCard(
                 icon: "circle.hexagongrid.fill",
-                iconColor: .cyan,
+                iconColor: .statusCyan,
                 value: "\(Int(protein))g",
                 label: "/ \(Int(protGoal))g prot.",
                 fill: protGoal > 0 ? min(protein / protGoal, 1.0) : 0,
-                fillColor: .cyan,
+                fillColor: .statusCyan,
                 compact: weeklyCardioKm > 0
             )
 
             if weeklyCardioKm > 0 {
                 MetricMiniCard(
                     icon: "figure.run",
-                    iconColor: .green,
+                    iconColor: .statusGreen,
                     value: String(format: "%.1f", weeklyCardioKm),
                     label: "km · 7 jours",
                     fill: min(weeklyCardioKm / 20.0, 1.0),
-                    fillColor: .green,
+                    fillColor: .statusGreen,
                     compact: true
                 )
             } else if let sleep = recovery?.sleepHours {
                 MetricMiniCard(
                     icon: "moon.zzz.fill",
-                    iconColor: .blue,
+                    iconColor: .statusBlue,
                     value: String(format: "%.1fh", sleep),
                     label: "sommeil",
                     fill: min(sleep / 8.0, 1.0),
-                    fillColor: .blue,
+                    fillColor: .statusBlue,
                     compact: false
                 )
             }

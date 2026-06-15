@@ -224,7 +224,7 @@ struct MoodLogSheet: View {
 
                 if let err = errorMsg {
                     Section {
-                        Text(err).foregroundColor(.red).font(.caption)
+                        Text(err).foregroundColor(.statusRed).font(.caption)
                     }
                 }
             }
@@ -396,7 +396,7 @@ private struct MoodRPECorrelationCard: View {
                 let r = correlation
                 Text("r = \(String(format: "%.2f", r))")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(abs(r) > 0.4 ? .yellow : .secondary)
+                    .foregroundColor(abs(r) > 0.4 ? .statusYellow : .secondary)
             }
 
             Chart(points.indices, id: \.self) { i in
@@ -404,7 +404,7 @@ private struct MoodRPECorrelationCard: View {
                     x: .value("Humeur", points[i].mood),
                     y: .value("RPE", points[i].rpe)
                 )
-                .foregroundStyle(Color.yellow.opacity(0.7))
+                .foregroundStyle(Color.statusYellow.opacity(0.7))
                 .symbolSize(60)
             }
             .chartXAxis {

@@ -156,12 +156,12 @@ struct CardioSummaryView: View {
             SummaryMetric(label: "DURÉE",    value: durationStr,                                    color: .white)
             SummaryMetric(label: "DISTANCE", value: String(format: "%.2f km", session.distanceKm), color: .teal)
             if isVelo {
-                SummaryMetric(label: "VITESSE MOY", value: speedStr,  color: .blue)
+                SummaryMetric(label: "VITESSE MOY", value: speedStr,  color: .statusBlue)
             } else {
-                SummaryMetric(label: "ALLURE MOY",  value: paceStr,   color: .blue)
+                SummaryMetric(label: "ALLURE MOY",  value: paceStr,   color: .statusBlue)
             }
             if showMaxPace {
-                SummaryMetric(label: "ALLURE MAX", value: maxPaceStr, color: Color.yellow)
+                SummaryMetric(label: "ALLURE MAX", value: maxPaceStr, color: Color.statusYellow)
             }
         }
         .padding(.horizontal, 16)
@@ -220,7 +220,7 @@ struct CardioSummaryView: View {
             Spacer()
             Text(splitPace)
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                .foregroundColor(isFaster ? .green : .red)
+                .foregroundColor(isFaster ? .statusGreen : .statusRed)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 16)
@@ -239,7 +239,7 @@ struct CardioSummaryView: View {
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     if let hr = hkAvgHR {
-                        SummaryMetric(label: "FC MOY", value: "\(Int(hr)) bpm", color: .red)
+                        SummaryMetric(label: "FC MOY", value: "\(Int(hr)) bpm", color: .statusRed)
                     }
                     if let cal = hkCalories {
                         SummaryMetric(label: "CALORIES", value: "\(Int(cal)) kcal", color: Color.forge)
@@ -306,7 +306,7 @@ struct CardioSummaryView: View {
             if let err = saveError {
                 Text(err)
                     .font(.appLabel.weight(.regular))
-                    .foregroundColor(.red)
+                    .foregroundColor(.statusRed)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
             }

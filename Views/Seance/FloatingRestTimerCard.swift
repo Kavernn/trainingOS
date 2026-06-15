@@ -8,7 +8,7 @@ struct FloatingRestTimerCard: View {
             let elapsed = timer.isRunning ? max(0, ctx.date.timeIntervalSince(timer.startDate ?? .now)) : Double(timer.totalSeconds - timer.remaining)
             let remaining = max(0, timer.totalSeconds - Int(elapsed))
             let progress = timer.totalSeconds > 0 ? Double(remaining) / Double(timer.totalSeconds) : 0
-            let ringColor: Color = progress > 0.6 ? .green : (progress > 0.3 ? .orange : .red)
+            let ringColor: Color = progress > 0.6 ? .statusGreen : (progress > 0.3 ? .statusOrange : .statusRed)
 
             VStack(spacing: 22) {
                 if let name = timer.exerciseName {

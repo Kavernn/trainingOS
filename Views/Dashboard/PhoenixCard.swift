@@ -166,7 +166,7 @@ private struct PhoenixCardContent: View {
 
                 if let delta = dayDelta, abs(delta) >= 0.1 {
                     let dSign = delta >= 0 ? "+" : ""
-                    let dColor: Color = delta >= 0 ? .green : Color.appDanger
+                    let dColor: Color = delta >= 0 ? .statusGreen : Color.appDanger
                     HStack(spacing: 3) {
                         Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
                             .font(.appMicro.weight(.bold))

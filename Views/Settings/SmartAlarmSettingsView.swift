@@ -107,9 +107,9 @@ struct SmartAlarmSettingsView: View {
 
     private var stateColor: Color {
         switch service.state {
-        case .armed:               return .green
+        case .armed:               return .statusGreen
         case .notArmed:            return Color(white: 0.5)
-        case .authorizationDenied: return .orange
+        case .authorizationDenied: return .statusOrange
         case .disabled:            return Color(white: 0.3)
         }
     }

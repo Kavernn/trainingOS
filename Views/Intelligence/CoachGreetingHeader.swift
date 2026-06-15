@@ -43,7 +43,7 @@ struct CoachGreetingHeader: View {
             Spacer()
             Image(systemName: "brain.head.profile")
                 .font(.system(size: 22, weight: .light))
-                .foregroundColor(Color.purple.opacity(0.5))
+                .foregroundColor(Color.statusPurple.opacity(0.5))
         }
     }
 }

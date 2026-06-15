@@ -94,7 +94,7 @@ struct SeasonReportView: View {
                             Spacer()
                             Text("\(units.format(pr.oldWeightLbs, decimals: 0)) → \(units.format(pr.newWeightLbs, decimals: 0))")
                                 .font(.system(size: 12, design: .monospaced))
-                                .foregroundStyle(Color.green)
+                                .foregroundStyle(Color.statusGreen)
                         }
                     }
                 }
@@ -139,7 +139,7 @@ struct SeasonReportView: View {
                         .foregroundStyle(arcColor)
                     Text(s.warRoomResets == 0 ? "Invaincu" : "\(s.warRoomResets) reset\(s.warRoomResets > 1 ? "s" : "")")
                         .font(.system(size: 12))
-                        .foregroundStyle(s.warRoomResets == 0 ? Color.green : Color.secondary)
+                        .foregroundStyle(s.warRoomResets == 0 ? Color.statusGreen : Color.secondary)
                 }
             }
         }
@@ -218,7 +218,7 @@ struct SeasonReportView: View {
             let positive = lowerIsBetter ? delta < 0 : delta > 0
             Text(delta == 0 ? "" : (delta > 0 ? "+\(String(format: "%.1f", abs(delta)))" : "−\(String(format: "%.1f", abs(delta)))") + (unit.isEmpty ? "" : " \(unit)"))
                 .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(delta == 0 ? .clear : (positive ? Color.green : Color.red))
+                .foregroundStyle(delta == 0 ? .clear : (positive ? Color.statusGreen : Color.statusRed))
                 .frame(width: 70, alignment: .trailing)
         }
     }
@@ -237,14 +237,14 @@ struct SeasonReportView: View {
 
     private var arcColor: Color {
         switch report.arc {
-        case "rebirth":      return .purple
+        case "rebirth":      return .statusPurple
         case "comeback":     return Color.forge
-        case "war":          return .red
-        case "breakthrough": return .yellow
-        case "ascent":       return .green
-        case "descent":      return Color.red.opacity(0.6)
+        case "war":          return .statusRed
+        case "breakthrough": return .statusYellow
+        case "ascent":       return .statusGreen
+        case "descent":      return Color.statusRed.opacity(0.6)
         case "plateau":      return .secondary
-        default:             return .blue
+        default:             return .statusBlue
         }
     }
 }

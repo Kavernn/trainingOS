@@ -11,8 +11,8 @@ struct WatchSyncBannerView: View {
         return "Apple Watch · Appuyer pour synchroniser"
     }
     private var statusColor: Color {
-        if sync.isSyncing { return .cyan }
-        if sync.lastError != nil { return .red }
+        if sync.isSyncing { return .statusCyan }
+        if sync.lastError != nil { return .statusRed }
         return .gray
     }
 
@@ -20,7 +20,7 @@ struct WatchSyncBannerView: View {
         Button(action: { if !sync.isSyncing { onSync() } }) {
             HStack(spacing: 10) {
                 Image(systemName: "applewatch")
-                    .font(.system(size: 12)).foregroundColor(.cyan)
+                    .font(.system(size: 12)).foregroundColor(.statusCyan)
 
                 Text(statusText)
                     .font(.system(size: 12)).foregroundColor(statusColor)
@@ -29,15 +29,15 @@ struct WatchSyncBannerView: View {
                 Spacer()
 
                 if sync.isSyncing {
-                    ProgressView().tint(.cyan).scaleEffect(0.6)
+                    ProgressView().tint(.statusCyan).scaleEffect(0.6)
                 } else {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12)).foregroundColor(.cyan)
+                        .font(.system(size: 12)).foregroundColor(.statusCyan)
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Color.cyan.opacity(0.07))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.12), lineWidth: 1))
+            .background(Color.statusCyan.opacity(0.07))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.statusCyan.opacity(0.12), lineWidth: 1))
             .cornerRadius(10)
         }
         .buttonStyle(SpringButtonStyle(scale: 0.97))

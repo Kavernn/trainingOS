@@ -20,11 +20,11 @@ struct CoachInsightCard: View {
 
     private func tipColor(for domain: String) -> Color {
         switch domain {
-        case "nutrition": return .green
-        case "training":  return .orange
-        case "recovery":  return .blue
-        case "sleep":     return .purple
-        default:          return .orange
+        case "nutrition": return .statusGreen
+        case "training":  return .statusOrange
+        case "recovery":  return .statusBlue
+        case "sleep":     return .statusPurple
+        default:          return .statusOrange
         }
     }
 
@@ -48,7 +48,7 @@ struct CoachInsightCard: View {
 
     @ViewBuilder
     private func alertContent(_ alert: ProactiveAlert) -> some View {
-        let accentColor: Color = alert.severity == "warning" ? Color.forge : .blue
+        let accentColor: Color = alert.severity == "warning" ? Color.forge : .statusBlue
         let alertIcon: String = {
             switch alert.type {
             case "nutrition": return "fork.knife.circle.fill"

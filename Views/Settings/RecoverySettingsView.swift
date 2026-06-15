@@ -47,7 +47,7 @@ struct RecoverySettingsView: View {
                     .padding(.vertical, 3)
 
                     HStack(spacing: 12) {
-                        settingsIcon("sunrise.fill", color: .yellow)
+                        settingsIcon("sunrise.fill", color: .statusYellow)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Heure de lever cible").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Utilisé pour les rappels").font(.appCaption).foregroundColor(.gray.opacity(0.55))
@@ -63,7 +63,7 @@ struct RecoverySettingsView: View {
                     .padding(.vertical, 3)
 
                     HStack(spacing: 12) {
-                        settingsIcon("moon.fill", color: .blue)
+                        settingsIcon("moon.fill", color: .statusBlue)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Heure de coucher cible").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Utilisé pour les rappels").font(.appCaption).foregroundColor(.gray.opacity(0.55))
@@ -91,8 +91,8 @@ struct RecoverySettingsView: View {
                                 settingsIcon(
                                     option.id == "conservative" ? "tortoise.fill" :
                                     option.id == "standard"     ? "waveform.path.ecg" : "hare.fill",
-                                    color: option.id == "aggressive" ? .red :
-                                           option.id == "standard"   ? .cyan : .green
+                                    color: option.id == "aggressive" ? .statusRed :
+                                           option.id == "standard"   ? .statusCyan : .statusGreen
                                 )
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(option.label).font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)

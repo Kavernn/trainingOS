@@ -6,7 +6,7 @@ struct ProgressionCard: View {
     @ObservedObject private var units = UnitSettings.shared
 
     private var isForce: Bool { goal?.lowercased().contains("force") == true }
-    private var accent: Color { isForce ? .blue : .teal }
+    private var accent: Color { isForce ? .statusBlue : .teal }
     private var headerLabel: String { isForce ? "FORCE — TOP CHARGES" : "HYPERTROPHIE — PROGRESSION" }
     private var headerIcon: String { isForce ? "bolt.fill" : "arrow.up.right" }
 
@@ -68,7 +68,7 @@ struct ProgressionCard: View {
             if let delta = lift.delta, abs(delta) > 0.5 {
                 Text(delta > 0 ? "+\(units.format(delta, decimals: 0))" : units.format(delta, decimals: 0))
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(delta > 0 ? .green : .orange)
+                    .foregroundColor(delta > 0 ? .statusGreen : .statusOrange)
                     .padding(.trailing, 6)
             }
             Text(units.format(lift.currentWeight, decimals: 0))

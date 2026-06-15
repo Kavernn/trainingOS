@@ -76,7 +76,7 @@ enum TombstoneType: String {
 
     var accentColor: Color {
         switch self {
-        case .prKilled:      return .orange
+        case .prKilled:      return .statusOrange
         case .plateauBuried: return Color(hex: "8B6AFF")
         case .streakSlain:   return Color(hex: "FF6B35")
         case .stressFloor:   return Color(hex: "4ECDC4")

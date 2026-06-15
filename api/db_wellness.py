@@ -226,8 +226,8 @@ def delete_sleep_record(record_id: str) -> bool:
         return False
 
     def _do() -> bool:
-        db_core._client.table("sleep_records").delete().eq("id", record_id).execute()
-        return True
+        resp = db_core._client.table("sleep_records").delete().eq("id", record_id).execute()
+        return bool(resp.data)
 
     try:
         return _do()
@@ -459,9 +459,10 @@ def delete_self_care_habit(habit_id: str) -> bool:
         return False
 
     def _do() -> bool:
+        # FK: self_care_logs.habit_id → self_care_habits.id (ON DELETE RESTRICT) → logs avant habit
         db_core._client.table("self_care_logs").delete().eq("habit_id", habit_id).execute()
-        db_core._client.table("self_care_habits").delete().eq("id", habit_id).execute()
-        return True
+        resp = db_core._client.table("self_care_habits").delete().eq("id", habit_id).execute()
+        return bool(resp.data)
 
     try:
         return _do()
@@ -566,8 +567,8 @@ def upsert_life_stress_score(entry: dict) -> bool:
         return False
 
     def _do() -> bool:
-        db_core._client.table("life_stress_scores").upsert(entry, on_conflict="date").execute()
-        return True
+        resp = db_core._client.table("life_stress_scores").upsert(entry, on_conflict="date").execute()
+        return bool(resp.data)
 
     try:
         return _do()

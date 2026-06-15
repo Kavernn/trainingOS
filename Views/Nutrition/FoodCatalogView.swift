@@ -138,20 +138,12 @@ struct FoodCatalogView: View {
     }
 
     // N-D7: wrapped save with error tracking
+    // offline → offlinePost enqueue (SyncManager retry auto, no throw) → syncFailed=false
+    // server error 4xx/5xx → throws → syncFailed=true, bannière visible
     private func syncCatalog(_ current: [FoodItem]) async {
-        guard let url = URL(string: "\(APIService.shared.baseURL)/api/food_catalog"),
-              let body = FoodCatalogStore.encodeForAPI(current) else {
-            syncFailed = true; return
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = body
-        req.timeoutInterval = 15
         do {
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-            syncFailed = !(200..<300).contains(code)
+            try await APIService.shared.saveFoodCatalog(current)
+            syncFailed = false
         } catch {
             syncFailed = true
         }

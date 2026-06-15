@@ -102,7 +102,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                 TextField("Message...", text: $input, axis: .vertical)
                     .font(.appBody)
                     .foregroundColor(.appTextPrimary)
-                    .tint(.purple)
+                    .tint(.statusPurple)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
                     .background(Color.appSurfaceInset)
@@ -110,7 +110,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 22)
                             .stroke(
-                                inputFocused ? Color.purple.opacity(0.55) : Color.appSeparator,
+                                inputFocused ? Color.statusPurple.opacity(0.55) : Color.appSeparator,
                                 lineWidth: 1
                             )
                     )
@@ -124,7 +124,7 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                 Button(action: sendMessage) {
                     ZStack {
                         Circle()
-                            .fill(canSend ? Color.purple : Color.white.opacity(0.1))
+                            .fill(canSend ? Color.statusPurple : Color.white.opacity(0.1))
                         Image(systemName: "arrow.up")
                             .font(.appBody.weight(.bold))
                             .foregroundColor(canSend ? .white : Color.appTextMuted)

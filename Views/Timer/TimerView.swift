@@ -28,10 +28,10 @@ struct TimerView: View {
 
     var phaseColor: Color {
         switch phase {
-        case .prepare: return .yellow
-        case .work:    return .orange
-        case .rest:    return .green
-        case .done:    return .green
+        case .prepare: return .statusYellow
+        case .work:    return .statusOrange
+        case .rest:    return .statusGreen
+        case .done:    return .statusGreen
         case .idle:    return .gray
         }
     }
@@ -158,7 +158,7 @@ struct TimerView: View {
                     TimerStepperRow(
                         label: "⏱  PRÉPARE",
                         value: $prepareSecs,
-                        color: .yellow,
+                        color: .statusYellow,
                         step: 1,
                         min: 1,
                         max: 60,
@@ -176,7 +176,7 @@ struct TimerView: View {
                     TimerStepperRow(
                         label: "💤  REST",
                         value: $restSecs,
-                        color: .green,
+                        color: .statusGreen,
                         step: 5,
                         min: 5,
                         max: 300,
@@ -185,7 +185,7 @@ struct TimerView: View {
                     TimerStepperRow(
                         label: "🔁  ROUNDS",
                         value: $totalRounds,
-                        color: .blue,
+                        color: .statusBlue,
                         step: 1,
                         min: 1,
                         max: 99,
@@ -502,7 +502,7 @@ struct RoundDotsView: View {
     }
 
     private func dotColor(_ i: Int) -> Color {
-        if i < currentRound { return .orange }
+        if i < currentRound { return .statusOrange }
         if i == currentRound && phase != .idle { return phaseColor }
         return Color.appSurfaceInset
     }

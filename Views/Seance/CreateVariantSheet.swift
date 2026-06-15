@@ -166,7 +166,7 @@ struct CreateVariantSheet: View {
                     if let err = errorMessage {
                         Text(err)
                             .font(.appLabel)
-                            .foregroundColor(.red)
+                            .foregroundColor(.statusRed)
                             .multilineTextAlignment(.center)
                     }
                 }

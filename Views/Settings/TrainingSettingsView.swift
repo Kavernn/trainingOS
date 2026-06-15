@@ -36,7 +36,7 @@ struct TrainingSettingsView: View {
 
                 Section("Progression") {
                     if units.isKg {
-                        stepperRow(icon: "arrow.up", color: .blue,
+                        stepperRow(icon: "arrow.up", color: .statusBlue,
                                    title: "Incrément upper body",
                                    subtitle: "Épaules, pecs, dos, bras",
                                    value: $upperKg,
@@ -49,7 +49,7 @@ struct TrainingSettingsView: View {
                                    step: 0.5, range: 0.5...10.0,
                                    unit: "kg")
                     } else {
-                        stepperRow(icon: "arrow.up", color: .blue,
+                        stepperRow(icon: "arrow.up", color: .statusBlue,
                                    title: "Incrément upper body",
                                    subtitle: "Épaules, pecs, dos, bras",
                                    value: $upperLbs,

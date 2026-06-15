@@ -15,10 +15,10 @@ struct MorningRevealView: View {
 
     private var accentColor: Color {
         switch morningBrief.recommendation {
-        case "go":         return .green
+        case "go":         return .statusGreen
         case "go_caution": return Color(hex: "F5C518")
-        case "reduce":     return .orange
-        default:           return .red
+        case "reduce":     return .statusOrange
+        default:           return .statusRed
         }
     }
 
@@ -180,13 +180,13 @@ struct MorningRevealView: View {
     private var activeFlagChips: [(icon: String, text: String, color: Color)] {
         var chips: [(icon: String, text: String, color: Color)] = []
         if morningBrief.flags.sleepDeprivation {
-            chips.append((icon: "moon.zzz.fill", text: "Manque de sommeil", color: .blue))
+            chips.append((icon: "moon.zzz.fill", text: "Manque de sommeil", color: .statusBlue))
         }
         if morningBrief.flags.hrvDrop {
             chips.append((icon: "waveform.path.ecg", text: "HRV en baisse", color: Color.forge))
         }
         if morningBrief.flags.trainingOverload {
-            chips.append((icon: "flame.fill", text: "Surcharge", color: .red))
+            chips.append((icon: "flame.fill", text: "Surcharge", color: .statusRed))
         }
         return chips
     }
@@ -216,16 +216,16 @@ private struct RevealComponentsRow: View {
     var body: some View {
         HStack(spacing: 10) {
             if let v = components.sleepQuality {
-                RevealComponentChip(icon: "moon.fill", label: "Sommeil", quality: v, color: v > 0.6 ? .blue : Color.forge)
+                RevealComponentChip(icon: "moon.fill", label: "Sommeil", quality: v, color: v > 0.6 ? .statusBlue : Color.forge)
             }
             if let v = components.hrvTrend {
-                RevealComponentChip(icon: "waveform.path.ecg", label: "HRV", quality: v, color: v > 0.6 ? .green : .orange)
+                RevealComponentChip(icon: "waveform.path.ecg", label: "HRV", quality: v, color: v > 0.6 ? .statusGreen : .statusOrange)
             }
             if let v = components.rhrTrend {
-                RevealComponentChip(icon: "heart.fill", label: "FC repos", quality: v, color: v > 0.6 ? .green : .red)
+                RevealComponentChip(icon: "heart.fill", label: "FC repos", quality: v, color: v > 0.6 ? .statusGreen : .statusRed)
             }
             if let v = components.trainingFatigue {
-                RevealComponentChip(icon: "flame.fill", label: "Fatigue", quality: v, color: v > 0.6 ? .green : .orange)
+                RevealComponentChip(icon: "flame.fill", label: "Fatigue", quality: v, color: v > 0.6 ? .statusGreen : .statusOrange)
             }
         }
     }

@@ -216,11 +216,11 @@ struct EnergyHeaderCard: View {
             HStack(spacing: 0) {
                 energyKPI(label: "Dépenses",
                           value: energy.tdee.map { "\($0)" } ?? "—",
-                          unit: "kcal", color: .blue)
+                          unit: "kcal", color: .statusBlue)
                 Spacer()
                 energyKPI(label: "Apports",
                           value: energy.intake.map { "\($0)" } ?? "—",
-                          unit: "kcal", color: .green)
+                          unit: "kcal", color: .statusGreen)
                 Spacer()
                 energyKPI(label: "Bilan",
                           value: bal,
@@ -290,7 +290,7 @@ private struct EnergyBreakdownCard: View {
                 breakdownRow(label: "BMR",
                              subtitle: energy.bmrFormulaProgressLabel,
                              value: bmrVal,
-                             color: .blue,
+                             color: .statusBlue,
                              total: tdee)
                 if eatW > 0 {
                     breakdownRow(label: "Musculation",
@@ -318,7 +318,7 @@ private struct EnergyBreakdownCard: View {
                     breakdownRow(label: "NEAT",
                                  subtitle: stepsLabel,
                                  value: neatVal,
-                                 color: .green,
+                                 color: .statusGreen,
                                  total: tdee)
                 } else if energy.breakdown?.steps == nil {
                     HStack(spacing: 8) {
@@ -477,10 +477,10 @@ private struct EnergyChartSection: View {
                     .foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 12) {
-                    legendDot(color: .blue,   label: "TDEE")
-                    legendDot(color: .green,  label: "Apports")
+                    legendDot(color: .statusBlue,   label: "TDEE")
+                    legendDot(color: .statusGreen,  label: "Apports")
                     if targetBalance != nil {
-                        legendDot(color: .yellow, label: "Cible")
+                        legendDot(color: .statusYellow, label: "Cible")
                     }
                 }
             }
@@ -497,7 +497,7 @@ private struct EnergyChartSection: View {
                             yEnd: .value("Hi", hi)
                         )
                         .foregroundStyle(
-                            (intake >= day.tdee ? Color.green : Color.red).opacity(0.14)
+                            (intake >= day.tdee ? Color.statusGreen : Color.statusRed).opacity(0.14)
                         )
                         .interpolationMethod(.catmullRom)
                     }
@@ -510,7 +510,7 @@ private struct EnergyChartSection: View {
                         y: .value("TDEE", day.tdee),
                         series: .value("Série", "Dépenses")
                     )
-                    .foregroundStyle(Color.blue)
+                    .foregroundStyle(Color.statusBlue)
                     .interpolationMethod(.catmullRom)
                     .lineStyle(StrokeStyle(lineWidth: 2))
 
@@ -518,7 +518,7 @@ private struct EnergyChartSection: View {
                         x: .value("Date", day.shortDate),
                         y: .value("TDEE", day.tdee)
                     )
-                    .foregroundStyle(Color.blue)
+                    .foregroundStyle(Color.statusBlue)
                     .symbolSize(20)
                 }
 
@@ -529,7 +529,7 @@ private struct EnergyChartSection: View {
                         y: .value("Apports", day.intake ?? 0),
                         series: .value("Série", "Apports")
                     )
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(Color.statusGreen)
                     .interpolationMethod(.catmullRom)
                     .lineStyle(StrokeStyle(lineWidth: 2))
 
@@ -537,7 +537,7 @@ private struct EnergyChartSection: View {
                         x: .value("Date", day.shortDate),
                         y: .value("Apports", day.intake ?? 0)
                     )
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(Color.statusGreen)
                     .symbolSize(20)
                 }
 
@@ -547,11 +547,11 @@ private struct EnergyChartSection: View {
                     let target = avgTDEE + mid
                     RuleMark(y: .value("Cible", target))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
-                        .foregroundStyle(Color.yellow.opacity(0.5))
+                        .foregroundStyle(Color.statusYellow.opacity(0.5))
                         .annotation(position: .top, alignment: .trailing) {
                             Text("Cible \(target) kcal")
                                 .font(.system(size: 8))
-                                .foregroundColor(.yellow.opacity(0.7))
+                                .foregroundColor(Color.statusYellow.opacity(0.7))
                         }
                 }
 
@@ -626,16 +626,16 @@ private struct EnergyChartSection: View {
                 .foregroundColor(.appTextPrimary)
             Text("TDEE \(day.tdee) kcal")
                 .font(.appMicro)
-                .foregroundColor(.blue)
+                .foregroundColor(.statusBlue)
             if let i = day.intake {
                 Text("Apports \(i) kcal")
                     .font(.appMicro)
-                    .foregroundColor(.green)
+                    .foregroundColor(.statusGreen)
             }
             if let b = day.balance {
                 Text(b >= 0 ? "+\(b) kcal" : "\(b) kcal")
                     .font(.appMicro.weight(.bold))
-                    .foregroundColor(b >= 0 ? .green : .red)
+                    .foregroundColor(b >= 0 ? .statusGreen : .statusRed)
             }
         }
         .padding(6)
@@ -857,9 +857,9 @@ private struct UnifiedRecoverySleepSection: View {
         let scoreInt = score.map { Int($0) }
         let scoreColor: Color = {
             guard let s = score else { return .gray }
-            if s >= 75 { return .green }
-            if s >= 50 { return .orange }
-            return .red
+            if s >= 75 { return .statusGreen }
+            if s >= 50 { return .statusOrange }
+            return .statusRed
         }()
         let statusLabel = score.map { $0 >= 75 ? "Bon" : $0 >= 50 ? "Moyen" : "Faible" } ?? "—"
 
@@ -896,9 +896,9 @@ private struct UnifiedRecoverySleepSection: View {
         let hours = sleepToday?.durationHours ?? today?.sleepHours
         let durColor: Color = {
             guard let h = hours else { return .gray }
-            if h >= 7 { return .green }
-            if h >= 6 { return .orange }
-            return .red
+            if h >= 7 { return .statusGreen }
+            if h >= 6 { return .statusOrange }
+            return .statusRed
         }()
         let catLabel: String = {
             guard let cat = sleepToday?.durationCategory else {
@@ -978,12 +978,12 @@ private struct UnifiedRecoverySleepSection: View {
         ) {
             TappableMetricCell(
                 label: "HRV", value: hrvVal.map { "\(Int($0)) ms" } ?? "—",
-                icon: "waveform.path.ecg", color: .blue,
+                icon: "waveform.path.ecg", color: .statusBlue,
                 subtitle: hrvSubtitle, infoEntry: InfoEntry.hrvMetric
             )
             TappableMetricCell(
                 label: "FC Repos", value: entry?.restingHr.map { "\(Int($0)) bpm" } ?? "—",
-                icon: "heart.fill", color: .red, infoEntry: InfoEntry.restingHrMetric
+                icon: "heart.fill", color: .statusRed, infoEntry: InfoEntry.restingHrMetric
             )
             TappableMetricCell(
                 label: "Durée sommeil",
@@ -992,7 +992,7 @@ private struct UnifiedRecoverySleepSection: View {
             )
             TappableMetricCell(
                 label: "Qualité sommeil", value: qualVal,
-                icon: "star.fill", color: .purple, infoEntry: InfoEntry.sleepQualityMetric
+                icon: "star.fill", color: .statusPurple, infoEntry: InfoEntry.sleepQualityMetric
             )
         }
     }
@@ -1020,25 +1020,25 @@ private struct UnifiedRecoverySleepSection: View {
 
     private func secondaryMetricsGrid(entry: RecoveryEntry) -> some View {
         let energyPre = entry.energyPre
-        let energyColor: Color = energyPre.map { $0 >= 7 ? .green : $0 >= 4 ? .orange : .red } ?? .gray
+        let energyColor: Color = energyPre.map { $0 >= 7 ? .statusGreen : $0 >= 4 ? .statusOrange : .statusRed } ?? .gray
         let deltaFC: Double? = entry.hrMorning.flatMap { m in entry.hrPostWorkout.map { p in p - m } }
-        let deltaColor: Color = deltaFC.map { d in d <= 10 ? .green : d <= 20 ? .orange : .red } ?? .gray
+        let deltaColor: Color = deltaFC.map { d in d <= 10 ? .statusGreen : d <= 20 ? .statusOrange : .statusRed } ?? .gray
 
         return LazyVGrid(
             columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
             spacing: 8
         ) {
             TappableMetricCell(label: "Pas", value: entry.steps.map { "\($0)" } ?? "—",
-                               icon: "figure.walk", color: .green, infoEntry: InfoEntry.stepsMetric)
+                               icon: "figure.walk", color: .statusGreen, infoEntry: InfoEntry.stepsMetric)
             TappableMetricCell(label: "Courbatures", value: entry.soreness.map { "\(Int($0))/10" } ?? "—",
                                icon: "bolt.fill", color: Color.forge, infoEntry: InfoEntry.sorenessMetric)
             TappableMetricCell(label: "Fatigue", value: entry.fatigue.map { "\(Int($0))/10" } ?? "—",
-                               icon: "gauge", color: .purple, infoEntry: InfoEntry.fatigueMetric)
+                               icon: "gauge", color: .statusPurple, infoEntry: InfoEntry.fatigueMetric)
             TappableMetricCell(label: "Énergie perçue", value: energyPre.map { "\(Int($0))/10" } ?? "—",
                                icon: "bolt.fill", color: energyColor, valueColor: energyColor,
                                infoEntry: InfoEntry.energyPreMetric)
             TappableMetricCell(label: "FC Matin", value: entry.hrMorning.map { "\(Int($0)) bpm" } ?? "—",
-                               icon: "sun.max.fill", color: .yellow, infoEntry: InfoEntry.hrMorningMetric)
+                               icon: "sun.max.fill", color: .statusYellow, infoEntry: InfoEntry.hrMorningMetric)
             TappableMetricCell(label: "FC Post-Séance", value: entry.hrPostWorkout.map { "\(Int($0)) bpm" } ?? "—",
                                icon: "figure.strengthtraining.traditional", color: Color.forge,
                                infoEntry: InfoEntry.hrPostWorkoutMetric)
@@ -1054,7 +1054,7 @@ private struct UnifiedRecoverySleepSection: View {
             }
             if let ae = entry.activeEnergy, ae > 0 {
                 TappableMetricCell(label: "Dépense active", value: "\(Int(ae)) kcal",
-                                   icon: "applewatch", color: .cyan, infoEntry: InfoEntry.activeEnergyMetric)
+                                   icon: "applewatch", color: .statusCyan, infoEntry: InfoEntry.activeEnergyMetric)
             }
         }
     }
@@ -1211,7 +1211,7 @@ private struct Recovery14dChart: View {
     private var chartPoints: [ChartPoint] {
         ordered.compactMap { e in
             guard let score = readinessScore(for: e) else { return nil }
-            let color: Color = score >= 75 ? .green : score >= 50 ? .orange : .red
+            let color: Color = score >= 75 ? .statusGreen : score >= 50 ? .statusOrange : .statusRed
             return ChartPoint(id: e.id, label: shortDate(e), score: score, color: color)
         }
     }
@@ -1241,10 +1241,10 @@ private struct Recovery14dChart: View {
             return "Stable"
         }()
         let trendColor: Color = {
-            guard let t = trendResult else { return .orange }
-            if t.slope > 0.5  { return .green }
-            if t.slope < -0.5 { return .red }
-            return .orange
+            guard let t = trendResult else { return .statusOrange }
+            if t.slope > 0.5  { return .statusGreen }
+            if t.slope < -0.5 { return .statusRed }
+            return .statusOrange
         }()
         let trendIcon: String = {
             guard let t = trendResult else { return "arrow.right" }
@@ -1350,8 +1350,8 @@ private struct Sleep10dChart: View {
 
     private var chartPoints: [SleepPoint] {
         Array(history.prefix(10).reversed()).map { e in
-            let color: Color = e.durationHours >= 7 ? .green
-                             : e.durationHours >= 6 ? Color.forge : .red
+            let color: Color = e.durationHours >= 7 ? .statusGreen
+                             : e.durationHours >= 6 ? Color.forge : .statusRed
             return SleepPoint(id: e.id, label: shortDate(e.date),
                               duration: e.durationHours, quality: e.quality,
                               durColor: color)
@@ -1368,19 +1368,19 @@ private struct Sleep10dChart: View {
                     .foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 12) {
-                    legendDot(color: .blue,   label: "Durée")
-                    legendDot(color: .purple, label: "Qualité ×2")
+                    legendDot(color: .statusBlue,   label: "Durée")
+                    legendDot(color: .statusPurple, label: "Qualité ×2")
                 }
             }
 
             Chart {
                 RuleMark(y: .value("Optimal", 7.0))
                     .lineStyle(StrokeStyle(lineWidth: 0.8, dash: [3]))
-                    .foregroundStyle(Color.green.opacity(0.35))
+                    .foregroundStyle(Color.statusGreen.opacity(0.35))
                     .annotation(position: .trailing, alignment: .leading) {
                         Text("7h")
                             .font(.system(size: 8))
-                            .foregroundColor(.green.opacity(0.6))
+                            .foregroundColor(Color.statusGreen.opacity(0.6))
                     }
 
                 ForEach(pts) { p in
@@ -1398,7 +1398,7 @@ private struct Sleep10dChart: View {
                         y: .value("Qualité", Double(p.quality) * 2.0),
                         series: .value("S", "Qualité")
                     )
-                    .foregroundStyle(Color.purple.opacity(0.85))
+                    .foregroundStyle(Color.statusPurple.opacity(0.85))
                     .lineStyle(StrokeStyle(lineWidth: 1.5))
                     .interpolationMethod(.catmullRom)
 
@@ -1406,7 +1406,7 @@ private struct Sleep10dChart: View {
                         x: .value("Date", p.label),
                         y: .value("Qualité", Double(p.quality) * 2.0)
                     )
-                    .foregroundStyle(Color.purple)
+                    .foregroundStyle(Color.statusPurple)
                     .symbolSize(18)
                 }
             }
@@ -1479,7 +1479,7 @@ private struct DynamicSuggestionsSection: View {
         // ── Alertes prioritaires (rouge) ───────────────────────────────────
         if let r = readiness, r < 40 {
             list.append(Suggestion(
-                icon: "moon.zzz.fill", color: .red,
+                icon: "moon.zzz.fill", color: .statusRed,
                 title: "Récupération critique",
                 detail: "Score de récupération très bas — journée de repos total recommandée.",
                 priority: 2
@@ -1488,14 +1488,14 @@ private struct DynamicSuggestionsSection: View {
 
         if !tooEarly && balance <= -700 {
             list.append(Suggestion(
-                icon: "exclamationmark.triangle.fill", color: .red,
+                icon: "exclamationmark.triangle.fill", color: .statusRed,
                 title: "Déficit sévère",
                 detail: "Ton bilan est inférieur à -700 kcal — risque de perte musculaire. Augmente tes apports.",
                 priority: 1
             ))
         } else if !tooEarly && balanceStatus == "deficit_aggressive" {
             list.append(Suggestion(
-                icon: "flame.fill", color: .red,
+                icon: "flame.fill", color: .statusRed,
                 title: "Déficit agressif",
                 detail: "Déficit entre -500 et -700 kcal. Ajoute une collation protéinée pour préserver la masse musculaire.",
                 priority: 2
@@ -1535,7 +1535,7 @@ private struct DynamicSuggestionsSection: View {
         // ── Informations (bleu) ────────────────────────────────────────────
         if !tooEarly && intake == 0 && !(energy?.isError ?? true) {
             list.append(Suggestion(
-                icon: "fork.knife", color: .blue,
+                icon: "fork.knife", color: .statusBlue,
                 title: "Nutrition non enregistrée",
                 detail: "Aucun apport saisi aujourd'hui — log tes repas pour calculer ton bilan réel.",
                 priority: 5
@@ -1544,7 +1544,7 @@ private struct DynamicSuggestionsSection: View {
 
         if neat == nil && !(energy?.isError ?? true) {
             list.append(Suggestion(
-                icon: "applewatch", color: .blue,
+                icon: "applewatch", color: .statusBlue,
                 title: "NEAT non calculé",
                 detail: "Porte ton Apple Watch pour mesurer tes pas et inclure le NEAT dans ton TDEE.",
                 priority: 6
@@ -1554,7 +1554,7 @@ private struct DynamicSuggestionsSection: View {
         // ── HRV optimal (vert) ─────────────────────────────────────────────
         if hrvZone == "green" && sleepHours >= 7 {
             list.append(Suggestion(
-                icon: "waveform.path.ecg.rectangle.fill", color: .green,
+                icon: "waveform.path.ecg.rectangle.fill", color: .statusGreen,
                 title: "HRV optimal + bon sommeil",
                 detail: "Système nerveux bien récupéré. Journée idéale pour une séance intense ou un record personnel.",
                 priority: 7
@@ -1569,7 +1569,7 @@ private struct DynamicSuggestionsSection: View {
             let goodRecov  = (readiness ?? 0) >= 65
             if isBalanced && goodSleep && goodRecov {
                 list.append(Suggestion(
-                    icon: "checkmark.seal.fill", color: .green,
+                    icon: "checkmark.seal.fill", color: .statusGreen,
                     title: "Journée optimale",
                     detail: "Bilan énergétique, sommeil et récupération sont tous au vert — continue sur cette lancée.",
                     priority: 8

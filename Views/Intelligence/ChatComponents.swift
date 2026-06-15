@@ -83,11 +83,11 @@ struct ChatBubble: View {
                 if !isUser {
                     ZStack {
                         Circle()
-                            .fill(Color.purple.opacity(0.18))
+                            .fill(Color.statusPurple.opacity(0.18))
                             .frame(width: 30, height: 30)
                         Image(systemName: "brain.head.profile")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.purple)
+                            .foregroundColor(.statusPurple)
                     }
                 }
 
@@ -97,7 +97,7 @@ struct ChatBubble: View {
                     .lineSpacing(3)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(isUser ? Color.purple.opacity(0.85) : Color.appSurfaceInset)
+                    .background(isUser ? Color.statusPurple.opacity(0.85) : Color.appSurfaceInset)
                     .clipShape(
                         UnevenRoundedRectangle(
                             topLeadingRadius:    18,
@@ -123,12 +123,12 @@ struct ChatBubble: View {
                 Button { chip.post() } label: {
                     Text(chip.label)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.purple)
+                        .foregroundColor(.statusPurple)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color.purple.opacity(0.10))
+                        .background(Color.statusPurple.opacity(0.10))
                         .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.purple.opacity(0.28), lineWidth: 1))
+                        .overlay(Capsule().stroke(Color.statusPurple.opacity(0.28), lineWidth: 1))
                 }
                 .padding(.leading, 50)
             }
@@ -147,7 +147,7 @@ struct TypingIndicator: View {
         HStack(spacing: 4) {
             ForEach(0..<3, id: \.self) { i in
                 Circle()
-                    .fill(Color.purple.opacity(phase == i ? 1 : 0.3))
+                    .fill(Color.statusPurple.opacity(phase == i ? 1 : 0.3))
                     .frame(width: 7, height: 7)
             }
         }

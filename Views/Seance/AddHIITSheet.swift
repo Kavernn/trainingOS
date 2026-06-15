@@ -67,7 +67,7 @@ struct AddHIITSheet: View {
                                             HStack(spacing: 4) {
                                                 Button(t.name) { applyTemplate(t) }
                                                     .font(.appLabel.weight(.semibold))
-                                                    .foregroundColor(.red)
+                                                    .foregroundColor(.statusRed)
                                                 Button {
                                                     saveTemplates(templates.filter { $0.id != t.id })
                                                 } label: {
@@ -139,7 +139,7 @@ struct AddHIITSheet: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                             TextField("Notes...", text: $notes, axis: .vertical)
-                                .font(.system(size: 14)).foregroundColor(.appTextPrimary).tint(.red)
+                                .font(.system(size: 14)).foregroundColor(.appTextPrimary).tint(.statusRed)
                                 .lineLimit(3, reservesSpace: true)
                                 .submitLabel(.done)
                                 .onSubmit { hideKeyboard() }

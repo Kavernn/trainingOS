@@ -212,7 +212,7 @@ struct ChecklistCardView: View {
         HStack(spacing: 12) {
             Text("Tout coché. Lance-toi.")
                 .font(.appLabel.weight(.bold))
-                .foregroundColor(.green)
+                .foregroundColor(.statusGreen)
             Spacer()
             if showUndoComplete {
                 Button("Annuler") {

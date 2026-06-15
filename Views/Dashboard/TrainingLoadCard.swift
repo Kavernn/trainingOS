@@ -6,7 +6,7 @@ struct TrainingLoadCard: View {
     let data: TrainingLoadData
     @State private var showDetail = false
 
-    private var zoneColor: Color { Color(hex: data.zone.colorHex) }
+    private var zoneColor: Color { data.zone.color }
 
     var body: some View {
         Button { showDetail = true } label: {
@@ -69,7 +69,7 @@ struct TrainingLoadCard: View {
 private struct ZoneBadge: View {
     let zone: TrainingZone
 
-    private var color: Color { Color(hex: zone.colorHex) }
+    private var color: Color { zone.color }
 
     var body: some View {
         HStack(spacing: 4) {
@@ -99,7 +99,7 @@ private struct LoadSparkline: View {
                 let v = values[i]
                 let isLast = i == values.count - 1
                 let h = maxVal > 0 ? max(6.0, 40.0 * v / maxVal) : 6.0
-                let barColor: Color = isLast ? Color(hex: zone.colorHex) : .white.opacity(0.22)
+                let barColor: Color = isLast ? zone.color : .white.opacity(0.22)
                 VStack(spacing: 3) {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(barColor)
@@ -120,7 +120,7 @@ private struct TrainingLoadDetailSheet: View {
     let data: TrainingLoadData
     @Environment(\.dismiss) private var dismiss
 
-    private var zoneColor: Color { Color(hex: data.zone.colorHex) }
+    private var zoneColor: Color { data.zone.color }
 
     var body: some View {
         NavigationStack {
@@ -148,7 +148,7 @@ private struct TrainingLoadDetailSheet: View {
 
 private struct RatioBanner: View {
     let data: TrainingLoadData
-    private var zoneColor: Color { Color(hex: data.zone.colorHex) }
+    private var zoneColor: Color { data.zone.color }
 
     var body: some View {
         HStack(spacing: 16) {
@@ -183,7 +183,7 @@ private struct LoadBreakdownCard: View {
             HStack(spacing: 0) {
                 LoadStat(label: "CHARGE AIGUË", sublabel: "7 jours",
                          value: data.acute.map { String(format: "%.0f", $0) } ?? "—",
-                         color: Color(hex: data.zone.colorHex))
+                         color: data.zone.color)
                 Divider().background(Color.white.opacity(0.10)).frame(height: 40)
                 LoadStat(label: "CHARGE CHRONIQUE", sublabel: "28 jours moy.",
                          value: data.chronic.map { String(format: "%.0f", $0) } ?? "—",
@@ -262,10 +262,12 @@ private struct ZoneGuideCard: View {
         let label: String
         let range: String
         let color: Color
-        static let all: [ZoneRow] = [
-            .init(label: "Sous-chargé",    range: "< 0.80×",       color: Color(hex: "FF9500")),
-            .init(label: "Zone optimale",  range: "0.80 – 1.30×",  color: Color(hex: "34C759")),
-            .init(label: "Surcharge",      range: "> 1.30×",       color: Color.appDanger),
-        ]
+        static var all: [ZoneRow] {
+            [
+                .init(label: "Sous-chargé",    range: "< 0.80×",       color: TrainingZone.under.color),
+                .init(label: "Zone optimale",  range: "0.80 – 1.30×",  color: TrainingZone.optimal.color),
+                .init(label: "Surcharge",      range: "> 1.30×",       color: TrainingZone.spike.color),
+            ]
+        }
     }
 }

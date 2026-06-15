@@ -315,7 +315,7 @@ struct SpiritJournalWriteView: View {
                 VStack(spacing: 8) {
                     Text("Non sauvegardé — vérifie ta connexion")
                         .font(.appCaption)
-                        .foregroundStyle(Color.red)
+                        .foregroundStyle(Color.statusRed)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Button("Réessayer") { save() }
                         .font(.appCaption)

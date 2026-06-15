@@ -163,6 +163,7 @@ struct MealComposerSheet: View {
     private func save() {
         Task {
             isSaving = true
+            defer { isSaving = false }
             var count = 0
             do {
                 for (foodId, gramsStr) in composedSet {
@@ -178,13 +179,12 @@ struct MealComposerSheet: View {
                     count += 1
                 }
             } catch {
-                await MainActor.run { isSaving = false; saveError = "Erreur réseau — réessaie" }
+                saveError = "Erreur réseau — réessaie"
                 return
             }
             triggerNotificationFeedback(.success)
             onLogged?(count)
             await onSaved()
-            isSaving = false
             dismiss()
         }
     }

@@ -58,7 +58,7 @@ struct GhostBanner: View {
                     Capsule()
                         .fill(beaten
                             ? LinearGradient(colors: [Color.forge, Color.forgeDeep], startPoint: .leading, endPoint: .trailing)
-                            : LinearGradient(colors: [.purple.opacity(0.8), .blue.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
+                            : LinearGradient(colors: [.statusPurple.opacity(0.8), .statusBlue.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
                         )
                         .frame(width: geo.size.width * progress, height: 5)
                         .animation(.spring(response: 0.5), value: progress)
@@ -74,14 +74,14 @@ struct GhostBanner: View {
                 Spacer()
                 Text("\(Int(progress * 100))%")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(beaten ? Color.forge : .purple)
+                    .foregroundColor(beaten ? Color.forge : .statusPurple)
             }
         }
         .padding(12)
         .background(Color.appBg)
         .cornerRadius(12)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(
-            beaten ? Color.forge.opacity(0.5) : Color.purple.opacity(0.25), lineWidth: 1
+            beaten ? Color.forge.opacity(0.5) : Color.statusPurple.opacity(0.25), lineWidth: 1
         ))
     }
 }

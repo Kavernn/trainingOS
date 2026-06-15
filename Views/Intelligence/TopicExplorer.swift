@@ -11,14 +11,14 @@ struct CoachTopic {
 let coachTopics: [CoachTopic] = [
     CoachTopic(
         icon: "chart.line.uptrend.xyaxis",
-        color: .blue,
+        color: .statusBlue,
         title: "Progression",
         subtitle: "Forces & blocages",
         query: "Analyse ma progression sur les 30 derniers jours. Quels exercices progressent le plus ? Où est-ce que je stagne ?"
     ),
     CoachTopic(
         icon: "moon.zzz.fill",
-        color: .blue,
+        color: .statusBlue,
         title: "Récupération",
         subtitle: "HRV, sommeil, fatigue",
         query: "Évalue ma récupération actuelle à partir de mes données HRV et sommeil. Dois-je réduire mon volume ou puis-je pousser ?"
@@ -32,14 +32,14 @@ let coachTopics: [CoachTopic] = [
     ),
     CoachTopic(
         icon: "list.bullet.clipboard",
-        color: .green,
+        color: .statusGreen,
         title: "Programme",
         subtitle: "Structure & phases",
         query: "Analyse mon programme d'entraînement actuel. Est-il bien structuré pour mon objectif ? Que changerais-tu ?"
     ),
     CoachTopic(
         icon: "bolt.fill",
-        color: .red,
+        color: .statusRed,
         title: "Intensité",
         subtitle: "RPE & surcharge",
         query: "Mes RPE récents sont-ils cohérents avec mes objectifs ? Est-ce que je m'entraîne avec la bonne intensité ?"

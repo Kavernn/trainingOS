@@ -144,9 +144,9 @@ extension EnergyDaily {
 
     var statusColor: Color {
         let score = energyScore
-        if score >= 75 { return .green }
-        if score >= 50 { return .orange }
-        return .red
+        if score >= 75 { return .statusGreen }
+        if score >= 50 { return .statusOrange }
+        return .statusRed
     }
 
     var bmrFormulaLabel: String {

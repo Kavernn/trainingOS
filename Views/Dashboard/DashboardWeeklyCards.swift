@@ -10,7 +10,7 @@ struct WeeklyReportTeaser: View {
         HStack(spacing: 14) {
             Image(systemName: "chart.bar.doc.horizontal")
                 .font(.appHeadline.weight(.bold))
-                .foregroundColor(.purple)
+                .foregroundColor(.statusPurple)
             VStack(alignment: .leading, spacing: 2) {
                 Text("RAPPORT DE LA SEMAINE")
                     .font(.appCaption.weight(.bold)).tracking(1.5)
@@ -19,7 +19,7 @@ struct WeeklyReportTeaser: View {
                     Label("\(report.sessionCount) séances", systemImage: "flame.fill")
                     if report.prCount > 0 {
                         Label("\(report.prCount) limite\(report.prCount > 1 ? "s" : "") détruite\(report.prCount > 1 ? "s" : "")", systemImage: "trophy.fill")
-                            .foregroundColor(.yellow)
+                            .foregroundColor(.statusYellow)
                     }
                     if report.totalVolumeLbs > 0 {
                         Label("\(_formatK(units.display(report.totalVolumeLbs))) \(units.label)", systemImage: "scalemass.fill")
@@ -35,7 +35,7 @@ struct WeeklyReportTeaser: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .glassCard(color: .purple, intensity: 0.06)
+        .glassCard(color: .statusPurple, intensity: 0.06)
         .cornerRadius(14)
     }
 }
@@ -77,30 +77,30 @@ struct WeeklyReportView: View {
                     // KPI grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         WeeklyKPI(value: "\(report.sessionCount)", label: "Séances", icon: "flame.fill", color: Color.forge)
-                        WeeklyKPI(value: "\(report.prCount)", label: "Limites détruites", icon: "trophy.fill", color: .yellow)
+                        WeeklyKPI(value: "\(report.prCount)", label: "Limites détruites", icon: "trophy.fill", color: .statusYellow)
                         if report.totalVolumeLbs > 0 {
-                            WeeklyKPI(value: _formatK(units.display(report.totalVolumeLbs)), label: "Volume (\(units.label))", icon: "scalemass.fill", color: .cyan)
+                            WeeklyKPI(value: _formatK(units.display(report.totalVolumeLbs)), label: "Volume (\(units.label))", icon: "scalemass.fill", color: .statusCyan)
                         }
                         if let r = report.avgRecoveryScore {
-                            WeeklyKPI(value: String(format: "%.1f/10", r), label: "Récup. moy.", icon: "heart.fill", color: .green)
+                            WeeklyKPI(value: String(format: "%.1f/10", r), label: "Récup. moy.", icon: "heart.fill", color: .statusGreen)
                         }
                         if let s = report.avgSleepHours {
-                            WeeklyKPI(value: String(format: "%.1fh", s), label: "Sommeil moy.", icon: "moon.fill", color: .blue)
+                            WeeklyKPI(value: String(format: "%.1fh", s), label: "Sommeil moy.", icon: "moon.fill", color: .statusBlue)
                         }
                         if let steps = report.avgSteps {
-                            WeeklyKPI(value: "\(steps / 1000)k", label: "Pas/jour", icon: "figure.walk", color: .teal)
+                            WeeklyKPI(value: "\(steps / 1000)k", label: "Pas/jour", icon: "figure.walk", color: .statusCyan)
                         }
                         if let hrv = report.avgHrv {
-                            WeeklyKPI(value: String(format: "%.0f ms", hrv), label: "HRV moy.", icon: "waveform.path.ecg", color: .cyan)
+                            WeeklyKPI(value: String(format: "%.0f ms", hrv), label: "HRV moy.", icon: "waveform.path.ecg", color: .statusCyan)
                         }
                         if let c = report.nutritionCompliance {
-                            WeeklyKPI(value: "\(c)%", label: "Nutrition", icon: "fork.knife", color: .green)
+                            WeeklyKPI(value: "\(c)%", label: "Nutrition", icon: "fork.knife", color: .statusGreen)
                         }
                     }
 
                     // Weekly score ring
                     if let score = report.weeklyScore {
-                        let scoreColor: Color = score >= 75 ? .green : score >= 50 ? .orange : .red
+                        let scoreColor: Color = score >= 75 ? .statusGreen : score >= 50 ? .statusOrange : .appDanger
                         HStack(spacing: 20) {
                             ZStack {
                                 Circle().stroke(Color.white.opacity(0.07), lineWidth: 8).frame(width: 70, height: 70)
@@ -132,7 +132,7 @@ struct WeeklyReportView: View {
 
                     if let top = report.topExercise {
                         HStack(spacing: 10) {
-                            Image(systemName: "star.fill").foregroundColor(.yellow)
+                            Image(systemName: "star.fill").foregroundColor(.statusYellow)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("EXERCICE PHARE").font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
                                 Text(top).font(.appLabel.weight(.bold)).foregroundColor(.appTextPrimary)
@@ -140,7 +140,7 @@ struct WeeklyReportView: View {
                             Spacer()
                         }
                         .padding(14)
-                        .glassCard(color: .yellow, intensity: 0.07)
+                        .glassCard(color: .statusYellow, intensity: 0.07)
                         .cornerRadius(14)
                     }
 
@@ -148,17 +148,17 @@ struct WeeklyReportView: View {
                     if !report.prs.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Label("RECORDS PERSONNELS", systemImage: "trophy.fill")
-                                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.yellow)
+                                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.statusYellow)
                             ForEach(report.prs, id: \.self) { exo in
                                 HStack(spacing: 8) {
-                                    Image(systemName: "star.fill").font(.appCaption).foregroundColor(.yellow.opacity(0.8))
+                                    Image(systemName: "star.fill").font(.appCaption).foregroundColor(Color.statusYellow.opacity(0.8))
                                     Text(exo).font(.appLabel).foregroundColor(.appTextPrimary)
                                     Spacer()
                                 }
                             }
                         }
                         .padding(14)
-                        .glassCard(color: .yellow, intensity: 0.05)
+                        .glassCard(color: .statusYellow, intensity: 0.05)
                         .cornerRadius(14)
                     }
 
@@ -166,11 +166,11 @@ struct WeeklyReportView: View {
                     if !report.focusNextWeek.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Label("FOCUS SEMAINE PROCHAINE", systemImage: "target")
-                                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.purple)
+                                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.statusPurple)
                             ForEach(Array(report.focusNextWeek.enumerated()), id: \.offset) { _, tip in
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "arrow.right.circle.fill")
-                                        .font(.appCaption).foregroundColor(.purple)
+                                        .font(.appCaption).foregroundColor(.statusPurple)
                                     Text(tip).font(.appLabel.weight(.regular)).foregroundColor(.white.opacity(0.85))
                                         .fixedSize(horizontal: false, vertical: true)
                                     Spacer()
@@ -178,7 +178,7 @@ struct WeeklyReportView: View {
                             }
                         }
                         .padding(14)
-                        .glassCard(color: .purple, intensity: 0.05)
+                        .glassCard(color: .statusPurple, intensity: 0.05)
                         .cornerRadius(14)
                     }
 
@@ -188,7 +188,7 @@ struct WeeklyReportView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Color.purple.opacity(0.7))
+                            .background(Color.statusPurple.opacity(0.7))
                             .cornerRadius(14)
                     }
                 }
@@ -237,8 +237,8 @@ struct QuickLogBar: View {
         HStack(spacing: 10) {
             QuickLogChip(icon: "dumbbell.fill",    label: "Séance",  done: alreadyLogged, color: Color.forge,                                   action: onSessionTap)
             QuickLogChip(icon: "moon.fill",         label: "Sommeil", done: sleepLogged,  color: Color(red: 0.45, green: 0.35, blue: 0.95), action: onSleepTap)
-            QuickLogChip(icon: "face.smiling.fill", label: "Humeur",  done: moodDone,     color: .yellow,                                   action: onMoodTap)
-            QuickLogChip(icon: "fork.knife",        label: "Repas +", done: false,        color: .green,                                    action: onNutritionTap ?? {})
+            QuickLogChip(icon: "face.smiling.fill", label: "Humeur",  done: moodDone,     color: .statusYellow,                             action: onMoodTap)
+            QuickLogChip(icon: "fork.knife",        label: "Repas +", done: false,        color: .statusGreen,                              action: onNutritionTap ?? {})
             Spacer(minLength: 0)
         }
     }
@@ -256,7 +256,7 @@ struct QuickLogChip: View {
             HStack(spacing: 6) {
                 Image(systemName: done ? "checkmark.circle.fill" : icon)
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(done ? .green : color)
+                    .foregroundColor(done ? .statusGreen : color)
                 Text(label)
                     .font(.appCaption.weight(.semibold))
                     .foregroundColor(done ? Color.gray : .white)
@@ -278,9 +278,9 @@ struct ActivityRingCard: View {
     private var progress: Double { min(1.0, Double(steps) / Double(goal)) }
     private var ringColor: Color {
         switch progress {
-        case 0.75...: return .green
-        case 0.5...:   return .yellow
-        default:      return .orange
+        case 0.75...: return .statusGreen
+        case 0.5...:   return .statusYellow
+        default:      return .statusOrange
         }
     }
 
@@ -324,7 +324,7 @@ struct ActivityRingCard: View {
                 } else {
                     Label("Objectif atteint", systemImage: "checkmark.circle.fill")
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                 }
             }
             Spacer(minLength: 0)
@@ -369,10 +369,10 @@ struct OptimalWindowCard: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                Circle().fill(Color.cyan.opacity(0.12)).frame(width: 36, height: 36)
+                Circle().fill(Color.statusCyan.opacity(0.12)).frame(width: 36, height: 36)
                 Image(systemName: "clock.badge.checkmark.fill")
                     .font(.appBody)
-                    .foregroundColor(.cyan)
+                    .foregroundColor(.statusCyan)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("FENÊTRE OPTIMALE")
@@ -385,15 +385,15 @@ struct OptimalWindowCard: View {
                     if isWindowNow {
                         Text("• MAINTENANT")
                             .font(.appCaption.weight(.bold))
-                            .foregroundColor(.cyan)
+                            .foregroundColor(.statusCyan)
                     }
                 }
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Color.cyan.opacity(0.07))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan.opacity(0.2), lineWidth: 1))
+        .background(Color.statusCyan.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusCyan.opacity(0.2), lineWidth: 1))
         .cornerRadius(12)
     }
 }

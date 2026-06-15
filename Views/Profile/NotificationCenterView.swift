@@ -77,7 +77,7 @@ struct NotificationCenterView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .purple)
+            AmbientBackground(color: .statusPurple)
 
             List {
                 globalSection
@@ -114,12 +114,12 @@ struct NotificationCenterView: View {
             )) {
                 notifLabel(
                     icon: allDisabled ? "bell.slash.fill" : "bell.fill",
-                    color: allDisabled ? .gray : .purple,
+                    color: allDisabled ? .gray : .statusPurple,
                     title: allDisabled ? "Notifications coupées" : "Notifications actives",
                     subtitle: allDisabled ? "Appuie pour réactiver" : "Un tap pour tout couper"
                 )
             }
-            .tint(.purple)
+            .tint(.statusPurple)
         }
         .listRowBackground(Color.appCard)
         .listRowSeparatorTint(Color.appSeparator)
@@ -127,7 +127,7 @@ struct NotificationCenterView: View {
 
     private var seanceSection: some View {
         Section("Séance") {
-            notifToggle(icon: "dumbbell.fill", color: .blue,
+            notifToggle(icon: "dumbbell.fill", color: .statusBlue,
                         title: "Vendredi Full Body",
                         subtitle: "Rappel hebdomadaire — heure adaptée",
                         isOn: $seanceFriday,
@@ -137,7 +137,7 @@ struct NotificationCenterView: View {
                         subtitle: "Après 3+ jours sans séance",
                         isOn: $inactivity,
                         ids: ["inactivity.reminder"])
-            notifToggle(icon: "flame.fill", color: .orange,
+            notifToggle(icon: "flame.fill", color: .statusOrange,
                         title: "Streak milestone",
                         subtitle: "7, 14, 30, 60, 100 jours consécutifs",
                         isOn: $streakMilestone,
@@ -175,12 +175,12 @@ struct NotificationCenterView: View {
                         .labelsHidden()
                 }
             }
-            notifToggle(icon: "exclamationmark.triangle.fill", color: .yellow,
+            notifToggle(icon: "exclamationmark.triangle.fill", color: .statusYellow,
                         title: "Streak à risque",
                         subtitle: "À 13h si le matin n'est pas fait",
                         isOn: $ritualStreak,
                         ids: ["ritual.streak.risk"])
-            notifToggle(icon: "flame.fill", color: .red,
+            notifToggle(icon: "flame.fill", color: .statusRed,
                         title: "Démon persistant",
                         subtitle: "Quand une intention traîne 3+ nuits",
                         isOn: $ritualDemon,
@@ -192,7 +192,7 @@ struct NotificationCenterView: View {
 
     private var recoverySection: some View {
         Section("Récupération & Suivi") {
-            notifToggle(icon: "waveform.path.ecg", color: .cyan,
+            notifToggle(icon: "waveform.path.ecg", color: .statusCyan,
                         title: "HRV du matin",
                         subtitle: "Rappel quotidien — reste allongé pour mesurer",
                         isOn: $hrvMorning,
@@ -210,17 +210,17 @@ struct NotificationCenterView: View {
                         subtitle: "Rappel quotidien — heure adaptée",
                         isOn: $selfCare,
                         ids: ["selfcare.daily.reminder"])
-            notifToggle(icon: "brain.head.profile", color: .purple,
+            notifToggle(icon: "brain.head.profile", color: .statusPurple,
                         title: "Test PSS hebdo",
                         subtitle: "Chaque lundi — mesure ton stress",
                         isOn: $pss,
                         ids: ["pss.weekly.test"])
-            notifToggle(icon: "fork.knife", color: .orange,
+            notifToggle(icon: "fork.knife", color: .statusOrange,
                         title: "Nutrition",
                         subtitle: "Rappel de log — actif si tu logs régulièrement",
                         isOn: $nutrition,
                         ids: ["nutrition.daily.reminder"])
-            notifToggle(icon: "chart.bar.fill", color: .blue,
+            notifToggle(icon: "chart.bar.fill", color: .statusBlue,
                         title: "Recap hebdomadaire",
                         subtitle: "Chaque dimanche — résultats de la semaine",
                         isOn: $recap,
@@ -232,7 +232,7 @@ struct NotificationCenterView: View {
 
     private var intelligenceSection: some View {
         Section("Intelligence") {
-            notifToggle(icon: "clock.badge.fill", color: .yellow,
+            notifToggle(icon: "clock.badge.fill", color: .statusYellow,
                         title: "Capsule temporelle",
                         subtitle: "7 jours avant l'ouverture",
                         isOn: $capsule,

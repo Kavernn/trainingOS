@@ -18,19 +18,19 @@ struct CrisisResourcesView: View {
                     name: "Centre de prévention du suicide",
                     number: "1-866-APPELLE (277-3553)",
                     description: "Disponible 24h/24, 7j/7",
-                    color: .red
+                    color: .statusRed
                 )
                 CrisisResourceRow(
                     name: "Ligne Jeunesse",
                     number: "1-800-668-6868",
                     description: "Pour les jeunes jusqu'à 20 ans",
-                    color: .blue
+                    color: .statusBlue
                 )
                 CrisisResourceRow(
                     name: "Tel-Aide Québec",
                     number: "514-935-1101",
                     description: "Écoute et soutien émotionnel",
-                    color: .purple
+                    color: .statusPurple
                 )
                 CrisisResourceRow(
                     name: "Urgences",
@@ -62,7 +62,7 @@ struct CrisisResourcesView: View {
                         "Répète 4 fois",
                     ],
                     icon: "wind",
-                    color: .green
+                    color: .statusGreen
                 )
                 AntiPanicCard(
                     title: "Ancrage physique",
@@ -73,7 +73,7 @@ struct CrisisResourcesView: View {
                         "Prends 3 grandes respirations",
                     ],
                     icon: "figure.stand",
-                    color: .blue
+                    color: .statusBlue
                 )
             }
 

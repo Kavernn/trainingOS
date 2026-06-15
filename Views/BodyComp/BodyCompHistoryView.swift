@@ -9,7 +9,7 @@ struct BodyCompHistoryView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .green)
+            AmbientBackground(color: .statusGreen)
 
             if entries.isEmpty {
                 emptyState
@@ -51,7 +51,7 @@ struct BodyCompHistoryView: View {
                         x: .value("Date", entry.date),
                         y: .value("% MG", entry.bodyFatPct)
                     )
-                    .foregroundStyle(Color.green.gradient)
+                    .foregroundStyle(Color.statusGreen.gradient)
                     .interpolationMethod(.catmullRom)
 
                     AreaMark(
@@ -60,7 +60,7 @@ struct BodyCompHistoryView: View {
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color.green.opacity(0.25), .clear],
+                            colors: [Color.statusGreen.opacity(0.25), .clear],
                             startPoint: .top, endPoint: .bottom
                         )
                     )
@@ -70,17 +70,17 @@ struct BodyCompHistoryView: View {
                         x: .value("Date", entry.date),
                         y: .value("% MG", entry.bodyFatPct)
                     )
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(Color.statusGreen)
                     .symbolSize(28)
                 }
                 if hasPre {
                     RuleMark(x: .value("Correction", correctionDate))
-                        .foregroundStyle(Color.yellow.opacity(0.45))
+                        .foregroundStyle(Color.statusYellow.opacity(0.45))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         .annotation(position: .top, alignment: .leading) {
                             Text("Correction formule")
                                 .font(.appMicro)
-                                .foregroundColor(.yellow.opacity(0.75))
+                                .foregroundColor(.statusYellow.opacity(0.75))
                         }
                 }
             }
@@ -111,7 +111,7 @@ struct BodyCompHistoryView: View {
             .frame(height: 160)
         }
         .padding(16)
-        .glassCardAccent(.green)
+        .glassCardAccent(.statusGreen)
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -146,18 +146,18 @@ struct BodyCompHistoryView: View {
                 HStack(spacing: 6) {
                     Text(String(format: "%.1f%%", entry.bodyFatPct))
                         .font(.appBody.weight(.black))
-                        .foregroundColor(.blue)
+                        .foregroundColor(.statusBlue)
                 }
                 HStack(spacing: 10) {
                     Label(units.format(entry.fatMassLbs), systemImage: "")
                         .font(.appCaption).foregroundColor(Color.forge)
                     Label(units.format(entry.leanMassLbs), systemImage: "")
-                        .font(.appCaption).foregroundColor(.green)
+                        .font(.appCaption).foregroundColor(.statusGreen)
                 }
             }
         }
         .padding(14)
-        .glassCard(color: .green, intensity: 0.04)
+        .glassCard(color: .statusGreen, intensity: 0.04)
         .cornerRadius(14)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
@@ -174,7 +174,7 @@ struct BodyCompHistoryView: View {
         VStack(spacing: 12) {
             Image(systemName: "figure.arms.open")
                 .font(.system(size: 48))
-                .foregroundColor(.green.opacity(0.5))
+                .foregroundColor(.statusGreen.opacity(0.5))
             Text("Aucune mesure enregistrée")
                 .font(.appBody.weight(.semibold))
                 .foregroundColor(.gray)

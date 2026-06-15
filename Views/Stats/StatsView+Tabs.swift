@@ -32,23 +32,23 @@ extension StatsView {
         // 4. KPI Grid
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             KPICard(value: "\(filteredSessions.count)", label: "Séances (\(period.rawValue))", color: Color.forge)
-            KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel", color: .blue)
+            KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel", color: .statusBlue)
             KPICard(
                 value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",
                 label: "Streak",
-                color: .red,
+                color: .statusRed,
                 subtitle: "jours cons."
             )
             KPICard(
                 value: avgRPEPeriod > 0 ? String(format: "%.1f", avgRPEPeriod) : "—",
                 label: "RPE moy.",
-                color: .purple
+                color: .statusPurple
             )
-            KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .green)
+            KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .statusGreen)
             KPICard(
                 value: thisWeekAvgDuration > 0 ? "\(Int(thisWeekAvgDuration))min" : "—",
                 label: "Durée moy.",
-                color: .cyan,
+                color: .statusCyan,
                 subtitle: {
                     guard thisWeekAvgDuration > 0, lastWeekAvgDuration > 0 else { return nil }
                     let d = Int(thisWeekAvgDuration - lastWeekAvgDuration)
@@ -123,7 +123,7 @@ extension StatsView {
             SimpleBarChart(
                 title: "VOLUME / SEM",
                 data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
-                color: .blue,
+                color: .statusBlue,
                 unit: UnitSettings.shared.label
             )
         }
@@ -358,7 +358,7 @@ extension StatsView {
                 xLabel: "Qualité sommeil (J-1)",
                 yLabel: "Volume séance (J)",
                 title: "SOMMEIL → PERFORMANCE",
-                color: .blue
+                color: .statusBlue
             )
             .padding(.horizontal, 16)
         }

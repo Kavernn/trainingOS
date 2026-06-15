@@ -9,7 +9,7 @@ struct ProposalsCard: View {
             HStack {
                 Label("Propositions IA", systemImage: "wand.and.stars")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.purple)
+                    .foregroundColor(.statusPurple)
                 Spacer()
                 Button(action: onDismiss) {
                     Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
@@ -25,7 +25,7 @@ struct ProposalsCard: View {
                             Text(p.jour).font(.appCaption.weight(.bold)).foregroundColor(.appTextPrimary)
                             if !p.exercise.isEmpty {
                                 Text("·").foregroundColor(.gray)
-                                Text(p.exercise).font(.appCaption).foregroundColor(.purple)
+                                Text(p.exercise).font(.appCaption).foregroundColor(.statusPurple)
                             }
                             if !p.scheme.isEmpty {
                                 Text(p.scheme).font(.appCaption).foregroundColor(Color.forge)
@@ -38,7 +38,7 @@ struct ProposalsCard: View {
         }
         .padding(14)
         .background(Color.appBg)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.purple.opacity(0.3), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusPurple.opacity(0.3), lineWidth: 1))
         .cornerRadius(12)
     }
 

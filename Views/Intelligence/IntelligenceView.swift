@@ -135,13 +135,13 @@ struct IntelligenceView: View {
                                         if !memoryStore.entries.isEmpty {
                                             Text("\(memoryStore.entries.count)")
                                                 .font(.system(size: 10, weight: .bold))
-                                                .foregroundColor(.purple)
+                                                .foregroundColor(.statusPurple)
                                                 .padding(.horizontal, 5).padding(.vertical, 2)
-                                                .background(Color.purple.opacity(0.15))
+                                                .background(Color.statusPurple.opacity(0.15))
                                                 .clipShape(Capsule())
                                         }
                                     }
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(.statusPurple)
                                 }
                             }
                             CoachContextSummary(
@@ -240,17 +240,17 @@ struct IntelligenceView: View {
                                     .padding(.vertical, 11)
                                     .background(
                                         selectedSection == section
-                                            ? Color.purple.opacity(0.22)
+                                            ? Color.statusPurple.opacity(0.22)
                                             : Color.appSurfaceInset
                                     )
                                     .foregroundColor(
-                                        selectedSection == section ? .purple : Color.appTextSecondary
+                                        selectedSection == section ? .statusPurple : Color.appTextSecondary
                                     )
                                     .clipShape(Capsule())
                                     .overlay(
                                         Capsule().stroke(
                                             selectedSection == section
-                                                ? Color.purple.opacity(0.45)
+                                                ? Color.statusPurple.opacity(0.45)
                                                 : Color.clear,
                                             lineWidth: 1
                                         )
@@ -429,7 +429,7 @@ struct IntelligenceView: View {
                 // No daily pattern (data insufficient)
                 HStack(spacing: 8) {
                     Image(systemName: "chart.dots.scatter")
-                        .foregroundColor(.purple.opacity(0.5))
+                        .foregroundColor(.statusPurple.opacity(0.5))
                     Text("Pas encore assez de données — reviens dans quelques semaines.")
                         .font(.appLabel)
                         .foregroundColor(Color(white: 0.45))
@@ -443,7 +443,7 @@ struct IntelligenceView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "pin.fill")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.purple)
+                            .foregroundColor(.statusPurple)
                         Text("MES PATTERNS SUIVIS")
                             .font(.appCaption.weight(.bold))
                             .foregroundColor(Color(white: 0.45))
@@ -485,8 +485,8 @@ struct IntelligenceView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
-                        .background(Color.purple.opacity(0.10))
-                        .foregroundColor(.purple)
+                        .background(Color.statusPurple.opacity(0.10))
+                        .foregroundColor(.statusPurple)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .padding(.horizontal, 16)
@@ -552,7 +552,7 @@ struct IntelligenceView: View {
                                 .foregroundColor(.appTextPrimary)
                             Text(meso.phase)
                                 .font(.appLabel)
-                                .foregroundColor(.purple)
+                                .foregroundColor(.statusPurple)
                         }
                         Rectangle()
                             .fill(Color.appSeparator)
@@ -593,8 +593,8 @@ struct IntelligenceView: View {
                             .foregroundColor(Color(white: 0.4))
                     }
                     .padding(14)
-                    .background(Color.blue.opacity(0.1))
-                    .foregroundColor(.blue)
+                    .background(Color.statusBlue.opacity(0.1))
+                    .foregroundColor(.statusBlue)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.horizontal, 16)
@@ -639,7 +639,7 @@ struct IntelligenceView: View {
                 Button { loadProposals() } label: {
                     HStack(spacing: 6) {
                         if isLoadingProposals {
-                            ProgressView().tint(.purple).scaleEffect(0.75)
+                            ProgressView().tint(.statusPurple).scaleEffect(0.75)
                         } else {
                             Image(systemName: "wand.and.stars").font(.appLabel)
                         }
@@ -647,8 +647,8 @@ struct IntelligenceView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.purple.opacity(0.15))
-                    .foregroundColor(.purple)
+                    .background(Color.statusPurple.opacity(0.15))
+                    .foregroundColor(.statusPurple)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .disabled(isLoadingProposals)
@@ -656,7 +656,7 @@ struct IntelligenceView: View {
                 Button { generateProgram() } label: {
                     HStack(spacing: 6) {
                         if isGeneratingProgram {
-                            ProgressView().tint(.blue).scaleEffect(0.75)
+                            ProgressView().tint(.statusBlue).scaleEffect(0.75)
                         } else {
                             Image(systemName: "calendar.badge.plus").font(.appLabel)
                         }
@@ -664,8 +664,8 @@ struct IntelligenceView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.blue.opacity(0.15))
-                    .foregroundColor(.blue)
+                    .background(Color.statusBlue.opacity(0.15))
+                    .foregroundColor(.statusBlue)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .disabled(isGeneratingProgram)
@@ -708,7 +708,7 @@ struct IntelligenceView: View {
             }
 
             // NIVEAU 3b — Analyses (accordion)
-            bilanAccordionRow(id: "analyses", icon: "chart.dots.scatter", label: "Analyses", accent: .purple) {
+            bilanAccordionRow(id: "analyses", icon: "chart.dots.scatter", label: "Analyses", accent: .statusPurple) {
                 if let dash = api.dashboard {
                     SmartInsightsSection(
                         dash: dash, weightsData: weightsData, sessionsData: sessionsData,
@@ -739,7 +739,7 @@ struct IntelligenceView: View {
             }
 
             // NIVEAU 3c — Intelligence proactive (accordion)
-            bilanAccordionRow(id: "intelligence", icon: "sparkles", label: "Intelligence", accent: .blue) {
+            bilanAccordionRow(id: "intelligence", icon: "sparkles", label: "Intelligence", accent: .statusBlue) {
                 if isLoadingIntelligence {
                     SkeletonBar(height: 80, radius: 12)
                         .padding(.horizontal, 16).padding(.bottom, 4)
@@ -849,7 +849,7 @@ struct IntelligenceView: View {
                     }
                     if let r = risk {
                         let label = r.level == "low" ? "Charge OK" : r.level == "moderate" ? "Surcharge mod." : "Surcharge élevée"
-                        let color: Color = r.level == "low" ? .green : r.level == "moderate" ? .orange : .red
+                        let color: Color = r.level == "low" ? .statusGreen : r.level == "moderate" ? .statusOrange : .statusRed
                         bilanSignalChip(
                             icon: r.level == "low" ? "checkmark.circle" : "exclamationmark.triangle",
                             label: label, color: color
@@ -859,7 +859,7 @@ struct IntelligenceView: View {
                         bilanSignalChip(
                             icon: m.icon.isEmpty ? "calendar" : m.icon,
                             label: "S\(m.weekInCycle) — \(m.phaseLabel)",
-                            color: .purple
+                            color: .statusPurple
                         )
                     }
                 }
@@ -934,22 +934,22 @@ struct IntelligenceView: View {
 
     private func acwrZoneColor(_ colorStr: String) -> Color {
         switch colorStr {
-        case "green":  return .green
-        case "orange": return .orange
-        case "red":    return .red
+        case "green":  return .statusGreen
+        case "orange": return .statusOrange
+        case "red":    return .statusRed
         default:       return .gray
         }
     }
 
     private func insightAccentColor(_ colorStr: String) -> Color {
         switch colorStr {
-        case "red":    return .red
-        case "orange": return .orange
-        case "yellow": return Color(red: 0.95, green: 0.80, blue: 0.15)
-        case "green":  return .green
-        case "teal":   return .teal
-        case "blue":   return .blue
-        case "purple": return .purple
+        case "red":    return .statusRed
+        case "orange": return .statusOrange
+        case "yellow": return .statusYellow
+        case "green":  return .statusGreen
+        case "teal":   return .statusCyan
+        case "blue":   return .statusBlue
+        case "purple": return .statusPurple
         default:       return .gray
         }
     }
@@ -1000,12 +1000,12 @@ struct IntelligenceView: View {
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: entry.type.icon)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.purple)
+                            .foregroundColor(.statusPurple)
                             .frame(width: 22)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(entry.type.rawValue)
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.purple.opacity(0.7))
+                                .foregroundColor(.statusPurple.opacity(0.7))
                             Text(entry.content)
                                 .font(.appLabel)
                                 .foregroundColor(Color(white: 0.82))
@@ -1039,8 +1039,8 @@ struct IntelligenceView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundColor(.red)
+                    .background(Color.statusRed.opacity(0.1))
+                    .foregroundColor(.statusRed)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.horizontal, 16)

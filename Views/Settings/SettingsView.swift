@@ -3,22 +3,22 @@ import SwiftUI
 struct SettingsView: View {
     var body: some View {
         ZStack {
-            AmbientBackground(color: .purple)
+            AmbientBackground(color: .statusPurple)
 
             List {
                 Section("Identité") {
-                    MoreRow(icon: "person.fill", color: .purple,
+                    MoreRow(icon: "person.fill", color: .statusPurple,
                             title: "Mon profil",
                             subtitle: "Nom, âge, objectif, photo") { ProfileView() }
                 }
-                .listRowBackground(glassRowBG(.purple))
+                .listRowBackground(glassRowBG(.statusPurple))
                 .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Entraînement") {
                     MoreRow(icon: "dumbbell.fill", color: Color.forge,
                             title: "Entraînement",
                             subtitle: "Incréments, échauffement, RIR, timer") { TrainingSettingsView() }
-                    MoreRow(icon: "fork.knife", color: .green,
+                    MoreRow(icon: "fork.knife", color: .statusGreen,
                             title: "Nutrition",
                             subtitle: "Cibles calories, macros, fenêtre") { NutritionView() }
                     MoreRow(icon: "figure.run", color: .teal,
@@ -40,14 +40,14 @@ struct SettingsView: View {
                 .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Préférences") {
-                    MoreRow(icon: "bell.badge.fill", color: .red,
+                    MoreRow(icon: "bell.badge.fill", color: .statusRed,
                             title: "Notifications",
                             subtitle: "Rappels, horaires, toggles") { NotificationCenterView() }
                     MoreRow(icon: "heart.text.square.fill", color: .pink,
                             title: "Données & Santé",
                             subtitle: "HealthKit, export") { HealthDataSettingsView() }
                 }
-                .listRowBackground(glassRowBG(.cyan))
+                .listRowBackground(glassRowBG(.statusCyan))
                 .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)

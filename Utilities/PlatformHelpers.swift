@@ -111,7 +111,7 @@ private struct ActionFeedbackModifier: ViewModifier {
                     HStack(spacing: 10) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.appBody.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(.statusOrange)
                         Text(fb.message)
                             .font(.appLabel.weight(.semibold))
                             .foregroundColor(.appTextPrimary)
@@ -122,7 +122,7 @@ private struct ActionFeedbackModifier: ViewModifier {
                     .padding(.vertical, 13)
                     .background(Color(hex: "141428").opacity(0.97))
                     .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.orange.opacity(0.28), lineWidth: 1))
+                    .overlay(Capsule().stroke(Color.statusOrange.opacity(0.28), lineWidth: 1))
                     .shadow(color: .black.opacity(0.45), radius: 14, y: 5)
                     .padding(.bottom, 88)
                     .transition(.move(edge: .bottom).combined(with: .opacity))

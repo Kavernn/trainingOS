@@ -236,14 +236,14 @@ struct SeasonView: View {
 
     private func arcColor(_ arc: String?) -> Color {
         switch arc {
-        case "rebirth":      return .purple
+        case "rebirth":      return .statusPurple
         case "comeback":     return Color.forge
-        case "war":          return .red
-        case "breakthrough": return .yellow
-        case "ascent":       return .green
-        case "descent":      return Color.red.opacity(0.7)
+        case "war":          return .statusRed
+        case "breakthrough": return .statusYellow
+        case "ascent":       return .statusGreen
+        case "descent":      return Color.statusRed.opacity(0.7)
         case "plateau":      return .secondary
-        default:             return .blue
+        default:             return .statusBlue
         }
     }
 }

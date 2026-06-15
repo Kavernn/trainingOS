@@ -10,7 +10,7 @@ struct ReadinessCard: View {
 
     private var scoreColor: Color {
         guard let s = score else { return .gray }
-        return s >= 7 ? .green : (s >= 5 ? .orange : .red)
+        return s >= 7 ? .statusGreen : (s >= 5 ? .statusOrange : .statusRed)
     }
 
     private var scoreLabel: String {
@@ -46,9 +46,9 @@ struct ReadinessCard: View {
 
     private var reliabilityColor: Color {
         switch presentCount {
-        case 6...: return .green
-        case 4...: return .orange
-        default:   return .red
+        case 6...: return .statusGreen
+        case 4...: return .statusOrange
+        default:   return .statusRed
         }
     }
 
@@ -91,15 +91,15 @@ struct ReadinessCard: View {
                 HStack(spacing: 12) {
                     if let hrv = entry.hrv {
                         metricPill("HRV", String(format: "%.0f ms", hrv),
-                                   hrv >= 50 ? .green : (hrv >= 30 ? .orange : .red))
+                                   hrv >= 50 ? .statusGreen : (hrv >= 30 ? .statusOrange : .statusRed))
                     }
                     if let hr = entry.restingHr {
                         metricPill("RHR", String(format: "%.0f bpm", hr),
-                                   hr <= 55 ? .green : (hr <= 65 ? .orange : .red))
+                                   hr <= 55 ? .statusGreen : (hr <= 65 ? .statusOrange : .statusRed))
                     }
                     if let s = entry.soreness {
                         metricPill("Courbatures", String(format: "%.0f/10", s),
-                                   s <= 3 ? .green : (s <= 6 ? .orange : .red))
+                                   s <= 3 ? .statusGreen : (s <= 6 ? .statusOrange : .statusRed))
                     }
                 }
                 if !missingMetrics.isEmpty {

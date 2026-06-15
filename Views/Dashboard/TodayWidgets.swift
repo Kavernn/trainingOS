@@ -67,10 +67,10 @@ struct DailyMetricsRow: View {
     }
     private var readinessColor: Color {
         guard let s = readinessScore else { return .gray }
-        if s >= 80 { return .green }
-        if s >= 60 { return .yellow }
-        if s >= 40 { return .orange }
-        return .red
+        if s >= 80 { return .appSuccess }
+        if s >= 60 { return .statusYellow }
+        if s >= 40 { return .statusOrange }
+        return .appDanger
     }
 
     private var readinessAttention: Bool {
@@ -109,7 +109,7 @@ struct DailyMetricsRow: View {
                     value: moodDue.map { $0.isDue ? "!" : "✓" } ?? "–",
                     unit: "",
                     label: moodDue.map { $0.isDue ? "Non évalué" : "Évalué" } ?? "Mental",
-                    color: moodDue.map { $0.isDue ? Color.yellow : Color.green } ?? .gray
+                    color: moodDue.map { $0.isDue ? Color.statusYellow : Color.appSuccess } ?? .gray
                 )
                 if let onMoodTap {
                     Button(action: onMoodTap) { chip }.buttonStyle(.plain)
@@ -163,7 +163,7 @@ private struct MetricChip: View {
         .glassCardAccent(color, cornerRadius: 12)
         .overlay {
             if isAttention {
-                RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.5), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12).stroke(Color.statusOrange.opacity(0.5), lineWidth: 1)
             }
         }
     }
@@ -194,10 +194,10 @@ struct XPChipView: View {
         NavigationLink(destination: XPView()) {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle().fill(Color.yellow.opacity(0.18)).frame(width: 36, height: 36)
+                    Circle().fill(Color.statusYellow.opacity(0.18)).frame(width: 36, height: 36)
                     Image(systemName: "star.fill")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(.statusYellow)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 4) {
@@ -211,8 +211,8 @@ struct XPChipView: View {
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 3).fill(Color.yellow.opacity(0.12)).frame(height: 5)
-                            RoundedRectangle(cornerRadius: 3).fill(Color.yellow)
+                            RoundedRectangle(cornerRadius: 3).fill(Color.statusYellow.opacity(0.12)).frame(height: 5)
+                            RoundedRectangle(cornerRadius: 3).fill(Color.statusYellow)
                                 .frame(width: geo.size.width * min(progress, 1.0), height: 5)
                         }
                     }
@@ -220,12 +220,12 @@ struct XPChipView: View {
                 }
                 Image(systemName: "chevron.right")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.yellow.opacity(0.4))
+                    .foregroundColor(Color.statusYellow.opacity(0.4))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color.yellow.opacity(0.05))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.15), lineWidth: 1))
+            .background(Color.statusYellow.opacity(0.05))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.15), lineWidth: 1))
             .cornerRadius(14)
         }
         .buttonStyle(.plain)

@@ -12,12 +12,12 @@ struct BreathworkView: View {
             if let stats {
                 Section {
                     HStack(spacing: 0) {
-                        BWStatChip(label: "Sessions", value: "\(stats.sessionsCount)", icon: "checkmark.circle.fill", color: .green)
+                        BWStatChip(label: "Sessions", value: "\(stats.sessionsCount)", icon: "checkmark.circle.fill", color: .statusGreen)
                         Divider()
-                        BWStatChip(label: "Minutes", value: "\(stats.totalMinutes)", icon: "clock.fill", color: .blue)
+                        BWStatChip(label: "Minutes", value: "\(stats.totalMinutes)", icon: "clock.fill", color: .statusBlue)
                         if let fav = stats.favorite {
                             Divider()
-                            BWStatChip(label: "Favori", value: fav, icon: "star.fill", color: .yellow)
+                            BWStatChip(label: "Favori", value: fav, icon: "star.fill", color: .statusYellow)
                         }
                     }
                     .frame(height: 56)
@@ -79,10 +79,10 @@ private struct TechniqueRow: View {
 
     private var accentColor: Color {
         switch technique.color {
-        case "green":  return .green
-        case "blue":   return .blue
-        case "purple": return .purple
-        case "cyan":   return .cyan
+        case "green":  return .statusGreen
+        case "blue":   return .statusBlue
+        case "purple": return .statusPurple
+        case "cyan":   return .statusCyan
         default:       return .gray
         }
     }
@@ -140,10 +140,10 @@ struct BreathworkTimerView: View {
 
     private var accentColor: Color {
         switch technique.color {
-        case "green":  return .green
-        case "blue":   return .blue
-        case "purple": return .purple
-        case "cyan":   return .cyan
+        case "green":  return .statusGreen
+        case "blue":   return .statusBlue
+        case "purple": return .statusPurple
+        case "cyan":   return .statusCyan
         default:       return .gray
         }
     }

@@ -336,10 +336,10 @@ struct OnboardingView: View {
             Spacer()
             VStack(spacing: 24) {
                 ZStack {
-                    Circle().fill(Color.red.opacity(0.12)).frame(width: 90, height: 90)
+                    Circle().fill(Color.statusRed.opacity(0.12)).frame(width: 90, height: 90)
                     Image(systemName: "heart.fill")
                         .font(.system(size: 40, weight: .semibold))
-                        .foregroundColor(.red)
+                        .foregroundColor(.statusRed)
                 }
                 VStack(spacing: 10) {
                     Text("Récupération auto")
@@ -370,7 +370,7 @@ struct OnboardingView: View {
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(Color.red)
+                    .background(Color.statusRed)
                     .cornerRadius(16)
                 }
                 .disabled(hkRequesting)
@@ -543,9 +543,9 @@ struct HRVOnboardingView: View {
                     .font(.appBody).foregroundColor(.gray).multilineTextAlignment(.center).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
             }
             VStack(spacing: 8) {
-                HRVAutoFeatureRow(icon: "circle.fill", color: .green,  text: "Score vert — séance à 100%")
+                HRVAutoFeatureRow(icon: "circle.fill", color: .statusGreen,  text: "Score vert — séance à 100%")
                 HRVAutoFeatureRow(icon: "circle.fill", color: Color.forge, text: "Score orange — surveille la fatigue")
-                HRVAutoFeatureRow(icon: "circle.fill", color: .red,    text: "Score rouge — récupération d'abord")
+                HRVAutoFeatureRow(icon: "circle.fill", color: .statusRed,    text: "Score rouge — récupération d'abord")
             }
             .padding(.horizontal, 8)
         }
@@ -554,9 +554,9 @@ struct HRVOnboardingView: View {
 
     private var pageAccent: Color {
         switch page {
-        case 0: return .cyan
+        case 0: return .statusCyan
         case 1: return Color(red: 0.4, green: 0.8, blue: 0.6)
-        default: return .green
+        default: return .statusGreen
         }
     }
 

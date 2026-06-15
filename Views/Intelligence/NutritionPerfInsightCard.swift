@@ -21,9 +21,9 @@ struct NutritionPerfInsight {
 
     var accentColor: Color {
         switch kind {
-        case .deficitStagnation: return .orange
-        case .deficitFatigue:    return .red
-        case .proteinVolume:     return .yellow
+        case .deficitStagnation: return .statusOrange
+        case .deficitFatigue:    return .statusRed
+        case .proteinVolume:     return .statusYellow
         }
     }
 }

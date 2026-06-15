@@ -17,11 +17,11 @@ extension APIService {
     }
 
     func unpinPattern(id: String) async throws {
-        guard let url = URL(string: "\(baseURL)/api/patterns/pin/\(id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id)") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "DELETE"
-        req.timeoutInterval = 15
-        _ = try await URLSession.authed.data(for: req)
+        _ = try await offlinePost(
+            endpoint: "/api/patterns/pin/\(id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id)",
+            method: "DELETE",
+            payload: [:]
+        )
         CacheInvalidation.patternsPinMutated.invalidate()
     }
 

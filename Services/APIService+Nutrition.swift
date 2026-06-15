@@ -161,19 +161,19 @@ extension APIService {
         return FoodCatalogStore.decodeFromAPI(data)
     }
 
-    func saveFoodCatalog(_ items: [FoodItem]) async {
-        guard let url = URL(string: "\(baseURL)/api/food_catalog"),
-              let body = FoodCatalogStore.encodeForAPI(items) else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = body
-        req.timeoutInterval = 15
-        do {
-            _ = try await URLSession.authed.data(for: req)
-        } catch {
-            nutritionLogger.warning("saveFoodCatalog failed: \(error)")
-        }
+    func saveFoodCatalog(_ items: [FoodItem]) async throws {
+        let itemDicts: [[String: Any]] = items
+            .filter { !$0.isBuiltIn }
+            .map { ["id":        $0.id.uuidString,
+                    "name":      $0.name,
+                    "ref_qty":   $0.refQty,
+                    "ref_unit":  $0.refUnit,
+                    "calories":  $0.calories,
+                    "proteines": $0.proteines,
+                    "glucides":  $0.glucides,
+                    "lipides":   $0.lipides,
+                    "category":  $0.category] }
+        _ = try await offlinePost(endpoint: "/api/food_catalog", payload: ["items": itemDicts])
         CacheInvalidation.foodCatalogUpdated.invalidate()
     }
 

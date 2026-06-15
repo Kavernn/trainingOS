@@ -15,7 +15,10 @@ extension APIService {
         req.httpMethod = "PATCH"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["status": status])
-        _ = try await URLSession.authed.data(for: req)
+        let (_, resp) = try await URLSession.authed.data(for: req)
+        if let http = resp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw APIError.serverError(http.statusCode, "Mise à jour plateau échouée : HTTP \(http.statusCode)")
+        }
         CacheInvalidation.plateauDismissed.invalidate()
     }
 }

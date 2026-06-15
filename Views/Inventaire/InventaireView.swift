@@ -166,7 +166,7 @@ struct CatalogueView: View {
                                         .font(.appMicro.weight(.black))
                                         .foregroundColor(.white)
                                         .padding(2)
-                                        .background(Color.red)
+                                        .background(Color.appDanger)
                                         .clipShape(Circle())
                                         .offset(x: 6, y: -6)
                                 }
@@ -360,7 +360,7 @@ struct CatalogueView: View {
                         } label: {
                             Label("Modifier", systemImage: "pencil")
                         }
-                        .tint(.blue)
+                        .tint(.statusBlue)
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
@@ -368,7 +368,7 @@ struct CatalogueView: View {
                         } label: {
                             Label("Programme", systemImage: "plus.circle.fill")
                         }
-                        .tint(.green)
+                        .tint(.statusGreen)
                     }
             }
         }
@@ -477,19 +477,19 @@ struct CatalogueView: View {
 
     private func typeColor(_ t: String) -> Color {
         switch t {
-        case "barbell": return .orange; case "ez-bar": return .yellow
-        case "dumbbell": return .blue; case "cable": return .teal
+        case "barbell": return .statusOrange; case "ez-bar": return .statusYellow
+        case "dumbbell": return .statusBlue; case "cable": return .teal
         case "cable_double": return .teal
-        case "machine": return .purple; case "bodyweight": return .green
+        case "machine": return .statusPurple; case "bodyweight": return .statusGreen
         default: return .gray
         }
     }
 
     private func catColor(_ c: String) -> Color {
         switch c {
-        case "push": return .red; case "pull": return .blue
-        case "legs": return .green; case "core": return .orange
-        case "mobility": return .purple; default: return .gray
+        case "push": return .statusRed; case "pull": return .statusBlue
+        case "legs": return .statusGreen; case "core": return .statusOrange
+        case "mobility": return .statusPurple; default: return .gray
         }
     }
 }
@@ -503,9 +503,9 @@ struct CatalogueRow: View {
 
     func loadProfileInfo(_ lp: String) -> (String, Color) {
         switch lp {
-        case "compound_heavy":        return ("LOURD", .red)
-        case "compound_hypertrophy":  return ("HYPER", .orange)
-        case "isolation":             return ("ISO", .yellow)
+        case "compound_heavy":        return ("LOURD", .statusRed)
+        case "compound_hypertrophy":  return ("HYPER", .statusOrange)
+        case "isolation":             return ("ISO", .statusYellow)
         default:                      return ("", .gray)
         }
     }
@@ -524,9 +524,9 @@ struct CatalogueRow: View {
 
     var typeColor: Color {
         switch item.type {
-        case "barbell": return .orange; case "ez-bar": return .yellow
-        case "dumbbell": return .blue; case "cable", "cable_double": return .teal
-        case "bodyweight": return .green; default: return .purple
+        case "barbell": return .statusOrange; case "ez-bar": return .statusYellow
+        case "dumbbell": return .statusBlue; case "cable", "cable_double": return .teal
+        case "bodyweight": return .statusGreen; default: return .statusPurple
         }
     }
 
@@ -552,9 +552,9 @@ struct CatalogueRow: View {
                     if item.trackingType == "time" {
                         Text("TEMPS")
                             .font(.appMicro.weight(.bold))
-                            .foregroundColor(.cyan)
+                            .foregroundColor(.statusCyan)
                             .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(Color.cyan.opacity(0.15))
+                            .background(Color.statusCyan.opacity(0.15))
                             .cornerRadius(4)
                     }
                 }
@@ -690,13 +690,13 @@ private struct WeightTypeOption {
 
 private let kWeightTypes: [WeightTypeOption] = [
     WeightTypeOption(key: "barbell",      label: "Barre",        note: "Poids par côté + barre",   color: Color.forge),
-    WeightTypeOption(key: "dumbbell",     label: "Haltères",     note: "Poids par haltère",         color: .blue),
+    WeightTypeOption(key: "dumbbell",     label: "Haltères",     note: "Poids par haltère",         color: .statusBlue),
     WeightTypeOption(key: "cable_single", label: "Câble",        note: "Poids de la pile",          color: .teal),
     WeightTypeOption(key: "cable_double", label: "Câble ×2",     note: "Pile × 2 (bilatéral)",     color: .teal),
-    WeightTypeOption(key: "press",        label: "Presse",       note: "Charge totale machine",     color: .purple),
-    WeightTypeOption(key: "fixed_weight", label: "Poids fixe",   note: "Pas de reps comptées",      color: .yellow),
-    WeightTypeOption(key: "bodyweight",   label: "Corps",        note: "Poids corporel",            color: .green),
-    WeightTypeOption(key: "endurance",    label: "Endurance",    note: "Durée en secondes",         color: .cyan),
+    WeightTypeOption(key: "press",        label: "Presse",       note: "Charge totale machine",     color: .statusPurple),
+    WeightTypeOption(key: "fixed_weight", label: "Poids fixe",   note: "Pas de reps comptées",      color: .statusYellow),
+    WeightTypeOption(key: "bodyweight",   label: "Corps",        note: "Poids corporel",            color: .statusGreen),
+    WeightTypeOption(key: "endurance",    label: "Endurance",    note: "Durée en secondes",         color: .statusCyan),
     WeightTypeOption(key: "machine",      label: "Machine",      note: "Sélecteur de pile",         color: Color(hex: "8B6AFF")),
 ]
 
@@ -1031,7 +1031,7 @@ struct InventoryFormSheet: View {
             if missing {
                 Text("REQUIS")
                     .font(.appMicro.weight(.bold))
-                    .foregroundColor(.red.opacity(0.7))
+                    .foregroundColor(Color.statusRed.opacity(0.7))
             }
         }
     }
@@ -1046,9 +1046,9 @@ struct InventoryFormSheet: View {
             if isDuplicate {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.appCaption).foregroundColor(.yellow)
+                        .font(.appCaption).foregroundColor(.statusYellow)
                     Text("Un exercice avec ce nom existe déjà.")
-                        .font(.appCaption).foregroundColor(.yellow)
+                        .font(.appCaption).foregroundColor(.statusYellow)
                 }
             }
             TextField("Nom alternatif (ex: Bench Press)", text: $alternateName)
@@ -1206,14 +1206,14 @@ struct InventoryFormSheet: View {
 
             if weightType == "press" {
                 HStack(spacing: 8) {
-                    Image(systemName: "info.circle").foregroundColor(.purple)
+                    Image(systemName: "info.circle").foregroundColor(.statusPurple)
                     Text("Le poids du sled n'est pas inclus. Logguez la charge totale chargée.")
                         .font(.appCaption).foregroundColor(.gray)
                 }
             }
             if weightType == "fixed_weight" {
                 HStack(spacing: 8) {
-                    Image(systemName: "info.circle").foregroundColor(.yellow)
+                    Image(systemName: "info.circle").foregroundColor(.statusYellow)
                     Text("Logguez uniquement le poids utilisé. Les reps sont optionnelles.")
                         .font(.appCaption).foregroundColor(.gray)
                 }
@@ -1296,7 +1296,7 @@ struct InventoryFormSheet: View {
                                     Text(formatDur(d))
                                         .font(.appCaption.weight(.medium))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(timeDuration == d ? Color.cyan : Color.appSurfaceInset)
+                                        .background(timeDuration == d ? Color.statusCyan : Color.appSurfaceInset)
                                         .foregroundColor(timeDuration == d ? .black : .white)
                                         .cornerRadius(16)
                                 }
@@ -1307,7 +1307,7 @@ struct InventoryFormSheet: View {
                 HStack {
                     Text("Schéma").foregroundColor(.gray).font(.appLabel.weight(.regular))
                     Spacer()
-                    Text(generatedScheme).font(.appLabel.weight(.semibold)).foregroundColor(.cyan)
+                    Text(generatedScheme).font(.appLabel.weight(.semibold)).foregroundColor(.statusCyan)
                 }
             } header: {
                 sectionHeader("Configuration temps")
@@ -1356,9 +1356,9 @@ struct InventoryFormSheet: View {
     private var loadProfileSection: some View {
         Section {
             let opts: [(String, String, Color)] = [
-                ("compound_heavy",       "Composé lourd\n5–8 reps",  .red),
+                ("compound_heavy",       "Composé lourd\n5–8 reps",  .statusRed),
                 ("compound_hypertrophy", "Composé hyper\n8–12 reps", Color.forge),
-                ("isolation",            "Isolation\n12–15 reps",     .yellow),
+                ("isolation",            "Isolation\n12–15 reps",     .statusYellow),
             ]
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(opts, id: \.0) { value, label, color in
@@ -1585,7 +1585,7 @@ struct ExerciseMediaSheet: View {
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "lightbulb.fill")
                                         .font(.appCaption)
-                                        .foregroundColor(.yellow)
+                                        .foregroundColor(.statusYellow)
                                     Text(t)
                                         .font(.appLabel.weight(.regular))
                                         .foregroundColor(.white.opacity(0.85))
@@ -1593,8 +1593,8 @@ struct ExerciseMediaSheet: View {
                                 }
                             }
                             .padding(14)
-                            .background(Color.yellow.opacity(0.06))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.yellow.opacity(0.2), lineWidth: 1))
+                            .background(Color.statusYellow.opacity(0.06))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusYellow.opacity(0.2), lineWidth: 1))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .padding(.horizontal, 16)
                         }
@@ -1760,7 +1760,7 @@ struct CatalogueExerciseDetailView: View {
                     statCard(label: "e1RM actuel", value: String(format: "%.1f", cur), unit: "lbs", accent: Color.forge)
                 }
                 if let best = d.e1rmBest {
-                    statCard(label: "Meilleur e1RM", value: String(format: "%.1f", best), unit: "lbs", accent: .yellow)
+                    statCard(label: "Meilleur e1RM", value: String(format: "%.1f", best), unit: "lbs", accent: .statusYellow)
                 }
             }
 
@@ -1824,7 +1824,7 @@ struct CatalogueExerciseDetailView: View {
                 if delta != 0 {
                     Text(delta > 0 ? "+\(String(format: "%.1f", delta))lbs" : "\(String(format: "%.1f", delta))lbs")
                         .font(.appCaption.weight(.bold))
-                        .foregroundColor(delta > 0 ? .green : .red)
+                        .foregroundColor(delta > 0 ? .statusGreen : .statusRed)
                 }
             }
             Chart {
@@ -1908,7 +1908,7 @@ struct CatalogueExerciseDetailView: View {
             ForEach(sessions, id: \.self) { s in
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                         .font(.appLabel)
                     Text(s)
                         .font(.appLabel.weight(.semibold))
@@ -1935,7 +1935,7 @@ struct CatalogueExerciseDetailView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.green.opacity(0.85))
+                        .background(Color.statusGreen.opacity(0.85))
                         .cornerRadius(12)
                 }
                 .buttonStyle(.plain)
@@ -1946,12 +1946,12 @@ struct CatalogueExerciseDetailView: View {
             } label: {
                 Label("Archiver cet exercice", systemImage: "archivebox")
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.red.opacity(0.8))
+                    .foregroundColor(Color.statusRed.opacity(0.8))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.red.opacity(0.08))
+                    .background(Color.statusRed.opacity(0.08))
                     .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusRed.opacity(0.2), lineWidth: 1))
             }
             .buttonStyle(.plain)
         }
@@ -2091,7 +2091,7 @@ struct AddExerciseToProgramSheet: View {
                                             ProgressView().tint(.forge).scaleEffect(0.8)
                                         } else {
                                             Image(systemName: "plus.circle")
-                                                .foregroundColor(.green)
+                                                .foregroundColor(.statusGreen)
                                                 .font(.appBody)
                                         }
                                     }
@@ -2206,7 +2206,7 @@ struct ClassificationGapsSheet: View {
                     VStack(spacing: 12) {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.system(size: 44))
-                            .foregroundColor(.green)
+                            .foregroundColor(.statusGreen)
                         Text("Tout est classifié")
                             .font(.appTitle)
                             .foregroundColor(.appTextPrimary)
@@ -2254,13 +2254,13 @@ struct ClassificationGapsSheet: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 if let mg = gap.suggestedMuscleGroup ?? gap.currentMuscleGroup {
-                    tagLine(icon: "person.crop.circle", label: "Groupe", value: mg, color: .blue)
+                    tagLine(icon: "person.crop.circle", label: "Groupe", value: mg, color: .statusBlue)
                 }
                 if let ms = gap.suggestedMuscleSpecific {
                     tagLine(icon: "target", label: "Spécifique", value: ms, color: .forge)
                 }
                 if let mp = gap.suggestedMovementPattern {
-                    tagLine(icon: "arrow.triangle.2.circlepath", label: "Pattern", value: mp, color: .purple)
+                    tagLine(icon: "arrow.triangle.2.circlepath", label: "Pattern", value: mp, color: .statusPurple)
                 }
             }
 

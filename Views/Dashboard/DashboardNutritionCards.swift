@@ -9,9 +9,9 @@ struct NutritionSummaryView: View {
     private var protCurrent: Double { totals.proteines ?? 0 }
     private var pct: Double { min(protCurrent / max(protTarget, 1), 1.0) }
     private var ringColor: Color {
-        if protCurrent > protTarget { return .red }
-        if protCurrent >= protTarget { return .green }
-        return .blue
+        if protCurrent > protTarget { return .appDanger }
+        if protCurrent >= protTarget { return .appSuccess }
+        return .statusBlue
     }
 
     var body: some View {
@@ -43,17 +43,17 @@ struct NutritionSummaryView: View {
                     if protCurrent >= protTarget {
                         Label("Objectif atteint", systemImage: "checkmark.circle.fill")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.green)
+                            .foregroundColor(.appSuccess)
                     } else {
                         Text("Encore \(Int(protTarget - protCurrent))g de prot")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.blue)
+                            .foregroundColor(.statusBlue)
                     }
 
                     // Badges macros
                     HStack(spacing: 8) {
                         NutriBadge(value: "\(Int(totals.calories ?? 0))", unit: "kcal", color: Color.forge)
-                        NutriBadge(value: "\(Int(totals.glucides ?? 0))", unit: "g carbs", color: .yellow)
+                        NutriBadge(value: "\(Int(totals.glucides ?? 0))", unit: "g carbs", color: .statusYellow)
                         NutriBadge(value: "\(Int(totals.lipides ?? 0))", unit: "g lip", color: .pink)
                     }
                 }
@@ -71,7 +71,7 @@ struct NutritionSummaryView: View {
                         Spacer()
                         Text("\(Int(calCurrent)) / \(Int(calTarget)) kcal")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(overTarget ? .red : Color.forge)
+                            .foregroundColor(overTarget ? .statusRed : Color.forge)
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -138,12 +138,12 @@ struct NutritionStripView: View {
                 Spacer()
                 Text("\(Int(calCurrent))\(calTarget > 0 ? " / \(Int(calTarget))" : "") kcal")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(overCal ? .red : Color.forge)
+                    .foregroundColor(overCal ? .statusRed : Color.forge)
             }
 
             HStack(spacing: 6) {
-                NutriBadge(value: "\(Int(totals.proteines ?? 0))", unit: "prot", color: .blue)
-                NutriBadge(value: "\(Int(totals.glucides ?? 0))", unit: "carbs", color: .yellow)
+                NutriBadge(value: "\(Int(totals.proteines ?? 0))", unit: "prot", color: .statusBlue)
+                NutriBadge(value: "\(Int(totals.glucides ?? 0))", unit: "carbs", color: .statusYellow)
                 NutriBadge(value: "\(Int(totals.lipides ?? 0))", unit: "lipides", color: .pink)
                 if calTarget > 0 {
                     GeometryReader { geo in
@@ -192,7 +192,7 @@ struct DataGapSection: View {
                         NavigationLink(destination: RecoveryView()) {
                             DataGapCard(
                                 icon: "moon.zzz.fill",
-                                color: .blue,
+                                color: .statusBlue,
                                 title: "Récupération du jour",
                                 subtitle: "Sommeil, FC repos, HRV, courbatures"
                             )
@@ -203,7 +203,7 @@ struct DataGapSection: View {
                         NavigationLink(destination: NutritionView()) {
                             DataGapCard(
                                 icon: "fork.knife",
-                                color: .green,
+                                color: .statusGreen,
                                 title: "Nutrition du jour",
                                 subtitle: "Aucun repas enregistré aujourd'hui"
                             )
@@ -299,7 +299,7 @@ struct MacroInsightCard: View {
                 HStack(spacing: 10) {
                     Image(systemName: above ? "fork.knife" : "exclamationmark.circle.fill")
                         .font(.appLabel)
-                        .foregroundColor(above ? .green : .orange)
+                        .foregroundColor(above ? .statusGreen : .statusOrange)
                         .frame(width: 22)
                     VStack(alignment: .leading, spacing: 2) {
                         if above {

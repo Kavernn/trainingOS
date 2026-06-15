@@ -106,14 +106,14 @@ struct GymContributeView: View {
                         HStack(spacing: 6) {
                             Image(systemName: selected ? "checkmark.square.fill" : "square")
                                 .font(.appLabel.weight(.regular))
-                                .foregroundColor(selected ? .green : .white.opacity(0.3))
+                                .foregroundColor(selected ? .statusGreen : .white.opacity(0.3))
                             Text(eq.label)
                                 .font(.appCaption)
                                 .foregroundColor(selected ? .white : .white.opacity(0.45))
                             Spacer()
                         }
                         .padding(8)
-                        .background(selected ? Color.green.opacity(0.08) : Color.clear)
+                        .background(selected ? Color.statusGreen.opacity(0.08) : Color.clear)
                         .cornerRadius(7)
                     }
                     .buttonStyle(.plain)

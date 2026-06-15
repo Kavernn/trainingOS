@@ -231,7 +231,7 @@ struct PeakPredictionCard: View {
             }
         }
         .padding(14)
-        .glassCard(color: .purple, intensity: 0.04)
+        .glassCard(color: .statusPurple, intensity: 0.04)
         .cornerRadius(16)
     }
 }

@@ -6,10 +6,10 @@ struct InsightPrincipalCard: View {
 
     private var accent: Color {
         switch insight.type {
-        case "alert":       return insight.priority == 1 ? .red : .orange
-        case "opportunity": return .green
-        case "programme":   return .blue
-        default:            return .purple
+        case "alert":       return insight.priority == 1 ? .statusRed : .statusOrange
+        case "opportunity": return .statusGreen
+        case "programme":   return .statusBlue
+        default:            return .statusPurple
         }
     }
 

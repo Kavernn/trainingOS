@@ -5,7 +5,7 @@ import SwiftUI
 struct HRVChart: View {
     let entries: [RecoveryEntry]
     var baseline: Double? = nil
-    var zoneColor: Color = .green
+    var zoneColor: Color = .statusGreen
 
     @State private var trim: CGFloat = 0
     @State private var selectedPt: Int? = nil
@@ -178,7 +178,7 @@ struct HRVChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .green, intensity: 0.05)
+        .padding(16).glassCard(color: .statusGreen, intensity: 0.05)
     }
 }
 
@@ -203,7 +203,7 @@ struct RHRChart: View {
     }
     private var lineColor: Color {
         let avg = pts.isEmpty ? 0 : pts.map(\.val).reduce(0, +) / Double(pts.count)
-        return avg <= 55 ? .green : (avg <= 65 ? .orange : .red)
+        return avg <= 55 ? .statusGreen : (avg <= 65 ? .statusOrange : .statusRed)
     }
     // Ensure 40–60 reference band is always visible
     private var yMax: Double { max((pts.map(\.val).max() ?? 60) + 5, 70) }
@@ -270,16 +270,16 @@ struct RHRChart: View {
                     let y40 = yAt(40, h: h)
                     let y60 = yAt(60, h: h)
                     Rectangle()
-                        .fill(Color.green.opacity(0.05))
+                        .fill(Color.statusGreen.opacity(0.05))
                         .frame(width: w - kL, height: abs(y40 - y60))
                         .position(x: kL + (w - kL) / 2, y: min(y40, y60) + abs(y40 - y60) / 2)
 
                     // 60 bpm dashed reference
                     Path { p in p.move(to: CGPoint(x: kL, y: y60)); p.addLine(to: CGPoint(x: w, y: y60)) }
-                        .stroke(Color.green.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .stroke(Color.statusGreen.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
                     // 40 bpm dashed reference
                     Path { p in p.move(to: CGPoint(x: kL, y: y40)); p.addLine(to: CGPoint(x: w, y: y40)) }
-                        .stroke(Color.green.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .stroke(Color.statusGreen.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
 
                     areaPath(w: w, h: h).fill(lineColor.opacity(0.07))
 
@@ -351,17 +351,17 @@ struct RHRChart: View {
                 }
                 HStack(spacing: 4) {
                     HStack(spacing: 1) {
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 3, height: 1)
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 3, height: 1)
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 2, height: 1)
                     }
                     Text("Zone optimale 40–60 bpm").font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
-        .padding(16).glassCard(color: .red, intensity: 0.04)
+        .padding(16).glassCard(color: .statusRed, intensity: 0.04)
     }
 }
 
@@ -389,13 +389,13 @@ struct HRMomentsChart: View {
                     let isLast = i == entries.count - 1
                     VStack(spacing: 1) {
                         if let m = e.hrMorning {
-                            dot(.cyan, m, maxHR, minHR, isLast)
+                            dot(.statusCyan, m, maxHR, minHR, isLast)
                         }
                         if let pw = e.hrPostWorkout {
                             dot(Color.forge, pw, maxHR, minHR, isLast)
                         }
                         if let ev = e.hrEvening {
-                            dot(.blue, ev, maxHR, minHR, isLast)
+                            dot(.statusBlue, ev, maxHR, minHR, isLast)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
@@ -404,12 +404,12 @@ struct HRMomentsChart: View {
             .frame(height: 70)
 
             HStack(spacing: 12) {
-                legendDot(.cyan,   "Matin")
+                legendDot(.statusCyan,   "Matin")
                 legendDot(Color.forge, "Post séance")
-                legendDot(.blue,   "Soir")
+                legendDot(.statusBlue,   "Soir")
             }
         }
-        .padding(16).glassCard(color: .cyan, intensity: 0.04)
+        .padding(16).glassCard(color: .statusCyan, intensity: 0.04)
     }
 
     @ViewBuilder
@@ -446,7 +446,7 @@ struct SleepChart: View {
 
     private var yMax: Double { max(entries.compactMap(\.sleepHours).max() ?? 8, 9) }
 
-    private func barColor(_ h: Double) -> Color { h >= 7 ? .green : (h >= 6 ? .orange : .red) }
+    private func barColor(_ h: Double) -> Color { h >= 7 ? .statusGreen : (h >= 6 ? .statusOrange : .statusRed) }
 
     @ViewBuilder
     private func gridLine(step: Int, w: CGFloat, h: CGFloat) -> some View {
@@ -487,7 +487,7 @@ struct SleepChart: View {
                     // 7h objective dashed line
                     let y7 = h - CGFloat(7.0 / yMax) * h
                     Path { p in p.move(to: CGPoint(x: kL, y: y7)); p.addLine(to: CGPoint(x: w, y: y7)) }
-                        .stroke(Color.green.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .stroke(Color.statusGreen.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
 
                     // Bars
                     ForEach(Array(entries.enumerated()), id: \.0) { i, e in
@@ -549,7 +549,7 @@ struct SleepChart: View {
                             .font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
                         if e.source == "healthkit" {
                             Image(systemName: "applewatch")
-                                .font(.system(size: 6)).foregroundColor(.blue.opacity(0.5))
+                                .font(.system(size: 6)).foregroundColor(.statusBlue.opacity(0.5))
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -558,23 +558,23 @@ struct SleepChart: View {
 
             // Legend
             HStack(spacing: 12) {
-                legendDot(.green,  "≥7h")
+                legendDot(.statusGreen,  "≥7h")
                 legendDot(Color.forge, "6–7h")
-                legendDot(.red,    "<6h")
+                legendDot(.statusRed,    "<6h")
                 Spacer()
                 HStack(spacing: 4) {
                     HStack(spacing: 1) {
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 3, height: 1)
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 3, height: 1)
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 2, height: 1)
                     }
                     Text("Objectif 7h").font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
-        .padding(16).glassCard(color: .blue, intensity: 0.05)
+        .padding(16).glassCard(color: .statusBlue, intensity: 0.05)
     }
 
     private func legendDot(_ color: Color, _ label: String) -> some View {
@@ -605,7 +605,7 @@ struct StepsChart: View {
         return max(m * 1.1, Double(stepGoal) * 1.15)
     }
 
-    private func barColor(_ s: Double) -> Color { s >= 10_000 ? .green : (s >= 7_000 ? .orange : .red) }
+    private func barColor(_ s: Double) -> Color { s >= 10_000 ? .statusGreen : (s >= 7_000 ? .statusOrange : .statusRed) }
 
     private func stepsLabel(_ s: Double) -> String {
         s >= 1_000 ? String(format: "%.1fk", s / 1_000) : "\(Int(s))"
@@ -650,7 +650,7 @@ struct StepsChart: View {
                     // 10k objective dashed line
                     let yGoal = h - CGFloat(Double(stepGoal) / yMax) * h
                     Path { p in p.move(to: CGPoint(x: kL, y: yGoal)); p.addLine(to: CGPoint(x: w, y: yGoal)) }
-                        .stroke(Color.green.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .stroke(Color.statusGreen.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
 
                     // Bars
                     ForEach(Array(entries.enumerated()), id: \.0) { i, e in
@@ -715,23 +715,23 @@ struct StepsChart: View {
 
             // Legend
             HStack(spacing: 12) {
-                legendDot(.green,  "≥10k")
+                legendDot(.statusGreen,  "≥10k")
                 legendDot(Color.forge, "7k–10k")
-                legendDot(.red,    "<7k")
+                legendDot(.statusRed,    "<7k")
                 Spacer()
                 HStack(spacing: 4) {
                     HStack(spacing: 1) {
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 3, height: 1)
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 3, height: 1)
                         Rectangle().fill(Color.clear).frame(width: 2, height: 1)
-                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.statusGreen.opacity(0.5)).frame(width: 2, height: 1)
                     }
                     Text("Objectif 10k").font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
-        .padding(16).glassCard(color: .green, intensity: 0.05)
+        .padding(16).glassCard(color: .statusGreen, intensity: 0.05)
     }
 
     private func legendDot(_ color: Color, _ label: String) -> some View {

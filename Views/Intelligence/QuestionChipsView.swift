@@ -50,13 +50,13 @@ struct QuestionChipsView: View {
                     Button { onTap(chip) } label: {
                         Text(chip)
                             .font(.appLabel)
-                            .foregroundColor(.purple.opacity(0.9))
+                            .foregroundColor(.statusPurple.opacity(0.9))
                             .padding(.horizontal, 13)
                             .padding(.vertical, 7)
-                            .background(Color.purple.opacity(0.10))
+                            .background(Color.statusPurple.opacity(0.10))
                             .clipShape(Capsule())
                             .overlay(Capsule()
-                                .stroke(Color.purple.opacity(0.28), lineWidth: 1))
+                                .stroke(Color.statusPurple.opacity(0.28), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }

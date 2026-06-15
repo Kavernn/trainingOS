@@ -48,7 +48,7 @@ struct CoachMemoryView: View {
                         Button("Tout effacer", role: .destructive) {
                             confirmDeleteAll = true
                         }
-                        .foregroundColor(.red.opacity(0.7))
+                        .foregroundColor(.statusRed.opacity(0.7))
                         .font(.appLabel)
                     }
                 }
@@ -71,15 +71,15 @@ struct CoachMemoryView: View {
         HStack(spacing: 10) {
             Image(systemName: "info.circle.fill")
                 .font(.system(size: 14))
-                .foregroundColor(.purple)
+                .foregroundColor(.statusPurple)
             Text("Ces faits sont injectés dans chaque conversation pour que le coach te connaisse dans le temps.")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.white.opacity(0.6))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
-        .background(Color.purple.opacity(0.07))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+        .background(Color.statusPurple.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.statusPurple.opacity(0.2), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
@@ -87,7 +87,7 @@ struct CoachMemoryView: View {
         VStack(spacing: 16) {
             Image(systemName: "brain.head.profile")
                 .font(.system(size: 44))
-                .foregroundColor(.purple.opacity(0.35))
+                .foregroundColor(.statusPurple.opacity(0.35))
             Text("Mémoire vide")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.appTextPrimary)
@@ -108,11 +108,11 @@ private struct MemorySection: View {
 
     private var accentColor: Color {
         switch type {
-        case .pattern:     return .cyan
-        case .milestone:   return .yellow
-        case .correlation: return .blue
-        case .risk:        return .orange
-        case .preference:  return .purple
+        case .pattern:     return .statusCyan
+        case .milestone:   return .statusYellow
+        case .correlation: return .statusBlue
+        case .risk:        return .statusOrange
+        case .preference:  return .statusPurple
         }
     }
 

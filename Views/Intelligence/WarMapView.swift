@@ -84,7 +84,7 @@ struct WarMapView: View {
         switch status {
         case .victory: return Color.forge.opacity(0.85)
         case .lost:    return Color.white.opacity(0.06)
-        case .active:  return Color.orange.opacity(0.4)
+        case .active:  return Color.statusOrange.opacity(0.4)
         default:       return Color.white.opacity(0.03)
         }
     }

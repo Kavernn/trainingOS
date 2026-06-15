@@ -20,9 +20,9 @@ struct RecoveryRow: View {
                         if entry.isFromWatch {
                             Label("Watch", systemImage: "applewatch")
                                 .font(.appMicro.weight(.medium))
-                                .foregroundColor(.cyan)
+                                .foregroundColor(.statusCyan)
                                 .padding(.horizontal, 5).padding(.vertical, 2)
-                                .background(Color.cyan.opacity(0.15))
+                                .background(Color.statusCyan.opacity(0.15))
                                 .cornerRadius(6)
                         }
                     }
@@ -60,7 +60,7 @@ struct RecoveryRow: View {
                                 .font(.appCaption)
                                 .frame(width: 26, height: 26)
                                 .background(Color.appDanger.opacity(0.1))
-                                .foregroundColor(.red.opacity(0.7))
+                                .foregroundColor(.statusRed.opacity(0.7))
                                 .clipShape(RoundedRectangle(cornerRadius: 7))
                         }
                         .buttonStyle(.plain)
@@ -88,20 +88,20 @@ struct RecoveryRow: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         if let q = entry.sleepQuality {
-                            secChip("star.fill", String(format: "%.0f/10", q), "qualité", .purple)
+                            secChip("star.fill", String(format: "%.0f/10", q), "qualité", .statusPurple)
                         }
                         if let f = entry.fatigue {
                             secChip("bolt.slash.fill", String(format: "%.0f/10", f), "fatigue", Color.forge)
                         }
                         if let hr = entry.restingHr {
-                            secChip("heart.fill", String(format: "%.0f bpm", hr), "FC repos", .red)
+                            secChip("heart.fill", String(format: "%.0f bpm", hr), "FC repos", .statusRed)
                         }
                         if let hrv = entry.hrv {
-                            secChip("waveform.path.ecg", String(format: "%.0f ms", hrv), "HRV", .cyan)
+                            secChip("waveform.path.ecg", String(format: "%.0f ms", hrv), "HRV", .statusCyan)
                         }
                         if let s = entry.steps {
                             let sLabel = s >= 1_000 ? String(format: "%.1fk", Double(s) / 1_000) : "\(s)"
-                            secChip("figure.walk", sLabel, "pas", .green)
+                            secChip("figure.walk", sLabel, "pas", .statusGreen)
                         }
                     }
                     .padding(.horizontal, 12)
@@ -151,14 +151,14 @@ struct RecoveryRow: View {
 
     private func sorenessColor(_ v: Double?) -> Color {
         guard let v else { return .gray }
-        return v >= 7 ? .red : (v >= 4 ? .orange : .green)
+        return v >= 7 ? .statusRed : (v >= 4 ? .statusOrange : .statusGreen)
     }
     private func energyColor(_ v: Double?) -> Color {
         guard let v else { return .gray }
-        return v >= 7 ? .green : (v >= 4 ? .orange : .red)
+        return v >= 7 ? .statusGreen : (v >= 4 ? .statusOrange : .statusRed)
     }
     private func sleepColor(_ v: Double?) -> Color {
         guard let v else { return .gray }
-        return v >= 7 ? .green : (v >= 6 ? .orange : .red)
+        return v >= 7 ? .statusGreen : (v >= 6 ? .statusOrange : .statusRed)
     }
 }

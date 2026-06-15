@@ -211,12 +211,12 @@ struct BonusSeanceView: View {
                         } label: {
                             Text("Quitter sans sauvegarder")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.red.opacity(0.7))
+                                .foregroundColor(.statusRed.opacity(0.7))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(Color.red.opacity(0.07))
+                                .background(Color.statusRed.opacity(0.07))
                                 .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusRed.opacity(0.2), lineWidth: 1))
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 24)

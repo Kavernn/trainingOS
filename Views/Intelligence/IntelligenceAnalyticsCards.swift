@@ -7,9 +7,9 @@ struct OvertrainingRiskCard: View {
 
     private var riskColor: Color {
         switch risk.level {
-        case "high":     return .red
-        case "moderate": return .orange
-        default:         return .green
+        case "high":     return .statusRed
+        case "moderate": return .statusOrange
+        default:         return .statusGreen
         }
     }
 
@@ -69,9 +69,9 @@ struct MesocycleStatusCard: View {
 
     private var phaseColor: Color {
         switch status.phase {
-        case "accumulation":   return .blue
-        case "intensification": return .orange
-        case "realization":    return .red
+        case "accumulation":   return .statusBlue
+        case "intensification": return .statusOrange
+        case "realization":    return .statusRed
         default:               return .gray
         }
     }
@@ -102,7 +102,7 @@ struct MesocycleStatusCard: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text("DÉCHARGE DANS").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                    Text("\(status.nextDeloadInWeeks) sem").font(.system(size: 14, weight: .black)).foregroundColor(.cyan)
+                    Text("\(status.nextDeloadInWeeks) sem").font(.system(size: 14, weight: .black)).foregroundColor(.statusCyan)
                 }
                 Spacer()
             }
@@ -124,7 +124,7 @@ struct PainJournalCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: "bandage.fill").foregroundColor(.red)
+                Image(systemName: "bandage.fill").foregroundColor(.statusRed)
                 Text("JOURNAL BLESSURES")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
@@ -138,7 +138,7 @@ struct PainJournalCard: View {
                         Text(ex.exercise)
                             .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                         Text(ex.zones.joined(separator: " · "))
-                            .font(.appCaption).foregroundColor(.red.opacity(0.8))
+                            .font(.appCaption).foregroundColor(.statusRed.opacity(0.8))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
@@ -151,7 +151,7 @@ struct PainJournalCard: View {
                     }
                 }
                 .padding(10)
-                .background(Color.red.opacity(0.05))
+                .background(Color.statusRed.opacity(0.05))
                 .cornerRadius(8)
             }
         }
@@ -171,7 +171,7 @@ struct OneRMProgrammingCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: "percent").foregroundColor(.purple)
+                Image(systemName: "percent").foregroundColor(.statusPurple)
                 Text("PROGRAMMATION % 1RM")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             }
@@ -188,7 +188,7 @@ struct OneRMProgrammingCard: View {
                                     .lineLimit(1)
                                 HStack(spacing: 4) {
                                     Text("1RM \(units.format(ex.estimated1rm, decimals: 0))")
-                                        .font(.system(size: 10)).foregroundColor(.purple)
+                                        .font(.system(size: 10)).foregroundColor(.statusPurple)
                                     if let pct = ex.pctOf1rm {
                                         Text(String(format: "· %.0f%%", pct))
                                             .font(.system(size: 10)).foregroundColor(.gray)
@@ -196,9 +196,9 @@ struct OneRMProgrammingCard: View {
                                 }
                             }
                             .padding(10)
-                            .background(selected == ex.exercise ? Color.purple.opacity(0.15) : Color.white.opacity(0.05))
+                            .background(selected == ex.exercise ? Color.statusPurple.opacity(0.15) : Color.white.opacity(0.05))
                             .cornerRadius(10)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(selected == ex.exercise ? Color.purple.opacity(0.4) : Color.clear, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(selected == ex.exercise ? Color.statusPurple.opacity(0.4) : Color.clear, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
                     }
@@ -211,13 +211,13 @@ struct OneRMProgrammingCard: View {
                     ForEach(selEx.table) { entry in
                         VStack(spacing: 2) {
                             Text("\(entry.pct)%")
-                                .font(.system(size: 10, weight: .bold)).foregroundColor(.purple)
+                                .font(.system(size: 10, weight: .bold)).foregroundColor(.statusPurple)
                             Text(units.format(entry.weight, decimals: 0))
                                 .font(.appLabel.weight(.black)).foregroundColor(.appTextPrimary)
                         }
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity)
-                        .background(Color.purple.opacity(0.07))
+                        .background(Color.statusPurple.opacity(0.07))
                         .cornerRadius(8)
                     }
                 }

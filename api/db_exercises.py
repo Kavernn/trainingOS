@@ -95,8 +95,8 @@ def update_program_scheme_for_exercise(exercise_id: str, new_scheme: str) -> boo
         return False
 
     def _do() -> bool:
-        db_core._client.table("program_block_exercises").update({"scheme": new_scheme}).eq("exercise_id", exercise_id).execute()
-        return True
+        resp = db_core._client.table("program_block_exercises").update({"scheme": new_scheme}).eq("exercise_id", exercise_id).execute()
+        return bool(resp.data)
 
     try:
         return _do()
@@ -156,6 +156,7 @@ def get_or_create_exercise_id(name: str) -> Optional[str]:
         return existing_id
 
     # 2 — soft-deleted row: reactivate to preserve exercise_logs history
+    soft_deleted_found = False
     try:
         resp = (
             db_core._client.table("exercises")
@@ -166,14 +167,21 @@ def get_or_create_exercise_id(name: str) -> Optional[str]:
             .execute()
         )
         if resp.data:
+            soft_deleted_found = True
             ex_id = resp.data[0]["id"]
-            db_core._client.table("exercises").update({"deleted_at": None}).eq("id", ex_id).execute()
-            db_core.logger.info("get_or_create_exercise_id: reactivated soft-deleted exercise %r (%s)", clean_name, ex_id)
-            return ex_id
+            reactivation_resp = db_core._client.table("exercises").update({"deleted_at": None}).eq("id", ex_id).execute()
+            if reactivation_resp.data:
+                db_core.logger.info("get_or_create_exercise_id: reactivated soft-deleted exercise %r (%s)", clean_name, ex_id)
+                return ex_id
+            db_core.logger.warning("get_or_create_exercise_id: reactivation 0 rows for %r (%s)", clean_name, ex_id)
     except Exception as e:
         db_core.logger.warning("get_or_create_exercise_id soft-delete check failed for %r: %s", clean_name, e)
 
-    # 3 — create new
+    if soft_deleted_found:
+        # Ligne soft-deleted confirmée mais réactivation échouée — pas de doublon
+        return None
+
+    # 3 — create new (atteint uniquement si aucune ligne soft-deleted trouvée)
     try:
         created = upsert_exercise({"name": clean_name})
         return created.get("id") if isinstance(created, dict) else None

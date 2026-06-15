@@ -10,12 +10,12 @@ struct CoachMissionCard: View {
 
     private var sessionColor: Color {
         switch dash.today {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return .blue
+        case "Push A", "Push B":             return .statusOrange
+        case "Pull A", "Pull B + Full Body": return .statusCyan
+        case "Legs":                         return .statusYellow
+        case "Yoga / Tai Chi":               return .statusPurple
+        case "Recovery":                     return .statusGreen
+        default:                             return .statusBlue
         }
     }
 
@@ -46,8 +46,8 @@ struct CoachMissionCard: View {
     }
 
     private var statusColor: Color {
-        if sessionDone { return .green }
-        if hasDraft    { return .orange }
+        if sessionDone { return .statusGreen }
+        if hasDraft    { return .statusOrange }
         return sessionColor
     }
 

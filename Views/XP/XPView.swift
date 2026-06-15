@@ -68,10 +68,10 @@ struct XPView: View {
         let sc = totalSessions
         badges += [
             badge("volume.1",    "figure.walk",               "Premier pas",     "Ta toute première séance.",            Color.forge,  sc >= 1,   sc, 1),
-            badge("volume.10",   "flame.fill",                "10 séances",       "10 séances au compteur.",              .red,     sc >= 10,  sc, 10),
-            badge("volume.25",   "star.fill",                 "25 séances",       "Régularité installée.",                .yellow,  sc >= 25,  sc, 25),
-            badge("volume.50",   "chart.line.uptrend.xyaxis", "50 séances",       "La moitié du centenaire.",             .purple,  sc >= 50,  sc, 50),
-            badge("volume.100",  "crown.fill",                "Centurion",        "100 séances — engagement total.",      .yellow,  sc >= 100, sc, 100),
+            badge("volume.10",   "flame.fill",                "10 séances",       "10 séances au compteur.",              .statusRed,     sc >= 10,  sc, 10),
+            badge("volume.25",   "star.fill",                 "25 séances",       "Régularité installée.",                .statusYellow,  sc >= 25,  sc, 25),
+            badge("volume.50",   "chart.line.uptrend.xyaxis", "50 séances",       "La moitié du centenaire.",             .statusPurple,  sc >= 50,  sc, 50),
+            badge("volume.100",  "crown.fill",                "Centurion",        "100 séances — engagement total.",      .statusYellow,  sc >= 100, sc, 100),
             badge("volume.200",  "trophy.fill",               "Légende 200",      "200 séances. Tu es une machine.",      Color.forge,  sc >= 200, sc, 200),
         ]
 
@@ -82,40 +82,40 @@ struct XPView: View {
 
         badges += [
             badge("force.first", "dumbbell.fill",             "Premier lift",     "Ton premier exercice logué.",          Color.forge,  liftCount >= 1,    liftCount, 1),
-            badge("force.5exos", "figure.strengthtraining.traditional", "5 exercices", "5 exercices différents maîtrisés.", .blue, liftCount >= 5, liftCount, 5),
-            badge("force.15exo", "figure.cross.training",     "Polyvalent",       "15 exercices différents maîtrisés.",   .cyan,    liftCount >= 15,   liftCount, 15),
+            badge("force.5exos", "figure.strengthtraining.traditional", "5 exercices", "5 exercices différents maîtrisés.", .statusBlue, liftCount >= 5, liftCount, 5),
+            badge("force.15exo", "figure.cross.training",     "Polyvalent",       "15 exercices différents maîtrisés.",   .statusCyan,    liftCount >= 15,   liftCount, 15),
         ]
 
         // Charge maximale vs poids de corps
         if bwRatio >= 1.5 {
             badges.append(Badge(id: "force.bw1.5", icon: "scalemass.fill", label: "1.5× poids corps",
                                 desc: "Charge max = \(String(format: "%.0f", maxLift)) lbs, soit 1.5× ton poids.",
-                                color: .blue, unlocked: true, progress: nil, progressLabel: nil, category: .force))
+                                color: .statusBlue, unlocked: true, progress: nil, progressLabel: nil, category: .force))
         } else if bwRatio > 0 {
             badges.append(Badge(id: "force.bw1.5", icon: "scalemass.fill", label: "1.5× poids corps",
                                 desc: "Charge max = \(String(format: "%.0f", maxLift)) lbs. Objectif : \(String(format: "%.0f", (profileWeight ?? 0) * 1.5)) lbs.",
-                                color: .blue, unlocked: false,
+                                color: .statusBlue, unlocked: false,
                                 progress: min(1.0, bwRatio / 1.5),
                                 progressLabel: "\(Int(bwRatio * 100))%", category: .force))
         }
 
         // Exercice maîtrisé (≥ 20 sessions)
         let masteredCount = weights.values.filter { ($0.history?.count ?? 0) >= 20 }.count
-        badges.append(badge("force.master", "medal.fill", "Maîtrise", "\(masteredCount) exercice(s) avec 20+ sessions.", .yellow, masteredCount >= 1, masteredCount, 1))
+        badges.append(badge("force.master", "medal.fill", "Maîtrise", "\(masteredCount) exercice(s) avec 20+ sessions.", .statusYellow, masteredCount >= 1, masteredCount, 1))
 
         // ── Régularité ────────────────────────────────────────────
         let hiitCount = hiitLog.count
         badges += [
-            badge("reg.hiit1",  "bolt.fill",                 "Premier HIIT",     "Ta première séance HIIT.",             .red,    hiitCount >= 1,  hiitCount, 1),
+            badge("reg.hiit1",  "bolt.fill",                 "Premier HIIT",     "Ta première séance HIIT.",             .statusRed,    hiitCount >= 1,  hiitCount, 1),
             badge("reg.hiit10", "bolt.circle.fill",          "10 HIIT",          "10 HIIT complétés.",                   Color.forge, hiitCount >= 10, hiitCount, 10),
-            badge("reg.hiit25", "figure.run.circle.fill",    "25 HIIT",          "Machine cardio.",                      .red,    hiitCount >= 25, hiitCount, 25),
+            badge("reg.hiit25", "figure.run.circle.fill",    "25 HIIT",          "Machine cardio.",                      .statusRed,    hiitCount >= 25, hiitCount, 25),
         ]
 
         // Semaine parfaite (≥ 4 séances dans une même semaine ISO)
         let perfectWeek = hasPerfectWeek(sessions: sessions)
         badges.append(Badge(id: "reg.perfect", icon: "calendar.badge.checkmark",
                             label: "Semaine parfaite", desc: "4+ séances dans une même semaine.",
-                            color: .green, unlocked: perfectWeek, progress: nil, progressLabel: nil, category: .regularite))
+                            color: .statusGreen, unlocked: perfectWeek, progress: nil, progressLabel: nil, category: .regularite))
 
         // ── Style ─────────────────────────────────────────────────
         let recentSessions = Array(sessions.sorted { $0.key > $1.key }.prefix(8).map { $0.value })
@@ -125,16 +125,16 @@ struct XPView: View {
         if let rpe = avgRPE {
             badges.append(Badge(id: "style.smart", icon: "brain.head.profile",
                                 label: "Entraîneur intelligent", desc: "RPE moyen ≤ 7 sur 8 séances récentes — effort mesuré.",
-                                color: .cyan, unlocked: rpe <= 7.0, progress: nil, progressLabel: "RPE \(String(format: "%.1f", rpe))", category: .style))
+                                color: .statusCyan, unlocked: rpe <= 7.0, progress: nil, progressLabel: "RPE \(String(format: "%.1f", rpe))", category: .style))
             badges.append(Badge(id: "style.beast", icon: "flame.circle.fill",
                                 label: "Beast mode", desc: "RPE moyen ≥ 8.5 sur 8 séances récentes — tu pousses à fond.",
-                                color: .red, unlocked: rpe >= 8.5, progress: nil, progressLabel: "RPE \(String(format: "%.1f", rpe))", category: .style))
+                                color: .statusRed, unlocked: rpe >= 8.5, progress: nil, progressLabel: "RPE \(String(format: "%.1f", rpe))", category: .style))
         }
 
         if let dur = avgDur {
             badges.append(Badge(id: "style.iron", icon: "clock.badge.fill",
                                 label: "Iron session", desc: "Séances longues et denses (moy. > 90 min).",
-                                color: .blue, unlocked: dur > 90, progress: nil, progressLabel: "\(Int(dur))min moy.", category: .style))
+                                color: .statusBlue, unlocked: dur > 90, progress: nil, progressLabel: "\(Int(dur))min moy.", category: .style))
             badges.append(Badge(id: "style.efficient", icon: "bolt.badge.checkmark.fill",
                                 label: "Efficace", desc: "Résultats en < 55 min (moy. séances).",
                                 color: .teal, unlocked: dur < 55 && avgRPE.map { $0 >= 7 } ?? false,
@@ -146,7 +146,7 @@ struct XPView: View {
         if let sl = avgSleep {
             badges.append(Badge(id: "style.sleep", icon: "moon.stars.fill",
                                 label: "Dormeur d'or", desc: "Sommeil moyen ≥ 8h.",
-                                color: .blue, unlocked: sl >= 8.0,
+                                color: .statusBlue, unlocked: sl >= 8.0,
                                 progress: min(1.0, sl / 8.0),
                                 progressLabel: "\(String(format: "%.1f", sl))h moy.", category: .style))
         }
@@ -156,12 +156,12 @@ struct XPView: View {
         if achievedGoals > 0 {
             badges.append(Badge(id: "special.goal1", icon: "checkmark.seal.fill",
                                 label: "Objectif atteint", desc: "\(achievedGoals) objectif(s) accompli(s).",
-                                color: .green, unlocked: true, progress: nil, progressLabel: nil, category: .special))
+                                color: .statusGreen, unlocked: true, progress: nil, progressLabel: nil, category: .special))
         }
 
         badges.append(Badge(id: "special.lvl5", icon: "star.circle.fill",
                             label: "Niveau 5", desc: "Atteindre le niveau 5.",
-                            color: .yellow, unlocked: level >= 5,
+                            color: .statusYellow, unlocked: level >= 5,
                             progress: min(1.0, Double(level) / 5.0),
                             progressLabel: "Niv. \(level)/5", category: .special))
 
@@ -172,7 +172,7 @@ struct XPView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .yellow)
+            AmbientBackground(color: .statusYellow)
             if isLoading {
                 AppLoadingView()
             } else {
@@ -231,7 +231,7 @@ struct XPView: View {
                     .overlay(alignment: .leading) {
                         GeometryReader { geo in
                             Capsule()
-                                .fill(LinearGradient(colors: [Color.forge, .red], startPoint: .leading, endPoint: .trailing))
+                                .fill(LinearGradient(colors: [Color.forge, .statusRed], startPoint: .leading, endPoint: .trailing))
                                 .frame(width: geo.size.width * Double(xpInLevel) / Double(xpToNextLevel))
                         }
                     }
@@ -254,8 +254,8 @@ struct XPView: View {
     private var statsRow: some View {
         HStack(spacing: 12) {
             KPICard(value: "\(totalSessions)", label: "Séances", color: Color.forge)
-            KPICard(value: "\(hiitLog.count)", label: "HIIT", color: .red)
-            KPICard(value: "\(totalExercices)", label: "Exercices", color: .blue)
+            KPICard(value: "\(hiitLog.count)", label: "HIIT", color: .statusRed)
+            KPICard(value: "\(totalExercices)", label: "Exercices", color: .statusBlue)
         }
         .padding(.horizontal, 16)
     }
@@ -419,9 +419,9 @@ struct BadgeDetailSheet: View {
             if badge.unlocked {
                 Label("Badge débloqué", systemImage: "checkmark.seal.fill")
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.green)
+                    .foregroundColor(.statusGreen)
                     .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(Color.green.opacity(0.12))
+                    .background(Color.statusGreen.opacity(0.12))
                     .clipShape(Capsule())
             } else if let pl = badge.progressLabel {
                 Label(pl, systemImage: "hourglass")

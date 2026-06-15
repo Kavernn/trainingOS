@@ -51,8 +51,8 @@ struct NotesView: View {
                             // KPIs
                             HStack(spacing: 12) {
                                 KPICard(value: "\(allSessions.count)", label: "Séances", color: Color.forge)
-                                KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: .purple)
-                                KPICard(value: "\(sessionsWithNotes)", label: "Notes", color: .blue)
+                                KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: .statusPurple)
+                                KPICard(value: "\(sessionsWithNotes)", label: "Notes", color: .statusBlue)
                             }
                             .padding(.horizontal, 16)
 
@@ -102,10 +102,10 @@ struct NoteCard: View {
     }
 
     var rpeColor: Color {
-        guard let rpe = session.entry.rpe else { return .orange }
-        if rpe >= 8 { return .red }
-        if rpe >= 6 { return .orange }
-        return .green
+        guard let rpe = session.entry.rpe else { return .statusOrange }
+        if rpe >= 8 { return .statusRed }
+        if rpe >= 6 { return .statusOrange }
+        return .statusGreen
     }
 
     var body: some View {
@@ -144,7 +144,7 @@ struct NoteCard: View {
         .background(Color.appCard)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(session.entry.comment?.isEmpty == false ? Color.blue.opacity(0.2) : Color.white.opacity(0.05), lineWidth: 1)
+                .stroke(session.entry.comment?.isEmpty == false ? Color.statusBlue.opacity(0.2) : Color.white.opacity(0.05), lineWidth: 1)
         )
         .cornerRadius(12)
     }

@@ -41,7 +41,7 @@ struct RecoveryPerformanceBanner: View {
         case .hrvCritical:
             return ("waveform.path.ecg",
                     "HRV sous ta baseline — priorise la récupération, réduis l'intensité.",
-                    .red)
+                    .statusRed)
         case .low(let s):
             return ("exclamationmark.triangle.fill",
                     "Récupération à \(Int(s))/100 — réduis le volume de ta séance aujourd'hui.",
@@ -53,7 +53,7 @@ struct RecoveryPerformanceBanner: View {
         case .good(let s):
             return ("checkmark.circle.fill",
                     "Bonne récupération (\(Int(s))/100) — conditions optimales pour ta séance.",
-                    .green)
+                    .statusGreen)
         }
     }
 

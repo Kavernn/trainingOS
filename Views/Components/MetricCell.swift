@@ -117,9 +117,9 @@ struct MetricCell: View {
         if let tint { return tint }
         if let status {
             switch status {
-            case .good:     return .green
-            case .warning:  return .orange
-            case .critical: return .red
+            case .good:     return .statusGreen
+            case .warning:  return .statusOrange
+            case .critical: return .statusRed
             case .neutral:  return .primary
             }
         }
@@ -130,9 +130,9 @@ struct MetricCell: View {
         if let tint { return tint }
         if let status {
             switch status {
-            case .good:     return .green
+            case .good:     return .statusGreen
             case .warning:  return Color.forge
-            case .critical: return .red
+            case .critical: return .statusRed
             case .neutral:  return .secondary
             }
         }
@@ -145,11 +145,11 @@ struct MetricCell: View {
         case .up:
             Image(systemName: "arrow.up")
                 .font(trendFont)
-                .foregroundColor(.green)
+                .foregroundColor(.statusGreen)
         case .down:
             Image(systemName: "arrow.down")
                 .font(trendFont)
-                .foregroundColor(.red)
+                .foregroundColor(.statusRed)
         case .flat:
             Image(systemName: "arrow.right")
                 .font(trendFont)

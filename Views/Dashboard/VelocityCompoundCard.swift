@@ -25,7 +25,7 @@ private struct VelocityPanel: View {
         switch data.label {
         case "accélération": return .forge
         case "stable":       return Color.white.opacity(0.70)
-        case "décélération": return .orange
+        case "décélération": return .statusOrange
         default:             return .appDanger
         }
     }

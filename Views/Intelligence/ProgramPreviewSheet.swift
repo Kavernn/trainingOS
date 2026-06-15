@@ -13,12 +13,12 @@ struct ProgramPreviewSheet: View {
 
     private var content: ProgramContent { program.programJson }
 
-    private let phaseColors: [String: Color] = [
-        "accumulation":   .blue,
+    private var phaseColors: [String: Color] {[
+        "accumulation":   .statusBlue,
         "intensification": Color.forge,
-        "peak":           .red,
-        "deload":         .green
-    ]
+        "peak":           .statusRed,
+        "deload":         .statusGreen
+    ]}
     private let phaseLabels: [String: String] = [
         "accumulation":    "Accumulation",
         "intensification": "Intensification",
@@ -55,7 +55,7 @@ struct ProgramPreviewSheet: View {
                     HStack(spacing: 8) {
                         ForEach(content.weeks) { week in
                             let phase = week.phase
-                            let color = phaseColors[phase] ?? .purple
+                            let color = phaseColors[phase] ?? .statusPurple
                             let label = phaseLabels[phase] ?? phase.capitalized
                             Button {
                                 withAnimation(.spring(response: 0.3)) { selectedWeek = week.week - 1 }
@@ -113,15 +113,15 @@ struct ProgramPreviewSheet: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Label("Justification", systemImage: "lightbulb.fill")
                                         .font(.appCaption.weight(.bold))
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(.statusBlue)
                                     Text(content.globalRationale)
                                         .font(.system(size: 12))
                                         .foregroundColor(.gray)
                                 }
                                 .padding(14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.blue.opacity(0.07))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.blue.opacity(0.2), lineWidth: 1))
+                                .background(Color.statusBlue.opacity(0.07))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusBlue.opacity(0.2), lineWidth: 1))
                                 .cornerRadius(12)
                             }
                         }
@@ -145,7 +145,7 @@ struct ProgramPreviewSheet: View {
                     }
                     if approveSuccess {
                         HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                            Image(systemName: "checkmark.circle.fill").foregroundColor(.statusGreen)
                             Text("Programme ajouté dans Programme !")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.appTextPrimary)
@@ -177,7 +177,7 @@ struct ProgramPreviewSheet: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(
-                                    LinearGradient(colors: [.blue, .purple],
+                                    LinearGradient(colors: [.statusBlue, .statusPurple],
                                                    startPoint: .leading, endPoint: .trailing)
                                 )
                                 .foregroundColor(.appTextPrimary)
@@ -210,7 +210,7 @@ struct ProgramPreviewSheet: View {
                         VStack(spacing: 2) {
                             Text("\(vol.setsPerWeek)")
                                 .font(.appLabel.weight(.black))
-                                .foregroundColor(inRange ? .green : .orange)
+                                .foregroundColor(inRange ? .statusGreen : .statusOrange)
                             Text(muscle.prefix(6))
                                 .font(.appMicro)
                                 .foregroundColor(.gray)
@@ -220,9 +220,9 @@ struct ProgramPreviewSheet: View {
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(inRange ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
+                        .background(inRange ? Color.statusGreen.opacity(0.08) : Color.statusOrange.opacity(0.08))
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-                            inRange ? Color.green.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 1))
+                            inRange ? Color.statusGreen.opacity(0.3) : Color.statusOrange.opacity(0.3), lineWidth: 1))
                         .cornerRadius(8)
                     }
                 }
@@ -263,11 +263,11 @@ private struct DayCard: View {
         "compound_hypertrophy": "flame.fill",
         "isolation":            "circle.fill"
     ]
-    private let categoryColors: [String: Color] = [
-        "compound_heavy":       .red,
+    private var categoryColors: [String: Color] {[
+        "compound_heavy":       .statusRed,
         "compound_hypertrophy": Color.forge,
-        "isolation":            .blue
-    ]
+        "isolation":            .statusBlue
+    ]}
 
     var body: some View {
         VStack(spacing: 0) {
@@ -275,11 +275,11 @@ private struct DayCard: View {
                 HStack(spacing: 10) {
                     ZStack {
                         Circle()
-                            .fill(Color.blue.opacity(0.15))
+                            .fill(Color.statusBlue.opacity(0.15))
                             .frame(width: 32, height: 32)
                         Text("\(day.day)")
                             .font(.appLabel.weight(.black))
-                            .foregroundColor(.blue)
+                            .foregroundColor(.statusBlue)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(day.name)
@@ -322,7 +322,7 @@ private struct DayCard: View {
             }
         }
         .background(Color.appBg)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.15), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusBlue.opacity(0.15), lineWidth: 1))
         .cornerRadius(14)
     }
 }
@@ -339,9 +339,9 @@ private struct ProgramExerciseRow: View {
             HStack(spacing: 10) {
                 Image(systemName: categoryIcons[exercise.category] ?? "dumbbell.fill")
                     .font(.system(size: 10))
-                    .foregroundColor(categoryColors[exercise.category] ?? .purple)
+                    .foregroundColor(categoryColors[exercise.category] ?? .statusPurple)
                     .frame(width: 24, height: 24)
-                    .background((categoryColors[exercise.category] ?? .purple).opacity(0.1))
+                    .background((categoryColors[exercise.category] ?? .statusPurple).opacity(0.1))
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -371,7 +371,7 @@ private struct ProgramExerciseRow: View {
                 } label: {
                     Image(systemName: "info.circle")
                         .font(.system(size: 14))
-                        .foregroundColor(showRationale ? .blue : .gray.opacity(0.5))
+                        .foregroundColor(showRationale ? .statusBlue : .gray.opacity(0.5))
                 }
             }
             .padding(.horizontal, 14)

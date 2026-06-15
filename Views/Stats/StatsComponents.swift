@@ -72,7 +72,7 @@ struct SmartInsightsBanner: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                Image(systemName: "lightbulb.fill").foregroundColor(.yellow).font(.system(size: 10))
+                Image(systemName: "lightbulb.fill").foregroundColor(.statusYellow).font(.system(size: 10))
                 Text("INSIGHTS").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
             }
@@ -94,7 +94,7 @@ struct SmartInsightsBanner: View {
         .padding(14)
         .background(Color.appCard)
         .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.25), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.25), lineWidth: 1))
     }
 }
 
@@ -112,8 +112,8 @@ struct AdherenceRingsCard: View {
     private var pillars: [Pillar] {
         [
             Pillar(label: "Body",        pct: data.bodyPct,   color: Color(hex: "F5A623"), rawDays: nil),
-            Pillar(label: "Mind",        pct: data.mindPct,   color: .blue,                rawDays: nil),
-            Pillar(label: "Consistance", pct: data.fuelPct,   color: .green,               rawDays: data.fuelDays),
+            Pillar(label: "Mind",        pct: data.mindPct,   color: .statusBlue,                rawDays: nil),
+            Pillar(label: "Consistance", pct: data.fuelPct,   color: .statusGreen,               rawDays: data.fuelDays),
             Pillar(label: "Spirit",      pct: data.spiritPct, color: Color(hex: "9B59B6"), rawDays: nil),
         ]
     }
@@ -181,9 +181,9 @@ struct AdherenceRingsCard: View {
     }
 
     private func adherenceColor(_ pct: Int) -> Color {
-        if pct >= 70 { return .green }
-        if pct >= 40 { return .orange }
-        return .red
+        if pct >= 70 { return .statusGreen }
+        if pct >= 40 { return .statusOrange }
+        return .statusRed
     }
 }
 

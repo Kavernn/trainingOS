@@ -23,7 +23,7 @@ struct WarRoomStripView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.appCaption)
-                        .foregroundColor(.green.opacity(0.7))
+                        .foregroundColor(Color.statusGreen.opacity(0.7))
                     Text("Journée loggée")
                         .font(.appCaption).fontWeight(.medium)
                         .foregroundColor(.white.opacity(0.45))
@@ -57,7 +57,7 @@ struct WarRoomStripView: View {
                 Capsule()
                     .fill(hasResult ? Color.white.opacity(0.04) : Color(hex: "0a1a0a"))
                     .overlay(Capsule().stroke(
-                        hasResult ? Color.white.opacity(0.08) : Color.green.opacity(0.5),
+                        hasResult ? Color.white.opacity(0.08) : Color.statusGreen.opacity(0.5),
                         lineWidth: 0.5
                     ))
             )

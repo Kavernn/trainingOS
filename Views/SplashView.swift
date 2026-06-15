@@ -308,11 +308,11 @@ struct SplashView: View {
                                 Text("VINCE")
                                     .font(.system(size: 56, weight: .black))
                                     .kerning(3)
-                                    .foregroundColor(.red.opacity(0.7))
+                                    .foregroundColor(Color.statusRed.opacity(0.7))
                                 Text("SEVEN")
                                     .font(.system(size: 56, weight: .ultraLight))
                                     .kerning(14)
-                                    .foregroundColor(.red.opacity(0.7))
+                                    .foregroundColor(Color.statusRed.opacity(0.7))
                             }
                             .offset(x: -chromaticOffset, y: 0)
                             .blendMode(.screen)

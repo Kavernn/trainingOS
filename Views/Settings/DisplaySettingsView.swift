@@ -23,7 +23,7 @@ struct DisplaySettingsView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .cyan)
+            AmbientBackground(color: .statusCyan)
 
             List {
                 Section("Apparence") {
@@ -45,7 +45,7 @@ struct DisplaySettingsView: View {
 
                 Section("Unités de mesure") {
                     HStack(spacing: 12) {
-                        settingsIcon("scalemass.fill", color: .cyan)
+                        settingsIcon("scalemass.fill", color: .statusCyan)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Unité de poids").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Appliqué à tous les exercices et métriques").font(.appCaption).foregroundColor(.gray.opacity(0.55))
@@ -69,7 +69,7 @@ struct DisplaySettingsView: View {
                 Section("Activité") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 12) {
-                            settingsIcon("figure.walk", color: .green)
+                            settingsIcon("figure.walk", color: .statusGreen)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Objectif de pas quotidien").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                                 Text("Affiché dans le tableau de bord santé").font(.appCaption).foregroundColor(.gray.opacity(0.55))
@@ -77,7 +77,7 @@ struct DisplaySettingsView: View {
                             Spacer()
                             Text(stepsGoal.formatted())
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.green)
+                                .foregroundColor(.statusGreen)
                         }
 
                         Picker("Objectif de pas", selection: $stepsGoal) {
@@ -94,7 +94,7 @@ struct DisplaySettingsView: View {
 
                 Section("Nutrition") {
                     HStack(spacing: 12) {
-                        settingsIcon("drop.fill", color: .blue)
+                        settingsIcon("drop.fill", color: .statusBlue)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Objectif d'hydratation").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                             Text("Non encore connecté au suivi — disponible bientôt").font(.appCaption).foregroundColor(.gray.opacity(0.55))
@@ -135,7 +135,7 @@ struct DisplaySettingsView: View {
                 HStack(spacing: 10) {
                     Image(systemName: hasChange ? "paintpalette.fill" : "checkmark.circle.fill")
                         .font(.system(size: 14))
-                        .foregroundColor(hasChange ? pendingTheme.previewColor : .green)
+                        .foregroundColor(hasChange ? pendingTheme.previewColor : .statusGreen)
                     Text(hasChange ? "Appliquer « \(pendingTheme.displayName) »" : "Thème appliqué")
                         .font(.appBody.weight(.semibold))
                         .foregroundColor(hasChange ? .white : .white.opacity(0.35))

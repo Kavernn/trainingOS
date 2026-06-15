@@ -666,9 +666,9 @@ struct HRVAnalysis: Codable {
 
     var zoneColor: Color {
         switch hrvZone {
-        case "green":  return .green
-        case "orange": return .orange
-        case "red":    return .red
+        case "green":  return .statusGreen
+        case "orange": return .statusOrange
+        case "red":    return .statusRed
         default:       return .gray
         }
     }
@@ -683,8 +683,8 @@ struct HRVAnalysis: Codable {
 
     var trendColor: Color {
         switch hrvTrend {
-        case "up":   return .green
-        case "down": return .red
+        case "up":   return .statusGreen
+        case "down": return .statusRed
         default:     return .gray
         }
     }

@@ -38,9 +38,9 @@ struct ReadinessBadge: View {
 
     private func verdictColor(_ v: String) -> Color {
         switch v {
-        case "go":       return .green
+        case "go":       return .statusGreen
         case "moderate": return Color(red: 0.98, green: 0.76, blue: 0.15)
-        default:         return .red
+        default:         return .statusRed
         }
     }
 }
@@ -208,9 +208,9 @@ struct ReadinessSheet: View {
 
     private var verdictColor: Color {
         switch readiness.verdict {
-        case "go":       return .green
+        case "go":       return .statusGreen
         case "moderate": return Color(red: 0.98, green: 0.76, blue: 0.15)
-        default:         return .red
+        default:         return .statusRed
         }
     }
 
@@ -269,9 +269,9 @@ private struct VerdictOrb: View {
 
     private var orbColor: Color {
         switch verdict {
-        case "go":       return .green
+        case "go":       return .statusGreen
         case "moderate": return Color(red: 0.98, green: 0.76, blue: 0.15)
-        default:         return .red
+        default:         return .statusRed
         }
     }
 }
@@ -315,9 +315,9 @@ private struct ModuleRow: View {
     private var scoreColor: Color {
         guard let s = mod.score else { return .gray }
         switch s {
-        case 75...: return .green
+        case 75...: return .statusGreen
         case 50..<75: return Color(red: 0.98, green: 0.76, blue: 0.15)
-        default:     return .red
+        default:     return .statusRed
         }
     }
 }
@@ -357,7 +357,7 @@ private struct MuscleRow: View {
                 } else {
                     Text("Prêt")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                 }
             }
             .frame(width: 36, alignment: .trailing)
@@ -368,9 +368,9 @@ private struct MuscleRow: View {
 
     private var statusColor: Color {
         switch rec.status {
-        case "ready":   return .green
+        case "ready":   return .statusGreen
         case "almost":  return Color(red: 0.98, green: 0.76, blue: 0.15)
-        default:        return .red
+        default:        return .statusRed
         }
     }
 }

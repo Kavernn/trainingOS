@@ -14,6 +14,15 @@ enum RPEHelper {
         let rpe: Double
 
         var color: Color {
+            if AppTheme.shared.colors.accentDistribution == .surgical {
+                switch rir {
+                case 0: return Color(white: 0.72)
+                case 1: return Color(white: 0.62)
+                case 2: return Color(white: 0.52)
+                case 3: return Color(white: 0.45)
+                default: return Color(white: 0.38)
+                }
+            }
             switch rir {
             case 0: return Color(hex: "FF3B30")
             case 1: return Color(hex: "FF6B35")
@@ -60,6 +69,13 @@ enum RPEHelper {
     // MARK: - Color
 
     static func color(for rpe: Double) -> Color {
+        if AppTheme.shared.colors.accentDistribution == .surgical {
+            if rpe >= 9.5 { return Color(white: 0.72) }
+            if rpe >= 8.5 { return Color(white: 0.62) }
+            if rpe >= 7.5 { return Color(white: 0.52) }
+            if rpe >= 6.5 { return Color(white: 0.45) }
+            return Color(white: 0.38)
+        }
         if rpe >= 9.5 { return Color(hex: "FF3B30") }
         if rpe >= 8.5 { return Color(hex: "FF6B35") }
         if rpe >= 7.5 { return Color(hex: "FF9500") }

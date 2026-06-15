@@ -203,7 +203,7 @@ struct BattleCounterView: View {
         switch s {
         case .victory: return Color.forge
         case .lost:    return Color.secondary
-        case .active:  return Color.orange
+        case .active:  return Color.statusOrange
         }
     }
 
@@ -239,7 +239,7 @@ struct BattleCounterView: View {
                 HStack(spacing: 10) {
                     Text("\(demon.carryCount)")
                         .font(.system(size: 18, weight: .black))
-                        .foregroundStyle(demon.carryCount >= 5 ? Color.red : Color.forge)
+                        .foregroundStyle(demon.carryCount >= 5 ? Color.statusRed : Color.forge)
                         .frame(width: 28, alignment: .center)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("«\(demon.intention)»")

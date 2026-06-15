@@ -9,7 +9,7 @@ struct InsightsCard: View {
             HStack {
                 Label("Corrélations · \(data.periodDays)j", systemImage: "chart.dots.scatter")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.blue)
+                    .foregroundColor(.statusBlue)
                 Spacer()
                 Text("\(data.dataPoints) pts")
                     .font(.appCaption)
@@ -34,7 +34,7 @@ struct InsightsCard: View {
         }
         .padding(14)
         .background(Color.appBg)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.blue.opacity(0.25), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusBlue.opacity(0.25), lineWidth: 1))
         .cornerRadius(12)
     }
 }
@@ -44,13 +44,13 @@ struct CorrelationRow: View {
 
     var accentColor: Color {
         switch insight.color {
-        case "blue":   return .blue
-        case "indigo": return .blue
-        case "green":  return .green
-        case "teal":   return .teal
-        case "yellow": return .yellow
-        case "orange": return .orange
-        case "purple": return .purple
+        case "blue":   return .statusBlue
+        case "indigo": return .statusBlue
+        case "green":  return .statusGreen
+        case "teal":   return .statusCyan
+        case "yellow": return .statusYellow
+        case "orange": return .statusOrange
+        case "purple": return .statusPurple
         default:       return .gray
         }
     }

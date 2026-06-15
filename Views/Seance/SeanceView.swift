@@ -89,11 +89,11 @@ struct AlreadyLoggedSeanceView: View {
 
     var sessionColor: Color {
         switch data.today {
-        case "Push A", "Push B":           return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                       return .yellow
-        case "Yoga / Tai Chi":             return .purple
-        case "Recovery":                   return .green
+        case "Push A", "Push B":           return .statusOrange
+        case "Pull A", "Pull B + Full Body": return .statusCyan
+        case "Legs":                       return .statusYellow
+        case "Yoga / Tai Chi":             return .statusPurple
+        case "Recovery":                   return .statusGreen
         default:                           return .gray
         }
     }
@@ -109,11 +109,11 @@ struct AlreadyLoggedSeanceView: View {
 
     var tomorrowColor: Color {
         switch tomorrowType {
-        case "Push A", "Push B":           return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                       return .yellow
-        case "Yoga / Tai Chi":             return .purple
-        case "Recovery":                   return .green
+        case "Push A", "Push B":           return .statusOrange
+        case "Pull A", "Pull B + Full Body": return .statusCyan
+        case "Legs":                       return .statusYellow
+        case "Yoga / Tai Chi":             return .statusPurple
+        case "Recovery":                   return .statusGreen
         default:                           return .gray
         }
     }
@@ -134,12 +134,12 @@ struct AlreadyLoggedSeanceView: View {
                 // ── Header ──────────────────────────────────────────────
                 VStack(spacing: 8) {
                     ZStack {
-                        Circle().fill(Color.green.opacity(0.15))
+                        Circle().fill(Color.statusGreen.opacity(0.15))
                             .frame(width: 72, height: 72)
                             .scaleEffect(animateHeader ? 1.0 : 0.5)
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(.green)
+                            .foregroundColor(.statusGreen)
                             .scaleEffect(animateHeader ? 1.0 : 0.3)
                             .opacity(animateHeader ? 1.0 : 0.0)
                     }
@@ -247,7 +247,7 @@ struct AlreadyLoggedSeanceView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "quote.bubble")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.statusBlue)
                                 Text(comment)
                                     .font(.appLabel)
                                     .foregroundColor(.gray)
@@ -264,13 +264,13 @@ struct AlreadyLoggedSeanceView: View {
                 .padding(16)
                 .background(Color.appCard)
                 .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.green.opacity(0.2), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.statusGreen.opacity(0.2), lineWidth: 1))
                 .padding(.horizontal, 16)
 
                 // ── Bilan IA ─────────────────────────────────────────────
                 if isLoadingBrief {
                     HStack(spacing: 10) {
-                        ProgressView().tint(.purple)
+                        ProgressView().tint(.statusPurple)
                         Text("Analyse en cours…")
                             .font(.appLabel)
                             .foregroundColor(.gray)
@@ -279,18 +279,18 @@ struct AlreadyLoggedSeanceView: View {
                     .padding(16)
                     .background(Color.appCard)
                     .cornerRadius(16)
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.statusPurple.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
                 } else if let brief = postWorkoutBrief {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 6) {
                             Image(systemName: "brain.head.profile")
                                 .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.purple)
+                                .foregroundColor(.statusPurple)
                             Text("BILAN IA")
                                 .font(.system(size: 10, weight: .bold))
                                 .tracking(2)
-                                .foregroundColor(.purple.opacity(0.8))
+                                .foregroundColor(.statusPurple.opacity(0.8))
                         }
                         Text(brief)
                             .font(.appLabel)
@@ -300,7 +300,7 @@ struct AlreadyLoggedSeanceView: View {
                     .padding(16)
                     .background(Color.appCard)
                     .cornerRadius(16)
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.statusPurple.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
                 } else {
                     // W-D10 — retry button when AI brief failed to load
@@ -313,12 +313,12 @@ struct AlreadyLoggedSeanceView: View {
                             Text("Recharger le bilan")
                                 .font(.appLabel)
                         }
-                        .foregroundColor(.purple.opacity(0.8))
+                        .foregroundColor(.statusPurple.opacity(0.8))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Color.purple.opacity(0.08))
+                        .background(Color.statusPurple.opacity(0.08))
                         .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.statusPurple.opacity(0.2), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 16)
@@ -440,10 +440,10 @@ struct AlreadyLoggedSeanceView: View {
                         Text("Modifier la séance").font(.appBody.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(Color.blue.opacity(0.12))
-                    .foregroundColor(.blue)
+                    .background(Color.statusBlue.opacity(0.12))
+                    .foregroundColor(.statusBlue)
                     .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.3), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusBlue.opacity(0.3), lineWidth: 1))
                 }
                 .buttonStyle(SpringButtonStyle())
                 .padding(.horizontal, 16)
@@ -458,10 +458,10 @@ struct AlreadyLoggedSeanceView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.red.opacity(0.12))
-                    .foregroundColor(.red)
+                    .background(Color.statusRed.opacity(0.12))
+                    .foregroundColor(.statusRed)
                     .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.3), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusRed.opacity(0.3), lineWidth: 1))
                 }
                 .buttonStyle(SpringButtonStyle())
                 .padding(.horizontal, 16)
@@ -472,7 +472,7 @@ struct AlreadyLoggedSeanceView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.appLabel)
-                                .foregroundColor(.yellow)
+                                .foregroundColor(.statusYellow)
                             Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggé\(unloggedExercises.count > 1 ? "s" : "")")
                                 .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.appTextPrimary)
@@ -480,7 +480,7 @@ struct AlreadyLoggedSeanceView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             ForEach(unloggedExercises.prefix(3), id: \.0) { ex in
                                 HStack(spacing: 6) {
-                                    Circle().fill(Color.yellow.opacity(0.4)).frame(width: 4, height: 4)
+                                    Circle().fill(Color.statusYellow.opacity(0.4)).frame(width: 4, height: 4)
                                     Text(ex.0)
                                         .font(.system(size: 12))
                                         .foregroundColor(.white.opacity(0.7))
@@ -497,16 +497,16 @@ struct AlreadyLoggedSeanceView: View {
                                 .font(.system(size: 14, weight: .semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(Color.yellow.opacity(0.18))
-                                .foregroundColor(.yellow)
+                                .background(Color.statusYellow.opacity(0.18))
+                                .foregroundColor(.statusYellow)
                                 .cornerRadius(10)
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow.opacity(0.35), lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.statusYellow.opacity(0.35), lineWidth: 1))
                         }
                     }
                     .padding(14)
-                    .background(Color.yellow.opacity(0.07))
+                    .background(Color.statusYellow.opacity(0.07))
                     .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.2), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
                 }
 
@@ -659,7 +659,7 @@ struct PostSessionEditSheet: View {
                     VStack(spacing: 12) {
                         if let err = saveError {
                             Text(err)
-                                .font(.system(size: 12)).foregroundColor(.red)
+                                .font(.system(size: 12)).foregroundColor(.statusRed)
                                 .padding(.horizontal, 20)
                         }
                         ForEach(edits.indices, id: \.self) { i in
@@ -673,7 +673,7 @@ struct PostSessionEditSheet: View {
                                     .font(.appBody.weight(.bold))
                             }
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(Color.blue).foregroundColor(.white).cornerRadius(14)
+                            .background(Color.statusBlue).foregroundColor(.white).cornerRadius(14)
                         }
                         .disabled(isSaving)
                         .padding(.horizontal, 16).padding(.bottom, 24)
@@ -853,12 +853,12 @@ struct ExtraSessionSheet: View {
 
     private func sessionColor(_ s: String) -> Color {
         switch s {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return .blue
+        case "Push A", "Push B":             return .statusOrange
+        case "Pull A", "Pull B + Full Body": return .statusCyan
+        case "Legs":                         return .statusYellow
+        case "Yoga / Tai Chi":               return .statusPurple
+        case "Recovery":                     return .statusGreen
+        default:                             return .statusBlue
         }
     }
 
@@ -963,7 +963,7 @@ struct ExtraSessionSheet: View {
                 if let err = loadError {
                     Text(err)
                         .font(.appLabel)
-                        .foregroundColor(.red)
+                        .foregroundColor(.statusRed)
                         .padding(.horizontal)
                 }
 
@@ -1079,7 +1079,7 @@ struct FinishRemainingSheet: View {
                                         HStack(spacing: 8) {
                                             Image(systemName: "checkmark.circle.fill")
                                                 .font(.appLabel)
-                                                .foregroundColor(.green.opacity(0.7))
+                                                .foregroundColor(.statusGreen.opacity(0.7))
                                             Text(ex.name)
                                                 .font(.appLabel)
                                                 .foregroundColor(.white.opacity(0.5))
@@ -1087,7 +1087,7 @@ struct FinishRemainingSheet: View {
                                             if let w = ex.weight {
                                                 Text(UnitSettings.shared.format(w))
                                                     .font(.system(size: 12, weight: .semibold))
-                                                    .foregroundColor(.green.opacity(0.6))
+                                                    .foregroundColor(.statusGreen.opacity(0.6))
                                             }
                                             if let r = ex.reps {
                                                 Text("· \(r)")
@@ -1217,12 +1217,12 @@ struct NoProgramEmptyState: View {
                         Text("Demander au Coach")
                             .font(.appBody.weight(.medium))
                     }
-                    .foregroundColor(.purple)
+                    .foregroundColor(.statusPurple)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.purple.opacity(0.1))
+                    .background(Color.statusPurple.opacity(0.1))
                     .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.purple.opacity(0.25), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusPurple.opacity(0.25), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }

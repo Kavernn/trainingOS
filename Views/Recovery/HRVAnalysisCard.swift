@@ -25,9 +25,9 @@ struct HRVAnalysisCard: View {
                 if analysis.streakAlert {
                     Text("⚠️ FATIGUE")
                         .font(.system(size: 10, weight: .black))
-                        .foregroundColor(.red)
+                        .foregroundColor(.statusRed)
                         .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color.red.opacity(0.12))
+                        .background(Color.statusRed.opacity(0.12))
                         .clipShape(Capsule())
                 } else if let zone = analysis.hrvZone {
                     Text(zoneLabel)
@@ -93,7 +93,7 @@ struct HRVAnalysisCard: View {
             if let msg = analysis.contextualMessage {
                 Text(msg)
                     .font(.system(size: 12))
-                    .foregroundColor(analysis.hrvZone == "red" ? .red.opacity(0.9) : .gray)
+                    .foregroundColor(analysis.hrvZone == "red" ? .statusRed.opacity(0.9) : .gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -108,7 +108,7 @@ struct HRVAnalysisCard: View {
                         Text("FAQ")
                             .font(.appCaption.weight(.medium))
                     }
-                    .foregroundColor(.cyan.opacity(0.8))
+                    .foregroundColor(.statusCyan.opacity(0.8))
                 }
             }
         }
@@ -195,12 +195,12 @@ struct HRVBaselineProgressView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: "waveform.path.ecg").foregroundColor(.cyan)
+                Image(systemName: "waveform.path.ecg").foregroundColor(.statusCyan)
                 Text("BASELINE EN CONSTRUCTION")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("\(Int(progress * 100))%")
-                    .font(.appCaption.weight(.bold)).foregroundColor(.cyan)
+                    .font(.appCaption.weight(.bold)).foregroundColor(.statusCyan)
             }
 
             Text("Continue — ta baseline personnelle se construit.")
@@ -217,7 +217,7 @@ struct HRVBaselineProgressView: View {
                         .fill(Color.white.opacity(0.08))
                         .frame(height: 8)
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.cyan)
+                        .fill(Color.statusCyan)
                         .frame(width: geo.size.width * displayProgress, height: 8)
                 }
             }
@@ -227,7 +227,7 @@ struct HRVBaselineProgressView: View {
                 .font(.appCaption).foregroundColor(.gray.opacity(0.6))
         }
         .padding(14)
-        .glassCard(color: .cyan, intensity: 0.05)
+        .glassCard(color: .statusCyan, intensity: 0.05)
         .onAppear {
             withAnimation(.easeOut(duration: 0.6)) { displayProgress = progress }
         }
@@ -240,7 +240,7 @@ struct HRVContextualTipView: View {
     let tipId:      String
     let icon:       String
     let message:    String
-    var accentColor: Color = .cyan
+    var accentColor: Color = .statusCyan
 
     @State private var dismissed = false
     private var shownKey: String { "hrv_tip_shown_\(tipId)" }
@@ -305,7 +305,7 @@ struct HRVMorningNudgeView: View {
             HRVNudgeBanner(
                 icon: "applewatch",
                 message: "Porte ton Apple Watch cette nuit pour une mesure HRV fiable.",
-                color: .cyan
+                color: .statusCyan
             )
         }
     }
@@ -347,7 +347,7 @@ struct HRVFAQView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .cyan)
+            AmbientBackground(color: .statusCyan)
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 12) {
                     ForEach(Array(items.enumerated()), id: \.offset) { _, item in

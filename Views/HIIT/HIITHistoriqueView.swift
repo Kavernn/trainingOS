@@ -13,7 +13,7 @@ struct HIITHistoriqueView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .red)
+                AmbientBackground(color: .statusRed)
 
                 if isLoading {
                     ProgressView().tint(Color.forge)
@@ -24,7 +24,7 @@ struct HIITHistoriqueView: View {
                         VStack(spacing: 12) {
                             // Stats
                             HStack(spacing: 12) {
-                                KPICard(value: "\(totalSessions)", label: "Sessions", color: .red)
+                                KPICard(value: "\(totalSessions)", label: "Sessions", color: .statusRed)
                                 KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: Color.forge)
                             }
                             .padding(.horizontal, 16)
@@ -80,10 +80,10 @@ struct HIITEntryCard: View {
                 if let rpe = entry.rpe {
                     Text("RPE \(rpe, specifier: "%.1f")")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.red)
+                        .foregroundColor(.statusRed)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.red.opacity(0.12))
+                        .background(Color.statusRed.opacity(0.12))
                         .cornerRadius(6)
                 }
             }
@@ -102,7 +102,7 @@ struct HIITEntryCard: View {
                 if let r = entry.restTime {
                     Label("\(r)s rest", systemImage: "zzz")
                         .font(.appCaption)
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                 }
             }
 
@@ -114,7 +114,7 @@ struct HIITEntryCard: View {
             }
         }
         .padding(14)
-        .glassCardAccent(.red)
+        .glassCardAccent(.statusRed)
         .cornerRadius(12)
         .contextMenu {
             Button(role: .destructive) { showDeleteConfirm = true } label: {

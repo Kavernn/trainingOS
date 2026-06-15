@@ -9,10 +9,10 @@ struct RecoveryTrioCard: View {
 
     private var accent: Color {
         switch brief?.recommendation {
-        case "defer":      return .red
-        case "reduce":     return .orange
-        case "go_caution": return .yellow
-        default:           return .green
+        case "defer":      return .appDanger
+        case "reduce":     return .statusOrange
+        case "go_caution": return .statusYellow
+        default:           return .statusGreen
         }
     }
 
@@ -50,7 +50,7 @@ struct RecoveryTrioCard: View {
 
             pillDivider
 
-            let hrvColor = hrvAnalysis?.zoneColor ?? Color.green
+            let hrvColor = hrvAnalysis?.zoneColor ?? Color.statusGreen
             let hrvTrend = hrvAnalysis.map { $0.trendArrow } ?? ""
             let hrvValue = recovery?.hrv.map { "\(Int($0))\(hrvTrend)" } ?? "–"
             let hrvSub   = recovery?.hrv != nil ? "HRV ms" : "HRV"
@@ -65,7 +65,7 @@ struct RecoveryTrioCard: View {
             trioPill(icon: "moon.zzz.fill",
                      value: sleepValue,
                      subLabel: sleepLabel,
-                     color: recovery?.sleepHours != nil ? Color.blue : .gray)
+                     color: recovery?.sleepHours != nil ? Color.statusBlue : .gray)
         }
         .glassCardAccent(accent, cornerRadius: 14)
     }
@@ -140,7 +140,7 @@ struct MomentumStripView: View {
             HStack(spacing: 10) {
                 Image(systemName: "calendar.badge.checkmark")
                     .font(.appLabel.weight(.regular))
-                    .foregroundColor(.cyan)
+                    .foregroundColor(.statusCyan)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(weekSessions) / \(weekTarget) séances")
                         .font(.appLabel.weight(.semibold))
@@ -149,7 +149,7 @@ struct MomentumStripView: View {
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.white.opacity(0.07)).frame(height: 4)
                             Capsule()
-                                .fill(weekSessions >= weekTarget ? Color.green : Color.cyan)
+                                .fill(weekSessions >= weekTarget ? Color.appSuccess : Color.statusCyan)
                                 .frame(width: max(4, geo.size.width * min(Double(weekSessions) / Double(weekTarget), 1.0)), height: 4)
                                 .animation(.easeOut(duration: 0.5), value: weekSessions)
                         }
@@ -192,7 +192,7 @@ struct MomentumStripView: View {
                 .frame(maxWidth: 100)
             }
         }
-        .glassCard(color: .cyan, intensity: 0.04)
+        .glassCard(color: .statusCyan, intensity: 0.04)
         .cornerRadius(14)
     }
 }

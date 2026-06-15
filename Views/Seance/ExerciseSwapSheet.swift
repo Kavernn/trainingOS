@@ -123,9 +123,9 @@ struct ExerciseSwapSheet: View {
                             } label: {
                                 HStack(spacing: 10) {
                                     Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(.statusBlue)
                                     Text("Créer une variante de \"\(originalName)\"")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(.statusBlue)
                                         .font(.system(size: 14, weight: .medium))
                                 }
                                 .padding(.vertical, 4)
@@ -165,10 +165,10 @@ struct ExerciseSwapSheet: View {
                         HStack(spacing: 4) {
                             Image(systemName: note.contains("comparables") ? "exclamationmark.triangle" : "arrow.left.arrow.right")
                                 .font(.system(size: 10))
-                                .foregroundColor(note.contains("comparables") ? .yellow : .gray.opacity(0.6))
+                                .foregroundColor(note.contains("comparables") ? .statusYellow : .gray.opacity(0.6))
                             Text(note)
                                 .font(.appCaption)
-                                .foregroundColor(note.contains("comparables") ? .yellow : .gray.opacity(0.6))
+                                .foregroundColor(note.contains("comparables") ? .statusYellow : .gray.opacity(0.6))
                         }
                     }
                 }

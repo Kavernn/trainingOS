@@ -32,14 +32,14 @@ struct SmartInsightsSection: View {
                 if sessions14d >= 4 {
                     result.append(SmartInsight(
                         icon: "fork.knife",
-                        color: .yellow,
+                        color: .statusYellow,
                         title: "Protéines insuffisantes",
                         detail: "Moy. \(Int(avgProt))g/j vs \(Int(protTarget))g · \(sessions14d) séances en 14j"
                     ))
                 } else {
                     result.append(SmartInsight(
                         icon: "circle.hexagongrid.fill",
-                        color: .cyan,
+                        color: .statusCyan,
                         title: "Protéines en dessous",
                         detail: "Moy. \(Int(avgProt))g/j vs \(Int(protTarget))g objectif sur 3j"
                     ))
@@ -59,7 +59,7 @@ struct SmartInsightsSection: View {
                         let drop = Int((1 - recent7 / prev7) * 100)
                         result.append(SmartInsight(
                             icon: "heart.slash.fill",
-                            color: .red,
+                            color: .statusRed,
                             title: "Déficit + HRV en baisse",
                             detail: "\(Int(avgCal)) kcal/j (\(Int(calRatio * 100))%) · HRV −\(drop)% sur 7j"
                         ))
@@ -72,7 +72,7 @@ struct SmartInsightsSection: View {
             if let sleep = recovery?.sleepHours, sleep < 6.5 {
                 result.append(SmartInsight(
                     icon: "moon.zzz.fill",
-                    color: .blue,
+                    color: .statusBlue,
                     title: "Récupération limitée",
                     detail: "\(String(format: "%.1f", sleep))h cette nuit — adapte l'intensité"
                 ))
@@ -85,7 +85,7 @@ struct SmartInsightsSection: View {
             if scheduled >= 3 && logged < scheduled - 1 {
                 result.append(SmartInsight(
                     icon: "calendar.badge.exclamationmark",
-                    color: .yellow,
+                    color: .statusYellow,
                     title: "Séances manquées",
                     detail: "\(logged)/\(scheduled) complétées cette semaine"
                 ))

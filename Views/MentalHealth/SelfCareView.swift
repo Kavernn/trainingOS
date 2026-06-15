@@ -166,7 +166,7 @@ private struct HabitRow: View {
         Button(action: onToggle) {
             HStack(spacing: 12) {
                 Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isDone ? .green : .secondary)
+                    .foregroundColor(isDone ? .statusGreen : .secondary)
                     .font(.title3)
                 Image(systemName: habit.icon)
                     .foregroundColor(.secondary)

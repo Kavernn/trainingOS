@@ -970,7 +970,7 @@ private struct ComparisonRow: View {
                     metric.isNeutral
                         ? .gray
                         : metric.deltaPositive
-                            ? .green
+                            ? .statusGreen
                             : Color(red: 0.97, green: 0.50, blue: 0.50)
                 )
                 .frame(width: 54, alignment: .trailing)
@@ -1102,7 +1102,7 @@ struct TimeCapsuleShareCard: View {
                             Text(m.delta)
                                 .font(.appMicro).fontWeight(.bold)
                                 .foregroundColor(m.isNeutral ? .gray
-                                    : m.deltaPositive ? .green
+                                    : m.deltaPositive ? .statusGreen
                                     : Color(red: 0.97, green: 0.50, blue: 0.50))
                                 .frame(width: 44, alignment: .trailing)
                         }

@@ -1,11 +1,15 @@
 import SwiftUI
+import OSLog
 
 // ── Section ───────────────────────────────────────────────────────────────────
 
 struct PlateauSection: View {
     @State private var alerts: [PlateauAlert] = []
     @State private var isLoading              = false
+    @State private var loadError              = false
     @State private var selected: PlateauAlert?
+
+    private let logger = Logger(subsystem: "TrainingOS", category: "plateau")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -60,12 +64,21 @@ struct PlateauSection: View {
 
     private var emptyState: some View {
         HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green.opacity(0.7))
-                .font(.appLabel)
-            Text("Aucun adversaire actif. Tu progresses.")
-                .font(.appLabel)
-                .foregroundColor(Color(white: 0.45))
+            if loadError {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundColor(.statusOrange.opacity(0.7))
+                    .font(.appLabel)
+                Text("Chargement échoué — réessaie plus tard")
+                    .font(.appLabel)
+                    .foregroundColor(Color(white: 0.45))
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.statusGreen.opacity(0.7))
+                    .font(.appLabel)
+                Text("Aucun adversaire actif. Tu progresses.")
+                    .font(.appLabel)
+                    .foregroundColor(Color(white: 0.45))
+            }
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 14)
@@ -87,18 +100,26 @@ struct PlateauSection: View {
 
     private func load() async {
         isLoading = true
+        loadError = false
         defer { isLoading = false }
         do {
             let response = try await APIService.shared.fetchPlateauAlerts()
             alerts = response.alerts.filter { $0.status != "dismissed" && $0.status != "completed" }
-        } catch {}
+        } catch {
+            logger.warning("fetchPlateauAlerts failed: \(error.localizedDescription, privacy: .public)")
+            loadError = true
+        }
     }
 
     private func reload() async {
+        loadError = false
         do {
             let response = try await APIService.shared.fetchPlateauAlerts(force: true)
             alerts = response.alerts.filter { $0.status != "dismissed" && $0.status != "completed" }
-        } catch {}
+        } catch {
+            logger.warning("fetchPlateauAlerts(force) failed: \(error.localizedDescription, privacy: .public)")
+            loadError = true
+        }
     }
 }
 
@@ -274,12 +295,12 @@ struct PlateauDetailSheet: View {
                     if let pss = alert.pssContext {
                         if pss.isHigh || pss.isRising {
                             let pssLabel = pss.isRising ? "Stress ↑" : "Stress élevé"
-                            ContextChip(icon: "bolt.heart.fill", label: pssLabel, color: .red)
+                            ContextChip(icon: "bolt.heart.fill", label: pssLabel, color: .statusRed)
                         }
                     }
                     if let nut = alert.nutritionContext, nut.deficitFlag {
                         let defText = nut.caloricDeficit.map { "Déficit −\($0) kcal" } ?? "Déficit calorique"
-                        ContextChip(icon: "fork.knife", label: defText, color: .yellow)
+                        ContextChip(icon: "fork.knife", label: defText, color: .statusYellow)
                     }
                     let scoreLabel = "Score plateau: \(alert.plateauScore)/100"
                     ContextChip(icon: "chart.bar.fill", label: scoreLabel, color: Color(white: 0.5))
@@ -456,7 +477,7 @@ struct DeloadPlanSheet: View {
                 HStack {
                     Label("+\(nutrition.caloricIncreaseKcal) kcal/jour", systemImage: "flame.fill")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(.statusYellow)
                     Spacer()
                     Text("\(nutrition.durationDays) jours")
                         .font(.system(size: 12))
@@ -467,7 +488,7 @@ struct DeloadPlanSheet: View {
                     .foregroundColor(Color(white: 0.5))
             }
             .padding(14)
-            .background(Color.yellow.opacity(0.08))
+            .background(Color.statusYellow.opacity(0.08))
             .cornerRadius(12)
         }
         .padding(.horizontal, 20)
@@ -481,7 +502,7 @@ struct DeloadPlanSheet: View {
             HStack(spacing: 12) {
                 Image(systemName: "arrow.up.right.circle.fill")
                     .font(.system(size: 22))
-                    .foregroundColor(.green)
+                    .foregroundColor(.statusGreen)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Retour à la progression en \(min)-\(max) jours")
                         .font(.system(size: 14, weight: .semibold))
@@ -495,7 +516,7 @@ struct DeloadPlanSheet: View {
                 }
             }
             .padding(14)
-            .background(Color.green.opacity(0.08))
+            .background(Color.statusGreen.opacity(0.08))
             .cornerRadius(12)
         }
         .padding(.horizontal, 20)
@@ -607,7 +628,7 @@ private struct DeloadExerciseRow: View {
                         .foregroundColor(Color(white: 0.45))
                     Text(volText)
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.blue.opacity(0.8))
+                        .foregroundColor(.statusBlue.opacity(0.8))
                 }
             }
         }

@@ -6,8 +6,8 @@ struct MeasurementsTrendView: View {
     let entries: [BodyWeightEntry]
 
     private let metrics: [(String, KeyPath<BodyWeightEntry, Double?>, Color)] = [
-        ("Taille", \.waistCm, .purple),
-        ("Bras",   \.armsCm,  .blue),
+        ("Taille", \.waistCm, .statusPurple),
+        ("Bras",   \.armsCm,  .statusBlue),
         ("Cuisses",\.thighsCm,Color.forge),
         ("Hanches",\.hipsCm,  .pink),
     ]
@@ -31,7 +31,7 @@ struct MeasurementsTrendView: View {
                             let diff = (vals.last?.1 ?? 0) - (vals.first?.1 ?? 0)
                             Text(String(format: "%+.1f cm", diff))
                                 .font(.appCaption.weight(.bold))
-                                .foregroundColor(diff <= 0 ? .green : .red)
+                                .foregroundColor(diff <= 0 ? .statusGreen : .statusRed)
                             Text(String(format: "%.0f", vals.last?.1 ?? 0))
                                 .font(.appLabel.weight(.black)).foregroundColor(color)
                         }
@@ -41,7 +41,7 @@ struct MeasurementsTrendView: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .purple, intensity: 0.04)
+        .padding(16).glassCard(color: .statusPurple, intensity: 0.04)
     }
 }
 
@@ -86,7 +86,7 @@ struct BodyFatChartView: View {
                 Spacer()
                 if let last = data.last {
                     Text(String(format: "%.1f%%", last.1))
-                        .font(.system(size: 18, weight: .black)).foregroundColor(.purple)
+                        .font(.system(size: 18, weight: .black)).foregroundColor(.statusPurple)
                 }
             }
             if data.count >= 2 {
@@ -104,12 +104,12 @@ struct BodyFatChartView: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.purple, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.statusPurple, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(Array(data.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
                             let y = geo.size.height * (1 - CGFloat((entry.1 - mn) / (mx - mn)))
-                            Circle().fill(Color.purple).frame(width: 5, height: 5).position(x: x, y: y)
+                            Circle().fill(Color.statusPurple).frame(width: 5, height: 5).position(x: x, y: y)
                         }
                     }
                 }
@@ -122,14 +122,14 @@ struct BodyFatChartView: View {
                         Spacer()
                         Text(String(format: "%+.1f%%", diff))
                             .font(.appCaption.weight(.bold))
-                            .foregroundColor(diff <= 0 ? .green : .red)
+                            .foregroundColor(diff <= 0 ? .statusGreen : .statusRed)
                     }
                 }
             } else {
                 Text("Données insuffisantes — continue à logger.").font(.system(size: 12)).foregroundColor(.gray)
             }
         }
-        .padding(16).glassCard(color: .purple, intensity: 0.04)
+        .padding(16).glassCard(color: .statusPurple, intensity: 0.04)
     }
 }
 
@@ -159,8 +159,8 @@ struct MuscleBreakdownView: View {
 
     private func freshnessColor(_ days: Int?) -> Color {
         guard let d = days else { return .gray }
-        if d <= 2 { return .orange }
-        if d <= 5 { return .green }
+        if d <= 2 { return .statusOrange }
+        if d <= 5 { return .statusGreen }
         return .gray
     }
 
@@ -206,7 +206,7 @@ struct MuscleBreakdownView: View {
 
             HStack(spacing: 16) {
                 legendDot(Color.forge, "≤ 2j")
-                legendDot(.green,  "3–5j")
+                legendDot(.statusGreen,  "3–5j")
                 legendDot(.gray,   "+5j")
             }
         }
@@ -266,7 +266,7 @@ struct PRTrackerView: View {
                     .foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
-                    Circle().fill(Color.yellow).frame(width: 7, height: 7)
+                    Circle().fill(Color.statusYellow).frame(width: 7, height: 7)
                     Text("< 30 jours").font(.appMicro).foregroundColor(.gray)
                 }
             }
@@ -290,7 +290,7 @@ struct PRTrackerView: View {
                                 ZStack(alignment: .leading) {
                                     Capsule().fill(Color.appSurfaceInset).frame(height: 6)
                                     Capsule()
-                                        .fill(pr.isRecent ? Color.yellow : Color.forge.opacity(0.6))
+                                        .fill(pr.isRecent ? Color.statusYellow : Color.forge.opacity(0.6))
                                         .frame(width: barW * (pr.prWeight / maxW), height: 6)
                                 }
                                 .frame(height: 6)
@@ -298,7 +298,7 @@ struct PRTrackerView: View {
                                 VStack(alignment: .trailing, spacing: 1) {
                                     Text("\(UnitSettings.shared.display(pr.prWeight), specifier: "%.1f") \(UnitSettings.shared.label)")
                                         .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(pr.isRecent ? .yellow : Color.forge)
+                                        .foregroundColor(pr.isRecent ? .statusYellow : Color.forge)
                                     Text(shortDate(pr.prDate))
                                         .font(.appMicro)
                                         .foregroundColor(.gray)
@@ -356,7 +356,7 @@ struct MuscleVolumeView: View {
                                     Capsule()
                                         .fill(
                                             LinearGradient(
-                                                colors: [Color.blue.opacity(0.9), Color.blue.opacity(0.5)],
+                                                colors: [Color.statusBlue.opacity(0.9), Color.statusBlue.opacity(0.5)],
                                                 startPoint: .leading, endPoint: .trailing
                                             )
                                         )
@@ -366,7 +366,7 @@ struct MuscleVolumeView: View {
 
                                 Text("\(UnitSettings.shared.display(volume), specifier: "%.0f") \(UnitSettings.shared.label)")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.blue.opacity(0.8))
+                                    .foregroundColor(Color.statusBlue.opacity(0.8))
                                     .frame(width: 72, alignment: .trailing)
                             }
                         }
@@ -395,10 +395,10 @@ struct VolumeLandmarksCard: View {
 
     private func zoneColor(_ zone: MuscleLandmark.Zone) -> Color {
         switch zone {
-        case .underMEV:       return .blue
-        case .optimal:        return .green
-        case .approachingMRV: return .orange
-        case .overMRV:        return .red
+        case .underMEV:       return .statusBlue
+        case .optimal:        return .statusGreen
+        case .approachingMRV: return .statusOrange
+        case .overMRV:        return .statusRed
         }
     }
 
@@ -416,7 +416,7 @@ struct VolumeLandmarksCard: View {
             HStack {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .font(.appCaption)
-                    .foregroundColor(.purple)
+                    .foregroundColor(.statusPurple)
                 Text("VOLUME HEBDO — LANDMARKS")
                     .font(.system(size: 10, weight: .bold)).tracking(2)
                     .foregroundColor(.gray)
@@ -425,10 +425,10 @@ struct VolumeLandmarksCard: View {
             }
 
             HStack(spacing: 14) {
-                legendDot(.blue,   "Sous le min")
-                legendDot(.green,  "Optimal")
+                legendDot(.statusBlue,   "Sous le min")
+                legendDot(.statusGreen,  "Optimal")
                 legendDot(Color.forge, "Proche du max")
-                legendDot(.red,    "Surcharge")
+                legendDot(.statusRed,    "Surcharge")
             }
 
             GeometryReader { outer in
@@ -629,7 +629,7 @@ struct BodyRecompView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
                 .font(.system(size: 16, weight: .bold))
-                .foregroundColor(good ? .green : .orange)
+                .foregroundColor(good ? .statusGreen : .statusOrange)
             Text(label)
                 .font(.system(size: 10)).foregroundColor(.gray)
         }
@@ -723,7 +723,7 @@ struct SeasonComparisonCard: View {
     @ViewBuilder private func weightCell(_ delta: Double?, dim: Bool = false) -> some View {
         if let d = delta {
             let sign = d > 0 ? "+" : ""
-            let color: Color = dim ? .gray : (d < 0 ? .green : .orange)
+            let color: Color = dim ? .gray : (d < 0 ? .statusGreen : .statusOrange)
             Text("\(sign)\(units.format(d, decimals: 1))")
                 .font(.appLabel.weight(.bold))
                 .foregroundColor(color)
@@ -741,7 +741,7 @@ struct SeasonComparisonCard: View {
             let sym = diff > 0 ? "↑" : "↓"
             Text("\(sym)\(pct)%")
                 .font(.appMicro.weight(.bold))
-                .foregroundColor(isGood ? .green : .orange)
+                .foregroundColor(isGood ? .statusGreen : .statusOrange)
                 .frame(height: 18)
         } else {
             Text("").frame(height: 18)
@@ -852,7 +852,7 @@ struct StrengthProgressionCard: View {
                                 let sign = lift.delta >= 0 ? "+" : ""
                                 Text("\(sign)\(lift.deltaPct)%")
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(lift.delta >= 0 ? .green : .orange)
+                                    .foregroundColor(lift.delta >= 0 ? .statusGreen : .statusOrange)
                             }
                             GeometryReader { g in
                                 let w = g.size.width
@@ -1016,9 +1016,9 @@ struct IntensityCard: View {
     }
     private var zoneColor: Color {
         switch data.zone {
-        case "force":        return .red
-        case "hypertrophie": return .orange
-        default:             return .blue
+        case "force":        return .statusRed
+        case "hypertrophie": return .statusOrange
+        default:             return .statusBlue
         }
     }
 
@@ -1047,9 +1047,9 @@ struct IntensityCard: View {
                 let w = g.size.width
                 ZStack(alignment: .leading) {
                     HStack(spacing: 0) {
-                        Rectangle().fill(Color.blue.opacity(0.25)).frame(width: w * 0.65)
+                        Rectangle().fill(Color.statusBlue.opacity(0.25)).frame(width: w * 0.65)
                         Rectangle().fill(Color.forge.opacity(0.25)).frame(width: w * 0.15)
-                        Rectangle().fill(Color.red.opacity(0.25))
+                        Rectangle().fill(Color.statusRed.opacity(0.25))
                     }
                     .cornerRadius(4)
 
@@ -1065,11 +1065,11 @@ struct IntensityCard: View {
                 .cornerRadius(4)
 
                 HStack {
-                    Text("<65%").font(.system(size: 8)).foregroundColor(.blue)
+                    Text("<65%").font(.system(size: 8)).foregroundColor(.statusBlue)
                     Spacer()
                     Text("65–80%").font(.system(size: 8)).foregroundColor(Color.forge)
                     Spacer()
-                    Text(">80%").font(.system(size: 8)).foregroundColor(.red)
+                    Text(">80%").font(.system(size: 8)).foregroundColor(.statusRed)
                 }
                 .offset(y: 16)
             }
@@ -1092,7 +1092,7 @@ struct DeloadStatusCard: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 if data.deloadActif {
                     Text("Deload actif")
-                        .font(.appBody.weight(.bold)).foregroundColor(.blue)
+                        .font(.appBody.weight(.bold)).foregroundColor(.statusBlue)
                 } else if let w = data.weeksSinceDeload {
                     Text("\(w) sem.")
                         .font(.system(size: 28, weight: .black))
@@ -1120,11 +1120,11 @@ struct DeloadStatusCard: View {
     }
 
     private var deloadColor: Color {
-        if data.recommande { return .orange }
+        if data.recommande { return .statusOrange }
         guard let w = data.weeksSinceDeload else { return .gray }
-        if w <= 4 { return .green }
-        if w <= 6 { return .orange }
-        return .red
+        if w <= 4 { return .statusGreen }
+        if w <= 6 { return .statusOrange }
+        return .statusRed
     }
 }
 
@@ -1134,8 +1134,8 @@ struct PushPullRatioCard: View {
     @ObservedObject private var units = UnitSettings.shared
 
     private var imbalanceColor: Color {
-        guard let imb = data.imbalance else { return .green }
-        return imb.contains("dominant") ? .orange : .green
+        guard let imb = data.imbalance else { return .statusGreen }
+        return imb.contains("dominant") ? .statusOrange : .statusGreen
     }
 
     private var imbalanceText: String {

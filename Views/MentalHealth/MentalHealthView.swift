@@ -487,7 +487,7 @@ private struct MoodQuickLogCard: View {
                             .font(.system(size: 20, weight: .bold)).foregroundColor(scoreColor)
                     } else {
                         Image(systemName: "face.smiling")
-                            .font(.system(size: 22)).foregroundColor(.yellow)
+                            .font(.system(size: 22)).foregroundColor(.statusYellow)
                     }
                 }
                 VStack(alignment: .leading, spacing: 3) {
@@ -511,10 +511,10 @@ private struct MoodQuickLogCard: View {
                 Spacer()
                 Image(systemName: todayEntry == nil ? "plus.circle.fill" : "pencil.circle")
                     .font(.system(size: 22))
-                    .foregroundColor(todayEntry == nil ? .yellow : .white.opacity(0.4))
+                    .foregroundColor(todayEntry == nil ? .statusYellow : .white.opacity(0.4))
             }
             .padding(14)
-            .glassCard(color: todayEntry != nil ? scoreColor : .yellow, intensity: 0.08)
+            .glassCard(color: todayEntry != nil ? scoreColor : .statusYellow, intensity: 0.08)
         }
         .buttonStyle(SpringButtonStyle())
         .padding(.horizontal)

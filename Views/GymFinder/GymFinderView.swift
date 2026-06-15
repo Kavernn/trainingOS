@@ -141,7 +141,7 @@ struct GymFinderView: View {
             if let err = vm.error {
                 Text(err)
                     .font(.appCaption)
-                    .foregroundColor(.red.opacity(0.8))
+                    .foregroundColor(Color.statusRed.opacity(0.8))
                     .lineLimit(1)
             } else {
                 Text(vm.isLoading
@@ -322,7 +322,7 @@ struct GymCard: View {
                             .frame(width: 5, height: 5)
                         Text(open ? "Ouvert" : "Fermé")
                             .font(.appCaption)
-                            .foregroundColor(open ? .green : .red.opacity(0.9))
+                            .foregroundColor(open ? .statusGreen : .statusRed.opacity(0.9))
                     }
 
                     Text("·")

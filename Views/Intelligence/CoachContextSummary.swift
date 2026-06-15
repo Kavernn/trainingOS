@@ -21,11 +21,11 @@ struct CoachContextSummary: View {
                 if dash.alreadyLoggedToday {
                     result.append(Bullet(icon: "checkmark.circle.fill",
                                          text: "Séance \(plan) complétée aujourd'hui",
-                                         color: .green))
+                                         color: .statusGreen))
                 } else {
                     result.append(Bullet(icon: "dumbbell.fill",
                                          text: "Séance \(plan) prévue aujourd'hui",
-                                         color: .purple))
+                                         color: .statusPurple))
                 }
             }
         }
@@ -39,11 +39,11 @@ struct CoachContextSummary: View {
                 else { detail = "charge élevée" }
                 result.append(Bullet(icon: "exclamationmark.triangle.fill",
                                      text: "Récupération \(Int(lss.score))/100 — \(detail)",
-                                     color: lss.score < 40 ? .red : Color.forge))
+                                     color: lss.score < 40 ? .statusRed : Color.forge))
             } else {
                 result.append(Bullet(icon: "checkmark.shield.fill",
                                      text: "Récupération \(Int(lss.score))/100 — dans la norme",
-                                     color: .green))
+                                     color: .statusGreen))
             }
         }
 
@@ -53,11 +53,11 @@ struct CoachContextSummary: View {
             if prot < target * 0.90 {
                 result.append(Bullet(icon: "fork.knife",
                                      text: "Hier : \(Int(prot))g protéines sur \(Int(target))g objectif",
-                                     color: prot < target * 0.70 ? .red : Color.forge))
+                                     color: prot < target * 0.70 ? .statusRed : Color.forge))
             } else {
                 result.append(Bullet(icon: "fork.knife",
                                      text: "Nutrition d'hier sur cible",
-                                     color: .green))
+                                     color: .statusGreen))
             }
         }
 

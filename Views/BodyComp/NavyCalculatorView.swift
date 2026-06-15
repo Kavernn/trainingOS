@@ -13,7 +13,7 @@ struct NavyCalculatorView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .green)
+            AmbientBackground(color: .statusGreen)
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
@@ -32,7 +32,7 @@ struct NavyCalculatorView: View {
                 } label: {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                 }
             }
         }
@@ -89,7 +89,7 @@ struct NavyCalculatorView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.appBody)
-                .foregroundColor(.yellow)
+                .foregroundColor(.statusYellow)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Formule corrigée")
                     .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
@@ -105,7 +105,7 @@ struct NavyCalculatorView: View {
             }
         }
         .padding(14)
-        .glassCardAccent(.yellow)
+        .glassCardAccent(.statusYellow)
         .cornerRadius(14)
         .padding(.horizontal, 16)
     }
@@ -236,7 +236,7 @@ struct NavyCalculatorView: View {
             }
         }
         .padding(16)
-        .glassCardAccent(.green)
+        .glassCardAccent(.statusGreen)
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -272,14 +272,14 @@ struct NavyCalculatorView: View {
         HStack(spacing: 10) {
             resultCard(label: "% MG",
                        value: String(format: "%.1f%%", res.pct),
-                       color: .blue,
+                       color: .statusBlue,
                        subtitle: "±4% vs DEXA")
             resultCard(label: "MASSE GRASSE",
                        value: units.format(res.fatMassLbs),
                        color: Color.forge)
             resultCard(label: "MASSE MAIGRE",
                        value: units.format(res.leanMassLbs),
-                       color: .green)
+                       color: .statusGreen)
         }
         .padding(.horizontal, 16)
     }
@@ -318,7 +318,7 @@ struct NavyCalculatorView: View {
                 let leanFrac = CGFloat(res.leanMassLbs / weight)
                 HStack(spacing: 2) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.green.opacity(0.8))
+                        .fill(Color.statusGreen.opacity(0.8))
                         .frame(width: geo.size.width * leanFrac)
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.forge.opacity(0.8))
@@ -330,7 +330,7 @@ struct NavyCalculatorView: View {
 
             HStack {
                 HStack(spacing: 6) {
-                    Circle().fill(Color.green).frame(width: 7, height: 7)
+                    Circle().fill(Color.statusGreen).frame(width: 7, height: 7)
                     Text("Masse maigre").font(.appCaption).foregroundColor(.gray)
                 }
                 Spacer()
@@ -341,7 +341,7 @@ struct NavyCalculatorView: View {
             }
         }
         .padding(16)
-        .glassCard(color: .green, intensity: 0.04)
+        .glassCard(color: .statusGreen, intensity: 0.04)
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -374,7 +374,7 @@ struct NavyCalculatorView: View {
         let freshness = bodyComp.staleness()
         let label = freshness.label
         guard !label.isEmpty else { return AnyView(EmptyView()) }
-        let color: Color = freshness.isProblematic ? .red : Color.forge
+        let color: Color = freshness.isProblematic ? .statusRed : Color.forge
         return AnyView(
             HStack(spacing: 8) {
                 Image(systemName: "clock").foregroundColor(color)

@@ -8,10 +8,10 @@ struct ACWRCardView: View {
     private var zoneColor: Color {
         let surgical = AppTheme.shared.colors.accentDistribution == .surgical
         switch data.zone.code {
-        case "optimal":  return surgical ? Color(white: 0.65) : .green
-        case "caution":  return surgical ? Color(white: 0.55) : .orange
-        case "danger":   return .red   // sang — toujours rouge, même en surgical
-        case "under":    return surgical ? Color(white: 0.50) : .blue
+        case "optimal":  return surgical ? Color(white: 0.65) : .statusGreen
+        case "caution":  return surgical ? Color(white: 0.55) : .statusOrange
+        case "danger":   return .statusRed   // sang — toujours rouge, même en surgical
+        case "under":    return surgical ? Color(white: 0.50) : .statusBlue
         default:         return surgical ? Color(white: 0.45) : .gray
         }
     }
@@ -173,7 +173,7 @@ private struct ACWRSparkline: View {
         if ratio < 0.8  { return Color.statusBlue }
         if ratio <= 1.3 { return Color.appSuccess }
         if ratio <= 1.5 { return Color.appWarning }
-        return .red
+        return .statusRed
     }
 }
 
@@ -257,7 +257,7 @@ struct BadgesView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "medal.fill")
-                    .foregroundColor(.yellow)
+                    .foregroundColor(.statusYellow)
                     .font(.appLabel.weight(.bold))
                 Text("Badges")
                     .font(.appLabel.weight(.bold))
@@ -291,7 +291,7 @@ struct BadgesView: View {
         }
         .padding(16)
         .background(Color.appCard)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.15), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.15), lineWidth: 1))
         .cornerRadius(14)
     }
 }
@@ -316,12 +316,12 @@ struct WeekComparisonCard: View {
         let d = a - b
         if abs(d) < 0.01 { return ("=", .gray) }
         let s = d > 0 ? "+\(String(format: "%.0f", abs(d)))" : "-\(String(format: "%.0f", abs(d)))"
-        return (s, d > 0 ? .green : .red)
+        return (s, d > 0 ? .statusGreen : .statusRed)
     }
     private func deltaInt(_ a: Int, _ b: Int) -> (String, Color) {
         let d = a - b
         if d == 0 { return ("=", .gray) }
-        return (d > 0 ? "+\(d)" : "\(d)", d > 0 ? .green : .red)
+        return (d > 0 ? "+\(d)" : "\(d)", d > 0 ? .statusGreen : .statusRed)
     }
 
     private var weekVerdict: (text: String, color: Color) {
@@ -336,9 +336,9 @@ struct WeekComparisonCard: View {
         let sessionsUp = compSessions >= Double(lastWeekSessions) * 0.98
 
         if volumeUp && sessionsUp {
-            return ("Volume en hausse, sessions stables ou en hausse. Tu montes.\(suffix)", .green)
+            return ("Volume en hausse, sessions stables ou en hausse. Tu montes.\(suffix)", .statusGreen)
         } else if !volumeUp && !sessionsUp {
-            return ("Volume en baisse, sessions en baisse. Le relâchement s'installe.\(suffix)", .red)
+            return ("Volume en baisse, sessions en baisse. Le relâchement s'installe.\(suffix)", .statusRed)
         } else if volumeUp && !sessionsUp {
             return ("Moins de séances, plus de volume par séance. Tu condenses.\(suffix)", Color.forge)
         } else {
@@ -461,10 +461,10 @@ struct PersonalRecordsView: View {
             }
         }
         switch rank {
-        case 0: return .yellow
+        case 0: return .statusYellow
         case 1: return .gray
         case 2: return Color(hex: "cd7f32")
-        default: return .orange
+        default: return .statusOrange
         }
     }
 }
@@ -592,9 +592,9 @@ struct HIITStatsSection: View {
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
 
             HStack(spacing: 12) {
-                KPICard(value: "\(log.count)", label: "Sessions", color: .red)
-                KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: .orange)
-                KPICard(value: avgRounds > 0 ? String(format: "%.0f", avgRounds) : "—", label: "Rounds moy.", color: .purple)
+                KPICard(value: "\(log.count)", label: "Sessions", color: .statusRed)
+                KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: .statusOrange)
+                KPICard(value: avgRounds > 0 ? String(format: "%.0f", avgRounds) : "—", label: "Rounds moy.", color: .statusPurple)
             }
 
             if rpeHistory.count >= 3 {
@@ -611,12 +611,12 @@ struct HIITStatsSection: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.red, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.statusRed, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(rpeHistory, id: \.0) { i, rpe in
                             let x = CGFloat(i) * step
                             let y = geo.size.height * (1 - rpe / 10.0)
-                            Circle().fill(Color.red).frame(width: 5, height: 5)
+                            Circle().fill(Color.statusRed).frame(width: 5, height: 5)
                                 .position(x: x, y: y)
                         }
                     }
@@ -625,7 +625,7 @@ struct HIITStatsSection: View {
                 .padding(12).background(Color.appCard).cornerRadius(10)
             }
         }
-        .padding(16).glassCard(color: .red, intensity: 0.04)
+        .padding(16).glassCard(color: .statusRed, intensity: 0.04)
     }
 }
 
@@ -659,7 +659,7 @@ struct RPEChartView: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.purple, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.statusPurple, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(Array(data.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
@@ -742,12 +742,12 @@ struct ExerciseStatRow: View {
                        first > 0, last > 0 {
                         let diff = last - first
                         Text(diff >= 0 ? "+\(diff, specifier: "%.1f")" : "\(diff, specifier: "%.1f")")
-                            .font(.appCaption).foregroundColor(diff >= 0 ? .green : .red)
+                            .font(.appCaption).foregroundColor(diff >= 0 ? .statusGreen : .statusRed)
                     }
                 } else {
                     Text("Poids corps")
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(.cyan.opacity(0.7))
+                        .foregroundColor(Color.statusCyan.opacity(0.7))
                 }
             }
             Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray)
@@ -800,7 +800,7 @@ struct ExerciseDetailView: View {
                                         Text(entry.reps ?? "").font(.appLabel).foregroundColor(.gray)
                                         if let note = entry.note, !note.isEmpty {
                                             Text(note).font(.system(size: 12, weight: .semibold))
-                                                .foregroundColor(note.hasPrefix("+") ? .green : .yellow)
+                                                .foregroundColor(note.hasPrefix("+") ? .statusGreen : .statusYellow)
                                         }
                                     }
                                     .padding(.vertical, 6)
@@ -885,7 +885,7 @@ struct EnergyTrendView: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.green, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.statusGreen, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(Array(data.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
@@ -898,20 +898,20 @@ struct EnergyTrendView: View {
             .frame(height: 70)
 
             HStack {
-                Text("1 = Épuisé").font(.appMicro).foregroundColor(.red)
+                Text("1 = Épuisé").font(.appMicro).foregroundColor(.statusRed)
                 Spacer()
                 if let last = data.last {
                     Text("Dernière: \(energyLabel(last.1))")
                         .font(.system(size: 10, weight: .bold)).foregroundColor(energyColor(last.1))
                 }
                 Spacer()
-                Text("5 = Excellent").font(.appMicro).foregroundColor(.green)
+                Text("5 = Excellent").font(.appMicro).foregroundColor(.statusGreen)
             }
         }
         .padding(16).background(Color.appCard).cornerRadius(14)
     }
 
-    private func energyColor(_ v: Int) -> Color { v >= 4 ? .green : v == 3 ? .yellow : .red }
+    private func energyColor(_ v: Int) -> Color { v >= 4 ? .statusGreen : v == 3 ? .statusYellow : .statusRed }
     private func energyLabel(_ v: Int) -> String {
         ["", "Épuisé 😴", "Fatigué 😕", "Normal 😐", "En forme 💪", "Excellent ⚡"][v]
     }
@@ -932,7 +932,7 @@ struct TonnageBarChartView: View {
                 Spacer()
                 if let last = entries.last {
                     Text(_formatK(units.display(last.totalVolume)) + " " + units.label)
-                        .font(.appCaption.weight(.bold)).foregroundColor(.green)
+                        .font(.appCaption.weight(.bold)).foregroundColor(.statusGreen)
                 }
             }
             HStack(alignment: .bottom, spacing: 4) {
@@ -942,7 +942,7 @@ struct TonnageBarChartView: View {
                     VStack(spacing: 2) {
                         Spacer()
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(isLast ? Color.green : Color.green.opacity(0.4))
+                            .fill(isLast ? Color.statusGreen : Color.statusGreen.opacity(0.4))
                             .frame(height: max(CGFloat(pct) * 70, 3))
                         Text(shortWeek(e.weekStart))
                             .font(.system(size: 7)).foregroundColor(.gray)
@@ -972,12 +972,12 @@ struct PatternVolumeView: View {
 
     private var entries: [(String, Double, Color)] {
         [
-            ("Push",  data.push  ?? 0, .orange),
-            ("Pull",  data.pull  ?? 0, .blue),
-            ("Hinge", data.hinge ?? 0, .purple),
-            ("Squat", data.squat ?? 0, .green),
-            ("Carry", data.carry ?? 0, .yellow),
-            ("Core",  data.core  ?? 0, .cyan),
+            ("Push",  data.push  ?? 0, .statusOrange),
+            ("Pull",  data.pull  ?? 0, .statusBlue),
+            ("Hinge", data.hinge ?? 0, .statusPurple),
+            ("Squat", data.squat ?? 0, .statusGreen),
+            ("Carry", data.carry ?? 0, .statusYellow),
+            ("Core",  data.core  ?? 0, .statusCyan),
         ].filter { $0.1 > 0 }
     }
     private var maxVal: Double { entries.map(\.1).max() ?? 1 }
@@ -1035,7 +1035,7 @@ struct PatternVolumeView: View {
     private var pushPullBalance: Color {
         guard let push = data.push, let pull = data.pull, push > 0 else { return .gray }
         let r = pull / push
-        return r >= 0.77 && r <= 1.3 ? .green : .orange
+        return r >= 0.77 && r <= 1.3 ? .statusGreen : .statusOrange
     }
 }
 
@@ -1057,13 +1057,13 @@ struct ComplianceProgrammeView: View {
                 Spacer()
                 Text(String(format: "%.0f%%", overallRate * 100))
                     .font(.system(size: 16, weight: .black))
-                    .foregroundColor(overallRate >= 0.8 ? .green : overallRate >= 0.6 ? .orange : .red)
+                    .foregroundColor(overallRate >= 0.8 ? .statusGreen : overallRate >= 0.6 ? .statusOrange : .statusRed)
             }
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(Array(weeks.enumerated()), id: \.0) { i, w in
                     let pct = w.planned > 0 ? Double(min(w.done, w.planned)) / Double(w.planned) : 0
                     let isLast = i == weeks.count - 1
-                    let color: Color = pct >= 1.0 ? .green : pct >= 0.5 ? .orange : .red
+                    let color: Color = pct >= 1.0 ? .statusGreen : pct >= 0.5 ? .statusOrange : .statusRed
                     VStack(spacing: 2) {
                         Spacer()
                         RoundedRectangle(cornerRadius: 4)
@@ -1103,7 +1103,7 @@ struct OneRMTrendView: View {
                 Spacer()
                 if let last = points.last, let first = points.first, last.oneRM > first.oneRM {
                     Text("+\(String(format: "%.1f", last.oneRM - first.oneRM)) \(units.label)")
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.green)
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.statusGreen)
                 }
             }
             if exercises.count > 1 {
@@ -1163,10 +1163,10 @@ struct RPEProgressionView: View {
     let data: RPEProgressionData
 
     private var buckets: [(String, Double?, Color)] {[
-        ("<7",   data.lt7,   .blue),
-        ("7–8",  data.r7_8,  .green),
-        ("8–9",  data.r8_9,  .orange),
-        ("9–10", data.r9_10, .red),
+        ("<7",   data.lt7,   .statusBlue),
+        ("7–8",  data.r7_8,  .statusGreen),
+        ("8–9",  data.r8_9,  .statusOrange),
+        ("9–10", data.r9_10, .statusRed),
     ]}
     private var maxAbs: Double {
         buckets.compactMap { $0.1 }.map { abs($0) }.max() ?? 1
@@ -1182,7 +1182,7 @@ struct RPEProgressionView: View {
                 VStack(spacing: 10) {
                     ForEach(buckets, id: \.0) { name, val, color in
                         let pct = val.map { abs($0) / max(maxAbs, 1) } ?? 0
-                        let c = (val ?? 0) >= 0 ? color : Color.red
+                        let c = (val ?? 0) >= 0 ? color : Color.appDanger
                         let barW = outer.size.width - 126
                         HStack(spacing: 8) {
                             Text("RPE \(name)")
@@ -1196,7 +1196,7 @@ struct RPEProgressionView: View {
                             if let v = val {
                                 Text(v >= 0 ? "+\(String(format: "%.1f", v))%" : "\(String(format: "%.1f", v))%")
                                     .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor((v) >= 0 ? .green : .red)
+                                    .foregroundColor((v) >= 0 ? .statusGreen : .statusRed)
                                     .frame(width: 50, alignment: .trailing)
                             } else {
                                 Text("—").font(.system(size: 10)).foregroundColor(.gray).frame(width: 50, alignment: .trailing)
@@ -1228,7 +1228,7 @@ struct RIRByExerciseView: View {
                 VStack(spacing: 10) {
                     ForEach(entries.prefix(8)) { e in
                         let pct = maxRIR > 0 ? e.avgRir / maxRIR : 0
-                        let c: Color = e.avgRir <= 1 ? .red : e.avgRir <= 2 ? .orange : .green
+                        let c: Color = e.avgRir <= 1 ? .statusRed : e.avgRir <= 2 ? .statusOrange : .statusGreen
                         let barW = outer.size.width - 164
                         HStack(spacing: 8) {
                             Text(e.exercise)
@@ -1268,12 +1268,12 @@ struct HIITCompletionView: View {
                 Spacer()
                 Text(String(format: "Moy. %.0f%%", avgRate * 100))
                     .font(.appCaption.weight(.bold))
-                    .foregroundColor(avgRate >= 0.85 ? .green : .orange)
+                    .foregroundColor(avgRate >= 0.85 ? .statusGreen : .statusOrange)
             }
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(Array(entries.enumerated()), id: \.0) { i, e in
                     let isLast = i == entries.count - 1
-                    let c: Color = e.rate >= 1.0 ? .green : e.rate >= 0.7 ? .orange : .red
+                    let c: Color = e.rate >= 1.0 ? .statusGreen : e.rate >= 0.7 ? .statusOrange : .statusRed
                     VStack(spacing: 2) {
                         Spacer()
                         RoundedRectangle(cornerRadius: 3)

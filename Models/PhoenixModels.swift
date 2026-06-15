@@ -102,6 +102,17 @@ enum PhoenixState: String, Codable {
     }
 
     var scoreColor: Color {
+        if AppTheme.shared.colors.accentDistribution == .surgical {
+            switch self {
+            case .foundation:   return Color(white: 0.42)
+            case .cendres:      return Color(white: 0.35)
+            case .braises:      return Color(white: 0.45)
+            case .braisesChaud: return Color(white: 0.52)
+            case .flamme:       return Color(white: 0.60)
+            case .envol:        return Color(white: 0.70)
+            case .supernova:    return .white
+            }
+        }
         switch self {
         case .foundation:   return Color(hex: "6B8CFF")
         case .cendres:      return Color(white: 0.45)
@@ -114,6 +125,17 @@ enum PhoenixState: String, Codable {
     }
 
     var glowColor: Color {
+        if AppTheme.shared.colors.accentDistribution == .surgical {
+            switch self {
+            case .foundation:   return Color(white: 0.42)
+            case .cendres:      return Color(white: 0.30)
+            case .braises:      return Color(white: 0.45)
+            case .braisesChaud: return Color(white: 0.52)
+            case .flamme:       return Color(white: 0.60)
+            case .envol:        return Color(white: 0.70)
+            case .supernova:    return .white
+            }
+        }
         switch self {
         case .foundation:   return Color(hex: "6B8CFF")
         case .cendres:      return Color(white: 0.3)

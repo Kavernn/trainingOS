@@ -53,13 +53,13 @@ struct MentalHealthDashboardView: View {
                       unit: "/10", color: moodColor(s.avgMood))
             Divider().background(Color.appSeparatorStrong)
             MHKPICell(label: "Séances BW", value: "\(s.breathworkSessions)",
-                      unit: "sessions", color: .green)
+                      unit: "sessions", color: .statusGreen)
             Divider().background(Color.appSeparatorStrong)
             MHKPICell(label: "Self-Care", value: "\(Int(s.selfCareRate * 100))",
-                      unit: "%", color: s.selfCareRate >= 0.7 ? .green : .orange)
+                      unit: "%", color: s.selfCareRate >= 0.7 ? .statusGreen : .statusOrange)
             Divider().background(Color.appSeparatorStrong)
             MHKPICell(label: "Journal", value: "\(s.journalEntries)",
-                      unit: "entrées", color: .blue)
+                      unit: "entrées", color: .statusBlue)
         }
         .frame(height: 72)
         .glassCard()

@@ -102,7 +102,7 @@ struct ProgressionSuggestionsSheet: View {
                         if let err = errorMsg {
                             Text(err)
                                 .font(.system(size: 12))
-                                .foregroundColor(.red)
+                                .foregroundColor(.statusRed)
                                 .padding(.horizontal)
                         }
 
@@ -121,7 +121,7 @@ struct ProgressionSuggestionsSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(allHandled ? "Terminer" : "Passer") { onDone() }
-                        .foregroundColor(allHandled ? .cyan : .gray)
+                        .foregroundColor(allHandled ? .statusCyan : .gray)
                         .fontWeight(allHandled ? .semibold : .regular)
                 }
             }
@@ -134,7 +134,7 @@ struct ProgressionSuggestionsSheet: View {
                         Spacer()
                         Button("Annuler") { undoApply(info) }
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(.cyan)
+                            .foregroundColor(.statusCyan)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -252,10 +252,10 @@ private struct SuggestionRow: View {
                     if delta != 0 {
                         Text(delta > 0 ? "+\(UnitSettings.shared.format(delta))" : UnitSettings.shared.format(delta))
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(delta > 0 ? typeColor.opacity(0.7) : .red.opacity(0.7))
+                            .foregroundColor(delta > 0 ? typeColor.opacity(0.7) : .statusRed.opacity(0.7))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background((delta > 0 ? typeColor : Color.red).opacity(0.1))
+                            .background((delta > 0 ? typeColor : Color.statusRed).opacity(0.1))
                             .cornerRadius(6)
                     }
                 }
@@ -284,7 +284,7 @@ private struct SuggestionRow: View {
                     // F7 — "Appliquer" (masqué pour rep_progress — rien à appliquer)
                     if suggestion.suggestionType != "rep_progress" {
                         if isApplying {
-                            ProgressView().tint(.cyan)
+                            ProgressView().tint(.statusCyan)
                                 .padding(.horizontal, 14)
                         } else {
                             Button(action: onApply) {
@@ -311,10 +311,10 @@ private struct SuggestionRow: View {
             } else if isApplied {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                     Text("Appliqué")
                         .font(.appLabel)
-                        .foregroundColor(.green)
+                        .foregroundColor(.statusGreen)
                 }
             } else {
                 Text("Ignoré")
@@ -341,11 +341,11 @@ private struct SuggestionRow: View {
 
     private var typeColor: Color {
         switch suggestion.suggestionType {
-        case "increase_weight": return .cyan
-        case "increase_sets":   return .green
-        case "deload":          return .orange
-        case "regression":      return .red
-        case "rep_progress":    return .green
+        case "increase_weight": return .statusCyan
+        case "increase_sets":   return .statusGreen
+        case "deload":          return .statusOrange
+        case "regression":      return .statusRed
+        case "rep_progress":    return .statusGreen
         default:                return .gray
         }
     }

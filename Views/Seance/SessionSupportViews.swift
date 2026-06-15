@@ -204,7 +204,7 @@ struct FinishSessionSheet: View {
                         HStack(spacing: 12) {
                             Image(systemName: "clock.fill")
                                 .font(.appTitle)
-                                .foregroundColor(.cyan)
+                                .foregroundColor(.statusCyan)
                                 .frame(width: 28)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("DURÉE").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
@@ -224,7 +224,7 @@ struct FinishSessionSheet: View {
                                 Spacer()
                                 Text("\(loggedCount)/\(exercises.count)")
                                     .font(.appCaption).fontWeight(.bold)
-                                    .foregroundColor(loggedCount == exercises.count ? .green : .orange)
+                                    .foregroundColor(loggedCount == exercises.count ? .statusGreen : .statusOrange)
                             }
                             .padding(.horizontal, 16).padding(.bottom, 6)
                             ForEach(Array(exercises.enumerated()), id: \.0) { idx, name in
@@ -232,7 +232,7 @@ struct FinishSessionSheet: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: result != nil ? "checkmark.circle.fill" : "minus.circle")
                                         .font(.appLabel)
-                                        .foregroundColor(result != nil ? .green : .orange.opacity(0.6))
+                                        .foregroundColor(result != nil ? .statusGreen : .statusOrange.opacity(0.6))
                                     Text(name)
                                         .font(.appLabel)
                                         .foregroundColor(result != nil ? .white : .gray)
@@ -271,8 +271,8 @@ struct FinishSessionSheet: View {
                             if let hint = RPEHelper.progressionHint(for: rpe) {
                                 HStack(spacing: 5) {
                                     Image(systemName: "arrow.up.forward.circle")
-                                        .font(.appCaption).foregroundColor(.cyan.opacity(0.7))
-                                    Text(hint).font(.appCaption).foregroundColor(.cyan.opacity(0.7))
+                                        .font(.appCaption).foregroundColor(.statusCyan.opacity(0.7))
+                                    Text(hint).font(.appCaption).foregroundColor(.statusCyan.opacity(0.7))
                                 }
                             }
                         }
@@ -357,7 +357,7 @@ struct FinishSessionSheet: View {
                                 Button(action: loadAIAnalysis) {
                                     HStack(spacing: 6) {
                                         if isLoadingAI {
-                                            ProgressView().tint(.purple).scaleEffect(0.7)
+                                            ProgressView().tint(.statusPurple).scaleEffect(0.7)
                                         } else {
                                             Image(systemName: "brain.head.profile").font(.appLabel)
                                         }
@@ -365,8 +365,8 @@ struct FinishSessionSheet: View {
                                             .font(.appLabel)
                                     }
                                     .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                    .background(Color.purple.opacity(0.12))
-                                    .foregroundColor(.purple)
+                                    .background(Color.statusPurple.opacity(0.12))
+                                    .foregroundColor(.statusPurple)
                                     .cornerRadius(10)
                                 }
                                 .disabled(isLoadingAI)
@@ -374,13 +374,13 @@ struct FinishSessionSheet: View {
                                 if aiError {
                                     Text("Analyse IA indisponible — réessaie")
                                         .font(.appCaption)
-                                        .foregroundColor(.red.opacity(0.8))
+                                        .foregroundColor(.statusRed.opacity(0.8))
                                 }
 
                                 if let analysis = aiAnalysis {
                                     Text(analysis)
                                         .font(.appLabel).foregroundColor(.white.opacity(0.85))
-                                        .padding(12).background(Color.purple.opacity(0.08))
+                                        .padding(12).background(Color.statusPurple.opacity(0.08))
                                         .cornerRadius(10)
                                 }
                             }
@@ -525,9 +525,9 @@ struct FinishSessionSheet: View {
     }
     private func energyColor(_ v: Int) -> Color {
         switch v {
-        case 1, 2: return .red
-        case 3: return .yellow
-        default: return .green
+        case 1, 2: return .statusRed
+        case 3: return .statusYellow
+        default: return .statusGreen
         }
     }
 }
@@ -599,9 +599,9 @@ struct SessionRecapSheet: View {
 
                         // Stats row
                         HStack(spacing: 10) {
-                            statPill("\(Int(snapshot.durationMin)) min", label: "DURÉE", color: .cyan)
+                            statPill("(Int(snapshot.durationMin)) min", label: "DURÉE", color: .statusCyan)
                             statPill("\(snapshot.logResults.count)", label: "EXERCICES", color: Color.forge)
-                            statPill("\(totalSets)", label: "SÉRIES", color: .green)
+                            statPill("\(totalSets)", label: "SÉRIES", color: .statusGreen)
                         }
                         .padding(.horizontal, 20)
 
@@ -618,7 +618,7 @@ struct SessionRecapSheet: View {
                                 Spacer()
                                 Image(systemName: "chart.bar.fill")
                                     .font(.system(size: 28))
-                                    .foregroundColor(.purple.opacity(0.5))
+                                    .foregroundColor(.statusPurple.opacity(0.5))
                             }
                             .padding(16)
                             .background(Color.appCard).cornerRadius(14)
@@ -635,7 +635,7 @@ struct SessionRecapSheet: View {
                                 HStack(alignment: .top, spacing: 10) {
                                     Image(systemName: r != nil ? "checkmark.circle.fill" : "minus.circle")
                                         .font(.appLabel)
-                                        .foregroundColor(r != nil ? .green : .orange.opacity(0.5))
+                                        .foregroundColor(r != nil ? .statusGreen : .statusOrange.opacity(0.5))
                                         .padding(.top, 2)
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(name)
@@ -778,9 +778,9 @@ struct SessionRecapSheet: View {
 
     private func energyColor(_ v: Int) -> Color {
         switch v {
-        case 1, 2: return .red
-        case 3:    return .yellow
-        default:   return .green
+        case 1, 2: return .statusRed
+        case 3:    return .statusYellow
+        default:   return .statusGreen
         }
     }
 
@@ -850,9 +850,9 @@ struct EnergyPreWorkoutSheet: View {
 
     private func energyColor(_ v: Int) -> Color {
         switch v {
-        case 1, 2: return .red
-        case 3: return .yellow
-        default: return .green
+        case 1, 2: return .statusRed
+        case 3: return .statusYellow
+        default: return .statusGreen
         }
     }
 
@@ -882,7 +882,7 @@ struct HIITSeanceView: View {
         ScrollView {
             VStack(spacing: 16) {
                 VStack(spacing: 12) {
-                    Image(systemName: "figure.run").font(.system(size: 48)).foregroundColor(.red)
+                    Image(systemName: "figure.run").font(.system(size: 48)).foregroundColor(.statusRed)
                     Text(sessionType).font(.appTitle).fontWeight(.black).foregroundColor(.appTextPrimary)
                 }.padding(.top, 20)
 
@@ -957,9 +957,9 @@ struct CoachingChip: View {
         } else if applied {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.appCaption).foregroundColor(.green)
+                    .font(.appCaption).foregroundColor(.statusGreen)
                 Text("Appliqué")
-                    .font(.appCaption).fontWeight(.medium).foregroundColor(.green)
+                    .font(.appCaption).fontWeight(.medium).foregroundColor(.statusGreen)
             }
             .padding(.horizontal, 10).padding(.vertical, 5)
             .background(Color.appSuccess.opacity(0.1)).cornerRadius(8)
@@ -1028,10 +1028,10 @@ struct CoachingChip: View {
     }
     private var typeColor: Color {
         switch suggestion.suggestionType {
-        case "increase_weight": return .cyan
-        case "increase_sets":   return .green
-        case "deload":          return .orange
-        case "regression":      return .red
+        case "increase_weight": return .statusCyan
+        case "increase_sets":   return .statusGreen
+        case "deload":          return .statusOrange
+        case "regression":      return .statusRed
         default:                return .gray
         }
     }
@@ -1053,7 +1053,7 @@ struct SpecialSeanceView: View {
         return localSaysLogged && serverSaysLogged
     }
 
-    var color: Color { sessionType == "Yoga / Tai Chi" ? .purple : .green }
+    var color: Color { sessionType == "Yoga / Tai Chi" ? .statusPurple : .statusGreen }
     var icon: String  { sessionType == "Yoga / Tai Chi" ? "figure.mind.and.body" : "heart.fill" }
 
     var body: some View {
@@ -1195,7 +1195,7 @@ struct RestTimerBadge: View {
                 let elapsed = timer.isRunning ? max(0, ctx.date.timeIntervalSince(timer.startDate ?? .now)) : 0
                 let remaining = max(0, timer.totalSeconds - Int(elapsed))
                 let progress = timer.totalSeconds > 0 ? Double(remaining) / Double(timer.totalSeconds) : 0
-                let timerColor: Color = progress > 0.5 ? .green : (progress > 0.25 ? .yellow : .red)
+                let timerColor: Color = progress > 0.5 ? .statusGreen : (progress > 0.25 ? .statusYellow : .statusRed)
 
                 HStack(spacing: 4) {
                     Image(systemName: "timer")
@@ -1212,9 +1212,9 @@ struct RestTimerBadge: View {
                         }
                     }
                 }
-                .foregroundColor(timer.isRunning ? timerColor : .cyan)
+                .foregroundColor(timer.isRunning ? timerColor : .statusCyan)
                 .padding(.horizontal, 8).padding(.vertical, 5)
-                .background((timer.isRunning ? timerColor : Color.cyan).opacity(0.12))
+                .background((timer.isRunning ? timerColor : Color.statusCyan).opacity(0.12))
                 .cornerRadius(8)
                 .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
             }

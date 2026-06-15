@@ -6,9 +6,9 @@ struct DashboardCardioCard: View {
     private var accentColor: Color {
         switch entry.type {
         case "course": return .teal
-        case "vélo":   return .cyan
-        case "marche": return .green
-        default:       return .blue
+        case "vélo":   return .statusCyan
+        case "marche": return .statusGreen
+        default:       return .statusBlue
         }
     }
 
@@ -92,7 +92,7 @@ struct DashboardCardioCard: View {
                     MetricCell(
                         title: "FC moy",
                         value: String(format: "%.0f bpm", hr),
-                        tint: .red.opacity(0.8),
+                        tint: .statusRed.opacity(0.8),
                         size: .medium
                     )
                     .frame(minWidth: 56)

@@ -28,7 +28,7 @@ struct CardioSettingsView: View {
                         showMaxHRAlert = true
                     } label: {
                         HStack(spacing: 12) {
-                            settingsIcon("heart.fill", color: .red)
+                            settingsIcon("heart.fill", color: .statusRed)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("FC max personnelle").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                                 Text("Utilisée pour calculer vos zones cardio").font(.appCaption).foregroundColor(.gray.opacity(0.55))
