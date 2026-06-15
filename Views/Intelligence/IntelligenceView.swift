@@ -6,10 +6,7 @@ private let logger = Logger(subsystem: "TrainingOS", category: "Intelligence")
 
 struct IntelligenceView: View {
     @EnvironmentObject private var theme: AppTheme
-    @State private var messages: [ChatMessage] = []
-    @AppStorage("intelligence_history") private var historyData: String = "[]"
-    @State private var input = ""
-    @State private var isLoading = false
+    @StateObject private var dailyBriefService = DailyBriefService.shared
     @State private var showPropose = false
     @State private var proposals: [AIProposal] = []
     @State private var isLoadingProposals = false
@@ -32,7 +29,7 @@ struct IntelligenceView: View {
     @State private var isGeneratingProgram                       = false
     @State private var showProgramPreview                        = false
     @State private var programError:    String?                  = nil
-    @State private var selectedSection: CoachSection = .chat
+    @State private var selectedSection: CoachSection = .briefing
     @ObservedObject private var memoryStore = CoachMemoryStore.shared
     @State private var nutritionHistory: [NutritionDayHistory]  = []
     @State private var showNutritionInsight                     = true
@@ -49,8 +46,6 @@ struct IntelligenceView: View {
     @State private var cardioData: [CardioEntry] = []
     @State private var mesocycleInfo: MesocycleInfo? = nil
     @State private var mentalData: MentalHealthSummary? = nil
-    @State private var userHasInteracted = false  // gates auto-scroll; set only when user sends a message
-    @State private var degradedSources: [String] = []
 
     // New intelligence features
     @State private var overtrainingRisk: OvertrainingRisk? = nil
@@ -97,7 +92,7 @@ struct IntelligenceView: View {
     // MARK: - Section Navigation
 
     private enum CoachSection: String, CaseIterable {
-        case chat      = "Chat"
+        case briefing  = "Briefing"
         case patterns  = "Patterns"
         case programme = "Programme"
         case bilan     = "Bilan"
@@ -105,7 +100,7 @@ struct IntelligenceView: View {
 
         var icon: String {
             switch self {
-            case .chat:      return "bubble.left.and.bubble.right.fill"
+            case .briefing:  return "doc.text.fill"
             case .patterns:  return "chart.dots.scatter"
             case .programme: return "calendar.badge.plus"
             case .bilan:     return "chart.bar.doc.horizontal"
@@ -179,24 +174,9 @@ struct IntelligenceView: View {
                         .padding(.bottom, 8)
                     }
 
-                    if !degradedSources.isEmpty {
-                        HStack(spacing: 5) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 10))
-                            Text("Données partielles : \(degradedSources.joined(separator: ", "))")
-                                .font(.system(size: 11))
-                        }
-                        .foregroundColor(.appWarning)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 5)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.appWarning.opacity(0.08))
-                        .transition(.opacity)
-                    }
-
                     // Section content
-                    if selectedSection == .chat {
-                        chatSectionView
+                    if selectedSection == .briefing {
+                        briefingSectionView
                     } else if selectedSection == .patterns {
                         ScrollView(showsIndicators: false) {
                             summaryCardsView
@@ -267,9 +247,6 @@ struct IntelligenceView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .task {
-                // Chat always starts empty — no history restore
-                messages = []
-                historyData = "[]"
                 if api.dashboard == nil { await api.fetchDashboard() }
                 Task { generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram() }
                 await loadContextData()
@@ -294,13 +271,6 @@ struct IntelligenceView: View {
                 if newVal == true && oldVal != true {
                     postSessionLoggedAt = ISO8601DateFormatter().string(from: Date())
                     Task { await loadPostSession() }
-                }
-            }
-            .onChange(of: messages) {
-                let toSave = messages.filter { !$0.content.hasPrefix("Erreur:") }
-                if let data = try? JSONEncoder().encode(Array(toSave.suffix(50))),
-                   let str = String(data: data, encoding: .utf8) {
-                    historyData = str
                 }
             }
             .fullScreenCover(isPresented: $showProgramPreview) {
@@ -369,30 +339,33 @@ struct IntelligenceView: View {
     }
 
     @ViewBuilder
-    private var chatSectionView: some View {
-        VStack(spacing: 0) {
-            ChatPanel(
-                messages: $messages,
-                input: $input,
-                isLoading: $isLoading,
-                userHasInteracted: $userHasInteracted,
-                sendMessage: sendMessage,
-                chips: {
-                    QuestionChipsView(
-                        lssData: lssData,
-                        dashboard: api.dashboard,
-                        nutritionHistory: nutritionHistory,
-                        onTap: { sendQuery($0) }
+    private var briefingSectionView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 12) {
+                DailyBriefView(
+                    brief: dailyBriefService.brief,
+                    isLoading: dailyBriefService.isLoading,
+                    isStale: dailyBriefService.isStale,
+                    activeInsight: activeInsight
+                )
+                .padding(.horizontal, 16)
+
+                if let dash = api.dashboard {
+                    CoachMissionCard(
+                        dash: dash,
+                        briefText: "",
+                        isBriefLoading: false,
+                        onOpenSession: onOpenSession,
+                        onRefreshBrief: { Task { await dailyBriefService.loadIfNeeded() } }
                     )
-                }
-            ) {
-                TopicExplorer { q in sendQuery(q) }
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 20)
+                }
             }
+            .padding(.vertical, 12)
         }
-        .animation(.easeOut(duration: 0.25), value: messages.isEmpty)
+        .task {
+            await dailyBriefService.loadIfNeeded()
+        }
     }
 
     @ViewBuilder
@@ -1028,24 +1001,6 @@ struct IntelligenceView: View {
                 }
             }
 
-            if !messages.isEmpty {
-                Button(role: .destructive) {
-                    messages = []
-                    historyData = "[]"
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "trash").font(.appLabel)
-                        Text("Effacer la conversation").font(.appLabel)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.statusRed.opacity(0.1))
-                    .foregroundColor(.statusRed)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-            }
         }
         .padding(.top, 8)
         .padding(.bottom, 28)
@@ -1409,55 +1364,6 @@ struct IntelligenceView: View {
         if !stale.isEmpty {
             // Reset cooldown so analysis re-runs with corrected data on next load
             UserDefaults.standard.removeObject(forKey: "coach_memory_last_analysis")
-        }
-    }
-
-    private func sendQuery(_ query: String) {
-        input = query
-        sendMessage()
-    }
-
-    private func sendMessage() {
-        userHasInteracted = true
-        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-
-        let context = buildContext()
-        messages.append(ChatMessage(role: .user, content: text))
-        input = ""
-        isLoading = true
-
-        if messages.count > 50 { messages = Array(messages.suffix(50)) }
-        // Keep last 12 messages (6 exchanges) — server caps at 20 but less is cheaper
-        let history = messages.suffix(12).map { ["role": $0.role == .user ? "user" : "assistant", "content": $0.content] }
-
-        Task {
-            do {
-                guard let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach") else { return }
-                var req = URLRequest(url: url)
-                req.httpMethod = "POST"
-                req.timeoutInterval = 60
-                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                req.httpBody = try JSONSerialization.data(withJSONObject: [
-                    "context":  context,
-                    "messages": history
-                ])
-                let (data, _) = try await URLSession.authed.data(for: req)
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    let reply = json["response"] as? String ?? json["error"] as? String ?? "Erreur inconnue"
-                    let degraded = json["degraded_sources"] as? [String] ?? []
-                    await MainActor.run {
-                        messages.append(ChatMessage(role: .assistant, content: reply))
-                        degradedSources = degraded
-                        isLoading = false
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    messages.append(ChatMessage(role: .assistant, content: "Erreur: \(error.localizedDescription)"))
-                    isLoading = false
-                }
-            }
         }
     }
 

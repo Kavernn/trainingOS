@@ -6,7 +6,6 @@ struct CoachMissionCard: View {
     let isBriefLoading: Bool
     let onOpenSession: (() -> Void)?
     let onRefreshBrief: () -> Void
-    let onAskMore: (String) -> Void
 
     private var sessionColor: Color {
         switch dash.today {

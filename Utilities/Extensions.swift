@@ -1,6 +1,16 @@
 import SwiftUI
 import AVFoundation
 
+// MARK: - Button Styles
+
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
 // MARK: - API Config (single source of truth for base URL and auth)
 enum APIConfig {
     static let base = "https://training-os-rho.vercel.app"

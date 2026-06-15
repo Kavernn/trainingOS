@@ -1,5 +1,14 @@
 import SwiftUI
 
+struct AIProposal: Identifiable {
+    let id = UUID()
+    let jour: String
+    let action: String
+    let exercise: String
+    let scheme: String
+    let reason: String
+}
+
 struct ProposalsCard: View {
     let proposals: [AIProposal]
     var onDismiss: () -> Void

@@ -121,6 +121,7 @@ from routes.energy_daily  import energy_daily_bp
 from routes.body_budget   import body_budget_bp
 from routes.coach_insights       import coach_insights_bp
 from routes.proactive_insights   import proactive_insights_bp
+from routes.daily_brief          import daily_brief_bp
 from routes.velocity             import velocity_bp
 from routes.compound             import compound_bp
 from routes.temporal             import temporal_bp
@@ -200,6 +201,7 @@ app.register_blueprint(energy_daily_bp)
 app.register_blueprint(body_budget_bp)
 app.register_blueprint(coach_insights_bp)
 app.register_blueprint(proactive_insights_bp)
+app.register_blueprint(daily_brief_bp)
 app.register_blueprint(velocity_bp)
 app.register_blueprint(compound_bp)
 app.register_blueprint(temporal_bp)

@@ -37,6 +37,12 @@ extension APIService {
         return try APIService.decoder.decode(ProactiveInsightsResponse.self, from: data)
     }
 
+    func fetchDailyBrief() async throws -> DailyBrief {
+        let url  = try buildURL(path: "/api/coach/daily_brief")
+        let data = try await URLSession.authed.data(from: url).0
+        return try APIService.decoder.decode(DailyBrief.self, from: data)
+    }
+
     func fetchPostSession(date: String? = nil) async throws -> PostSessionData {
         let today = DateFormatter.isoDate.string(from: Date())
         let key = "post_session_\(date ?? today)"
