@@ -300,8 +300,13 @@ def api_one_rm_programming():
             w = entry.get("weight", 0)
             reps_str = entry.get("reps", "") or ""
             reps_list = [int(p.strip()) for p in reps_str.split(",") if p.strip().isdigit()]
-            r = (sum(reps_list) / len(reps_list)) if reps_list else 1.0
-            estimated = w * (1 + r / 30)
+            r = (sum(reps_list) / len(reps_list)) if reps_list else 0.0
+            if r < 1 or r > 15:
+                estimated = 0.0
+            elif r <= 10:
+                estimated = w * (1 + r / 30)
+            else:
+                estimated = w * (36.0 / (37.0 - r))
             if estimated > best_1rm:
                 best_1rm = estimated
 

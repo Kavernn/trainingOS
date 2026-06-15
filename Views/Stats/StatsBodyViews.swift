@@ -912,8 +912,10 @@ struct StrengthCurveChart: View {
                 if let stored = e.oneRM, stored > 0 { value = stored }
                 else if let w = e.weight, w > 0, let r = e.reps {
                     let avg = avgReps(r)
-                    guard avg > 0 else { return nil }
-                    value = w * (1 + avg / 30.0)
+                    guard avg >= 1, avg <= 15 else { return nil }
+                    value = avg <= 10
+                        ? w * (1 + avg / 30.0)
+                        : w * (36.0 / (37.0 - avg))
                 } else { return nil }
             case .weight:
                 guard let w = e.weight, w > 0 else { return nil }
