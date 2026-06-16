@@ -49,13 +49,18 @@ def api_stats_data():
     }
 
     from utils import get_current_week
+    # Pre-filter nutr_entries (already fetched, 180 days) to the 60-day window
+    # shared by get_macros_by_day_type and get_protein_weight_ratio — avoids 2 extra DB reads.
+    _cutoff_60   = (_date.fromisoformat(_today_mtl()) - timedelta(days=60)).isoformat()
+    _nutr_60     = [d for d in nutr_entries if (d.get("date") or "") >= _cutoff_60]
+
     weekly_tonnage       = _db.get_weekly_tonnage(26)
     pattern_volume       = _db.get_pattern_volume(28, weights=weights)
     programme_compliance = _db.get_programme_compliance(8)
     one_rm_trend         = _db.get_one_rm_trend(84, weights=weights)
     hiit_completion      = _db.get_hiit_completion(8)
-    macros_by_day_type   = _db.get_macros_by_day_type(60)
-    protein_weight_ratio = _db.get_protein_weight_ratio(60)
+    macros_by_day_type   = _db.get_macros_by_day_type(60, nutr_days=_nutr_60, sessions_raw=all_sessions)
+    protein_weight_ratio = _db.get_protein_weight_ratio(60, nutr_days=_nutr_60)
 
     return jsonify({
         "weights":               weights,

@@ -243,11 +243,11 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
         return []
 
 
-def get_macros_by_day_type(days: int = 60) -> dict:
+def get_macros_by_day_type(days: int = 60, nutr_days: list | None = None, sessions_raw: list | None = None) -> dict:
     """Return average macros on training days vs rest days for the last N days."""
     try:
-        nutr_days = get_nutrition_daily_full(days)
-        sessions_raw = get_workout_sessions(limit=days + 10)
+        nutr_days    = nutr_days    if nutr_days    is not None else get_nutrition_daily_full(days)
+        sessions_raw = sessions_raw if sessions_raw is not None else get_workout_sessions(limit=days + 10)
         workout_dates = {
             str(s.get("date", ""))[:10]
             for s in sessions_raw
@@ -283,7 +283,7 @@ def get_macros_by_day_type(days: int = 60) -> dict:
         return {}
 
 
-def get_protein_weight_ratio(days: int = 60) -> list[dict]:
+def get_protein_weight_ratio(days: int = 60, nutr_days: list | None = None) -> list[dict]:
     """Return protein/bodyweight ratio per day for days with both logged.
 
     weight is always stored in lbs — the iOS app hardcodes the input label as
@@ -292,8 +292,8 @@ def get_protein_weight_ratio(days: int = 60) -> list[dict]:
     """
     try:
         from datetime import date as _date, timedelta
-        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
-        nutr_days = get_nutrition_daily_full(days)
+        cutoff    = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
+        nutr_days = nutr_days if nutr_days is not None else get_nutrition_daily_full(days)
         bw_logs = get_body_weight_logs(limit=200)
         bw_map = {str(e.get("date", ""))[:10]: float(e.get("weight") or 0) for e in bw_logs if e.get("weight")}
         result = []
