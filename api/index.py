@@ -108,7 +108,6 @@ from routes.time_capsule import time_capsule_bp
 from routes.workout_dna  import workout_dna_bp
 from routes.plateau      import plateau_bp
 from routes.ritual       import ritual_bp
-from routes.phoenix      import phoenix_bp
 from routes.graveyard    import graveyard_bp
 from routes.war_room     import war_room_bp
 from routes.spirit       import spirit_bp
@@ -117,7 +116,6 @@ from routes.seasons      import seasons_bp
 from routes.gym_finder   import gym_finder_bp
 from routes.cardio_metrics import cardio_metrics_bp
 from routes.energy_daily  import energy_daily_bp
-from routes.body_budget   import body_budget_bp
 from routes.coach_insights       import coach_insights_bp
 from routes.proactive_insights   import proactive_insights_bp
 from routes.daily_brief          import daily_brief_bp
@@ -187,7 +185,6 @@ app.register_blueprint(time_capsule_bp)
 app.register_blueprint(workout_dna_bp)
 app.register_blueprint(plateau_bp)
 app.register_blueprint(ritual_bp)
-app.register_blueprint(phoenix_bp)
 app.register_blueprint(graveyard_bp)
 app.register_blueprint(war_room_bp)
 app.register_blueprint(spirit_bp)
@@ -196,7 +193,6 @@ app.register_blueprint(seasons_bp)
 app.register_blueprint(gym_finder_bp)
 app.register_blueprint(cardio_metrics_bp)
 app.register_blueprint(energy_daily_bp)
-app.register_blueprint(body_budget_bp)
 app.register_blueprint(coach_insights_bp)
 app.register_blueprint(proactive_insights_bp)
 app.register_blueprint(daily_brief_bp)

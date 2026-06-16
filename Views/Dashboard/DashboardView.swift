@@ -187,13 +187,7 @@ struct DashboardView: View {
                                 MomentumStripView(dash: dash, streakData: vm.streakData)
                                     .appearAnimation(delay: 0.12)
 
-                                // 8 — Phoenix compact
-                                if let phoenix = vm.phoenixScore {
-                                    PhoenixCard(score: phoenix, dayDelta: vm.phoenixDayDelta, budget: vm.bodyBudget)
-                                        .appearAnimationHot(delay: 0.14)
-                                }
-
-                                // 8b — Vélocité + Score Composé
+                                // 8 — Vélocité + Score Composé
                                 if let vel = vm.velocityData, let comp = vm.compoundScore, vel.hasBaseline {
                                     VelocityCompoundCard(velocity: vel, compound: comp)
                                         .appearAnimation(delay: 0.15)

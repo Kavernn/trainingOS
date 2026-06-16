@@ -16,11 +16,8 @@ private final class P2State: @unchecked Sendable {
     var yesterdayNutrition: NutritionDayHistory? = nil
     var sleepStages: SleepStages? = nil
     var sleepWindow: SleepWindow? = nil
-    var phoenixScore: PhoenixScore? = nil
-    var phoenixDayDelta: Double? = nil
     var dailyPattern: PatternEntry? = nil
     var ritualToday: RitualToday? = nil
-    var bodyBudget: BodyBudgetResponse? = nil
     var cardioToday: CardioEntry? = nil
     var criticalFailures = 0
 }
@@ -65,27 +62,6 @@ private final class P3State: @unchecked Sendable {
     var sorenessFatigue: SorenessFatigueData? = nil
     var sleepQuality: SleepQualityData? = nil
     var workoutDuration: WorkoutDurationData? = nil
-}
-
-// MARK: - PhoenixScoreDeltaTracker
-
-struct PhoenixScoreDeltaTracker {
-    func update(score: PhoenixScore, today: String) -> Double? {
-        let storedDate = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
-        if storedDate != today {
-            let oldValue = UserDefaults.standard.double(forKey: "phoenix.score.value")
-            let oldDate  = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
-            if !oldDate.isEmpty {
-                UserDefaults.standard.set(oldValue, forKey: "phoenix.score.prev_value")
-                UserDefaults.standard.set(oldDate,  forKey: "phoenix.score.prev_date")
-            }
-            UserDefaults.standard.set(Double(score.score), forKey: "phoenix.score.value")
-            UserDefaults.standard.set(today, forKey: "phoenix.score.date")
-        }
-        let prevDate = UserDefaults.standard.string(forKey: "phoenix.score.prev_date") ?? ""
-        guard !prevDate.isEmpty else { return nil }
-        return Double(score.score) - UserDefaults.standard.double(forKey: "phoenix.score.prev_value")
-    }
 }
 
 // MARK: - DashboardSignalEngine
@@ -195,10 +171,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var weeklyReport: WeeklyReport?
     @Published var sleepStages: SleepStages?
     @Published var sleepWindow: SleepWindow?
-    @Published var bodyBudget: BodyBudgetResponse?
     @Published var readinessData: ReadinessResponse?
-    @Published var phoenixScore: PhoenixScore?
-    @Published var phoenixDayDelta: Double? = nil
     @Published var activeSeason: Season?
     @Published var dailyPattern: PatternEntry?
     @Published var ritualToday: RitualToday?
@@ -372,21 +345,6 @@ final class DashboardViewModel: ObservableObject {
             }
             group.addTask { @MainActor in
                 do {
-                    let score = try await APIService.shared.fetchPhoenixScore()
-                    p2.phoenixScore    = score
-                    p2.phoenixDayDelta = PhoenixScoreDeltaTracker().update(score: score, today: today)
-                    NotificationService.notifyPhoenixStateChange(
-                        newState: score.state,
-                        newLabel: score.phoenixState.label
-                    )
-                    return 0
-                } catch {
-                    self.logger.error("fetchPhoenixScore: \(error, privacy: .public)")
-                    return 0
-                }
-            }
-            group.addTask { @MainActor in
-                do {
                     let resp = try await APIService.shared.fetchPatterns()
                     p2.dailyPattern = resp.daily
                     return 0
@@ -411,10 +369,6 @@ final class DashboardViewModel: ObservableObject {
                 }
             }
             group.addTask { @MainActor in
-                p2.bodyBudget = try? await APIService.shared.fetchBodyBudget()
-                return 0
-            }
-            group.addTask { @MainActor in
                 let all = (try? await APIService.shared.fetchCardioData()) ?? []
                 p2.cardioToday = all.first(where: { $0.date == today })
                 return 0
@@ -434,11 +388,8 @@ final class DashboardViewModel: ObservableObject {
         yesterdayNutrition = p2.yesterdayNutrition
         sleepStages       = p2.sleepStages
         sleepWindow       = p2.sleepWindow
-        phoenixScore      = p2.phoenixScore
-        phoenixDayDelta   = p2.phoenixDayDelta
         dailyPattern      = p2.dailyPattern
         ritualToday       = p2.ritualToday
-        bodyBudget        = p2.bodyBudget
         cardioToday       = p2.cardioToday
         if p2.criticalFailures >= 1 { partialLoadWarning = true }
 

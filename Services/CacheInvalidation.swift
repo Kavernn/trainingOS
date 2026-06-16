@@ -70,11 +70,11 @@ enum CacheInvalidation {
     var keys: [String] {
         switch self {
         case .exerciseLogged(let isSecond, let isBonus):
-            var k = ["dashboard", "stats_data", "phoenix_score", "streak_data"]
+            var k = ["dashboard", "stats_data", "streak_data"]
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionLogged(let isSecond, let isBonus):
-            var k = ["dashboard", "historique_data", "stats_data", "phoenix_score", "streak_data"]
+            var k = ["dashboard", "historique_data", "stats_data", "streak_data"]
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionMutated:
@@ -88,7 +88,7 @@ enum CacheInvalidation {
         case .recoveryLogged:
             return ["recovery_data", "hrv_analysis", "readiness"]
         case .pssSubmitted:
-            return ["pss_history", "pss_check_due_full", "phoenix_score"]
+            return ["pss_history", "pss_check_due_full"]
         case .moodLogged:
             return ["mood_history", "mood_check_due"]
         case .journalLogged:
@@ -145,7 +145,7 @@ enum CacheInvalidation {
         case .plateauDismissed:
             return ["plateau_alerts"]
         case .nutritionLogged:
-            return ["nutrition_data", "dashboard", "phoenix_score", "readiness"]
+            return ["nutrition_data", "dashboard", "readiness"]
         case .cardioLogged:
             return ["cardio_history", "stats_cardio"]
         case .energyLogged:

@@ -42,7 +42,6 @@ struct ProfileView: View {
     @State private var allTimeVolumeLbs: Double = 0
     @State private var currentStreak: Int = 0
     @State private var longestStreak: Int = 0
-    @State private var phoenix: PhoenixScore?   = nil
     @State private var oath: OathModel?         = nil
     @State private var oathUnlocked             = false
     @State private var warRoomVictoryStreak: Int = 0
@@ -178,7 +177,6 @@ struct ProfileView: View {
             VStack(spacing: 20) {
                 if isProfileIncomplete { incompleteProfileBanner }
                 headerSection
-                if let px = phoenix { phoenixScoreCard(px) }
                 statsGridSection
                 bodyCompCard
                 prsCard
@@ -243,19 +241,6 @@ struct ProfileView: View {
                 .background(accent.opacity(0.15))
                 .clipShape(Capsule())
             }
-            if let px = phoenix {
-                let state = px.phoenixState
-                HStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                        .font(.appMicro).fontWeight(.bold)
-                    Text(state.label.uppercased())
-                        .font(.appCaption).fontWeight(.bold).tracking(0.5)
-                }
-                .foregroundColor(state.scoreColor)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(state.scoreColor.opacity(0.15))
-                .clipShape(Capsule())
-            }
             if let goal = profile?.goal, !goal.isEmpty {
                 Text(goal)
                     .font(.appCaption).foregroundColor(.gray)
@@ -311,85 +296,7 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Section 2 — Phoenix Score
-
-    private func phoenixScoreCard(_ px: PhoenixScore) -> some View {
-        let state   = px.phoenixState
-        let color   = state.scoreColor
-        let delta7d = px.rawDelta
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("PHOENIX SCORE")
-                    .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-                Spacer()
-                Image(systemName: "flame.fill")
-                    .font(.appLabel).foregroundColor(color.opacity(0.7))
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text("\(Int(px.score))")
-                    .font(.system(size: 52, weight: .black))
-                    .foregroundColor(color)
-                    .shadow(color: color.opacity(state.glowOpacity), radius: state.glowRadius)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(state.label.uppercased())
-                        .font(.appCaption).fontWeight(.bold).tracking(1)
-                        .foregroundColor(color)
-                    if delta7d != 0 {
-                        HStack(spacing: 3) {
-                            Image(systemName: delta7d >= 0 ? "arrow.up" : "arrow.down")
-                                .font(.appMicro).fontWeight(.bold)
-                            Text(String(format: "%.1f cette semaine", abs(delta7d)))
-                                .font(.appCaption)
-                        }
-                        .foregroundColor(delta7d >= 0 ? Color.appSuccess : Color.appDanger)
-                    }
-                }
-                Spacer()
-            }
-
-            HStack(spacing: 0) {
-                phoenixAxisChip(icon: "dumbbell.fill",   label: "FORCE",      delta: px.axes.workout.delta,   color: Color.forge)
-                Divider().background(Color.appSeparatorStrong).padding(.vertical, 4)
-                phoenixAxisChip(icon: "brain.head.profile", label: "MENTAL",  delta: px.axes.stress.delta,    color: Color.statusPurple)
-                Divider().background(Color.appSeparatorStrong).padding(.vertical, 4)
-                phoenixAxisChip(icon: "fork.knife",      label: "NUTRITION",  delta: px.axes.nutrition.delta, color: Color.appSuccess)
-            }
-            .background(Color.appSurfaceInset)
-            .cornerRadius(10)
-        }
-        .padding(16)
-        .background(state.cardBackground)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(color.opacity(0.15), lineWidth: 1))
-        .cornerRadius(16)
-        .padding(.horizontal, 16)
-    }
-
-    private func phoenixAxisChip(icon: String, label: String, delta: Double, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.appCaption).fontWeight(.semibold)
-                .foregroundColor(color.opacity(0.8))
-            if delta != 0 {
-                HStack(spacing: 2) {
-                    Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
-                        .font(.appMicro).fontWeight(.bold)
-                    Text(String(format: "%.1f", abs(delta)))
-                        .font(.appMicro).fontWeight(.semibold)
-                }
-                .foregroundColor(delta >= 0 ? Color.appSuccess : Color.appDanger)
-            } else {
-                Text("—").font(.appMicro).foregroundColor(.gray.opacity(0.4))
-            }
-            Text(label)
-                .font(.appMicro).fontWeight(.bold).tracking(0.5)
-                .foregroundColor(.gray)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-    }
-
-    // MARK: - Section 3 — Stats Grid
+    // MARK: - Section 2 — Stats Grid
 
     private var statsGridSection: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -973,7 +880,6 @@ struct ProfileView: View {
         await BodyCompService.shared.refresh()
         dna        = try? await APIService.shared.fetchWorkoutDNA()
         pssHistory = (try? await APIService.shared.fetchPSSHistory()) ?? []
-        phoenix    = try? await APIService.shared.fetchPhoenixScore()
         oath       = try? await APIService.shared.getCurrentOath()
         if let stats = try? await APIService.shared.fetchProfileStats() {
             totalSessions    = stats.totalSessions
