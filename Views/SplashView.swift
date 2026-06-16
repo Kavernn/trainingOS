@@ -120,6 +120,7 @@ struct SplashView: View {
                         y += step
                     }
                 }
+                .frame(width: geo.size.width, height: geo.size.height)
                 .opacity(gridOpacity)
 
                 // ─── 3. GLOW RADIAL (intensité variable)
@@ -205,6 +206,7 @@ struct SplashView: View {
                         inner.fill(path, with: .color(shard.color))
                     }
                 }
+                .frame(width: geo.size.width, height: geo.size.height)
                 .blendMode(.plusLighter)
 
                 // ─── 5. VIGNETTE (pulse à l'impact)

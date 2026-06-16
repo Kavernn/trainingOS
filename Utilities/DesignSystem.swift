@@ -350,6 +350,7 @@ struct IdentityLayerView: View {
                 Self.drawBloodVein(ctx: &ctx, size: size, opacity: opacity)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .allowsHitTesting(false)
         .ignoresSafeArea()
     }
