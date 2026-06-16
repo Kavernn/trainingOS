@@ -1,9 +1,13 @@
 import logging
+import time as _time
 
 from planner import get_today, get_today_date
 from life_stress_engine import refresh_life_stress_score
 
 logger = logging.getLogger("trainingos.morning_brief")
+
+_CACHE: dict = {}
+_CACHE_TTL = 5 * 60  # 5 min — absorbs burst calls; Watch sync propagates on next miss
 
 
 def _get_hrv_context():
@@ -45,6 +49,11 @@ def _intensity(session):
 
 
 def get_morning_brief():
+    now    = _time.time()
+    cached = _CACHE.get("result")
+    if cached and (now - cached["ts"]) < _CACHE_TTL:
+        return cached["data"]
+
     today     = get_today()
     # Toujours recalculer : la Watch peut avoir synchro après le premier appel
     lss_data  = refresh_life_stress_score()
@@ -95,7 +104,7 @@ def get_morning_brief():
     except Exception as e:
         logger.exception("morning_brief ritual fetch failed: %s", e)
 
-    return {
+    result = {
         "date":                  get_today_date(),
         "session_today":         today,
         "session_intensity":     intensity,
@@ -114,6 +123,8 @@ def get_morning_brief():
         "yesterday_outcome":     yesterday_outcome,
         "yesterday_evening_at":  yesterday_evening_at,
     }
+    _CACHE["result"] = {"data": result, "ts": now}
+    return result
 
 
 def _evaluate(lss, intensity, flags, hrv_ms=None, hrv_pct=None, session_name=None):
