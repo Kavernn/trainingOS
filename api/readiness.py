@@ -75,7 +75,7 @@ _EXPERIENCE_MULT = {
 
 # ── Module 1: HRV normalisé ───────────────────────────────────────────────────
 
-def _score_hrv() -> tuple[float | None, dict]:
+def _score_hrv(rec_logs: list | None = None) -> tuple[float | None, dict]:
     """HRV normalisé vs baseline personnelle 7j (Plews 2013).
 
     Délègue à hrv_engine.compute_hrv_analysis() pour cohérence.
@@ -86,7 +86,7 @@ def _score_hrv() -> tuple[float | None, dict]:
     try:
         from user_profile import load_user_profile
         sensitivity = str(load_user_profile().get("hrv_sensitivity") or "standard")
-        rows     = db.get_recovery_logs() or []
+        rows     = rec_logs if rec_logs is not None else (db.get_recovery_logs() or [])
         analysis = compute_hrv_analysis(rows, _today_mtl(), sensitivity=sensitivity)
         if not analysis.get("baseline_available"):
             return None, {"data_insufficient": True, "reason": "baseline_unavailable"}
@@ -162,7 +162,7 @@ def _score_acwr() -> tuple[float | None, dict]:
 
 # ── Module 3: FC repos (RHR) ─────────────────────────────────────────────────
 
-def _score_rhr() -> tuple[float | None, dict]:
+def _score_rhr(rec_logs: list | None = None) -> tuple[float | None, dict]:
     """FC repos vs baseline personnelle 7j (Halson 2014).
 
     Score 100 = RHR ≤ baseline. Dégradation proportionnelle si RHR élevée :
@@ -171,7 +171,7 @@ def _score_rhr() -> tuple[float | None, dict]:
     """
     try:
         today_s  = _today_mtl()
-        rec_logs = db.get_recovery_logs() or []
+        rec_logs = rec_logs if rec_logs is not None else (db.get_recovery_logs() or [])
 
         today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
         if not today_rec or today_rec.get("rhr") is None:
@@ -205,14 +205,14 @@ def _score_rhr() -> tuple[float | None, dict]:
 
 # ── Module 5: Qualité du sommeil ──────────────────────────────────────────────
 
-def _score_sleep_quality() -> tuple[float | None, dict]:
+def _score_sleep_quality(rec_logs: list | None = None) -> tuple[float | None, dict]:
     """Qualité du sommeil 0-10 → 0-100 (Fullagar et al. 2015).
 
     Source : recovery_logs.sleep_quality (synchronisé depuis sleep_records × 2).
     """
     try:
         today_s   = _today_mtl()
-        rec_logs  = db.get_recovery_logs() or []
+        rec_logs  = rec_logs if rec_logs is not None else (db.get_recovery_logs() or [])
         today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
         if not today_rec or today_rec.get("sleep_quality") is None:
             return None, {"data_insufficient": True}
@@ -227,7 +227,7 @@ def _score_sleep_quality() -> tuple[float | None, dict]:
 
 # ── Module 6: Durée du sommeil ────────────────────────────────────────────────
 
-def _score_sleep_duration() -> tuple[float | None, dict]:
+def _score_sleep_duration(rec_logs: list | None = None) -> tuple[float | None, dict]:
     """Durée du sommeil vs objectif 8h (Fullagar et al. 2015).
 
     Score 100 à 8h+; dégradation linéaire en dessous.
@@ -235,7 +235,7 @@ def _score_sleep_duration() -> tuple[float | None, dict]:
     """
     try:
         today_s   = _today_mtl()
-        rec_logs  = db.get_recovery_logs() or []
+        rec_logs  = rec_logs if rec_logs is not None else (db.get_recovery_logs() or [])
         today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
         if not today_rec or today_rec.get("sleep_hours") is None:
             return None, {"data_insufficient": True}
@@ -251,7 +251,7 @@ def _score_sleep_duration() -> tuple[float | None, dict]:
 
 # ── Module 7: Fatigue subjective ──────────────────────────────────────────────
 
-def _score_subjective() -> tuple[float | None, dict]:
+def _score_subjective(rec_logs: list | None = None) -> tuple[float | None, dict]:
     """Fatigue perçue — Hooper Index (Hooper & Mackinnon 1995).
 
     Signal primaire : fatigue_perceived (0-10, haut = très fatigué).
@@ -260,7 +260,7 @@ def _score_subjective() -> tuple[float | None, dict]:
     """
     try:
         today_s   = _today_mtl()
-        rec_logs  = db.get_recovery_logs() or []
+        rec_logs  = rec_logs if rec_logs is not None else (db.get_recovery_logs() or [])
         today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
         if not today_rec:
             return None, {"data_insufficient": True}
@@ -409,7 +409,7 @@ def _get_experience_mult() -> float:
         return 1.0
 
 
-def _score_muscle_recovery() -> tuple[float, dict, dict]:
+def _score_muscle_recovery(rec_logs: list | None = None) -> tuple[float, dict, dict]:
     """Returns (score, module_details, muscle_breakdown {cat: {...}}).
 
     Courbe exponentielle : frac = 1 - e^(-k × t/T)
@@ -505,8 +505,8 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
     soreness_modifier: int | None = None
     try:
         today_s   = _today_mtl()
-        rec_logs  = db.get_recovery_logs() or []
-        today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
+        _rl       = rec_logs if rec_logs is not None else (db.get_recovery_logs() or [])
+        today_rec = next((e for e in _rl if str(e.get("date", ""))[:10] == today_s), None)
         if today_rec and today_rec.get("soreness") is not None:
             s = float(today_rec["soreness"])
             if s >= 7:
@@ -707,7 +707,7 @@ def _build_messaging(
 
 # ── Active energy modifier (repos uniquement) ─────────────────────────────────
 
-def _active_energy_modifier() -> tuple[float, bool]:
+def _active_energy_modifier(rec_logs: list | None = None) -> tuple[float, bool]:
     """Retourne (multiplicateur, appliqué).
 
     Si jour de repos ET active_energy > 800 kcal → récupération moins efficace → −5%.
@@ -720,8 +720,8 @@ def _active_energy_modifier() -> tuple[float, bool]:
         if has_today:
             return 1.0, False
 
-        rec_logs  = db.get_recovery_logs() or []
-        today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
+        _rl       = rec_logs if rec_logs is not None else (db.get_recovery_logs() or [])
+        today_rec = next((e for e in _rl if str(e.get("date", ""))[:10] == today_s), None)
         if today_rec and today_rec.get("active_energy") is not None:
             if float(today_rec["active_energy"]) > 800:
                 return 0.95, True
@@ -746,13 +746,15 @@ def compute() -> dict:
         return cached["data"]
 
     try:
-        hrv_score,  hrv_det              = _score_hrv()
-        rhr_score,  rhr_det              = _score_rhr()
+        rec_logs = db.get_recovery_logs() or []
+
+        hrv_score,  hrv_det              = _score_hrv(rec_logs)
+        rhr_score,  rhr_det              = _score_rhr(rec_logs)
         acwr_score, acwr_det             = _score_acwr()
-        sq_score,   sq_det               = _score_sleep_quality()
-        sd_score,   sd_det               = _score_sleep_duration()
-        sub_score,  sub_det              = _score_subjective()
-        m_score,    m_det,    breakdown  = _score_muscle_recovery()
+        sq_score,   sq_det               = _score_sleep_quality(rec_logs)
+        sd_score,   sd_det               = _score_sleep_duration(rec_logs)
+        sub_score,  sub_det              = _score_subjective(rec_logs)
+        m_score,    m_det,    breakdown  = _score_muscle_recovery(rec_logs)
         n_score,    n_det                = _score_nutrition()
         p_score,    p_det                = _score_pattern()
 
@@ -771,7 +773,7 @@ def compute() -> dict:
         _total_w = sum(w for _, w in _avail)
         composite = (sum(s * w for s, w in _avail) / _total_w) if _total_w > 0 else 65.0
 
-        ae_mult, ae_applied = _active_energy_modifier()
+        ae_mult, ae_applied = _active_energy_modifier(rec_logs)
         score    = round(max(0.0, min(100.0, composite * ae_mult)))
         baseline = _get_personal_baseline()
         verdict, is_relative = _verdict(float(score), baseline)
