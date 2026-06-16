@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as _date
 import logging
 from utils import _today_mtl
 
@@ -19,7 +19,8 @@ def api_stats_data():
     from utils import load_hiit_log
 
     weights      = load_weights()
-    all_sessions = _db.get_workout_sessions(limit=500)
+    _cutoff_180  = (_date.fromisoformat(_today_mtl()) - timedelta(days=180)).isoformat()
+    all_sessions = _db.get_workout_sessions(limit=500, since=_cutoff_180)
     sessions = {
         s["date"]: s
         for s in all_sessions

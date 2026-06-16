@@ -6,22 +6,23 @@ from db_exercises import get_exercise_id, get_or_create_exercise_id
 from utils import _today_mtl
 
 
-def get_workout_sessions(limit: int = 100, offset: int = 0) -> List[dict]:
+def get_workout_sessions(limit: int = 100, offset: int = 0, since: str | None = None) -> List[dict]:
     """Return list of workout sessions ordered by date DESC.
 
     Uses DB-level LIMIT/OFFSET so callers never fetch more rows than needed.
+    `since` is an ISO date string (e.g. "2025-12-17") for an inclusive date floor.
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
 
     def _do() -> List[dict]:
-        resp = (
+        q = (
             db_core._client.table("workout_sessions")
             .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
-            .order("date", desc=True)
-            .range(offset, offset + limit - 1)
-            .execute()
         )
+        if since:
+            q = q.gte("date", since)
+        resp = q.order("date", desc=True).range(offset, offset + limit - 1).execute()
         return resp.data or []
 
     try:
