@@ -74,39 +74,8 @@ extension APIService {
         return body
     }
 
-    /// Envoie le snapshot HealthKit du jour à /api/healthkit_sync.
-    /// Règle merge : manual > HK des deux côtés (iOS + backend).
-    /// `existingEntry` = entrée courante en DB — permet le filtre iOS-side.
-    /// Retourne l'entrée après merge ou nil si rien à syncer / offline.
-    func syncHealthKitToday(
-        snapshot: WearableSnapshot,
-        existingEntry: RecoveryEntry? = nil
-    ) async throws -> RecoveryEntry? {
-        let body = APIService.buildHKPayload(snapshot: snapshot, existingEntry: existingEntry)
-        guard !body.isEmpty else { return nil }
-        guard let data = try await offlinePost(endpoint: "/api/healthkit_sync", payload: body) else {
-            return nil
-        }
-        CacheInvalidation.recoveryLogged.invalidate()
-        struct Resp: Codable {
-            let ok: Bool
-            let entry: RecoveryEntry?
-            let msg: String?
-        }
-        let resp = try? APIService.decoder.decode(Resp.self, from: data)
-        return resp?.ok == true ? resp?.entry : nil
-    }
-
     func deleteRecovery(date: String) async throws {
         _ = try await offlinePost(endpoint: "/api/delete_recovery", payload: ["date": date])
-    }
-
-    func fetchDailySummary(date: String? = nil) async throws -> DailySummary {
-        var items: [URLQueryItem] = []
-        if let d = date { items.append(URLQueryItem(name: "date", value: d)) }
-        let url = try buildURL(path: "/api/health/daily_summary", queryItems: items)
-        let data = try await fetchWithCache(url: url, key: "daily_summary_\(date ?? "today")")
-        return try APIService.decoder.decode(DailySummary.self, from: data)
     }
 
     // MARK: - HRV Analysis

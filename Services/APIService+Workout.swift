@@ -297,12 +297,6 @@ extension APIService {
         return narrative
     }
 
-    func fetchPeakPrediction() async throws -> PeakPredictionResponse {
-        let url = try buildURL(path: "/api/peak_prediction")
-        let data = try await fetchWithCache(url: url, key: "peak_prediction")
-        return try APIService.decoder.decode(PeakPredictionResponse.self, from: data)
-    }
-
     func fetchProgressionSuggestions(date: String, sessionType: String,
                                      sessionName: String = "") async throws -> [ProgressionSuggestion] {
         var items: [URLQueryItem] = [
@@ -363,11 +357,4 @@ extension APIService {
         CacheService.shared.save(data, for: "stats_data")
     }
 
-    func fetchStatsWellness() async throws -> Data {
-        let url = try buildURL(path: "/api/stats_wellness")
-        var req = URLRequest(url: url); req.timeoutInterval = 20
-        let (data, _) = try await URLSession.authed.data(for: req)
-        CacheService.shared.save(data, for: "stats_wellness")
-        return data
-    }
 }

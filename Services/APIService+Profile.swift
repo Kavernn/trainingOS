@@ -113,14 +113,6 @@ extension APIService {
         CacheInvalidation.exerciseSaved.invalidate()
     }
 
-    func setAllRestSeconds(_ seconds: Int) async throws {
-        _ = try await offlinePost(endpoint: "/api/exercises/set_all_rest", payload: ["seconds": seconds])
-    }
-
-    func normalizeSchemes(maxSets: Int = 3) async throws {
-        _ = try await offlinePost(endpoint: "/api/exercises/normalize_schemes", payload: ["max_sets": maxSets])
-    }
-
     // MARK: - Wearable Sync
     func syncWearableData(_ snapshot: WearableSnapshot) async throws {
         var body: [String: Any] = ["date": snapshot.date]
@@ -150,14 +142,6 @@ extension APIService {
     }
 
     // MARK: - Health Dashboard
-    func fetchDailyHealthSummary(date: String? = nil) async throws -> DailyHealthSummary {
-        var items: [URLQueryItem] = []
-        if let date { items.append(URLQueryItem(name: "date", value: date)) }
-        let url = try buildURL(path: "/api/health/daily_summary", queryItems: items)
-        let data = try await fetchWithCache(url: url, key: "health_daily_\(date ?? "today")")
-        return try APIService.decoder.decode(DailyHealthSummary.self, from: data)
-    }
-
     func fetchWeeklyHealthSummary(days: Int = 7) async throws -> [DailyHealthSummary] {
         let url = try buildURL(path: "/api/health/weekly_summary", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
         let data = try await fetchWithCache(url: url, key: "health_weekly_\(days)")

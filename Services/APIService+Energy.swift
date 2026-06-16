@@ -16,7 +16,4 @@ extension APIService {
         return try APIService.decoder.decode([EnergyHistoryDay].self, from: data)
     }
 
-    func invalidateEnergyCache() {
-        CacheInvalidation.energyLogged.invalidate()
-    }
 }

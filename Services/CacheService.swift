@@ -144,14 +144,6 @@ final class CacheService {
         }
     }
 
-    /// Returns the timestamp when this key was last saved, or nil if never.
-    func savedAt(for key: String) -> Date? {
-        guard let file = try? Data(contentsOf: fileURL(for: key)),
-              file.count > Self.headerSize else { return nil }
-        let epoch = file.withUnsafeBytes { $0.load(fromByteOffset: MemoryLayout<Double>.size, as: Double.self) }
-        return Date(timeIntervalSince1970: epoch)
-    }
-
     /// Reads disk cache regardless of expiry — never promotes stale data to mem cache.
     /// Use in stale-while-revalidate paths: show old value while background refresh runs.
     func loadIncludingStale(for key: String) -> (data: Data?, isExpired: Bool, savedAt: Date?) {

@@ -337,27 +337,6 @@ class HealthKitService: ObservableObject {
         return await fetchDayAvg(.appleSleepingWristTemperature, start: nightFrom, end: noon, unit: .degreeCelsius())
     }
 
-    // MARK: - Running Form (Series 11 — stride, oscillation, contact time)
-    // Sequential awaits — no async let due to iOS 26 beta LIFO crash
-    func fetchRunningForm(start: Date, end: Date) async -> RunningFormMetrics? {
-        let pred = HKQuery.predicateForSamples(withStart: start, end: end)
-        let s = await fetchAvgStatistic(.runningStrideLength,        pred: pred, unit: .meter())
-        let o = await fetchAvgStatistic(.runningVerticalOscillation, pred: pred, unit: .meterUnit(with: .centi))
-        let c = await fetchAvgStatistic(.runningGroundContactTime,   pred: pred, unit: .secondUnit(with: .milli))
-        guard s != nil || o != nil || c != nil else { return nil }
-        return RunningFormMetrics(strideLengthM: s, verticalOscillationCm: o, groundContactTimeMs: c)
-    }
-
-    private func fetchAvgStatistic(_ id: HKQuantityTypeIdentifier, pred: NSPredicate, unit: HKUnit) async -> Double? {
-        guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return nil }
-        return await withCheckedContinuation { cont in
-            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .discreteAverage) { _, stats, _ in
-                cont.resume(returning: stats?.averageQuantity()?.doubleValue(for: unit))
-            }
-            store.execute(q)
-        }
-    }
-
     // MARK: - Generic helpers
 
     /// Moyenne statistique d'un type HK sur une fenêtre [start, end).
@@ -690,7 +669,6 @@ class HealthKitService: ObservableObject {
     func fetchLatestWristTemperature() async -> Double? { nil }
     func fetchSpO2(for date: Date) async -> Double? { nil }
     func fetchWristTemp(for date: Date) async -> Double? { nil }
-    func fetchRunningForm(start: Date, end: Date) async -> RunningFormMetrics? { nil }
     func fetchTodayActiveEnergy() async -> Double? { nil }
     func fetchAllWorkouts(days: Int = 1) async -> [Any] { [] }
     func fetchSleepWindow(for date: Date) async -> SleepWindow? { nil }

@@ -917,54 +917,6 @@ struct EnergyTrendView: View {
     }
 }
 
-// MARK: - Tonnage Hebdo Chart
-struct TonnageBarChartView: View {
-    let entries: [WeeklyTonnageEntry]
-    private let units = UnitSettings.shared
-
-    private var maxVol: Double { entries.map(\.totalVolume).max() ?? 1 }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("TONNAGE HEBDOMADAIRE (8 SEM.)")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                Spacer()
-                if let last = entries.last {
-                    Text(_formatK(units.display(last.totalVolume)) + " " + units.label)
-                        .font(.appCaption.weight(.bold)).foregroundColor(.statusGreen)
-                }
-            }
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
-                    let pct = maxVol > 0 ? e.totalVolume / maxVol : 0
-                    let isLast = i == entries.count - 1
-                    VStack(spacing: 2) {
-                        Spacer()
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(isLast ? Color.statusGreen : Color.statusGreen.opacity(0.4))
-                            .frame(height: max(CGFloat(pct) * 70, 3))
-                        Text(shortWeek(e.weekStart))
-                            .font(.system(size: 7)).foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: 90)
-                }
-            }
-            .frame(height: 90)
-        }
-        .padding(14)
-        .background(Color.appCard)
-        .cornerRadius(14)
-    }
-
-    private func shortWeek(_ iso: String) -> String {
-        guard iso.count >= 10,
-              let d = DateFormatter.isoDate.date(from: String(iso.prefix(10))) else { return "" }
-        let f = DateFormatter(); f.dateFormat = "d/M"; f.locale = Locale(identifier: "fr_CA")
-        return f.string(from: d)
-    }
-}
-
 // MARK: - Pattern Volume Chart
 struct PatternVolumeView: View {
     let data: PatternVolumeData
@@ -1245,47 +1197,6 @@ struct RIRByExerciseView: View {
                 }
             }
             .frame(height: CGFloat(min(entries.count, 8)) * (12 + 10) - 10)
-        }
-        .padding(14)
-        .background(Color.appCard)
-        .cornerRadius(14)
-    }
-}
-
-// MARK: - HIIT Completion View
-struct HIITCompletionView: View {
-    let entries: [HIITCompletionEntry]
-    private var avgRate: Double {
-        let r = entries.filter { $0.roundsPlanned > 0 }.map(\.rate)
-        return r.isEmpty ? 0 : r.reduce(0,+)/Double(r.count)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("HIIT — TAUX DE COMPLETION")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                Spacer()
-                Text(String(format: "Moy. %.0f%%", avgRate * 100))
-                    .font(.appCaption.weight(.bold))
-                    .foregroundColor(avgRate >= 0.85 ? .statusGreen : .statusOrange)
-            }
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
-                    let isLast = i == entries.count - 1
-                    let c: Color = e.rate >= 1.0 ? .statusGreen : e.rate >= 0.7 ? .statusOrange : .statusRed
-                    VStack(spacing: 2) {
-                        Spacer()
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(isLast ? c : c.opacity(0.5))
-                            .frame(height: max(CGFloat(e.rate) * 60, 3))
-                        Text("\(e.roundsCompleted)/\(e.roundsPlanned)")
-                            .font(.system(size: 7)).foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: 70)
-                }
-            }
-            .frame(height: 70)
         }
         .padding(14)
         .background(Color.appCard)

@@ -172,7 +172,6 @@
 		EPF002AA00300B2F5D0001 /* APIService+EnergyPerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF002AA00300B2F5D0000 /* APIService+EnergyPerformance.swift */; };
 		EPF003AA00300B2F5D0001 /* EnergyPerformanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */; };
 		ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ER001000ER001000ER001000 /* EnergyRecoveryView.swift */; };
-		F2EA55F129F3462CBACE25FF /* CoachMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */; };
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
 		FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1100002F5D98BA002AE470 /* WatchSyncService.swift */; };
 		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
@@ -464,7 +463,6 @@
 		AA1100062F5D98BA002AE470 /* UnitSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitSettings.swift; sourceTree = "<group>"; };
 		AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceSoirView.swift; sourceTree = "<group>"; };
 		AAD71080385415CDA19C0F0A /* CardioView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CardioView.swift; sourceTree = "<group>"; };
-		AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMemoryView.swift; sourceTree = "<group>"; };
 		AC0002AC0002AC0002AC0002 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
 		ACS0001ACS0001ACS0001AC1 /* AddCardioSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCardioSheet.swift; sourceTree = "<group>"; };
 		AFA0A200B6F7F9BFE3A59D58 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -974,7 +972,6 @@
 				IR0012IR0012IR0012IR0012 /* ProgramPreviewSheet.swift */,
 				IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */,
 				IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */,
-				AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */,
 				8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */,
 				8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */,
 				9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */,
@@ -1778,7 +1775,6 @@
 				D60EC6EA2F76B1F2003A5209 /* NotificationService.swift in Sources */,
 				8D9484E011854C59BD3B4840 /* BehaviorTracker.swift in Sources */,
 				A70D23180D5B43EEAB1E1543 /* CoachMemoryStore.swift in Sources */,
-				F2EA55F129F3462CBACE25FF /* CoachMemoryView.swift in Sources */,
 				329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */,
 				15AFE1BFA7B8487CBEECB98C /* ProactiveAlert.swift in Sources */,
 				CF49E6FEF95E455D9F84D443 /* CoachBriefCard.swift in Sources */,

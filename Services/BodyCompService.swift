@@ -62,15 +62,9 @@ final class BodyCompService: ObservableObject {
     @Published private(set) var latest: BodyWeightEntry?
     @Published private(set) var history: [BodyWeightEntry] = []
     @Published private(set) var isLoading = false
-    @Published private(set) var legacyWeightPending = false
-
     private init() {}
 
     // ── Read ─────────────────────────────────────────────────────────────────
-
-    func getCurrentWeight() -> Double? { latest?.weight }
-
-    func getLatestMeasurements() -> BodyWeightEntry? { latest }
 
     func getNavyBodyFat(heightCm: Double, isMale: Bool) -> NavyBodyFatResult? {
         guard let e = latest, heightCm > 0 else { return nil }
@@ -144,38 +138,4 @@ final class BodyCompService: ObservableObject {
         }
     }
 
-    func refreshWithLegacyCheck() async {
-        isLoading = true
-        defer { isLoading = false }
-        // fetchProfilData returns legacy_weight_pending — decode raw to capture it
-        guard let url = URL(string: "\(APIConfig.base)/api/profil_data") else { return }
-        do {
-            let data = try await APIService.shared.fetchWithCache(url: url, key: "profil_data")
-
-            struct ProfilRaw: Decodable {
-                let bodyWeight: [BodyWeightEntry]
-                let legacyWeightPending: Bool?
-                enum CodingKeys: String, CodingKey {
-                    case bodyWeight         = "body_weight"
-                    case legacyWeightPending = "legacy_weight_pending"
-                }
-            }
-            let r = try APIService.decoder.decode(ProfilRaw.self, from: data)
-            let sorted = r.bodyWeight.sorted { $0.date < $1.date }
-            history              = sorted
-            latest               = sorted.last
-            legacyWeightPending  = r.legacyWeightPending ?? false
-        } catch {
-            Logger(subsystem: "TrainingOS", category: "bodycomp").error("❌ BodyCompService.refreshWithLegacyCheck failed: \(error, privacy: .public)")
-        }
-    }
-
-    func importLegacyWeight(_ weightLbs: Double) async {
-        let today = DateFormatter.isoDate.string(from: Date())
-        try? await APIService.shared.addBodyWeight(
-            date: today, weight: weightLbs,
-            bodyFat: nil, waistCm: nil
-        )
-        legacyWeightPending = false
-    }
 }

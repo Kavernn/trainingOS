@@ -236,65 +236,6 @@ struct PeakPredictionCard: View {
     }
 }
 
-// MARK: - Deload Compact Chip (fix #7 — level 1 only)
-struct DeloadChipView: View {
-    let report: DeloadReport
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "flame.fill")
-                .font(.appCaption)
-                .foregroundColor(Color.forge)
-            Text("Fatigue accumulée détectée — score \(report.fatigueScore)/100")
-                .font(.appLabel)
-                .foregroundColor(.appTextPrimary)
-            Spacer()
-            Text("Niv. \(report.fatigueLevel)")
-                .font(.appCaption.weight(.semibold))
-                .foregroundColor(Color.forge)
-            CardInfoButton(title: "Fatigue & déload", entries: InfoEntry.deloadEntries)
-        }
-        .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Color.forge.opacity(0.10))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.25), lineWidth: 1))
-        .cornerRadius(12)
-    }
-}
-
-// MARK: - Mood Card (fix #8 — proper card instead of raw button)
-struct MoodCardView: View {
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle().fill(Color.statusYellow.opacity(0.15)).frame(width: 40, height: 40)
-                    Image(systemName: "face.smiling.fill")
-                        .font(.appHeadline.weight(.regular))
-                        .foregroundColor(Color.statusYellow)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("ÉTAT INTERNE")
-                        .font(.appMicro.weight(.bold)).tracking(2)
-                        .foregroundColor(.gray)
-                    Text("Aujourd'hui — où tu en es ?")
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.appTextPrimary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.gray)
-            }
-            .padding(14)
-            .glassCard(color: Color.statusYellow, intensity: 0.05)
-            .cornerRadius(16)
-        }
-        .buttonStyle(SpringButtonStyle())
-    }
-}
-
 // MARK: - Sleep Prompt Card
 
 struct SleepPromptCard: View {

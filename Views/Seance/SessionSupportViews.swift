@@ -867,82 +867,6 @@ struct EnergyPreWorkoutSheet: View {
     }
 }
 
-// MARK: - HIIT Seance
-struct HIITSeanceView: View {
-    let sessionType: String
-    @ObservedObject var vm: SeanceViewModel
-    @State private var rounds = 8
-    @State private var workTime = 40
-    @State private var restTime = 20
-    @State private var rpe: Double = 7
-    @State private var notes = ""
-    @State private var logError: String? = nil
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                VStack(spacing: 12) {
-                    Image(systemName: "figure.run").font(.system(size: 48)).foregroundColor(.statusRed)
-                    Text(sessionType).font(.appTitle).fontWeight(.black).foregroundColor(.appTextPrimary)
-                }.padding(.top, 20)
-
-                VStack(spacing: 12) {
-                    StepperRow(title: "ROUNDS", value: $rounds, range: 1...30)
-                    StepperRow(title: "WORK (s)", value: $workTime, range: 10...120, step: 5)
-                    StepperRow(title: "REST (s)", value: $restTime, range: 5...120, step: 5)
-                }.padding(.horizontal, 16)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("RPE").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-                        Spacer()
-                        Text("\(rpe, specifier: "%.1f")").font(.appTitle).fontWeight(.black).foregroundColor(Color.forge)
-                    }
-                    Slider(value: $rpe, in: 1...10, step: 0.5).tint(Color.forge)
-                }
-                .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("NOTES").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-                    TextField("Notes optionnelles...", text: $notes, axis: .vertical)
-                        .foregroundColor(.appTextPrimary).lineLimit(3, reservesSpace: true)
-                }
-                .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
-
-                Button(action: logHIIT) {
-                    Text("Enregistrer HIIT")
-                        .font(.appBody).fontWeight(.semibold).frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(Color.appDanger).foregroundColor(.white).cornerRadius(14)
-                }
-                .padding(.horizontal, 16).padding(.bottom, 24)
-            }
-        }
-        .dismissKeyboardOnTap()
-        .alert("HIIT enregistré ✅", isPresented: $vm.showSuccess) {
-            Button("OK") { Task { await vm.load() } }
-        }
-        .alert("Erreur", isPresented: Binding(get: { logError != nil }, set: { if !$0 { logError = nil } })) {
-            Button("OK", role: .cancel) { logError = nil }
-        } message: { Text(logError ?? "") }
-    }
-
-    private func logHIIT() {
-        Task {
-            do {
-                try await APIService.shared.logHIIT(
-                    sessionType: sessionType, rounds: rounds,
-                    workTime: workTime, restTime: restTime, rpe: rpe, notes: notes
-                )
-                await vm.load()
-                await APIService.shared.fetchDashboard()
-                vm.showSuccess = true
-            } catch {
-                logError = error.localizedDescription
-            }
-        }
-    }
-}
-
 // MARK: - Inline Coaching Chip
 
 struct CoachingChip: View {
@@ -1152,31 +1076,6 @@ struct SpecialSeanceView: View {
                 vm.submitError = "Séance non confirmée — vérifie ta connexion et réessaie."
             }
         }
-    }
-}
-
-// MARK: - Stepper Row
-struct StepperRow: View {
-    let title: String
-    @Binding var value: Int
-    let range: ClosedRange<Int>
-    var step: Int = 1
-
-    var body: some View {
-        HStack {
-            Text(title).font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-            Spacer()
-            HStack(spacing: 12) {
-                Button(action: { if value - step >= range.lowerBound { value -= step } }) {
-                    Image(systemName: "minus.circle.fill").font(.system(size: 28)).foregroundColor(.gray)
-                }
-                Text("\(value)").font(.appTitle).fontWeight(.black).foregroundColor(.appTextPrimary).frame(width: 50, alignment: .center)
-                Button(action: { if value + step <= range.upperBound { value += step } }) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 28)).foregroundColor(Color.forge)
-                }
-            }
-        }
-        .padding(14).background(Color.appCard).cornerRadius(12)
     }
 }
 

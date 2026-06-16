@@ -25,9 +25,4 @@ extension APIService {
         CacheInvalidation.patternsPinMutated.invalidate()
     }
 
-    func fetchWarRoomPatternsEngine() async throws -> [PatternEntry] {
-        let url  = try buildURL(path: "/api/patterns/war_room")
-        let data = try await fetchWithCache(url: url, key: "patterns_war_room")
-        return try APIService.decoder.decode([PatternEntry].self, from: data)
-    }
 }

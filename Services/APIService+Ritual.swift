@@ -14,22 +14,6 @@ extension APIService {
         return try APIService.decoder.decode(PhoenixStats.self, from: data)
     }
 
-    func saveRitualMorning(intention: String, carryCount: Int = 0, carriedFrom: String? = nil) async throws {
-        var payload: [String: Any] = ["intention": intention, "carry_count": carryCount]
-        if let f = carriedFrom { payload["carried_from"] = f }
-        _ = try await offlinePost(endpoint: "/api/ritual/morning", payload: payload)
-        CacheInvalidation.ritualActioned.invalidate()
-        NotificationService.cancelMorningRitualReminders()
-    }
-
-    func saveRitualEvening(outcome: String) async throws -> RitualEveningResult {
-        let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: ["outcome": outcome])
-        CacheInvalidation.ritualActioned.invalidate()
-        NotificationService.cancelEveningRitualReminder()
-        guard let data else { throw APIError.queuedOffline }
-        return try APIService.decoder.decode(RitualEveningResult.self, from: data)
-    }
-
     func killDemon(date: String) async throws {
         _ = try await offlinePost(endpoint: "/api/ritual/kill-demon", payload: ["date": date])
         CacheInvalidation.ritualUpdated.invalidate()
@@ -44,20 +28,6 @@ extension APIService {
             throw APIError.serverError(http.statusCode, "fetchRitualHistoryFull HTTP \(http.statusCode)")
         }
         return try APIService.decoder.decode(RitualHistoryPage.self, from: data)
-    }
-
-    func saveRitualChecklist(weightLogged: Bool? = nil, hydrationDone: Bool? = nil,
-                             mobilityDone: Bool? = nil, proteinDone: Bool? = nil,
-                             morningAck: Bool? = nil) async throws {
-        var payload: [String: Any] = [:]
-        if let v = weightLogged  { payload["weight_logged"]   = v }
-        if let v = hydrationDone { payload["hydration_done"]  = v }
-        if let v = mobilityDone  { payload["mobility_done"]   = v }
-        if let v = proteinDone   { payload["protein_done"]    = v }
-        if let v = morningAck    { payload["morning_ack"]     = v }
-        guard !payload.isEmpty else { return }
-        _ = try await offlinePost(endpoint: "/api/ritual/checklist", payload: payload)
-        CacheInvalidation.ritualItemActioned.invalidate()
     }
 
     func saveEveningRoutineItem(_ field: String, value: Bool) async throws {
@@ -86,21 +56,4 @@ extension APIService {
         CacheInvalidation.ritualItemActioned.invalidate()
     }
 
-    func saveRitualEveningFull(outcome: String, reflection: String? = nil,
-                               winddownDone: Bool? = nil, coldDone: Bool? = nil,
-                               gratitude: String? = nil,
-                               tomorrowIntention: String? = nil) async throws -> RitualEveningResult {
-        var payload: [String: Any] = ["outcome": outcome]
-        if let r = reflection,         !r.isEmpty { payload["reflection"]          = r }
-        if let v = winddownDone                   { payload["winddown_done"]        = v }
-        if let v = coldDone                       { payload["cold_done"]            = v }
-        if let g = gratitude,          !g.isEmpty { payload["gratitude"]            = g }
-        if let t = tomorrowIntention,  !t.isEmpty { payload["tomorrow_intention"]   = t }
-
-        let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: payload)
-        CacheInvalidation.ritualUpdated.invalidate()
-        NotificationService.cancelEveningRitualReminder()
-        guard let data else { throw APIError.queuedOffline }
-        return try APIService.decoder.decode(RitualEveningResult.self, from: data)
-    }
 }

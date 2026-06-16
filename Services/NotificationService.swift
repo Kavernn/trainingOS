@@ -814,14 +814,6 @@ final class RestTimerManager: ObservableObject {
 
     func dismiss() { stop(); isVisible = false; exerciseName = nil }
 
-    /// Change preset without restarting.
-    func setPreset(_ seconds: Int) {
-        stop()
-        totalSeconds = seconds
-        remaining    = seconds
-        UserDefaults.standard.set(seconds, forKey: Self.presetKey)
-    }
-
     func adjust(by delta: Int) {
         remaining = max(1, remaining + delta)
         if isRunning {

@@ -39,13 +39,6 @@ extension APIService {
     }
 
     // MARK: - Journal
-    func fetchJournalPrompt() async throws -> String {
-        let url = try buildURL(path: "/api/journal/today_prompt")
-        let data = try await fetchWithCache(url: url, key: "journal_prompt")
-        let obj = try APIService.decoder.decode([String: String].self, from: data)
-        return obj["prompt"] ?? ""
-    }
-
     func submitJournalEntry(prompt: String, content: String,
                             moodScore: Int? = nil) async throws -> JournalEntry {
         var body: [String: Any] = ["prompt": prompt, "content": content]
@@ -91,12 +84,6 @@ extension APIService {
     }
 
     // MARK: - Self-Care
-    func fetchSelfCareHabits() async throws -> [SelfCareHabit] {
-        let url = try buildURL(path: "/api/self_care/habits")
-        let data = try await fetchWithCache(url: url, key: "self_care_habits")
-        return try APIService.decoder.decode([SelfCareHabit].self, from: data)
-    }
-
     func fetchSelfCareToday() async throws -> SelfCareToday {
         let url = try buildURL(path: "/api/self_care/today")
         let data = try await fetchWithCache(url: url, key: "self_care_today")

@@ -6,20 +6,6 @@ private let nutritionLogger = Logger(subsystem: "TrainingOS", category: "api+nut
 
 extension APIService {
     // MARK: - Nutrition
-    func fetchNutritionData() async throws -> (settings: NutritionSettings?,
-                                               entries: [NutritionEntry],
-                                               totals: NutritionTotals?) {
-        let url = try buildURL(path: "/api/nutrition_data")
-        let data = try await fetchWithCache(url: url, key: "nutrition_data")
-        struct NutrResponse: Codable {
-            let settings: NutritionSettings?
-            let entries: [NutritionEntry]
-            let totals: NutritionTotals?
-        }
-        let r = try APIService.decoder.decode(NutrResponse.self, from: data)
-        return (r.settings, r.entries, r.totals)
-    }
-
     func fetchNutritionHistory() async throws -> [NutritionDayHistory] {
         let url = try buildURL(path: "/api/nutrition_data")
         let data = try await fetchWithCache(url: url, key: "nutrition_data")
