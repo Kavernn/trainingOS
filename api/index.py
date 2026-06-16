@@ -108,7 +108,6 @@ from routes.time_capsule import time_capsule_bp
 from routes.workout_dna  import workout_dna_bp
 from routes.plateau      import plateau_bp
 from routes.ritual       import ritual_bp
-from routes.graveyard    import graveyard_bp
 from routes.war_room     import war_room_bp
 from routes.spirit       import spirit_bp
 from routes.oath         import oath_bp
@@ -185,7 +184,6 @@ app.register_blueprint(time_capsule_bp)
 app.register_blueprint(workout_dna_bp)
 app.register_blueprint(plateau_bp)
 app.register_blueprint(ritual_bp)
-app.register_blueprint(graveyard_bp)
 app.register_blueprint(war_room_bp)
 app.register_blueprint(spirit_bp)
 app.register_blueprint(oath_bp)

@@ -48,7 +48,6 @@ private final class AppNotificationDelegate: NSObject, UNUserNotificationCenterD
         DispatchQueue.main.async {
             if id.hasPrefix("event.phoenix") || id.hasPrefix("event.dna")
                 || id.hasPrefix("event.season") || id.hasPrefix("event.capsule")
-                || id.hasPrefix("event.graveyard")
                 || id == "ritual.morning.reminder" || id == "ritual.streak.risk"
                 || id == "ritual.demon.haunting" || id == "ritual.evening.reminder"
                 || id == "weekly.recap.sunday" {

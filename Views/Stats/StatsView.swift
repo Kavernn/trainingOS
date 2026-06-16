@@ -115,8 +115,7 @@ struct StatsView: View {
     @State var adherenceData:    AdherenceData?         = nil
     @State var seasonComparison: SeasonComparisonData?  = nil
     @State var warRoomStats:     WarRoomSummaryStats?   = nil
-    @State var graveyardCount:   Int                    = 0
-    @State var deloadStatus:     DeloadStatusData?      = nil
+@State var deloadStatus:     DeloadStatusData?      = nil
     @State var intensityData:    IntensityData?         = nil
     // ── Streak — source serveur unique (/api/stats/streaks) ─────────────────
     @State var streakData: StreakResponse? = nil
@@ -713,13 +712,6 @@ struct StatsView: View {
                let (d, _) = try? await URLSession.authed.data(from: url),
                let r = try? APIService.decoder.decode(WarRoomSummaryStats.self, from: d) {
                 await MainActor.run { warRoomStats = r }
-            }
-        }
-        Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/graveyard?count_only=true"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? APIService.decoder.decode(GraveyardCount.self, from: d) {
-                await MainActor.run { graveyardCount = r.totalCount }
             }
         }
         Task {

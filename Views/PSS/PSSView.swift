@@ -469,7 +469,7 @@ struct PSSQuestionnaireSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0C0C18").ignoresSafeArea()
+                Color.pssBg.ignoresSafeArea()
 
                 if isLoadingQ {
                     ProgressView().tint(.statusPurple)

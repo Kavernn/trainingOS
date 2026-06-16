@@ -437,15 +437,6 @@ final class DashboardViewModel: ObservableObject {
                     }
                 }
                 group.addTask { @MainActor in
-                    if let graveyard = try? await APIService.shared.fetchGraveyard(),
-                       let latest = graveyard.tombstones.first {
-                        NotificationService.notifyNewTombstone(
-                            totalCount: graveyard.totalCount,
-                            latestTombstone: latest
-                        )
-                    }
-                }
-                group.addTask { @MainActor in
                     if let dna = try? await APIService.shared.fetchWorkoutDNA() {
                         NotificationService.notifyDNAArchetypeChange(
                             newKey: dna.archetype.key,

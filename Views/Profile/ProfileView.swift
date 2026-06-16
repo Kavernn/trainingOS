@@ -693,7 +693,7 @@ struct ProfileView: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "0F0F0F"))
+        .background(Color.appSurfaceInset)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.07), lineWidth: 1))
         .cornerRadius(16)
         .padding(.horizontal, 16)
@@ -765,37 +765,12 @@ struct ProfileView: View {
                 .padding(.horizontal, 14).padding(.vertical, 14)
             }
             .buttonStyle(PlainButtonStyle())
-            settingsDivider
-            NavigationLink(destination: GraveyardView()) {
-                graveyardRow
-            }
-            .buttonStyle(PlainButtonStyle())
         }
         .background(Color.appCard)
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
 
-    private var graveyardRow: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(Color(hex: "2A1800"))
-                    .frame(width: 30, height: 30)
-                Image(systemName: "cross.case.fill")
-                    .font(.appLabel).fontWeight(.semibold)
-                    .foregroundColor(Color(hex: "FF6600"))
-            }
-            Text("Graveyard")
-                .font(.appBody)
-                .foregroundColor(.appTextPrimary)
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.appCaption)
-                .foregroundColor(.gray.opacity(0.4))
-        }
-        .padding(.horizontal, 14).padding(.vertical, 14)
-    }
 
     private var settingsDivider: some View {
         Divider().background(Color.appSeparator).padding(.leading, 46)

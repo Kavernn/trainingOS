@@ -75,7 +75,9 @@ extension Color {
     static var trendNegative: Color { isSurgical ? Color(white: 0.35) : Color(hex: "FF6B6B") }
     static var accentOnSurface: Color { isElectricLight ? Color(hex: "FFFF33") : AppTheme.shared.accent }
     static var moonlight:     Color { isSurgical ? Color(white: 0.80) : Color(hex: "E8EDF5") }
-    static let voidBg = Color(red: 0.020, green: 0.031, blue: 0.063)  // spirit deep (intentional fixed)
+    static let voidBg          = Color(red: 0.020, green: 0.031, blue: 0.063)  // Fond de mood fixe — NE suit pas le thème, intentionnel
+static let pssBg           = Color(hex: "0C0C18")  // Fond de mood fixe — NE suit pas le thème, intentionnel (cf .voidBg)
+    static let ritualEveningBg = Color(hex: "0D0906")  // Fond de mood fixe — NE suit pas le thème, intentionnel (cf .voidBg)
 
     // Couleurs sémantiques — desaturées en mode surgical (Sin City N&B)
     static var statusGreen:  Color { isSurgical ? Color(white: 0.68) : .green   }
@@ -104,6 +106,15 @@ extension Color {
         if low.contains("yoga")   { return .statusPurple }
         if low.contains("full body") { return .statusCyan }
         return .statusBlue
+    }
+
+    // Composition corporelle — deux séries stables, indépendantes du thème (lisibilité graphe)
+    enum BodyCompSeries { case lean, fat }
+    static func bodyComp(_ series: BodyCompSeries) -> Color {
+        switch series {
+        case .lean: return Color(hex: "F5A623")  // ambre — masse maigre
+        case .fat:  return Color(hex: "E74C3C")  // rouge sémantique universel — masse grasse
+        }
     }
 
     // Mood viz palette — violet→teal→green, non-moralistic gradient (intentional fixed)

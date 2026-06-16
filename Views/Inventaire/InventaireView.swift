@@ -151,11 +151,6 @@ struct CatalogueView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     HStack(spacing: 14) {
-                        NavigationLink(destination: GraveyardView()) {
-                            Image(systemName: "archivebox.fill")
-                                .font(.appBody.weight(.semibold))
-                                .foregroundColor(Color(hex: "8B6AFF"))
-                        }
                         if gapsCount > 0 {
                             Button { showGaps = true } label: {
                                 ZStack(alignment: .topTrailing) {
@@ -697,7 +692,7 @@ private let kWeightTypes: [WeightTypeOption] = [
     WeightTypeOption(key: "fixed_weight", label: "Poids fixe",   note: "Pas de reps comptées",      color: .statusYellow),
     WeightTypeOption(key: "bodyweight",   label: "Corps",        note: "Poids corporel",            color: .statusGreen),
     WeightTypeOption(key: "endurance",    label: "Endurance",    note: "Durée en secondes",         color: .statusCyan),
-    WeightTypeOption(key: "machine",      label: "Machine",      note: "Sélecteur de pile",         color: Color(hex: "8B6AFF")),
+    WeightTypeOption(key: "machine",      label: "Machine",      note: "Sélecteur de pile",         color: .statusPurple),
 ]
 
 private let kEquipmentOptions = [

@@ -456,7 +456,7 @@ struct NutritionVsPerfView: View {
                     else { path.addLine(to: CGPoint(x: x, y: y)) }
                 }
             }
-            .stroke(Color(hex: "F5A623"), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            .stroke(Color.forge, style: StrokeStyle(lineWidth: 2, lineCap: .round))
 
             Path { path in
                 for (i, p) in pairs.enumerated() {
@@ -472,7 +472,7 @@ struct NutritionVsPerfView: View {
 
         HStack(spacing: 16) {
             HStack(spacing: 4) {
-                Rectangle().fill(Color(hex: "F5A623")).frame(width: 16, height: 2)
+                Rectangle().fill(Color.forge).frame(width: 16, height: 2)
                 Text("Volume").font(.appMicro).foregroundColor(.gray)
             }
             HStack(spacing: 4) {

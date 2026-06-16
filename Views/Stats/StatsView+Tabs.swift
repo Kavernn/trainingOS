@@ -76,7 +76,7 @@ extension StatsView {
         }
 
         // 7. Marqueurs de transformation
-        TransformationMarkersCard(tombstoneCount: graveyardCount, warRoomStats: warRoomStats)
+        TransformationMarkersCard(warRoomStats: warRoomStats)
             .padding(.horizontal, 16)
             .appearAnimation(delay: 0.10)
 

@@ -55,7 +55,7 @@ struct WarRoomStripView: View {
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(hasResult ? Color.appSurfaceInset : Color(hex: "0a1a0a"))
+                    .fill(Color.appSurfaceInset)
                     .overlay(Capsule().stroke(
                         hasResult ? Color.appSurfaceInset : Color.statusGreen.opacity(0.5),
                         lineWidth: 0.5
@@ -78,7 +78,7 @@ struct WarRoomStripView: View {
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(hasTemptation ? Color.appSurfaceInset : Color(hex: "1a0505"))
+                    .fill(Color.appSurfaceInset)
                     .overlay(Capsule().stroke(
                         hasTemptation ? Color.appSurfaceInset : Color.appDanger.opacity(0.6),
                         lineWidth: 0.5

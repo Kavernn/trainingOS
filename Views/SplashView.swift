@@ -796,7 +796,7 @@ struct SplashView: View {
     private func createExplosion(count: Int, spreadMultiplier: CGFloat) {
         let cx   = UIScreen.main.bounds.midX
         let cy   = UIScreen.main.bounds.height * 0.42
-        let gold = Color(hex: "FFCC00")
+        let gold = Color.forge
         let white = Color.white
 
         for _ in 0..<count {

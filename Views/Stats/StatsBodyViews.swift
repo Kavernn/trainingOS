@@ -279,16 +279,16 @@ struct BodyRecompView: View {
 
             ZStack {
                 recompLine(\.weight,   color: .gray.opacity(0.6),            step: step, h: h, minV: minV, range: range)
-                recompLine(\.fatMass,  color: Color(hex: "E74C3C").opacity(0.8), step: step, h: h, minV: minV, range: range)
-                recompLine(\.leanMass, color: Color(hex: "F5A623"),           step: step, h: h, minV: minV, range: range)
+                recompLine(\.fatMass,  color: Color.bodyComp(.fat).opacity(0.8),  step: step, h: h, minV: minV, range: range)
+                recompLine(\.leanMass, color: Color.bodyComp(.lean),              step: step, h: h, minV: minV, range: range)
             }
         }
         .frame(height: 100)
 
         HStack(spacing: 16) {
             legendDot(.gray,                   "Poids total")
-            legendDot(Color(hex: "E74C3C"),    "Masse grasse")
-            legendDot(Color(hex: "F5A623"),    "Masse maigre")
+            legendDot(Color.bodyComp(.fat),    "Masse grasse")
+            legendDot(Color.bodyComp(.lean),   "Masse maigre")
         }
         .font(.system(size: 10)).foregroundColor(.gray)
     }
@@ -436,7 +436,6 @@ struct SeasonComparisonCard: View {
 
 // MARK: - Transformation Markers Card
 struct TransformationMarkersCard: View {
-    let tombstoneCount: Int
     let warRoomStats: WarRoomSummaryStats?
 
     var body: some View {
@@ -445,40 +444,21 @@ struct TransformationMarkersCard: View {
             Text("MARQUEURS DE TRANSFORMATION")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
 
-            HStack(spacing: 12) {
+            if showWarRoom, let wr = warRoomStats {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(tombstoneCount > 0 ? "\(tombstoneCount)" : "—")
+                    Text("\(wr.totalVictories)")
                         .font(.system(size: 30, weight: .black))
-                        .foregroundColor(Color.forge)
+                        .foregroundColor(Color.appSuccess)
                         .contentTransition(.numericText())
-                    Text(tombstoneCount == 1 ? "limite enterrée" : "limites enterrées")
+                    Text("jours de victoire")
                         .font(.appCaption).foregroundColor(.gray)
-                    if tombstoneCount == 0 {
-                        Text("Continue à logger")
-                            .font(.appMicro).foregroundColor(.gray.opacity(0.5))
-                    }
+                    Text("Ne descend jamais")
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.5))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(Color.forge.opacity(0.07))
+                .background(Color.appSuccess.opacity(0.07))
                 .cornerRadius(12)
-
-                if showWarRoom, let wr = warRoomStats {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("\(wr.totalVictories)")
-                            .font(.system(size: 30, weight: .black))
-                            .foregroundColor(Color.appSuccess)
-                            .contentTransition(.numericText())
-                        Text("jours de victoire")
-                            .font(.appCaption).foregroundColor(.gray)
-                        Text("Ne descend jamais")
-                            .font(.appMicro).foregroundColor(.gray.opacity(0.5))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .background(Color.appSuccess.opacity(0.07))
-                    .cornerRadius(12)
-                }
             }
         }
         .padding(16).glassCard()
@@ -546,7 +526,7 @@ struct StrengthProgressionCard: View {
                                         .fill(Color.gray.opacity(0.25))
                                         .frame(width: w * CGFloat(lift.baseline / maxCurrent), height: 8)
                                     Capsule()
-                                        .fill(lift.delta >= 0 ? Color(hex: "F5A623") : Color.forge)
+                                        .fill(lift.delta >= 0 ? Color.trendPositive : Color.forge)
                                         .frame(width: w * CGFloat(lift.current / maxCurrent), height: 8)
                                         .opacity(0.85)
                                 }
@@ -558,7 +538,7 @@ struct StrengthProgressionCard: View {
                                 Spacer()
                                 Text("Actuel: \(units.format(lift.current, decimals: 0))")
                                     .font(.appMicro.weight(.semibold))
-                                    .foregroundColor(Color(hex: "F5A623"))
+                                    .foregroundColor(Color.forge)
                             }
                         }
                     }

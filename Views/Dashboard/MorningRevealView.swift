@@ -16,7 +16,7 @@ struct MorningRevealView: View {
     private var accentColor: Color {
         switch morningBrief.recommendation {
         case "go":         return .statusGreen
-        case "go_caution": return Color(hex: "F5C518")
+        case "go_caution": return .appWarning
         case "reduce":     return .statusOrange
         default:           return .statusRed
         }

@@ -32,8 +32,7 @@ struct NotificationCenterView: View {
     // MARK: - Intelligence
     @AppStorage("notif_on_capsule")   private var capsule   = true
     @AppStorage("notif_on_phoenix")   private var phoenix   = true
-    @AppStorage("notif_on_graveyard") private var graveyard = true
-    @AppStorage("notif_on_dna")       private var dna       = true
+@AppStorage("notif_on_dna")       private var dna       = true
     @AppStorage("notif_on_proactive") private var proactive = true
 
     // MARK: - War Room
@@ -246,12 +245,7 @@ struct NotificationCenterView: View {
                         subtitle: "Quand ton score change de catégorie",
                         isOn: $phoenix,
                         ids: ["event.phoenix.state"])
-            notifToggle(icon: "cross.case.fill", color: Color(hex: "FF6600"),
-                        title: "Graveyard",
-                        subtitle: "Quand un exercice est archivé",
-                        isOn: $graveyard,
-                        ids: ["event.graveyard.tombstone"])
-            notifToggle(icon: "staroflife.fill", color: .indigo,
+notifToggle(icon: "staroflife.fill", color: .indigo,
                         title: "ADN Workout",
                         subtitle: "Quand ton archétype change",
                         isOn: $dna,

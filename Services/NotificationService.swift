@@ -567,33 +567,6 @@ enum NotificationService {
         }
     }
 
-    // MARK: - Event: New graveyard tombstone
-
-    /// Fires once when the graveyard grows — de-duplicated by total count.
-    static func notifyNewTombstone(totalCount: Int, latestTombstone: Tombstone) {
-        let key = "notif.graveyard.count"
-        let last = UserDefaults.standard.integer(forKey: key)
-        guard totalCount > last, last > 0 else {
-            UserDefaults.standard.set(totalCount, forKey: key)
-            return
-        }
-        UserDefaults.standard.set(totalCount, forKey: key)
-        guard !globalDisabled, isEnabled("notif_on_graveyard") else { return }
-
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-            let center = UNUserNotificationCenter.current()
-            let id = "event.graveyard.tombstone"
-            center.removePendingNotificationRequests(withIdentifiers: [id])
-
-            let content = UNMutableNotificationContent()
-            content.title = "Nouvelle tombe dans ton cimetière"
-            content.body  = latestTombstone.epitaph
-            content.sound = .default
-            center.add(UNNotificationRequest(identifier: id, content: content, trigger: reasonableHourTrigger()))
-        }
-    }
-
     // MARK: - Event: Season milestones (D30, D60, D75)
 
     /// Schedules calendar-exact notifications for season milestones if not yet passed.

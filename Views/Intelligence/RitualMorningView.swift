@@ -215,8 +215,8 @@ private struct EngagementAddressRow: View {
 
     private var fillColor: Color {
         switch status {
-        case "done":    return Color(hex: "1C3B2A")
-        case "notdone": return Color(hex: "1A0A0A")
+        case "done":    return Color.appSuccess.opacity(0.15)
+        case "notdone": return Color.appDanger.opacity(0.12)
         default:        return Color(white: 0.07)
         }
     }

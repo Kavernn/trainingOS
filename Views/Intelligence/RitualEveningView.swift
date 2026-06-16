@@ -20,7 +20,7 @@ struct EngagementCreationView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0D0906").ignoresSafeArea()
+            Color.ritualEveningBg.ignoresSafeArea()
 
             if confirmed {
                 confirmedView
