@@ -79,6 +79,10 @@ private struct iOSContentView: View {
         .overlay(alignment: .top) { offlineBanner }
         .overlay(alignment: .bottom) { offlineToast }
         .tint(theme.accent)
+        .task { await appState.checkDNAEvolution() }
+        .fullScreenCover(item: $appState.pendingDNAEvolution) { event in
+            DNAEvolutionSheet(event: event, onDismiss: appState.acknowledgeDNAEvolution)
+        }
         .globalActionFeedback()
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToIntelligence)) { _ in

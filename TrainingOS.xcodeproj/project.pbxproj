@@ -30,6 +30,7 @@
 		35332F66CA06D4B710598247 /* RitualMorningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAC82E18346773B8F8591B8F /* RitualMorningView.swift */; };
 		39E47AF550F83D00EBE09ED6 /* ReadinessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */; };
 		44C9676C9DEC490EA46497D2 /* FoodCatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D99C0DF3AB4F7ABC77DFE0 /* FoodCatalogStore.swift */; };
+		95D94DB790D14B0686DAB9D9 /* DNAEvolutionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F23DF3AC9E04EDBAF93E561 /* DNAEvolutionSheet.swift */; };
 		474875470ECCEB1C8D964FBF /* WorkoutDNAView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */; };
 		4EFCF4438370ABAB574089F4 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 358C75220B7439B325975456 /* AppState.swift */; };
 		5235FFAB182E4E9F9D4F4648 /* DashboardTodayCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E763610F6C4444B969517B6 /* DashboardTodayCards.swift */; };
@@ -340,6 +341,7 @@
 		9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLoadingView.swift; sourceTree = "<group>"; };
 		919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachBriefCard.swift; sourceTree = "<group>"; };
 		955D6FDBE3CAB80990772A49 /* APIService+Plateau.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Plateau.swift"; sourceTree = "<group>"; };
+		6F23DF3AC9E04EDBAF93E561 /* DNAEvolutionSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DNAEvolutionSheet.swift; sourceTree = "<group>"; };
 		9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutDNAView.swift; sourceTree = "<group>"; };
 		9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadinessView.swift; sourceTree = "<group>"; };
 		A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRCelebrationView.swift; sourceTree = "<group>"; };
@@ -798,6 +800,7 @@
 				IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */,
 				8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */,
 				8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */,
+				6F23DF3AC9E04EDBAF93E561 /* DNAEvolutionSheet.swift */,
 				9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */,
 				EC0642CC2F24923C52372E9A /* PlateauViews.swift */,
 				12186D7E0477FF4F0975C7DA /* RitualView.swift */,
@@ -1606,6 +1609,7 @@
 				CB06CF7205FA40FC222D9EC5 /* TimeCapsuleViews.swift in Sources */,
 				9FAB21F7C04FE500FE46A479 /* WorkoutDNAModels.swift in Sources */,
 				AB5A5BBA12AEB12AF0596F9C /* APIService+WorkoutDNA.swift in Sources */,
+				95D94DB790D14B0686DAB9D9 /* DNAEvolutionSheet.swift in Sources */,
 				474875470ECCEB1C8D964FBF /* WorkoutDNAView.swift in Sources */,
 				A5B8A1E652914C8CF9744089 /* PlateauModels.swift in Sources */,
 				DC73018555BF2F8EE84E78C2 /* APIService+Plateau.swift in Sources */,
