@@ -2,7 +2,7 @@
 
 Base URL: `https://training-os-rho.vercel.app`
 
-All endpoints are unauthenticated (see #A1 in audit). JSON responses unless noted.
+All endpoints require the `X-API-Key` header (active depuis 2026-04-06, fix #A1). JSON responses unless noted.
 
 ---
 

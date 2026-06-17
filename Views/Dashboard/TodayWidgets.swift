@@ -1,232 +1,56 @@
 import SwiftUI
 
-// MARK: - Quote of the Day
+// MARK: - Day Actions Row
 
-struct QuoteOfDayView: View {
-    private var quote: DailyQuote { QuoteData.today() }
+struct DayActionsRow: View {
+    let sessionLogged: Bool
+    let moodDone: Bool
+    let nutritionLogged: Bool
+    var onSessionTap: () -> Void
+    var onMoodTap: () -> Void
+    var onNutritionTap: () -> Void
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("❝")
-                    .font(.appTitle.weight(.regular))
-                    .foregroundColor(Color.forge.opacity(0.55))
-                Spacer()
-                Text("SIGNAL DU JOUR")
-                    .font(.appMicro.weight(.bold))
-                    .tracking(1.5)
-                    .foregroundColor(.gray.opacity(0.45))
-            }
-            Text(quote.text)
-                .font(.appBody.weight(.medium))
-                .foregroundColor(.appTextPrimary)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("— \(quote.author)  ·  \(quote.context)")
-                .font(.appCaption)
-                .foregroundColor(.gray)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.appCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(
-                            LinearGradient(
-                                colors: [Color.forge.opacity(0.18), Color.clear],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                )
-        )
-    }
-}
-
-
-// MARK: - Daily Metrics Row
-
-struct DailyMetricsRow: View {
-    let readinessScore: Int?
-    let recovery: RecoveryEntry?
-    let nutritionTotals: NutritionTotals
-    let nutritionSettings: NutritionSettings?
-    let moodDue: MoodDueStatus?
-    // D-D14: show asterisk when score is computed locally (HRV/server data unavailable)
-    var readinessIsLocal: Bool = false
-    var onMoodTap: (() -> Void)? = nil
-
-    private var calorieGoal: Double? {
-        nutritionSettings?.calories
-    }
-    private var caloriePct: Int? {
-        guard let eaten = nutritionTotals.calories, let goal = calorieGoal, goal > 0 else { return nil }
-        return min(150, Int((eaten / goal) * 100))
-    }
-    private var readinessColor: Color {
-        guard let s = readinessScore else { return .gray }
-        if s >= 80 { return .appSuccess }
-        if s >= 60 { return .statusYellow }
-        if s >= 40 { return .statusOrange }
-        return .appDanger
-    }
-
-    private var readinessAttention: Bool {
-        guard let s = readinessScore else { return false }
-        return s >= 40 && s < 60
-    }
+    private var allDone: Bool { sessionLogged && moodDone && nutritionLogged }
 
     var body: some View {
-        HStack(spacing: 10) {
-            NavigationLink(destination: RecoveryView()) {
-                MetricChip(
-                    icon: "heart.fill",
-                    value: readinessScore.map { "\($0)" } ?? "–",
-                    unit: readinessScore != nil ? "/100" : "",
-                    label: readinessIsLocal ? "Préparation ↗" : "Préparation",
-                    color: readinessColor,
-                    isAttention: readinessAttention
-                )
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink(destination: NutritionView()) {
-                MetricChip(
-                    icon: "flame.fill",
-                    value: nutritionTotals.calories.map { "\(Int($0))" } ?? "–",
-                    unit: "kcal",
-                    label: caloriePct.map { "\($0)% de la cible" } ?? "Nutrition",
-                    color: Color.forge
-                )
-            }
-            .buttonStyle(.plain)
-
-            Group {
-                let chip = MetricChip(
-                    icon: "brain.head.profile",
-                    value: moodDue.map { $0.isDue ? "!" : "✓" } ?? "–",
-                    unit: "",
-                    label: moodDue.map { $0.isDue ? "Non évalué" : "Évalué" } ?? "Mental",
-                    color: moodDue.map { $0.isDue ? Color.statusYellow : Color.appSuccess } ?? .gray
-                )
-                if let onMoodTap {
-                    Button(action: onMoodTap) { chip }.buttonStyle(.plain)
-                } else {
-                    chip
+        if !allDone {
+            HStack(spacing: 8) {
+                if !sessionLogged {
+                    ActionChip(icon: "dumbbell.fill", label: "Séance", color: Color.forge, action: onSessionTap)
                 }
+                if !moodDone {
+                    ActionChip(icon: "brain.head.profile", label: "Humeur", color: Color.statusYellow, action: onMoodTap)
+                }
+                if !nutritionLogged {
+                    ActionChip(icon: "fork.knife", label: "Repas", color: Color.statusGreen, action: onNutritionTap)
+                }
+                Spacer(minLength: 0)
             }
-
         }
     }
 }
 
-private struct MetricChip: View {
+private struct ActionChip: View {
     let icon: String
-    let value: String
-    let unit: String
     let label: String
     let color: Color
-    var isAttention: Bool = false
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
+        Button(action: action) {
+            HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.appLabel.weight(.semibold))
                     .foregroundColor(color)
-                if isAttention {
-                    Circle()
-                        .fill(Color.forge)
-                        .frame(width: 5, height: 5)
-                }
-            }
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.appTextPrimary)
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.appCaption.weight(.medium))
-                        .foregroundColor(.gray)
-                }
-            }
-            Text(label)
-                .font(.appCaption)
-                .foregroundColor(.gray.opacity(0.8))
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCardAccent(color, cornerRadius: 12)
-        .overlay {
-            if isAttention {
-                RoundedRectangle(cornerRadius: 12).stroke(Color.statusOrange.opacity(0.5), lineWidth: 1)
-            }
-        }
-    }
-}
-
-// MARK: - XP Chip
-
-struct XPChipView: View {
-    let sessions: [String: SessionEntry]
-
-    private var xp: Int { sessions.count * 100 }
-    private var level: Int { max(1, xp / 1500 + 1) }
-    private var xpInLevel: Int { xp % 1500 }
-    private var progress: CGFloat { CGFloat(xpInLevel) / 1500.0 }
-
-    private var levelTitle: String {
-        switch level {
-        case 1: return "Recrue"
-        case 2: return "Combattant"
-        case 3: return "Warrior"
-        case 4: return "Élite"
-        case 5: return "Prédateur"
-        default: return "Légende"
-        }
-    }
-
-    var body: some View {
-        NavigationLink(destination: XPView()) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle().fill(Color.statusYellow.opacity(0.18)).frame(width: 36, height: 36)
-                    Image(systemName: "star.fill")
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.statusYellow)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Text("Niveau \(level) · \(levelTitle)")
-                            .font(.appLabel.weight(.bold))
-                            .foregroundColor(.appTextPrimary)
-                        Spacer()
-                        Text("\(xpInLevel) / 1500 XP")
-                            .font(.appCaption)
-                            .foregroundColor(Color.appOnSurface.opacity(0.45))
-                    }
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 3).fill(Color.statusYellow.opacity(0.12)).frame(height: 5)
-                            RoundedRectangle(cornerRadius: 3).fill(Color.statusYellow)
-                                .frame(width: geo.size.width * min(progress, 1.0), height: 5)
-                        }
-                    }
-                    .frame(height: 5)
-                }
-                Image(systemName: "chevron.right")
+                Text(label)
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color.statusYellow.opacity(0.4))
+                    .foregroundColor(.appTextPrimary)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(Color.statusYellow.opacity(0.05))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.15), lineWidth: 1))
-            .cornerRadius(14)
+            .padding(.vertical, 10)
+            .background(color.opacity(0.10))
+            .overlay(RoundedRectangle(cornerRadius: 22).stroke(color.opacity(0.25), lineWidth: 1))
+            .cornerRadius(22)
         }
         .buttonStyle(.plain)
     }

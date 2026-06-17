@@ -15,7 +15,6 @@
 		08073E1B777979BC5C2CE724 /* RitualEveningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1412A3C124DEC128C01A2D96 /* RitualEveningView.swift */; };
 		0886AB2185354BBDA38FD7C4 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F5AB1A421041E59142D99A /* NutritionViewModel.swift */; };
 		0D8210D4F61FF52D9FFFE4DF /* ProfileModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD35C9A164F89962D3E6E18 /* ProfileModels.swift */; };
-		110ED440D08546FE9E027EC0 /* DashboardNutritionCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF11A8481CB4909A6965C19 /* DashboardNutritionCards.swift */; };
 		11DB911AE8186DDE463BAA71 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F9FC27F6F10E2BBE5805E5F /* ToastView.swift */; };
 		15AFE1BFA7B8487CBEECB98C /* ProactiveAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAD9AC36E56041C996317086 /* ProactiveAlert.swift */; };
 		183289EC5ED0058D31E05A4E /* WorkoutModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DD0C9095A69B34AA03E74F /* WorkoutModels.swift */; };
@@ -30,7 +29,6 @@
 		329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0FE1CA8525F46319027AD6D /* AlertService.swift */; };
 		35332F66CA06D4B710598247 /* RitualMorningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAC82E18346773B8F8591B8F /* RitualMorningView.swift */; };
 		39E47AF550F83D00EBE09ED6 /* ReadinessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */; };
-		3F784A7AB03C48179FBF0EFF /* GraveyardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106008F1BB4042C0803D076D /* GraveyardModels.swift */; };
 		44C9676C9DEC490EA46497D2 /* FoodCatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D99C0DF3AB4F7ABC77DFE0 /* FoodCatalogStore.swift */; };
 		474875470ECCEB1C8D964FBF /* WorkoutDNAView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */; };
 		4EFCF4438370ABAB574089F4 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 358C75220B7439B325975456 /* AppState.swift */; };
@@ -48,7 +46,6 @@
 		7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */; };
 		848288DCA8A442D283353361 /* PRCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */; };
 		88AE06959F6C41BB819C117B /* NotificationCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178857F4F15844198720466F /* NotificationCenterView.swift */; };
-		88FED7DCD183CEA33B169136 /* APIService+SessionProgression.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF3D5D30B7139E2E86EC0C0F /* APIService+SessionProgression.swift */; };
 		8D9484E011854C59BD3B4840 /* BehaviorTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CCC113F806D404EB7F7D565 /* BehaviorTracker.swift */; };
 		8FFAEEC125CAB186137ECB02 /* SessionProgressionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A479D2AB9038B85C97EB4605 /* SessionProgressionModels.swift */; };
 		969C99267447D1135148E764 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */; };
@@ -96,24 +93,17 @@
 		APIWO002APIWO002APIWO002 /* APIService+Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIWO001APIWO001APIWO001 /* APIService+Workout.swift */; };
 		AT000001AT000001AT000001 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AT000002AT000002AT000002 /* AppTheme.swift */; };
 		B3B48DFB53C2B424CC9A1E51 /* ErrorBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */; };
-		BA758653D86B40DBAD0CDE88 /* GraveyardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */; };
 		BB001001BB001001BB001001 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001002BB001002BB001002 /* DesignSystem.swift */; };
 		BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */; };
 		BB3300012F5D98BA002AE471 /* BonusSeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */; };
 		BC0000012F5D98BA002AE470 /* BodyCompEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000022F5D98BA002AE470 /* BodyCompEntry.swift */; };
 		BC0000032F5D98BA002AE470 /* NavyCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000042F5D98BA002AE470 /* NavyCalculatorView.swift */; };
 		BC0000052F5D98BA002AE470 /* BodyCompHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000062F5D98BA002AE470 /* BodyCompHistoryView.swift */; };
-		BPC001AA00300B2F5D0001 /* BehavioralPRsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */; };
 		BPR001AA00300B2F5D0001 /* BehavioralPRModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPR001AA00300B2F5D0000 /* BehavioralPRModels.swift */; };
-		BPR002AA00300B2F5D0001 /* APIService+BehavioralPR.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPR002AA00300B2F5D0000 /* APIService+BehavioralPR.swift */; };
 		BWT001AA00300B2F5D0001 /* BodyWeightTrendModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BWT001AA00300B2F5D0000 /* BodyWeightTrendModels.swift */; };
-		BWT002AA00300B2F5D0001 /* APIService+BodyWeightTrend.swift in Sources */ = {isa = PBXBuildFile; fileRef = BWT002AA00300B2F5D0000 /* APIService+BodyWeightTrend.swift */; };
-		BWT003AA00300B2F5D0001 /* BodyWeightTrendCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BWT003AA00300B2F5D0000 /* BodyWeightTrendCard.swift */; };
 		C4D5E6F7A8B9C0D1E2F3A4B5 /* CardioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */; };
 		C5D6E7F8A9B0C1D2E3F4A5B7 /* ProgressionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E7F8A9B0C1D2E3F4A5B6C8 /* ProgressionCard.swift */; };
 		CAR001AA00300B2F5D0001 /* ComebackArcModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAR001AA00300B2F5D0000 /* ComebackArcModels.swift */; };
-		CAR002AA00300B2F5D0001 /* APIService+ComebackArc.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */; };
-		CAR003AA00300B2F5D0001 /* ComebackArcCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */; };
 		CB06CF7205FA40FC222D9EC5 /* TimeCapsuleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */; };
 		CC1100012F5D98BA002AE470 /* DashboardCardioCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100002F5D98BA002AE470 /* DashboardCardioCard.swift */; };
 		CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3300012F5D98BA002AE472 /* PSSView.swift */; };
@@ -121,10 +111,7 @@
 		CF49E6FEF95E455D9F84D443 /* CoachBriefCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */; };
 		CI0001CI0001CI0001CI0001 /* CacheInvalidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CI0002CI0002CI0002CI0002 /* CacheInvalidation.swift */; };
 		CMP001AA00300B2F5D0001 /* CompoundModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CMP001AA00300B2F5D0000 /* CompoundModels.swift */; };
-		CMP002AA00300B2F5D0001 /* APIService+Compound.swift in Sources */ = {isa = PBXBuildFile; fileRef = CMP002AA00300B2F5D0000 /* APIService+Compound.swift */; };
 		CST001AA00300B2F5D0001 /* ConsistencyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CST001AA00300B2F5D0000 /* ConsistencyModels.swift */; };
-		CST002AA00300B2F5D0001 /* APIService+Consistency.swift in Sources */ = {isa = PBXBuildFile; fileRef = CST002AA00300B2F5D0000 /* APIService+Consistency.swift */; };
-		CST003AA00300B2F5D0001 /* ConsistencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CST003AA00300B2F5D0000 /* ConsistencyCard.swift */; };
 		D60EC6EA2F76B1F2003A5209 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EC6E92F76B1F2003A5209 /* NotificationService.swift */; };
 		D618A6C12FA81E9E001AEADD /* CoachDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */; };
 		8B707D5A8F7F449E97018D68 /* DailyBriefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1577CFB97E4454C939E2874 /* DailyBriefView.swift */; };
@@ -140,9 +127,7 @@
 		D665E44F2F5D98BA002AE470 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43A2F5D98B8002AE470 /* Extensions.swift */; };
 		D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43C2F5D98B8002AE470 /* DashboardView.swift */; };
 		D665E4512F5D98BA002AE470 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = D665E4362F5D98B8002AE470 /* README.md */; };
-		D665E4552F5D98BA002AE470 /* DashboardWellnessCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75686E58001949C3B9BD69C3 /* DashboardWellnessCards.swift */; };
 		D665E4562F5D98BA002AE470 /* DashboardWeeklyCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */; };
-		D665E4572F5D98BA002AE470 /* DashboardReadinessCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */; };
 		D665E4582F5D98BA002AE470 /* DashboardRitualCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */; };
 		D68A5C642FD0CE6800B824DF /* VinceSeven Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D68A5C442FD0CE6600B824DF /* VinceSeven Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D68A5C8D2FD0D0B900B824DF /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */; };
@@ -166,11 +151,8 @@
 		EE5500022F5D98BA002AE470 /* PendingMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500012F5D98BA002AE470 /* PendingMutation.swift */; };
 		EE5500042F5D98BA002AE470 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500032F5D98BA002AE470 /* SyncManager.swift */; };
 		EE5500062F5D98BA002AE470 /* UserDefaultsSyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500052F5D98BA002AE470 /* UserDefaultsSyncQueue.swift */; };
-		EE8C19D26FF84056B62B4BD3 /* APIService+Graveyard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FC68105F9D4BDE956144F3 /* APIService+Graveyard.swift */; };
 		ENMOD002ENMOD002ENMOD002 /* EnergyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */; };
 		EPF001AA00300B2F5D0001 /* EnergyPerformanceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF001AA00300B2F5D0000 /* EnergyPerformanceModels.swift */; };
-		EPF002AA00300B2F5D0001 /* APIService+EnergyPerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF002AA00300B2F5D0000 /* APIService+EnergyPerformance.swift */; };
-		EPF003AA00300B2F5D0001 /* EnergyPerformanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */; };
 		ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ER001000ER001000ER001000 /* EnergyRecoveryView.swift */; };
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
 		FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1100002F5D98BA002AE470 /* WatchSyncService.swift */; };
@@ -199,12 +181,8 @@
 		IA0013IA0013IA0013IA0013 /* IntelligenceAnalyticsCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */; };
 		IA0014IA0014IA0014IA0014 /* CoachContextSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */; };
 		IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */; };
-		IDW002AA00300B2F5D0001 /* APIService+IdealWeek.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */; };
-		IDW003AA00300B2F5D0001 /* IdealWeekCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW003AA00300B2F5D0000 /* IdealWeekCard.swift */; };
 		MAC0002MAC0002MAC0002MA2 /* MidWorkoutAdvisorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */; };
 		MBL001AA00300B2F5D0001 /* MuscleBalanceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = MBL001AA00300B2F5D0000 /* MuscleBalanceModels.swift */; };
-		MBL002AA00300B2F5D0001 /* APIService+MuscleBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = MBL002AA00300B2F5D0000 /* APIService+MuscleBalance.swift */; };
-		MBL003AA00300B2F5D0001 /* MuscleBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */; };
 		MC000002MC000002MC000002 /* MetricCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC000001MC000001MC000001 /* MetricCell.swift */; };
 		NA0001NA0001NA0001NA0001 /* NutritionActionMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */; };
 		NA0002NA0002NA0002NA0002 /* ProteinProgressCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */; };
@@ -221,36 +199,22 @@
 		NA0013NA0013NA0013NA0013 /* BarcodeScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0013NR0013NR0013NR0013 /* BarcodeScannerSheet.swift */; };
 		NOTSC002NOTSC002NOTSC002 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */; };
 		NPC001AA00300B2F5D0001 /* NutritionPerformanceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */; };
-		NPC002AA00300B2F5D0001 /* APIService+NutritionPerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */; };
-		NPC003AA00300B2F5D0001 /* NutritionPerformanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */; };
 		OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA001000AA00300B2F5DCCCC /* OathModels.swift */; };
 		OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */; };
 		OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA003000AA00300B2F5DCCCC /* OathView.swift */; };
 		OA004001AA00300B2F5DCCCC /* OathWriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA004000AA00300B2F5DCCCC /* OathWriteView.swift */; };
 		OB000002OB000002OB000002 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB000001OB000001OB000001 /* OnboardingView.swift */; };
 		OPD001AA00300B2F5D0001 /* OptimalDayModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OPD001AA00300B2F5D0000 /* OptimalDayModels.swift */; };
-		OPD002AA00300B2F5D0001 /* APIService+OptimalDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = OPD002AA00300B2F5D0000 /* APIService+OptimalDay.swift */; };
-		OPD003AA00300B2F5D0001 /* OptimalDayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */; };
 		PB000002PB000002PB000002 /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = PB000001PB000001PB000001 /* PrimaryButton.swift */; };
 		PFC001AA00300B2F5D0001 /* PerformanceConditionsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */; };
-		PFC002AA00300B2F5D0001 /* APIService+PerformanceConditions.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */; };
-		PFC003AA00300B2F5D0001 /* PerformanceConditionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFC003AA00300B2F5D0000 /* PerformanceConditionsCard.swift */; };
 		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
 		POE001AA00300B2F5D0001 /* ProgressiveOverloadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = POE001AA00300B2F5D0000 /* ProgressiveOverloadModels.swift */; };
-		POE002AA00300B2F5D0001 /* APIService+ProgressiveOverload.swift in Sources */ = {isa = PBXBuildFile; fileRef = POE002AA00300B2F5D0000 /* APIService+ProgressiveOverload.swift */; };
-		POE003AA00300B2F5D0001 /* ProgressiveOverloadCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = POE003AA00300B2F5D0000 /* ProgressiveOverloadCard.swift */; };
-		PRC001AA00300B2F5D0001 /* PortraitJ90Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */; };
 		PRT001AA00300B2F5D0001 /* PortraitModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRT001AA00300B2F5D0000 /* PortraitModels.swift */; };
-		PRT002AA00300B2F5D0001 /* APIService+Portrait.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRT002AA00300B2F5D0000 /* APIService+Portrait.swift */; };
 		PRTK01AA00300B2F5D0001 /* PRTrackerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRTK01AA00300B2F5D0000 /* PRTrackerModels.swift */; };
-		PRTK02AA00300B2F5D0001 /* APIService+PRTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRTK02AA00300B2F5D0000 /* APIService+PRTracker.swift */; };
-		PRTK03AA00300B2F5D0001 /* PRTrackerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRTK03AA00300B2F5D0000 /* PRTrackerCard.swift */; };
 		PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000001PS000001PS000001 /* ProgressionSuggestion.swift */; };
 		PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */; };
 		RH000002RH000002RH000002 /* RPEHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = RH000001RH000001RH000001 /* RPEHelper.swift */; };
 		RPT001AA00300B2F5D0001 /* RuptureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = RPT001AA00300B2F5D0000 /* RuptureModels.swift */; };
-		RPT002AA00300B2F5D0001 /* APIService+Rupture.swift in Sources */ = {isa = PBXBuildFile; fileRef = RPT002AA00300B2F5D0000 /* APIService+Rupture.swift */; };
-		RRC001AA00300B2F5D0001 /* RuptureRiskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */; };
 		RV0001RV0001RV0001RV0001 /* RecoveryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0001RR0001RR0001RR0001 /* RecoveryRow.swift */; };
 		RV0002RV0002RV0002RV0002 /* ReadinessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0002RR0002RR0002RR0002 /* ReadinessCard.swift */; };
 		RV0003RV0003RV0003RV0003 /* RecoveryCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0003RR0003RR0003RR0003 /* RecoveryCharts.swift */; };
@@ -267,17 +231,9 @@
 		SE005001AA00300B2F5DDDDD /* SeasonCloseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */; };
 		SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */; };
 		SFT001AA00300B2F5D0001 /* SorenessFatigueModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFT001AA00300B2F5D0000 /* SorenessFatigueModels.swift */; };
-		SFT002AA00300B2F5D0001 /* APIService+SorenessFatigue.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFT002AA00300B2F5D0000 /* APIService+SorenessFatigue.swift */; };
-		SFT003AA00300B2F5D0001 /* SorenessFatigueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFT003AA00300B2F5D0000 /* SorenessFatigueCard.swift */; };
 		SHC001AA00300B2F5D0001 /* SleepHRVModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHC001AA00300B2F5D0000 /* SleepHRVModels.swift */; };
-		SHC002AA00300B2F5D0001 /* APIService+SleepHRV.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHC002AA00300B2F5D0000 /* APIService+SleepHRV.swift */; };
-		SHC003AA00300B2F5D0001 /* SleepHRVCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHC003AA00300B2F5D0000 /* SleepHRVCard.swift */; };
 		SLD001AA00300B2F5D0001 /* SleepDebtModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */; };
-		SLD002AA00300B2F5D0001 /* APIService+SleepDebt.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */; };
-		SLD003AA00300B2F5D0001 /* SleepDebtCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */; };
 		SLI001AA00300B2F5D0001 /* StressLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI001AA00300B2F5D0000 /* StressLoadModels.swift */; };
-		SLI002AA00300B2F5D0001 /* APIService+StressLoad.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */; };
-		SLI003AA00300B2F5D0001 /* StressLoadCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI003AA00300B2F5D0000 /* StressLoadCard.swift */; };
 		SM001001AA00300B2F5DFFFF /* StatsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SM001000AA00300B2F5DFFFF /* StatsModels.swift */; };
 		SP001001AA00300B2F5DBBBB /* SpiritModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP001000AA00300B2F5DBBBB /* SpiritModels.swift */; };
 		SP002001AA00300B2F5DBBBB /* APIService+Spirit.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */; };
@@ -287,11 +243,7 @@
 		SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */; };
 		SPK0002SPK0002SPK0002SP2 /* SessionPreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */; };
 		SQE001AA00300B2F5D0001 /* SleepQualityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQE001AA00300B2F5D0000 /* SleepQualityModels.swift */; };
-		SQE002AA00300B2F5D0001 /* APIService+SleepQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQE002AA00300B2F5D0000 /* APIService+SleepQuality.swift */; };
-		SQE003AA00300B2F5D0001 /* SleepQualityCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQE003AA00300B2F5D0000 /* SleepQualityCard.swift */; };
 		SQS001AA00300B2F5D0001 /* SessionQualityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQS001AA00300B2F5D0000 /* SessionQualityModels.swift */; };
-		SQS002AA00300B2F5D0001 /* APIService+SessionQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQS002AA00300B2F5D0000 /* APIService+SessionQuality.swift */; };
-		SQS003AA00300B2F5D0001 /* SessionQualityCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQS003AA00300B2F5D0000 /* SessionQualityCard.swift */; };
 		SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */; };
 		STNA0001STNA0001STNA0001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0001STNR0001STNR0001 /* SettingsView.swift */; };
 		STNA0002STNA0002STNA0002 /* TrainingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */; };
@@ -303,27 +255,15 @@
 		SWAP0002SWAP0002SWAP0002 /* ExerciseSwapSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */; };
 		TDYW002TDYW002TDYW002002 /* TodayWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TDYW001TDYW001TDYW001001 /* TodayWidgets.swift */; };
 		THM001AA00300B2F5D0001 /* TrainingHeatmapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM001AA00300B2F5D0000 /* TrainingHeatmapModels.swift */; };
-		THM002AA00300B2F5D0001 /* APIService+TrainingHeatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */; };
-		THM003AA00300B2F5D0001 /* TrainingHeatmapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */; };
-		TPC001AA00300B2F5D0001 /* TemporalPatternCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TPC001AA00300B2F5D0000 /* TemporalPatternCard.swift */; };
 		TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */; };
-		TRL002AA00300B2F5D0001 /* APIService+TrainingLoad.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */; };
-		TRL003AA00300B2F5D0001 /* TrainingLoadCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL003AA00300B2F5D0000 /* TrainingLoadCard.swift */; };
 		VAR00002VAR00002VAR00002 /* CreateVariantSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */; };
-		VCC001AA00300B2F5D0001 /* VelocityCompoundCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = VCC001AA00300B2F5D0000 /* VelocityCompoundCard.swift */; };
 		VEL001AA00300B2F5D0001 /* VelocityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = VEL001AA00300B2F5D0000 /* VelocityModels.swift */; };
-		VEL002AA00300B2F5D0001 /* APIService+Velocity.swift in Sources */ = {isa = PBXBuildFile; fileRef = VEL002AA00300B2F5D0000 /* APIService+Velocity.swift */; };
 		VPG001AA00300B2F5D0001 /* VolumeProgressionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = VPG001AA00300B2F5D0000 /* VolumeProgressionModels.swift */; };
-		VPG002AA00300B2F5D0001 /* APIService+VolumeProgression.swift in Sources */ = {isa = PBXBuildFile; fileRef = VPG002AA00300B2F5D0000 /* APIService+VolumeProgression.swift */; };
-		VPG003AA00300B2F5D0001 /* VolumeProgressionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = VPG003AA00300B2F5D0000 /* VolumeProgressionCard.swift */; };
 		WAV00002WAV00002WAV00002 /* WorkoutActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WAV00001WAV00001WAV00001 /* WorkoutActiveView.swift */; };
 		WDT001AA00300B2F5D0001 /* WorkoutDurationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = WDT001AA00300B2F5D0000 /* WorkoutDurationModels.swift */; };
-		WDT002AA00300B2F5D0001 /* APIService+WorkoutDuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = WDT002AA00300B2F5D0000 /* APIService+WorkoutDuration.swift */; };
-		WDT003AA00300B2F5D0001 /* WorkoutDurationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WDT003AA00300B2F5D0000 /* WorkoutDurationCard.swift */; };
 		WGB0002WGB0002WGB0002WG2 /* WarmupGuidanceBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = WGB0001WGB0001WGB0001WG1 /* WarmupGuidanceBanner.swift */; };
 		WMS001AA00300B2F5D0001 /* WeeklyMomentumModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = WMS001AA00300B2F5D0000 /* WeeklyMomentumModels.swift */; };
-		WMS002AA00300B2F5D0001 /* APIService+WeeklyMomentum.swift in Sources */ = {isa = PBXBuildFile; fileRef = WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */; };
-		WMS003AA00300B2F5D0001 /* WeeklyMomentumCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */; };
+		WKT002AA00300B2F5D0001 /* APIService+WeeklyTonnage.swift in Sources */ = {isa = PBXBuildFile; fileRef = WKT002AA00300B2F5D0000 /* APIService+WeeklyTonnage.swift */; };
 		WR001001AA00300B2F5DAAAA /* WarRoomModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */; };
 		WR002001AA00300B2F5DAAAA /* APIService+WarRoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */; };
 		WR003001AA00300B2F5DAAAA /* WarRoomGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR003000AA00300B2F5DAAAA /* WarRoomGateView.swift */; };
@@ -394,7 +334,6 @@
 		0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
 		07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorBannerView.swift; sourceTree = "<group>"; };
 		07F5AB1A421041E59142D99A /* NutritionViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
-		106008F1BB4042C0803D076D /* GraveyardModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GraveyardModels.swift; sourceTree = "<group>"; };
 		12186D7E0477FF4F0975C7DA /* RitualView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualView.swift; sourceTree = "<group>"; };
 		1412A3C124DEC128C01A2D96 /* RitualEveningView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualEveningView.swift; sourceTree = "<group>"; };
 		15EBCC3B6A4B2F3CDA11F3EF /* ExerciseCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseCard.swift; sourceTree = "<group>"; };
@@ -402,7 +341,6 @@
 		17DD0C9095A69B34AA03E74F /* WorkoutModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutModels.swift; sourceTree = "<group>"; };
 		1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalogView.swift; sourceTree = "<group>"; };
 		27D3508F57CBFDAD2C6FDA2D /* HealthKitService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
-		28FC68105F9D4BDE956144F3 /* APIService+Graveyard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Graveyard.swift"; sourceTree = "<group>"; };
 		2B6493A275C48565558F7C13 /* WorkoutDNAModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutDNAModels.swift; sourceTree = "<group>"; };
 		2C092A48A92B45199AD49EE3 /* DashboardHeaderCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeaderCards.swift; sourceTree = "<group>"; };
 		2CCC113F806D404EB7F7D565 /* BehaviorTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehaviorTracker.swift; sourceTree = "<group>"; };
@@ -415,7 +353,6 @@
 		358C75220B7439B325975456 /* AppState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		3804A04195775D974B912B1B /* TrainingOS.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; name = TrainingOS.entitlements; path = TrainingOS/TrainingOS.entitlements; sourceTree = "<group>"; };
 		3BF5B0FFF277946C524E44D3 /* RitualModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualModels.swift; sourceTree = "<group>"; };
-		3EF11A8481CB4909A6965C19 /* DashboardNutritionCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNutritionCards.swift; sourceTree = "<group>"; };
 		4BD5FB27DA5D308C889BDBF9 /* ReadinessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadinessModels.swift; sourceTree = "<group>"; };
 		51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+TimeCapsule.swift"; sourceTree = "<group>"; };
 		552F808C866A877BFC051570 /* WellnessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WellnessModels.swift; sourceTree = "<group>"; };
@@ -425,9 +362,7 @@
 		621800FD5B1E4C5CA2A93753 /* CoachInsightModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CoachInsightModels.swift; sourceTree = "<group>"; };
 		64709C7BAEA141594DB92A70 /* EmptyStateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRitualCards.swift; sourceTree = "<group>"; };
-		75686E58001949C3B9BD69C3 /* DashboardWellnessCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWellnessCards.swift; sourceTree = "<group>"; };
 		8130286D3B05F35EC783FDF9 /* APIService+Readiness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Readiness.swift"; sourceTree = "<group>"; };
-		896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardReadinessCards.swift; sourceTree = "<group>"; };
 		8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimeCapsuleViews.swift; sourceTree = "<group>"; };
 		8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternCardView.swift; sourceTree = "<group>"; };
 		9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLoadingView.swift; sourceTree = "<group>"; };
@@ -477,7 +412,6 @@
 		APIWO001APIWO001APIWO001 /* APIService+Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Workout.swift"; sourceTree = "<group>"; };
 		AT000002AT000002AT000002 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		B4C5D6E7F8A9B0C1D2E3F4A6 /* PostSeanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostSeanceCard.swift; sourceTree = "<group>"; };
-		B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GraveyardView.swift; sourceTree = "<group>"; };
 		B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSummaryView.swift; sourceTree = "<group>"; };
 		BAC82E18346773B8F8591B8F /* RitualMorningView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMorningView.swift; sourceTree = "<group>"; };
 		BB001002BB001002BB001002 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
@@ -486,25 +420,16 @@
 		BC0000022F5D98BA002AE470 /* BodyCompEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompEntry.swift; sourceTree = "<group>"; };
 		BC0000042F5D98BA002AE470 /* NavyCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavyCalculatorView.swift; sourceTree = "<group>"; };
 		BC0000062F5D98BA002AE470 /* BodyCompHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompHistoryView.swift; sourceTree = "<group>"; };
-		BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehavioralPRsCard.swift; sourceTree = "<group>"; };
 		BPR001AA00300B2F5D0000 /* BehavioralPRModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehavioralPRModels.swift; sourceTree = "<group>"; };
-		BPR002AA00300B2F5D0000 /* APIService+BehavioralPR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+BehavioralPR.swift"; sourceTree = "<group>"; };
 		BWT001AA00300B2F5D0000 /* BodyWeightTrendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyWeightTrendModels.swift; sourceTree = "<group>"; };
-		BWT002AA00300B2F5D0000 /* APIService+BodyWeightTrend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+BodyWeightTrend.swift"; sourceTree = "<group>"; };
-		BWT003AA00300B2F5D0000 /* BodyWeightTrendCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyWeightTrendCard.swift; sourceTree = "<group>"; };
 		C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		C0C3EB4A6651A37E8770B3DD /* SmartAlarmService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SmartAlarmService.swift; sourceTree = "<group>"; };
 		CAR001AA00300B2F5D0000 /* ComebackArcModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComebackArcModels.swift; sourceTree = "<group>"; };
-		CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+ComebackArc.swift"; sourceTree = "<group>"; };
-		CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComebackArcCard.swift; sourceTree = "<group>"; };
 		CC1100002F5D98BA002AE470 /* DashboardCardioCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCardioCard.swift; sourceTree = "<group>"; };
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
 		CI0002CI0002CI0002CI0002 /* CacheInvalidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidation.swift; sourceTree = "<group>"; };
 		CMP001AA00300B2F5D0000 /* CompoundModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompoundModels.swift; sourceTree = "<group>"; };
-		CMP002AA00300B2F5D0000 /* APIService+Compound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Compound.swift"; sourceTree = "<group>"; };
 		CST001AA00300B2F5D0000 /* ConsistencyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsistencyModels.swift; sourceTree = "<group>"; };
-		CST002AA00300B2F5D0000 /* APIService+Consistency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Consistency.swift"; sourceTree = "<group>"; };
-		CST003AA00300B2F5D0000 /* ConsistencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsistencyCard.swift; sourceTree = "<group>"; };
 		D0FE1CA8525F46319027AD6D /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
 		D52AB3DCF112E90A48C999EB /* DemonsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DemonsView.swift; sourceTree = "<group>"; };
 		D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSessionManager.swift; sourceTree = "<group>"; };
@@ -543,7 +468,6 @@
 		DD44000A2F5D98BA002AE473 /* SelfCareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareView.swift; sourceTree = "<group>"; };
 		DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrisisResourcesView.swift; sourceTree = "<group>"; };
 		DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthDashboardView.swift; sourceTree = "<group>"; };
-		DF3D5D30B7139E2E86EC0C0F /* APIService+SessionProgression.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+SessionProgression.swift"; sourceTree = "<group>"; };
 		E163D5411790B6DA5108E310 /* PatternModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternModels.swift; sourceTree = "<group>"; };
 		E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsModels.swift; sourceTree = "<group>"; };
 		EAD9AC36E56041C996317086 /* ProactiveAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveAlert.swift; sourceTree = "<group>"; };
@@ -558,8 +482,6 @@
 		EF0003EF0003EF0003EF0003 /* FloatingRestTimerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingRestTimerCard.swift; sourceTree = "<group>"; };
 		ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnergyModels.swift; sourceTree = "<group>"; };
 		EPF001AA00300B2F5D0000 /* EnergyPerformanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyPerformanceModels.swift; sourceTree = "<group>"; };
-		EPF002AA00300B2F5D0000 /* APIService+EnergyPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+EnergyPerformance.swift"; sourceTree = "<group>"; };
-		EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyPerformanceCard.swift; sourceTree = "<group>"; };
 		ER001000ER001000ER001000 /* EnergyRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyRecoveryView.swift; sourceTree = "<group>"; };
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoButton.swift; sourceTree = "<group>"; };
 		F4D4DE4EE839463B0D4AB746 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -576,8 +498,6 @@
 		GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderModels.swift; sourceTree = "<group>"; };
 		GF007000AA00300B2F5DEEEE /* GymFinderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderService.swift; sourceTree = "<group>"; };
 		IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekModels.swift; sourceTree = "<group>"; };
-		IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+IdealWeek.swift"; sourceTree = "<group>"; };
-		IDW003AA00300B2F5D0000 /* IdealWeekCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekCard.swift; sourceTree = "<group>"; };
 		IR0001IR0001IR0001IR0001 /* ProposalsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProposalsCard.swift; sourceTree = "<group>"; };
 		IR0002IR0002IR0002IR0002 /* InsightsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsCard.swift; sourceTree = "<group>"; };
 		IR0003IR0003IR0003IR0003 /* NarrativeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NarrativeCard.swift; sourceTree = "<group>"; };
@@ -593,13 +513,9 @@
 		IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachContextSummary.swift; sourceTree = "<group>"; };
 		MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MidWorkoutAdvisorCard.swift; sourceTree = "<group>"; };
 		MBL001AA00300B2F5D0000 /* MuscleBalanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleBalanceModels.swift; sourceTree = "<group>"; };
-		MBL002AA00300B2F5D0000 /* APIService+MuscleBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+MuscleBalance.swift"; sourceTree = "<group>"; };
-		MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleBalanceCard.swift; sourceTree = "<group>"; };
 		MC000001MC000001MC000001 /* MetricCell.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetricCell.swift; sourceTree = "<group>"; };
 		NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerformanceModels.swift; sourceTree = "<group>"; };
-		NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+NutritionPerformance.swift"; sourceTree = "<group>"; };
-		NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerformanceCard.swift; sourceTree = "<group>"; };
 		NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionActionMessage.swift; sourceTree = "<group>"; };
 		NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProteinProgressCard.swift; sourceTree = "<group>"; };
 		NR0003NR0003NR0003NR0003 /* NutritionCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionCharts.swift; sourceTree = "<group>"; };
@@ -619,27 +535,16 @@
 		OA004000AA00300B2F5DCCCC /* OathWriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWriteView.swift; sourceTree = "<group>"; };
 		OB000001OB000001OB000001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		OPD001AA00300B2F5D0000 /* OptimalDayModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimalDayModels.swift; sourceTree = "<group>"; };
-		OPD002AA00300B2F5D0000 /* APIService+OptimalDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+OptimalDay.swift"; sourceTree = "<group>"; };
-		OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimalDayCard.swift; sourceTree = "<group>"; };
 		PB000001PB000001PB000001 /* PrimaryButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
 		PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceConditionsModels.swift; sourceTree = "<group>"; };
-		PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+PerformanceConditions.swift"; sourceTree = "<group>"; };
-		PFC003AA00300B2F5D0000 /* PerformanceConditionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceConditionsCard.swift; sourceTree = "<group>"; };
 		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
 		POE001AA00300B2F5D0000 /* ProgressiveOverloadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressiveOverloadModels.swift; sourceTree = "<group>"; };
-		POE002AA00300B2F5D0000 /* APIService+ProgressiveOverload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+ProgressiveOverload.swift"; sourceTree = "<group>"; };
-		POE003AA00300B2F5D0000 /* ProgressiveOverloadCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressiveOverloadCard.swift; sourceTree = "<group>"; };
-		PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortraitJ90Card.swift; sourceTree = "<group>"; };
 		PRT001AA00300B2F5D0000 /* PortraitModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortraitModels.swift; sourceTree = "<group>"; };
-		PRT002AA00300B2F5D0000 /* APIService+Portrait.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Portrait.swift"; sourceTree = "<group>"; };
 		PRTK01AA00300B2F5D0000 /* PRTrackerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRTrackerModels.swift; sourceTree = "<group>"; };
-		PRTK02AA00300B2F5D0000 /* APIService+PRTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+PRTracker.swift"; sourceTree = "<group>"; };
-		PRTK03AA00300B2F5D0000 /* PRTrackerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRTrackerCard.swift; sourceTree = "<group>"; };
 		PS000001PS000001PS000001 /* ProgressionSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestion.swift; sourceTree = "<group>"; };
 		PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestionsSheet.swift; sourceTree = "<group>"; };
 		RH000001RH000001RH000001 /* RPEHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPEHelper.swift; sourceTree = "<group>"; };
 		RPT001AA00300B2F5D0000 /* RuptureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuptureModels.swift; sourceTree = "<group>"; };
-		RPT002AA00300B2F5D0000 /* APIService+Rupture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Rupture.swift"; sourceTree = "<group>"; };
 		RR0001RR0001RR0001RR0001 /* RecoveryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRow.swift; sourceTree = "<group>"; };
 		RR0002RR0002RR0002RR0002 /* ReadinessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessCard.swift; sourceTree = "<group>"; };
 		RR0003RR0003RR0003RR0003 /* RecoveryCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCharts.swift; sourceTree = "<group>"; };
@@ -648,7 +553,6 @@
 		RR0006RR0006RR0006RR0006 /* WatchSyncBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSyncBannerView.swift; sourceTree = "<group>"; };
 		RR0007RR0007RR0007RR0007 /* HRVAnalysisCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisCard.swift; sourceTree = "<group>"; };
 		RR0008RR0008RR0008RR0008 /* RecoveryPerformanceBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPerformanceBanner.swift; sourceTree = "<group>"; };
-		RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuptureRiskCard.swift; sourceTree = "<group>"; };
 		SC0001SC0001SC0001SC0001 /* SessionChips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionChips.swift; sourceTree = "<group>"; };
 		SE001000AA00300B2F5DDDDD /* SeasonModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonModels.swift; sourceTree = "<group>"; };
 		SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Seasons.swift"; sourceTree = "<group>"; };
@@ -657,17 +561,9 @@
 		SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonCloseView.swift; sourceTree = "<group>"; };
 		SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonReportView.swift; sourceTree = "<group>"; };
 		SFT001AA00300B2F5D0000 /* SorenessFatigueModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SorenessFatigueModels.swift; sourceTree = "<group>"; };
-		SFT002AA00300B2F5D0000 /* APIService+SorenessFatigue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SorenessFatigue.swift"; sourceTree = "<group>"; };
-		SFT003AA00300B2F5D0000 /* SorenessFatigueCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SorenessFatigueCard.swift; sourceTree = "<group>"; };
 		SHC001AA00300B2F5D0000 /* SleepHRVModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHRVModels.swift; sourceTree = "<group>"; };
-		SHC002AA00300B2F5D0000 /* APIService+SleepHRV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SleepHRV.swift"; sourceTree = "<group>"; };
-		SHC003AA00300B2F5D0000 /* SleepHRVCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHRVCard.swift; sourceTree = "<group>"; };
 		SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDebtModels.swift; sourceTree = "<group>"; };
-		SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SleepDebt.swift"; sourceTree = "<group>"; };
-		SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDebtCard.swift; sourceTree = "<group>"; };
 		SLI001AA00300B2F5D0000 /* StressLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StressLoadModels.swift; sourceTree = "<group>"; };
-		SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+StressLoad.swift"; sourceTree = "<group>"; };
-		SLI003AA00300B2F5D0000 /* StressLoadCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StressLoadCard.swift; sourceTree = "<group>"; };
 		SM001000AA00300B2F5DFFFF /* StatsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatsModels.swift; sourceTree = "<group>"; };
 		SP001000AA00300B2F5DBBBB /* SpiritModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritModels.swift; sourceTree = "<group>"; };
 		SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Spirit.swift"; sourceTree = "<group>"; };
@@ -677,11 +573,7 @@
 		SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritJournalView.swift; sourceTree = "<group>"; };
 		SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPreferenceKeys.swift; sourceTree = "<group>"; };
 		SQE001AA00300B2F5D0000 /* SleepQualityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepQualityModels.swift; sourceTree = "<group>"; };
-		SQE002AA00300B2F5D0000 /* APIService+SleepQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SleepQuality.swift"; sourceTree = "<group>"; };
-		SQE003AA00300B2F5D0000 /* SleepQualityCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepQualityCard.swift; sourceTree = "<group>"; };
 		SQS001AA00300B2F5D0000 /* SessionQualityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionQualityModels.swift; sourceTree = "<group>"; };
-		SQS002AA00300B2F5D0000 /* APIService+SessionQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SessionQuality.swift"; sourceTree = "<group>"; };
-		SQS003AA00300B2F5D0000 /* SessionQualityCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionQualityCard.swift; sourceTree = "<group>"; };
 		SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupportViews.swift; sourceTree = "<group>"; };
 		STNR0001STNR0001STNR0001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsView.swift; sourceTree = "<group>"; };
@@ -693,27 +585,15 @@
 		SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseSwapSheet.swift; sourceTree = "<group>"; };
 		TDYW001TDYW001TDYW001001 /* TodayWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayWidgets.swift; sourceTree = "<group>"; };
 		THM001AA00300B2F5D0000 /* TrainingHeatmapModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingHeatmapModels.swift; sourceTree = "<group>"; };
-		THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+TrainingHeatmap.swift"; sourceTree = "<group>"; };
-		THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingHeatmapCard.swift; sourceTree = "<group>"; };
-		TPC001AA00300B2F5D0000 /* TemporalPatternCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporalPatternCard.swift; sourceTree = "<group>"; };
 		TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadModels.swift; sourceTree = "<group>"; };
-		TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+TrainingLoad.swift"; sourceTree = "<group>"; };
-		TRL003AA00300B2F5D0000 /* TrainingLoadCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadCard.swift; sourceTree = "<group>"; };
 		VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateVariantSheet.swift; sourceTree = "<group>"; };
-		VCC001AA00300B2F5D0000 /* VelocityCompoundCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VelocityCompoundCard.swift; sourceTree = "<group>"; };
 		VEL001AA00300B2F5D0000 /* VelocityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VelocityModels.swift; sourceTree = "<group>"; };
-		VEL002AA00300B2F5D0000 /* APIService+Velocity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Velocity.swift"; sourceTree = "<group>"; };
 		VPG001AA00300B2F5D0000 /* VolumeProgressionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeProgressionModels.swift; sourceTree = "<group>"; };
-		VPG002AA00300B2F5D0000 /* APIService+VolumeProgression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+VolumeProgression.swift"; sourceTree = "<group>"; };
-		VPG003AA00300B2F5D0000 /* VolumeProgressionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeProgressionCard.swift; sourceTree = "<group>"; };
 		WAV00001WAV00001WAV00001 /* WorkoutActiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActiveView.swift; sourceTree = "<group>"; };
 		WDT001AA00300B2F5D0000 /* WorkoutDurationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDurationModels.swift; sourceTree = "<group>"; };
-		WDT002AA00300B2F5D0000 /* APIService+WorkoutDuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+WorkoutDuration.swift"; sourceTree = "<group>"; };
-		WDT003AA00300B2F5D0000 /* WorkoutDurationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDurationCard.swift; sourceTree = "<group>"; };
 		WGB0001WGB0001WGB0001WG1 /* WarmupGuidanceBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarmupGuidanceBanner.swift; sourceTree = "<group>"; };
 		WMS001AA00300B2F5D0000 /* WeeklyMomentumModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMomentumModels.swift; sourceTree = "<group>"; };
-		WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+WeeklyMomentum.swift"; sourceTree = "<group>"; };
-		WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMomentumCard.swift; sourceTree = "<group>"; };
+		WKT002AA00300B2F5D0000 /* APIService+WeeklyTonnage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+WeeklyTonnage.swift"; sourceTree = "<group>"; };
 		WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomModels.swift; sourceTree = "<group>"; };
 		WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+WarRoom.swift"; sourceTree = "<group>"; };
 		WR003000AA00300B2F5DAAAA /* WarRoomGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomGateView.swift; sourceTree = "<group>"; };
@@ -980,7 +860,6 @@
 				BAC82E18346773B8F8591B8F /* RitualMorningView.swift */,
 				1412A3C124DEC128C01A2D96 /* RitualEveningView.swift */,
 				D52AB3DCF112E90A48C999EB /* DemonsView.swift */,
-				B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */,
 				WR003000AA00300B2F5DAAAA /* WarRoomGateView.swift */,
 				WR004000AA00300B2F5DAAAA /* WarRoomView.swift */,
 				WR005000AA00300B2F5DAAAA /* BattleCounterView.swift */,
@@ -1072,7 +951,6 @@
 				2B6493A275C48565558F7C13 /* WorkoutDNAModels.swift */,
 				6186E51D3E2986E22EC27AC3 /* PlateauModels.swift */,
 				3BF5B0FFF277946C524E44D3 /* RitualModels.swift */,
-				106008F1BB4042C0803D076D /* GraveyardModels.swift */,
 				WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */,
 				SP001000AA00300B2F5DBBBB /* SpiritModels.swift */,
 				OA001000AA00300B2F5DCCCC /* OathModels.swift */,
@@ -1150,41 +1028,13 @@
 				955D6FDBE3CAB80990772A49 /* APIService+Plateau.swift */,
 				32F1EC5F94087F4D7DE3F244 /* BodyCompService.swift */,
 				ED6AAE13530007B583B67B1D /* APIService+Ritual.swift */,
-				28FC68105F9D4BDE956144F3 /* APIService+Graveyard.swift */,
 				WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */,
 				SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */,
 				OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */,
 				SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */,
 				GF007000AA00300B2F5DEEEE /* GymFinderService.swift */,
-				VEL002AA00300B2F5D0000 /* APIService+Velocity.swift */,
-				CMP002AA00300B2F5D0000 /* APIService+Compound.swift */,
-				PRT002AA00300B2F5D0000 /* APIService+Portrait.swift */,
-				BPR002AA00300B2F5D0000 /* APIService+BehavioralPR.swift */,
-				RPT002AA00300B2F5D0000 /* APIService+Rupture.swift */,
-				PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */,
-				SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */,
-				TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */,
-				IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */,
-				NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */,
-				CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */,
-				WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */,
-				OPD002AA00300B2F5D0000 /* APIService+OptimalDay.swift */,
-				MBL002AA00300B2F5D0000 /* APIService+MuscleBalance.swift */,
-				CST002AA00300B2F5D0000 /* APIService+Consistency.swift */,
-				VPG002AA00300B2F5D0000 /* APIService+VolumeProgression.swift */,
-				SHC002AA00300B2F5D0000 /* APIService+SleepHRV.swift */,
-				SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */,
-				POE002AA00300B2F5D0000 /* APIService+ProgressiveOverload.swift */,
-				SQS002AA00300B2F5D0000 /* APIService+SessionQuality.swift */,
-				THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */,
-				BWT002AA00300B2F5D0000 /* APIService+BodyWeightTrend.swift */,
-				EPF002AA00300B2F5D0000 /* APIService+EnergyPerformance.swift */,
-				PRTK02AA00300B2F5D0000 /* APIService+PRTracker.swift */,
-				SFT002AA00300B2F5D0000 /* APIService+SorenessFatigue.swift */,
-				SQE002AA00300B2F5D0000 /* APIService+SleepQuality.swift */,
-				WDT002AA00300B2F5D0000 /* APIService+WorkoutDuration.swift */,
+				WKT002AA00300B2F5D0000 /* APIService+WeeklyTonnage.swift */,
 				C0C3EB4A6651A37E8770B3DD /* SmartAlarmService.swift */,
-				DF3D5D30B7139E2E86EC0C0F /* APIService+SessionProgression.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1210,10 +1060,7 @@
 				2E763610F6C4444B969517B6 /* DashboardTodayCards.swift */,
 				CC1100002F5D98BA002AE470 /* DashboardCardioCard.swift */,
 				D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */,
-				3EF11A8481CB4909A6965C19 /* DashboardNutritionCards.swift */,
-				75686E58001949C3B9BD69C3 /* DashboardWellnessCards.swift */,
 				DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */,
-				896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */,
 				6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */,
 				D68B8535D55F4B109509F146 /* MorningRevealView.swift */,
 				919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */,
@@ -1222,33 +1069,6 @@
 				TDYW001TDYW001TDYW001001 /* TodayWidgets.swift */,
 				9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */,
 				WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */,
-				VCC001AA00300B2F5D0000 /* VelocityCompoundCard.swift */,
-				TPC001AA00300B2F5D0000 /* TemporalPatternCard.swift */,
-				PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */,
-				BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */,
-				RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */,
-				PFC003AA00300B2F5D0000 /* PerformanceConditionsCard.swift */,
-				SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */,
-				TRL003AA00300B2F5D0000 /* TrainingLoadCard.swift */,
-				IDW003AA00300B2F5D0000 /* IdealWeekCard.swift */,
-				NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */,
-				CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */,
-				WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */,
-				OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */,
-				MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */,
-				CST003AA00300B2F5D0000 /* ConsistencyCard.swift */,
-				VPG003AA00300B2F5D0000 /* VolumeProgressionCard.swift */,
-				SHC003AA00300B2F5D0000 /* SleepHRVCard.swift */,
-				SLI003AA00300B2F5D0000 /* StressLoadCard.swift */,
-				POE003AA00300B2F5D0000 /* ProgressiveOverloadCard.swift */,
-				SQS003AA00300B2F5D0000 /* SessionQualityCard.swift */,
-				THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */,
-				BWT003AA00300B2F5D0000 /* BodyWeightTrendCard.swift */,
-				EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */,
-				PRTK03AA00300B2F5D0000 /* PRTrackerCard.swift */,
-				SFT003AA00300B2F5D0000 /* SorenessFatigueCard.swift */,
-				SQE003AA00300B2F5D0000 /* SleepQualityCard.swift */,
-				WDT003AA00300B2F5D0000 /* WorkoutDurationCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -1733,10 +1553,7 @@
 				5235FFAB182E4E9F9D4F4648 /* DashboardTodayCards.swift in Sources */,
 				CC1100012F5D98BA002AE470 /* DashboardCardioCard.swift in Sources */,
 				068A26746FD34970A1D410BF /* DashboardBriefCards.swift in Sources */,
-				110ED440D08546FE9E027EC0 /* DashboardNutritionCards.swift in Sources */,
-				D665E4552F5D98BA002AE470 /* DashboardWellnessCards.swift in Sources */,
 				D665E4562F5D98BA002AE470 /* DashboardWeeklyCards.swift in Sources */,
-				D665E4572F5D98BA002AE470 /* DashboardReadinessCards.swift in Sources */,
 				D665E4582F5D98BA002AE470 /* DashboardRitualCards.swift in Sources */,
 				WRS0001WRS0001WRS0001001 /* WarRoomStripView.swift in Sources */,
 				07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */,
@@ -1874,9 +1691,6 @@
 				9FAB21F7C04FE500FE46A479 /* WorkoutDNAModels.swift in Sources */,
 				AB5A5BBA12AEB12AF0596F9C /* APIService+WorkoutDNA.swift in Sources */,
 				474875470ECCEB1C8D964FBF /* WorkoutDNAView.swift in Sources */,
-				3F784A7AB03C48179FBF0EFF /* GraveyardModels.swift in Sources */,
-				EE8C19D26FF84056B62B4BD3 /* APIService+Graveyard.swift in Sources */,
-				BA758653D86B40DBAD0CDE88 /* GraveyardView.swift in Sources */,
 				A5B8A1E652914C8CF9744089 /* PlateauModels.swift in Sources */,
 				DC73018555BF2F8EE84E78C2 /* APIService+Plateau.swift in Sources */,
 				193EB4CD1F38BB9425064494 /* PlateauViews.swift in Sources */,
@@ -1933,86 +1747,32 @@
 				PRT001AA00300B2F5D0001 /* PortraitModels.swift in Sources */,
 				BPR001AA00300B2F5D0001 /* BehavioralPRModels.swift in Sources */,
 				RPT001AA00300B2F5D0001 /* RuptureModels.swift in Sources */,
-				VEL002AA00300B2F5D0001 /* APIService+Velocity.swift in Sources */,
-				CMP002AA00300B2F5D0001 /* APIService+Compound.swift in Sources */,
-				PRT002AA00300B2F5D0001 /* APIService+Portrait.swift in Sources */,
-				BPR002AA00300B2F5D0001 /* APIService+BehavioralPR.swift in Sources */,
-				RPT002AA00300B2F5D0001 /* APIService+Rupture.swift in Sources */,
-				VCC001AA00300B2F5D0001 /* VelocityCompoundCard.swift in Sources */,
-				TPC001AA00300B2F5D0001 /* TemporalPatternCard.swift in Sources */,
-				PRC001AA00300B2F5D0001 /* PortraitJ90Card.swift in Sources */,
-				BPC001AA00300B2F5D0001 /* BehavioralPRsCard.swift in Sources */,
-				RRC001AA00300B2F5D0001 /* RuptureRiskCard.swift in Sources */,
 				PFC001AA00300B2F5D0001 /* PerformanceConditionsModels.swift in Sources */,
 				SLD001AA00300B2F5D0001 /* SleepDebtModels.swift in Sources */,
-				PFC002AA00300B2F5D0001 /* APIService+PerformanceConditions.swift in Sources */,
-				SLD002AA00300B2F5D0001 /* APIService+SleepDebt.swift in Sources */,
-				PFC003AA00300B2F5D0001 /* PerformanceConditionsCard.swift in Sources */,
-				SLD003AA00300B2F5D0001 /* SleepDebtCard.swift in Sources */,
 				TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */,
 				IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */,
-				TRL002AA00300B2F5D0001 /* APIService+TrainingLoad.swift in Sources */,
-				IDW002AA00300B2F5D0001 /* APIService+IdealWeek.swift in Sources */,
-				TRL003AA00300B2F5D0001 /* TrainingLoadCard.swift in Sources */,
-				IDW003AA00300B2F5D0001 /* IdealWeekCard.swift in Sources */,
 				NPC001AA00300B2F5D0001 /* NutritionPerformanceModels.swift in Sources */,
 				CAR001AA00300B2F5D0001 /* ComebackArcModels.swift in Sources */,
 				WMS001AA00300B2F5D0001 /* WeeklyMomentumModels.swift in Sources */,
-				NPC002AA00300B2F5D0001 /* APIService+NutritionPerformance.swift in Sources */,
-				CAR002AA00300B2F5D0001 /* APIService+ComebackArc.swift in Sources */,
-				WMS002AA00300B2F5D0001 /* APIService+WeeklyMomentum.swift in Sources */,
-				NPC003AA00300B2F5D0001 /* NutritionPerformanceCard.swift in Sources */,
-				CAR003AA00300B2F5D0001 /* ComebackArcCard.swift in Sources */,
-				WMS003AA00300B2F5D0001 /* WeeklyMomentumCard.swift in Sources */,
+				WKT002AA00300B2F5D0001 /* APIService+WeeklyTonnage.swift in Sources */,
 				OPD001AA00300B2F5D0001 /* OptimalDayModels.swift in Sources */,
 				MBL001AA00300B2F5D0001 /* MuscleBalanceModels.swift in Sources */,
 				CST001AA00300B2F5D0001 /* ConsistencyModels.swift in Sources */,
-				OPD002AA00300B2F5D0001 /* APIService+OptimalDay.swift in Sources */,
-				MBL002AA00300B2F5D0001 /* APIService+MuscleBalance.swift in Sources */,
-				CST002AA00300B2F5D0001 /* APIService+Consistency.swift in Sources */,
-				OPD003AA00300B2F5D0001 /* OptimalDayCard.swift in Sources */,
-				MBL003AA00300B2F5D0001 /* MuscleBalanceCard.swift in Sources */,
-				CST003AA00300B2F5D0001 /* ConsistencyCard.swift in Sources */,
 				VPG001AA00300B2F5D0001 /* VolumeProgressionModels.swift in Sources */,
-				VPG002AA00300B2F5D0001 /* APIService+VolumeProgression.swift in Sources */,
-				VPG003AA00300B2F5D0001 /* VolumeProgressionCard.swift in Sources */,
 				SHC001AA00300B2F5D0001 /* SleepHRVModels.swift in Sources */,
-				SHC002AA00300B2F5D0001 /* APIService+SleepHRV.swift in Sources */,
-				SHC003AA00300B2F5D0001 /* SleepHRVCard.swift in Sources */,
 				SLI001AA00300B2F5D0001 /* StressLoadModels.swift in Sources */,
-				SLI002AA00300B2F5D0001 /* APIService+StressLoad.swift in Sources */,
-				SLI003AA00300B2F5D0001 /* StressLoadCard.swift in Sources */,
 				POE001AA00300B2F5D0001 /* ProgressiveOverloadModels.swift in Sources */,
-				POE002AA00300B2F5D0001 /* APIService+ProgressiveOverload.swift in Sources */,
-				POE003AA00300B2F5D0001 /* ProgressiveOverloadCard.swift in Sources */,
 				SQS001AA00300B2F5D0001 /* SessionQualityModels.swift in Sources */,
-				SQS002AA00300B2F5D0001 /* APIService+SessionQuality.swift in Sources */,
-				SQS003AA00300B2F5D0001 /* SessionQualityCard.swift in Sources */,
 				THM001AA00300B2F5D0001 /* TrainingHeatmapModels.swift in Sources */,
-				THM002AA00300B2F5D0001 /* APIService+TrainingHeatmap.swift in Sources */,
-				THM003AA00300B2F5D0001 /* TrainingHeatmapCard.swift in Sources */,
 				BWT001AA00300B2F5D0001 /* BodyWeightTrendModels.swift in Sources */,
-				BWT002AA00300B2F5D0001 /* APIService+BodyWeightTrend.swift in Sources */,
-				BWT003AA00300B2F5D0001 /* BodyWeightTrendCard.swift in Sources */,
 				EPF001AA00300B2F5D0001 /* EnergyPerformanceModels.swift in Sources */,
-				EPF002AA00300B2F5D0001 /* APIService+EnergyPerformance.swift in Sources */,
-				EPF003AA00300B2F5D0001 /* EnergyPerformanceCard.swift in Sources */,
 				PRTK01AA00300B2F5D0001 /* PRTrackerModels.swift in Sources */,
-				PRTK02AA00300B2F5D0001 /* APIService+PRTracker.swift in Sources */,
-				PRTK03AA00300B2F5D0001 /* PRTrackerCard.swift in Sources */,
 				SFT001AA00300B2F5D0001 /* SorenessFatigueModels.swift in Sources */,
-				SFT002AA00300B2F5D0001 /* APIService+SorenessFatigue.swift in Sources */,
-				SFT003AA00300B2F5D0001 /* SorenessFatigueCard.swift in Sources */,
 				SQE001AA00300B2F5D0001 /* SleepQualityModels.swift in Sources */,
-				SQE002AA00300B2F5D0001 /* APIService+SleepQuality.swift in Sources */,
-				SQE003AA00300B2F5D0001 /* SleepQualityCard.swift in Sources */,
 				WDT001AA00300B2F5D0001 /* WorkoutDurationModels.swift in Sources */,
-				WDT002AA00300B2F5D0001 /* APIService+WorkoutDuration.swift in Sources */,
-				WDT003AA00300B2F5D0001 /* WorkoutDurationCard.swift in Sources */,
 				70E26038CD13489F7EAACB56 /* SmartAlarmService.swift in Sources */,
 				6A57E6367D6A25E6E1B45D1A /* SmartAlarmSettingsView.swift in Sources */,
 				8FFAEEC125CAB186137ECB02 /* SessionProgressionModels.swift in Sources */,
-				88FED7DCD183CEA33B169136 /* APIService+SessionProgression.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

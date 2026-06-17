@@ -9,13 +9,9 @@ private final class P2State: @unchecked Sendable {
     var moodDue: MoodDueStatus? = nil
     var morningBrief: MorningBriefData? = nil
     var morningBriefFailed = false
-    var eveningSession: SeanceSoirData? = nil
-    var todaySleepLogged = false
     var todayRecovery: RecoveryEntry? = nil
     var hrvAnalysis: HRVAnalysis? = nil
     var yesterdayNutrition: NutritionDayHistory? = nil
-    var sleepStages: SleepStages? = nil
-    var sleepWindow: SleepWindow? = nil
     var dailyPattern: PatternEntry? = nil
     var ritualToday: RitualToday? = nil
     var cardioToday: CardioEntry? = nil
@@ -23,45 +19,13 @@ private final class P2State: @unchecked Sendable {
 }
 
 private final class P3State: @unchecked Sendable {
-    var insights: [InsightEntry] = []
-    var lssTrend: [LifeStressScore] = []
     var coachTip: CoachTip? = nil
-    var smartDay: SmartDayRecommendation? = nil
-    var weeklyReport: WeeklyReport? = nil
     var readinessData: ReadinessResponse? = nil
     var streakData: StreakResponse? = nil
-    var activeSeason: Season? = nil
     var warRoomEnabled = false
     var warRoomHasResult = false
     var warRoomHasTemptation = false
-    var velocityData: VelocityData? = nil
-    var compoundScore: CompoundScore? = nil
-    var sessionProgression: SessionProgressionData? = nil
-    var portraitData: PortraitData? = nil
-    var behavioralPRs: BehavioralPRsData? = nil
-    var ruptureRisk: RuptureRisk? = nil
-    var performanceConditions: PerformanceConditionsData? = nil
-    var sleepDebt: SleepDebtData? = nil
-    var trainingLoad: TrainingLoadData? = nil
-    var idealWeek: IdealWeekData? = nil
-    var nutritionPerformance: NutritionPerformanceData? = nil
-    var comebackArc: ComebackArcData? = nil
-    var weeklyMomentum: WeeklyMomentumData? = nil
-    var optimalDay: OptimalDayData? = nil
-    var muscleBalance: MuscleBalanceData? = nil
-    var consistency: ConsistencyData? = nil
-    var volumeProgression: VolumeProgressionData? = nil
-    var sleepHRV: SleepHRVData? = nil
-    var stressLoad: StressLoadData? = nil
-    var progressiveOverload: ProgressiveOverloadData? = nil
-    var sessionQuality: SessionQualityData? = nil
-    var trainingHeatmap: TrainingHeatmapData? = nil
-    var bodyWeightTrend: BodyWeightTrendData? = nil
-    var energyPerformance: EnergyPerformanceData? = nil
-    var prTracker: PRTrackerData? = nil
-    var sorenessFatigue: SorenessFatigueData? = nil
-    var sleepQuality: SleepQualityData? = nil
-    var workoutDuration: WorkoutDurationData? = nil
+    var weeklyTonnage: Int? = nil
 }
 
 // MARK: - DashboardSignalEngine
@@ -158,21 +122,12 @@ struct CriticalSignal {
 @MainActor
 final class DashboardViewModel: ObservableObject {
 
-    @Published var insights: [InsightEntry] = []
     @Published var deload: DeloadReport?
     @Published var moodDue: MoodDueStatus?
     @Published var morningBrief: MorningBriefData?
-    @Published var eveningSession: SeanceSoirData?
-    @Published var todaySleepLogged = false
     @Published var todayRecovery: RecoveryEntry?
-    @Published var lssTrend: [LifeStressScore] = []
     @Published var coachTip: CoachTip?
-    @Published var smartDay: SmartDayRecommendation?
-    @Published var weeklyReport: WeeklyReport?
-    @Published var sleepStages: SleepStages?
-    @Published var sleepWindow: SleepWindow?
     @Published var readinessData: ReadinessResponse?
-    @Published var activeSeason: Season?
     @Published var dailyPattern: PatternEntry?
     @Published var ritualToday: RitualToday?
     @Published var warRoomEnabled = false
@@ -182,35 +137,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var yesterdayNutrition: NutritionDayHistory?
     @Published var cardioToday: CardioEntry? = nil
     @Published var streakData: StreakResponse? = nil
-    @Published var velocityData: VelocityData? = nil
-    @Published var compoundScore: CompoundScore? = nil
-    @Published var sessionProgression: SessionProgressionData? = nil
-    @Published var portraitData: PortraitData? = nil
-    @Published var behavioralPRs: BehavioralPRsData? = nil
-    @Published var ruptureRisk: RuptureRisk? = nil
-    @Published var performanceConditions: PerformanceConditionsData? = nil
-    @Published var sleepDebt: SleepDebtData? = nil
-    @Published var trainingLoad: TrainingLoadData? = nil
-    @Published var idealWeek: IdealWeekData? = nil
-    @Published var nutritionPerformance: NutritionPerformanceData? = nil
-    @Published var comebackArc: ComebackArcData? = nil
-    @Published var weeklyMomentum: WeeklyMomentumData? = nil
-    @Published var optimalDay: OptimalDayData? = nil
-    @Published var muscleBalance: MuscleBalanceData? = nil
-    @Published var consistency: ConsistencyData? = nil
-    @Published var volumeProgression: VolumeProgressionData? = nil
-    @Published var sleepHRV: SleepHRVData? = nil
-    @Published var stressLoad: StressLoadData? = nil
-    @Published var progressiveOverload: ProgressiveOverloadData? = nil
-    @Published var sessionQuality: SessionQualityData? = nil
-    @Published var trainingHeatmap: TrainingHeatmapData? = nil
-    @Published var bodyWeightTrend: BodyWeightTrendData? = nil
-    @Published var energyPerformance: EnergyPerformanceData? = nil
-    @Published var prTracker: PRTrackerData? = nil
-    @Published var sorenessFatigue: SorenessFatigueData? = nil
-    @Published var sleepQuality: SleepQualityData? = nil
-    @Published var workoutDuration: WorkoutDurationData? = nil
-    // D-D1: banner when 2+ secondary calls fail
+    @Published var weeklyTonnage: Int? = nil
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
 
@@ -296,17 +223,12 @@ final class DashboardViewModel: ObservableObject {
                     return 0
                 }
             }
-            group.addTask { @MainActor in
-                do { p2.eveningSession = try await APIService.shared.fetchSeanceSoirData(); return 0 }
-                catch { self.logger.error("fetchSeanceSoir: \(error, privacy: .public)"); return 0 }
-            }
             // CRITICAL: drives the readiness score displayed on the dashboard
             group.addTask { @MainActor in
                 do {
                     let log = try await APIService.shared.fetchRecoveryData()
                     let entry = log.first(where: { $0.date == today })
-                    p2.todaySleepLogged = entry?.sleepHours != nil
-                    p2.todayRecovery    = entry
+                    p2.todayRecovery = entry
                     return 0
                 } catch {
                     self.logger.error("fetchRecovery: \(error, privacy: .public)")
@@ -329,14 +251,6 @@ final class DashboardViewModel: ObservableObject {
                 if let history = try? await APIService.shared.fetchNutritionHistory() {
                     p2.yesterdayNutrition = history.first(where: { $0.date == yesterdayStr })
                 }
-                return 0
-            }
-            group.addTask { @MainActor in
-                p2.sleepStages = await HealthKitService.shared.fetchLastNightSleepStages()
-                return 0
-            }
-            group.addTask { @MainActor in
-                p2.sleepWindow = await HealthKitService.shared.fetchLastNightSleepWindow()
                 return 0
             }
             group.addTask { @MainActor in
@@ -377,20 +291,16 @@ final class DashboardViewModel: ObservableObject {
         }
 
         // Phase 2 batch-publish — all synchronous, coalesced by SwiftUI into 1 re-render
-        deload            = p2.deload
-        moodDue           = p2.moodDue
-        morningBrief      = p2.morningBrief
+        deload             = p2.deload
+        moodDue            = p2.moodDue
+        morningBrief       = p2.morningBrief
         morningBriefFailed = p2.morningBriefFailed
-        eveningSession    = p2.eveningSession
-        todaySleepLogged  = p2.todaySleepLogged
-        todayRecovery     = p2.todayRecovery
-        hrvAnalysis       = p2.hrvAnalysis
+        todayRecovery      = p2.todayRecovery
+        hrvAnalysis        = p2.hrvAnalysis
         yesterdayNutrition = p2.yesterdayNutrition
-        sleepStages       = p2.sleepStages
-        sleepWindow       = p2.sleepWindow
-        dailyPattern      = p2.dailyPattern
-        ritualToday       = p2.ritualToday
-        cardioToday       = p2.cardioToday
+        dailyPattern       = p2.dailyPattern
+        ritualToday        = p2.ritualToday
+        cardioToday        = p2.cardioToday
         if p2.criticalFailures >= 1 { partialLoadWarning = true }
 
         // Propagate macro nutrition hint to session coaching view
@@ -400,28 +310,10 @@ final class DashboardViewModel: ObservableObject {
         if analyticsLoadedDate != today {
             let p3 = P3State()
             await withTaskGroup(of: Void.self) { group in
-                group.addTask { @MainActor in p3.insights  = (try? await APIService.shared.fetchInsights()) ?? [] }
-                group.addTask { @MainActor in p3.lssTrend  = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
-                group.addTask { @MainActor in p3.coachTip  = try? await APIService.shared.fetchDailyCoachTip() }
-                group.addTask { @MainActor in p3.smartDay  = try? await APIService.shared.fetchSmartDay() }
-                group.addTask { @MainActor in
-                    if let report = try? await APIService.shared.fetchWeeklyReport() {
-                        p3.weeklyReport = report
-                        NotificationService.scheduleWeeklyRecapWithData(report: report, tracker: BehaviorTracker.shared)
-                    }
-                }
+                group.addTask { @MainActor in p3.coachTip     = try? await APIService.shared.fetchDailyCoachTip() }
                 group.addTask { @MainActor in p3.readinessData = try? await APIService.shared.fetchReadiness() }
-                group.addTask { @MainActor in p3.streakData = try? await APIService.shared.fetchStreaks(date: today) }
-                group.addTask { @MainActor in
-                    let season = try? await APIService.shared.getActiveSeason()
-                    p3.activeSeason = season
-                    if let s = season {
-                        NotificationService.scheduleSeasonMilestones(
-                            seasonStartISO: s.startedAt,
-                            seasonNumber: s.number
-                        )
-                    }
-                }
+                group.addTask { @MainActor in p3.streakData      = try? await APIService.shared.fetchStreaks(date: today) }
+                group.addTask { @MainActor in p3.weeklyTonnage   = try? await APIService.shared.fetchWeeklyTonnage().volume }
                 group.addTask { @MainActor in
                     if let config = try? await APIService.shared.getWarRoomConfig() {
                         let enabled = config.warStartDate != nil
@@ -436,12 +328,20 @@ final class DashboardViewModel: ObservableObject {
                         p3.warRoomHasTemptation = ts.hasTemptation
                     }
                 }
+                // Notification-only side effects (no @Published needed)
+                group.addTask { @MainActor in
+                    if let report = try? await APIService.shared.fetchWeeklyReport() {
+                        NotificationService.scheduleWeeklyRecapWithData(report: report, tracker: BehaviorTracker.shared)
+                    }
+                }
+                group.addTask { @MainActor in
+                    if let s = try? await APIService.shared.getActiveSeason() {
+                        NotificationService.scheduleSeasonMilestones(seasonStartISO: s.startedAt, seasonNumber: s.number)
+                    }
+                }
                 group.addTask { @MainActor in
                     if let dna = try? await APIService.shared.fetchWorkoutDNA() {
-                        NotificationService.notifyDNAArchetypeChange(
-                            newKey: dna.archetype.key,
-                            newLabel: dna.archetype.label
-                        )
+                        NotificationService.notifyDNAArchetypeChange(newKey: dna.archetype.key, newLabel: dna.archetype.label)
                     }
                 }
                 group.addTask { @MainActor in
@@ -449,76 +349,16 @@ final class DashboardViewModel: ObservableObject {
                         NotificationService.scheduleTimeCapsuleSoon(capsules: capsules)
                     }
                 }
-                group.addTask { @MainActor in p3.velocityData     = try? await APIService.shared.fetchVelocity() }
-                group.addTask { @MainActor in p3.compoundScore    = try? await APIService.shared.fetchCompoundScore() }
-                group.addTask { @MainActor in p3.sessionProgression = try? await APIService.shared.fetchSessionProgression() }
-                group.addTask { @MainActor in p3.portraitData     = try? await APIService.shared.fetchPortraitJ90() }
-                group.addTask { @MainActor in p3.behavioralPRs    = try? await APIService.shared.fetchBehavioralPRs() }
-                group.addTask { @MainActor in p3.ruptureRisk      = try? await APIService.shared.fetchRuptureRisk() }
-                group.addTask { @MainActor in p3.performanceConditions = try? await APIService.shared.fetchPerformanceConditions() }
-                group.addTask { @MainActor in p3.sleepDebt        = try? await APIService.shared.fetchSleepDebt() }
-                group.addTask { @MainActor in p3.trainingLoad     = try? await APIService.shared.fetchTrainingLoad() }
-                group.addTask { @MainActor in p3.idealWeek        = try? await APIService.shared.fetchIdealWeek() }
-                group.addTask { @MainActor in p3.nutritionPerformance = try? await APIService.shared.fetchNutritionPerformance() }
-                group.addTask { @MainActor in p3.comebackArc      = try? await APIService.shared.fetchComebackArc() }
-                group.addTask { @MainActor in p3.weeklyMomentum   = try? await APIService.shared.fetchWeeklyMomentum() }
-                group.addTask { @MainActor in p3.optimalDay       = try? await APIService.shared.fetchOptimalDay() }
-                group.addTask { @MainActor in p3.muscleBalance      = try? await APIService.shared.fetchMuscleBalance() }
-                group.addTask { @MainActor in p3.consistency        = try? await APIService.shared.fetchConsistency() }
-                group.addTask { @MainActor in p3.volumeProgression  = try? await APIService.shared.fetchVolumeProgression() }
-                group.addTask { @MainActor in p3.sleepHRV           = try? await APIService.shared.fetchSleepHRV() }
-                group.addTask { @MainActor in p3.stressLoad         = try? await APIService.shared.fetchStressLoad() }
-                group.addTask { @MainActor in p3.progressiveOverload = try? await APIService.shared.fetchProgressiveOverload() }
-                group.addTask { @MainActor in p3.sessionQuality     = try? await APIService.shared.fetchSessionQuality() }
-                group.addTask { @MainActor in p3.trainingHeatmap    = try? await APIService.shared.fetchTrainingHeatmap() }
-                group.addTask { @MainActor in p3.bodyWeightTrend    = try? await APIService.shared.fetchBodyWeightTrend() }
-                group.addTask { @MainActor in p3.energyPerformance  = try? await APIService.shared.fetchEnergyPerformance() }
-                group.addTask { @MainActor in p3.prTracker          = try? await APIService.shared.fetchPRTracker() }
-                group.addTask { @MainActor in p3.sorenessFatigue    = try? await APIService.shared.fetchSorenessFatigue() }
-                group.addTask { @MainActor in p3.sleepQuality       = try? await APIService.shared.fetchSleepQuality() }
-                group.addTask { @MainActor in p3.workoutDuration    = try? await APIService.shared.fetchWorkoutDuration() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
-            insights      = p3.insights
-            lssTrend      = p3.lssTrend
-            coachTip      = p3.coachTip
-            smartDay      = p3.smartDay
-            weeklyReport  = p3.weeklyReport
-            readinessData = p3.readinessData
-            streakData    = p3.streakData
-            activeSeason  = p3.activeSeason
+            coachTip             = p3.coachTip
+            readinessData        = p3.readinessData
+            streakData           = p3.streakData
+            weeklyTonnage        = p3.weeklyTonnage
             warRoomEnabled       = p3.warRoomEnabled
             warRoomHasResult     = p3.warRoomHasResult
             warRoomHasTemptation = p3.warRoomHasTemptation
-            velocityData         = p3.velocityData
-            compoundScore        = p3.compoundScore
-            sessionProgression   = p3.sessionProgression
-            portraitData            = p3.portraitData
-            behavioralPRs           = p3.behavioralPRs
-            ruptureRisk             = p3.ruptureRisk
-            performanceConditions   = p3.performanceConditions
-            sleepDebt               = p3.sleepDebt
-            trainingLoad            = p3.trainingLoad
-            idealWeek               = p3.idealWeek
-            nutritionPerformance    = p3.nutritionPerformance
-            comebackArc             = p3.comebackArc
-            weeklyMomentum          = p3.weeklyMomentum
-            optimalDay              = p3.optimalDay
-            muscleBalance           = p3.muscleBalance
-            consistency             = p3.consistency
-            volumeProgression       = p3.volumeProgression
-            sleepHRV                = p3.sleepHRV
-            stressLoad              = p3.stressLoad
-            progressiveOverload     = p3.progressiveOverload
-            sessionQuality          = p3.sessionQuality
-            trainingHeatmap         = p3.trainingHeatmap
-            bodyWeightTrend         = p3.bodyWeightTrend
-            energyPerformance       = p3.energyPerformance
-            prTracker               = p3.prTracker
-            sorenessFatigue         = p3.sorenessFatigue
-            sleepQuality            = p3.sleepQuality
-            workoutDuration         = p3.workoutDuration
-            analyticsLoadedDate     = today
+            analyticsLoadedDate  = today
         }
     }
 
@@ -551,8 +391,6 @@ final class DashboardViewModel: ObservableObject {
             morningBriefFailed = true
         }
     }
-
-    var readinessIsLocal: Bool { false }
 
     var readinessScore: Int? { readinessData?.score }
 

@@ -102,6 +102,7 @@ struct RecoveryTrioCard: View {
 struct MomentumStripView: View {
     let dash: DashboardData
     var streakData: StreakResponse? = nil
+    var weeklyTonnage: Int? = nil
 
     private var currentStreak: Int { streakData?.currentStreak ?? 0 }
     private var bestStreak: Int    { streakData?.bestStreak ?? 0 }
@@ -167,7 +168,7 @@ struct MomentumStripView: View {
                     .frame(width: 1)
                     .padding(.vertical, 10)
 
-                // Colonne droite — streak
+                // Colonne centre — streak
                 VStack(alignment: .center, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("🔥")
@@ -190,6 +191,32 @@ struct MomentumStripView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .frame(maxWidth: 100)
+            }
+
+            if let t = weeklyTonnage, t > 0 {
+                Rectangle()
+                    .fill(Color.appSurfaceInset)
+                    .frame(width: 1)
+                    .padding(.vertical, 10)
+
+                // Colonne droite — volume
+                VStack(alignment: .center, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(t >= 1000 ? String(format: "%.1f", Double(t) / 1000.0) : "\(t)")
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .foregroundColor(.statusCyan)
+                            .contentTransition(.numericText())
+                        Text(t >= 1000 ? "t" : "kg")
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(.gray)
+                    }
+                    Text("volume sem.")
+                        .font(.appMicro)
+                        .foregroundColor(.gray.opacity(0.55))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .frame(maxWidth: 90)
             }
         }
         .glassCard(color: .statusCyan, intensity: 0.04)

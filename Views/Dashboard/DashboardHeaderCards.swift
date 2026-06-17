@@ -34,25 +34,20 @@ struct DashboardSkeletonView: View {
                 .background(Color.appSurfaceInset)
                 .cornerRadius(16)
 
-                // DailyMetricsRow — 4 tiles
                 HStack(spacing: 8) {
-                    ForEach(0..<4, id: \.self) { _ in
-                        VStack(spacing: 6) {
-                            SkeletonBar(width: 16, height: 16, radius: 8)
-                            SkeletonBar(width: 32, height: 14)
-                            SkeletonBar(width: 28, height: 9)
+                    ForEach(0..<3, id: \.self) { _ in
+                        HStack(spacing: 6) {
+                            SkeletonBar(width: 14, height: 14, radius: 7)
+                            SkeletonBar(width: 44, height: 13)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 12).padding(.vertical, 9)
                         .background(Color.appSurfaceInset)
-                        .cornerRadius(12)
+                        .cornerRadius(20)
                     }
+                    Spacer(minLength: 0)
                 }
 
-                // WeekProgressStrip
                 SkeletonBar(height: 48, radius: 12)
-
-                // DailyStreakCard
                 SkeletonBar(height: 60, radius: 14)
             }
             .padding(.horizontal, 16)

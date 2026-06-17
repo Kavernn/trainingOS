@@ -1,89 +1,65 @@
-⚠️ RÈGLE ABSOLUE — GIT
-ON TRAVAILLE UNIQUEMENT SUR MASTER. JAMAIS SUR UNE AUTRE BRANCHE.
-- Toujours `git checkout master` avant de commencer
-- Toujours pusher sur `origin master`
-- Ne jamais créer de feature branch, ne jamais commiter sur une autre branche
-- Si une branche existe déjà, merger immédiatement sur master et continuer sur master
+# TrainingOS — Instructions Claude Code
 
-Workflow Orchestration
-1. Plan Node Default
+App iOS de transformation physique/mentale. **Vince est seul dev ET seul utilisateur.**
+Stack : Swift (iOS natif) + Python API (Vercel) + Supabase.
 
-Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+---
 
-If something goes sideways, STOP and re-plan immediately — don't keep pushing
+## RÈGLES ABSOLUES (non négociables)
 
-Use plan mode for verification steps, not just building
+1. **Diagnostic AVANT fix.** Détective d'abord, chirurgien ensuite. Théorie → preuve (fichier:ligne) → fix. Jamais de fix sur une belle théorie non prouvée.
+2. **Vince valide AVANT que le code soit touché.** Tu proposes, Vince approuve, puis tu implémentes. Jamais l'inverse.
+3. **Tu ne lances JAMAIS le build toi-même.** Tu demandes à Vince de builder et de rapporter le résultat.
+4. **Zéro modification aux données historiques.** Absolu, sans exception.
+5. **Fix chirurgical** — touche uniquement ce qui est nécessaire.
+6. **Soumets chaque diff avant merge.**
+7. **Un changement à la fois = un build.** Jamais N modifications en un diff indiagnosticable.
+8. **Soft-delete uniquement** (`is_deleted`) — jamais de hard delete sur `exercise_logs`.
 
-Write detailed specs upfront to reduce ambiguity
+## PRINCIPES ARCHITECTURAUX
 
-2. Subagent Strategy
+- Une seule source de vérité par type de donnée. Voir `docs/CONVENTIONS.md`.
+- Pas de fallback silencieux. Pas de double mécanisme. Échouer fort (throw) si une précondition manque.
+- Preuve (fichier + ligne) exigée avant toute décision.
+- Débrancher les consommateurs AVANT de supprimer ce qu'ils consomment.
+- Vérifier qu'un nouveau retour (None/erreur) est géré en aval.
+- Anti-over-engineering : distinguer le PROBABLE du THÉORIQUE. Ne pas sur-investir dans l'improbable.
+- Distinguer une ERREUR (bug à corriger) d'un CHOIX DE MODÉLISATION (Vince juge).
 
-Use subagents liberally to keep main context window clean
+## FORMAT DE TRAVAIL
 
-Offload research, exploration, and parallel analysis to subagents
+Deux phases distinctes, jamais combinées :
+1. **Audit/diagnostic** (read-only) : lire les fichiers pertinents, identifier le problème avec fichier:ligne comme preuve, rapport écrit pour approbation.
+2. **Implémentation** : uniquement après validation explicite de Vince.
 
-For complex problems, throw more compute at it via subagents
+Langue : français. Terminologie domaine en français (séance, programme, exercice, poids, reps).
 
-One task per subagent for focused execution
+---
 
-3. Self-Improvement Loop
+## COMMANDES
 
-After ANY correction from the user: update tasks/lessons.md with the pattern
+- Build : (Vince builde dans Xcode — tu ne builds jamais)
+- API base : `https://training-os-rho.vercel.app`
 
-Write rules for yourself that prevent the same mistake
+---
 
-Ruthlessly iterate on these lessons until mistake rate drops
+## DOC DE RÉFÉRENCE (lire à la demande, pas chargée par défaut)
 
-Review lessons at session start for relevant project
+- **Conventions de données** (sources de vérité, unités lbs, e1RM, soft-delete) → `docs/CONVENTIONS.md`
+- **Système de thèmes** (thèmes, tokens, fonds de mood fixes) → `docs/THEMING.md`
+- **Architecture** (coach briefing, dashboard, couches) → `docs/ARCHITECTURE.md`
+- **Pièges connus** (AlarmKit inventé, withTaskGroup iOS 26, timezone MTL) → `tasks/lessons.md`
+- **Décisions** (ADRs) → `docs/DECISIONS.md`
 
-4. Verification Before Done
+Pour toute question sur une convention de données, un calcul (e1RM, ACWR, streak, readiness), une unité, ou un thème : **consulter la doc de référence ci-dessus AVANT d'agir**, ne pas deviner.
 
-Never mark a task complete without proving it works
+---
 
-Diff behavior between main and your changes when relevant
+## SOUS-AGENTS
 
-Ask yourself: "Would a staff engineer approve this?"
+Pour toute EXPLORATION large (cartographier des références, auditer du code mort, tracer des dépendances) : déléguer à un sous-agent pour garder le contexte principal propre. Voir l'agent `detective` (read-only).
+L'implémentation reste TOUJOURS dans la session principale, sous validation de Vince — jamais déléguée à un agent autonome.
 
-Run tests, check logs, demonstrate correctness
+## COMPACTION
 
-5. Demand Elegance (Balanced)
-
-For non-trivial changes: pause and ask "is there a more elegant way?"
-
-If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
-
-Skip this for simple, obvious fixes — don't over-engineer
-
-Challenge your own work before presenting it
-
-6. Autonomous Bug Fixing
-
-When given a bug report: just fix it. Don't ask for hand-holding
-
-Point at logs, errors, failing tests — then resolve them
-
-Zero context switching required from the user
-
-Go fix failing CI tests without being told how
-
-Task Management
-
-Plan First: Write plan to tasks/todo.md with checkable items
-
-Verify Plan: Check in before starting implementation
-
-Track Progress: Mark items complete as you go
-
-Explain Changes: High-level summary at each step
-
-Document Results: Add review section to tasks/todo.md
-
-Capture Lessons: Update tasks/lessons.md after corrections
-
-Core Principles
-
-Simplicity First: Make every change as simple as possible. Impact minimal code.
-
-No Laziness: Find root causes. No temporary fixes. Senior developer standards.
-
-Minimal Impact: Changes should only touch what's necessary. Avoid introducing bugs.
+Lors de la compaction, préserver toujours : la liste complète des fichiers modifiés, les décisions validées par Vince non encore implémentées, et les diagnostics en attente d'approbation.

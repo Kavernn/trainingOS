@@ -131,6 +131,7 @@ from routes.ideal_week           import ideal_week_bp
 from routes.nutrition_performance import nutrition_performance_bp
 from routes.comeback_arc         import comeback_arc_bp
 from routes.weekly_momentum      import weekly_momentum_bp
+from routes.weekly_tonnage       import weekly_tonnage_bp
 from routes.optimal_day          import optimal_day_bp
 from routes.muscle_balance       import muscle_balance_bp
 from routes.muscle_imbalance     import muscle_imbalance_bp
@@ -207,6 +208,7 @@ app.register_blueprint(ideal_week_bp)
 app.register_blueprint(nutrition_performance_bp)
 app.register_blueprint(comeback_arc_bp)
 app.register_blueprint(weekly_momentum_bp)
+app.register_blueprint(weekly_tonnage_bp)
 app.register_blueprint(optimal_day_bp)
 app.register_blueprint(muscle_balance_bp)
 app.register_blueprint(muscle_imbalance_bp)

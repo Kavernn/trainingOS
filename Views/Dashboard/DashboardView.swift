@@ -1,26 +1,15 @@
 
 import SwiftUI
-import Charts
-import Combine
 
 struct DashboardView: View {
-    @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var theme: AppTheme
     @StateObject private var vm = DashboardViewModel()
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var loadingState = APILoadingState.shared
     @ObservedObject private var alertService = AlertService.shared
     @State private var showMoodSheet = false
-    @State private var showSleepSheet = false
-    @State private var showSeasonClose = false
-    @State private var sleepPromptDismissedThisSession = false
     @State private var lastRefresh: Date = .distantPast
-    // D-D5: single source of truth — date ISO "2026-05-15" stored in AppStorage
-    @AppStorage("sleepPromptDismissedDate") private var sleepPromptDismissedDate = ""
     @State private var actionErrorMessage: String? = nil
     @State private var showMorningReveal = false
-    // D-D6: sleep dismiss confirmation
-    @State private var showSleepDismissConfirm = false
     @State private var showNutritionAddSheet = false
     @State private var showQuickTrigger = false
     @State private var showQuickBattle = false
@@ -31,12 +20,6 @@ struct DashboardView: View {
     private var todayStr: String {
         DateFormatter.isoDate.string(from: Date())
     }
-    private var shouldShowSleepPrompt: Bool {
-        // D-D5: single AppStorage flag — compare stored date to today
-        !vm.todaySleepLogged &&
-        sleepPromptDismissedDate != todayStr
-    }
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -67,8 +50,7 @@ struct DashboardView: View {
                         }
                     }
                 } else if let dash = api.dashboard {
-                    VStack(spacing: 0) {
-                        ScrollView(showsIndicators: false) {
+                    ScrollView(showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 14) {
                                 // SYSTÈME — avertissement chargement partiel
                                 if vm.partialLoadWarning {
@@ -171,63 +153,21 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.08)
                                 }
 
-                                // 6 — Métriques du jour
-                                DailyMetricsRow(
-                                    readinessScore: vm.readinessScore,
-                                    recovery: vm.todayRecovery,
-                                    nutritionTotals: dash.nutritionTotals,
-                                    nutritionSettings: dash.nutritionSettings,
-                                    moodDue: vm.moodDue,
-                                    readinessIsLocal: vm.readinessIsLocal,
-                                    onMoodTap: { showMoodSheet = true }
+                                // 6 — Actions du jour
+                                DayActionsRow(
+                                    sessionLogged: dash.alreadyLoggedToday,
+                                    moodDone: vm.moodDue?.isDue == false,
+                                    nutritionLogged: (dash.nutritionTotals.calories ?? 0) >= 1,
+                                    onSessionTap: { onOpenSession?() },
+                                    onMoodTap: { showMoodSheet = true },
+                                    onNutritionTap: { showNutritionAddSheet = true }
                                 )
                                 .appearAnimation(delay: 0.10)
 
                                 // 7 — Momentum strip (semaine + streak)
-                                MomentumStripView(dash: dash, streakData: vm.streakData)
+                                MomentumStripView(dash: dash, streakData: vm.streakData, weeklyTonnage: vm.weeklyTonnage)
                                     .appearAnimation(delay: 0.12)
 
-                                // 8 — Vélocité + Score Composé
-                                if let vel = vm.velocityData, let comp = vm.compoundScore, vel.hasBaseline {
-                                    VelocityCompoundCard(velocity: vel, compound: comp)
-                                        .appearAnimation(delay: 0.15)
-                                }
-
-                                // 8b2 — Zone de charge (ACWR)
-                                if let load = vm.trainingLoad, load.hasData {
-                                    TrainingLoadCard(data: load)
-                                        .appearAnimation(delay: 0.155)
-                                }
-
-                                // 8b3 — Momentum hebdomadaire
-                                if let momentum = vm.weeklyMomentum, momentum.hasData {
-                                    WeeklyMomentumCard(data: momentum)
-                                        .appearAnimation(delay: 0.160)
-                                }
-
-                                // 8b4 — Consistance
-                                if let consist = vm.consistency, consist.hasData {
-                                    ConsistencyCard(data: consist)
-                                        .appearAnimation(delay: 0.165)
-                                }
-
-                                // 8c — Rupture Risk (vigilance ou plus)
-                                if let rupture = vm.ruptureRisk, rupture.score >= 20 {
-                                    RuptureRiskCard(data: rupture)
-                                        .appearAnimation(delay: 0.17)
-                                }
-
-                                // 8c2 — Comeback Arc (post-rupture uniquement)
-                                if let comeback = vm.comebackArc, comeback.inComeback {
-                                    ComebackArcCard(data: comeback)
-                                        .appearAnimation(delay: 0.175)
-                                }
-
-                                // 8d — Conditions de performance
-                                if let perf = vm.performanceConditions, perf.hasData {
-                                    PerformanceConditionsCard(data: perf)
-                                        .appearAnimation(delay: 0.175)
-                                }
 
                                 // 8e — War Room strip
                                 if vm.warRoomEnabled {
@@ -254,28 +194,7 @@ struct DashboardView: View {
 
                                 // ── FOLD NATUREL ──────────────────────────────
 
-                                // 9 — Rituel (demon > soir > matin)
-                                if let ritual = vm.ritualToday {
-                                    RitualDemonCard(ritual: ritual) {
-                                        Task { await vm.refreshRitual() }
-                                    }
-                                    .appearAnimation(delay: 0.18)
-                                }
 
-                                // 10 — Macros (pattern C, actionnable avant séance)
-                                if let pattern = vm.dailyPattern,
-                                   pattern.family == "C",
-                                   pattern.macroThreshold != nil,
-                                   !dash.today.lowercased().contains("repos"),
-                                   !dash.today.lowercased().contains("rest"),
-                                   !dash.today.lowercased().contains("recovery"),
-                                   !dash.today.isEmpty,
-                                   let yesterday = vm.yesterdayNutrition {
-                                    MacroInsightCard(pattern: pattern, yesterday: yesterday) {
-                                        NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
-                                    }
-                                    .appearAnimation(delay: 0.20)
-                                }
 
                                 // 11 — Cardio du jour
                                 if let cardio = vm.cardioToday {
@@ -283,161 +202,16 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.22)
                                 }
 
-                                // 12 — HRV nudge
-                                HRVMorningNudgeView(analysis: vm.hrvAnalysis)
-                                    .appearAnimation(delay: 0.24)
 
-                                // 13 — Breathwork (stress élevé, groupé avec HRV)
-                                if let lss = vm.lssTrend.last, lss.score < 50 {
-                                    BreathworkNudgeCard()
-                                        .appearAnimation(delay: 0.26)
-                                }
 
-                                // 14 — LSS micro-widget
-                                LSSMiniCard(trend: vm.lssTrend)
-                                    .appearAnimation(delay: 0.28)
 
-                                // ── DISCOVERY ─────────────────────────────────
 
-                                // 15 — Pattern du jour
-                                if let pattern = vm.dailyPattern {
-                                    PatternDailyChip(pattern: pattern) {
-                                        NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
-                                    }
-                                    .appearAnimation(delay: 0.30)
-                                }
 
-                                // 16 — Saison (strip 28pt, transparent)
-                                if let season = vm.activeSeason {
-                                    SeasonStripView(season: season) { showSeasonClose = true }
-                                        .appearAnimation(delay: 0.32)
-                                }
 
-                                // 16b — Progression par séance
-                                if let prog = vm.sessionProgression, prog.hasData {
-                                    SessionProgressionCard(data: prog)
-                                        .appearAnimation(delay: 0.33)
-                                }
 
-                                // 16c — Portrait J-90
-                                if let portrait = vm.portraitData, portrait.hasBaseline {
-                                    PortraitJ90Card(data: portrait)
-                                        .appearAnimation(delay: 0.35)
-                                }
 
-                                // 16d — Records comportementaux
-                                if let prs = vm.behavioralPRs, prs.hasData {
-                                    BehavioralPRsCard(data: prs)
-                                        .appearAnimation(delay: 0.37)
-                                }
 
-                                // 16e — Dette de sommeil
-                                if let debt = vm.sleepDebt, debt.hasData {
-                                    SleepDebtAnalyticsCard(data: debt)
-                                        .appearAnimation(delay: 0.39)
-                                }
 
-                                // 16f — Semaine idéale
-                                if let ideal = vm.idealWeek, ideal.hasData {
-                                    IdealWeekCard(data: ideal)
-                                        .appearAnimation(delay: 0.41)
-                                }
-
-                                // 16g — Nutrition × Performance
-                                if let nutrPerf = vm.nutritionPerformance, nutrPerf.hasData {
-                                    NutritionPerformanceCard(data: nutrPerf)
-                                        .appearAnimation(delay: 0.43)
-                                }
-
-                                // 16h — Jour Optimal
-                                if let optDay = vm.optimalDay, optDay.hasData {
-                                    OptimalDayCard(data: optDay)
-                                        .appearAnimation(delay: 0.45)
-                                }
-
-                                // 16i — Équilibre Musculaire
-                                if let muscles = vm.muscleBalance, muscles.hasData {
-                                    MuscleBalanceCard(data: muscles)
-                                        .appearAnimation(delay: 0.47)
-                                }
-
-                                // 16j — Progression du Volume
-                                if let volProg = vm.volumeProgression, volProg.hasData {
-                                    VolumeProgressionCard(data: volProg)
-                                        .appearAnimation(delay: 0.49)
-                                }
-
-                                // 16k — Sommeil × HRV
-                                if let sleepHrv = vm.sleepHRV, sleepHrv.hasData {
-                                    SleepHRVCard(data: sleepHrv)
-                                        .appearAnimation(delay: 0.51)
-                                }
-
-                                // 16l — Stress Load Index
-                                if let stressLd = vm.stressLoad, stressLd.hasData {
-                                    StressLoadCard(data: stressLd)
-                                        .appearAnimation(delay: 0.53)
-                                }
-
-                                // 16m — Surcharge Progressive
-                                if let overload = vm.progressiveOverload, overload.hasData {
-                                    ProgressiveOverloadCard(data: overload)
-                                        .appearAnimation(delay: 0.55)
-                                }
-
-                                // 16n — Qualité des Séances
-                                if let sessQ = vm.sessionQuality, sessQ.hasData {
-                                    SessionQualityCard(data: sessQ)
-                                        .appearAnimation(delay: 0.57)
-                                }
-
-                                // 16o — Heatmap d'Entraînement
-                                if let heatmap = vm.trainingHeatmap, heatmap.hasData {
-                                    TrainingHeatmapCard(data: heatmap)
-                                        .appearAnimation(delay: 0.59)
-                                }
-
-                                // 16p — Tendance du Poids
-                                if let bwt = vm.bodyWeightTrend, bwt.hasData {
-                                    BodyWeightTrendCard(data: bwt)
-                                        .appearAnimation(delay: 0.61)
-                                }
-
-                                // 16q — Énergie × Performance
-                                if let enerPerf = vm.energyPerformance, enerPerf.hasData {
-                                    EnergyPerformanceCard(data: enerPerf)
-                                        .appearAnimation(delay: 0.63)
-                                }
-
-                                // 16r — Records Personnels
-                                if let prs = vm.prTracker, prs.hasData {
-                                    PRTrackerCard(data: prs)
-                                        .appearAnimation(delay: 0.65)
-                                }
-
-                                // 16s — Courbatures & Fatigue
-                                if let sorFat = vm.sorenessFatigue, sorFat.hasData {
-                                    SorenessFatigueCard(data: sorFat)
-                                        .appearAnimation(delay: 0.67)
-                                }
-
-                                // 16t — Qualité du Sommeil
-                                if let sleepQ = vm.sleepQuality, sleepQ.hasData {
-                                    SleepQualityCard(data: sleepQ)
-                                        .appearAnimation(delay: 0.69)
-                                }
-
-                                // 16u — Durée des Séances
-                                if let wkDur = vm.workoutDuration, wkDur.hasData {
-                                    WorkoutDurationCard(data: wkDur)
-                                        .appearAnimation(delay: 0.71)
-                                }
-
-                                // ── SCROLL PROFOND ────────────────────────────
-
-                                // 18 — XP
-                                XPChipView(sessions: dash.sessions)
-                                    .appearAnimation(delay: 0.38)
 
 
                             }
@@ -450,21 +224,6 @@ struct DashboardView: View {
                             lastRefresh = Date()
                             checkAndShowMorningReveal()
                         }
-
-                        QuickLogBar(
-                            alreadyLogged:  dash.alreadyLoggedToday,
-                            sleepLogged:    vm.todaySleepLogged,
-                            moodDone:       vm.moodDue?.isDue == false,
-                            onSleepTap:     { showSleepSheet = true },
-                            onMoodTap:      { showMoodSheet  = true },
-                            onSessionTap:   { onOpenSession?() },
-                            onNutritionTap: { showNutritionAddSheet = true }
-                        )
-                        .overlay(alignment: .top) {
-                            Rectangle().fill(Color.appSeparatorSubtle).frame(height: 0.5)
-                        }
-                        .background(Color.appBg.opacity(0.96).ignoresSafeArea(edges: .bottom))
-                    }
                 } else if let err = loadingState.error {
                     VStack(spacing: 16) {
                         Image(systemName: "wifi.exclamationmark")
@@ -494,16 +253,6 @@ struct DashboardView: View {
                 BehaviorTracker.shared.record(.appOpen)
                 if !loadingState.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
                     Task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
-                }
-            }
-        }
-        .fullScreenCover(isPresented: $showSeasonClose, onDismiss: {
-            Task { await vm.loadAll() }
-        }) {
-            if let season = vm.activeSeason {
-                SeasonCloseView(season: season) {
-                    showSeasonClose = false
-                    Task { await vm.loadAll() }
                 }
             }
         }
@@ -543,33 +292,6 @@ struct DashboardView: View {
                     .animation(.spring(response: 0.35, dampingFraction: 0.8), value: warRoomToastMessage)
             }
         }
-        .sheet(isPresented: $showSleepSheet) {
-            NavigationStack {
-                VStack(spacing: 0) {
-                    SleepPromptCard(
-                        onDone: {
-                            UserDefaults.standard.set(todayStr, forKey: "sleepPromptDate")
-                            withAnimation(.easeOut(duration: 0.25)) { sleepPromptDismissedThisSession = true }
-                            showSleepSheet = false
-                        },
-                        onError: { msg in actionErrorMessage = msg }
-                    )
-                    .padding(16)
-                    Spacer()
-                }
-                .background(Color.appBg.ignoresSafeArea())
-                .navigationTitle("Sommeil")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Fermer") { showSleepSheet = false }
-                            .foregroundColor(.appTextPrimary)
-                    }
-                }
-            }
-            .presentationDetents([.medium])
-        }
-
         .alert("Erreur", isPresented: Binding(
             get: { actionErrorMessage != nil },
             set: { if !$0 { actionErrorMessage = nil } }
@@ -638,5 +360,4 @@ struct DashboardView: View {
 
 #Preview {
     DashboardView()
-        .environmentObject(AppState.shared)
 }
