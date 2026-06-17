@@ -277,16 +277,6 @@ extension PSSRecord {
     }
 }
 
-// MARK: - TrainingZone surgical color (spike = ACWR danger → always red)
-extension TrainingZone {
-    var color: Color {
-        if AppTheme.shared.colors.accentDistribution == .surgical {
-            return self == .spike ? .red : Color(white: 0.42)
-        }
-        return Color(hex: colorHex)
-    }
-}
-
 // MARK: - Muscle group localization
 extension String {
     var localizedMuscleGroup: String {

@@ -7,6 +7,10 @@
 Il incorpore l'état complet post-migrations 001 à 047.
 Pour restaurer la base sur une DB vide : exécuter `schema.sql` suffit.
 
+> **Note (2026-06-17) :** 25 migrations supplémentaires ont été appliquées (048 → 072).
+> `schema.sql` doit être mis à jour pour les intégrer. En attendant, appliquer les fichiers
+> `docs/migrations/048_*.sql` … `072_*.sql` dans l'ordre après `schema.sql`.
+
 ## Historique des changements
 
 Les fichiers `docs/migrations/` sont conservés à titre d'historique et pour le tracker `schema_migrations`.
@@ -22,7 +26,7 @@ Ils ne doivent **pas** être ré-exécutés sur une DB créée depuis `schema.sq
    - Pas de dollar-quoting (`$$`) dans les fonctions
    - Pas d'index partiel (`CREATE INDEX ... WHERE ...`)
 
-## Tables (50 au total — état 2026-05-20)
+## Tables (50 au 2026-05-20 + 4 confirmées en 048-072 = ≥54 — référer à schema.sql pour le compte exact)
 
 | # | Nom | Migration d'origine |
 |---|-----|---------------------|
@@ -76,6 +80,18 @@ Ils ne doivent **pas** être ré-exécutés sur une DB créée depuis `schema.sq
 | 48 | user_gym_history | 037 |
 | 49 | schema_migrations | 026 |
 | 50 | ai_rate_limit | schema initial |
+
+## Nouvelles tables confirmées (migrations 048-072)
+
+| Migration | Table / Objet | Notes |
+|---|---|---|
+| 055 | `body_budget_log` | Feature BodyBudget supprimée — table peut subsister en DB |
+| 068 | `dass_records` | DASS-21 dépression/anxiété/stress |
+| 069 | `smart_alarm_sessions` | AlarmKit iOS 26 |
+| 071 | `exercise_prs` | PRs par exercice (`pr_weight_lbs`, `pr_e1rm_lbs`) |
+| 072 | table daily_brief | Cache briefing coach quotidien |
+
+Autres migrations 048-070 : ajouts de colonnes sur tables existantes (voir fichiers individuels).
 
 ## Corrections d'intégrité appliquées (migrations 042-047)
 

@@ -10,9 +10,7 @@ iPhone (SwiftUI)
       ▼
 Flask (Vercel Serverless)
       │
-   Supabase (PostgreSQL)
-   ├── Tables relationnelles (workout_sessions, exercise_logs, …)
-   └── Table KV (clé/valeur JSON pour config, inventaire, poids)
+   Supabase (PostgreSQL — ≥54 tables relationnelles)
 ```
 
 ---
@@ -45,16 +43,18 @@ TrainingOS/
 │
 ├── Services/
 │   ├── APIService.swift         — Couche réseau (fetch + offlinePost)
+│   ├── APIService+*.swift       — 20 extensions par domaine (Workout, Readiness, Stats, Coach…)
 │   ├── CacheService.swift       — Cache TTL disque par clé
 │   ├── HealthKitService.swift   — Lecture Apple Health
 │   ├── WatchSyncService.swift   — Sync Watch → Supabase (30 min dedup)
 │   ├── NetworkMonitor.swift     — Détection offline (NWPathMonitor)
 │   ├── SyncManager.swift        — Queue mutations offline (SwiftData)
 │   ├── PendingMutation.swift    — Modèle SwiftData mutation en attente
+│   ├── DailyBriefService.swift  — Briefing coach 1×/jour (cache UserDefaults par date)
 │   └── UnitSettings.swift       — Préférences unités (kg/lbs)
 │
 └── Views/
-    ├── Dashboard/               — Aujourd'hui (ex-Accueil) : ReadinessScore, QuickLogBar, SleepStaging, ActivityRing, OptimalWindow, MorningBrief, PeakPrediction
+    ├── Dashboard/               — Aujourd'hui : ~20 cards analytiques (Readiness, CoachBrief, TrainingLoad, Sleep, Nutrition, WarRoom strip, etc.)
     ├── Seance/                  — Logging séance (séries, poids, RPE, RIR)
     ├── Historique/              — Historique par date
     ├── Stats/                   — Graphiques 5 onglets (volume, 1RM, groupes, cardio, corps)
@@ -74,20 +74,16 @@ TrainingOS/
 
 ```
 api/
-├── index.py              — Routes Flask + entry point Vercel
-├── db.py                 — Couche données Supabase (toutes les tables)
-├── progression.py        — Algorithme 1RM, progression de charges, RIR/RPE
-├── deload.py             — Détection stagnation, RPE fatigue, chute 1RM
-├── sessions.py           — Log et récupération séances
-├── planner.py            — Programme hebdomadaire
-├── inventory.py          — Exercices et inventaire
-├── acwr.py               — Acute:Chronic Workload Ratio (EWMA, sRPE×durée)
-├── life_stress_engine.py — Life Stress Score (LSS)
-├── wearable.py           — Sync Apple Watch → Supabase
-├── nutrition.py          — Journal alimentaire
-├── body_weight.py        — Suivi poids corporel
-├── morning_brief.py      — Brief matinal IA
-└── …                     — sleep, mood, journal, goals, hiit, cardio, etc.
+├── index.py              — Entry point Vercel, registration des 78 blueprints
+├── db.py / db_*.py       — Couche données Supabase (db_sessions, db_body, db_exercises, etc.)
+├── utils.py              — _today_mtl(), _now_mtl() — helpers partagés (~70 imports)
+├── routes/               — 78 blueprints Flask (1 fichier par domaine)
+│   ├── daily_brief.py    — GET /api/coach/daily_brief (briefing quotidien)
+│   ├── readiness.py      — GET /api/readiness (source de vérité readiness)
+│   ├── analytics_stats.py— GET /api/stats/streaks (streak canonique)
+│   └── … (75 autres)
+└── *_engine.py           — Moteurs analytiques (acwr, readiness, plateau, pr_tracker,
+                            war_room, season, spirit, rupture, comeback_arc, etc.)
 ```
 
 ---
@@ -182,11 +178,15 @@ Si ≥ 1 signal : `recommande = True` → deload à −15%.
 
 ---
 
-## Coach IA (`IntelligenceView` + `api/index.py`)
+## Coach IA (`IntelligenceView` + `DailyBriefService`)
 
-- Propositions séance : `POST /api/ai/propose`
-- Insights : `POST /api/ai/insights`
-- Narrative semaine : `POST /api/ai/narrative` (cachée par clé `narrative_YYYY-WXX`)
+**Briefing quotidien (remplace le chat) :**
+- `Services/DailyBriefService.swift` — cache UserDefaults keyed par date (`daily_brief_v1_data`)
+- `GET /api/coach/daily_brief` (`api/routes/daily_brief.py`) — génération Claude Sonnet 4.6
+- Si la date n'a pas changé, le cache est servi sans appel réseau
+
+**Endpoints analytiques actifs :**
+- Narrative semaine : `POST /api/ai/narrative` (cache par clé `narrative_YYYY-WXX`)
 - Peak prediction : `GET /api/peak_prediction` (régression 14j LSS, projeté 7j)
 - Contexte athlete : ~1400 chars (format terse : LSS, ACWR, sessions, 1RM, groupes musculaires)
 

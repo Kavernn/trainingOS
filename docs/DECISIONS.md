@@ -156,3 +156,35 @@ Les agents doivent ajouter une entrée lors de tout changement architectural maj
 **Décision** : Classification par nom de session (substring match sur `_HEAVY_SESSIONS` / `_LIGHT_SESSIONS`) plutôt que par analyse des exercices (`get_strength_exercises`).
 
 **Raison** : `get_strength_exercises` retourne vide pour les sessions en format blocks (UL/PPL v2), ce qui classifiait tous les jours d'entraînement en `rest`. La classification par nom est robuste au format de stockage et reflète l'intention du programme (le nom "Legs B" implique lourd, "Upper A" implique léger) sans dépendre de la structure interne des données.
+
+---
+
+## 2026-05 / 2026-06
+
+**Décision** : Coach IA migré de chat interactif vers **briefing quotidien** (`DailyBriefService`).
+
+**Raison** : Le chat ne gérait pas bien les sujets très contextualisés (programme précis, historique de séance) et créait une attente de "conversation" inadaptée. Un briefing 1×/jour généré automatiquement avec toutes les données du jour est plus utile et moins bruyant. Cache UserDefaults par date (`Services/DailyBriefService.swift`) évite les regenerations multiples. Endpoint : `GET /api/coach/daily_brief` (`api/routes/daily_brief.py`).
+
+---
+
+**Décision** : Réduction du Dashboard de ~47 à ~20 cards analytiques.
+
+**Raison** : Les 47 cards créaient une surcharge cognitive. Les cards supprimées (PhoenixCard, BodyBudgetView, ChecklistCardView, CoachTipCard, GraveyardView, CoachMemoryView, TopicExplorer, QuestionChipsView, ChatPanel) dupliquaient de l'info ou documentaient des features abandonnées. La densité reste haute mais chaque card a une raison d'être distincte.
+
+---
+
+**Décision** : Système de **10 thèmes** via enum `AppThemeOption` + struct `AppThemeColors` avec tokens sémantiques (`Utilities/AppTheme.swift`).
+
+**Raison** : Remplace les couleurs hardcodées dispersées dans les vues. Les tokens `onBackground` / `onSurface` permettent à chaque thème de définir la hiérarchie texte/fond sans modifier les vues. La distinction `onBackground` ≠ `onSurface` n'est utile que pour Electric Light (seul thème où fond et cards ont des luminosités inversées). Les fonds de mood (`voidBg`, `pssBg`, `ritualEveningBg`) sont explicitement exclus du système de thèmes — couleurs fixes intentionnelles.
+
+---
+
+**Décision** : Lbs comme unité de stockage **canonique** (DB, API, iOS interne). Voir `docs/CONVENTIONS.md` §2.
+
+**Raison** : HealthKit retourne la masse en kg. Convertir immédiatement à la frontière (`HealthKitService.swift:297`, une seule fois) et stocker uniquement en lbs élimine les conversions doubles. `UnitSettings.swift` ne fait que la conversion d'affichage. La table `exercise_prs` a été créée directement avec `pr_weight_lbs` / `pr_e1rm_lbs` (migration 071) — jamais eu de colonne `pr_kg`.
+
+---
+
+**Décision** : Suppression des piliers Phoenix, BodyBudget et du Graveyard.
+
+**Raison** : Phoenix encodait un arc de "renaissance" semaine par semaine qui n'était pas utilisé en pratique. BodyBudget introduisait un modèle énergétique concurrent au readiness score existant. Graveyard était un mode de thème dark qui compliquait le système de couleurs sans valeur ajoutée. La suppression simplifie le modèle de données, le dashboard, et le pipeline de thème.

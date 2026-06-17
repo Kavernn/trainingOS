@@ -618,3 +618,48 @@ Lors de la migration d'une table KV (clé/valeur) vers des tables relationnelles
 **Règle :** Toujours utiliser `ON CONFLICT DO NOTHING` ou vérifier l'existence avant insert dans les scripts de migration. Auditer les comptes après migration.
 
 **Contexte :** 14 doublons dans `cardio_logs` découverts lors de l'audit (tous avec `logged_at` identique à la milliseconde).
+
+---
+
+## iOS 26 — AlarmKit est un vrai framework Apple (ne pas remplacer)
+
+`AlarmKit` est un framework Apple réel introduit avec iOS 26. `Services/SmartAlarmService.swift:4`
+importe `AlarmKit` et utilise les symboles officiels : `AlarmManager.shared`,
+`AlarmAttributes<SmartAlarmMetadata>`, `AlarmPresentation.Alert`, `AlarmConfiguration`,
+`.fixed(alarmTime)`. La clé Info.plist `NSAlarmKitUsageDescription` est requise et présente
+(`TrainingOS/Info.plist:5`).
+
+**Règle :** Ne pas "corriger" `SmartAlarmService.swift` en le remplaçant par
+`UNUserNotificationCenter` — l'API utilisée est correcte et intentionnelle. `UNUserNotificationCenter`
+est utilisé séparément dans `NotificationService.swift` et `AlertService.swift` pour les
+notifications standard. Les deux coexistent.
+
+---
+
+## iOS 26 beta — withTaskGroup aussi problématique dans certains contextes
+
+`async let` crash (LIFO, déjà documenté). `withTaskGroup` a aussi des problèmes sur iOS 26 beta
+dans certains contextes : `Services/HealthKitService.swift:467` et
+`Services/WatchSyncService.swift:141` ont tous deux été revertés à des awaits séquentiels avec
+le commentaire "sequential — withTaskGroup hangs on iOS 26 beta".
+
+D'autres fichiers utilisent toujours `withTaskGroup` (`Services/APIService+Workout.swift:182`,
+`Views/Dashboard/DashboardViewModel.swift:209`, etc.) — résultats mixtes selon le contexte.
+
+**Règle :** Les `await` séquentiels sont le seul pattern universellement safe sur iOS 26 beta.
+`withTaskGroup` peut fonctionner mais a causé des hangs dans HealthKit et Watch. Préférer le
+séquentiel jusqu'à ce qu'Apple corrige le runtime.
+
+---
+
+## iOS — HealthKit poids : conversion unique à la frontière
+
+HealthKit retourne la masse corporelle en kg (`.gramUnit(with: .kilo)`).
+La conversion vers lbs est faite **une seule fois**, à `Services/HealthKitService.swift:297` :
+`return kg * 2.20462`.
+
+À partir de là, tout est en lbs jusqu'au stockage DB. Aucune double conversion.
+
+**Règle :** Si un poids semble "bizarre" dans un flux HealthKit → API → DB, vérifier d'abord
+que la valeur n'est pas déjà en lbs avant d'appliquer une conversion. La seule frontière légale
+est `HealthKitService.fetchLatestBodyWeight()`. Toute autre conversion dans ce chemin est un bug.

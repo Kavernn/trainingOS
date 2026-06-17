@@ -276,5 +276,5 @@ Retourne le ratio ACWR du jour calculé par EWMA (Blanch & Gabbett 2016).
 
 - All dates: `YYYY-MM-DD` (Montreal timezone)
 - Weights: stored in **lbs** (not kg)
-- No authentication on any route (see audit item #A1)
+- Authentification : header `X-API-Key` obligatoire sur toutes les routes (actif depuis 2026-04-06)
 - Vercel serverless deployment — cold starts possible on first request

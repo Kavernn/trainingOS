@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-05-11 (nutrition carb cycling)
+Dernière mise à jour : 2026-06-17
 
 ---
 
@@ -451,3 +451,76 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | Branche | Statut |
 |---|---|
 | `master` | Branche principale / production |
+
+---
+
+## Complété récemment (2026-05-12 → 2026-06-17)
+
+### Thèmes (AppTheme.swift)
+- Système de 10 thèmes `AppThemeOption` : monochrome, sinCity, blood, electric, matrix, tokyo, arctic, goldNoir, desert, electricLight
+- Tokens sémantiques `onBackground` / `onSurface` (divergent uniquement sur Electric Light)
+- Types `CardStyle` / `AccentDistribution` / `IdentityLayerStyle`
+- Fonds mood fixes hors-thème : `voidBg`, `pssBg`, `ritualEveningBg` (`Utilities/Extensions.swift:78-80`)
+- Suppression Graveyard + migration couleurs hardcodées vers tokens — `55c387e`
+
+### Coach IA — Chat → Briefing quotidien
+- Suppression du chat coach : ChatPanel, ChatComponents, CoachMemoryView, QuestionChipsView, TopicExplorer
+- `Services/DailyBriefService.swift` : briefing 1×/jour, cache UserDefaults keyed par date
+- `api/routes/daily_brief.py` : `GET /api/coach/daily_brief`, génération Claude Sonnet 4.6
+- Migration `072_daily_brief.sql` : cache briefing côté API
+- `Views/Intelligence/IntelligenceView.swift` redessiné autour du briefing
+
+### Dashboard — Réduction ~47 → ~20 cards
+- Suppression : PhoenixCard, BodyBudgetView, ChecklistCardView, CoachTipCard, GraveyardView, CoachMemoryView
+- `TodayWidgets.swift` : streak, Habs, citation, objectif, métriques
+
+### Nettoyage code mort
+- 47 éléments supprimés (vues, fonctions, propriétés inutilisées) — `db61bbd`
+
+### Performance API
+- `/api/stats_data` : −3 DB reads redondants — `acac6a5`
+- `get_morning_brief()` : cache 5 min — `4178a23`
+- `compute_readiness()` : 7 → 1 appel `get_recovery_logs()` — `323bc2d`
+
+### Nouvelles migrations (048 → 072)
+25 migrations appliquées depuis l'état précédent. Tables ajoutées confirmées :
+- `dass_records` (068) — DASS-21 dépression/anxiété/stress
+- `smart_alarm_sessions` (069) — AlarmKit iOS 26
+- `exercise_prs` (071) — PRs par exercice (`pr_weight_lbs`, `pr_e1rm_lbs`, lbs canonique)
+- Table daily_brief (072) — cache briefing coach
+
+### Conventions documentées
+- `docs/CONVENTIONS.md` créé : sources de vérité, lbs, e1RM, soft-delete, no-fallback
+- `docs/THEMING.md` créé : 10 thèmes, tokens, carve-outs mood
+
+---
+
+## Complété récemment (2026-06-17 — Dégraissage dashboard phase finale + audit code mort)
+
+### DashboardView — DayActionsRow
+
+- `DayActionsRow` remplace `DailyMetricsRow` + suppression de `QuickLogBar` (barre fixe bas de page)
+- Outer `VStack(spacing: 0)` collapsé : `ScrollView` seul avec `.refreshable` direct
+- États morts retirés : `showSleepSheet`, `showSleepDismissConfirm`, `sleepPromptDismissedThisSession`, `@AppStorage("sleepPromptDismissedDate")`, `shouldShowSleepPrompt`, `todaySleepLogged`, `readinessIsLocal`
+- Imports morts retirés : `Charts`, `Combine`, `@EnvironmentObject appState`, `@EnvironmentObject theme`
+- Sheet orphelin `showSleepSheet` (27 lignes) retiré
+- `DashboardSkeletonView` mis à jour : 3 chip-actions au lieu de 4 tuiles métriques
+
+### Suppression 86 fichiers morts
+
+- **30 Dashboard card files** supprimés (vues analytiques jamais affichées : BehavioralPRsCard, BodyWeightTrendCard, ComebackArcCard, ConsistencyCard, EnergyPerformanceCard, IdealWeekCard, MuscleBalanceCard, NutritionPerformanceCard, OptimalDayCard, PRTrackerCard, PerformanceConditionsCard, PortraitJ90Card, ProgressiveOverloadCard, RuptureRiskCard, SessionQualityCard, SleepDebtCard, SleepHRVCard, SleepQualityCard, SorenessFatigueCard, StressLoadCard, TemporalPatternCard, TrainingHeatmapCard, TrainingLoadCard, VelocityCompoundCard, VolumeProgressionCard, WeeklyMomentumCard, WorkoutDurationCard, DashboardReadinessCards, DashboardWellnessCards, DashboardNutritionCards)
+- **28 APIService extension files** supprimés (mêmes domaines analytiques)
+- **28 Model files** supprimés (mêmes domaines)
+- Structs inline supprimés : `QuickLogBar`, `QuickLogChip`, `ActivityRingCard`, `OptimalWindowCard`, `WeeklyReportTeaser`, `QuoteOfDayView`, `XPChipView`, `DailyMetricsRow`, `MetricChip`, `RitualDemonCard`, `BreathworkNudgeCard`, `SoirCardView`
+- 344 lignes `project.pbxproj` retirées (4 entrées × 86 fichiers)
+
+### Résidus orphelins nettoyés (audit detective)
+
+- `AnalyticsModels.swift` : champ `phoenixStreak` retiré de `MorningBriefData`
+- `api/db_sessions.py` : docstring "graveyard" → "all-time records"
+- `tasks/todo.md` : 4 entrées stale retirées
+- `.claude/settings.local.json` : permission Bash `graveyard.py` (inexistant) retirée
+
+### Fix API
+
+- `api/routes/coach_tip.py` : `BadRequestError` Anthropic (billing insuffisant) capturé explicitement → HTTP 200 + `null` au lieu de 500 non nécessaire
