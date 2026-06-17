@@ -58,7 +58,6 @@ def api_stats_data():
     pattern_volume       = _db.get_pattern_volume(28, weights=weights)
     programme_compliance = _db.get_programme_compliance(8)
     one_rm_trend         = _db.get_one_rm_trend(84, weights=weights)
-    hiit_completion      = _db.get_hiit_completion(8)
     macros_by_day_type   = _db.get_macros_by_day_type(60, nutr_days=_nutr_60, sessions_raw=all_sessions)
     protein_weight_ratio = _db.get_protein_weight_ratio(60, nutr_days=_nutr_60)
 
@@ -78,7 +77,6 @@ def api_stats_data():
         "pattern_volume":        pattern_volume,
         "programme_compliance":  programme_compliance,
         "one_rm_trend":          one_rm_trend,
-        "hiit_completion":       hiit_completion,
         "macros_by_day_type":    macros_by_day_type,
         "protein_weight_ratio":  protein_weight_ratio,
     })

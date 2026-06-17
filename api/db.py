@@ -220,7 +220,6 @@ from db_stats import (
     get_pattern_volume,
     get_programme_compliance,
     get_one_rm_trend,
-    get_hiit_completion,
     get_nutrition_daily_full,
     get_macros_by_day_type,
     get_protein_weight_ratio,

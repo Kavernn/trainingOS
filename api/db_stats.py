@@ -162,46 +162,6 @@ def get_one_rm_trend(days: int = 84, weights: dict | None = None) -> dict:
         return {}
 
 
-def get_hiit_completion(weeks: int = 8) -> list[dict]:
-    """Return HIIT sessions with completion rate (rounds_completed/rounds_planned)."""
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return []
-
-    def _do() -> list[dict]:
-        from datetime import date as _date, timedelta
-        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(weeks=weeks)).isoformat()
-        resp = (
-            db_core._client.table("hiit_logs")
-            .select("date, session_type, rounds_planned, rounds_completed, rpe")
-            .gte("date", cutoff)
-            .order("date")
-            .execute()
-        )
-        result = []
-        for r in (resp.data or []):
-            planned   = int(r.get("rounds_planned") or 0)
-            completed = int(r.get("rounds_completed") or 0)
-            result.append({
-                "date":             str(r.get("date", ""))[:10],
-                "session_type":     r.get("session_type"),
-                "rounds_planned":   planned,
-                "rounds_completed": completed,
-                "rate":             round(completed / planned, 2) if planned > 0 else 0.0,
-                "rpe":              r.get("rpe"),
-            })
-        return result
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("get_hiit_completion retry: %s", e2)
-                return []
-        db_core.logger.error("get_hiit_completion error: %s", e)
-        return []
 
 
 def get_nutrition_daily_full(days: int = 60) -> list[dict]:

@@ -415,35 +415,9 @@ def api_weekly_report():
         "weekly_score":          weekly_score,
         "prs":                   prs_list,
         "focus_next_week":       focus,
-        "push_pull_ratio":       _compute_push_pull_ratio(week_start),
     })
 
 
-def _compute_push_pull_ratio(since_date: str) -> dict:
-    """Compute push vs pull volume ratio using inventory pattern tags (28 days)."""
-    import db as _db
-    try:
-        pv = _db.get_pattern_volume(28)
-        push_vol = float(pv.get("push",  0))
-        pull_vol = float(pv.get("pull",  0))
-        legs_vol = float(pv.get("squat", 0)) + float(pv.get("hinge", 0))
-
-        ratio = round(push_vol / pull_vol, 2) if pull_vol > 0 else None
-        imbalance = None
-        if ratio is not None:
-            if ratio > 1.3:
-                imbalance = "push_dominant"
-            elif ratio < 0.77:
-                imbalance = "pull_dominant"
-        return {
-            "push_volume": round(push_vol),
-            "pull_volume": round(pull_vol),
-            "legs_volume": round(legs_vol),
-            "ratio":       ratio,
-            "imbalance":   imbalance,
-        }
-    except Exception:
-        return {}
 
 
 def _total_reps_str(reps: str) -> float:

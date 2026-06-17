@@ -103,7 +103,6 @@ struct StatsView: View {
     @State var patternVolume:      PatternVolumeData?          = nil
     @State var complianceWeeks:    [ComplianceWeek]            = []
     @State var oneRmTrend:         [String: [OneRMPoint]]      = [:]
-    @State var hiitCompletion:     [HIITCompletionEntry]       = []
     @State var macrosByDayType:    MacrosByDayType?            = nil
     @State var proteinWeightRatio: [ProteinWeightPoint]        = []
     @State var moodTrend:          [MoodTrendPoint]            = []
@@ -114,7 +113,6 @@ struct StatsView: View {
     @State var sleepScatter:       [ScatterPoint]              = []
     @State var rpeProgression:     RPEProgressionData?         = nil
     @State var rirByExercise:      [RIREntry]                  = []
-    @State var pushPullRatio:      WeeklyReportPushPull?       = nil
     @State var sorenessThreshold:  SorenessThreshold?          = nil
     @State var hrvAnalysis:        HRVAnalysis?                = nil
 
@@ -513,7 +511,6 @@ struct StatsView: View {
         let patternVolume:        PatternVolumeData?
         let programmeCompliance:  [ComplianceWeek]?
         let oneRmTrend:           [String: [OneRMPoint]]?
-        let hiitCompletion:       [HIITCompletionEntry]?
         let macrosByDayType:      MacrosByDayType?
         let proteinWeightRatio:   [ProteinWeightPoint]?
 
@@ -531,7 +528,6 @@ struct StatsView: View {
             case patternVolume      = "pattern_volume"
             case programmeCompliance = "programme_compliance"
             case oneRmTrend         = "one_rm_trend"
-            case hiitCompletion     = "hiit_completion"
             case macrosByDayType    = "macros_by_day_type"
             case proteinWeightRatio = "protein_weight_ratio"
         }
@@ -609,7 +605,6 @@ struct StatsView: View {
         patternVolume      = r.patternVolume
         complianceWeeks    = r.programmeCompliance ?? []
         oneRmTrend         = r.oneRmTrend ?? [:]
-        hiitCompletion     = r.hiitCompletion ?? []
         macrosByDayType    = r.macrosByDayType
         proteinWeightRatio = r.proteinWeightRatio ?? []
         recalcKPIs()
@@ -675,13 +670,6 @@ struct StatsView: View {
             currentStreak: currentStreak
         )
 
-        // Load push:pull ratio + soreness threshold
-        Task {
-            if let r = try? await APIService.shared.fetchWeeklyReport(),
-               let ppr = r.pushPullRatio {
-                await MainActor.run { pushPullRatio = ppr }
-            }
-        }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/soreness_threshold"),
                let (d, _) = try? await URLSession.authed.data(from: url),
