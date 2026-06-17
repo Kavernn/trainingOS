@@ -341,6 +341,12 @@ extension APIService {
         return try APIService.decoder.decode(DeloadReport.self, from: data)
     }
 
+    func fetchACWR() async throws -> ACWRData {
+        let url = try buildURL(path: "/api/acwr")
+        let data = try await fetchWithCache(url: url, key: "acwr")
+        return try APIService.decoder.decode(ACWRData.self, from: data)
+    }
+
     func applyDeload(poidsDeload: [String: Double]) async throws {
         let url = try buildURL(path: "/api/apply_deload")
         var req = URLRequest(url: url)
