@@ -89,8 +89,8 @@ extension StatsView {
         Spacer(minLength: 32)
     }
 
-    // MARK: - Performance Tab
-    @ViewBuilder var performanceTab: some View {
+    // MARK: - Charge & Volume Tab
+    @ViewBuilder var chargeVolumeTab: some View {
 
         // 1. Charge — ACWR
         if let acwrData = acwr {
@@ -135,46 +135,55 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
-        // 4. Intensité relative (%1RM)
-        if let intensity = intensityData, intensity.avgPct1rm != nil {
-            IntensityCard(data: intensity)
-                .padding(.horizontal, 16)
-        }
-
-        // 5. Équilibre Push/Pull/Legs
+        // 4. Équilibre Push/Pull/Legs
         if let pv = patternVolume {
             PatternVolumeView(data: pv)
                 .padding(.horizontal, 16)
         }
 
-        // 6. Programme compliance
+        // 5. Programme compliance
         if complianceWeeks.count >= 2 {
             ComplianceProgrammeView(weeks: complianceWeeks)
                 .padding(.horizontal, 16)
         }
 
-        // 7. Jours depuis deload
+        // 6. Jours depuis deload
         if let dl = deloadStatus {
             DeloadStatusCard(data: dl)
                 .padding(.horizontal, 16)
         }
 
-        // 8. RPE + intensité
+        Spacer(minLength: 32)
+    }
+
+    // MARK: - Intensité Tab
+    @ViewBuilder var intensiteTab: some View {
+
+        // 1. Intensité relative (%1RM)
+        if let intensity = intensityData, intensity.avgPct1rm != nil {
+            IntensityCard(data: intensity)
+                .padding(.horizontal, 16)
+        }
+
+        // 2. Distribution RPE
         if filteredSessions.count >= 5 {
             RPEDistributionView(sessions: filteredSessions)
                 .padding(.horizontal, 16)
         }
 
+        // 3. Progression RPE
         if let rp = rpeProgression {
             RPEProgressionView(data: rp)
                 .padding(.horizontal, 16)
         }
 
+        // 4. RIR par exercice
         if !rirByExercise.isEmpty {
             RIRByExerciseView(entries: rirByExercise)
                 .padding(.horizontal, 16)
         }
 
+        // 5. Énergie pré-séance (modulateur RPE)
         let sessionsWithEnergy = filteredSessions.compactMap { d, e -> (String, Int)? in
             e.energyPre.map { (d, $0) }
         }.sorted { $0.0 < $1.0 }.suffix(20).map { $0 }
@@ -183,11 +192,7 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
-        if !oneRmTrend.isEmpty {
-            OneRMTrendView(trend: oneRmTrend)
-                .padding(.horizontal, 16)
-        }
-
+        // 6. Courbe RPE temporelle
         if rpeHistory.count >= 3 {
             RPEChartView(data: rpeHistory)
                 .padding(.horizontal, 16)

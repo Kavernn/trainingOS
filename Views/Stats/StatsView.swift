@@ -412,9 +412,10 @@ struct StatsView: View {
     var tabAmbientColor: Color {
         switch selectedTab {
         case 1: return .statusOrange
-        case 2: return .statusGreen
-        case 3: return .statusPurple
-        case 4: return .statusCyan
+        case 2: return .statusRed
+        case 3: return .statusGreen
+        case 4: return .statusPurple
+        case 5: return .statusCyan
         default: return .statusBlue
         }
     }
@@ -460,10 +461,11 @@ struct StatsView: View {
                         ScrollView(showsIndicators: false) {
                             LazyVStack(spacing: 16) {
                                 if selectedTab == 0 { vueGlobaleTab }
-                                else if selectedTab == 1 { performanceTab }
-                                else if selectedTab == 2 { corpsTab }
-                                else if selectedTab == 3 { nutritionTab }
-                                else if selectedTab == 4 { exercicesTab }
+                                else if selectedTab == 1 { chargeVolumeTab }
+                                else if selectedTab == 2 { intensiteTab }
+                                else if selectedTab == 3 { corpsTab }
+                                else if selectedTab == 4 { nutritionTab }
+                                else if selectedTab == 5 { exercicesTab }
                                 else { bienetreTab }
                             }
                             .padding(.top, 8)

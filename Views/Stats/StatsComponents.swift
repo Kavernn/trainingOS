@@ -6,7 +6,8 @@ struct StatsTabBar: View {
 
     private let tabs: [(icon: String, label: String)] = [
         ("chart.bar.fill",           "Synthèse"),
-        ("bolt.fill",                "Perf"),
+        ("chart.bar.fill",           "Charge"),
+        ("flame.fill",               "Intensité"),
         ("figure.stand",             "Corps"),
         ("fork.knife",               "Nutrition"),
         ("dumbbell.fill",            "Force"),
