@@ -419,7 +419,6 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 - [x] Views/Cardio/CardioActiveView.swift
 - [x] Views/Cardio/CardioSummaryView.swift
 - [x] Views/Cardio/CardioView.swift
-- [ ] Views/Dashboard/BodyBudgetView.swift
 - [ ] Views/Dashboard/ChecklistCardView.swift
 - [ ] Views/Dashboard/CoachBriefCard.swift
 - [ ] Views/Dashboard/CoachTipCard.swift
@@ -434,7 +433,6 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 - [ ] Views/Dashboard/DashboardWellnessCards.swift
 - [ ] Views/Dashboard/InfoButton.swift
 - [ ] Views/Dashboard/MorningRevealView.swift
-- [ ] Views/Dashboard/PhoenixCard.swift
 - [ ] Views/Dashboard/ProactiveBannerCard.swift
 - [ ] Views/Dashboard/ReadinessView.swift
 - [ ] Views/Dashboard/TodayWidgets.swift
@@ -449,13 +447,11 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 - [ ] Views/Intelligence/ArsenalView.swift
 - [ ] Views/Intelligence/BattleCounterView.swift
 - [ ] Views/Intelligence/ChatComponents.swift
-- [ ] Views/Intelligence/ChatPanel.swift
 - [ ] Views/Intelligence/CoachContextSummary.swift
 - [ ] Views/Intelligence/CoachGreetingHeader.swift
 - [ ] Views/Intelligence/CoachMemoryView.swift
 - [ ] Views/Intelligence/CoachMissionCard.swift
 - [ ] Views/Intelligence/DemonsView.swift
-- [ ] Views/Intelligence/GraveyardView.swift
 - [ ] Views/Intelligence/InsightPrincipalCard.swift
 - [ ] Views/Intelligence/InsightsCard.swift
 - [ ] Views/Intelligence/IntelligenceAnalyticsCards.swift

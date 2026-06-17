@@ -785,7 +785,7 @@ def get_all_exercise_history(cutoff_days: int = 180, full_history: bool = False)
     """Return {exercise_name: [{date, weight, reps}]} for all exercises in one query.
 
     Used by load_weights() to avoid N+1 per-exercise queries.
-    Pass full_history=True for callers that need all-time data (PRs, graveyard).
+    Pass full_history=True for callers that need all-time data (PRs, all-time records).
     Otherwise the SQL query is bounded by cutoff_days — no Python-side full scan.
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":

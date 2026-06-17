@@ -195,7 +195,6 @@ struct MorningBriefData: Codable {
     let components: MorningBriefComponents?
     // F4: ritual context for coaching
     let ritualRate7d: Double?
-    let phoenixStreak: Int?
 
     enum CodingKeys: String, CodingKey {
         case date, lss, recommendation, message, adjustments, flags, components
@@ -203,7 +202,6 @@ struct MorningBriefData: Codable {
         case sessionIntensity = "session_intensity"
         case dataCoverage     = "data_coverage"
         case ritualRate7d     = "ritual_rate_7d"
-        case phoenixStreak    = "phoenix_streak"
     }
 }
 
