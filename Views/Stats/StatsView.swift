@@ -28,6 +28,13 @@ func avgReps(_ reps: String) -> Double {
     return Double(s) ?? 0
 }
 
+func estimateOneRM(weight: Double, reps: Double) -> Double? {
+    guard weight > 0, reps >= 1, reps <= 15 else { return nil }
+    return reps <= 10
+        ? weight * (1 + reps / 30.0)
+        : weight * (36.0 / (37.0 - reps))
+}
+
 func isoWeekKey(_ dateStr: String) -> String {
     DateFormatter.isoDate.date(from: dateStr)?.isoWeekKey ?? ""
 }
@@ -575,19 +582,11 @@ struct StatsView: View {
                 if let stored = e.oneRM, stored > 0 { return stored }
                 if let sets = e.sets, !sets.isEmpty {
                     return sets.compactMap { s -> Double? in
-                        let r = avgReps(s.reps)
-                        guard r >= 1, r <= 15, s.weight > 0 else { return nil }
-                        return r <= 10
-                            ? s.weight * (1 + r / 30.0)
-                            : s.weight * (36.0 / (37.0 - r))
+                        estimateOneRM(weight: s.weight, reps: avgReps(s.reps))
                     }.max()
                 }
                 guard let w = e.weight, w > 0, let r = e.reps else { return nil }
-                let avg = avgReps(r)
-                guard avg >= 1, avg <= 15 else { return nil }
-                return avg <= 10
-                    ? w * (1 + avg / 30.0)
-                    : w * (36.0 / (37.0 - avg))
+                return estimateOneRM(weight: w, reps: avgReps(r))
             }.max()
             return best.map { (name, $0) }
         }
