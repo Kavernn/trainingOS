@@ -12,38 +12,100 @@ def _check_triggers(brief_data: dict) -> dict:
     """Return active trigger flags from morning_brief data."""
     flags = brief_data.get("flags", {})
     rec = brief_data.get("recommendation", "go")
-    streak = brief_data.get("phoenix_streak", 0)
+    ritual_streak = brief_data.get("phoenix_streak", 0)  # compteur streak rituel (routes/ritual.py)
     return {
         "recovery_needed": rec in ("reduce", "defer") or flags.get("hrv_drop") or flags.get("sleep_deprivation") or flags.get("training_overload"),
-        "momentum": streak >= 14 and rec == "go",
+        "momentum": ritual_streak >= 14 and rec == "go",
     }
 
 
-def _build_context(brief_data: dict) -> str:
-    """Compose a compact context string for Claude from morning_brief data."""
+def _build_context(brief_data: dict, extra: dict | None = None) -> str:
+    """Compose a compact predictive context string for Claude."""
+    extra = extra or {}
     lss = brief_data.get("lss")
     rec = brief_data.get("recommendation", "go")
     session = brief_data.get("session_today", "")
     intensity = brief_data.get("session_intensity", "")
     adjustments = brief_data.get("adjustments", [])
     flags = brief_data.get("flags", {})
-    streak = brief_data.get("phoenix_streak", 0)
+    ritual_streak = brief_data.get("phoenix_streak", 0)
 
-    lines = [f"Session du jour: {session} ({intensity})"]
+    lines = []
+
+    # CALENDRIER
+    cal = [f"{session} ({intensity})"]
+    next_s = extra.get("next_session")
+    if next_s:
+        cal.append(f"Demain: {next_s['name']} ({next_s['intensity']})")
+    day_after = extra.get("day_after_session")
+    if day_after:
+        cal.append(f"J+2: {day_after['name']}")
+    lines.append("Calendrier: " + " | ".join(cal))
+
+    # READINESS
     if lss is not None:
-        lines.append(f"Readiness (LSS): {lss}/100 — {rec}")
-    if flags.get("hrv_drop"):
+        lines.append(f"Readiness: {lss}/100 — {rec}")
+
+    # TRAJECTOIRES — HRV
+    hrv = extra.get("hrv")
+    if hrv and hrv.get("today_ms") is not None:
+        pct = hrv.get("pct_vs_baseline")
+        sign = "+" if pct is not None and pct >= 0 else ""
+        pct_str = f" ({sign}{pct}% vs baseline)" if pct is not None else ""
+        trend_str = f", tendance {hrv['trend']}" if hrv.get("trend") else ""
+        streak_str = (
+            f", {hrv['consecutive_low_days']}j consécutifs sous baseline"
+            if hrv.get("streak_alert") else ""
+        )
+        lines.append(f"HRV: {hrv['today_ms']}ms{pct_str}{trend_str}{streak_str}")
+    elif flags.get("hrv_drop"):
         lines.append("Signal: HRV en baisse")
-    if flags.get("sleep_deprivation"):
-        lines.append("Signal: sommeil insuffisant")
-    if flags.get("training_overload"):
+
+    # TRAJECTOIRES — ACWR
+    acwr = extra.get("acwr")
+    if acwr:
+        _zone_fr = {"optimal": "zone optimale", "under": "sous-charge",
+                    "caution": "attention", "danger": "surcharge"}
+        zone_str = _zone_fr.get(acwr.get("zone_code", ""), "")
+        delta = acwr.get("delta_pct")
+        sign = "+" if delta is not None and delta >= 0 else ""
+        delta_str = f" ({sign}{delta}% vs sem. précédente)" if delta is not None else ""
+        lines.append(f"ACWR: {acwr['ratio']:.2f} {zone_str}{delta_str}")
+    elif flags.get("training_overload"):
         lines.append("Signal: surcharge cumulée")
+
+    # TRAJECTOIRES — Sommeil
+    sd = extra.get("sleep_debt")
+    if sd:
+        _trend_fr = {"creuser": "s'aggrave", "stable": "stable", "rembourser": "se rembourse"}
+        trend_str = _trend_fr.get(sd.get("trend", "stable"), "")
+        ntr = sd.get("nights_to_recover")
+        ntr_str = f", remboursement: {ntr} nuit{'s' if ntr != 1 else ''}" if ntr else ""
+        if (sd.get("debt_7d") or 0) > 0:
+            lines.append(f"Sommeil: dette {sd['debt_7d']}h/7j, {trend_str}{ntr_str}")
+        else:
+            lines.append("Sommeil: excédent (pas de dette)")
+    elif flags.get("sleep_deprivation"):
+        lines.append("Signal: sommeil insuffisant")
+
+    # OPPORTUNITÉS — PR window
+    pr_win = extra.get("pr_window")
+    if pr_win:
+        lines.append(f"Fenêtre PR: {pr_win['exercise']} à {pr_win['gap_lbs']} lbs du record")
+
+    # OPPORTUNITÉS — Bonne lancée (O4 sans phoenix_engine)
+    acwr_ok = not acwr or acwr.get("zone_code") not in ("caution", "danger")
+    sleep_ok = not sd or sd.get("trend") != "creuser"
+    if ritual_streak >= 7 and acwr_ok and sleep_ok:
+        lines.append(f"Lancée: {ritual_streak} jours de rituel consécutifs, charge équilibrée")
+
     if adjustments:
         lines.append("Ajustements: " + " | ".join(adjustments))
-    if streak >= 7:
-        lines.append(f"Phoenix streak: {streak} jours")
 
-    return "\n".join(lines)
+    context = "\n".join(lines)
+    if len(context.encode()) > 3072:
+        logger.warning("daily_brief: context %d bytes dépasse 3KB", len(context.encode()))
+    return context
 
 
 def _build_fallback_brief(brief_data: dict) -> dict:
@@ -74,6 +136,103 @@ def _build_fallback_brief(brief_data: dict) -> dict:
     return {"use_quote": True, "mot": None, "lecture": lecture, "recommandation": reco}
 
 
+def _get_predictive_context() -> dict:
+    """Fetch predictive signals avec guards insufficient_data par signal.
+    Chaque fetch est isolé — une erreur n'interrompt pas les autres.
+    """
+    result = {}
+
+    # ACWR (omis si confidence == "low" = < 7j de données)
+    try:
+        from acwr import calc_acwr
+        acwr = calc_acwr()
+        if acwr.get("confidence") != "low":
+            trend = acwr.get("trend", [])
+            delta_pct = None
+            if len(trend) >= 2:
+                prev = trend[-2].get("ratio", 0)
+                curr = trend[-1].get("ratio", 0)
+                if prev > 0:
+                    delta_pct = round((curr - prev) / prev * 100)
+            result["acwr"] = {
+                "ratio":    acwr.get("ratio"),
+                "zone_code": (acwr.get("zone") or {}).get("code", "insufficient_data"),
+                "delta_pct": delta_pct,
+            }
+    except Exception as e:
+        logger.warning("predictive_context ACWR: %s", e)
+
+    # HRV (omis si baseline_available = False, c'est-à-dire < 3j de données)
+    try:
+        import db as _db
+        from hrv_engine import compute_hrv_analysis
+        from utils import _today_mtl
+        rows = _db.get_recovery_logs(limit=35)
+        if rows:
+            hrv = compute_hrv_analysis(rows, _today_mtl())
+            if hrv.get("baseline_available") and hrv.get("today_rmssd") is not None:
+                avg = hrv.get("hrv_7d_avg")
+                pct = (
+                    round((hrv["today_rmssd"] - avg) / avg * 100)
+                    if avg and avg > 0 else None
+                )
+                result["hrv"] = {
+                    "today_ms":             round(hrv["today_rmssd"]),
+                    "pct_vs_baseline":      pct,
+                    "zone":                 hrv.get("hrv_zone"),
+                    "trend":                hrv.get("hrv_trend"),
+                    "consecutive_low_days": hrv.get("consecutive_low_days", 0),
+                    "streak_alert":         hrv.get("streak_alert", False),
+                }
+    except Exception as e:
+        logger.warning("predictive_context HRV: %s", e)
+
+    # Sleep debt (omis si has_data = False, c'est-à-dire logged_7d < 3)
+    try:
+        from sleep_debt_engine import compute as _sleep_debt
+        sd = _sleep_debt()
+        if sd.get("has_data"):
+            result["sleep_debt"] = {
+                "debt_7d":           sd.get("debt_7d"),
+                "trend":             sd.get("trend"),
+                "nights_to_recover": sd.get("nights_to_recover"),
+            }
+    except Exception as e:
+        logger.warning("predictive_context sleep_debt: %s", e)
+
+    # Séance demain + J+2 (jours absents du schedule = repos implicite)
+    try:
+        from planner import get_week_schedule, _montreal_now
+        from morning_brief import _intensity
+        schedule = get_week_schedule()
+        days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+        today_idx = _montreal_now().weekday()
+        for offset, key in [(1, "next_session"), (2, "day_after_session")]:
+            name = schedule.get(days[(today_idx + offset) % 7]) or "Repos"
+            result[key] = {"name": name, "intensity": _intensity(name)}
+    except Exception as e:
+        logger.warning("predictive_context schedule: %s", e)
+
+    # PR window (omis si baseline_count < 3 sur le lift)
+    try:
+        import db as _db
+        for p in _db.get_exercise_prs():
+            if (p.get("baseline_count") or 0) < 3:
+                continue
+            pr = p.get("pr_weight_lbs") or 0
+            current = p.get("current_weight") or 0
+            if 0 < current < pr and current >= pr * 0.95:
+                result["pr_window"] = {
+                    "exercise": p.get("exercise_name", ""),
+                    "gap_lbs":  round(pr - current, 1),
+                }
+                break
+    except Exception as e:
+        logger.warning("predictive_context PR: %s", e)
+
+    return result
+
+
 def _call_claude(context: str, triggers: dict) -> dict:
     """Call Claude once and return parsed brief dict."""
     import anthropic as _anthropic
@@ -90,7 +249,13 @@ def _call_claude(context: str, triggers: dict) -> dict:
 
     system = (
         "Tu es le coach de performance de Vincent — gym et vie. "
-        "Tu parles directement à lui, au présent, sans flatterie."
+        "Tu parles directement à lui, au présent, sans flatterie. "
+        "Le contexte inclut des TRAJECTOIRES (tendances sur plusieurs jours, pas des valeurs ponctuelles) "
+        "et un CALENDRIER (aujourd'hui + demain). "
+        "Ta LECTURE croise ces tendances avec le calendrier pour projeter : "
+        "'HRV en baisse 3j + séance lourde demain = tu te présentes sous-récupéré si rien ne change.' "
+        "Ta RECOMMANDATION est préventive (protège demain) ou opportuniste (profite de la fenêtre). "
+        "Si les données sont insuffisantes pour anticiper, dis ce que tu vois sans deviner."
     )
 
     user_msg = (
@@ -154,8 +319,9 @@ def get_daily_brief():
     try:
         from morning_brief import get_morning_brief
         brief_data = get_morning_brief()
+        extra = _get_predictive_context()
         triggers = _check_triggers(brief_data)
-        context = _build_context(brief_data)
+        context = _build_context(brief_data, extra)
 
         try:
             result = _call_claude(context, triggers)
