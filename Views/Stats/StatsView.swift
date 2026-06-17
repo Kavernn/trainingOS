@@ -672,7 +672,7 @@ struct StatsView: View {
 
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/soreness_threshold"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
+               let d = try? await APIService.shared.fetchWithCache(url: url, key: "soreness_threshold"),
                let r = try? APIService.decoder.decode(SorenessThreshold.self, from: d) {
                 await MainActor.run { sorenessThreshold = r }
             }
@@ -684,35 +684,35 @@ struct StatsView: View {
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/adherence"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
+               let d = try? await APIService.shared.fetchWithCache(url: url, key: "adherence"),
                let r = try? APIService.decoder.decode(AdherenceData.self, from: d) {
                 await MainActor.run { adherenceData = r }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/seasons/comparison"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
+               let d = try? await APIService.shared.fetchWithCache(url: url, key: "seasons_comparison"),
                let r = try? APIService.decoder.decode(SeasonComparisonData.self, from: d) {
                 await MainActor.run { seasonComparison = r }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/war_room/summary"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
+               let d = try? await APIService.shared.fetchWithCache(url: url, key: "war_room_summary"),
                let r = try? APIService.decoder.decode(WarRoomSummaryStats.self, from: d) {
                 await MainActor.run { warRoomStats = r }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/deload_status"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
+               let d = try? await APIService.shared.fetchWithCache(url: url, key: "deload_status"),
                let r = try? APIService.decoder.decode(DeloadStatusData.self, from: d) {
                 await MainActor.run { deloadStatus = r }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/stats/intensity"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
+               let d = try? await APIService.shared.fetchWithCache(url: url, key: "stats_intensity"),
                let r = try? APIService.decoder.decode(IntensityData.self, from: d) {
                 await MainActor.run { intensityData = r }
             }
