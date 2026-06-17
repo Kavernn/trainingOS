@@ -147,7 +147,11 @@ def api_daily_tip():
             return jsonify({"error": "Réponse non structurée du modèle"}), 500
         return jsonify(tip)
     except _anthropic.AuthenticationError:
-        return jsonify({"error": "Clé ANTHROPIC_API_KEY invalide"}), 500
+        logger.warning("coach_tip: clé API invalide")
+        return jsonify(None), 200
+    except _anthropic.BadRequestError as e:
+        logger.warning("coach_tip: requête rejetée par Anthropic (crédit/quota): %s", e)
+        return jsonify(None), 200
     except Exception as e:
         logger.error("coach_tip error: %s", e)
-        return jsonify({"error": "Erreur lors de la génération du conseil"}), 500
+        return jsonify(None), 200
