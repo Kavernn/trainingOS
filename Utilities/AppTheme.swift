@@ -440,48 +440,49 @@ extension AppThemeColors {
         sectionTitleUppercased: false
     )
 
-    // Océan teal-bleu — fond L*≈20 (#1A3A5C), visiblement bleu profond sur device.
+    // La Glace / Le Seul Thème Clair. Fond glace + cards blanches. Texte foncé partout — inversion complète.
+    // Accent = ombre dans la glace (#1A5F8A). cardStyle: .raised — ombre froide délimite les cards. Zéro glow.
     static let arctic = AppThemeColors(
-        accent:          Color(hex: "7DD3FC"),
-        accentLight:     Color(hex: "BAE6FD"),
-        accentMuted:     Color(hex: "0C2D42"),
-        onAccent:        Color(hex: "07131F"),
-        background:      Color(hex: "1A3A5C"),
-        surfaceCard:     Color(hex: "225080"),
-        surfaceElevated: Color(hex: "22527C"),
-        surfaceInset:    Color(hex: "142D48"),
-        textPrimary:     Color(hex: "DFF6FF"),
-        onBackground:    Color(hex: "DFF6FF"),
-        onSurface:       Color(hex: "DFF6FF"),
-        textSecondary:   Color(hex: "7BB8D0"),
-        textMuted:       Color(hex: "6BA8C4"),
-        separator:       Color(hex: "7DD3FC").opacity(0.15),
-        separatorSubtle: Color(hex: "7DD3FC").opacity(0.08),
-        separatorStrong: Color(hex: "7DD3FC").opacity(0.28),
-        danger:          Color(hex: "FF453A"),
-        success:         Color(hex: "34C759"),
-        warning:         Color(hex: "FFD60A"),
-        info:            Color(hex: "7DD3FC"),
+        accent:          Color(hex: "1A5F8A"),
+        accentLight:     Color(hex: "4A8FB5"),
+        accentMuted:     Color(hex: "C5E0F0"),      // tint léger chips/badges
+        onAccent:        Color(hex: "FFFFFF"),       // blanc sur bleu foncé — 6.9:1
+        background:      Color(hex: "EAF4FF"),       // glace bleue
+        surfaceCard:     Color(hex: "FFFFFF"),       // cards blanches
+        surfaceElevated: Color(hex: "F5FAFF"),
+        surfaceInset:    Color(hex: "D8ECFA"),
+        textPrimary:     Color(hex: "0D1F2D"),       // 15.1:1 sur fond glace
+        onBackground:    Color(hex: "0D1F2D"),       // = textPrimary, pas de divergence
+        onSurface:       Color(hex: "0D1F2D"),
+        textSecondary:   Color(hex: "4A6A7A"),       // 5.2:1 ✓ AA
+        textMuted:       Color(hex: "6A8A9A"),       // 3.3:1 — muted intentionnel
+        separator:       Color(hex: "1A5F8A").opacity(0.15),
+        separatorSubtle: Color(hex: "1A5F8A").opacity(0.08),
+        separatorStrong: Color(hex: "1A5F8A").opacity(0.28),
+        danger:          Color(hex: "C0392B"),       // rouge foncé lisible sur clair
+        success:         Color(hex: "1A7A40"),       // vert foncé lisible sur clair
+        warning:         Color(hex: "9A5C00"),       // ambre foncé lisible sur clair
+        info:            Color(hex: "1A5F8A"),
         cardCornerRadius: 20,
         cardBorderWidth:  1.0,
-        cardBorderColor:  Color(hex: "7DD3FC").opacity(0.32),
-        cardShadowColor:  Color(hex: "091D30").opacity(0.55),
-        cardShadowRadius: 18,
-        cardShadowOffset: CGSize(width: 0, height: 6),
-        cardGlowColor:    Color(hex: "7DD3FC").opacity(0.20),
-        cardGlowRadius:   22,
-        chartPalette:          [Color(hex: "7DD3FC"), Color(hex: "F59E0B"), Color(hex: "34C759"),
-                                Color(hex: "8B5CF6"), Color(hex: "FF6B9E")],
-        glassOpacity:          0.15,
-        accentGradientColors:  [Color(hex: "7DD3FC"), Color(hex: "0066FF")],
-        identityLayer:         .arcticFrost(opacity: 0.08),
+        cardBorderColor:  Color(hex: "1A5F8A").opacity(0.10),
+        cardShadowColor:  Color(hex: "0D1F2D").opacity(0.10), // ombre froide — délimiteur principal
+        cardShadowRadius: 10,
+        cardShadowOffset: CGSize(width: 0, height: 3),
+        cardGlowColor:    .clear,
+        cardGlowRadius:   0,
+        chartPalette:          [Color(hex: "1A5F8A"), Color(hex: "E85D04"), Color(hex: "1A7A40"),
+                                Color(hex: "8B5CF6"), Color(hex: "E53E3E")],
+        glassOpacity:          0.12,
+        accentGradientColors:  [Color(hex: "1A5F8A"), Color(hex: "4A8FB5")],
+        identityLayer:         .arcticFrost(opacity: 0.06),
         heroFontDesign:        .rounded,
         titleFontDesign:       .rounded,
         displayWeight:         .semibold,
-        cardAccentFillOpacity:   0.14,
-        cardAccentStrokeOpacity: 0.25,
-        cardStyle:               .floating,
-        accentDistribution:      .pervasive,
+        cardAccentFillOpacity:   0.0,
+        cardAccentStrokeOpacity: 0.10,
+        cardStyle:               .raised,
+        accentDistribution:      .surgical,
         heroNumberSize:          40,
         sectionTitleTracking:    1.2,
         sectionTitleUppercased: false
