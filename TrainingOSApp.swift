@@ -63,6 +63,12 @@ private final class AppNotificationDelegate: NSObject, UNUserNotificationCenterD
                 AppState.shared.pendingDeepLink = "seance"
             } else if id == "streak.milestone" {
                 AppState.shared.pendingDeepLink = "dashboard"
+            } else if id == "restTimer" || id.hasPrefix("et_notif_") {
+                AppState.shared.pendingDeepLink = "seance"
+            } else if id == "routine.stricte.bedtime" {
+                AppState.shared.pendingDeepLink = "intelligence"
+            } else if id == "streak.danger.daily" {
+                AppState.shared.pendingDeepLink = "seance"
             }
         }
         completionHandler()
