@@ -149,6 +149,9 @@ struct AppThemeColors {
 // au test 1-seconde face à tous les thèmes existants, fond sur fond.
 extension AppThemeColors {
 
+    // Le Refus. Noir absolu, blanc chirurgical — les surfaces n'ont pas de couleur, seule l'info existe.
+    // accentDistribution: .surgical — le blanc n'apparaît qu'en foreground explicite.
+    // cardStyle: .flat sans shadow → la bordure white@0.12/0.5px est le seul délimiteur. Ne pas toucher.
     static let monochrome = AppThemeColors(
         accent:          .white,
         accentLight:     Color(hex: "AEAEB2"),
@@ -182,14 +185,14 @@ extension AppThemeColors {
                                 Color.white.opacity(0.30), Color.white.opacity(0.18)],
         glassOpacity:          0.10,
         accentGradientColors:  [.white, Color(hex: "A0A0A0")],
-        identityLayer:         .scanlines(opacity: 0.02),
+        identityLayer:         .scanlines(opacity: 0.04),  // 0.02 imperceptible ; 0.04 = grain monacal
         heroFontDesign:        .default,
         titleFontDesign:       .default,
         displayWeight:         .thin,
-        cardAccentFillOpacity:   0.06,
-        cardAccentStrokeOpacity: 0.25,
+        cardAccentFillOpacity:   0.0,   // surgical — surfaces sans couleur
+        cardAccentStrokeOpacity: 0.0,   // surgical — stroke overlay supprimé
         cardStyle:               .flat,
-        accentDistribution:      .pervasive,
+        accentDistribution:      .surgical,
         heroNumberSize:        36,
         sectionTitleTracking:  2.0,
         sectionTitleUppercased: true
@@ -244,7 +247,9 @@ extension AppThemeColors {
         sectionTitleUppercased: true
     )
 
-    // Rouge profond assumé — fond L*≈8, visiblement rouge sur device (vs L*≈2.8 avant)
+    // La Matière / La Blessure. Vous êtes à l'intérieur — immergé, pas spectateur.
+    // textSecondary/Muted teinté dans le monde rouge (plus de gris neutres qui brisent l'immersion).
+    // Glow drastiquement réduit — le sang séché ne pulse pas.
     static let blood = AppThemeColors(
         accent:          Color(hex: "C0392B"),
         accentLight:     Color(hex: "E74C3C"),
@@ -257,8 +262,8 @@ extension AppThemeColors {
         textPrimary:     Color(hex: "FFF0E8"),
         onBackground:    Color(hex: "FFF0E8"),
         onSurface:       Color(hex: "FFF0E8"),
-        textSecondary:   Color(hex: "AAAAAA"),
-        textMuted:       Color(hex: "888888"),
+        textSecondary:   Color(hex: "D09090"),  // rose-rouge atténué — reste dans le monde
+        textMuted:       Color(hex: "7A5252"),  // brun-rouge sombre — muet mais teinté
         separator:       Color(hex: "C0392B").opacity(0.20),
         separatorSubtle: Color(hex: "C0392B").opacity(0.10),
         separatorStrong: Color(hex: "C0392B").opacity(0.35),
@@ -266,21 +271,21 @@ extension AppThemeColors {
         success:         Color(hex: "2ECC71"),
         warning:         Color(hex: "F39C12"),
         info:            Color(hex: "64D2FF"),
-        cardCornerRadius: 22,
+        cardCornerRadius: 12,                            // moins pill-shaped — dureté viscérale
         cardBorderWidth:  1.0,
         cardBorderColor:  Color(hex: "C0392B").opacity(0.30),
         cardShadowColor:  Color(hex: "1A0404").opacity(0.55),
         cardShadowRadius: 20,
         cardShadowOffset: CGSize(width: 0, height: 5),
-        cardGlowColor:    Color(hex: "C0392B").opacity(0.22),
-        cardGlowRadius:   20,
+        cardGlowColor:    Color(hex: "C0392B").opacity(0.08), // chaleur ambiante, pas halo pulsant
+        cardGlowRadius:   12,
         chartPalette:          [Color(hex: "E74C3C"), Color(hex: "F39C12"), Color(hex: "27AE60"),
                                 Color(hex: "2980B9"), Color(hex: "8E44AD")],
         glassOpacity:          0.15,
         accentGradientColors:  [Color(hex: "E74C3C"), Color(hex: "7B241C")],
         identityLayer:         .bloodVein(opacity: 0.07),
-        heroFontDesign:        .rounded,
-        titleFontDesign:       .rounded,
+        heroFontDesign:        .default,                 // organique/lourd, pas chaleureux/sportif
+        titleFontDesign:       .default,
         displayWeight:         .heavy,
         cardAccentFillOpacity:   0.14,
         cardAccentStrokeOpacity: 0.25,
@@ -291,8 +296,8 @@ extension AppThemeColors {
         sectionTitleUppercased: false
     )
 
-    // Jaune électrique pur — fond chargé jaune-noir, jaune qui inonde toutes les surfaces.
-    // accentDistribution: .pervasive — le jaune #FFFF33 baigne l'interface via fills élevés.
+    // Le Danger / Haute Tension. Signal d'alarme industriel — intensité maximale justifiée.
+    // Pas de réduction des fills/glows — le jaune qui envahit EST la feature.
     static let electric = AppThemeColors(
         accent:          Color(hex: "FFFF33"),
         accentLight:     Color(hex: "FFFF80"),
@@ -314,7 +319,7 @@ extension AppThemeColors {
         success:         Color(hex: "00E5FF"),
         warning:         Color(hex: "FF9F0A"),
         info:            Color(hex: "38BDF8"),
-        cardCornerRadius: 18,
+        cardCornerRadius: 10,
         cardBorderWidth:  1.5,
         cardBorderColor:  Color(hex: "FFFF33").opacity(0.45),
         cardShadowColor:  Color(hex: "FFFF33").opacity(0.35),
@@ -326,7 +331,7 @@ extension AppThemeColors {
                                 Color(hex: "C77DFF"), Color(hex: "FF3860")],
         glassOpacity:          0.35,
         accentGradientColors:  [Color(hex: "FFFF33"), Color(hex: "CCDD00")],
-        identityLayer:         .cyberGrid(opacity: 0.08),
+        identityLayer:         .cyberGrid(opacity: 0.12),
         heroFontDesign:        .monospaced,
         titleFontDesign:       .default,
         displayWeight:         .semibold,
@@ -339,8 +344,8 @@ extension AppThemeColors {
         sectionTitleUppercased: true
     )
 
-    // Phosphore vert pur froid — canal G seul, distinct du vert forêt d'Electric.
-    // textPrimary = vert phosphore : l'app devient la console.
+    // La Console / Code Froid. textPrimary == accent : lire les données = lire l'interface.
+    // Pas d'ombres colorées sur un terminal CRT. Panneaux qui recèdent, données au premier plan.
     static let matrix = AppThemeColors(
         accent:          Color(hex: "00FF66"),
         accentLight:     Color(hex: "66FFB2"),
@@ -365,8 +370,8 @@ extension AppThemeColors {
         cardCornerRadius: 0,
         cardBorderWidth:  2.0,
         cardBorderColor:  Color(hex: "00FF66").opacity(0.30),
-        cardShadowColor:  Color(hex: "00FF66").opacity(0.10),
-        cardShadowRadius: 8,
+        cardShadowColor:  .clear,                        // terminaux ne projettent pas d'ombres colorées
+        cardShadowRadius: 0,
         cardShadowOffset: CGSize(width: 0, height: 2),
         cardGlowColor:    Color(hex: "00FF66").opacity(0.12),
         cardGlowRadius:   16,
@@ -374,11 +379,11 @@ extension AppThemeColors {
                                 Color(hex: "FF6B2B"), Color(hex: "CC00FF")],
         glassOpacity:          0.15,
         accentGradientColors:  [Color(hex: "00FF66"), Color(hex: "007733")],
-        identityLayer:         .scanlines(opacity: 0.06),
+        identityLayer:         .scanlines(opacity: 0.09), // grain CRT présent — le vieux moniteur a une texture
         heroFontDesign:        .monospaced,
         titleFontDesign:       .monospaced,
         displayWeight:         .medium,
-        cardAccentFillOpacity:   0.16,
+        cardAccentFillOpacity:   0.08,                   // panneaux qui recèdent, données au premier plan
         cardAccentStrokeOpacity: 0.25,
         cardStyle:               .outlined,
         accentDistribution:      .pervasive,
@@ -387,11 +392,12 @@ extension AppThemeColors {
         sectionTitleUppercased: true
     )
 
-    // Nuit violet-bleu — décalé vers le violet pour quitter le territoire bleu d'Arctic.
+    // Le Néon / Pluie sur Neon. Rose = signal néon. Violet = nuit mouillée qui l'absorbe.
+    // Fond et surfaces inchangés — le violet reste le ciel, le rose prend tout le reste.
     static let tokyo = AppThemeColors(
-        accent:          Color(hex: "8B5CF6"),
-        accentLight:     Color(hex: "FF6B9E"),
-        accentMuted:     Color(hex: "2D1660"),
+        accent:          Color(hex: "FF6B9E"),
+        accentLight:     Color(hex: "FFB3D1"),
+        accentMuted:     Color(hex: "4A1030"),
         onAccent:        .white,
         background:      Color(hex: "1A0A48"),
         surfaceCard:     Color(hex: "2A1B7A"),
@@ -402,26 +408,26 @@ extension AppThemeColors {
         onSurface:       Color(hex: "F0E8FF"),
         textSecondary:   Color(hex: "9B8FC0"),
         textMuted:       Color(hex: "554870"),
-        separator:       Color(hex: "8B5CF6").opacity(0.08),
-        separatorSubtle: Color(hex: "8B5CF6").opacity(0.04),
-        separatorStrong: Color(hex: "8B5CF6").opacity(0.16),
+        separator:       Color(hex: "FF6B9E").opacity(0.08),
+        separatorSubtle: Color(hex: "FF6B9E").opacity(0.04),
+        separatorStrong: Color(hex: "FF6B9E").opacity(0.16),
         danger:          Color(hex: "FF453A"),
         success:         Color(hex: "34C759"),
         warning:         Color(hex: "FFD60A"),
         info:            Color(hex: "00D4FF"),
         cardCornerRadius: 28,
         cardBorderWidth:  1.0,
-        cardBorderColor:  Color(hex: "8B5CF6").opacity(0.20),
-        cardShadowColor:  Color(hex: "8B5CF6").opacity(0.12),
+        cardBorderColor:  Color(hex: "FF6B9E").opacity(0.22),
+        cardShadowColor:  Color(hex: "FF6B9E").opacity(0.18),
         cardShadowRadius: 12,
         cardShadowOffset: CGSize(width: 0, height: 4),
-        cardGlowColor:    Color(hex: "8B5CF6").opacity(0.15),
-        cardGlowRadius:   20,
-        chartPalette:          [Color(hex: "8B5CF6"), Color(hex: "FF6B9E"), Color(hex: "00D4FF"),
+        cardGlowColor:    Color(hex: "FF6B9E").opacity(0.25),
+        cardGlowRadius:   25,
+        chartPalette:          [Color(hex: "FF6B9E"), Color(hex: "8B5CF6"), Color(hex: "00D4FF"),
                                 Color(hex: "F59E0B"), Color(hex: "34C759")],
         glassOpacity:          0.18,
-        accentGradientColors:  [Color(hex: "8B5CF6"), Color(hex: "FF6B9E")],
-        identityLayer:         .neonHalo(color: Color(hex: "FF6B9E"), intensity: 0.22),
+        accentGradientColors:  [Color(hex: "FF6B9E"), Color(hex: "8B5CF6")],
+        identityLayer:         .neonHalo(color: Color(hex: "FF6B9E"), intensity: 0.30),
         heroFontDesign:        .rounded,
         titleFontDesign:       .rounded,
         displayWeight:         .bold,
@@ -481,7 +487,9 @@ extension AppThemeColors {
         sectionTitleUppercased: false
     )
 
-    // Rolex, lounge privé. L'or présent mais qui ne crie jamais.
+    // Coffre suisse à minuit. L'or n'apparaît qu'une fois par écran — foreground uniquement.
+    // accentDistribution: .surgical — zéro fill/stroke doré sur les surfaces structurelles.
+    // La bordure crème @0.06 est un fantôme de bord ; la séparation principale vient du delta surface/fond.
     static let goldNoir = AppThemeColors(
         accent:          Color(hex: "D4AF37"),
         accentLight:     Color(hex: "FFF7D6"),
@@ -494,7 +502,7 @@ extension AppThemeColors {
         textPrimary:     Color(hex: "FFF7D6"),
         onBackground:    Color(hex: "FFF7D6"),
         onSurface:       Color(hex: "FFF7D6"),
-        textSecondary:   Color(hex: "C4A959"),
+        textSecondary:   Color(hex: "B8A488"),           // crème chaude, moins saturé que l'or
         textMuted:       Color(hex: "7A6840"),
         separator:       Color(hex: "D4AF37").opacity(0.08),
         separatorSubtle: Color(hex: "D4AF37").opacity(0.04),
@@ -504,9 +512,9 @@ extension AppThemeColors {
         warning:         Color(hex: "FF9F0A"),
         info:            Color(hex: "64D2FF"),
         cardCornerRadius: 12,
-        cardBorderWidth:  1.5,
-        cardBorderColor:  Color(hex: "D4AF37").opacity(0.18),
-        cardShadowColor:  Color(hex: "D4AF37").opacity(0.10),
+        cardBorderWidth:  1.0,                           // fine = raffinement
+        cardBorderColor:  Color(hex: "FFF7D6").opacity(0.06), // fantôme de bord, paroi du coffre
+        cardShadowColor:  Color(hex: "110800").opacity(0.65), // ombre sombre = profondeur, pas dorée
         cardShadowRadius: 8,
         cardShadowOffset: CGSize(width: 0, height: 2),
         cardGlowColor:    .clear,
@@ -519,12 +527,12 @@ extension AppThemeColors {
         heroFontDesign:        .serif,
         titleFontDesign:       .serif,
         displayWeight:         .semibold,
-        cardAccentFillOpacity:   0.16,
-        cardAccentStrokeOpacity: 0.28,
+        cardAccentFillOpacity:   0.0,                    // surgical — zéro fill doré
+        cardAccentStrokeOpacity: 0.0,                    // surgical — zéro stroke overlay
         cardStyle:               .raised,
-        accentDistribution:      .pervasive,
+        accentDistribution:      .surgical,              // levier principal
         heroNumberSize:        36,
-        sectionTitleTracking:  1.8,
+        sectionTitleTracking:  2.2,                      // espacement gravure formelle
         sectionTitleUppercased: true
     )
 
@@ -577,7 +585,9 @@ extension AppThemeColors {
         sectionTitleUppercased: true
     )
 
-    // Dune, Sahara. Fond L*≈22 (#5C3D2E), chaleur sable visible — le plus clair du catalogue.
+    // Camp d'entraînement, 16h, chaleur crue. Terracotta = la terre, pas le luxe.
+    // accentDistribution: .pervasive — le sable doré est une variation de la terre, pas un accent décoratif.
+    // Pas de glow — lumière crue de plein jour, pas de néon.
     static let desert = AppThemeColors(
         accent:          Color(hex: "E9C46A"),
         accentLight:     Color(hex: "F4D08A"),
@@ -605,23 +615,23 @@ extension AppThemeColors {
         cardShadowColor:  Color(hex: "2A1208").opacity(0.55),
         cardShadowRadius: 14,
         cardShadowOffset: CGSize(width: 0, height: 5),
-        cardGlowColor:    Color(hex: "E9C46A").opacity(0.14),
-        cardGlowRadius:   12,
+        cardGlowColor:    .clear,                        // pas de glow — lumière crue
+        cardGlowRadius:   0,
         chartPalette:          [Color(hex: "E9C46A"), Color(hex: "D4A373"), Color(hex: "F4A261"),
                                 Color(hex: "264653"), Color(hex: "2A9D8F")],
         glassOpacity:          0.12,
         accentGradientColors:  [Color(hex: "E9C46A"), Color(hex: "D4A373")],
-        identityLayer:         .filmGrain(opacity: 0.04),
-        heroFontDesign:        .serif,
+        identityLayer:         .filmGrain(opacity: 0.06), // grain de terre craquelée
+        heroFontDesign:        .default,                  // rustique, pas engravement serif
         titleFontDesign:       .default,
-        displayWeight:         .medium,
+        displayWeight:         .bold,                     // les chiffres frappent
         cardAccentFillOpacity:   0.14,
-        cardAccentStrokeOpacity: 0.25,
+        cardAccentStrokeOpacity: 0.10,                   // contour réduit — matière, pas dorure
         cardStyle:               .raised,
         accentDistribution:      .pervasive,
         heroNumberSize:        40,
-        sectionTitleTracking:  0.5,
-        sectionTitleUppercased: false
+        sectionTitleTracking:  1.2,                      // tension, pas décontraction
+        sectionTitleUppercased: true
     )
 }
 
