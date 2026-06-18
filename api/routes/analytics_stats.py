@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta, date as _date
 import logging
+import time
 from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
@@ -166,11 +167,16 @@ def api_stats_streaks():
     })
 
 
+_stats_wellness_cache: dict = {}
+
 @analytics_stats_bp.route("/api/stats_wellness")
 def api_stats_wellness():
     """Wellness correlations and mental health data for the Stats Bien-être tab."""
     import db as _db
-    return jsonify({
+    _now = time.time()
+    if _stats_wellness_cache.get("ts", 0) + 1800 > _now:
+        return jsonify(_stats_wellness_cache["data"])
+    data = {
         "mood_trend":              _db.get_mood_trend(60),
         "pss_history":             _db.get_pss_records(limit=20),
         "self_care_streaks":       _db.get_self_care_streaks_computed(),
@@ -179,7 +185,9 @@ def api_stats_wellness():
         "sleep_volume_scatter":    _db.get_sleep_volume_scatter(),
         "rpe_progression":         _db.get_rpe_progression(),
         "rir_by_exercise":         _db.get_rir_by_exercise(),
-    })
+    }
+    _stats_wellness_cache.update({"ts": _now, "data": data})
+    return jsonify(data)
 
 
 @analytics_stats_bp.route("/api/macro_gap")

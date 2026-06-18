@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 import logging
+import time
 from utils import _today_mtl, _now_mtl
 
 logger = logging.getLogger("trainingos")
@@ -272,9 +273,14 @@ def api_smart_day():
     })
 
 
+_weekly_report_cache: dict = {}
+
 @analytics_coach_bp.route("/api/weekly_report")
 def api_weekly_report():
     """Aggregated summary for the last 7 days: volume, PRs, recovery, nutrition, sleep."""
+    _now = time.time()
+    if _weekly_report_cache.get("ts", 0) + 1800 > _now:
+        return jsonify(_weekly_report_cache["data"])
     from health_data import get_weekly_health_summary
     from weights import load_weights
     from nutrition import get_recent_days
@@ -399,7 +405,7 @@ def api_weekly_report():
     if not focus:
         focus.append("Continue sur ta lancée — belle semaine !")
 
-    return jsonify({
+    result = {
         "week_start":            week_start,
         "week_end":              today.isoformat(),
         "session_count":         session_count,
@@ -415,7 +421,9 @@ def api_weekly_report():
         "weekly_score":          weekly_score,
         "prs":                   prs_list,
         "focus_next_week":       focus,
-    })
+    }
+    _weekly_report_cache.update({"ts": _now, "data": result})
+    return jsonify(result)
 
 
 
