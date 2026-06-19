@@ -90,7 +90,7 @@ struct CoachInsightCard: View {
     @ViewBuilder
     private func coachContent(_ brief: MorningBriefData) -> some View {
         Button {
-            NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
+            AppState.shared.pendingDeepLink = "intelligence"
         } label: {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {

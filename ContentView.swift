@@ -85,22 +85,10 @@ private struct iOSContentView: View {
         }
         .globalActionFeedback()
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToIntelligence)) { _ in
-            selectedTab = 0
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToRecovery)) { _ in
-            selectedTab = 4
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToNutrition)) { _ in
-            selectedTab = 4
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToSeance)) { _ in
-            selectedTab = 2
-        }
         .onReceive(appState.$pendingDeepLink.compactMap { $0 }) { link in
             switch link {
             case "intelligence": selectedTab = 0
-            case "warroom":      selectedTab = 0  // War Room is inside IntelligenceView
+            case "warroom":      selectedTab = 4
             case "dashboard":    selectedTab = 1
             case "seance":       selectedTab = 2
             case "more":         selectedTab = 4

@@ -463,7 +463,7 @@ struct ProgrammeView: View {
                                         }
                                         .buttonStyle(.plain)
                                         Button {
-                                            NotificationCenter.default.post(name: .navigateToSeance, object: nil)
+                                            AppState.shared.pendingDeepLink = "seance"
                                         } label: {
                                             Text("Séance libre")
                                                 .font(.appBody.weight(.medium))

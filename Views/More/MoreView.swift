@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct MoreView: View {
     @ObservedObject private var api      = APIService.shared
@@ -116,11 +117,9 @@ struct MoreView: View {
             }
             .fullScreenCover(isPresented: $showNutritionDirect) { NutritionView() }
             .fullScreenCover(isPresented: $showRecoveryDirect)  { EnergyRecoveryView() }
-            .onReceive(NotificationCenter.default.publisher(for: .navigateToNutrition)) { _ in
-                showNutritionDirect = true
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .navigateToRecovery)) { _ in
+            .onReceive(appState.$openRecoveryView.filter { $0 }) { _ in
                 showRecoveryDirect = true
+                appState.openRecoveryView = false
             }
         }
     }

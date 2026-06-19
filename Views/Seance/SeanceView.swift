@@ -1209,7 +1209,7 @@ struct NoProgramEmptyState: View {
                 .buttonStyle(.plain)
 
                 Button {
-                    NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
+                    AppState.shared.pendingDeepLink = "intelligence"
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "brain.head.profile")

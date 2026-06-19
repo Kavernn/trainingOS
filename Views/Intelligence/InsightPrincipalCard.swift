@@ -75,9 +75,10 @@ struct InsightPrincipalCard: View {
     private func navigate() {
         switch insight.action {
         case "seance":
-            NotificationCenter.default.post(name: .navigateToSeance, object: nil)
+            AppState.shared.pendingDeepLink = "seance"
         case "stats":
-            NotificationCenter.default.post(name: .navigateToRecovery, object: nil)
+            AppState.shared.pendingDeepLink = "more"
+            AppState.shared.openRecoveryView = true
         case "programme":
             onNavigateToProgramme?()
         default:
