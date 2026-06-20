@@ -120,8 +120,8 @@ extension StatsView {
         }
 
         // 2. Décharge volontaire (si active ou à déclarer)
-        DeloadCard(status: deloadStatus) { newStatus in
-            deloadStatus = newStatus
+        DeloadCard(status: activeDeload) { newStatus in
+            activeDeload = newStatus
         }
         .padding(.horizontal, 16)
 

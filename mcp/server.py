@@ -29,6 +29,88 @@ async def _fetch(client: httpx.AsyncClient, path: str, params: dict | None = Non
         return {"_error": str(e)}
 
 
+async def _post(client: httpx.AsyncClient, path: str, body: dict | None = None) -> dict:
+    """POST sécurisé — retourne {"_error": ...} sans crasher."""
+    try:
+        r = await client.post(f"{BASE_URL}{path}", json=body or {}, timeout=20)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        return {"_error": str(e)}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Outil 0 — Écriture deload
+# ─────────────────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+async def set_deload(action: str, user_quote: str, reason: str = "Repos volontaire", duration_days: int = 7) -> str:
+    """
+    Active ou désactive la décharge volontaire de Vince dans TrainingOS.
+
+    ⚠️  N'appelle JAMAIS cet outil de ta propre initiative.
+    Appelle-le UNIQUEMENT quand Vince demande explicitement d'activer
+    ou désactiver un deload. Avant d'appeler, résume en langage naturel
+    l'action prévue (action, raison, durée) et attends sa confirmation
+    claire. Si Vince n'a pas dit "oui", "go", ou une approbation
+    explicite, n'appelle pas cet outil.
+
+    action     : "activate" ou "deactivate" — toute autre valeur est rejetée.
+    user_quote : la phrase EXACTE et VERBATIM par laquelle Vince a demandé ce
+                 deload. Ne JAMAIS paraphraser, inventer ou déduire. Si Vince
+                 n'a pas explicitement demandé d'activer/désactiver un deload,
+                 tu n'as pas de user_quote valide — donc n'appelle pas l'outil.
+                 Une évocation comme "je suis fatigué" n'est PAS une demande
+                 de deload. Paramètre obligatoire, sans valeur par défaut.
+    reason     : raison du repos (ex: "Fatigue accumulée"). Ignoré si deactivate.
+    duration_days : durée en jours entre 1 et 21, clampé automatiquement.
+    """
+    if action not in ("activate", "deactivate"):
+        return f"❌ Paramètre action invalide : '{action}'. Valeurs acceptées : 'activate' ou 'deactivate'."
+
+    duration_days = max(1, min(21, duration_days))
+    path = f"/api/deload/{action}"
+    body = {"reason": reason, "duration_days": duration_days} if action == "activate" else {}
+
+    async with httpx.AsyncClient(headers=_headers()) as client:
+        result = await _post(client, path, body)
+        if not _ok(result):
+            return f"❌ Échec {action} deload : {_err(result)}"
+        status = await _fetch(client, "/api/deload/status")
+
+    if not _ok(status):
+        return f"✅ {action} effectué (réponse API : {result}) — mais vérification état échouée : {_err(status)}"
+
+    active    = status.get("active", False)
+    started   = status.get("started_at", "?")
+    ends_at   = status.get("ends_at", "?")
+    days_r    = status.get("days_remaining")
+    completed = status.get("last_completed", "?")
+
+    if action == "activate":
+        if not active:
+            return f"⚠️  POST réussi mais état en base = inactif — vérifier manuellement."
+        days_info = f", {days_r} jour(s) restant(s)" if days_r is not None else ""
+        return (
+            f"✅ Deload activé.\n"
+            f"  Demande Vince : \"{user_quote}\"\n"
+            f"  Raison        : {reason}\n"
+            f"  Durée         : {duration_days} jour(s)\n"
+            f"  Début         : {started}\n"
+            f"  Fin prévue    : {ends_at}{days_info}\n"
+            f"  État en base  : active={active} (vérifié)"
+        )
+    else:
+        if active:
+            return f"⚠️  POST réussi mais état en base = encore actif — vérifier manuellement."
+        return (
+            f"✅ Deload désactivé.\n"
+            f"  Demande Vince : \"{user_quote}\"\n"
+            f"  Complété le   : {completed}\n"
+            f"  État en base  : active={active} (vérifié)"
+        )
+
+
 def _ok(d: dict) -> bool:
     return isinstance(d, dict) and "_error" not in d
 
