@@ -21,13 +21,13 @@ extension APIService {
     }
 
     func fetchDeloadStatus() async throws -> DeloadStatus {
-        guard let url = try? buildURL(path: "/api/deload/status") else { throw APIError.invalidURL }
+        guard let url = try? buildURL(path: "/api/deload/status") else { throw APIError.invalidURL(path: "/api/deload/status") }
         let data = try await URLSession.authed.data(from: url).0
         return try APIService.decoder.decode(DeloadStatus.self, from: data)
     }
 
     func activateDeload(reason: String = "Repos volontaire", durationDays: Int = 7) async throws {
-        guard let url = URL(string: "\(baseURL)/api/deload/activate") else { throw APIError.invalidURL }
+        guard let url = URL(string: "\(baseURL)/api/deload/activate") else { throw APIError.invalidURL(path: "/api/deload/activate") }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -41,7 +41,7 @@ extension APIService {
     }
 
     func deactivateDeload() async throws {
-        guard let url = URL(string: "\(baseURL)/api/deload/deactivate") else { throw APIError.invalidURL }
+        guard let url = URL(string: "\(baseURL)/api/deload/deactivate") else { throw APIError.invalidURL(path: "/api/deload/deactivate") }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
