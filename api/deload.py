@@ -255,10 +255,10 @@ def check_planned_deload() -> dict:
         return {"due": False, "weeks_since": None, "weeks_target": weeks_target}
 
 
-def activer_deload(reason: str, duration_days: int = 7):
+def activer_deload(reason: str, duration_days: int = 7, started_at: str | None = None):
     save_deload_state({
         "active":        True,
-        "started_at":    _today_mtl(),
+        "started_at":    started_at or _today_mtl(),
         "reason":        reason,
         "duration_days": duration_days,
     })

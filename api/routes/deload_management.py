@@ -38,10 +38,11 @@ def api_deload_activate():
     body = request.get_json(silent=True) or {}
     reason = (body.get("reason") or "Repos volontaire").strip()
     duration_days = int(body.get("duration_days") or 7)
+    started_at = body.get("started_at") or _today_mtl()
     if duration_days < 1 or duration_days > 21:
         return jsonify({"error": "duration_days doit être entre 1 et 21"}), 400
-    activer_deload(reason=reason, duration_days=duration_days)
-    return jsonify({"ok": True, "started_at": _today_mtl(), "duration_days": duration_days})
+    activer_deload(reason=reason, duration_days=duration_days, started_at=started_at)
+    return jsonify({"ok": True, "started_at": started_at, "duration_days": duration_days})
 
 
 @deload_management_bp.route("/api/deload/deactivate", methods=["POST"])
