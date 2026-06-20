@@ -214,6 +214,8 @@ def save_deload_state(state: dict):
         active=state.get("active", False),
         started_at=state.get("started_at"),
         reason=state.get("reason"),
+        duration_days=state.get("duration_days"),
+        last_completed=state.get("last_completed"),
     )
 
 
@@ -253,23 +255,21 @@ def check_planned_deload() -> dict:
         return {"due": False, "weeks_since": None, "weeks_target": weeks_target}
 
 
-def activer_deload(reason: str):
-    state = {
-        "active": True,
-        "since":  _today_mtl(),
-        "reason": reason
-    }
-    save_deload_state(state)
+def activer_deload(reason: str, duration_days: int = 7):
+    save_deload_state({
+        "active":        True,
+        "started_at":    _today_mtl(),
+        "reason":        reason,
+        "duration_days": duration_days,
+    })
 
 
 def desactiver_deload():
-    state = load_deload_state()
     save_deload_state({
         "active":         False,
-        "since":          None,
+        "started_at":     None,
         "reason":         None,
         "last_completed": _today_mtl(),
-        # Preserve previous last_completed if already set (only overwrite on actual deload end)
     })
 
 

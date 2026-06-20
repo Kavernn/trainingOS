@@ -151,6 +151,7 @@ from routes.sleep_quality        import sleep_quality_bp
 from routes.workout_duration     import workout_duration_bp
 from routes.smart_alarm          import smart_alarm_bp
 from routes.session_progression  import session_progression_bp
+from routes.deload_management    import deload_management_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -228,6 +229,7 @@ app.register_blueprint(sleep_quality_bp)
 app.register_blueprint(workout_duration_bp)
 app.register_blueprint(smart_alarm_bp)
 app.register_blueprint(session_progression_bp)
+app.register_blueprint(deload_management_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

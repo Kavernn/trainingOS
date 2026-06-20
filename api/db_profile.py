@@ -529,6 +529,8 @@ def set_deload_state(
     active: bool,
     started_at: Optional[str] = None,
     reason: Optional[str] = None,
+    duration_days: Optional[int] = None,
+    last_completed: Optional[str] = None,
 ) -> bool:
     """Set the deload state row. Creates it if not yet present."""
     payload: dict = {"id": 1, "active": active}
@@ -536,6 +538,10 @@ def set_deload_state(
         payload["started_at"] = started_at
     if reason is not None:
         payload["reason"] = reason
+    if duration_days is not None:
+        payload["duration_days"] = duration_days
+    if last_completed is not None:
+        payload["last_completed"] = last_completed
 
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
