@@ -18,13 +18,23 @@ def api_morning_brief():
     try:
         import os
         import anthropic as _anthropic
+        from deload import load_deload_state
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if api_key and brief.get("lss") is not None:
+            deload = load_deload_state()
+            deload_active = bool(deload.get("active"))
+
             ctx_parts = [
                 f"LSS (Life Stress Score): {brief['lss']:.0f}/100",
                 f"Séance prévue: {brief['session_today']} (intensité: {brief['session_intensity']})",
                 f"Recommandation système: {brief['recommendation']}",
             ]
+            if deload_active:
+                ctx_parts.append(
+                    f"DÉCHARGE VOLONTAIRE active depuis {deload.get('started_at','?')} "
+                    f"(raison: {deload.get('reason','non précisée')}, "
+                    f"fin prévue: {deload.get('ends_at','?')})"
+                )
             active_flags = [k for k, v in (brief.get("flags") or {}).items() if v]
             if active_flags:
                 ctx_parts.append(f"Alertes: {', '.join(active_flags)}")
@@ -52,17 +62,28 @@ def api_morning_brief():
             except Exception:
                 pass
 
-            client = _anthropic.Anthropic(api_key=api_key)
-            msg = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=80,
-                system=(
+            if deload_active:
+                system_prompt = (
+                    "Tu es un coach sportif. En une seule phrase (max 20 mots), "
+                    "génère un message matinal qui VALIDE le repos intentionnel en cours. "
+                    "Ne suggère PAS de faire une séance. Cite un bénéfice concret du repos (récupération, adaptation, supercompensation). "
+                    "Style calme et confiant. Tutoiement. Français uniquement. "
+                    "Pas de ponctuation finale superflue."
+                )
+            else:
+                system_prompt = (
                     "Tu es un coach sportif. En une seule phrase (max 20 mots), "
                     "génère un message d'encouragement matinal personnalisé basé sur les données. "
                     "Cite UN chiffre concret (LSS, RPE, ou intensité). "
                     "Style direct, énergisant. Tutoiement. Français uniquement. "
                     "Pas de ponctuation finale superflue."
-                ),
+                )
+
+            client = _anthropic.Anthropic(api_key=api_key)
+            msg = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=80,
+                system=system_prompt,
                 messages=[{"role": "user", "content": "\n".join(ctx_parts)}],
             )
             brief["message"] = msg.content[0].text.strip()

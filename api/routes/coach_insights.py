@@ -183,6 +183,16 @@ def api_daily_insight():
             last_date = date_cls.fromisoformat(str(completed[0]["date"]))
             days_since = (today - last_date).days
             if days_since >= 5:
+                from deload import load_deload_state
+                deload = load_deload_state()
+                if deload.get("active"):
+                    ends_at = deload.get("ends_at") or "bientôt"
+                    return _insight(
+                        "opportunity", "bed.double.fill",
+                        "Décharge volontaire en cours",
+                        f"Repos intentionnel actif depuis {deload.get('started_at', '?')} — reprise prévue {ends_at}. Récupère bien.",
+                        f"Décharge · {days_since}j de repos", "stats", 3,
+                    )
                 return _insight(
                     "programme", "calendar.badge.exclamationmark",
                     f"{days_since} jours sans séance",
