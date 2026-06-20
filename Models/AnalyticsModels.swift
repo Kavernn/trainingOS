@@ -786,6 +786,25 @@ struct IntensityData: Codable {
 }
 
 // MARK: - Deload Status
+struct DeloadStatus: Codable {
+    let active:        Bool
+    let startedAt:     String?
+    let endsAt:        String?
+    let reason:        String?
+    let daysRemaining: Int?
+    let durationDays:  Int
+    let lastCompleted: String?
+
+    enum CodingKeys: String, CodingKey {
+        case active, reason
+        case startedAt     = "started_at"
+        case endsAt        = "ends_at"
+        case daysRemaining = "days_remaining"
+        case durationDays  = "duration_days"
+        case lastCompleted = "last_completed"
+    }
+}
+
 struct DeloadStatusData: Codable {
     let recommande:       Bool
     let weeksSinceDeload: Int?

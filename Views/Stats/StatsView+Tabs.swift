@@ -1,6 +1,112 @@
 import SwiftUI
 import Charts
 
+// MARK: - Deload Card
+
+private struct DeloadCard: View {
+    let status: DeloadStatus?
+    let onUpdate: (DeloadStatus?) -> Void
+
+    @State private var isLoading = false
+    @State private var showConfirmDeactivate = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let s = status, s.active {
+                activeView(s)
+            } else {
+                inactiveView
+            }
+        }
+        .padding(14)
+        .background(Color(white: 0.07))
+        .cornerRadius(14)
+    }
+
+    private func activeView(_ s: DeloadStatus) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "bed.double.fill")
+                    .foregroundColor(.statusBlue)
+                Text("DÉCHARGE VOLONTAIRE")
+                    .font(.appCaption.weight(.bold))
+                    .foregroundColor(.statusBlue)
+                Spacer()
+                if let days = s.daysRemaining {
+                    Text("\(days)j restant\(days > 1 ? "s" : "")")
+                        .font(.appCaption)
+                        .foregroundColor(Color(white: 0.4))
+                }
+            }
+            if let reason = s.reason {
+                Text(reason)
+                    .font(.appLabel)
+                    .foregroundColor(Color(white: 0.55))
+            }
+            if let ends = s.endsAt {
+                Text("Reprise prévue le \(ends)")
+                    .font(.appCaption)
+                    .foregroundColor(Color(white: 0.4))
+            }
+            Button(action: { showConfirmDeactivate = true }) {
+                Text("Terminer la décharge")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.statusRed)
+            }
+            .disabled(isLoading)
+        }
+        .confirmationDialog("Terminer la décharge ?", isPresented: $showConfirmDeactivate, titleVisibility: .visible) {
+            Button("Confirmer", role: .destructive) { deactivate() }
+            Button("Annuler", role: .cancel) { }
+        }
+    }
+
+    private var inactiveView: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "moon.zzz.fill")
+                .font(.system(size: 22))
+                .foregroundColor(Color(white: 0.35))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Semaine de décharge")
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                Text("Déclare un repos volontaire — les alertes seront suspendues")
+                    .font(.appCaption)
+                    .foregroundColor(Color(white: 0.4))
+            }
+            Spacer()
+            Button(action: activate) {
+                if isLoading {
+                    ProgressView().scaleEffect(0.8)
+                } else {
+                    Text("Activer")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.forge)
+                }
+            }
+            .disabled(isLoading)
+        }
+    }
+
+    private func activate() {
+        isLoading = true
+        Task {
+            try? await APIService.shared.activateDeload()
+            let fresh = try? await APIService.shared.fetchDeloadStatus()
+            await MainActor.run { onUpdate(fresh); isLoading = false }
+        }
+    }
+
+    private func deactivate() {
+        isLoading = true
+        Task {
+            try? await APIService.shared.deactivateDeload()
+            let fresh = try? await APIService.shared.fetchDeloadStatus()
+            await MainActor.run { onUpdate(fresh); isLoading = false }
+        }
+    }
+}
+
 // MARK: - Tab Content Extensions
 extension StatsView {
 
@@ -13,7 +119,13 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
-        // 2. Activity Rings — Score de constance
+        // 2. Décharge volontaire (si active ou à déclarer)
+        DeloadCard(status: deloadStatus) { newStatus in
+            deloadStatus = newStatus
+        }
+        .padding(.horizontal, 16)
+
+        // 3. Activity Rings — Score de constance
         if let adh = adherenceData {
             AdherenceRingsCard(data: adh)
                 .padding(.horizontal, 16)

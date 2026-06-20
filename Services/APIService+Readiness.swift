@@ -20,6 +20,38 @@ extension APIService {
         return active
     }
 
+    func fetchDeloadStatus() async throws -> DeloadStatus {
+        guard let url = try? buildURL(path: "/api/deload/status") else { throw APIError.invalidURL }
+        let data = try await URLSession.authed.data(from: url).0
+        return try APIService.decoder.decode(DeloadStatus.self, from: data)
+    }
+
+    func activateDeload(reason: String = "Repos volontaire", durationDays: Int = 7) async throws {
+        guard let url = URL(string: "\(baseURL)/api/deload/activate") else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["reason": reason, "duration_days": durationDays])
+        let (_, resp) = try await URLSession.authed.data(for: req)
+        if let http = resp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw APIError.serverError(http.statusCode, "Activation deload échouée : HTTP \(http.statusCode)")
+        }
+        UserDefaults.standard.set(true, forKey: "deload_active")
+        NotificationService.cancelDeloadNotifications()
+    }
+
+    func deactivateDeload() async throws {
+        guard let url = URL(string: "\(baseURL)/api/deload/deactivate") else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (_, resp) = try await URLSession.authed.data(for: req)
+        if let http = resp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw APIError.serverError(http.statusCode, "Désactivation deload échouée : HTTP \(http.statusCode)")
+        }
+        UserDefaults.standard.set(false, forKey: "deload_active")
+    }
+
     func fetchReadiness() async throws -> ReadinessResponse {
         let url  = try buildURL(path: "/api/readiness")
         let data = try await fetchWithCache(url: url, key: "readiness")

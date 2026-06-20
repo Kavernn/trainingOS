@@ -88,6 +88,7 @@ struct StatsView: View {
     @State var nutritionTarget:  NutritionSettings?      = nil
     @State var nutritionDays:    [NutritionDay]          = []
     @State var acwr:             ACWRData?               = nil
+    @State var deloadStatus:     DeloadStatus?           = nil
     @State var muscleStats:      [String: MuscleStatEntry]  = [:]
     @State var muscleLandmarks:  [String: MuscleLandmark]   = [:]
     @State var inventoryTypes:   [String: String]            = [:]
@@ -663,6 +664,7 @@ struct StatsView: View {
         // Streak — source serveur unique (P1.2)
         streakData = try? await APIService.shared.fetchStreaks(date: AppState.shared.todayStr)
 
+        deloadStatus = try? await APIService.shared.fetchDeloadStatus()
         isLoading = false
         await APIService.shared.syncDeloadFlag()
         NotificationService.scheduleContextual(

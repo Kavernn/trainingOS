@@ -529,9 +529,9 @@ struct DeloadPlanSheet: View {
                     if isActivating {
                         ProgressView().tint(Color.onAccent)
                     } else {
-                        Image(systemName: "bolt.fill")
+                        Image(systemName: "checkmark.circle.fill")
                     }
-                    Text("Activer le deload")
+                    Text("Gérer ce plateau")
                         .font(.appBody.weight(.semibold))
                 }
                 .foregroundColor(Color.onAccent)
