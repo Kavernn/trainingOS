@@ -64,3 +64,6 @@ Utilities/APIConfig.swift
 xcschememanagement.plist
 .env*.local
 .claude/
+
+# Graphify knowledge graph (regeneratable)
+graphify-out/
