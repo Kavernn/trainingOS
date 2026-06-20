@@ -190,6 +190,13 @@ enum NotificationService {
             .removePendingNotificationRequests(withIdentifiers: ["pss.weekly.test"])
     }
 
+    /// Annule immédiatement les notifs culpabilisantes pendant un deload.
+    /// Appeler dès l'activation du deload, sans attendre le prochain lancement.
+    static func cancelDeloadNotifications() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["inactivity.reminder", "streak.danger.daily"])
+    }
+
     static func cancelHRVReminder() {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: ["hrv.morning.reminder"])
@@ -207,6 +214,7 @@ enum NotificationService {
 
         let daysSince = Int(round((Date().timeIntervalSince1970 - lastDate.timeIntervalSince1970) / 86400.0))
         guard daysSince >= 3 else { return }
+        guard !UserDefaults.standard.bool(forKey: "deload_active") else { return }
 
         // Guard: schedule at most once per calendar day (prevents re-fire on repeated StatsView loads)
         let today = DateFormatter.isoDate.string(from: Date())
@@ -282,6 +290,7 @@ enum NotificationService {
         let center = UNUserNotificationCenter.current()
         let id = "streak.danger.daily"
         center.removePendingNotificationRequests(withIdentifiers: [id])
+        guard !UserDefaults.standard.bool(forKey: "deload_active") else { return }
         guard streak >= 3, !hasSessionToday else { return }
 
         let today = DateFormatter.isoDate.string(from: Date())

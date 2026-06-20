@@ -251,6 +251,7 @@ struct IntelligenceView: View {
                 Task { generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram() }
                 await loadContextData()
                 let streak = computeStreak(from: sessionsData)
+                await APIService.shared.syncDeloadFlag()
                 NotificationService.scheduleStreakDanger(
                     streak: streak,
                     hasSessionToday: api.dashboard?.alreadyLoggedToday == true

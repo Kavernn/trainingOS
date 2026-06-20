@@ -385,6 +385,15 @@ def get_all_alerts() -> list[dict]:
         ]
 
         alerts = [a for a in candidates if a is not None]
+
+        # Supprimer les alertes de fatigue si une décharge volontaire est active
+        try:
+            from deload import load_deload_state
+            if load_deload_state().get("active"):
+                alerts = [a for a in alerts if a.get("id") != "high_rpe_streak"]
+        except Exception:
+            pass
+
         alerts.sort(key=lambda a: _SEVERITY_ORDER.get(a.get("severity", "info"), 99))
         return alerts
 

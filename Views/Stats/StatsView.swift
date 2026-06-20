@@ -664,7 +664,7 @@ struct StatsView: View {
         streakData = try? await APIService.shared.fetchStreaks(date: AppState.shared.todayStr)
 
         isLoading = false
-        // Schedule contextual notifications (inactivity + streak milestones)
+        await APIService.shared.syncDeloadFlag()
         NotificationService.scheduleContextual(
             sessionDates: Array(sessions.keys),
             currentStreak: currentStreak
