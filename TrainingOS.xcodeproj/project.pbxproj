@@ -224,6 +224,7 @@
 		SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */; };
 		SPK0002SPK0002SPK0002SP2 /* SessionPreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */; };
 		SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */; };
+		VDB00002VDB00002VDB00002 /* VoiceDictationButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = VDB00001VDB00001VDB00001 /* VoiceDictationButton.swift */; };
 		STNA0001STNA0001STNA0001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0001STNR0001STNR0001 /* SettingsView.swift */; };
 		STNA0002STNA0002STNA0002 /* TrainingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */; };
 		STNA0003STNA0003STNA0003 /* RecoverySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */; };
@@ -527,6 +528,7 @@
 		SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritJournalView.swift; sourceTree = "<group>"; };
 		SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPreferenceKeys.swift; sourceTree = "<group>"; };
 		SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupportViews.swift; sourceTree = "<group>"; };
+		VDB00001VDB00001VDB00001 /* VoiceDictationButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceDictationButton.swift; sourceTree = "<group>"; };
 		STNR0001STNR0001STNR0001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsView.swift; sourceTree = "<group>"; };
 		STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySettingsView.swift; sourceTree = "<group>"; };
@@ -1080,6 +1082,7 @@
 				SE000000AA00300B2F5DDDDD /* Seasons */,
 				GF000000AA00300B2F5DEEEE /* GymFinder */,
 				STNG0000STNG0000STNG0000 /* Settings */,
+				VDB00001VDB00001VDB00001 /* VoiceDictationButton.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1433,6 +1436,7 @@
 				D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */,
 				WAV00002WAV00002WAV00002 /* WorkoutActiveView.swift in Sources */,
 				SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */,
+				VDB00002VDB00002VDB00002 /* VoiceDictationButton.swift in Sources */,
 				SC0002SC0002SC0002SC0002 /* SessionChips.swift in Sources */,
 				GB0002GB0002GB0002GB0002 /* GhostBanner.swift in Sources */,
 				ACS0002ACS0002ACS0002AC2 /* AddCardioSheet.swift in Sources */,

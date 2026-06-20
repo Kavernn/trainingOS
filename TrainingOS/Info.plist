@@ -4,6 +4,10 @@
 <dict>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>VinceSeven utilise AlarmKit pour te réveiller au meilleur moment de ton cycle de sommeil.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>VinceSeven utilise le micro pour la dictée du journal. L'audio n'est jamais transmis — traitement entièrement sur l'appareil.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>VinceSeven utilise la reconnaissance vocale pour transcrire ton journal. Tout reste sur l'appareil, rien n'est envoyé à Apple.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

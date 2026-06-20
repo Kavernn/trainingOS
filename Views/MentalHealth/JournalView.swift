@@ -380,6 +380,7 @@ struct JournalEntrySheet: View {
                     TextField("Commence à écrire…", text: $content, axis: .vertical)
                         .lineLimit(6...20)
                         .onChange(of: content) { draftContent = $0 }
+                    VoiceDictationButton(text: $content)
                 }
                 Section {
                     Toggle(isOn: $moodEnabled.animation(.easeInOut(duration: 0.2))) {
