@@ -357,6 +357,28 @@ def calc_acwr() -> dict:
             "confidence":   pt["confidence"],
         }
 
+    # ── Lentille deload — interprétation seulement, pas les données ────────────
+    deload_active = False
+    try:
+        from deload import load_deload_state
+        deload_state = load_deload_state()
+        deload_active = bool(deload_state.get("active"))
+        if deload_active:
+            zone_code = latest["zone_code"]
+            meta = dict(meta)  # copie — ne pas muter _ZONE_META
+            if zone_code == "under":
+                meta["recommendation"] = (
+                    "Décharge active — repos intentionnel pour adaptation. "
+                    "Charge basse attendue et saine. Reprendre progressivement après."
+                )
+            elif zone_code in ("caution", "danger"):
+                meta["recommendation"] = (
+                    meta["recommendation"] +
+                    " (Décharge en cours — poursuivre le repos intentionnel.)"
+                )
+    except Exception:
+        pass
+
     return {
         "ratio":          latest["ratio"],
         "acute_load":     latest["acute_load"],
@@ -367,4 +389,5 @@ def calc_acwr() -> dict:
         "days_of_data":   latest["days_of_data"],
         "strength_acwr":  _sub(sl),
         "cardio_acwr":    _sub(cl),
+        "deload_context": deload_active,
     }
