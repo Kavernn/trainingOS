@@ -120,7 +120,7 @@ async def get_training_status() -> str:
             for key, label in labels.items():
                 mod = mods.get(key)
                 if mod:
-                    lines.append(f"  {label}: {mod.get('score', '?'):>3}/100 — {mod.get('detail', '')}")
+                    lines.append(f"  {label}: {mod.get('score') or '?':>3}/100 — {mod.get('detail', '')}")
             lines.append("")
     else:
         lines.append(f"[Readiness indisponible : {_err(readiness)}]")
