@@ -218,13 +218,12 @@ struct XPView: View {
                 .foregroundColor(.appTextPrimary)
 
             VStack(spacing: 6) {
-                HStack {
-                    Text("\(xp) XP total")
-                        .font(.appCaption).foregroundColor(.gray)
-                    Spacer()
-                    Text("\(xpInLevel) / \(xpToNextLevel) XP")
-                        .font(.appCaption).foregroundColor(Color.forge)
-                }
+                StatRow(
+                    label: "\(xp) XP total",
+                    value: "\(xpInLevel) / \(xpToNextLevel) XP",
+                    valueColor: .forge,
+                    compact: true
+                )
                 Capsule()
                     .fill(Color.appSurfaceInset)
                     .frame(height: 8)

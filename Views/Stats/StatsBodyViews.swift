@@ -178,15 +178,13 @@ struct VolumeLandmarksCard: View {
                         .foregroundColor(.gray)
                     ForEach(specificsEntries, id: \.0) { muscleKey, detail in
                         ForEach(detail.sorted(by: { $0.value > $1.value }), id: \.key) { specific, count in
-                            HStack {
-                                Text("\(muscleKey.localizedMuscleGroup) → \(specific)")
-                                    .font(.appCaption)
-                                    .foregroundColor(Color.appOnSurface.opacity(0.65))
-                                Spacer()
-                                Text("\(count) sets")
-                                    .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(Color.appOnSurface.opacity(0.65))
-                            }
+                            StatRow(
+                                label: "\(muscleKey.localizedMuscleGroup) → \(specific)",
+                                value: "\(count) sets",
+                                labelColor: Color.appOnSurface.opacity(0.65),
+                                valueColor: Color.appOnSurface.opacity(0.65),
+                                compact: true
+                            )
                         }
                     }
                 }

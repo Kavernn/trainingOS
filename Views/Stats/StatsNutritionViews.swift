@@ -353,24 +353,15 @@ struct MacrosDayTypeView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label).font(.appCaption.weight(.bold)).foregroundColor(color)
             Text("(\(n) jours)").font(.appMicro).foregroundColor(.gray)
-            macroRow("Calories", String(format: "%.0f kcal", bucket.avgCal), color)
-            macroRow("Protéines", String(format: "%.0f g", bucket.avgProt), Color.appSuccess)
-            macroRow("Glucides", String(format: "%.0f g", bucket.avgCarbs), Color.statusYellow)
-            macroRow("Lipides", String(format: "%.0f g", bucket.avgFat), Color.forge)
+            StatRow(label: "Calories",  value: String(format: "%.0f kcal", bucket.avgCal),   dot: color,              compact: true)
+            StatRow(label: "Protéines", value: String(format: "%.0f g",    bucket.avgProt),  dot: Color.appSuccess,   compact: true)
+            StatRow(label: "Glucides",  value: String(format: "%.0f g",    bucket.avgCarbs), dot: Color.statusYellow, compact: true)
+            StatRow(label: "Lipides",   value: String(format: "%.0f g",    bucket.avgFat),   dot: Color.forge,        compact: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(Color.appSurfaceInset)
         .cornerRadius(10)
-    }
-
-    private func macroRow(_ name: String, _ value: String, _ color: Color) -> some View {
-        HStack {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(name).font(.system(size: 10)).foregroundColor(.gray)
-            Spacer()
-            Text(value).font(.system(size: 10, weight: .semibold)).foregroundColor(.appTextPrimary)
-        }
     }
 }
 

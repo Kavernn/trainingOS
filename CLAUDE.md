@@ -55,6 +55,14 @@ Pour toute question sur une convention de données, un calcul (e1RM, ACWR, strea
 
 ---
 
+## COMPOSANTS UI — RÈGLES FORWARD
+
+- Nouveau row label/valeur → `StatRow` (`Views/Components/StatRow.swift`)
+- Nouveau CTA (bouton plein) → `PrimaryButton`
+- Patterns inline existants (StatRow dispersés, 3 boutons SessionSupportViews×2 + HistoriqueView) : **NE PAS refactorer de façon proactive**. Migration opportuniste UNIQUEMENT si on touche déjà le fichier pour une autre raison — jamais un commit dédié "migrer vers le composant".
+
+---
+
 ## SOUS-AGENTS
 
 Pour toute EXPLORATION large (cartographier des références, auditer du code mort, tracer des dépendances) : déléguer à un sous-agent pour garder le contexte principal propre. Voir l'agent `detective` (read-only).
