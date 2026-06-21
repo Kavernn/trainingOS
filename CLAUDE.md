@@ -73,3 +73,4 @@ Rules:
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- **Hiérarchie d'exploration (RÈGLE)** : Pour toute question de STRUCTURE — qui appelle quoi, dépendances, définitions, navigation, "où vit X", "qui consomme Y" — consulter le graphe EN PREMIER (`graphify query` pour une question ciblée, `GRAPH_REPORT.md` pour la vue large). NE PAS lancer grep/glob pour ces questions structurelles. Grep est réservé au CONTENU TEXTUEL que le graphe n'indexe pas : strings littérales, valeurs hardcodées (ex : 1.0324), commentaires, SQL, texte dans les données. Si une exploration structurelle commence par grep alors que le graphe pouvait répondre, c'est une erreur de méthode.
