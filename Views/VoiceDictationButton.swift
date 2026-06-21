@@ -171,6 +171,8 @@ final class SpeechDictationService: ObservableObject {
 
 struct VoiceDictationButton: View {
     @Binding var text: String
+    var onStop: (() -> Void)? = nil
+    var resetOnStart: Bool = false
     @StateObject private var service = SpeechDictationService()
     @State private var pulsing = false
 
@@ -189,7 +191,9 @@ struct VoiceDictationButton: View {
             Button {
                 if service.isRecording {
                     service.stopDictation()
+                    onStop?()
                 } else {
+                    if resetOnStart { text = "" }
                     service.startDictation(existingText: text)
                 }
             } label: {

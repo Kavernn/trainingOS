@@ -640,6 +640,26 @@ struct StatsView: View {
            let decoded = try? APIService.decoder.decode(StatsAPIResponse.self, from: data) {
             CacheService.shared.save(data, for: "stats_data")
             applyStats(decoded)
+            // stats_data est mis en cache 30 min — les repas loggés dans la journée
+            // seraient périmés. On écrase uniquement aujourd'hui avec la source fraîche
+            // (même endpoint que NutritionView, même comportement sans cache).
+            // Échec silencieux : si l'appel rate, nutritionDays garde la valeur stats_data.
+            if let nutrURL = URL(string: "\(APIService.shared.baseURL)/api/nutrition_data?days=1") {
+                var nutrReq = URLRequest(url: nutrURL)
+                nutrReq.cachePolicy = .reloadIgnoringLocalCacheData
+                nutrReq.timeoutInterval = 10
+                if let (nutrData, _) = try? await URLSession.authed.data(for: nutrReq),
+                   let nutrDecoded = try? APIService.decoder.decode(NutritionDataResponse.self, from: nutrData),
+                   let totals = nutrDecoded.totals {
+                    let todayStr = AppState.shared.todayStr
+                    let fresh = NutritionDay(date: todayStr,
+                                             calories: totals.calories,
+                                             proteines: totals.proteines,
+                                             glucides: totals.glucides,
+                                             lipides: totals.lipides)
+                    nutritionDays = nutritionDays.filter { $0.date != todayStr } + [fresh]
+                }
+            }
         } else if weights.isEmpty {
             // No cache and network failed → show error state
             fetchError = true

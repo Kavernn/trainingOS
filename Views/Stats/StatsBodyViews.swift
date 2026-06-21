@@ -437,6 +437,7 @@ struct SeasonComparisonCard: View {
 // MARK: - Transformation Markers Card
 struct TransformationMarkersCard: View {
     let warRoomStats: WarRoomSummaryStats?
+    @State private var showGate = false
 
     var body: some View {
         let showWarRoom = warRoomStats?.warStartDate != nil
@@ -459,9 +460,34 @@ struct TransformationMarkersCard: View {
                 .padding(12)
                 .background(Color.appSuccess.opacity(0.07))
                 .cornerRadius(12)
+            } else {
+                Button { showGate = true } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "shield.fill")
+                            .font(.system(size: 15))
+                            .foregroundColor(Color.forge.opacity(0.7))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Ton premier jour de victoire t'attend")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.appTextPrimary)
+                            Text("Démarre War Room")
+                                .font(.appCaption)
+                                .foregroundColor(Color.forge.opacity(0.8))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(Color.forge.opacity(0.4))
+                    }
+                    .padding(12)
+                    .background(Color.forge.opacity(0.06))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(16).glassCard()
+        .sheet(isPresented: $showGate) { WarRoomGateView() }
     }
 }
 

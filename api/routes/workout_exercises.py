@@ -205,16 +205,20 @@ def api_exercise_classify():
 def api_auto_classify_all():
     """Apply suggest_classification() to all exercises missing muscle_group or movement_pattern.
 
+    ?dry_run=true  → retourne le mapping prévu sans écrire en base.
     Returns: {"applied": N, "skipped": M, "errors": [...]}
+    Dry-run: {"preview": [{name, patch}], "skipped": M}
     """
     from inventory import load_inventory
     from muscle_classification import suggest_classification
     import db as _db
 
+    dry_run = request.args.get("dry_run", "").lower() in ("1", "true")
     inv = load_inventory() or {}
     applied = 0
     skipped = 0
     errors = []
+    preview = []
 
     for name, data in inv.items():
         mg  = (data.get("muscle_group")     or "").strip()
@@ -234,6 +238,10 @@ def api_auto_classify_all():
             skipped += 1
             continue
 
+        if dry_run:
+            preview.append({"name": name, "patch": patch})
+            continue
+
         ex_id = _db.get_exercise_id(name)
         if not ex_id:
             errors.append(f"{name}: not found")
@@ -245,6 +253,8 @@ def api_auto_classify_all():
         except Exception as e:
             errors.append(f"{name}: {e}")
 
+    if dry_run:
+        return jsonify({"preview": preview, "skipped": skipped})
     return jsonify({"applied": applied, "skipped": skipped, "errors": errors})
 
 

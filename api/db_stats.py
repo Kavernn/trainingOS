@@ -49,6 +49,47 @@ def get_weekly_tonnage(weeks: int = 8) -> list[dict]:
         return []
 
 
+# Normalise les labels capitalisés legacy vers les valeurs snake_case du schéma.
+# La base mélange "Horizontal Push" (labels iOS anciens) et "push_horizontal" (schéma 063).
+_PATTERN_NORMALIZE: dict[str, str] = {
+    "horizontal push":  "push_horizontal",
+    "vertical push":    "push_vertical",
+    "horizontal pull":  "pull_horizontal",
+    "vertical pull":    "pull_vertical",
+    "hip hinge":        "hinge",
+    "squat":            "squat",
+    "lunge":            "unilateral_leg",
+    "gainage":          "core",
+    "elbow extension":  "isolation_arm",
+    "elbow flexion":    "isolation_arm",
+    "isolation":        "isolation_arm",
+}
+
+def _norm_pattern(p: str) -> str:
+    return _PATTERN_NORMALIZE.get(p.strip().lower(), p.strip())
+
+
+def _entry_volume(entry: dict) -> float:
+    """Compute set volume from exercise_volume or weight × total_reps fallback."""
+    vol = entry.get("exercise_volume")
+    if vol:
+        return float(vol)
+    w = float(entry.get("weight") or 0)
+    if not w:
+        return 0.0
+    reps_str = str(entry.get("reps") or "")
+    try:
+        if "," in reps_str:
+            total_r = sum(float(x) for x in reps_str.split(",") if x.strip())
+        elif reps_str:
+            total_r = float(reps_str)
+        else:
+            total_r = 0.0
+    except ValueError:
+        total_r = 0.0
+    return w * total_r
+
+
 def get_pattern_volume(days: int = 28, weights: dict | None = None) -> dict:
     """Return volume (lbs×reps) per movement pattern for the last N days."""
     try:
@@ -61,15 +102,25 @@ def get_pattern_volume(days: int = 28, weights: dict | None = None) -> dict:
         inventory = load_inventory() or {}
         pattern_vol: dict[str, float] = {}
         for name, data in weights.items():
-            pattern = (inventory.get(name) or {}).get("movement_pattern") or ""
+            raw = (inventory.get(name) or {}).get("movement_pattern") or ""
+            pattern = _norm_pattern(raw)
             if not pattern:
                 continue
             for entry in (data.get("history") or []):
                 if str(entry.get("date", "")) < cutoff:
                     continue
-                vol = float(entry.get("exercise_volume") or 0)
+                vol = _entry_volume(entry)
                 pattern_vol[pattern] = pattern_vol.get(pattern, 0.0) + vol
-        return {k: round(v) for k, v in pattern_vol.items()}
+        _merge = {
+            "push_horizontal": "push",  "push_vertical":   "push",
+            "pull_horizontal": "pull",  "pull_vertical":   "pull",
+            "unilateral_leg":  "squat", "press_machine":   "squat",
+        }
+        merged: dict[str, float] = {}
+        for pat, vol in pattern_vol.items():
+            key = _merge.get(pat, pat)
+            merged[key] = merged.get(key, 0.0) + vol
+        return {k: round(v) for k, v in merged.items()}
     except Exception as e:
         db_core.logger.error("get_pattern_volume error: %s", e)
         return {}
@@ -82,11 +133,17 @@ def get_programme_compliance(weeks: int = 8) -> list[dict]:
 
     def _do() -> list[dict]:
         from datetime import date as _date, timedelta, datetime as _dt
-        # Planned sessions per week (count non-null session_id in weekly_schedule)
-        sched_resp = db_core._client.table("weekly_schedule").select("session_id").execute()
-        planned_per_week = sum(1 for r in (sched_resp.data or []) if r.get("session_id"))
+        # Planned sessions per week — morning slot, non-null session_id (training days only)
+        sched_resp = (
+            db_core._client.table("weekly_schedule")
+            .select("session_id")
+            .eq("slot", "morning")
+            .not_.is_("session_id", "null")
+            .execute()
+        )
+        planned_per_week = len(sched_resp.data or [])
         if planned_per_week == 0:
-            planned_per_week = 4
+            return []  # pas de programme actif — card masquée côté Swift
 
         # Completed sessions in last N weeks
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(weeks=weeks)).isoformat()
@@ -138,10 +195,10 @@ def get_one_rm_trend(days: int = 84, weights: dict | None = None) -> dict:
         if weights is None:
             weights = load_weights()
         inventory = load_inventory() or {}
-        compound_patterns = {"squat", "hinge", "push", "pull"}
+        compound_patterns = {"squat", "hinge", "push_horizontal", "push_vertical", "pull_horizontal", "pull_vertical"}
         result: dict[str, list[dict]] = {}
         for name, data in weights.items():
-            pattern = (inventory.get(name) or {}).get("movement_pattern") or ""
+            pattern = _norm_pattern((inventory.get(name) or {}).get("movement_pattern") or "")
             if pattern not in compound_patterns:
                 continue
             points = []

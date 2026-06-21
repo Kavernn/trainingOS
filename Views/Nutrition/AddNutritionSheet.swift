@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // MARK: - Add Nutrition Sheet
 
@@ -9,7 +10,7 @@ struct AddNutritionSheet: View {
     @State private var catalog: [FoodItem] = FoodCatalogStore.load()
     @State private var selected: FoodItem? = nil
     @State private var quantity = ""
-    @State private var manualMode = false
+    @State private var manualMode = true
     @State private var showCatalog = false
     @State private var isSaving = false
     @State private var searchText = ""
@@ -17,9 +18,6 @@ struct AddNutritionSheet: View {
     @State private var isLoadingBarcode = false
     @State private var barcodeNote = ""
     @State private var barcodeError: String? = nil
-    @State private var templates: [MealTemplate] = []
-    @State private var showManageTemplates = false
-    @State private var isLoggingTemplate = false
     // N-B4: attempted save feedback
     @State private var didAttemptSave = false
     // N-D5: callback for template log feedback
@@ -28,8 +26,8 @@ struct AddNutritionSheet: View {
     @State private var showDiscardManualAlert = false
     @State private var confirmDiscard = false
     @State private var saveError: String? = nil
-    // N-D9: template loading state
-    @State private var isLoadingTemplates = true
+    @State private var showRecents = false
+    @State private var showDictation = false
 
     private var filteredCatalog: [FoodItem] {
         searchText.isEmpty ? catalog : catalog.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
@@ -55,6 +53,7 @@ struct AddNutritionSheet: View {
     @State private var manProt = ""
     @State private var manGluc = ""
     @State private var manLip = ""
+    @State private var dictationActive = false
 
     private var lastUsedQty: Double? {
         guard let sel = selected else { return nil }
@@ -111,89 +110,43 @@ struct AddNutritionSheet: View {
                     if !manualMode {
                         // ── Récents ──────────────────────────────────────
                         if !recentItems.isEmpty && searchText.isEmpty {
-                            Section("FRÉQUENTS") {
-                                ForEach(recentItems) { item in
-                                    Button {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            selected = item.food
-                                            quantity = fmtN(item.quantity)
+                            Section(header: HStack {
+                                Text("FRÉQUENTS")
+                                Spacer()
+                                Button {
+                                    withAnimation { showRecents.toggle() }
+                                } label: {
+                                    Image(systemName: showRecents ? "chevron.up" : "chevron.down")
+                                        .font(.appCaption)
+                                        .foregroundColor(.appTextSecondary)
+                                }
+                                .buttonStyle(.plain)
+                                .textCase(nil)
+                            }) {
+                                if showRecents {
+                                    ForEach(recentItems) { item in
+                                        Button {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                selected = item.food
+                                                quantity = fmtN(item.quantity)
+                                            }
+                                        } label: {
+                                            HStack {
+                                                Text(item.food.name)
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(.appTextPrimary)
+                                                Spacer()
+                                                Text("\(fmtN(item.quantity)) \(item.food.refUnit)")
+                                                    .font(.appLabel)
+                                                    .foregroundColor(.appTextSecondary)
+                                            }
                                         }
-                                    } label: {
-                                        HStack {
-                                            Text(item.food.name)
-                                                .font(.system(size: 14, weight: .medium))
-                                                .foregroundColor(.appTextPrimary)
-                                            Spacer()
-                                            Text("\(fmtN(item.quantity)) \(item.food.refUnit)")
-                                                .font(.appLabel)
-                                                .foregroundColor(.appTextSecondary)
-                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
                                 }
                             }
                             .listRowBackground(Color.appCard)
                         }
-
-                        // ── Repas sauvegardés ────────────────────────────
-                        Section(header: HStack {
-                            Text("REPAS SAUVEGARDÉS")
-                            Spacer()
-                            Button { showManageTemplates = true } label: {
-                                Label("Gérer", systemImage: "slider.horizontal.3")
-                                    .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(Color.forge)
-                            }
-                            .buttonStyle(.plain)
-                            .textCase(nil)
-                        }) {
-                            if isLoadingTemplates {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 8) {
-                                        ForEach(0..<3, id: \.self) { _ in
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.appSurfaceInset)
-                                                .frame(width: 90, height: 36)
-                                        }
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                            } else if templates.isEmpty {
-                                Button { showManageTemplates = true } label: {
-                                    Label("Créer un repas sauvegardé…", systemImage: "fork.knife")
-                                        .font(.appLabel)
-                                        .foregroundColor(Color.forge.opacity(0.7))
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 8) {
-                                        ForEach(templates) { template in
-                                            Button { logTemplate(template) } label: {
-                                                VStack(alignment: .leading, spacing: 3) {
-                                                    Text(template.name)
-                                                        .font(.appLabel.weight(.semibold))
-                                                    Text("\(Int(template.totalCalories)) kcal")
-                                                        .font(.appCaption)
-                                                        .opacity(0.75)
-                                                }
-                                                .padding(.horizontal, 12).padding(.vertical, 8)
-                                                .background(Color.forge.opacity(0.12))
-                                                .foregroundColor(Color.forge)
-                                                .cornerRadius(12)
-                                                .overlay(RoundedRectangle(cornerRadius: 12)
-                                                    .stroke(Color.forge.opacity(0.3), lineWidth: 1))
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                            }
-                        }
-                        .listRowBackground(Color.appCard)
 
                         // ── Chips catalogue ─────────────────────────────
                         Section(header: HStack {
@@ -347,6 +300,38 @@ struct AddNutritionSheet: View {
 
                     } else {
                         // ── Mode manuel ────────────────────────────────
+                        if showDictation {
+                            Section(header: HStack {
+                                Text("DICTÉE")
+                                if dictationActive {
+                                    Spacer()
+                                    Button("Annuler") { dictationActive = false }
+                                        .font(.appLabel)
+                                        .foregroundColor(.appTextSecondary)
+                                        .textCase(nil)
+                                }
+                            }) {
+                                if dictationActive {
+                                    FieldDictationView { name, cal, prot, gluc, lip in
+                                        if !name.isEmpty { manName = name }
+                                        if !cal.isEmpty  { manCal  = cal }
+                                        if !prot.isEmpty { manProt = prot }
+                                        if !gluc.isEmpty { manGluc = gluc }
+                                        if !lip.isEmpty  { manLip  = lip }
+                                        dictationActive = false
+                                    }
+                                } else {
+                                    Button { dictationActive = true } label: {
+                                        Label("Dicter les macros", systemImage: "mic.circle")
+                                            .font(.appLabel)
+                                            .foregroundColor(Color.forge)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .listRowBackground(Color.appCard)
+                        }
+
                         Section(header: HStack {
                             Text("ALIMENT")
                             if !barcodeNote.isEmpty {
@@ -435,11 +420,11 @@ struct AddNutritionSheet: View {
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
 
-                if isLoadingBarcode || isLoggingTemplate {
+                if isLoadingBarcode {
                     Color.black.opacity(0.55).ignoresSafeArea()
                     VStack(spacing: 14) {
                         ProgressView().tint(.onAccent).scaleEffect(1.4)
-                        Text(isLoggingTemplate ? "Enregistrement du repas…" : "Recherche du produit…")
+                        Text("Recherche du produit…")
                             .foregroundColor(.appTextPrimary)
                             .font(.system(size: 14, weight: .medium))
                     }
@@ -474,10 +459,7 @@ struct AddNutritionSheet: View {
                 FoodCatalogView(items: $catalog)
             }
             .task {
-                // sequential — async let LIFO crash on iOS 26 beta
-                // N-D9: isLoadingTemplates starts true, set false after fetch
                 let remote = await APIService.shared.fetchFoodCatalog()
-                let tmpl   = await APIService.shared.fetchMealTemplates()
                 if !remote.isEmpty {
                     let builtIn = FoodCatalogStore.builtInItems()
                     let builtInNames = Set(builtIn.map { $0.name })
@@ -485,13 +467,6 @@ struct AddNutritionSheet: View {
                     catalog = builtIn + remoteCustom
                     FoodCatalogStore.save(catalog)
                 }
-                templates = tmpl
-                isLoadingTemplates = false
-            }
-            .sheet(isPresented: $showManageTemplates, onDismiss: {
-                Task { templates = await APIService.shared.fetchMealTemplates() }
-            }) {
-                MealTemplateListSheet()
             }
             .sheet(isPresented: $showBarcodeScanner) {
                 BarcodeScannerSheet { code in
@@ -527,23 +502,6 @@ struct AddNutritionSheet: View {
             Button("OK", role: .cancel) {}
         } message: { Text(saveError ?? "") }
         .presentationDetents([.medium, .large])
-    }
-
-    private func logTemplate(_ template: MealTemplate) {
-        isLoggingTemplate = true
-        Task {
-            do {
-                try await APIService.shared.logMealTemplate(template.id, mealType: mealType)
-                // N-D5: notify parent with template name for toast feedback
-                onLogged?(template.name)
-                await onSaved()
-                isLoggingTemplate = false
-                dismiss()
-            } catch {
-                barcodeError = "Erreur lors de l'enregistrement du repas — réessaie"
-                isLoggingTemplate = false
-            }
-        }
     }
 
     private func handleBarcode(_ code: String) {
@@ -640,5 +598,152 @@ struct MacroPreviewPill: View {
                 .foregroundColor(.appTextSecondary)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Field-by-field dictation controller
+
+final class FieldDictationController: ObservableObject {
+
+    static let silenceDelay: Double = 1.2
+
+    static let fields: [(prompt: String, numeric: Bool)] = [
+        ("Dictez le nom de l'aliment",  false),
+        ("Dictez les calories (kcal)",   true),
+        ("Dictez les protéines (g)",     true),
+        ("Dictez les glucides (g)",       true),
+        ("Dictez les lipides (g)",        true),
+    ]
+
+    @Published var fieldIndex = 0
+    @Published var liveText   = ""
+    @Published var isDone     = false
+
+    private(set) var values   = Array(repeating: "", count: 5)
+    let service               = SpeechDictationService()
+    private var silenceWork:  DispatchWorkItem?
+    private var bag           = Set<AnyCancellable>()
+
+    func start() {
+        fieldIndex = 0; liveText = ""; isDone = false
+        values = Array(repeating: "", count: 5)
+        bag.removeAll()
+        service.$latestTranscription
+            .filter { !$0.isEmpty }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] text in self?.onTranscription(text) }
+            .store(in: &bag)
+        beginField()
+    }
+
+    func stop() {
+        silenceWork?.cancel()
+        service.stopDictation()
+        bag.removeAll()
+    }
+
+    func advance() {
+        silenceWork?.cancel()
+        commitField()
+    }
+
+    func redo() {
+        silenceWork?.cancel()
+        service.stopDictation()
+        liveText = ""
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in self?.beginField() }
+    }
+
+    private func onTranscription(_ text: String) {
+        liveText = text
+        silenceWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.commitField() }
+        silenceWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.silenceDelay, execute: work)
+    }
+
+    private func beginField() {
+        liveText = ""
+        service.startDictation(existingText: "")
+    }
+
+    private func commitField() {
+        silenceWork?.cancel()
+        service.stopDictation()
+        let raw = liveText.trimmingCharacters(in: .whitespacesAndNewlines)
+        values[fieldIndex] = Self.fields[fieldIndex].numeric ? extractNumber(raw) : raw
+        let next = fieldIndex + 1
+        if next < Self.fields.count {
+            fieldIndex = next; liveText = ""
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in self?.beginField() }
+        } else {
+            isDone = true
+        }
+    }
+
+    private func extractNumber(_ text: String) -> String {
+        let s = text.replacingOccurrences(of: ",", with: ".")
+        guard let r = s.range(of: "[0-9]+(?:\\.[0-9]+)?", options: .regularExpression) else { return "" }
+        return String(s[r])
+    }
+}
+
+// MARK: - Field dictation view
+
+struct FieldDictationView: View {
+    var onComplete: (_ name: String, _ cal: String, _ prot: String, _ gluc: String, _ lip: String) -> Void
+
+    @StateObject private var ctrl = FieldDictationController()
+    @State private var pulsing = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.statusRed)
+                    .frame(width: 7, height: 7)
+                    .opacity(pulsing ? 0.2 : 1)
+                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: pulsing)
+                Text(FieldDictationController.fields[ctrl.fieldIndex].prompt)
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(.appTextPrimary)
+            }
+
+            Text(ctrl.liveText.isEmpty ? "…" : ctrl.liveText)
+                .font(.caption)
+                .foregroundColor(ctrl.liveText.isEmpty ? .appTextSecondary : .appTextPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(2)
+
+            // Toujours visible dès la 1re seconde
+            HStack {
+                Button("← Refaire") { ctrl.redo() }
+                    .font(.caption)
+                    .foregroundColor(.appTextSecondary)
+
+                Spacer()
+
+                HStack(spacing: 5) {
+                    ForEach(0..<5, id: \.self) { i in
+                        Circle()
+                            .fill(i < ctrl.fieldIndex  ? Color.appSuccess
+                                : i == ctrl.fieldIndex ? Color.forge
+                                : Color.appTextSecondary.opacity(0.25))
+                            .frame(width: 6, height: 6)
+                    }
+                }
+
+                Spacer()
+
+                Button("Suivant →") { ctrl.advance() }
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(Color.forge)
+            }
+        }
+        .onAppear  { pulsing = true; ctrl.start() }
+        .onDisappear { ctrl.stop() }
+        .onChange(of: ctrl.isDone) { done in
+            if done { onComplete(ctrl.values[0], ctrl.values[1], ctrl.values[2], ctrl.values[3], ctrl.values[4]) }
+        }
     }
 }
