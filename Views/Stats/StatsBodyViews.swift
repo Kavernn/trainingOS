@@ -227,12 +227,19 @@ struct BodyRecompView: View {
         }
     }
 
-    private var delta30: (lean: Double, fat: Double)? {
+    private var deltaSpan: (lean: Double, fat: Double, label: String)? {
         guard points.count >= 2 else { return nil }
         let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
         let recent = points.filter { $0.date >= cutoff }
-        guard let first = recent.first, let last = recent.last else { return nil }
-        return (lean: last.leanMass - first.leanMass, fat: last.fatMass - first.fatMass)
+        let first: RecompPoint
+        let last: RecompPoint
+        let label: String
+        if recent.count >= 2, let f = recent.first, let l = recent.last {
+            first = f; last = l; label = "30j"
+        } else if let f = points.dropLast().last, let l = points.last {
+            first = f; last = l; label = "depuis \(f.date.suffix(5))"
+        } else { return nil }
+        return (lean: last.leanMass - first.leanMass, fat: last.fatMass - first.fatMass, label: label)
     }
 
     var body: some View {
@@ -244,7 +251,7 @@ struct BodyRecompView: View {
                 EmptyChartPlaceholder(message: "Logge ton % de masse grasse pour activer le recomp tracker")
             } else {
                 recompChart
-                if let d = delta30 {
+                if let d = deltaSpan {
                     deltaRow(d)
                 }
             }
@@ -294,16 +301,16 @@ struct BodyRecompView: View {
         .font(.system(size: 10)).foregroundColor(.gray)
     }
 
-    @ViewBuilder private func deltaRow(_ d: (lean: Double, fat: Double)) -> some View {
+    @ViewBuilder private func deltaRow(_ d: (lean: Double, fat: Double, label: String)) -> some View {
         Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
         HStack(spacing: 20) {
             deltaKPI(
-                label: "Masse maigre (30j)",
+                label: "Masse maigre (\(d.label))",
                 value: units.format(d.lean, decimals: 1),
                 good: d.lean >= 0
             )
             deltaKPI(
-                label: "Masse grasse (30j)",
+                label: "Masse grasse (\(d.label))",
                 value: units.format(d.fat, decimals: 1),
                 good: d.fat <= 0
             )
