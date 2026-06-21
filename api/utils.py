@@ -376,6 +376,8 @@ _MUSCLE_ALIASES: dict = {
     "ischiojambiers":      "hamstrings",
 }
 
+_MUSCLE_JUNK = {"other", "cardio", "conditioning", "full body", "cardiovascular system"}
+
 def _normalize_muscle(name: str) -> str:
     return _MUSCLE_ALIASES.get(name.lower().strip(), name.lower().strip())
 
@@ -407,7 +409,7 @@ def _calc_weekly_sets_per_muscle(weights: dict, inventory: dict) -> dict[str, in
     weekly: dict[str, int] = {}
     for ex_name, ex_data in weights.items():
         raw_muscles = (inventory.get(ex_name) or {}).get("muscles") or []
-        muscles = [_normalize_muscle(m) for m in raw_muscles]
+        muscles = [_normalize_muscle(m) for m in raw_muscles if _normalize_muscle(m) not in _MUSCLE_JUNK]
         if not muscles:
             continue
         for entry in ex_data.get("history", []):
@@ -497,7 +499,7 @@ def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
 
     for ex_name, ex_data in weights.items():
         raw_muscles = (inventory.get(ex_name) or {}).get("muscles") or []
-        muscles = [_normalize_muscle(m) for m in raw_muscles]
+        muscles = [_normalize_muscle(m) for m in raw_muscles if _normalize_muscle(m) not in _MUSCLE_JUNK]
         if not muscles:
             continue
         history = ex_data.get("history") or []
