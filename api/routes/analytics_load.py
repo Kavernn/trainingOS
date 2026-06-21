@@ -482,10 +482,19 @@ def api_stats_intensity():
         for entry in (ex_data.get("history") or []):
             if (entry.get("date") or "") < cutoff:
                 break
-            for s in (entry.get("sets") or []):
-                w = float(s.get("weight") or 0)
-                if w > 0:
-                    pct_values.append(min(w / e1rm * 100.0, 120.0))
+            sets = entry.get("sets") or []
+            if sets:
+                for s in sets:
+                    w = float(s.get("weight") or 0)
+                    if w > 0:
+                        pct_values.append(min(w / e1rm * 100.0, 120.0))
+            else:
+                w = float(entry.get("weight") or 0)
+                reps_str = str(entry.get("reps") or "")
+                if w > 0 and reps_str:
+                    n_sets = len(reps_str.split(",")) if "," in reps_str else 1
+                    for _ in range(n_sets):
+                        pct_values.append(min(w / e1rm * 100.0, 120.0))
 
     if not pct_values:
         return jsonify({"avg_pct_1rm": None, "zone": None, "sets_count": 0})
