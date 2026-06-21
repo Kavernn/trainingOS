@@ -575,6 +575,140 @@ struct StrengthProgressionCard: View {
     }
 }
 
+// MARK: - Force Hero Card
+struct ForceHeroCard: View {
+    let trend: [String: [OneRMPoint]]
+
+    // Fixed data colors — independent of theme (données ≠ déco)
+    private let liftColors: [Color] = [
+        Color(hex: "FF9F0A"),  // amber
+        Color(hex: "30D158"),  // green
+        Color(hex: "0A84FF"),  // blue
+        Color(hex: "BF5AF2"),  // purple
+        Color(hex: "32ADE6"),  // cyan
+    ]
+
+    private struct NormalizedLift: Identifiable {
+        let id: String
+        let name: String
+        let color: Color
+        let points: [(date: Date, pct: Double)]
+        let deltaPct: Int
+    }
+
+    private var lifts: [NormalizedLift] {
+        trend
+            .sorted { $0.value.count > $1.value.count }
+            .prefix(5)
+            .enumerated()
+            .compactMap { idx, kv in
+                let sorted = kv.value.sorted { $0.date < $1.date }
+                guard let baseline = sorted.first?.oneRM, baseline > 0,
+                      sorted.count >= 2 else { return nil }
+                let pts = sorted.compactMap { pt -> (date: Date, pct: Double)? in
+                    guard let d = DateFormatter.isoDate.date(from: pt.date) else { return nil }
+                    return (d, pt.oneRM / baseline * 100.0)
+                }
+                guard pts.count >= 2 else { return nil }
+                let current = sorted.last?.oneRM ?? baseline
+                let deltaPct = Int(round((current - baseline) / baseline * 100))
+                return NormalizedLift(id: kv.key, name: kv.key,
+                                     color: liftColors[idx % liftColors.count],
+                                     points: pts, deltaPct: deltaPct)
+            }
+    }
+
+    private var bestGainer: NormalizedLift? {
+        lifts.max { $0.deltaPct < $1.deltaPct }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("PROGRESSION FORCE — 6 MOIS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if lifts.isEmpty {
+                EmptyChartPlaceholder(message: "Logge tes lifts composés pour voir ta force monter")
+            } else {
+                if let best = bestGainer {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(best.deltaPct >= 0 ? "+\(best.deltaPct)%" : "\(best.deltaPct)%")
+                            .font(.system(size: 38, weight: .black))
+                            .foregroundColor(best.deltaPct >= 0 ? Color(hex: "FF9F0A") : .statusRed)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(best.name)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.appTextPrimary)
+                                .lineLimit(1)
+                            Text("\(lifts.count) lift\(lifts.count > 1 ? "s" : "") en progression")
+                                .font(.appCaption).foregroundColor(.gray)
+                        }
+                    }
+                }
+
+                let allPcts = lifts.flatMap { $0.points.map(\.pct) }
+                let minY = (allPcts.min() ?? 100) * 0.97
+                let maxY = (allPcts.max() ?? 100) * 1.05
+
+                Chart {
+                    ForEach(lifts) { lift in
+                        ForEach(lift.points, id: \.date) { pt in
+                            LineMark(
+                                x: .value("Date", pt.date),
+                                y: .value("%", pt.pct)
+                            )
+                            .foregroundStyle(lift.color)
+                            .interpolationMethod(.monotone)
+                            .lineStyle(StrokeStyle(lineWidth: 2.5))
+                        }
+                    }
+                    RuleMark(y: .value("Baseline", 100))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .foregroundStyle(Color.gray.opacity(0.25))
+                }
+                .chartLegend(.hidden)
+                .chartYScale(domain: minY...maxY)
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .month)) { _ in
+                        AxisGridLine().foregroundStyle(Color.appSurfaceInset)
+                        AxisValueLabel(format: .dateTime.month(.abbreviated))
+                            .foregroundStyle(Color.gray)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(values: .stride(by: 5)) { val in
+                        AxisGridLine().foregroundStyle(Color.appSurfaceInset)
+                        AxisValueLabel {
+                            if let v = val.as(Double.self) {
+                                Text("\(Int(v))%")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                }
+                .chartPlotStyle { $0.background(Color.clear) }
+                .frame(height: 160)
+
+                HStack(spacing: 14) {
+                    ForEach(lifts) { lift in
+                        HStack(spacing: 5) {
+                            Circle().fill(lift.color).frame(width: 6, height: 6)
+                            Text("\(lift.name.components(separatedBy: " ").prefix(2).joined(separator: " ")) \(lift.deltaPct >= 0 ? "+" : "")\(lift.deltaPct)%")
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .padding(16)
+        .glassCard(color: .forge, intensity: 0.03)
+    }
+}
+
 // MARK: - Strength Curve Chart (1RM over time)
 struct StrengthCurveChart: View {
     let history: [WeightHistoryEntry]

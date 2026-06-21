@@ -119,6 +119,13 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
+        // 1b. Héros force — la progression qui monte
+        if !oneRmTrend.isEmpty {
+            ForceHeroCard(trend: oneRmTrend)
+                .padding(.horizontal, 16)
+                .appearAnimation(delay: 0.01)
+        }
+
         // 2. Décharge volontaire (si active ou à déclarer)
         DeloadCard(status: activeDeload) { newStatus in
             activeDeload = newStatus
@@ -408,13 +415,8 @@ extension StatsView {
     // MARK: - Exercices Tab
     @ViewBuilder var exercicesTab: some View {
 
-        // 1. Progression force 6 mois (flagship)
-        if !oneRmTrend.isEmpty {
-            StrengthProgressionCard(trend: oneRmTrend, weights: weights)
-                .padding(.horizontal, 16)
-        }
-
-        // 2. PRs actuels
+        // 1. PRs actuels — StrengthProgressionCard remplacée par ForceHeroCard (Synthèse)
+        // TODO: supprimer struct StrengthProgressionCard dans StatsBodyViews.swift après validation du héros
         if !personalRecords.isEmpty {
             PersonalRecordsView(records: personalRecords)
                 .padding(.horizontal, 16)
