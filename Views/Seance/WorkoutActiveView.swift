@@ -1242,9 +1242,10 @@ struct WorkoutSeanceView: View {
             vm.showSuccess = false
             // W-D1 — clear resume banner on session completion
             vm.isResuming = false
-            if vm.commitWarning != nil {
-                toast = ToastMessage(message: "Enregistrement partiel — vérifie le récap", style: .error)
+            if let warning = vm.commitWarning {
+                toast = ToastMessage(message: warning, style: vm.commitWarningStyle)
                 vm.commitWarning = nil
+                vm.commitWarningStyle = .error
             }
             if vm.prCelebrations.isEmpty {
                 showRecap = true
@@ -1278,11 +1279,15 @@ struct WorkoutSeanceView: View {
                 Task { await vm.load() }
             }
         }
-        .alert("Erreur", isPresented: Binding(
+        .alert("Erreur d'enregistrement", isPresented: Binding(
             get: { vm.submitError != nil },
             set: { if !$0 { vm.submitError = nil } }
         )) {
-            Button("OK") { vm.submitError = nil }
+            Button("Réessayer") {
+                vm.submitError = nil
+                showFinish = true
+            }
+            Button("Plus tard", role: .cancel) { vm.submitError = nil }
         } message: {
             Text(vm.submitError ?? "")
         }

@@ -488,6 +488,7 @@ class SeanceViewModel: ObservableObject {
     @Published var submitError: String?
     @Published var isResuming = false
     @Published var commitWarning: String?
+    @Published var commitWarningStyle: ToastStyle = .error
     @Published private(set) var isFinishing = false
     @Published var prCelebrations: [(name: String, oneRM: Double)] = []
 
@@ -615,17 +616,20 @@ class SeanceViewModel: ObservableObject {
                                                    bonusSession: bonusSession, sessionName: sessionName,
                                                    exerciseLogs: exerciseLogs)
         } catch APIError.serverError(409, _) {
-            // Session already completed — exercises were individually logged above, treat as success.
+            // Séance déjà enregistrée — double-submit ou retry après crash. Draft nettoyé explicitement.
+            if let date = seanceData?.todayDate {
+                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+            }
             CacheInvalidation.invalidateBatch(batchInvalidations)
             await APIService.shared.fetchDashboard()
+            commitWarning = "Séance déjà enregistrée ✓ — aucune perte de données."
+            commitWarningStyle = .success
             showSuccess = true
             return
         } catch {
             submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
-            // W-D7 — clear stale drafts even on non-409 failures; logResults holds the data in memory
-            if let date = seanceData?.todayDate {
-                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
-            }
+            // Draft conservé intentionnellement : les données restent restaurables au redémarrage.
+            // Si le POST a abouti malgré l'erreur réseau, alreadyLogged le détectera et nettoiera.
             await APIService.shared.fetchDashboard()
             return
         }
