@@ -10,6 +10,7 @@ struct MeasurementsTrendView: View {
         ("Bras",   \.armsCm,  .statusBlue),
         ("Cuisses",\.thighsCm,Color.forge),
         ("Hanches",\.hipsCm,  .pink),
+        ("Cou",    \.neckCm,  .teal),
     ]
 
     var body: some View {
