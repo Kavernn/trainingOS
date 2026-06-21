@@ -663,7 +663,8 @@ struct ForceHeroCard: View {
                         ForEach(lift.points, id: \.date) { pt in
                             LineMark(
                                 x: .value("Date", pt.date),
-                                y: .value("%", pt.pct)
+                                y: .value("%", pt.pct),
+                                series: .value("Lift", lift.id)
                             )
                             .foregroundStyle(lift.color)
                             .interpolationMethod(.monotone)
