@@ -74,8 +74,8 @@ final class BodyCompService: ObservableObject {
                   waist > neck else { return nil }
             let diff = waist - neck
             guard diff > 0 else { return nil }
-            // Hodgdon & Beckett (1984) — constante 1.0471 pour inputs en cm
-            let raw = 495.0 / (1.0471 - 0.19077 * log10(diff) + 0.15456 * log10(heightCm)) - 450.0
+            // Siri/density form (Hodgdon & Beckett 1984) — constante 1.0324, inputs en cm
+            let raw = 495.0 / (1.0324 - 0.19077 * log10(diff) + 0.15456 * log10(heightCm)) - 450.0
             let pct = min(max(raw, 3.0), 60.0)
             return NavyBodyFatResult(
                 pct:         pct,

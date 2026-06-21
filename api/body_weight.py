@@ -12,10 +12,12 @@ def compute_navy_bf(
     sex: str,
     hips_cm: Optional[float] = None,
 ) -> Optional[float]:
-    """US Navy body fat formula (Hodgdon & Beckett 1984).
+    """US Navy body fat formula — Siri/density form (Hodgdon & Beckett 1984).
 
-    Men:   %BF = 86.010 × log10(waist - neck) - 70.041 × log10(height) + 36.76
-    Women: %BF = 163.205 × log10(waist + hips - neck) - 97.684 × log10(height) - 78.387
+    Men:   D = 1.0324 − 0.19077×log10(waist−neck) + 0.15456×log10(height)
+           %BF = 495/D − 450
+    Women: D = 1.29579 − 0.35004×log10(waist+hips−neck) + 0.22100×log10(height)
+           %BF = 495/D − 450
 
     All measurements in cm. Returns None if measurements are invalid or insufficient.
     """
@@ -24,7 +26,8 @@ def compute_navy_bf(
             diff = waist_cm - neck_cm
             if diff <= 0 or height_cm <= 0:
                 return None
-            bf = 86.010 * math.log10(diff) - 70.041 * math.log10(height_cm) + 36.76
+            density = 1.0324 - 0.19077 * math.log10(diff) + 0.15456 * math.log10(height_cm)
+            bf = 495.0 / density - 450.0
         else:
             if not hips_cm:
                 return None
