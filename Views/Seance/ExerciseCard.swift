@@ -230,19 +230,22 @@ struct ExerciseCard: View {
     }
 
     private func doLog() {
-        guard !showUndo else { return }
+        guard !showUndo, !logFlash else { return }
         if let result = evm.logExercise(alreadyLoggedViaBinding: logResult != nil) {
             logResult = result
             onLogged?()
             triggerNotificationFeedback(.success)
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { showUndo = true }
             if autoStartTimer, let secs = restSeconds, secs > 0 {
                 RestTimerManager.shared.start(seconds: secs, exerciseName: name)
             }
             undoCountdown = 8
             undoTask?.cancel()
             undoTask = Task { @MainActor in
+                // Laisser le flash vert (logFlash) visible avant de swap vers le banner undo
+                try? await Task.sleep(nanoseconds: 450_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { showUndo = true }
                 for i in stride(from: 7, through: 0, by: -1) {
                     try? await Task.sleep(nanoseconds: 1_000_000_000)
                     guard !Task.isCancelled else { return }
@@ -1337,7 +1340,7 @@ struct ExerciseCard: View {
             guard evm.canLog else { return }
             doLog()
             withAnimation(.easeInOut(duration: 0.12)) { logFlash = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 withAnimation(.easeOut(duration: 0.2)) { logFlash = false }
             }
         }
