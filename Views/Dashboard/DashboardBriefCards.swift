@@ -67,7 +67,8 @@ struct RecoveryTrioCard: View {
                      subLabel: sleepLabel,
                      color: recovery?.sleepHours != nil ? Color.statusBlue : .gray)
         }
-        .glassCardAccent(accent, cornerRadius: 14)
+        .glassCard(color: accent, intensity: 0.04)
+        .cornerRadius(14)
     }
 
     private var pillDivider: some View {
@@ -83,7 +84,7 @@ struct RecoveryTrioCard: View {
                 .font(.appCaption.weight(.semibold))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundColor(.appTextPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -93,7 +94,7 @@ struct RecoveryTrioCard: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
     }
 }
 

@@ -144,6 +144,7 @@ struct DashboardView: View {
                                 // 4 — Recovery trio (Readiness + HRV + Sommeil)
                                 if vm.morningBrief != nil || vm.todayRecovery != nil {
                                     RecoveryTrioCard(brief: vm.morningBrief, recovery: vm.todayRecovery, hrvAnalysis: vm.hrvAnalysis)
+                                        .padding(.top, 8)
                                         .appearAnimation(delay: 0.06)
                                 }
 
@@ -194,7 +195,7 @@ struct DashboardView: View {
                                     onMoodTap: { showMoodSheet = true },
                                     onNutritionTap: { showNutritionAddSheet = true }
                                 )
-                                .padding(.top, 8)
+                                .padding(.top, 14)
                                 .appearAnimation(delay: 0.10)
 
                                 // 8e — War Room strip
