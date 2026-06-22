@@ -14,6 +14,9 @@ enum AppThemeOption: String, CaseIterable {
     case goldNoir      = "goldNoir"
     case desert        = "desert"
     case electricLight = "electricLight"
+    case aurora        = "aurora"
+    case brutalist     = "brutalist"
+    case liquidGlass   = "liquidGlass"
 
     var displayName: String {
         switch self {
@@ -27,6 +30,9 @@ enum AppThemeOption: String, CaseIterable {
         case .goldNoir:      return "Gold Noir"
         case .desert:        return "Desert"
         case .electricLight: return "Electric Light"
+        case .aurora:        return "Aurora"
+        case .brutalist:     return "Brutalist"
+        case .liquidGlass:   return "Liquid Glass"
         }
     }
 
@@ -42,6 +48,9 @@ enum AppThemeOption: String, CaseIterable {
         case .goldNoir:      return Color(hex: "D4AF37")
         case .desert:        return Color(hex: "E9C46A")
         case .electricLight: return Color(hex: "FFFF33")
+        case .aurora:        return Color(hex: "2EE6A6")
+        case .brutalist:     return Color(hex: "FF4D00")
+        case .liquidGlass:   return Color(hex: "5B9DFF")
         }
     }
 }
@@ -586,6 +595,55 @@ extension AppThemeColors {
         sectionTitleUppercased: true
     )
 
+    // Lumière du nord sur ciel noir. Fond sombre traversé d'un gradient émeraude→cyan→violet (animé).
+    // accentDistribution: .pervasive — l'émeraude tinte les surfaces à 0.10, cardStyle .floating pour le halo.
+    // identityLayer: .none — le gradient animé est l'identité, pas besoin de texture canvas.
+    static let aurora = AppThemeColors(
+        accent:          Color(hex: "2EE6A6"),
+        accentLight:     Color(hex: "80F0CC"),
+        accentMuted:     Color(hex: "051A12"),
+        onAccent:        Color(hex: "030F0A"),
+        background:      Color(hex: "060810"),
+        surfaceCard:     Color(hex: "0F1320").opacity(0.72),
+        surfaceElevated: Color(hex: "121828"),
+        surfaceInset:    Color(hex: "030510"),
+        textPrimary:     Color(hex: "EAF6F0"),
+        onBackground:    Color(hex: "EAF6F0"),
+        onSurface:       Color(hex: "EAF6F0"),
+        textSecondary:   Color(hex: "8AA89E"),
+        textMuted:       Color(hex: "3D5A54"),
+        separator:       Color(hex: "1C3A3A").opacity(0.25),
+        separatorSubtle: Color(hex: "1C3A3A").opacity(0.12),
+        separatorStrong: Color(hex: "1C3A3A").opacity(0.40),
+        danger:          Color(hex: "FF453A"),
+        success:         Color(hex: "32D74B"),
+        warning:         Color(hex: "FFD60A"),
+        info:            Color(hex: "64D2FF"),
+        cardCornerRadius: 16,
+        cardBorderWidth:  1.0,
+        cardBorderColor:  Color(hex: "1C3A3A").opacity(0.35),
+        cardShadowColor:  Color(hex: "030810").opacity(0.55),
+        cardShadowRadius: 14,
+        cardShadowOffset: CGSize(width: 0, height: 4),
+        cardGlowColor:    Color(hex: "2EE6A6").opacity(0.06),
+        cardGlowRadius:   14,
+        chartPalette:          [Color(hex: "2EE6A6"), Color(hex: "64D2FF"), Color(hex: "8B5CF6"),
+                                Color(hex: "F59E0B"), Color(hex: "FF6B9E")],
+        glassOpacity:          0.10,
+        accentGradientColors:  [Color(hex: "0B3D2E"), Color(hex: "0E4D5C"), Color(hex: "2A1B4D")],
+        identityLayer:         .none,
+        heroFontDesign:        .default,
+        titleFontDesign:       .default,
+        displayWeight:         .semibold,
+        cardAccentFillOpacity:   0.10,
+        cardAccentStrokeOpacity: 0.25,
+        cardStyle:               .floating,
+        accentDistribution:      .pervasive,
+        heroNumberSize:        40,
+        sectionTitleTracking:  1.0,
+        sectionTitleUppercased: false
+    )
+
     // Camp d'entraînement, 16h, chaleur crue. Terracotta = la terre, pas le luxe.
     // accentDistribution: .pervasive — le sable doré est une variation de la terre, pas un accent décoratif.
     // Pas de glow — lumière crue de plein jour, pas de néon.
@@ -634,6 +692,115 @@ extension AppThemeColors {
         sectionTitleTracking:  1.2,                      // tension, pas décontraction
         sectionTitleUppercased: true
     )
+
+    // La fonte, brute et sans excuse. Bordures noires épaisses, ombres dures décalées (pas de flou),
+    // couleurs plates, typo black. Rupture assumée avec l'ADN sombre/premium des autres thèmes.
+    // accentDistribution: .pervasive — obligatoire pour que cardBorderColor white@0.90 ne soit pas
+    // écrasé par l'override surgical (white@0.08) dans GlassCard.
+    // cardStyle: .raised — active l'ombre dure (cardShadowRadius: 0 + offset 4/4), désactive le glow.
+    // Déviation acceptée (Option A) : les ~22 cards .glassCardAccent gardent leur shadow hardcodée
+    // (radius 8, offset 0/4) au lieu de la dure 4/4 — non corrigeable sans toucher au partagé.
+    static let brutalist = AppThemeColors(
+        accent:          Color(hex: "FF4D00"),       // orange brûlé plat
+        accentLight:     Color(hex: "FF7A40"),
+        accentMuted:     Color(hex: "2A0F00"),
+        onAccent:        Color(hex: "0A0A0A"),       // noir sur orange — lisibilité maximum
+        background:      Color(hex: "0A0A0A"),       // fond plat, zéro gradient
+        surfaceCard:     Color(hex: "141414"),       // surface plate opaque
+        surfaceElevated: Color(hex: "1C1C1C"),
+        surfaceInset:    Color(hex: "050505"),
+        textPrimary:     .white,
+        onBackground:    .white,
+        onSurface:       .white,
+        textSecondary:   Color(hex: "A0A0A0"),
+        textMuted:       Color(hex: "606060"),
+        separator:       Color.white.opacity(0.20),
+        separatorSubtle: Color.white.opacity(0.10),
+        separatorStrong: Color.white.opacity(0.40),
+        danger:          Color(hex: "FF3030"),       // rouge plat
+        success:         Color(hex: "00C040"),       // vert plat
+        warning:         Color(hex: "FFD000"),       // jaune plat
+        info:            Color(hex: "00B0FF"),       // bleu plat
+        cardCornerRadius: 4,                         // presque carré
+        cardBorderWidth:  2.5,                       // ÉPAISSES
+        cardBorderColor:  Color.white.opacity(0.90), // stroke brutalist
+        cardShadowColor:  .black,                    // noir opaque pur, pas de flou
+        cardShadowRadius: 0,                         // SwiftUI radius 0 = ombre dure pixel-perfect
+        cardShadowOffset: CGSize(width: 4, height: 4),
+        cardGlowColor:    .clear,                    // zéro glow — brutalist nu
+        cardGlowRadius:   0,
+        chartPalette:          [Color(hex: "FF4D00"), .white, Color(hex: "FFD000"),
+                                Color(hex: "00C040"), Color(hex: "00B0FF")],
+        glassOpacity:          0.0,                  // zéro verre — opaque plat
+        accentGradientColors:  [Color(hex: "FF4D00"), Color(hex: "CC3D00")],
+        identityLayer:         .none,                // brutalist nu, aucune texture overlay
+        heroFontDesign:        .default,
+        titleFontDesign:       .default,
+        displayWeight:         .black,               // typo black — spec
+        cardAccentFillOpacity:   1.0,                // couleurs plates, accent solide
+        cardAccentStrokeOpacity: 1.0,
+        cardStyle:               .raised,            // active shadow, désactive glow
+        accentDistribution:      .pervasive,         // REQUIS pour stroke white@0.90 (cf. audit)
+        heroNumberSize:        48,                   // gros et lourd
+        sectionTitleTracking:  2.0,
+        sectionTitleUppercased: true                 // CAPS
+    )
+
+    // Le verre poussé au bout. Translucidité forte (card @0.45), reflets de bord, radial bleu ambient.
+    // accentDistribution: .pervasive — bleu visible, glow naturel via AmbientBackground.forge.
+    // cardStyle: .floating — glow bleu doux + shadow, signature glass.
+    // Déviations Option A (vs spec idéale, pour éviter toute touche au partagé) :
+    //   - Pas de vrai blur .ultraThinMaterial (GlassCard fait .fill(Color), pas .background(Material)).
+    //     Translucidité réelle préservée — le fond sombre uniforme TrainingOS rend l'absence de flou peu visible.
+    //   - Pas de highlight top #FFFFFF@0.30 spécifique (GlassCard a un stroke uniforme).
+    //     Compensé par cardBorderColor white@0.22 (légèrement plus brillant que spec @0.18).
+    //   - Radial #16203A non explicite — produit naturellement par AmbientBackground via accent .pervasive.
+    // Lisibilité texte vérifiée : F0F4FF sur card translucide blendée ≈ #121620 → contraste WCAG ~13:1 ✓
+    static let liquidGlass = AppThemeColors(
+        accent:          Color(hex: "5B9DFF"),                  // bleu verre lumineux
+        accentLight:     Color(hex: "8FBFFF"),
+        accentMuted:     Color(hex: "0A1830"),
+        onAccent:        Color(hex: "0A1020"),
+        background:      Color(hex: "0C0E14"),
+        surfaceCard:     Color(hex: "1A2030").opacity(0.45),    // très translucide
+        surfaceElevated: Color(hex: "1F2638").opacity(0.55),
+        surfaceInset:    Color(hex: "060810"),
+        textPrimary:     Color(hex: "F0F4FF"),
+        onBackground:    Color(hex: "F0F4FF"),
+        onSurface:       Color(hex: "F0F4FF"),
+        textSecondary:   Color(hex: "9BA8C4"),
+        textMuted:       Color(hex: "5A6580"),
+        separator:       Color.white.opacity(0.10),
+        separatorSubtle: Color.white.opacity(0.05),
+        separatorStrong: Color.white.opacity(0.20),
+        danger:          Color(hex: "FF453A"),
+        success:         Color(hex: "32D74B"),
+        warning:         Color(hex: "FFD60A"),
+        info:            Color(hex: "64D2FF"),
+        cardCornerRadius: 22,                                    // arrondi glass
+        cardBorderWidth:  1.0,
+        cardBorderColor:  Color.white.opacity(0.22),             // brillant — compense l'absence de highlight top
+        cardShadowColor:  Color(hex: "020408").opacity(0.50),
+        cardShadowRadius: 18,
+        cardShadowOffset: CGSize(width: 0, height: 8),
+        cardGlowColor:    Color(hex: "5B9DFF").opacity(0.08),    // glow bleu doux — signature
+        cardGlowRadius:   20,
+        chartPalette:          [Color(hex: "5B9DFF"), Color(hex: "8FBFFF"), Color(hex: "B580FF"),
+                                Color(hex: "FF80B5"), Color(hex: "80FFD4")],
+        glassOpacity:          0.30,                             // glass renforcé
+        accentGradientColors:  [Color(hex: "5B9DFF"), Color(hex: "8FBFFF")],
+        identityLayer:         .none,                            // la translucidité EST l'identité
+        heroFontDesign:        .default,
+        titleFontDesign:       .default,
+        displayWeight:         .regular,                         // léger, éthéré — pas heavy
+        cardAccentFillOpacity:   0.06,                           // spec
+        cardAccentStrokeOpacity: 0.18,
+        cardStyle:               .floating,                      // glow + shadow
+        accentDistribution:      .pervasive,
+        heroNumberSize:        44,
+        sectionTitleTracking:  0.5,
+        sectionTitleUppercased: false
+    )
 }
 
 // MARK: - AppTheme
@@ -671,6 +838,9 @@ final class AppTheme: ObservableObject {
         case .goldNoir:      return .goldNoir
         case .desert:        return .desert
         case .electricLight: return .electricLight
+        case .aurora:        return .aurora
+        case .brutalist:     return .brutalist
+        case .liquidGlass:   return .liquidGlass
         }
     }
 

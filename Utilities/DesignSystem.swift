@@ -294,6 +294,34 @@ struct StreakBadge: View {
     }
 }
 
+// MARK: - Aurora Gradient Layer (Aurora theme only)
+
+private struct AuroraGradientLayer: View {
+    @State private var phase: Double = 0
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(hex: "0B3D2E"), Color(hex: "0E4D5C"), Color(hex: "2A1B4D")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            LinearGradient(
+                colors: [Color(hex: "0E4D5C"), Color(hex: "2A1B4D"), Color(hex: "0B3D2E")],
+                startPoint: .bottomLeading,
+                endPoint: .topTrailing
+            )
+            .opacity(phase)
+        }
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.easeInOut(duration: 8).repeatForever(autoreverses: true)) {
+                phase = 1
+            }
+        }
+    }
+}
+
 // MARK: - Ambient Background
 struct AmbientBackground: View {
     let color: Color
@@ -301,6 +329,9 @@ struct AmbientBackground: View {
     var body: some View {
         ZStack {
             Color.appBg
+            if AppTheme.shared.selectedTheme == .aurora {
+                AuroraGradientLayer()
+            }
             IdentityLayerView(style: AppTheme.shared.identityLayer)
             if AppTheme.shared.selectedTheme != .electricLight {
                 RadialGradient(
