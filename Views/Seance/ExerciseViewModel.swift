@@ -226,15 +226,22 @@ final class ExerciseViewModel: ObservableObject {
 
     var canLog: Bool {
         if isTimeBased { return sets.contains { $0.duration > 0 } }
-        if equipmentType == "bodyweight" { return sets.contains { Int($0.reps) != nil } }
+        if equipmentType == "bodyweight" {
+            return sets.contains { (Int($0.reps) ?? 0) > 0 }
+        }
         if equipmentType == "fixed_weight" {
-            return sets.contains {
-                Double($0.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")) != nil
+            return sets.contains { s in
+                guard let w = Double(s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")),
+                      w > 0 else { return false }
+                let repsStr = s.reps.trimmingCharacters(in: .whitespaces)
+                return repsStr.isEmpty || (Int(repsStr) ?? 0) > 0
             }
         }
-        return sets.contains {
-            Int($0.reps) != nil &&
-            Double($0.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")) != nil
+        // Standard : weight >= 0 (0 OK pour exos assistés à contrepoids), reps > 0
+        return sets.contains { s in
+            guard let w = Double(s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")),
+                  w >= 0 else { return false }
+            return (Int(s.reps) ?? 0) > 0
         }
     }
 
