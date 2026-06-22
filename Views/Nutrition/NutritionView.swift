@@ -6,7 +6,6 @@ struct NutritionView: View {
     @StateObject private var vm = NutritionViewModel()
     @State private var showAdd = false
     @State private var showComposer = false
-    @State private var showScan = false
     @State private var editTarget: NutritionEntry? = nil
     @State private var showSettings = false
     @State private var toast: ToastMessage? = nil
@@ -217,9 +216,6 @@ struct NutritionView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
-                        Button { showScan = true } label: {
-                            Image(systemName: "camera.viewfinder").foregroundColor(Color.forge)
-                        }
                         Button { showComposer = true } label: {
                             Image(systemName: "fork.knife").foregroundColor(Color.forge)
                         }
@@ -236,14 +232,6 @@ struct NutritionView: View {
                         }
                     }
                 }
-            }
-            .sheet(isPresented: $showScan) {
-                ScanLabelSheet(onSaved: {
-                    await vm.loadData()
-                    await AlertService.shared.fetch()
-                }, onLogged: { name in
-                    toast = ToastMessage(message: "\(name) ajouté ✓", style: .success)
-                })
             }
             .sheet(isPresented: $showAdd) {
                 AddNutritionSheet(onSaved: {

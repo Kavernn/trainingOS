@@ -186,9 +186,7 @@
 		NA0008NA0008NA0008NA0008 /* DayTypeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */; };
 		NA0009NA0009NA0009NA0009 /* NutritionAnalyticsCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */; };
 		NA0010NA0010NA0010NA0010 /* NutritionSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */; };
-		NA0011NA0011NA0011NA0011 /* ScanLabelSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0011NR0011NR0011NR0011 /* ScanLabelSheet.swift */; };
 		NA0012NA0012NA0012NA0012 /* MealTemplateSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */; };
-		NA0013NA0013NA0013NA0013 /* BarcodeScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0013NR0013NR0013NR0013 /* BarcodeScannerSheet.swift */; };
 		NA0014NA0014NA0014NA0014 /* MacroParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0014NR0014NR0014NR0014 /* MacroParser.swift */; };
 		NOTSC002NOTSC002NOTSC002 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */; };
 		OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA001000AA00300B2F5DCCCC /* OathModels.swift */; };
@@ -493,9 +491,7 @@
 		NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTypeBadge.swift; sourceTree = "<group>"; };
 		NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionAnalyticsCards.swift; sourceTree = "<group>"; };
 		NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionSettingsSheet.swift; sourceTree = "<group>"; };
-		NR0011NR0011NR0011NR0011 /* ScanLabelSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLabelSheet.swift; sourceTree = "<group>"; };
 		NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealTemplateSheets.swift; sourceTree = "<group>"; };
-		NR0013NR0013NR0013NR0013 /* BarcodeScannerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerSheet.swift; sourceTree = "<group>"; };
 		NR0014NR0014NR0014NR0014 /* MacroParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroParser.swift; sourceTree = "<group>"; };
 		OA001000AA00300B2F5DCCCC /* OathModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathModels.swift; sourceTree = "<group>"; };
 		OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Oath.swift"; sourceTree = "<group>"; };
@@ -744,9 +740,7 @@
 				NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */,
 				NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */,
 				NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */,
-				NR0011NR0011NR0011NR0011 /* ScanLabelSheet.swift */,
 				NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */,
-				NR0013NR0013NR0013NR0013 /* BarcodeScannerSheet.swift */,
 				NR0014NR0014NR0014NR0014 /* MacroParser.swift */,
 			);
 			path = Nutrition;
@@ -1512,9 +1506,7 @@
 				NA0008NA0008NA0008NA0008 /* DayTypeBadge.swift in Sources */,
 				NA0009NA0009NA0009NA0009 /* NutritionAnalyticsCards.swift in Sources */,
 				NA0010NA0010NA0010NA0010 /* NutritionSettingsSheet.swift in Sources */,
-				NA0011NA0011NA0011NA0011 /* ScanLabelSheet.swift in Sources */,
 				NA0012NA0012NA0012NA0012 /* MealTemplateSheets.swift in Sources */,
-				NA0013NA0013NA0013NA0013 /* BarcodeScannerSheet.swift in Sources */,
 				NA0014NA0014NA0014NA0014 /* MacroParser.swift in Sources */,
 				AA0020072F5D98BA002AE470 /* ProgrammeView.swift in Sources */,
 				AA0020082F5D98BA002AE470 /* XPView.swift in Sources */,

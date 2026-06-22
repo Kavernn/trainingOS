@@ -14,10 +14,6 @@ struct AddNutritionSheet: View {
     @State private var showCatalog = false
     @State private var isSaving = false
     @State private var searchText = ""
-    @State private var showBarcodeScanner = false
-    @State private var isLoadingBarcode = false
-    @State private var barcodeNote = ""
-    @State private var barcodeError: String? = nil
     // N-B4: attempted save feedback
     @State private var didAttemptSave = false
     // N-D5: callback for template log feedback
@@ -97,7 +93,6 @@ struct AddNutritionSheet: View {
             mealType: mealType,
             manName: manName, manCal: manCal,
             manProt: manProt, manGluc: manGluc, manLip: manLip,
-            barcodeNote: barcodeNote,
             selectedName: selected?.name,
             quantity: quantity
         )
@@ -109,7 +104,6 @@ struct AddNutritionSheet: View {
         mealType = p.mealType
         manName = p.manName; manCal = p.manCal
         manProt = p.manProt; manGluc = p.manGluc; manLip = p.manLip
-        barcodeNote = p.barcodeNote
         quantity = p.quantity
         if let name = p.selectedName {
             selected = catalog.first(where: { $0.name == name })
@@ -178,13 +172,6 @@ struct AddNutritionSheet: View {
                         Section(header: HStack {
                             Text("CATALOGUE")
                             Spacer()
-                            Button { showBarcodeScanner = true } label: {
-                                Label("Scanner", systemImage: "barcode.viewfinder")
-                                    .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(Color.appSuccess)
-                            }
-                            .buttonStyle(.plain)
-                            .textCase(nil)
                             Button { withAnimation { manualMode = true } } label: {
                                 Label("Manuel", systemImage: "pencil")
                                     .font(.appCaption.weight(.semibold))
@@ -360,13 +347,6 @@ struct AddNutritionSheet: View {
 
                         Section(header: HStack {
                             Text("ALIMENT")
-                            if !barcodeNote.isEmpty {
-                                Spacer()
-                                Label(barcodeNote, systemImage: "barcode.viewfinder")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(Color.appSuccess.opacity(0.85))
-                                    .textCase(nil)
-                            }
                         }) {
                             TextField("Nom", text: $manName).foregroundColor(.appTextPrimary)
                             HStack {
@@ -391,7 +371,6 @@ struct AddNutritionSheet: View {
                                     withAnimation {
                                         manualMode = false
                                         manName = ""; manCal = ""
-                                        barcodeNote = ""
                                     }
                                 }
                             } label: {
@@ -405,7 +384,6 @@ struct AddNutritionSheet: View {
                                     withAnimation {
                                         manualMode = false
                                         manName = ""; manCal = ""
-                                        barcodeNote = ""
                                     }
                                 }
                                 Button("Rester en mode manuel", role: .cancel) {}
@@ -459,16 +437,6 @@ struct AddNutritionSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-
-                if isLoadingBarcode {
-                    Color.black.opacity(0.55).ignoresSafeArea()
-                    VStack(spacing: 14) {
-                        ProgressView().tint(.onAccent).scaleEffect(1.4)
-                        Text("Recherche du produit…")
-                            .foregroundColor(.appTextPrimary)
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                }
             }
             // N-C2: title reflects current mode
             .navigationTitle(manualMode ? "Saisie manuelle" : "Ajouter aliment")
@@ -518,28 +486,6 @@ struct AddNutritionSheet: View {
                     NutritionDraftStore.clear()
                 }
             }
-            .sheet(isPresented: $showBarcodeScanner) {
-                BarcodeScannerSheet { code in
-                    handleBarcode(code)
-                }
-            }
-            // N-D3: barcode error with retry and manual entry options
-            .alert("Produit introuvable", isPresented: Binding(
-                get: { barcodeError != nil },
-                set: { if !$0 { barcodeError = nil } }
-            ), presenting: barcodeError) { _ in
-                Button("Réessayer") {
-                    barcodeError = nil
-                    showBarcodeScanner = true
-                }
-                Button("Saisir manuellement") {
-                    barcodeError = nil
-                    withAnimation { manualMode = true }
-                }
-                Button("Annuler", role: .cancel) { barcodeError = nil }
-            } message: { err in
-                Text(err)
-            }
         }
         .interactiveDismissDisabled(isDirty)
         .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
@@ -552,46 +498,6 @@ struct AddNutritionSheet: View {
             Text("Les valeurs saisies seront perdues.")
         }
         .presentationDetents([.medium, .large])
-    }
-
-    private func handleBarcode(_ code: String) {
-        isLoadingBarcode = true
-        barcodeError = nil
-        Task {
-            do {
-                let result = try await APIService.shared.scanBarcode(code)
-                let macros = result.perServing ?? result.per100g
-                let note: String = {
-                    if result.perServing != nil, let sz = result.servingSize {
-                        return "1 portion (\(sz))"
-                    } else if result.perServing != nil {
-                        return "1 portion"
-                    } else {
-                        return "pour 100g"
-                    }
-                }()
-                await MainActor.run {
-                    manName = result.nom
-                    manCal  = "\(macros.calories)"
-                    manProt = "\(macros.proteines)"
-                    manGluc = "\(macros.glucides)"
-                    manLip  = "\(macros.lipides)"
-                    barcodeNote = note
-                    withAnimation { manualMode = true }
-                    isLoadingBarcode = false
-                }
-            } catch let e as ScanLabelError {
-                await MainActor.run {
-                    barcodeError = e.message
-                    isLoadingBarcode = false
-                }
-            } catch {
-                await MainActor.run {
-                    barcodeError = "Produit introuvable dans la base Open Food Facts"
-                    isLoadingBarcode = false
-                }
-            }
-        }
     }
 
     private func save() {
@@ -643,7 +549,6 @@ fileprivate struct NutritionDraftPayload: Codable, Equatable {
     var manProt: String
     var manGluc: String
     var manLip: String
-    var barcodeNote: String
     var selectedName: String?
     var quantity: String
 }

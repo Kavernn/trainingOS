@@ -478,7 +478,6 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 - [ ] Views/More/MoreView.swift
 - [ ] Views/Notes/NotesView.swift
 - [ ] Views/Nutrition/AddNutritionSheet.swift
-- [ ] Views/Nutrition/BarcodeScannerSheet.swift
 - [ ] Views/Nutrition/DayTypeBadge.swift
 - [ ] Views/Nutrition/FoodCatalogView.swift
 - [ ] Views/Nutrition/MacroSummaryCard.swift
@@ -489,7 +488,6 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 - [ ] Views/Nutrition/NutritionEntryViews.swift
 - [ ] Views/Nutrition/NutritionSettingsSheet.swift
 - [ ] Views/Nutrition/ProteinProgressCard.swift
-- [ ] Views/Nutrition/ScanLabelSheet.swift
 - [ ] Views/Oath/OathView.swift
 - [ ] Views/Oath/OathWriteView.swift
 - [ ] Views/Objectifs/ObjectifsView.swift

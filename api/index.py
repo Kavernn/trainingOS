@@ -77,7 +77,6 @@ _db_startup.ensure_schema_migrations()
 # ── Register blueprints ──────────────────────────────────────
 from routes.profile      import profile_bp
 from routes.nutrition_entries   import nutrition_bp
-from routes.nutrition_scan      import nutrition_scan_bp
 from routes.nutrition_food      import nutrition_food_bp
 from routes.nutrition_templates import nutrition_templates_bp
 from routes.nutrition_analytics import nutrition_analytics_bp
@@ -155,7 +154,6 @@ from routes.deload_management    import deload_management_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
-app.register_blueprint(nutrition_scan_bp)
 app.register_blueprint(nutrition_food_bp)
 app.register_blueprint(nutrition_templates_bp)
 app.register_blueprint(nutrition_analytics_bp)
