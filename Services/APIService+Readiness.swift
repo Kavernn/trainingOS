@@ -38,6 +38,12 @@ extension APIService {
         }
         UserDefaults.standard.set(true, forKey: "deload_active")
         NotificationService.cancelDeloadNotifications()
+
+        // Cycle de vie deload : annule toute notif orpheline d'un deload précédent
+        // puis programme confirmation + fin pour CETTE activation (gère aussi la modif de durée).
+        NotificationService.cancelDeloadEndReminder()
+        NotificationService.notifyDeloadActivated(durationDays: durationDays)
+        NotificationService.scheduleDeloadEndReminder(durationDays: durationDays)
     }
 
     func deactivateDeload() async throws {
@@ -50,6 +56,9 @@ extension APIService {
             throw APIError.serverError(http.statusCode, "Désactivation deload échouée : HTTP \(http.statusCode)")
         }
         UserDefaults.standard.set(false, forKey: "deload_active")
+
+        // Cleanup notif de fin — anti-fantôme si user désactive avant la date prévue.
+        NotificationService.cancelDeloadEndReminder()
     }
 
     func fetchReadiness() async throws -> ReadinessResponse {

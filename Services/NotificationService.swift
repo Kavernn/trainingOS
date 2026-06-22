@@ -197,6 +197,58 @@ enum NotificationService {
             .removePendingNotificationRequests(withIdentifiers: ["inactivity.reminder", "streak.danger.daily"])
     }
 
+    // MARK: - Deload lifecycle (activation + end reminder)
+
+    /// Confirmation immédiate suite à l'activation manuelle du deload.
+    /// Sceau du "passage en récupération" — validation, pas reproche.
+    static func notifyDeloadActivated(durationDays: Int) {
+        guard !globalDisabled else { return }
+        let center = UNUserNotificationCenter.current()
+        let id = "deload.activated"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Deload activé"
+            content.body  = "\(durationDays) jour\(durationDays > 1 ? "s" : "") de récupération. Tu reviens plus fort."
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+    }
+
+    /// Programme la notif de fin du deload (jour J à 08:00).
+    /// Appeler à l'activation, après cancelDeloadEndReminder() pour éviter les doublons.
+    static func scheduleDeloadEndReminder(durationDays: Int) {
+        guard !globalDisabled else { return }
+        let center = UNUserNotificationCenter.current()
+        let id = "deload.ending"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        guard let endDate = Calendar.current.date(byAdding: .day, value: durationDays, to: Date()) else { return }
+        var dc = Calendar.current.dateComponents([.year, .month, .day], from: endDate)
+        dc.hour = 8; dc.minute = 0
+        guard let fireDate = Calendar.current.date(from: dc), fireDate > Date() else { return }
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Ton deload se termine 🌅"
+            content.body  = "Tu as récupéré — prêt à reprendre ?"
+            content.sound = .default
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+    }
+
+    /// Annule les notifs du cycle de vie deload (activation + fin).
+    /// Séparée de cancelDeloadNotifications() qui garde sa sémantique anti-culpabilisation.
+    static func cancelDeloadEndReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["deload.ending", "deload.activated"])
+    }
+
     static func cancelHRVReminder() {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: ["hrv.morning.reminder"])
