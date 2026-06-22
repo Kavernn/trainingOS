@@ -415,8 +415,7 @@ extension StatsView {
     // MARK: - Exercices Tab
     @ViewBuilder var exercicesTab: some View {
 
-        // 1. PRs actuels — StrengthProgressionCard remplacée par ForceHeroCard (Synthèse)
-        // TODO: supprimer struct StrengthProgressionCard dans StatsBodyViews.swift après validation du héros
+        // 1. PRs actuels
         if !personalRecords.isEmpty {
             PersonalRecordsView(records: personalRecords)
                 .padding(.horizontal, 16)
