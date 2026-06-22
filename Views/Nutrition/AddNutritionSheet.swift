@@ -90,6 +90,32 @@ struct AddNutritionSheet: View {
         (manualMode && (!manName.isEmpty || !manCal.isEmpty))
     }
 
+    // C2: payload utilisé pour persister la saisie dans NutritionDraftStore
+    fileprivate var draftPayload: NutritionDraftPayload {
+        NutritionDraftPayload(
+            manualMode: manualMode,
+            mealType: mealType,
+            manName: manName, manCal: manCal,
+            manProt: manProt, manGluc: manGluc, manLip: manLip,
+            barcodeNote: barcodeNote,
+            selectedName: selected?.name,
+            quantity: quantity
+        )
+    }
+
+    private func restoreDraftIfAny() {
+        guard let p = NutritionDraftStore.load() else { return }
+        manualMode = p.manualMode
+        mealType = p.mealType
+        manName = p.manName; manCal = p.manCal
+        manProt = p.manProt; manGluc = p.manGluc; manLip = p.manLip
+        barcodeNote = p.barcodeNote
+        quantity = p.quantity
+        if let name = p.selectedName {
+            selected = catalog.first(where: { $0.name == name })
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -416,6 +442,20 @@ struct AddNutritionSheet: View {
                         .listRowBackground(Color.appDanger.opacity(0.08))
                     }
 
+                    // C1: network save error inline (pattern PostSessionEdit) — saisie préservée
+                    if let err = saveError {
+                        Section {
+                            HStack(spacing: 8) {
+                                Image(systemName: "wifi.exclamationmark")
+                                    .foregroundColor(Color.appDanger)
+                                Text(err)
+                                    .font(.appLabel)
+                                    .foregroundColor(Color.appDanger)
+                            }
+                        }
+                        .listRowBackground(Color.appDanger.opacity(0.08))
+                    }
+
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -441,7 +481,8 @@ struct AddNutritionSheet: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     // N-B4: always-tappable button that validates inline
-                    Button("Ajouter") {
+                    // C1: label "Réessayer" on saveError (pattern PostSessionEdit)
+                    Button(saveError != nil ? "Réessayer" : "Ajouter") {
                         if canSave {
                             save()
                         } else {
@@ -466,6 +507,15 @@ struct AddNutritionSheet: View {
                     let remoteCustom = remote.filter { !builtInNames.contains($0.name) }
                     catalog = builtIn + remoteCustom
                     FoodCatalogStore.save(catalog)
+                }
+            }
+            // C2: restore draft (saisie survit aux interruptions)
+            .onAppear { restoreDraftIfAny() }
+            .onChange(of: draftPayload) { _, new in
+                if isDirty {
+                    NutritionDraftStore.save(payload: new)
+                } else {
+                    NutritionDraftStore.clear()
                 }
             }
             .sheet(isPresented: $showBarcodeScanner) {
@@ -493,14 +543,14 @@ struct AddNutritionSheet: View {
         }
         .interactiveDismissDisabled(isDirty)
         .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
-            Button("Abandonner", role: .destructive) { dismiss() }
+            Button("Abandonner", role: .destructive) {
+                NutritionDraftStore.clear()  // C2: clear sur abandon explicite
+                dismiss()
+            }
             Button("Continuer", role: .cancel) {}
         } message: {
             Text("Les valeurs saisies seront perdues.")
         }
-        .alert("Erreur", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: { Text(saveError ?? "") }
         .presentationDetents([.medium, .large])
     }
 
@@ -545,6 +595,7 @@ struct AddNutritionSheet: View {
     }
 
     private func save() {
+        saveError = nil
         Task {
             isSaving = true
             var loggedName = ""
@@ -575,9 +626,58 @@ struct AddNutritionSheet: View {
             triggerNotificationFeedback(.success)
             onLogged?(loggedName)
             await onSaved()
+            NutritionDraftStore.clear()  // C2: clear sur succès
             isSaving = false
             dismiss()
         }
+    }
+}
+
+// MARK: - Nutrition Draft Store (C2: survives app kill, 24h TTL)
+
+fileprivate struct NutritionDraftPayload: Codable, Equatable {
+    var manualMode: Bool
+    var mealType: String
+    var manName: String
+    var manCal: String
+    var manProt: String
+    var manGluc: String
+    var manLip: String
+    var barcodeNote: String
+    var selectedName: String?
+    var quantity: String
+}
+
+fileprivate struct PersistedNutritionDraft: Codable {
+    let timestamp: Date
+    let payload: NutritionDraftPayload
+}
+
+fileprivate enum NutritionDraftStore {
+    private static let key = "nutrition_draft_current"
+    private static let ttl: TimeInterval = 86400  // 24h — au-delà, draft zombie ignoré
+
+    static func save(payload: NutritionDraftPayload) {
+        let wrap = PersistedNutritionDraft(timestamp: Date(), payload: payload)
+        if let data = try? APIService.encoder.encode(wrap) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+
+    static func load() -> NutritionDraftPayload? {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let wrap = try? APIService.decoder.decode(PersistedNutritionDraft.self, from: data) else {
+            return nil
+        }
+        if Date().timeIntervalSince(wrap.timestamp) > ttl {
+            UserDefaults.standard.removeObject(forKey: key)
+            return nil
+        }
+        return wrap.payload
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
     }
 }
 
