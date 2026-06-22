@@ -178,6 +178,23 @@ struct WorkoutSeanceView: View {
         }
     }
 
+    private func abandonMessage() -> String {
+        let logged = vm.logResults.count
+        if logged == 0 {
+            return "La séance n'a pas encore commencé. Aucune donnée ne sera perdue."
+        }
+        let totalSets = vm.logResults.values.reduce(0) { $0 + $1.sets.count }
+        let minutes = vm.chrono.elapsedSeconds / 60
+        var parts: [String] = []
+        if totalSets > 0 {
+            parts.append("\(totalSets) série\(totalSets > 1 ? "s" : "")")
+        }
+        parts.append("\(logged) exercice\(logged > 1 ? "s" : "")")
+        let workPart = parts.joined(separator: " sur ")
+        let durationPart = minutes > 0 ? " en \(minutes) min" : ""
+        return "Tu as fait \(workPart)\(durationPart). Ces données seront perdues."
+    }
+
     private var warmupGuidance: String? {
         let warmupMap: [String: String] = [
             "squat":           "Barre vide × 10 → 50% × 5 → 70% × 3, puis working sets",
@@ -1311,6 +1328,9 @@ struct WorkoutSeanceView: View {
         }
         // W-D11 — abandon session alert
         .alert("Quitter la séance ?", isPresented: $showAbandonAlert) {
+            if vm.logResults.count > 0 {
+                Button("Sauvegarder l'effort") { preloadAIAnalysis(); showFinish = true }
+            }
             Button("Quitter sans sauvegarder", role: .destructive) {
                 vm.logResults.removeAll()
                 vm.isResuming = false
@@ -1320,12 +1340,7 @@ struct WorkoutSeanceView: View {
             }
             Button("Continuer", role: .cancel) {}
         } message: {
-            let logged = vm.logResults.count
-            if logged > 0 {
-                Text("Tes \(logged) exercice\(logged > 1 ? "s" : "") loggé\(logged > 1 ? "s" : "") seront perdus. Cette action est irréversible.")
-            } else {
-                Text("La séance n'a pas encore commencé. Aucune donnée ne sera perdue.")
-            }
+            Text(abandonMessage())
         }
         .sheet(item: $addTarget) { (sn: SeanceName) in
             AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: [:]) { ex, scheme in
