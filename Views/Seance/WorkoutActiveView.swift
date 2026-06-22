@@ -942,6 +942,10 @@ struct WorkoutSeanceView: View {
 
                 // Resume banner — shown when exercises were already logged (partial prior session)
                 if vm.isResuming {
+                    let loggedNames = exercises.map(\.0).filter { vm.logResults[$0] != nil }
+                    let loggedPreview = loggedNames.prefix(3).joined(separator: " · ")
+                    let loggedExtra = max(0, loggedNames.count - 3)
+                    let loggedLabel = loggedExtra > 0 ? "\(loggedPreview) · +\(loggedExtra) autres" : loggedPreview
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise.circle.fill")
                             .font(.appBody)
@@ -950,8 +954,10 @@ struct WorkoutSeanceView: View {
                             Text("Continuer la séance")
                                 .font(.appLabel).fontWeight(.semibold)
                                 .foregroundColor(.statusCyan)
-                            // W-D2 — show how many exercises are already logged
-                            Text("\(vm.logResults.count) exercice(s) déjà sauvegardé(s). Continue ou recommence depuis le début.")
+                            // W-D2 — show WHICH exercises are already logged (compact, in program order)
+                            Text(loggedNames.isEmpty
+                                 ? "Reprise sans exercice loggé."
+                                 : "Déjà fait : \(loggedLabel)")
                                 .font(.appCaption)
                                 .foregroundColor(.gray)
                                 .fixedSize(horizontal: false, vertical: true)
