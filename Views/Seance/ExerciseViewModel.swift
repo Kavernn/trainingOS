@@ -211,6 +211,7 @@ final class ExerciseViewModel: ObservableObject {
     var isTimeBased: Bool { trackingType == "time" }
     var currentWeight: Double { weightData?.currentWeight ?? 0 }
     var lastReps: String { weightData?.lastReps ?? "—" }
+    var isFirstTime: Bool { weightData?.history?.isEmpty ?? true }
 
     var setsCount: Int { ExerciseCalculator.setsCount(scheme: scheme, prescription: prescription) }
 

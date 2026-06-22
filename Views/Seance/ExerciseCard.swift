@@ -713,6 +713,14 @@ struct ExerciseCard: View {
         Divider().background(Color.appSurfaceInset)
         VStack(alignment: .leading, spacing: 14) {
             expandedTopBar
+            if evm.isFirstTime && !alreadyLogged {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.appCaption).foregroundColor(Color.statusCyan)
+                    Text("Première fois pour cet exercice — pas d'historique encore.")
+                        .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
+                }
+            }
             if logResult == nil, let s = suggestion, s.suggestionType != "maintain" {
                 CoachingChip(suggestion: s)
             }
