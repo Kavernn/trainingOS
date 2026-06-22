@@ -657,19 +657,21 @@ struct PostSessionEditSheet: View {
                 Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 12) {
+                        ForEach(edits.indices, id: \.self) { i in
+                            exerciseCard(index: i)
+                        }
+
                         if let err = saveError {
                             Text(err)
                                 .font(.system(size: 12)).foregroundColor(.statusRed)
-                                .padding(.horizontal, 20)
-                        }
-                        ForEach(edits.indices, id: \.self) { i in
-                            exerciseCard(index: i)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 16)
                         }
 
                         Button(action: save) {
                             HStack {
                                 if isSaving { ProgressView().tint(.onAccent).scaleEffect(0.8) }
-                                Text(isSaving ? "Enregistrement…" : "Sauvegarder les modifications")
+                                Text(isSaving ? "Enregistrement…" : (saveError != nil ? "Réessayer" : "Sauvegarder les modifications"))
                                     .font(.appBody.weight(.bold))
                             }
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
