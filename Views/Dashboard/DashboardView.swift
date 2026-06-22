@@ -1,6 +1,18 @@
 
 import SwiftUI
 
+// Accent du jour (Color.sessionTypeColor) — intensités de rayonnement sur le chrome.
+// Réversibles : réduire d'un cran si trop présent sur device.
+enum DashboardAccentRadiance {
+    // Point 1 — Bande/halo en haut, sous la StatusBar iOS
+    static let topBandPeak:   Double  = 0.22
+    static let topBandHeight: CGFloat = 120
+
+    // Point 2 — Wash StatusBar + liseré bas
+    static let statusBarFill: Double = 0.06
+    static let statusBarRule: Double = 0.20
+}
+
 struct DashboardView: View {
     @StateObject private var vm = DashboardViewModel()
     @ObservedObject private var api = APIService.shared
@@ -23,7 +35,22 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: todayAccentColor)
+                AmbientBackground(color: dailyAccent)
+
+                // Point 1 — Bande/halo accent en haut, ancre le type de jour dès l'ouverture.
+                // Réversible via DashboardAccentRadiance.topBandPeak.
+                VStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [dailyAccent.opacity(DashboardAccentRadiance.topBandPeak), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: DashboardAccentRadiance.topBandHeight)
+                    .ignoresSafeArea(edges: .top)
+                    Spacer(minLength: 0)
+                }
+                .allowsHitTesting(false)
+
                 if loadingState.isLoading && api.dashboard == nil {
                     VStack(spacing: 0) {
                         DashboardSkeletonView()
@@ -79,8 +106,12 @@ struct DashboardView: View {
                                 }
 
                                 // 1 — Status bar
-                                DashboardStatusBar(dash: dash, streakData: vm.streakData)
+                                DashboardStatusBar(dash: dash)
                                     .appearAnimation(delay: 0.03)
+
+                                // 1a — Momentum strip — semaine + streak, visible sans scroll
+                                MomentumStripView(dash: dash, streakData: vm.streakData, weeklyTonnage: vm.weeklyTonnage)
+                                    .appearAnimation(delay: 0.04)
 
                                 // 1b — Routine de soir (visible dès 20h, et jusqu'à 3h pour couchers tardifs)
                                 let eveningHour = Calendar.current.component(.hour, from: Date())
@@ -108,6 +139,7 @@ struct DashboardView: View {
                                     readiness: vm.readinessData
                                 )
                                 .appearAnimation(delay: 0.05)
+                                .padding(.vertical, 8)
 
                                 // 4 — Recovery trio (Readiness + HRV + Sommeil)
                                 if vm.morningBrief != nil || vm.todayRecovery != nil {
@@ -162,12 +194,8 @@ struct DashboardView: View {
                                     onMoodTap: { showMoodSheet = true },
                                     onNutritionTap: { showNutritionAddSheet = true }
                                 )
+                                .padding(.top, 8)
                                 .appearAnimation(delay: 0.10)
-
-                                // 7 — Momentum strip (semaine + streak)
-                                MomentumStripView(dash: dash, streakData: vm.streakData, weeklyTonnage: vm.weeklyTonnage)
-                                    .appearAnimation(delay: 0.12)
-
 
                                 // 8e — War Room strip
                                 if vm.warRoomEnabled {
@@ -189,6 +217,7 @@ struct DashboardView: View {
                                             }
                                         }
                                     )
+                                    .padding(.top, 8)
                                     .appearAnimation(delay: 0.16)
                                 }
 
@@ -323,14 +352,8 @@ struct DashboardView: View {
         showMorningReveal = true
     }
 
-    var todayAccentColor: Color {
-        let low = (api.dashboard?.today ?? "").lowercased()
-        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .statusGreen  }
-        if low.contains("pull")  { return .statusCyan   }
-        if low.contains("push") || low.contains("upper") { return .statusOrange }
-        if low.contains("legs") || low.contains("lower") { return .statusYellow }
-        if low.contains("yoga")  { return .statusPurple }
-        return .statusBlue
+    private var dailyAccent: Color {
+        Color.sessionTypeColor(api.dashboard?.today ?? "")
     }
 
     private func handleAlertAction(signal: CriticalSignal, dash: DashboardData) {

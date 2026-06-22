@@ -94,9 +94,9 @@ struct CoachInsightCard: View {
         } label: {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
-                    Circle().fill(Color.forge.opacity(0.18)).frame(width: 40, height: 40)
+                    Circle().fill(Color.forge.opacity(0.18)).frame(width: 32, height: 32)
                     Image(systemName: "brain.head.profile")
-                        .font(.appBody.weight(.semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(Color.forge)
                 }
                 VStack(alignment: .leading, spacing: 5) {
@@ -138,7 +138,7 @@ struct CoachInsightCard: View {
                     }
                 }
             }
-            .padding(14)
+            .padding(.horizontal, 12).padding(.vertical, 10)
             .background(Color.forge.opacity(0.07))
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.22), lineWidth: 1))
             .cornerRadius(14)

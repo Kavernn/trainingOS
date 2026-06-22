@@ -78,12 +78,12 @@ struct RecoveryTrioCard: View {
     }
 
     private func trioPill(icon: String, value: String, subLabel: String, color: Color) -> some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.appLabel.weight(.semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundColor(.appTextPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -93,7 +93,7 @@ struct RecoveryTrioCard: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.vertical, 8)
     }
 }
 

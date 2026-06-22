@@ -77,7 +77,6 @@ struct SkeletonBar: View {
 // MARK: - Dashboard Status Bar
 struct DashboardStatusBar: View {
     let dash: DashboardData
-    var streakData: StreakResponse? = nil
 
     private var dateShort: String {
         let f = DateFormatter()
@@ -86,20 +85,8 @@ struct DashboardStatusBar: View {
         return f.string(from: Date()).capitalized
     }
 
-    private var currentStreak: Int { streakData?.currentStreak ?? 0 }
-
     private var isLoggedToday: Bool {
         dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
-    }
-
-    private var todayColor: Color {
-        let low = dash.today.lowercased()
-        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return Color.statusGreen }
-        if low.contains("pull")  { return Color.statusCyan }
-        if low.contains("push") || low.contains("upper") { return Color.statusOrange }
-        if low.contains("legs") || low.contains("lower") { return Color.statusYellow }
-        if low.contains("yoga")  { return Color.statusPurple }
-        return Color.statusBlue
     }
 
     private var dotColor: Color {
@@ -108,11 +95,14 @@ struct DashboardStatusBar: View {
         if low.contains("repos") || low.contains("recovery") || low.contains("rest") {
             return Color.secondary
         }
-        return todayColor
+        return Color.sessionTypeColor(dash.today)
     }
 
     var body: some View {
-        HStack(spacing: 0) {
+        let accent = Color.sessionTypeColor(dash.today)
+        // Point 2 — Wash accent + liseré bas : la StatusBar devient "le panneau du jour".
+        // Réversible via DashboardAccentRadiance.statusBarFill / statusBarRule.
+        return HStack(spacing: 0) {
             Text(dateShort)
                 .font(.appLabel.weight(.medium))
                 .foregroundColor(.appTextPrimary)
@@ -120,19 +110,6 @@ struct DashboardStatusBar: View {
             Spacer()
 
             HStack(spacing: 10) {
-                if currentStreak > 0 {
-                    HStack(spacing: 3) {
-                        Text("🔥")
-                            .font(.appCaption)
-                        Text("\(currentStreak)j")
-                            .font(.appCaption.weight(.bold))
-                            .foregroundColor(Color.forge)
-                    }
-                    Text("·")
-                        .font(.appCaption)
-                        .foregroundColor(.gray.opacity(0.5))
-                }
-
                 HStack(spacing: 5) {
                     Circle()
                         .fill(dotColor)
@@ -144,6 +121,14 @@ struct DashboardStatusBar: View {
                 }
 
             }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(accent.opacity(DashboardAccentRadiance.statusBarFill))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(accent.opacity(DashboardAccentRadiance.statusBarRule))
+                .frame(height: 0.5)
         }
         .padding(.top, 12)
     }
