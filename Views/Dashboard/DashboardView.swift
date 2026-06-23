@@ -26,6 +26,7 @@ struct DashboardView: View {
     @State private var showQuickTrigger = false
     @State private var showQuickBattle = false
     @State private var warRoomToastMessage: String? = nil
+    @State private var seance2Count: Int = 0   // P2.B.4 — rappel bloc 2
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -141,6 +142,17 @@ struct DashboardView: View {
                                 .appearAnimation(delay: 0.05)
                                 .padding(.vertical, 8)
 
+                                // 3b — Rappel bloc 2 (P2.B.4) — visible uniquement les jours splittés
+                                if seance2Count > 0 {
+                                    Seance2ReminderStrip(
+                                        programName: dash.today,
+                                        count: seance2Count,
+                                        accent: Color.sessionTypeColor(dash.today),
+                                        onTap: { onOpenSession?() }
+                                    )
+                                    .appearAnimation(delay: 0.055)
+                                }
+
                                 // 4 — Recovery trio (Readiness + HRV + Sommeil)
                                 if vm.morningBrief != nil || vm.todayRecovery != nil {
                                     RecoveryTrioCard(brief: vm.morningBrief, recovery: vm.todayRecovery, hrvAnalysis: vm.hrvAnalysis)
@@ -253,6 +265,10 @@ struct DashboardView: View {
                             await vm.loadAll()
                             lastRefresh = Date()
                             checkAndShowMorningReveal()
+                            seance2Count = SeanceSplitStore.load(date: todayStr).count
+                        }
+                        .onAppear {
+                            seance2Count = SeanceSplitStore.load(date: todayStr).count
                         }
                 } else if let err = loadingState.error {
                     VStack(spacing: 16) {
@@ -284,6 +300,7 @@ struct DashboardView: View {
                 if !loadingState.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
                     Task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
                 }
+                seance2Count = SeanceSplitStore.load(date: todayStr).count
             }
         }
         .sheet(isPresented: $showMoodSheet, onDismiss: {

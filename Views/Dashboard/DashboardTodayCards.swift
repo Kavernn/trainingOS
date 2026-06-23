@@ -423,3 +423,51 @@ struct CriticalAlertCard: View {
         )
     }
 }
+
+// MARK: - Séance 2 reminder strip (P2.B.4)
+// Strip 44px léger, n'apparaît que les jours splittés. Tap → tab Séance.
+struct Seance2ReminderStrip: View {
+    let programName: String
+    let count: Int
+    let accent: Color
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "2.circle.fill")
+                        .font(.appCaption).fontWeight(.bold)
+                        .foregroundColor(accent.opacity(0.85))
+                    Text("\(programName) — bloc 2")
+                        .font(.appCaption).fontWeight(.semibold)
+                        .foregroundColor(Color.appOnSurface.opacity(0.75))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Text("\(count) exo\(count > 1 ? "s" : "") à faire")
+                        .font(.appCaption).fontWeight(.medium)
+                        .foregroundColor(Color.appOnSurface.opacity(0.55))
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 10)).fontWeight(.bold)
+                        .foregroundColor(accent.opacity(0.7))
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.appSurfaceInset)
+                        .overlay(Capsule().stroke(accent.opacity(0.4), lineWidth: 0.5))
+                )
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 44)
+            .background(Color.appCard)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSurfaceInset, lineWidth: 0.5))
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
+    }
+}
