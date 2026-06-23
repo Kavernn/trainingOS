@@ -40,6 +40,7 @@ struct ProgrammeView: View {
     @State private var inventoryPatterns: [String: String] = [:]
     @State private var inventoryOneRM: [String: Double] = [:]
     @State private var isLoading = true
+    @State private var seance2ExosToday: Set<String> = []
     @State private var addTarget: SeanceName?
     @State private var editTarget: ExerciseTarget?
     @State private var showCreateSeance = false
@@ -278,6 +279,10 @@ struct ProgrammeView: View {
         return schedule[day].flatMap { $0 == "Repos" ? nil : $0 }
     }
 
+    private var todayDateStr: String {
+        DateFormatter.isoDate.string(from: Date())
+    }
+
     private var activeProgrammeName: String {
         programs.first { $0.id == activeProgramId }?.name ?? ""
     }
@@ -491,6 +496,7 @@ struct ProgrammeView: View {
                     .scrollDismissesKeyboard(.interactively)
                     .refreshable {
                         CacheService.shared.clear(for: "programme_data")
+                        seance2ExosToday = SeanceSplitStore.load(date: todayDateStr)
                         await loadData(programId: selectedProgramId.isEmpty ? nil : selectedProgramId)
                     }
                 }
@@ -658,6 +664,7 @@ struct ProgrammeView: View {
             }
         }
         .task { await loadData(); await loadSuggestions() }
+        .onAppear { seance2ExosToday = SeanceSplitStore.load(date: todayDateStr) }
         .onChange(of: selectedProgramId) { _, newId in
             guard !newId.isEmpty else { return }
             Task { await loadData(programId: newId); await loadSuggestions() }
@@ -721,6 +728,7 @@ struct ProgrammeView: View {
             onCopy:  { copySeance(name: seance, exercises: fullProgram[seance] ?? [:]) },
             onPaste: pasteAction,
             isToday: seance == todaySessionName,
+            seance2ExosToday: seance == todaySessionName ? seance2ExosToday : [],
             onSessionDragChanged: { dy in
                 if draggingSession == nil { triggerImpact(style: .light) }
                 draggingSession = seance
@@ -1441,6 +1449,7 @@ struct EditableSeanceProgramCard: View {
     var onCopy:               (() -> Void)? = nil
     var onPaste:              (() -> Void)? = nil
     var isToday:              Bool = false
+    var seance2ExosToday:     Set<String> = []
     var onSessionDragChanged: ((CGFloat) -> Void)? = nil
     var onSessionDragEnded:   (() -> Void)? = nil
     var supersets: [String: SupersetEntry] = [:]
@@ -1663,7 +1672,8 @@ struct EditableSeanceProgramCard: View {
                             trend:         trendFor(name),
                             suggestion:    suggestions[name],
                             isCompound:    name == firstCompoundName,
-                            e1rm:          inventoryOneRM[name]
+                            e1rm:          inventoryOneRM[name],
+                            isSeance2:     seance2ExosToday.contains(name)
                         )
                     }
                     .background(
@@ -1706,6 +1716,7 @@ struct ExerciseRow: View {
     var suggestion: ProgressionSuggestion? = nil
     var isCompound: Bool = false
     var e1rm: Double? = nil
+    var isSeance2: Bool = false
 
     @ObservedObject private var units = UnitSettings.shared
 
@@ -1730,6 +1741,22 @@ struct ExerciseRow: View {
                         .padding(.horizontal, 5).padding(.vertical, 3)
                         .background(Color.forge.opacity(0.15))
                         .cornerRadius(4)
+                }
+                if isSeance2 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "2.circle.fill")
+                            .font(.appMicro.weight(.bold))
+                            .foregroundColor(color.opacity(0.85))
+                        Text("Séance 2")
+                            .font(.appMicro.weight(.semibold))
+                            .foregroundColor(Color.appOnSurface.opacity(0.75))
+                    }
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .background(
+                        Capsule()
+                            .fill(Color.appSurfaceInset)
+                            .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 0.5))
+                    )
                 }
                 if let t = trend {
                     Text(t)
