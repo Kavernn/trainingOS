@@ -125,6 +125,7 @@
 		D68A5C642FD0CE6800B824DF /* VinceSeven Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D68A5C442FD0CE6600B824DF /* VinceSeven Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D68A5C8D2FD0D0B900B824DF /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */; };
 		D69D3EEF2F85895800553153 /* SessionDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69D3EEE2F85895800553153 /* SessionDraftStore.swift */; };
+		F90FC93ACE0E484E9737F8E2 /* SeanceSplitStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A778B68C3F40FB96AC133C /* SeanceSplitStore.swift */; };
 		DA26223185CE48C094B9CA75 /* PlateCalculatorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */; };
 		DC73018555BF2F8EE84E78C2 /* APIService+Plateau.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955D6FDBE3CAB80990772A49 /* APIService+Plateau.swift */; };
 		DD4400012F5D98BA002AE473 /* MentalHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4400022F5D98BA002AE473 /* MentalHealthView.swift */; };
@@ -421,6 +422,7 @@
 		D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		D68B8535D55F4B109509F146 /* MorningRevealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningRevealView.swift; sourceTree = "<group>"; };
 		D69D3EEE2F85895800553153 /* SessionDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDraftStore.swift; sourceTree = "<group>"; };
+		73A778B68C3F40FB96AC133C /* SeanceSplitStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceSplitStore.swift; sourceTree = "<group>"; };
 		D69FB9052F666F3F0091BDD2 /* TrainingOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6E7F8A9B0C1D2E3F4A5B6C8 /* ProgressionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionCard.swift; sourceTree = "<group>"; };
 		D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBriefCards.swift; sourceTree = "<group>"; };
@@ -912,6 +914,7 @@
 			children = (
 				D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */,
 				D69D3EEE2F85895800553153 /* SessionDraftStore.swift */,
+				73A778B68C3F40FB96AC133C /* SeanceSplitStore.swift */,
 				D60EC6E92F76B1F2003A5209 /* NotificationService.swift */,
 				2CCC113F806D404EB7F7D565 /* BehaviorTracker.swift */,
 				325289C855B34EF58D37849F /* CoachMemoryStore.swift */,
@@ -1579,6 +1582,7 @@
 				11DB911AE8186DDE463BAA71 /* ToastView.swift in Sources */,
 				B3B48DFB53C2B424CC9A1E51 /* ErrorBannerView.swift in Sources */,
 				D69D3EEF2F85895800553153 /* SessionDraftStore.swift in Sources */,
+				F90FC93ACE0E484E9737F8E2 /* SeanceSplitStore.swift in Sources */,
 				189D3562DBA17BDF3736B59B /* ExerciseViewModel.swift in Sources */,
 				EE40EFBE12129A661F672B0A /* ExerciseCard.swift in Sources */,
 				EC0001EC0001EC0001EC0001 /* StepperInput.swift in Sources */,

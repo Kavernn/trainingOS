@@ -257,6 +257,82 @@ def get_or_create_workout_session_bonus(date: str) -> dict:
     return create_workout_session(date, session_type="bonus")
 
 
+def get_today_sessions_all(date: str) -> list[dict]:
+    """Return all workout sessions for a date (morning, evening, bonus), sorted by session_type.
+
+    Centralise la lecture de toutes les sessions d'un même jour pour les calculs
+    agrégés (durée, volume, logged_names). Ne filtre PAS par slot.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> list[dict]:
+        resp = (
+            db_core._client.table("workout_sessions")
+            .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
+            .eq("date", date)
+            .order("session_type")
+            .execute()
+        )
+        return list(resp.data or [])
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.debug("get_today_sessions_all(%s) retry error: %s", date, e2)
+                return []
+        db_core.logger.debug("get_today_sessions_all(%s) error: %s", date, e)
+        return []
+
+
+def get_daily_session_volumes(days: int = 500) -> dict[str, float]:
+    """Return {date: total_volume_summed_across_all_sessions} pour les N derniers jours.
+
+    Lit v_session_volume (1 ligne par session) et somme côté Python par date pour
+    couvrir les jours splittés (morning + evening + bonus → un seul total jour).
+    Cohérent avec get_today_sessions_all qui ne filtre pas par slot.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return {}
+
+    from datetime import date as _date, timedelta
+    cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
+    result: dict[str, float] = {}
+
+    def _do() -> None:
+        resp = (
+            db_core._client.table("v_session_volume")
+            .select("date, total_volume")
+            .gte("date", cutoff)
+            .execute()
+        )
+        for row in (resp.data or []):
+            d = str(row.get("date", ""))[:10]
+            if not d:
+                continue
+            v = row.get("total_volume")
+            if v is None:
+                continue
+            result[d] = result.get(d, 0.0) + float(v)
+
+    try:
+        _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                _do()
+            except Exception as e2:
+                db_core.logger.debug("get_daily_session_volumes retry error: %s", e2)
+        else:
+            db_core.logger.debug("get_daily_session_volumes error: %s", e)
+
+    return result
+
+
 def create_workout_session(
     date: str,
     rpe=None,

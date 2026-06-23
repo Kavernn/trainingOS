@@ -47,17 +47,15 @@ def api_dashboard():
         "lipides":   round(sum(e.get("lipides",   0) for e in _nutr_entries), 1),
     }
 
-    _today_session = _db.get_workout_session(today_date)
-    _today_bonus = None
-    # Séance terminée si : completed=True OU rpe set OU au moins 1 exercice loggué
-    _today_logged_names = set()
+    _today_all = _db.get_today_sessions_all(today_date)
+    # Séance terminée si : une session du jour a completed=True / rpe set, OU au moins 1 exercice loggué
+    _today_logged_names: set[str] = set()
     try:
-        _today_logged_names = {e["exercise_name"] for e in _db.get_session_exercise_logs(today_date)}
-        # Also include exercises from today's bonus session (e.g. logged via "Finir la séance")
-        _today_bonus = _db.get_workout_session_bonus(today_date)
-        bonus_sid = (_today_bonus or {}).get("id")
-        if bonus_sid:
-            resp = _db._client.table("exercise_logs").select("exercises(name)").eq("session_id", bonus_sid).execute()
+        for s in _today_all:
+            sid = s.get("id")
+            if not sid:
+                continue
+            resp = _db._client.table("exercise_logs").select("exercises(name)").eq("session_id", sid).execute()
             for r in (resp.data or []):
                 n = (r.get("exercises") or {}).get("name")
                 if n:
@@ -65,11 +63,8 @@ def api_dashboard():
     except Exception:
         pass
     already_logged_today = bool(
-        _today_session and (
-            _today_session.get("completed") or
-            _today_session.get("rpe") is not None or
-            bool(_today_logged_names)
-        )
+        any(s.get("completed") or s.get("rpe") is not None for s in _today_all)
+        or _today_logged_names
     )
 
     has_partial_logs = False
@@ -104,11 +99,12 @@ def api_dashboard():
 
     # Enrich merged_sessions with session_volume from v_session_volume view
     # (session_volume was removed from workout_sessions schema — lives in the view)
-    # Also recover sessions that have exercise logs but no rpe/completed (missed by initial filter).
+    # get_daily_session_volumes somme par date pour couvrir les jours splittés
+    # (morning + evening + bonus). Recover aussi les sessions qui ont des exercise logs
+    # mais ni rpe ni completed (missed by initial filter).
     try:
-        vol_by_date = _db.get_sessions_for_correlations(days=500)
-        for date, vol_data in vol_by_date.items():
-            sv = vol_data.get("session_volume")
+        vol_by_date = _db.get_daily_session_volumes(days=500)
+        for date, sv in vol_by_date.items():
             # Session has exercise logs → count it even if rpe/completed absent
             if sv and date not in merged_sessions and date in sessions:
                 merged_sessions[date] = sessions[date]
@@ -134,11 +130,7 @@ def api_dashboard():
     except Exception:
         pass
 
-    _total_workout_min_today = 0
-    if _today_session:
-        _total_workout_min_today += int(_today_session.get("duration_min") or 0)
-    if _today_bonus:
-        _total_workout_min_today += int(_today_bonus.get("duration_min") or 0)
+    _total_workout_min_today = sum(int(s.get("duration_min") or 0) for s in _today_all)
 
     return jsonify({
         "today":               today_str,

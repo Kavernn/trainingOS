@@ -224,6 +224,7 @@ struct SeanceData: Codable {
     let exerciseSupersets: [String: [String: SupersetEntry]]
     let prescriptions: [String: ExercisePrescription]?
     let exerciseSuggestions: [String: ProgressionSuggestion]?
+    let loggedTodayNames: Set<String>
 
     enum CodingKeys: String, CodingKey {
         case today
@@ -239,6 +240,7 @@ struct SeanceData: Codable {
         case exerciseOrder        = "exercise_order"
         case exerciseSupersets    = "exercise_supersets"
         case exerciseSuggestions  = "exercise_suggestions"
+        case loggedTodayNames     = "logged_today_names"
     }
 
     init(from decoder: Decoder) throws {
@@ -259,6 +261,7 @@ struct SeanceData: Codable {
         exerciseSupersets  = (try? c.decode([String: [String: SupersetEntry]].self, forKey: .exerciseSupersets)) ?? [:]
         prescriptions      = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
+        loggedTodayNames   = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
     }
 
     init(today: String, todayDate: String, alreadyLogged: Bool,
@@ -268,7 +271,8 @@ struct SeanceData: Codable {
          inventoryRest: [String: Int] = [:], inventoryHints: [String: String] = [:],
          exerciseOrder: [String: [String]], exerciseSupersets: [String: [String: SupersetEntry]] = [:],
          prescriptions: [String: ExercisePrescription]? = nil,
-         exerciseSuggestions: [String: ProgressionSuggestion]? = nil) {
+         exerciseSuggestions: [String: ProgressionSuggestion]? = nil,
+         loggedTodayNames: Set<String> = []) {
         self.today               = today
         self.todayDate           = todayDate
         self.alreadyLogged       = alreadyLogged
@@ -285,6 +289,7 @@ struct SeanceData: Codable {
         self.exerciseSupersets   = exerciseSupersets
         self.prescriptions       = prescriptions
         self.exerciseSuggestions = exerciseSuggestions
+        self.loggedTodayNames    = loggedTodayNames
     }
 }
 

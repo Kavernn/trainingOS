@@ -481,6 +481,24 @@ _s = _db.get_workout_session(today_date) or {}
 already_logged = bool(_s.get("completed") or _s.get("rpe") is not None)
 ```
 
+### Dette technique post-palier-2 (split de séance, 2026-06)
+
+Le palier 1 du split a fixé le dashboard sans toucher à `load_sessions()` (cible déjà couverte par `get_today_sessions_all` pour durée/exos et `get_daily_session_volumes` pour volume). L'écrasement de `load_sessions` reste latent pour d'autres consommateurs.
+
+**Règle : ne PAS agréger `load_sessions()` tant que les deux chemins d'écriture suivants n'ont pas été neutralisés** — `save_sessions()` écrit via `update_workout_session` qui filtre `session_type='morning'`, donc un load agrégé propagerait l'agrégat (sum duration, max rpe, union exos) dans la session matin seulement → pollution.
+
+**Chemins d'écriture dangereux à neutraliser d'abord :**
+- `api/sessions.py:log_second_session` (~L100, legacy probable — `extra_sessions[]` jamais persisté en Supabase)
+- `api/routes/workout_logging.py` endpoint update rpe/comment (~L208-221, `load+modifier+save` redondant avec l'`update_workout_session_by_type` qui suit)
+
+**Bénéficiaires d'un éventuel `load_sessions_aggregated` (option C) en lecture, à faire APRÈS neutralisation :**
+- `api/health_data.py:212` (training_duration_min, exos)
+- `api/deload.py:290-336` (vol_7j sous-estimé si split)
+- `api/routes/data_views.py:172` (`/api/sessions` passthrough)
+- `api/routes/data_views.py:178` (`/api/notes_data` avg_rpe)
+
+À déclencher si Vince commence à splitter régulièrement post-palier-2 (sinon dette dormante acceptable).
+
 ---
 
 ## iOS — `Calendar.date(byAdding:)` cause un crash 0x8BADF00D sur iOS 26

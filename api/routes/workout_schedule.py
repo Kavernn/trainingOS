@@ -32,6 +32,24 @@ def api_seance_data():
         _s = _db.get_workout_session(today_date) or {}
         already_logged = bool(_s.get("completed"))
 
+    # logged_today_names : union des exos loggés aujourd'hui tous slots
+    # (morning + evening + bonus). Source unique = get_today_sessions_all
+    # (P1.A) + lookup exercise_logs par session_id (mécanique P1.B).
+    logged_today_names: set[str] = set()
+    try:
+        _today_all = _db.get_today_sessions_all(today_date)
+        for s in _today_all:
+            sid = s.get("id")
+            if not sid:
+                continue
+            resp = _db._client.table("exercise_logs").select("exercises(name)").eq("session_id", sid).execute()
+            for r in (resp.data or []):
+                n = (r.get("exercises") or {}).get("name")
+                if n:
+                    logged_today_names.add(n)
+    except Exception:
+        pass
+
     from utils import cap_scheme_sets
     flat_program = {
         seance: {ex: cap_scheme_sets(s) for ex, s in get_strength_exercises(session_def).items()}
@@ -95,6 +113,7 @@ def api_seance_data():
         "exercise_supersets": exercise_supersets,
         "prescriptions": prescriptions,
         "exercise_suggestions": exercise_suggestions,
+        "logged_today_names": sorted(logged_today_names),
     })
 
 

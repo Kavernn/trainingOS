@@ -8,25 +8,23 @@ class SeanceSoirViewModel: SeanceViewModel {
     }
 
     override func load() async {
-        // Show cached data immediately
+        // Séance 2 consomme le MÊME endpoint que la matin (/api/seance_data).
+        // today_str hérité = nom du programme matin ("Upper A", etc.).
+        // L'isolation matin/soir est gérée par draftSessionType="evening"
+        // (brouillon UserDefaults séparé) et logExercise(isSecond: true) au finish().
         if seanceData == nil,
-           let cached = cacheService.load(for: "seance_soir_data"),
-           let decoded = try? APIService.decoder.decode(SeanceSoirData.self, from: cached),
-           let converted = decoded.asSeanceData() {
-            seanceData = converted
-            restoreLogResults(from: converted)
+           let cached = cacheService.load(for: "seance_data"),
+           let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
+            seanceData = decoded
+            restoreLogResults(from: decoded)
         }
 
         if seanceData == nil { isLoading = true }
         error = nil
         do {
-            let fresh = try await APIService.shared.fetchSeanceSoirData()
-            if let converted = fresh.asSeanceData() {
-                seanceData = converted
-                restoreLogResults(from: converted)
-            } else {
-                seanceData = nil
-            }
+            let fresh = try await APIService.shared.fetchSeanceData()
+            seanceData = fresh
+            restoreLogResults(from: fresh)
         } catch {
             if seanceData == nil { self.error = error.localizedDescription }
         }

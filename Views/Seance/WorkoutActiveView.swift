@@ -117,6 +117,11 @@ struct WorkoutSeanceView: View {
     @State private var showWarmupBanner = true
     @State private var recentAdHocExercises: [String] = []
 
+    // Split de séance — exos envoyés vers la séance 2 (Set local UserDefaults)
+    @State private var assignments: Set<String> = []
+    @State private var showSeanceSoir = false
+    @State private var showRefusionConfirm = false
+
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
         let vals = vm.logResults.values.compactMap(\.rpe)
@@ -217,9 +222,16 @@ struct WorkoutSeanceView: View {
     private var exercises: [(String, String)] {
         let ordered = exerciseOrder.filter { localProgram[$0] != nil }
         let extra   = localProgram.keys.filter { !exerciseOrder.contains($0) }.sorted()
+        let loggedToday = data.loggedTodayNames
         return (ordered + extra).compactMap { name -> (String, String)? in
             guard let scheme = localProgram[name] else { return nil }
-            return (name, scheme)
+            if loggedToday.contains(name) { return nil }
+            let inAssignments = assignments.contains(name)
+            if isSecondSession {
+                return inAssignments ? (name, scheme) : nil
+            } else {
+                return inAssignments ? nil : (name, scheme)
+            }
         }
     }
     private var currentVolume: Double {
@@ -654,6 +666,11 @@ struct WorkoutSeanceView: View {
             },
             movementPattern: inventoryPatterns[name] ?? ""
         )
+        let logged   = vm.logResults[name] != nil
+        let hasDraft = SessionDraftStore.load(date: data.todayDate, sessionType: vm.draftSessionType)
+            .contains(where: { $0.name == name })
+        let canMove  = !logged && !hasDraft
+
         card
             .id(name)
             .padding(.horizontal, 16)
@@ -667,6 +684,23 @@ struct WorkoutSeanceView: View {
                     .contentShape(Rectangle())
                     .padding(.leading, 16)
                     .gesture(dragGesture(for: name))
+            }
+            .contextMenu {
+                if canMove {
+                    Button {
+                        if isSecondSession {
+                            SeanceSplitStore.remove(date: data.todayDate, exercise: name)
+                        } else {
+                            SeanceSplitStore.add(date: data.todayDate, exercise: name)
+                        }
+                        assignments = SeanceSplitStore.load(date: data.todayDate)
+                    } label: {
+                        Label(
+                            isSecondSession ? "Ramener à séance 1" : "Envoyer à séance 2",
+                            systemImage: isSecondSession ? "arrow.left.circle" : "arrow.right.circle"
+                        )
+                    }
+                }
             }
             .scaleEffect(isDragging ? 1.03 : 1.0, anchor: .center)
             .shadow(color: isDragging ? .black.opacity(0.45) : .clear, radius: isDragging ? 18 : 0)
@@ -1139,6 +1173,25 @@ struct WorkoutSeanceView: View {
                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: advice.id)
                 }
 
+                // CTA Séance 2 — visible uniquement en séance matin avec assignments non vide
+                if !isSecondSession && !assignments.isEmpty {
+                    Button { showSeanceSoir = true } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "2.circle.fill")
+                                .font(.appLabel)
+                            Text("Séance 2 (\(assignments.count) exo\(assignments.count > 1 ? "s" : "")) →")
+                                .font(.appLabel).fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.forge.opacity(0.12))
+                        .foregroundColor(Color.forge)
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.3), lineWidth: 1))
+                    }
+                    .padding(.horizontal, 16)
+                }
+
                 // Terminer la séance — dernier élément du scroll, jamais sticky
                 VStack(spacing: 0) {
                     if vm.logResults.isEmpty {
@@ -1182,6 +1235,27 @@ struct WorkoutSeanceView: View {
                 .padding(.top, 32)
                 .padding(.bottom, 48)
 
+                // Refusion — geste second niveau, séance 2 uniquement
+                if isSecondSession && !assignments.isEmpty {
+                    Button { showRefusionConfirm = true } label: {
+                        Text("Tout ramener à la séance 1")
+                            .font(.appCaption).foregroundColor(.gray)
+                            .underline()
+                    }
+                    .padding(.bottom, 24)
+                    .confirmationDialog(
+                        "Vider la séance 2 ?",
+                        isPresented: $showRefusionConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Tout ramener", role: .destructive) {
+                            SeanceSplitStore.clear(date: data.todayDate)
+                            assignments = []
+                        }
+                        Button("Annuler", role: .cancel) {}
+                    }
+                }
+
             }
             .padding(.bottom, 4)
             .background(
@@ -1205,7 +1279,20 @@ struct WorkoutSeanceView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
-        .onAppear { scrollProxy = proxy }
+        .onAppear {
+            scrollProxy = proxy
+            assignments = SeanceSplitStore.load(date: data.todayDate)
+        }
+        .sheet(isPresented: $showSeanceSoir) {
+            SeanceSoirView()
+        }
+        .onChange(of: showSeanceSoir) { isPresented in
+            if !isPresented {
+                // Au retour de la sheet, relire le store : un exo renvoyé
+                // depuis la séance 2 doit réapparaître côté matin.
+                assignments = SeanceSplitStore.load(date: data.todayDate)
+            }
+        }
         .sheet(isPresented: $showUnloggedWarning) {
             WorkoutSummarySheet(
                 exercises: exercises.map(\.0),
