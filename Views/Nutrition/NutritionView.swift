@@ -180,9 +180,9 @@ struct NutritionView: View {
                                     let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
                                     let mealType: String
                                     switch h {
-                                    case 5..<10:  mealType = "matin"
-                                    case 10..<14: mealType = "midi"
-                                    case 14..<20: mealType = "soir"
+                                    case 5..<11:  mealType = "matin"
+                                    case 11..<15: mealType = "midi"
+                                    case 15..<21: mealType = "soir"
                                     default:      mealType = "collation"
                                     }
                                     Task {
@@ -238,8 +238,8 @@ struct NutritionView: View {
                     await vm.loadData()
                     await AlertService.shared.fetch()
                     await showMealFeedback()
-                }, onLogged: { name in
-                    toast = ToastMessage(message: "\(name) ajouté ✓", style: .success)
+                }, onLogged: { name, mealType in
+                    toast = ToastMessage(message: "\(name) → \(mealType.capitalized) ✓", style: .success)
                 })
             }
             .sheet(isPresented: $showComposer) {
@@ -247,8 +247,8 @@ struct NutritionView: View {
                     await vm.loadData()
                     await AlertService.shared.fetch()
                     await showMealFeedback()
-                }, onLogged: { count in
-                    let label = count > 1 ? "\(count) entrées ajoutées ✓" : "Entrée ajoutée ✓"
+                }, onLogged: { count, mealType in
+                    let label = count > 1 ? "\(count) entrées → \(mealType.capitalized) ✓" : "Entrée → \(mealType.capitalized) ✓"
                     toast = ToastMessage(message: label, style: .success)
                 })
             }

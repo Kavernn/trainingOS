@@ -4,7 +4,7 @@ import SwiftUI
 
 struct MealComposerSheet: View {
     let onSaved: () async -> Void
-    let onLogged: ((Int) -> Void)?
+    let onLogged: ((Int, String) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @State private var catalog: [FoodItem] = []
@@ -17,9 +17,9 @@ struct MealComposerSheet: View {
     @State private var mealType: String = {
         let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         switch h {
-        case 5..<10:  return "matin"
-        case 10..<14: return "midi"
-        case 14..<20: return "soir"
+        case 5..<11:  return "matin"
+        case 11..<15: return "midi"
+        case 15..<21: return "soir"
         default:      return "collation"
         }
     }()
@@ -183,7 +183,7 @@ struct MealComposerSheet: View {
                 return
             }
             triggerNotificationFeedback(.success)
-            onLogged?(count)
+            onLogged?(count, mealType)
             await onSaved()
             dismiss()
         }

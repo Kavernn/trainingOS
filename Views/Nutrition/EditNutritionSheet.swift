@@ -44,17 +44,14 @@ struct EditNutritionSheet: View {
                 Form {
                     // N-D10: editable mealType
                     Section("Repas") {
-                        Picker("Repas", selection: $mealType) {
+                        Picker("", selection: $mealType) {
                             Text("Matin").tag("matin")
                             Text("Midi").tag("midi")
                             Text("Soir").tag("soir")
                             Text("Collation").tag("collation")
-                            Text("Pré-workout").tag("pre_workout")
-                            Text("Post-workout").tag("post_workout")
                         }
-                        .pickerStyle(.menu)
-                        .foregroundColor(.appTextPrimary)
-                        .tint(Color.forge)
+                        .pickerStyle(.segmented)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                     }.listRowBackground(Color.appCard)
                     Section("Aliment") {
                         TextField("Nom", text: $name).foregroundColor(.appTextPrimary)

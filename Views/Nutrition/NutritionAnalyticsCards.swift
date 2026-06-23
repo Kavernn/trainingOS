@@ -75,6 +75,12 @@ struct DailyRemainingCard: View {
                         Text("kcal restantes")
                             .font(.system(size: 12))
                             .foregroundColor(.appTextSecondary)
+                        if remainingProt > 0 {
+                            Text("\(Int(remainingProt))g prot restants")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color.statusBlue)
+                                .padding(.top, 4)
+                        }
                     }
                     .frame(maxWidth: .infinity)
 

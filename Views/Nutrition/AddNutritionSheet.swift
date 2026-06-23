@@ -16,14 +16,15 @@ struct AddNutritionSheet: View {
     @State private var searchText = ""
     // N-B4: attempted save feedback
     @State private var didAttemptSave = false
-    // N-D5: callback for template log feedback
-    var onLogged: ((String) -> Void)? = nil
+    // N-D5: callback for template log feedback — (name, mealType)
+    var onLogged: ((String, String) -> Void)? = nil
     // N-D2: confirm discard when leaving manual mode
     @State private var showDiscardManualAlert = false
     @State private var confirmDiscard = false
     @State private var saveError: String? = nil
     @State private var showRecents = false
     @State private var showDictation = false
+    @FocusState private var qtyFocused: Bool
 
     private var filteredCatalog: [FoodItem] {
         searchText.isEmpty ? catalog : catalog.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
@@ -36,9 +37,9 @@ struct AddNutritionSheet: View {
     @State private var mealType: String = {
         let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         switch h {
-        case 5..<10:  return "matin"
-        case 10..<14: return "midi"
-        case 14..<20: return "soir"
+        case 5..<11:  return "matin"
+        case 11..<15: return "midi"
+        case 15..<21: return "soir"
         default:      return "collation"
         }
     }()
@@ -114,20 +115,21 @@ struct AddNutritionSheet: View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
-                Form {
-                    Section("REPAS") {
-                        Picker("", selection: $mealType) {
-                            Text("Matin").tag("matin")
-                            Text("Midi").tag("midi")
-                            Text("Soir").tag("soir")
-                            Text("Collation").tag("collation")
-                        }
-                        .pickerStyle(.segmented)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                VStack(spacing: 0) {
+                    // Sticky meal picker — toujours visible pendant la recherche/scroll
+                    Picker("", selection: $mealType) {
+                        Text("Matin").tag("matin")
+                        Text("Midi").tag("midi")
+                        Text("Soir").tag("soir")
+                        Text("Collation").tag("collation")
                     }
-                    .listRowBackground(Color.appCard)
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
 
-                    if !manualMode {
+                    Form {
+                        if !manualMode {
                         // ── Récents ──────────────────────────────────────
                         if !recentItems.isEmpty && searchText.isEmpty {
                             Section(header: HStack {
@@ -194,8 +196,20 @@ struct AddNutritionSheet: View {
                                 .foregroundColor(.appTextPrimary)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 6)
+                                .padding(.trailing, searchText.isEmpty ? 0 : 26)
                                 .background(Color.appSurfaceInset)
                                 .cornerRadius(8)
+                                .overlay(alignment: .trailing) {
+                                    if !searchText.isEmpty {
+                                        Button { searchText = "" } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.appTextMuted)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.trailing, 6)
+                                    }
+                                }
                                 .listRowBackground(Color.appCard)
 
                             // N-B3: empty search state
@@ -251,6 +265,7 @@ struct AddNutritionSheet: View {
                                             .foregroundColor(Color.statusBlue.opacity(0.7))
                                         TextField("Quantité", text: $quantity)
                                             .keyboardType(.decimalPad)
+                                            .focused($qtyFocused)
                                             .foregroundColor(.appTextPrimary)
                                             .font(.appBody.weight(.semibold))
                                         Text(item.refUnit)
@@ -434,9 +449,18 @@ struct AddNutritionSheet: View {
                         .listRowBackground(Color.appDanger.opacity(0.08))
                     }
 
+                    }
+                    .scrollContentBackground(.hidden)
+                    .scrollDismissesKeyboard(.interactively)
+                    .onChange(of: selected?.id) { _, newId in
+                        // Auto-focus quantité dès qu'un item est sélectionné (chip/récent)
+                        guard newId != nil else { return }
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 100_000_000)
+                            qtyFocused = true
+                        }
+                    }
                 }
-                .scrollContentBackground(.hidden)
-                .scrollDismissesKeyboard(.interactively)
             }
             // N-C2: title reflects current mode
             .navigationTitle(manualMode ? "Saisie manuelle" : "Ajouter aliment")
@@ -530,7 +554,7 @@ struct AddNutritionSheet: View {
                 return
             }
             triggerNotificationFeedback(.success)
-            onLogged?(loggedName)
+            onLogged?(loggedName, mealType)
             await onSaved()
             NutritionDraftStore.clear()  // C2: clear sur succès
             isSaving = false
