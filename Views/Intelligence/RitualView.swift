@@ -4,7 +4,6 @@ import SwiftUI
 struct RitualView: View {
     @State private var ritual: RitualToday? = nil
     @State private var isLoading = true
-    @State private var showDemons = false
     @Environment(\.dismiss) private var dismiss
 
     private var phase: RitualPhase {
@@ -35,7 +34,7 @@ struct RitualView: View {
                             if updated.tomorrowCreated { ActionFeedbackManager.shared.show(.ritualComplete) }
                         }
                     case .done:
-                        RitualDoneView(ritual: r, onDemons: { showDemons = true })
+                        RitualDoneView(ritual: r)
                     case .loading:
                         EmptyView()
                     }
@@ -53,9 +52,6 @@ struct RitualView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-        }
-        .fullScreenCover(isPresented: $showDemons) {
-            DemonsView(demons: ritual?.demons ?? [])
         }
         .task { await load() }
     }
@@ -87,8 +83,6 @@ private enum RitualPhase { case loading, addressing, creating, done }
 
 struct RitualDoneView: View {
     let ritual: RitualToday
-    let onDemons: () -> Void
-    @State private var showHeatMap = false
 
     private let amber = Color.appWarning
 
@@ -107,26 +101,9 @@ struct RitualDoneView: View {
                     .padding(.horizontal, 24)
 
                 Spacer(minLength: 48)
-
-                VStack(spacing: 10) {
-                    Button { showHeatMap = true } label: {
-                        doneActionRow(icon: "calendar.badge.checkmark", label: "Voir le calendrier")
-                    }
-                    .buttonStyle(.plain)
-
-                    if !ritual.demons.isEmpty {
-                        Button(action: onDemons) {
-                            doneActionRow(icon: "moon.stars.fill", label: demonsLabel)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 48)
             }
             .frame(maxWidth: .infinity)
         }
-        .navigationDestination(isPresented: $showHeatMap) { RitualHeatMapView() }
     }
 
     private var cycleStateBlock: some View {
@@ -161,31 +138,6 @@ struct RitualDoneView: View {
         return "\(n) engagement\(n > 1 ? "s" : "") prévus pour demain"
     }
 
-    private var demonsLabel: String {
-        let n = ritual.demons.count
-        return "\(n) démon\(n > 1 ? "s" : "") persistant\(n > 1 ? "s" : "")"
-    }
-
-    private func doneActionRow(icon: String, label: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundColor(Color(white: 0.4))
-                .frame(width: 30)
-            Text(label)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color(white: 0.55))
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.appCaption)
-                .foregroundColor(Color(white: 0.2))
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Color(white: 0.06))
-        .cornerRadius(12)
-    }
-
     private var todayLabel: String {
         let fmt = DateFormatter()
         fmt.dateFormat = "EEEE d MMMM"
@@ -194,151 +146,3 @@ struct RitualDoneView: View {
     }
 }
 
-// MARK: - F6: Ritual Heatmap Calendar
-
-struct RitualHeatMapView: View {
-    @State private var entries: [RitualHistoryEntry] = []
-    @State private var isLoading = true
-    private let red = Color.appDanger
-
-    private var entriesByDate: [String: String] {
-        Dictionary(uniqueKeysWithValues: entries.compactMap { e -> (String, String)? in
-            guard !e.date.isEmpty else { return nil }
-            return (String(e.date.prefix(10)), e.outcome ?? "no_intention")
-        })
-    }
-
-    private var months: [Date] {
-        let cal = Calendar.current
-        let today = Date()
-        return (0..<6).reversed().compactMap {
-            cal.date(byAdding: .month, value: -$0, to: cal.startOfMonth(for: today))
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            Color.appBg.ignoresSafeArea()
-            if isLoading {
-                ProgressView().tint(red)
-            } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 28) {
-                        legend
-                        ForEach(months, id: \.self) { month in
-                            monthGrid(month)
-                        }
-                        Spacer(minLength: 40)
-                    }
-                    .padding(20)
-                }
-            }
-        }
-        .navigationTitle("Calendrier")
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-    }
-
-    private var legend: some View {
-        HStack(spacing: 16) {
-            legendItem(color: red, label: "Burned")
-            legendItem(color: Color(white: 0.35), label: "Survived")
-            legendItem(color: Color(white: 0.12), label: "Manqué")
-            legendItem(color: Color(white: 0.06), label: "—")
-        }
-    }
-
-    private func legendItem(color: Color, label: String) -> some View {
-        HStack(spacing: 5) {
-            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 12, height: 12)
-            Text(label).font(.system(size: 10)).foregroundColor(Color(white: 0.35))
-        }
-    }
-
-    private func monthGrid(_ month: Date) -> some View {
-        let cal = Calendar.current
-        let fmt = DateFormatter(); fmt.dateFormat = "MMMM yyyy"; fmt.locale = Locale(identifier: "fr_CA")
-        let daysInMonth = cal.range(of: .day, in: .month, for: month)?.count ?? 30
-        let firstWeekday = (cal.component(.weekday, from: month) + 5) % 7 // Monday = 0
-
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(fmt.string(from: month).capitalized)
-                .font(.appCaption.weight(.bold))
-                .tracking(1)
-                .foregroundColor(Color(white: 0.4))
-
-            // Day of week headers
-            HStack(spacing: 4) {
-                ForEach(["L", "M", "M", "J", "V", "S", "D"], id: \.self) { d in
-                    Text(d).font(.system(size: 8)).foregroundColor(Color(white: 0.2))
-                        .frame(width: 32)
-                }
-            }
-
-            // Day cells
-            let totalCells = firstWeekday + daysInMonth
-            let rows = Int(ceil(Double(totalCells) / 7.0))
-            ForEach(0..<rows, id: \.self) { row in
-                HStack(spacing: 4) {
-                    ForEach(0..<7, id: \.self) { col in
-                        let cellIndex = row * 7 + col
-                        let day = cellIndex - firstWeekday + 1
-                        if day < 1 || day > daysInMonth {
-                            Color.clear.frame(width: 32, height: 28)
-                        } else {
-                            let dateStr = dayString(month: month, day: day)
-                            dayCell(dateStr: dateStr, day: day)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func dayCell(dateStr: String, day: Int) -> some View {
-        let outcome = entriesByDate[dateStr]
-        let color: Color
-        switch outcome {
-        case "burned":      color = red
-        case "survived":    color = Color(white: 0.35)
-        case "no_intention": color = Color(white: 0.12)
-        default:            color = Color(white: 0.06)
-        }
-        let isToday = dateStr == todayString
-        return ZStack {
-            RoundedRectangle(cornerRadius: 4).fill(color)
-            if isToday {
-                RoundedRectangle(cornerRadius: 4).stroke(Color.appOnSurface.opacity(0.4), lineWidth: 1)
-            }
-            Text("\(day)").font(.appMicro).foregroundColor(outcome != nil ? .white : Color(white: 0.25))
-        }
-        .frame(width: 32, height: 28)
-    }
-
-    private var todayString: String {
-        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
-        return fmt.string(from: Date())
-    }
-
-    private func dayString(month: Date, day: Int) -> String {
-        let cal = Calendar.current
-        guard let date = cal.date(bySetting: .day, value: day, of: month) else { return "" }
-        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
-        return fmt.string(from: date)
-    }
-
-    private func load() async {
-        isLoading = true
-        if let page = try? await APIService.shared.fetchRitualHistoryFull(limit: 180, offset: 0) {
-            await MainActor.run { entries = page.entries }
-        }
-        await MainActor.run { isLoading = false }
-    }
-}
-
-private extension Calendar {
-    func startOfMonth(for date: Date) -> Date {
-        let comps = dateComponents([.year, .month], from: date)
-        return self.date(from: comps) ?? date
-    }
-}

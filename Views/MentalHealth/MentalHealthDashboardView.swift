@@ -5,7 +5,6 @@ struct MentalHealthDashboardView: View {
     @State private var summary30: MentalHealthSummary?
     @State private var selectedDays = 7
     @State private var isLoading = true
-    @State private var ritualDemons: [RitualDemon] = []
 
     private var current: MentalHealthSummary? {
         selectedDays == 7 ? summary7 : summary30
@@ -151,35 +150,6 @@ struct MentalHealthDashboardView: View {
             }
         }
 
-        // Intentions à revisiter (carryCount >= 5)
-        let persistentDemons = ritualDemons.filter { $0.carryCount >= 5 }
-        if !persistentDemons.isEmpty {
-            MHSectionCard(title: "Intentions à revisiter", icon: "arrow.triangle.2.circlepath") {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Ces intentions reviennent dans tes rituels. Rien à forcer — il est aussi OK de les ajuster ou de les laisser aller.")
-                        .font(.caption)
-                        .foregroundColor(Color.appOnSurface.opacity(0.5))
-                        .fixedSize(horizontal: false, vertical: true)
-                    ForEach(persistentDemons) { demon in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("\(demon.carryCount)")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(Color.forge.opacity(0.7))
-                                .frame(width: 32)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\"\(demon.intention)\"")
-                                    .font(.appLabel)
-                                    .foregroundColor(Color.appOnSurface.opacity(0.8))
-                                Text("jours dans tes rituels")
-                                    .font(.caption2)
-                                    .foregroundColor(Color.appOnSurface.opacity(0.4))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // PSS
         if let pssScore = s.pssScore, let cat = s.pssCategory {
             MHSectionCard(title: "Stress PSS récent", icon: "brain.head.profile") {
@@ -228,11 +198,9 @@ struct MentalHealthDashboardView: View {
 
     private func loadData() async {
         let s7 = try? await APIService.shared.fetchMentalHealthSummary(days: 7)
-        let ritual = try? await APIService.shared.fetchRitualToday()
         await MainActor.run {
-            summary7     = s7
-            ritualDemons = ritual?.demons ?? []
-            isLoading    = false
+            summary7  = s7
+            isLoading = false
         }
     }
 

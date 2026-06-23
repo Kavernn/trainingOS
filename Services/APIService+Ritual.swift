@@ -8,26 +8,9 @@ extension APIService {
         return try APIService.decoder.decode(RitualToday.self, from: data)
     }
 
-    func fetchPhoenixStats() async throws -> PhoenixStats {
-        let url  = try buildURL(path: "/api/ritual/streak")
-        let data = try await fetchWithCache(url: url, key: "ritual_streak")
-        return try APIService.decoder.decode(PhoenixStats.self, from: data)
-    }
-
     func killDemon(date: String) async throws {
         _ = try await offlinePost(endpoint: "/api/ritual/kill-demon", payload: ["date": date])
         CacheInvalidation.ritualUpdated.invalidate()
-    }
-
-    func fetchRitualHistoryFull(limit: Int = 90, offset: Int = 0) async throws -> RitualHistoryPage {
-        guard let url = URL(string: "\(baseURL)/api/ritual/history-full?limit=\(limit)&offset=\(offset)") else {
-            throw URLError(.badURL)
-        }
-        let (data, resp) = try await URLSession.authed.data(for: URLRequest(url: url))
-        if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-            throw APIError.serverError(http.statusCode, "fetchRitualHistoryFull HTTP \(http.statusCode)")
-        }
-        return try APIService.decoder.decode(RitualHistoryPage.self, from: data)
     }
 
     func saveEveningRoutineItem(_ field: String, value: Bool) async throws {

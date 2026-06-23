@@ -12,8 +12,6 @@ struct NotificationCenterView: View {
     @AppStorage("notif_on_ritual_evening") private var ritualEvening = true
     @AppStorage("ritual_evening_hour")     private var eveningHour   = 20
     @AppStorage("ritual_evening_minute")   private var eveningMinute = 30
-    @AppStorage("notif_on_ritual_streak")  private var ritualStreak  = true
-    @AppStorage("notif_on_ritual_demon")   private var ritualDemon   = true
 
     // MARK: - Séance
     @AppStorage("notif_on_seance_friday")    private var seanceFriday    = true
@@ -147,7 +145,7 @@ struct NotificationCenterView: View {
     }
 
     private var rituelSection: some View {
-        Section("Rituel Quotidien") {
+        Section("Engagements") {
             notifToggle(icon: "sunrise.fill", color: Color.appDanger,
                         title: "Rappel matin",
                         subtitle: "Déclare ta guerre",
@@ -163,7 +161,7 @@ struct NotificationCenterView: View {
             }
             notifToggle(icon: "moon.stars.fill", color: Color.appDanger.opacity(0.85),
                         title: "Rappel soir",
-                        subtitle: "Est-ce que tu l'as tué ?",
+                        subtitle: "Crée tes engagements pour demain",
                         isOn: $ritualEvening,
                         ids: ["ritual.evening.reminder"])
             if ritualEvening {
@@ -174,16 +172,6 @@ struct NotificationCenterView: View {
                         .labelsHidden()
                 }
             }
-            notifToggle(icon: "exclamationmark.triangle.fill", color: .statusYellow,
-                        title: "Streak à risque",
-                        subtitle: "À 13h si le matin n'est pas fait",
-                        isOn: $ritualStreak,
-                        ids: ["ritual.streak.risk"])
-            notifToggle(icon: "flame.fill", color: .statusRed,
-                        title: "Démon persistant",
-                        subtitle: "Quand une intention traîne 3+ nuits",
-                        isOn: $ritualDemon,
-                        ids: ["ritual.demon.haunting"])
         }
         .listRowBackground(Color.appCard)
         .listRowSeparatorTint(Color.appSeparator)

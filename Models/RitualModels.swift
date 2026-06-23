@@ -54,30 +54,12 @@ struct RitualToday: Codable {
     let carriedFrom: String?
     let carriedIntention: String? // haunting demon from a prior survived day
     let suggestions: [String]
-    let phoenixStreak: Int
-    let phoenixBest: Int
-    let phoenixTotalBurned: Int
-    let demons: [RitualDemon]
-    // Micro-ritual checklist (D)
-    let weightLogged: Bool
-    let hydrationDone: Bool
-    let mobilityDone: Bool
-    let proteinDone: Bool
-    let gratitude: String?
-    let winddownDone: Bool
-    let coldDone: Bool
-    let reflection: String?
-    let yesterdayIntention: String?   // tomorrow_intention saisie hier soir
-    let yesterdayOutcome: String?     // outcome d'hier soir (burned/survived)
-    let yesterdayEveningAt: String?   // heure à laquelle l'intention a été prise hier soir
-    let morningAck: Bool?             // acquittement matin : true=accompli, false=non, nil=pas encore répondu
     // Evening routine checklist (migration 065)
     let routineNoFood: Bool
     let routineDimLights: Bool
     let routineShower: Bool
     let routineConnection: Bool
     let routineDeconnect: Bool
-    let routinePrioritiesDone: Bool
     let routineBedtimeOk: Bool
     let routineCompletedAt: String?
     // Engagement flow (nouveau système)
@@ -107,34 +89,18 @@ struct RitualToday: Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case date, truth, intention, outcome, suggestions, demons
+        case date, truth, intention, outcome, suggestions
         case truthType          = "truth_type"
         case morningAt          = "morning_at"
         case eveningAt          = "evening_at"
         case carryCount         = "carry_count"
         case carriedFrom        = "carried_from"
         case carriedIntention   = "carried_intention"
-        case phoenixStreak      = "phoenix_streak"
-        case phoenixBest        = "phoenix_best"
-        case phoenixTotalBurned = "phoenix_total_burned"
-        case weightLogged          = "weight_logged"
-        case hydrationDone         = "hydration_done"
-        case mobilityDone          = "mobility_done"
-        case proteinDone           = "protein_done"
-        case gratitude             = "gratitude"
-        case winddownDone          = "winddown_done"
-        case coldDone              = "cold_done"
-        case reflection            = "reflection"
-        case yesterdayIntention    = "yesterday_intention"
-        case yesterdayOutcome      = "yesterday_outcome"
-        case yesterdayEveningAt    = "yesterday_evening_at"
-        case morningAck            = "morning_ack"
         case routineNoFood         = "routine_no_food"
         case routineDimLights      = "routine_dim_lights"
         case routineShower         = "routine_shower"
         case routineConnection     = "routine_connection"
         case routineDeconnect      = "routine_deconnect"
-        case routinePrioritiesDone = "routine_priorities_done"
         case routineBedtimeOk      = "routine_bedtime_ok"
         case routineCompletedAt    = "routine_completed_at"
         case engagements           = "engagements"
@@ -154,141 +120,14 @@ struct RitualToday: Codable {
         carriedFrom       = try? c.decode(String.self, forKey: .carriedFrom)
         carriedIntention  = try? c.decode(String.self, forKey: .carriedIntention)
         suggestions       = (try? c.decode([String].self, forKey: .suggestions)) ?? []
-        phoenixStreak     = (try? c.decode(Int.self,    forKey: .phoenixStreak)) ?? 0
-        phoenixBest       = (try? c.decode(Int.self,    forKey: .phoenixBest))   ?? 0
-        phoenixTotalBurned = (try? c.decode(Int.self,   forKey: .phoenixTotalBurned)) ?? 0
-        demons            = (try? c.decode([RitualDemon].self, forKey: .demons)) ?? []
-        weightLogged  = (try? c.decode(Bool.self, forKey: .weightLogged))  ?? false
-        hydrationDone = (try? c.decode(Bool.self, forKey: .hydrationDone)) ?? false
-        mobilityDone  = (try? c.decode(Bool.self, forKey: .mobilityDone))  ?? false
-        proteinDone   = (try? c.decode(Bool.self, forKey: .proteinDone))   ?? false
-        gratitude          = try? c.decode(String.self, forKey: .gratitude)
-        winddownDone       = (try? c.decode(Bool.self, forKey: .winddownDone))       ?? false
-        coldDone           = (try? c.decode(Bool.self, forKey: .coldDone))           ?? false
-        reflection         = try? c.decode(String.self, forKey: .reflection)
-        yesterdayIntention  = try? c.decode(String.self, forKey: .yesterdayIntention)
-        yesterdayOutcome    = try? c.decode(String.self, forKey: .yesterdayOutcome)
-        yesterdayEveningAt  = try? c.decode(String.self, forKey: .yesterdayEveningAt)
-        morningAck            = try? c.decode(Bool.self,   forKey: .morningAck)
         routineNoFood         = (try? c.decode(Bool.self, forKey: .routineNoFood))         ?? false
         routineDimLights      = (try? c.decode(Bool.self, forKey: .routineDimLights))      ?? false
         routineShower         = (try? c.decode(Bool.self, forKey: .routineShower))         ?? false
         routineConnection     = (try? c.decode(Bool.self, forKey: .routineConnection))     ?? false
         routineDeconnect      = (try? c.decode(Bool.self, forKey: .routineDeconnect))      ?? false
-        routinePrioritiesDone = (try? c.decode(Bool.self, forKey: .routinePrioritiesDone)) ?? false
         routineBedtimeOk      = (try? c.decode(Bool.self, forKey: .routineBedtimeOk))      ?? false
         routineCompletedAt    = try? c.decode(String.self, forKey: .routineCompletedAt)
         engagements           = (try? c.decode([RitualEngagement].self, forKey: .engagements))         ?? []
         tomorrowEngagements   = (try? c.decode([RitualEngagement].self, forKey: .tomorrowEngagements)) ?? []
     }
 }
-
-struct RitualDemon: Codable, Identifiable {
-    var id: String { date }
-    let date: String
-    let intention: String
-    let carryCount: Int
-    let truth: String?
-
-    enum CodingKeys: String, CodingKey {
-        case date, intention, truth
-        case carryCount = "carry_count"
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        date       = (try? c.decode(String.self, forKey: .date))      ?? ""
-        intention  = (try? c.decode(String.self, forKey: .intention)) ?? ""
-        carryCount = (try? c.decode(Int.self,    forKey: .carryCount)) ?? 0
-        truth      = try? c.decode(String.self, forKey: .truth)
-    }
-}
-
-struct RitualEveningResult: Codable {
-    let ok: Bool
-    let outcome: String
-    let phoenixStreak: Int
-    let phoenixBest: Int
-    let phoenixTotalBurned: Int
-    let intentionMatchedSession: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case ok, outcome
-        case phoenixStreak      = "phoenix_streak"
-        case phoenixBest        = "phoenix_best"
-        case phoenixTotalBurned = "phoenix_total_burned"
-        case intentionMatchedSession = "intention_matched_session"
-    }
-
-    init(ok: Bool, outcome: String, phoenixStreak: Int, phoenixBest: Int,
-         phoenixTotalBurned: Int, intentionMatchedSession: Bool) {
-        self.ok = ok; self.outcome = outcome; self.phoenixStreak = phoenixStreak
-        self.phoenixBest = phoenixBest; self.phoenixTotalBurned = phoenixTotalBurned
-        self.intentionMatchedSession = intentionMatchedSession
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        ok                    = (try? c.decode(Bool.self,   forKey: .ok))                    ?? false
-        outcome               = (try? c.decode(String.self, forKey: .outcome))               ?? ""
-        phoenixStreak         = (try? c.decode(Int.self,    forKey: .phoenixStreak))         ?? 0
-        phoenixBest           = (try? c.decode(Int.self,    forKey: .phoenixBest))           ?? 0
-        phoenixTotalBurned    = (try? c.decode(Int.self,    forKey: .phoenixTotalBurned))    ?? 0
-        intentionMatchedSession = (try? c.decode(Bool.self, forKey: .intentionMatchedSession)) ?? false
-    }
-}
-
-struct PhoenixStats: Codable {
-    let phoenixStreak: Int
-    let phoenixBest: Int
-    let phoenixTotalBurned: Int
-
-    enum CodingKeys: String, CodingKey {
-        case phoenixStreak      = "phoenix_streak"
-        case phoenixBest        = "phoenix_best"
-        case phoenixTotalBurned = "phoenix_total_burned"
-    }
-}
-
-
-struct RitualHistoryEntry: Codable, Identifiable {
-    var id: String { date }
-    let date: String
-    let truth: String?
-    let intention: String?
-    let tomorrowIntention: String?
-    let outcome: String?
-    let carryCount: Int
-    let reflection: String?
-    let morningAt: String?
-    let eveningAt: String?
-
-    enum CodingKeys: String, CodingKey {
-        case date, truth, intention, outcome, reflection
-        case tomorrowIntention = "tomorrow_intention"
-        case carryCount        = "carry_count"
-        case morningAt         = "morning_at"
-        case eveningAt         = "evening_at"
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        date              = (try? c.decode(String.self, forKey: .date))      ?? ""
-        truth             = try? c.decode(String.self, forKey: .truth)
-        intention         = try? c.decode(String.self, forKey: .intention)
-        tomorrowIntention = try? c.decode(String.self, forKey: .tomorrowIntention)
-        outcome           = try? c.decode(String.self, forKey: .outcome)
-        carryCount        = (try? c.decode(Int.self,   forKey: .carryCount)) ?? 0
-        reflection        = try? c.decode(String.self, forKey: .reflection)
-        morningAt         = try? c.decode(String.self, forKey: .morningAt)
-        eveningAt         = try? c.decode(String.self, forKey: .eveningAt)
-    }
-}
-
-struct RitualHistoryPage: Codable {
-    let entries: [RitualHistoryEntry]
-    let total: Int
-    let limit: Int
-    let offset: Int
-}
-

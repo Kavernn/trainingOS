@@ -4,15 +4,9 @@ import Combine
 struct MoreView: View {
     @ObservedObject private var api      = APIService.shared
     @ObservedObject private var appState = AppState.shared
-    @State private var phoenixStreak: Int = 0
     @State private var showRitual = false
     @State private var showNutritionDirect = false
     @State private var showRecoveryDirect = false
-
-    private var ritualSubtitle: String? {
-        if phoenixStreak >= 2 { return "🔥 \(phoenixStreak) jours consécutifs" }
-        return nil
-    }
 
     var body: some View {
         NavigationStack {
@@ -54,15 +48,12 @@ struct MoreView: View {
                             showRitual = true
                         } label: {
                             moreRowLabel(icon: "flame.fill", color: Color.appDanger,
-                                         title: "Rituel quotidien", subtitle: ritualSubtitle,
+                                         title: "Engagements", subtitle: nil,
                                          badge: appState.ritualTodayNotDone)
                         }
                         .buttonStyle(.plain)
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        .fullScreenCover(isPresented: $showRitual, onDismiss: {
-                            phoenixStreak = 0
-                            Task { phoenixStreak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak ?? 0 }
-                        }) {
+                        .fullScreenCover(isPresented: $showRitual) {
                             RitualView()
                         }
                         MoreRow(icon: "fork.knife",      color: Color.forge, title: "Nutrition")    { NutritionView() }
@@ -112,9 +103,6 @@ struct MoreView: View {
             }
             .navigationTitle("Plus")
             .navigationBarTitleDisplayMode(.large)
-            .task {
-                phoenixStreak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak ?? 0
-            }
             .fullScreenCover(isPresented: $showNutritionDirect) { NutritionView() }
             .fullScreenCover(isPresented: $showRecoveryDirect)  { EnergyRecoveryView() }
             .onReceive(appState.$openRecoveryView.filter { $0 }) { _ in

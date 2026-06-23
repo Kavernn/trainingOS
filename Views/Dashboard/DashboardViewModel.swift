@@ -272,10 +272,6 @@ final class DashboardViewModel: ObservableObject {
                     let ritual = try await APIService.shared.fetchRitualToday()
                     p2.ritualToday = ritual
                     AppState.shared.ritualTodayNotDone = !ritual.morningDone
-                    // B4: schedule demon haunting notification if chronic pattern detected
-                    if !ritual.demons.isEmpty {
-                        NotificationService.scheduleRitualDemonHaunting(demons: ritual.demons)
-                    }
                     return 0
                 } catch {
                     self.logger.error("fetchRitualToday: \(error, privacy: .public)")

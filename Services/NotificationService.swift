@@ -493,8 +493,8 @@ enum NotificationService {
             guard settings.authorizationStatus == .authorized else { return }
 
             let content = UNMutableNotificationContent()
-            content.title = "Est-ce que tu l'as tué ?"
-            content.body  = "🌙 Juge ta journée — engage-toi pour demain."
+            content.title = "Crée tes engagements pour demain"
+            content.body  = "🌙 Inscris ce que tu veux tenir demain."
             content.sound = .default
 
             var dc = DateComponents()
@@ -527,70 +527,6 @@ enum NotificationService {
 
             let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
             center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
-        }
-    }
-
-    // MARK: - Ritual Streak At Risk (B3 — fires at 13:00 if morning not done)
-
-    /// Call this after loading ritualToday — if morning not done and hour >= 12, schedule an at-risk reminder.
-    static func scheduleRitualStreakAtRisk(morningDone: Bool, phoenixStreak: Int) {
-        guard !globalDisabled, isEnabled("notif_on_ritual_streak") else { return }
-        let center = UNUserNotificationCenter.current()
-        let id = "ritual.streak.risk"
-        center.removePendingNotificationRequests(withIdentifiers: [id])
-        guard !morningDone, phoenixStreak > 0 else { return }
-
-        // Guard: schedule at most once per calendar day
-        let today = DateFormatter.isoDate.string(from: Date())
-        let guardKey = "notif_streak_risk_date"
-        guard UserDefaults.standard.string(forKey: guardKey) != today else { return }
-        UserDefaults.standard.set(today, forKey: guardKey)
-
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-
-            let hour = Calendar.current.component(.hour, from: Date())
-            guard hour < 14 else { return }
-
-            let content = UNMutableNotificationContent()
-            content.title = "Streak à risque — \(phoenixStreak) jour\(phoenixStreak > 1 ? "s" : "")"
-            content.body  = "Tu n'as pas encore déclaré ta guerre aujourd'hui."
-            content.sound = .default
-
-            // Fire at 13:00 today
-            var dc = DateComponents()
-            dc.hour   = 13
-            dc.minute = 0
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
-            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
-        }
-    }
-
-    // MARK: - Demon Haunting Notification (B4 — fires if demon carry_count >= 3)
-
-    /// Call after loading demons — schedules a one-time "it's still there" push if a demon >= 3 days.
-    static func scheduleRitualDemonHaunting(demons: [RitualDemon]) {
-        guard !globalDisabled, isEnabled("notif_on_ritual_demon") else { return }
-        let center = UNUserNotificationCenter.current()
-        let id = "ritual.demon.haunting"
-        center.removePendingNotificationRequests(withIdentifiers: [id])
-
-        let heavyDemons = demons.filter { $0.carryCount >= 3 }
-        guard let oldest = heavyDemons.max(by: { $0.carryCount < $1.carryCount }) else { return }
-
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-
-            let content = UNMutableNotificationContent()
-            content.title = "Il est encore là — \(oldest.carryCount) nuits"
-            content.body  = "«\(oldest.intention)» n'a pas été tué."
-            content.sound = .default
-
-            center.add(UNNotificationRequest(
-                identifier: id,
-                content: content,
-                trigger: reasonableHourTrigger()
-            ))
         }
     }
 

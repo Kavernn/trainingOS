@@ -258,7 +258,7 @@ struct EveningRoutineCard: View {
         _shower         = State(initialValue: ritual.routineShower)
         _connection     = State(initialValue: ritual.routineConnection)
         _deconnect      = State(initialValue: ritual.routineDeconnect)
-        _prioritiesDone = State(initialValue: ritual.routinePrioritiesDone)
+        _prioritiesDone = State(initialValue: ritual.tomorrowCreated)
         _bedtimeOk      = State(initialValue: ritual.routineBedtimeOk)
     }
 
@@ -299,7 +299,7 @@ struct EveningRoutineCard: View {
         .onAppear {
             NotificationService.scheduleEveningRoutineBedtimeReminder(bedtimeOkAlreadyChecked: bedtimeOk)
         }
-        .onChange(of: ritual.routinePrioritiesDone) { _, newValue in
+        .onChange(of: ritual.tomorrowCreated) { _, newValue in
             withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) { prioritiesDone = newValue }
         }
         .onChange(of: allDone) { _, done in

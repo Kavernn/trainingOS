@@ -22,10 +22,6 @@ struct BattleCounterView: View {
                         if let start = s.warStartDate {
                             warDayLabel(start: start, days: s.warDays)
                         }
-                        // G5: Phoenix demons as active threats
-                        if !vm.phoenixDemons.isEmpty {
-                            demonThreatsCard(vm.phoenixDemons)
-                        }
                     }
                 }
                 .padding(16)
@@ -224,42 +220,6 @@ struct BattleCounterView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Color.secondary)
         }
-    }
-
-    // G5: Phoenix demons as active battlefield threats
-    private func demonThreatsCard(_ demons: [RitualDemon]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "moon.stars.fill").font(.appCaption).foregroundStyle(Color.secondary)
-                Text("MENACES ACTIVES")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.secondary).tracking(3)
-            }
-            ForEach(demons.prefix(3)) { demon in
-                HStack(spacing: 10) {
-                    Text("\(demon.carryCount)")
-                        .font(.system(size: 18, weight: .black))
-                        .foregroundStyle(demon.carryCount >= 5 ? Color.statusRed : Color.forge)
-                        .frame(width: 28, alignment: .center)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("«\(demon.intention)»")
-                            .font(.appLabel)
-                            .foregroundStyle(Color.primary)
-                            .lineLimit(2)
-                        Text("\(demon.carryCount) nuit\(demon.carryCount > 1 ? "s" : "") sans résolution")
-                            .font(.appCaption)
-                            .foregroundStyle(Color.secondary)
-                    }
-                }
-                .padding(.vertical, 4)
-                if demon.id != demons.prefix(3).last?.id {
-                    Divider()
-                }
-            }
-        }
-        .padding(16)
-        .background(Color.appCard, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.forge.opacity(0.15), lineWidth: 1))
     }
 
     private func formattedDate(_ iso: String) -> String {

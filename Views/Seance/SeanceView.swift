@@ -24,10 +24,7 @@ struct SeanceView: View {
         }
         .task { await vm.load() }
         .onReceive(NotificationCenter.default.publisher(for: .sessionCompleted)) { _ in
-            Task {
-                let streak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak
-                ActionFeedbackManager.shared.show(.sessionComplete(streak: streak))
-            }
+            ActionFeedbackManager.shared.show(.sessionComplete(streak: nil))
         }
         .onChange(of: vm.showSuccess) { success in
             guard success, !vm.prCelebrations.isEmpty else { return }

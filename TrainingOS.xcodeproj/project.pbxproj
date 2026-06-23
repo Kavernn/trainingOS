@@ -42,7 +42,6 @@
 		70E26038CD13489F7EAACB56 /* SmartAlarmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C3EB4A6651A37E8770B3DD /* SmartAlarmService.swift */; };
 		7674B3B36F2A226C98AE4815 /* TrainingOSUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D883D22AF81F48D1A03A9157 /* TrainingOSUITests.swift */; };
 		7ACF294B2ADCEC68F9444BAC /* PatternModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E163D5411790B6DA5108E310 /* PatternModels.swift */; };
-		7AD4CFB0BBB9317BCEEE460C /* DemonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D52AB3DCF112E90A48C999EB /* DemonsView.swift */; };
 		7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */; };
 		848288DCA8A442D283353361 /* PRCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */; };
 		88AE06959F6C41BB819C117B /* NotificationCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178857F4F15844198720466F /* NotificationCenterView.swift */; };
@@ -401,7 +400,6 @@
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
 		CI0002CI0002CI0002CI0002 /* CacheInvalidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidation.swift; sourceTree = "<group>"; };
 		D0FE1CA8525F46319027AD6D /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
-		D52AB3DCF112E90A48C999EB /* DemonsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DemonsView.swift; sourceTree = "<group>"; };
 		D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSessionManager.swift; sourceTree = "<group>"; };
 		D60EC6E92F76B1F2003A5209 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachDashboardView.swift; sourceTree = "<group>"; };
@@ -808,7 +806,6 @@
 				12186D7E0477FF4F0975C7DA /* RitualView.swift */,
 				BAC82E18346773B8F8591B8F /* RitualMorningView.swift */,
 				1412A3C124DEC128C01A2D96 /* RitualEveningView.swift */,
-				D52AB3DCF112E90A48C999EB /* DemonsView.swift */,
 				WR003000AA00300B2F5DAAAA /* WarRoomGateView.swift */,
 				WR004000AA00300B2F5DAAAA /* WarRoomView.swift */,
 				WR005000AA00300B2F5DAAAA /* BattleCounterView.swift */,
@@ -1624,7 +1621,6 @@
 				07171A309411F9E238113A1B /* RitualView.swift in Sources */,
 				35332F66CA06D4B710598247 /* RitualMorningView.swift in Sources */,
 				08073E1B777979BC5C2CE724 /* RitualEveningView.swift in Sources */,
-				7AD4CFB0BBB9317BCEEE460C /* DemonsView.swift in Sources */,
 				WR001001AA00300B2F5DAAAA /* WarRoomModels.swift in Sources */,
 				WR002001AA00300B2F5DAAAA /* APIService+WarRoom.swift in Sources */,
 				WR003001AA00300B2F5DAAAA /* WarRoomGateView.swift in Sources */,
