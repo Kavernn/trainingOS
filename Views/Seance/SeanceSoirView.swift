@@ -103,9 +103,10 @@ struct SeanceSoirView: View {
 
     @ViewBuilder
     private func seanceContent(data: SeanceData) -> some View {
-        if data.alreadyLogged {
-            AlreadyLoggedSeanceView(data: data, vm: vm)
-        } else if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
+        // Séance 2 : on n'affiche JAMAIS AlreadyLoggedSeanceView — ce récap appartient
+        // à séance 1. data.alreadyLogged reflète le statut matin (backend ne distingue
+        // pas séance 2). Les exos déjà loggués sont filtrés via loggedTodayNames.
+        if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
             SpecialSeanceView(sessionType: data.today, vm: vm)
         } else {
             WorkoutSeanceView(data: data, vm: vm, isSecondSession: true)

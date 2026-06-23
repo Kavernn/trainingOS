@@ -65,6 +65,8 @@ struct AlreadyLoggedSeanceView: View {
     @State private var postWorkoutBrief: String? = nil
     @State private var isLoadingBrief = false
     @State private var showFinishRemaining = false
+    @State private var showSeanceSoir = false
+    @State private var seance2Count: Int = 0
     @State private var todayWeekday: Int = {
         let localSecs = Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()
         return ((localSecs / 86400 + 4) % 7) + 1  // Jan 1 1970 = Thu = weekday 5
@@ -507,6 +509,25 @@ struct AlreadyLoggedSeanceView: View {
                     .padding(.horizontal, 16)
                 }
 
+                // ── CTA Séance 2 (P2.B.4) — visible si exos envoyés au bloc 2 ──
+                if seance2Count > 0 {
+                    Button { showSeanceSoir = true } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "2.circle.fill")
+                                .font(.appLabel)
+                            Text("Séance 2 (\(seance2Count) exo\(seance2Count > 1 ? "s" : "")) →")
+                                .font(.appLabel).fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.forge.opacity(0.12))
+                        .foregroundColor(Color.forge)
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.3), lineWidth: 1))
+                    }
+                    .padding(.horizontal, 16)
+                }
+
                 // ── Séance supplémentaire ────────────────────────────────
                 Button(action: { showExtra = true }) {
                     HStack(spacing: 10) {
@@ -536,6 +557,17 @@ struct AlreadyLoggedSeanceView: View {
             FinishRemainingSheet(data: data, remaining: unloggedExercises, sessionType: vm.draftSessionType) {
                 await vm.load()
             }
+        }
+        .sheet(isPresented: $showSeanceSoir) {
+            SeanceSoirView()
+        }
+        .onChange(of: showSeanceSoir) { isPresented in
+            if !isPresented {
+                seance2Count = SeanceSplitStore.load(date: data.todayDate).count
+            }
+        }
+        .onAppear {
+            seance2Count = SeanceSplitStore.load(date: data.todayDate).count
         }
         .sheet(isPresented: $showExtra) {
             ExtraSessionSheet(data: data)

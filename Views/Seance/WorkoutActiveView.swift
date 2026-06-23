@@ -685,7 +685,10 @@ struct WorkoutSeanceView: View {
                     .padding(.leading, 16)
                     .gesture(dragGesture(for: name))
             }
-            .contextMenu {
+            .overlay(alignment: .topTrailing) {
+                // P2.B.3 v2 : bouton flèche visible (tap direct, pas de long-press).
+                // Remplace l'ancien .contextMenu qui entrait en conflit avec les taps
+                // multiples du log d'exercice.
                 if canMove {
                     Button {
                         if isSecondSession {
@@ -695,11 +698,17 @@ struct WorkoutSeanceView: View {
                         }
                         assignments = SeanceSplitStore.load(date: data.todayDate)
                     } label: {
-                        Label(
-                            isSecondSession ? "Ramener à séance 1" : "Envoyer à séance 2",
-                            systemImage: isSecondSession ? "arrow.left.circle" : "arrow.right.circle"
-                        )
+                        Image(systemName: isSecondSession ? "arrow.left.circle.fill" : "arrow.right.circle.fill")
+                            .font(.appBody)
+                            .foregroundColor(Color.forge)
+                            .padding(6)
+                            .background(Color.appCard)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.forge.opacity(0.3), lineWidth: 0.5))
                     }
+                    .buttonStyle(.plain)
+                    .padding(.top, 8)
+                    .padding(.trailing, 24)
                 }
             }
             .scaleEffect(isDragging ? 1.03 : 1.0, anchor: .center)
