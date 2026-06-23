@@ -79,30 +79,13 @@ def get_morning_brief():
     except Exception as e:
         logger.exception("morning_brief spirit fetch failed: %s", e)
 
-    # G1: ritual rate for coaching context + yesterday's evening intention
-    ritual_rate_7d       = 0.0
-    phoenix_streak       = 0
-    yesterday_intention  = None
-    yesterday_outcome    = None
-    yesterday_evening_at = None
+    # Engagement streak for momentum trigger (daily_brief)
+    engagement_streak = 0
     try:
-        import db as _db_r
-        from datetime import date, timedelta
-        from utils import _today_mtl as _tmtl
-        from routes.ritual import _compute_phoenix
-        ritual_history = _db_r.get_ritual_history(limit=7)
-        if ritual_history:
-            completed = sum(1 for r in ritual_history if r.get("outcome") in ("burned", "survived"))
-            ritual_rate_7d = round(completed / 7, 2)
-        phoenix_streak, _, _ = _compute_phoenix()
-        yesterday_str     = (date.fromisoformat(_tmtl()) - timedelta(days=1)).isoformat()
-        yesterday_ritual  = _db_r.get_ritual_today(yesterday_str)
-        if yesterday_ritual:
-            yesterday_intention  = yesterday_ritual.get("tomorrow_intention")
-            yesterday_outcome    = yesterday_ritual.get("outcome")
-            yesterday_evening_at = yesterday_ritual.get("evening_at")
+        from routes.ritual import _engagement_streak
+        engagement_streak = _engagement_streak()
     except Exception as e:
-        logger.exception("morning_brief ritual fetch failed: %s", e)
+        logger.exception("morning_brief engagement_streak failed: %s", e)
 
     result = {
         "date":                  get_today_date(),
@@ -117,11 +100,7 @@ def get_morning_brief():
         "components":            components,
         "breathwork_yesterday":  breathwork_yesterday,
         "meditation_yesterday":  meditation_yesterday,
-        "ritual_rate_7d":        ritual_rate_7d,
-        "phoenix_streak":        phoenix_streak,
-        "yesterday_intention":   yesterday_intention,
-        "yesterday_outcome":     yesterday_outcome,
-        "yesterday_evening_at":  yesterday_evening_at,
+        "engagement_streak":     engagement_streak,
     }
     _CACHE["result"] = {"data": result, "ts": now}
     return result

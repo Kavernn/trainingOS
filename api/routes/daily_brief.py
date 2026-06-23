@@ -12,10 +12,10 @@ def _check_triggers(brief_data: dict) -> dict:
     """Return active trigger flags from morning_brief data."""
     flags = brief_data.get("flags", {})
     rec = brief_data.get("recommendation", "go")
-    ritual_streak = brief_data.get("phoenix_streak", 0)  # compteur streak rituel (routes/ritual.py)
+    engagement_streak = brief_data.get("engagement_streak", 0)
     return {
         "recovery_needed": rec in ("reduce", "defer") or flags.get("hrv_drop") or flags.get("sleep_deprivation") or flags.get("training_overload"),
-        "momentum": ritual_streak >= 14 and rec == "go",
+        "momentum": engagement_streak >= 7 and rec == "go",
     }
 
 
@@ -28,7 +28,7 @@ def _build_context(brief_data: dict, extra: dict | None = None) -> str:
     intensity = brief_data.get("session_intensity", "")
     adjustments = brief_data.get("adjustments", [])
     flags = brief_data.get("flags", {})
-    ritual_streak = brief_data.get("phoenix_streak", 0)
+    engagement_streak = brief_data.get("engagement_streak", 0)
 
     lines = []
 
@@ -96,8 +96,8 @@ def _build_context(brief_data: dict, extra: dict | None = None) -> str:
     # OPPORTUNITÉS — Bonne lancée (O4 sans phoenix_engine)
     acwr_ok = not acwr or acwr.get("zone_code") not in ("caution", "danger")
     sleep_ok = not sd or sd.get("trend") != "creuser"
-    if ritual_streak >= 7 and acwr_ok and sleep_ok:
-        lines.append(f"Lancée: {ritual_streak} jours de rituel consécutifs, charge équilibrée")
+    if engagement_streak >= 7 and acwr_ok and sleep_ok:
+        lines.append(f"Lancée: {engagement_streak} jours d'engagements tenus consécutifs, charge équilibrée")
 
     if adjustments:
         lines.append("Ajustements: " + " | ".join(adjustments))

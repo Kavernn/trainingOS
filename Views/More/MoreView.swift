@@ -48,8 +48,7 @@ struct MoreView: View {
                             showRitual = true
                         } label: {
                             moreRowLabel(icon: "flame.fill", color: Color.appDanger,
-                                         title: "Engagements", subtitle: nil,
-                                         badge: appState.ritualTodayNotDone)
+                                         title: "Engagements", subtitle: nil)
                         }
                         .buttonStyle(.plain)
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
@@ -150,32 +149,22 @@ struct MoreView: View {
 
     // Label identique à MoreRow mais sans NavigationLink (pour les vues avec NavigationStack propre)
     @ViewBuilder
-    private func moreRowLabel(icon: String, color: Color, title: String, subtitle: String?, badge: Bool) -> some View {
+    private func moreRowLabel(icon: String, color: Color, title: String, subtitle: String?) -> some View {
         HStack(spacing: 14) {
-            ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(LinearGradient(colors: [color.opacity(0.25), color.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 36, height: 36)
-                    .shadow(color: color.opacity(0.2), radius: 4, y: 2)
-                Image(systemName: icon)
-                    .font(.appBody.weight(.semibold))
-                    .foregroundColor(color)
-                if badge {
-                    Circle().fill(Color.forge).frame(width: 9, height: 9).offset(x: 3, y: -3)
-                }
-            }
+            RoundedRectangle(cornerRadius: 9)
+                .fill(LinearGradient(colors: [color.opacity(0.25), color.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(width: 36, height: 36)
+                .shadow(color: color.opacity(0.2), radius: 4, y: 2)
+                .overlay(
+                    Image(systemName: icon)
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(color)
+                )
             VStack(alignment: .leading, spacing: 1) {
                 Text(title).font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
                 if let sub = subtitle {
                     Text(sub).font(.appCaption).foregroundColor(.gray.opacity(0.6))
                 }
-            }
-            if badge {
-                Spacer()
-                Text("À faire")
-                    .font(.appCaption.weight(.semibold)).foregroundColor(Color.forge)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.forge.opacity(0.12)).clipShape(Capsule())
             }
         }
         .padding(.vertical, 5)

@@ -21,7 +21,6 @@ final class AppState: ObservableObject {
 
     @Published var userProfile: UserProfile? = nil
     @Published var pendingDeepLink: String? = nil
-    @Published var ritualTodayNotDone: Bool = false
     @Published var openRecoveryView: Bool = false
     @Published var macroSessionHint: MacroNutritionHint? = nil
     @Published var pendingDNAEvolution: DNAEvolutionEvent? = nil

@@ -8,11 +8,6 @@ extension APIService {
         return try APIService.decoder.decode(RitualToday.self, from: data)
     }
 
-    func killDemon(date: String) async throws {
-        _ = try await offlinePost(endpoint: "/api/ritual/kill-demon", payload: ["date": date])
-        CacheInvalidation.ritualUpdated.invalidate()
-    }
-
     func saveEveningRoutineItem(_ field: String, value: Bool) async throws {
         _ = try await offlinePost(endpoint: "/api/ritual/evening_routine", payload: [field: value])
         CacheInvalidation.ritualItemActioned.invalidate()

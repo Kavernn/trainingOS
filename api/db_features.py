@@ -90,123 +90,6 @@ def get_ritual_history(limit: int = 365) -> List[dict]:
         return []
 
 
-def get_ritual_demons() -> List[dict]:
-    """Return all survived (unresolved) intentions, oldest first."""
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return []
-
-    def _do() -> List[dict]:
-        cutoff = (_date.fromisoformat(_today_mtl()) - _td(days=180)).isoformat()
-        resp = (
-            db_core._client.table("daily_ritual")
-            .select("date, intention, carry_count, carried_from, truth")
-            .eq("outcome", "survived")
-            .gte("date", cutoff)
-            .order("date", desc=False)
-            .limit(100)
-            .execute()
-        )
-        return resp.data or []
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("get_ritual_demons retry: %s", e2)
-                return []
-        db_core.logger.error("get_ritual_demons error: %s", e)
-        return []
-
-
-def get_ritual_routine_history(limit: int = 180) -> List[dict]:
-    """Return daily_ritual rows with routine checklist columns, oldest first."""
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return []
-
-    def _do() -> List[dict]:
-        resp = (
-            db_core._client.table("daily_ritual")
-            .select(
-                "date, routine_completed_at, routine_no_food, routine_dim_lights, "
-                "routine_shower, routine_connection, routine_deconnect, "
-                "routine_priorities_done, routine_bedtime_ok"
-            )
-            .order("date", desc=False)
-            .limit(limit)
-            .execute()
-        )
-        return resp.data or []
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("get_ritual_routine_history retry: %s", e2)
-                return []
-        db_core.logger.error("get_ritual_routine_history error: %s", e)
-        return []
-
-
-def get_ritual_history_full(limit: int = 90, offset: int = 0) -> List[dict]:
-    """Return full ritual history with all fields for biography view."""
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return []
-
-    def _do() -> List[dict]:
-        resp = (
-            db_core._client.table("daily_ritual")
-            .select("date, outcome, intention, truth, carry_count, carried_from, reflection, morning_at, evening_at, tomorrow_intention")
-            .order("date", desc=True)
-            .range(offset, offset + limit - 1)
-            .execute()
-        )
-        return resp.data or []
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("get_ritual_history_full retry: %s", e2)
-                return []
-        db_core.logger.error("get_ritual_history_full error: %s", e)
-        return []
-
-
-def count_ritual_entries() -> int:
-    """Return total number of ritual entries for pagination."""
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return 0
-
-    def _do() -> int:
-        resp = (
-            db_core._client.table("daily_ritual")
-            .select("date", count="exact")
-            .execute()
-        )
-        return resp.count or 0
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("count_ritual_entries retry: %s", e2)
-                return 0
-        db_core.logger.error("count_ritual_entries error: %s", e)
-        return 0
-
-
 # ── Ritual Engagements ───────────────────────────────────────────────────────
 
 def get_engagements_for_date(date_str: str) -> List[dict]:
@@ -261,6 +144,35 @@ def create_engagements(date_str: str, texts: List[str]) -> List[dict]:
                 db_core.logger.error("create_engagements retry: %s", e2)
                 return []
         db_core.logger.error("create_engagements error: %s", e)
+        return []
+
+
+def get_engagements_since(start_date: str, end_date: str) -> List[dict]:
+    """Return engagements between start_date and end_date inclusive, ordered by date desc."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            db_core._client.table("ritual_engagements")
+            .select("date, status")
+            .gte("date", start_date)
+            .lte("date", end_date)
+            .order("date", desc=True)
+            .execute()
+        )
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_engagements_since retry: %s", e2)
+                return []
+        db_core.logger.error("get_engagements_since error: %s", e)
         return []
 
 

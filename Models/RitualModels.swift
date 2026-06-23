@@ -44,16 +44,6 @@ struct RitualEngagementsResponse: Codable {
 
 struct RitualToday: Codable {
     let date: String
-    let truth: String
-    let truthType: String
-    let intention: String?
-    let morningAt: String?
-    let outcome: String?          // "burned" | "survived" | nil
-    let eveningAt: String?
-    let carryCount: Int
-    let carriedFrom: String?
-    let carriedIntention: String? // haunting demon from a prior survived day
-    let suggestions: [String]
     // Evening routine checklist (migration 065)
     let routineNoFood: Bool
     let routineDimLights: Bool
@@ -65,11 +55,6 @@ struct RitualToday: Codable {
     // Engagement flow (nouveau système)
     let engagements: [RitualEngagement]         // engagements du jour à adresser
     let tomorrowEngagements: [RitualEngagement] // engagements créés pour demain
-
-    var morningDone: Bool  { morningAt != nil }
-    var eveningDone: Bool  { eveningAt != nil }
-    var burnedToday: Bool  { outcome == "burned" }
-    var survivedToday: Bool { outcome == "survived" }
 
     // Engagement cycle state
     var hasEngagementsToday: Bool    { !engagements.isEmpty }
@@ -89,13 +74,7 @@ struct RitualToday: Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case date, truth, intention, outcome, suggestions
-        case truthType          = "truth_type"
-        case morningAt          = "morning_at"
-        case eveningAt          = "evening_at"
-        case carryCount         = "carry_count"
-        case carriedFrom        = "carried_from"
-        case carriedIntention   = "carried_intention"
+        case date
         case routineNoFood         = "routine_no_food"
         case routineDimLights      = "routine_dim_lights"
         case routineShower         = "routine_shower"
@@ -109,24 +88,14 @@ struct RitualToday: Codable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        date              = (try? c.decode(String.self, forKey: .date))          ?? ""
-        truth             = (try? c.decode(String.self, forKey: .truth))         ?? ""
-        truthType         = (try? c.decode(String.self, forKey: .truthType))     ?? "default"
-        intention         = try? c.decode(String.self, forKey: .intention)
-        morningAt         = try? c.decode(String.self, forKey: .morningAt)
-        outcome           = try? c.decode(String.self, forKey: .outcome)
-        eveningAt         = try? c.decode(String.self, forKey: .eveningAt)
-        carryCount        = (try? c.decode(Int.self,    forKey: .carryCount))    ?? 0
-        carriedFrom       = try? c.decode(String.self, forKey: .carriedFrom)
-        carriedIntention  = try? c.decode(String.self, forKey: .carriedIntention)
-        suggestions       = (try? c.decode([String].self, forKey: .suggestions)) ?? []
-        routineNoFood         = (try? c.decode(Bool.self, forKey: .routineNoFood))         ?? false
-        routineDimLights      = (try? c.decode(Bool.self, forKey: .routineDimLights))      ?? false
-        routineShower         = (try? c.decode(Bool.self, forKey: .routineShower))         ?? false
-        routineConnection     = (try? c.decode(Bool.self, forKey: .routineConnection))     ?? false
-        routineDeconnect      = (try? c.decode(Bool.self, forKey: .routineDeconnect))      ?? false
-        routineBedtimeOk      = (try? c.decode(Bool.self, forKey: .routineBedtimeOk))      ?? false
-        routineCompletedAt    = try? c.decode(String.self, forKey: .routineCompletedAt)
+        date                  = (try? c.decode(String.self, forKey: .date))                          ?? ""
+        routineNoFood         = (try? c.decode(Bool.self,   forKey: .routineNoFood))                 ?? false
+        routineDimLights      = (try? c.decode(Bool.self,   forKey: .routineDimLights))              ?? false
+        routineShower         = (try? c.decode(Bool.self,   forKey: .routineShower))                 ?? false
+        routineConnection     = (try? c.decode(Bool.self,   forKey: .routineConnection))             ?? false
+        routineDeconnect      = (try? c.decode(Bool.self,   forKey: .routineDeconnect))              ?? false
+        routineBedtimeOk      = (try? c.decode(Bool.self,   forKey: .routineBedtimeOk))              ?? false
+        routineCompletedAt    = try? c.decode(String.self,  forKey: .routineCompletedAt)
         engagements           = (try? c.decode([RitualEngagement].self, forKey: .engagements))         ?? []
         tomorrowEngagements   = (try? c.decode([RitualEngagement].self, forKey: .tomorrowEngagements)) ?? []
     }

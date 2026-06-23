@@ -271,7 +271,6 @@ final class DashboardViewModel: ObservableObject {
                 do {
                     let ritual = try await APIService.shared.fetchRitualToday()
                     p2.ritualToday = ritual
-                    AppState.shared.ritualTodayNotDone = !ritual.morningDone
                     return 0
                 } catch {
                     self.logger.error("fetchRitualToday: \(error, privacy: .public)")
@@ -374,7 +373,6 @@ final class DashboardViewModel: ObservableObject {
         CacheService.shared.clear(for: "ritual_today")
         if let updated = try? await APIService.shared.fetchRitualToday() {
             ritualToday = updated
-            AppState.shared.ritualTodayNotDone = !updated.morningDone
         }
     }
 
