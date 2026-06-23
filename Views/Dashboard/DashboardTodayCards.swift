@@ -439,7 +439,7 @@ struct Seance2ReminderStrip: View {
                     Image(systemName: "2.circle.fill")
                         .font(.appCaption).fontWeight(.bold)
                         .foregroundColor(accent.opacity(0.85))
-                    Text("\(programName) — bloc 2")
+                    Text("\(programName) — Séance 2")
                         .font(.appCaption).fontWeight(.semibold)
                         .foregroundColor(Color.appOnSurface.opacity(0.75))
                         .lineLimit(1)

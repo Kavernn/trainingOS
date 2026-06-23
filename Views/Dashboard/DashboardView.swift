@@ -26,7 +26,7 @@ struct DashboardView: View {
     @State private var showQuickTrigger = false
     @State private var showQuickBattle = false
     @State private var warRoomToastMessage: String? = nil
-    @State private var seance2Count: Int = 0   // P2.B.4 — rappel bloc 2
+    @State private var seance2Count: Int = 0   // P2.B.4 — rappel Séance 2
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -142,7 +142,7 @@ struct DashboardView: View {
                                 .appearAnimation(delay: 0.05)
                                 .padding(.vertical, 8)
 
-                                // 3b — Rappel bloc 2 (P2.B.4) — visible uniquement les jours splittés
+                                // 3b — Rappel Séance 2 (P2.B.4) — visible uniquement les jours splittés
                                 if seance2Count > 0 {
                                     Seance2ReminderStrip(
                                         programName: dash.today,

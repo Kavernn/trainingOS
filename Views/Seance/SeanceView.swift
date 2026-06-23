@@ -509,7 +509,7 @@ struct AlreadyLoggedSeanceView: View {
                     .padding(.horizontal, 16)
                 }
 
-                // ── CTA Séance 2 (P2.B.4) — visible si exos envoyés au bloc 2 ──
+                // ── CTA Séance 2 (P2.B.4) — visible si exos envoyés à la Séance 2 ──
                 if seance2Count > 0 {
                     Button { showSeanceSoir = true } label: {
                         HStack(spacing: 8) {
