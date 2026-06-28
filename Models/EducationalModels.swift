@@ -1,7 +1,7 @@
 import Foundation
 
 struct EducationalCapsule: Codable, Identifiable {
-    let id: String
+    let id: Int
     let category: String
     let title: String
     let body: String
@@ -19,7 +19,7 @@ struct EducationalCapsule: Codable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id              = try c.decode(String.self, forKey: .id)
+        id              = try c.decode(Int.self, forKey: .id)
         category        = try c.decode(String.self, forKey: .category)
         title           = try c.decode(String.self, forKey: .title)
         body            = try c.decode(String.self, forKey: .body)
