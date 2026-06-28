@@ -60,6 +60,20 @@ struct IntelligenceView: View {
     @State private var expandedBilan: Set<String> = []
     @State private var toast: ToastMessage? = nil
 
+    // Éducatif
+    @State private var educationalCapsules: [EducationalCapsule] = []
+    @State private var isLoadingEducational = false
+    @State private var selectedEducationalCategory: String? = nil
+    @State private var selectedCapsule: EducationalCapsule? = nil
+
+    private static let educationalCategories: [(key: String, label: String)] = [
+        ("kine",           "Kiné"),
+        ("anatomie",       "Anatomie"),
+        ("sports_science", "Science"),
+        ("well_being",     "Bien-être"),
+        ("nutrition",      "Nutrition"),
+    ]
+
     // Tab-switch callback injected from ContentView
     var onOpenSession: (() -> Void)? = nil
 
@@ -97,6 +111,7 @@ struct IntelligenceView: View {
         case programme = "Programme"
         case bilan     = "Bilan"
         case memoire   = "Mémoire"
+        case educatif  = "Éducatif"
 
         var icon: String {
             switch self {
@@ -105,6 +120,7 @@ struct IntelligenceView: View {
             case .programme: return "calendar.badge.plus"
             case .bilan:     return "chart.bar.doc.horizontal"
             case .memoire:   return "brain.head.profile"
+            case .educatif:  return "graduationcap.fill"
             }
         }
     }
@@ -192,6 +208,8 @@ struct IntelligenceView: View {
                             summaryCardsView
                             bilanSectionView
                         }
+                    } else if selectedSection == .educatif {
+                        educatifSectionView
                     } else {
                         ScrollView(showsIndicators: false) {
                             summaryCardsView
@@ -300,6 +318,13 @@ struct IntelligenceView: View {
                     .preferredColorScheme(.dark)
                     .presentationDetents([.large])
                 }
+            }
+            .sheet(item: $selectedCapsule) { capsule in
+                EducationalCapsuleDetailSheet(capsule: capsule) {
+                    selectedCapsule = nil
+                }
+                .preferredColorScheme(.dark)
+                .presentationDetents([.large])
             }
             .toast($toast)
         }
@@ -951,6 +976,119 @@ struct IntelligenceView: View {
         .padding(.bottom, 4)
     }
 
+    // MARK: - Éducatif
+
+    private var filteredEducationalCapsules: [EducationalCapsule] {
+        guard let cat = selectedEducationalCategory else { return educationalCapsules }
+        return educationalCapsules.filter { $0.category == cat }
+    }
+
+    private var visibleEducationalGroups: [(key: String, label: String, items: [EducationalCapsule])] {
+        let source = filteredEducationalCapsules
+        return Self.educationalCategories.compactMap { cat in
+            let items = source.filter { $0.category == cat.key }
+            return items.isEmpty ? nil : (key: cat.key, label: cat.label, items: items)
+        }
+    }
+
+    @ViewBuilder
+    private var educatifSectionView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 16) {
+                educationalFilterBar
+
+                if isLoadingEducational && educationalCapsules.isEmpty {
+                    VStack(spacing: 10) {
+                        SkeletonBar(height: 80, radius: 14)
+                        SkeletonBar(height: 80, radius: 14)
+                        SkeletonBar(height: 80, radius: 14)
+                    }
+                    .padding(.horizontal, 16)
+                } else if filteredEducationalCapsules.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "book")
+                            .foregroundColor(Color.statusPurple.opacity(0.5))
+                        Text("Aucune capsule dans cette catégorie.")
+                            .font(.appLabel)
+                            .foregroundColor(Color(white: 0.45))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 20)
+                } else {
+                    ForEach(visibleEducationalGroups, id: \.key) { group in
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(group.label.uppercased())
+                                .font(.appCaption.weight(.bold))
+                                .foregroundColor(Color(white: 0.45))
+                                .padding(.horizontal, 16)
+                            ForEach(group.items) { capsule in
+                                EducationalCapsuleCard(capsule: capsule) {
+                                    selectedCapsule = capsule
+                                }
+                                .padding(.horizontal, 16)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 28)
+        }
+        .onAppear {
+            if educationalCapsules.isEmpty && !isLoadingEducational {
+                loadEducationalContent()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var educationalFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                educationalFilterChip(key: nil, label: "Tous")
+                ForEach(Self.educationalCategories, id: \.key) { cat in
+                    educationalFilterChip(key: cat.key, label: cat.label)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    @ViewBuilder
+    private func educationalFilterChip(key: String?, label: String) -> some View {
+        let isSelected = selectedEducationalCategory == key
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                selectedEducationalCategory = key
+            }
+        } label: {
+            Text(label)
+                .font(.appLabel)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(isSelected ? Color.statusPurple.opacity(0.22) : Color.appSurfaceInset)
+                .foregroundColor(isSelected ? .statusPurple : Color.appTextSecondary)
+                .clipShape(Capsule())
+        }
+    }
+
+    private func loadEducationalContent() {
+        guard !isLoadingEducational else { return }
+        isLoadingEducational = true
+        Task {
+            do {
+                let capsules = try await APIService.shared.fetchEducationalContent()
+                await MainActor.run {
+                    self.educationalCapsules = capsules
+                    self.isLoadingEducational = false
+                }
+            } catch {
+                logger.error("educational content fetch failed: \(error.localizedDescription)")
+                await MainActor.run { self.isLoadingEducational = false }
+            }
+        }
+    }
+
     @ViewBuilder
     private var memoireSectionView: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1561,3 +1699,98 @@ struct IntelligenceView: View {
     }
 }
 
+// MARK: - Éducatif subviews
+
+private struct EducationalCapsuleCard: View {
+    let capsule: EducationalCapsule
+    let onTap: () -> Void
+
+    private var previewLine: String? {
+        capsule.body
+            .split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first {
+                !$0.isEmpty
+                && !$0.hasPrefix("#")
+                && !$0.hasPrefix("-")
+                && !$0.hasPrefix("*")
+            }
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(capsule.title)
+                    .font(.appHeadline)
+                    .foregroundColor(.appTextPrimary)
+                    .multilineTextAlignment(.leading)
+                if let preview = previewLine {
+                    Text(preview)
+                        .font(.appBody)
+                        .foregroundColor(Color(white: 0.55))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                if let tags = capsule.tags, !tags.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(tags.prefix(3), id: \.self) { tag in
+                            Text(tag)
+                                .font(.appCaption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.statusPurple.opacity(0.12))
+                                .foregroundColor(.statusPurple)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.top, 2)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.appCard)
+            .cornerRadius(14)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+private struct EducationalCapsuleDetailSheet: View {
+    let capsule: EducationalCapsule
+    let onDismiss: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(capsule.title)
+                        .font(.appTitle)
+                        .foregroundColor(.appTextPrimary)
+                    MarkdownText(markdown: capsule.body)
+                    if let tags = capsule.tags, !tags.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(tags, id: \.self) { tag in
+                                Text(tag)
+                                    .font(.appCaption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.statusPurple.opacity(0.12))
+                                    .foregroundColor(.statusPurple)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .padding(.top, 8)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+            }
+            .background(Color.appBg)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fermer", action: onDismiss).foregroundColor(.appTextPrimary)
+                }
+            }
+        }
+    }
+}
