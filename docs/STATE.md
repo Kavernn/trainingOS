@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-06-17
+Dernière mise à jour : 2026-06-28
 
 ---
 
@@ -162,6 +162,21 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 1. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
+
+## Complété récemment (2026-06-28 — Retrait complet des images d'exercices)
+
+Le catalogue d'images n'était jamais utilisé en pratique. Retrait débranché en 4 paliers (consommateurs avant sources) — un build entre chaque.
+
+- **iOS (P1)** : `ExerciseCard.swift` — `mediaGifUrl`, `fetchMedia()`, bouton "Démo", `mediaSheetView` supprimés. `InventaireView.swift` — `InventoryItem.gifUrl`, bouton play catalogue, struct `ExerciseMediaSheet` complète + helper `imageTab()` supprimés.
+- **Backend (P2)** : endpoints `GET /api/exercise/media` et `POST /api/exercise/set_gif` supprimés (`api/routes/workout_exercises.py`). `gif_url` retiré des deux SELECT de `api/db_exercises.py`. **Bonus** : `image_url_alt` (colonne fantôme jamais créée en base mais référencée dans les SELECT) retirée au passage — bug latent corrigé.
+- **DB (P3)** : migration `074_drop_exercise_gif_url.sql` — `ALTER TABLE exercises DROP COLUMN gif_url`. `docs/schema.sql` aligné.
+- **Cleanup (P4)** : `scripts/populate_exercise_media.py` supprimé (0 caller).
+
+Volume perdu assumé : 109 URLs sur 117 exos (URLs externes pointant vers `free-exercise-db` sur GitHub, aucun fichier Supabase Storage touché). Bucket `profile-photos` et pickers profil intacts.
+
+Commit : `f37c331`.
+
+---
 
 ## Complété récemment (2026-05-10 — Audit Inventaire/Programme/Séance + UX cartes d'exercice)
 
