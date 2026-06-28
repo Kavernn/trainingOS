@@ -283,6 +283,10 @@ final class ExerciseViewModel: ObservableObject {
         } else {
             sets = Array(repeating: SetInput(), count: setsCount)
         }
+        if !isTimeBased && !sets.isEmpty {
+            setBySetMode = true
+            currentSetIndex = 0
+        }
     }
 
     func syncSetsCount() {
