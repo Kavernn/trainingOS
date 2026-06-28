@@ -44,10 +44,6 @@ struct ExerciseCard: View {
     @State private var confirmSwapAfterLog = false
     @State private var showAdvanced = false
     @State private var showPlateCalculator = false
-    @State private var showMediaSheet = false
-    @State private var mediaGifUrl: String? = nil
-    @State private var mediaMusclss: [String] = []
-    @State private var mediaFetched = false
     // Hold-to-log
     @State private var logFlash = false
     // Undo window
@@ -209,25 +205,6 @@ struct ExerciseCard: View {
     }
 
     private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
-
-    private func fetchMedia() {
-        guard !mediaFetched else { showMediaSheet = true; return }
-        let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
-        guard let url = URL(string: "\(APIConfig.base)/api/exercise/media?name=\(encoded)") else { return }
-        Task {
-            if let (data, _) = try? await URLSession.authed.data(from: url),
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                await MainActor.run {
-                    mediaGifUrl  = json["gif_url"] as? String
-                    mediaMusclss = json["muscles"] as? [String] ?? []
-                    mediaFetched = true
-                    showMediaSheet = true
-                }
-            } else {
-                await MainActor.run { mediaFetched = true; showMediaSheet = true }
-            }
-        }
-    }
 
     private func doLog() {
         guard !showUndo, !logFlash else { return }
@@ -600,7 +577,6 @@ struct ExerciseCard: View {
             Button("Continuer", role: .cancel) {}
         }
         .sheet(isPresented: $showPlateCalculator) { plateCalculatorSheetView }
-        .sheet(isPresented: $showMediaSheet) { mediaSheetView }
     }
 
     @ViewBuilder private var headerButton: some View {
@@ -767,15 +743,6 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var expandedTopBar: some View {
         HStack {
-            Button { triggerImpact(style: .light); fetchMedia() } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "play.circle.fill").font(.appCaption)
-                    Text("Démo").font(.appCaption).fontWeight(.semibold)
-                }
-                .foregroundColor(Color.statusPurple).padding(.horizontal, 10).padding(.vertical, 5)
-                .background(Color.statusPurple.opacity(0.1)).clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
             if let onSwap {
                 Button {
                     if alreadyLogged {
@@ -1390,11 +1357,6 @@ struct ExerciseCard: View {
             }
         }
         .padding(.top, 4)
-    }
-
-    @ViewBuilder private var mediaSheetView: some View {
-        ExerciseMediaSheet(exerciseName: name, gifUrl: mediaGifUrl, muscles: mediaMusclss, tips: nil)
-            .presentationDetents([.medium, .large])
     }
 
     /// Total weight in display units, computed from current set entries or fallback to last known weight.

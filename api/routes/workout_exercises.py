@@ -121,25 +121,6 @@ def api_delete_exercise_log():
     return jsonify({"success": True})
 
 
-@workout_exercises_bp.route("/api/exercise/set_gif", methods=["POST"])
-def api_exercise_set_gif():
-    """Manually override gif_url for a specific exercise.
-    Body: {"name": "Nordic Curl", "gif_url": "https://..."}
-    """
-    import db as _db
-    data    = request.get_json(silent=True) or {}
-    name    = data.get("name", "").strip()
-    gif_url = data.get("gif_url", "").strip()
-    if not name:
-        return jsonify({"error": "name required"}), 400
-    update = {"gif_url": gif_url if gif_url else None}
-    try:
-        _db._client.table("exercises").update(update).eq("name", name).execute()
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    return jsonify({"ok": True, "name": name, "gif_url": gif_url or None})
-
-
 @workout_exercises_bp.route("/api/exercises/classification_gaps", methods=["GET"])
 def api_classification_gaps():
     """Return exercises missing muscle_group or muscle_specific, with rule-based suggestions.
@@ -256,23 +237,3 @@ def api_auto_classify_all():
     if dry_run:
         return jsonify({"preview": preview, "skipped": skipped})
     return jsonify({"applied": applied, "skipped": skipped, "errors": errors})
-
-
-@workout_exercises_bp.route("/api/exercise/media", methods=["GET"])
-def api_exercise_media():
-    import db as _db
-    name = request.args.get("name", "").strip()
-    if not name:
-        return jsonify({"error": "name required"}), 400
-    row = _db.get_exercise_by_name(name)
-    if not row:
-        return jsonify({}), 404
-    return jsonify({
-        "gif_url":  row.get("gif_url"),
-        "alt_url":  row.get("image_url_alt"),
-        "muscles":  row.get("muscles") or [],
-        "tips":     row.get("tips"),
-        "level":    row.get("level") or "",
-        "pattern":  row.get("pattern") or "",
-        "type":     row.get("type") or "",
-    })

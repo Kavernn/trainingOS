@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS exercises (
     level            TEXT,                              -- beginner | intermediate | advanced
     muscles          TEXT[]      DEFAULT '{}',          -- groupes musculaires (legacy — voir muscle_group)
     tips             TEXT,                              -- cue technique / note de coaching
-    gif_url          TEXT,
     increment        NUMERIC     DEFAULT 5,             -- kg/lb ajoutés lors d'une progression
     bar_weight       NUMERIC     DEFAULT 0,             -- poids de la barre (ex. 20 pour barre olympique)
     default_scheme   TEXT,                              -- ex. "4x5-7", "3x10-12"
