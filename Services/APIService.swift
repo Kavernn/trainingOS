@@ -96,18 +96,11 @@ class APIService: ObservableObject {
     private let baseScheme: String = URL(string: APIConfig.base)?.scheme ?? "https"
 
     // MARK: - Cache helper
-    // Stratégie : cache-first + stale-while-revalidate + background refresh.
+    // Stratégie : cache-first (TTL respecté) + stale-while-revalidate sur expiration.
+    // Le refresh background ne se déclenche QUE si le cache est périmé — pas à chaque hit.
+    // Fraîcheur garantie par : TTL par clé (CacheService.ttls) + invalidation explicite post-mutation.
     func fetchWithCache(url: URL, key: String) async throws -> Data {
         if let cached = CacheService.shared.load(for: key) {
-            Task.detached(priority: .utility) {
-                var req = URLRequest(url: url)
-                req.timeoutInterval = 15
-                req.cachePolicy = .reloadIgnoringLocalCacheData
-                if let (fresh, resp) = try? await URLSession.authed.data(for: req),
-                   (200...299).contains((resp as? HTTPURLResponse)?.statusCode ?? 0) {
-                    CacheService.shared.save(fresh, for: key)
-                }
-            }
             return cached
         }
         // Expired: serve stale data immediately + background refresh — never block
