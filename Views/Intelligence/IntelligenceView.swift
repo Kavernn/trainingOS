@@ -1755,7 +1755,7 @@ private struct EducationalCapsuleCard: View {
     }
 }
 
-private struct EducationalCapsuleDetailSheet: View {
+struct EducationalCapsuleDetailSheet: View {
     let capsule: EducationalCapsule
     let onDismiss: () -> Void
 

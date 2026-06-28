@@ -27,6 +27,10 @@ struct DashboardView: View {
     @State private var showQuickBattle = false
     @State private var warRoomToastMessage: String? = nil
     @State private var seance2Count: Int = 0   // P2.B.4 — rappel Séance 2
+    @State private var educationalCapsules: [EducationalCapsule] = []
+    @State private var educationalLoadedDate: String? = nil
+    @State private var lessonOfDay: EducationalCapsule? = nil
+    @State private var lessonSheetCapsule: EducationalCapsule? = nil
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -198,6 +202,19 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.08)
                                 }
 
+                                // 5b — Leçon du jour (registre calme, sous le Coach)
+                                if let lesson = lessonOfDay {
+                                    LessonOfDayCard(capsule: lesson, exhausted: false) {
+                                        lessonSheetCapsule = lesson
+                                    }
+                                    .padding(.top, 8)
+                                    .appearAnimation(delay: 0.09)
+                                } else if lessonExhausted {
+                                    LessonOfDayCard(capsule: nil, exhausted: true) { }
+                                        .padding(.top, 8)
+                                        .appearAnimation(delay: 0.09)
+                                }
+
                                 // 6 — Actions du jour
                                 DayActionsRow(
                                     sessionLogged: dash.alreadyLoggedToday,
@@ -263,6 +280,7 @@ struct DashboardView: View {
                         }
                         .refreshable {
                             await vm.loadAll()
+                            await loadEducationalIfNeeded()
                             lastRefresh = Date()
                             checkAndShowMorningReveal()
                             seance2Count = SeanceSplitStore.load(date: todayStr).count
@@ -293,7 +311,12 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
-        .task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
+        .task {
+            await vm.loadAll()
+            await loadEducationalIfNeeded()
+            lastRefresh = Date()
+            checkAndShowMorningReveal()
+        }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 BehaviorTracker.shared.record(.appOpen)
@@ -360,6 +383,11 @@ struct DashboardView: View {
                 Task { await vm.loadAll() }
             }
         }
+        .sheet(item: $lessonSheetCapsule) { capsule in
+            EducationalCapsuleDetailSheet(capsule: capsule) {
+                lessonSheetCapsule = nil
+            }
+        }
     }
 
     private func checkAndShowMorningReveal() {
@@ -397,6 +425,29 @@ struct DashboardView: View {
         await api.fetchDashboard()
         vm.deload = nil
         return true
+    }
+
+    private func loadEducationalIfNeeded() async {
+        guard educationalLoadedDate != todayStr else {
+            resolveLessonOfDay()
+            return
+        }
+        do {
+            let result = try await api.fetchEducationalContent()
+            educationalCapsules = result
+            educationalLoadedDate = todayStr
+            resolveLessonOfDay()
+        } catch {
+            // Silencieux : carte absente si fetch échoue (registre non-critique).
+        }
+    }
+
+    private func resolveLessonOfDay() {
+        lessonOfDay = LessonOfDayStore.todayLesson(from: educationalCapsules, todayStr: todayStr)
+    }
+
+    private var lessonExhausted: Bool {
+        !educationalCapsules.isEmpty && lessonOfDay == nil
     }
 }
 

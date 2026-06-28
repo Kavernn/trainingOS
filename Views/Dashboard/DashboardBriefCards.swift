@@ -224,3 +224,86 @@ struct MomentumStripView: View {
         .cornerRadius(14)
     }
 }
+
+// MARK: - Lesson of Day Card
+//
+// Registre calme : carte compacte sous CoachInsight, au-dessus de DayActionsRow.
+// 2 états : capsule disponible (tap → sheet) | épuisé (message, pas de tap).
+// Carte absente si pas de données (fetch vide/échec).
+
+struct LessonOfDayCard: View {
+    let capsule: EducationalCapsule?
+    let exhausted: Bool
+    let onTap: () -> Void
+
+    private var previewLine: String? {
+        guard let capsule = capsule else { return nil }
+        return capsule.body
+            .split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first {
+                !$0.isEmpty
+                && !$0.hasPrefix("#")
+                && !$0.hasPrefix("-")
+                && !$0.hasPrefix("*")
+            }
+    }
+
+    var body: some View {
+        if let capsule = capsule {
+            Button(action: onTap) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "book.closed")
+                            .font(.appCaption)
+                            .foregroundColor(.statusPurple.opacity(0.8))
+                        Text("LEÇON DU JOUR")
+                            .font(.appCaption).fontWeight(.semibold)
+                            .foregroundColor(.statusPurple.opacity(0.8))
+                            .tracking(0.8)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.appCaption)
+                            .foregroundColor(Color(white: 0.45))
+                    }
+                    Text(capsule.title)
+                        .font(.appHeadline)
+                        .foregroundColor(.appTextPrimary)
+                        .multilineTextAlignment(.leading)
+                    if let preview = previewLine {
+                        Text(preview)
+                            .font(.appBody)
+                            .foregroundColor(Color(white: 0.55))
+                            .lineLimit(1)
+                            .multilineTextAlignment(.leading)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.appCard)
+                .cornerRadius(14)
+            }
+            .buttonStyle(ScaleButtonStyle())
+        } else if exhausted {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "book.closed")
+                        .font(.appCaption)
+                        .foregroundColor(.gray.opacity(0.5))
+                    Text("LEÇON DU JOUR")
+                        .font(.appCaption).fontWeight(.semibold)
+                        .foregroundColor(.gray.opacity(0.5))
+                        .tracking(0.8)
+                }
+                Text("Tu as tout parcouru — il est temps d'ajouter des capsules.")
+                    .font(.appBody)
+                    .foregroundColor(Color(white: 0.55))
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.appCard.opacity(0.6))
+            .cornerRadius(14)
+        }
+    }
+}
