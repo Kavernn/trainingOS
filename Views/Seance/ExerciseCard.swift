@@ -321,6 +321,18 @@ struct ExerciseCard: View {
             .frame(width: 28, alignment: .leading)
         Text(weightColumnLabel)
             .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
+        if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
+            let activeIdx = evm.setBySetMode ? evm.currentSetIndex : 0
+            if evm.sets.indices.contains(activeIdx) {
+                let rawVal = Double(evm.sets[activeIdx].weight.replacingOccurrences(of: ",", with: ".")) ?? 0
+                let totalLbs = evm.totalWeight(for: units.toStorage(rawVal))
+                if totalLbs > 0 {
+                    Text("= \(units.format(totalLbs, decimals: 0))")
+                        .font(.appMicro).fontWeight(.medium)
+                        .foregroundColor(.gray.opacity(0.55))
+                }
+            }
+        }
         if evm.equipmentType != "bodyweight" {
             HStack(spacing: 2) {
                 Button { adjustAllWeights(-1) } label: {
@@ -395,26 +407,15 @@ struct ExerciseCard: View {
                 evm.sets[i].reps   = evm.sets[i - 1].reps
                 triggerImpact(style: .medium)
             }
-        VStack(spacing: 2) {
-            StepperInput(
-                valueStr: $evm.sets[i].weight,
-                increment: weightIncrement,
-                minimum: 0,
-                placeholder: Double(evm.perSetHint(for: i)
-                    .replacingOccurrences(of: ",", with: ".")) ?? 0,
-                isDisabled: evm.setBySetMode && !isActive && !isDone,
-                autoFocus: false
-            )
-            if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
-                let rawVal = Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) ?? 0
-                let totalLbs = evm.totalWeight(for: units.toStorage(rawVal))
-                if totalLbs > 0 {
-                    Text("= \(units.format(totalLbs, decimals: 0))")
-                        .font(.appMicro).fontWeight(.medium)
-                        .foregroundColor(.gray.opacity(0.45))
-                }
-            }
-        }
+        StepperInput(
+            valueStr: $evm.sets[i].weight,
+            increment: weightIncrement,
+            minimum: 0,
+            placeholder: Double(evm.perSetHint(for: i)
+                .replacingOccurrences(of: ",", with: ".")) ?? 0,
+            isDisabled: evm.setBySetMode && !isActive && !isDone,
+            autoFocus: false
+        )
     }
 
     @ViewBuilder private func setRowRepsSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
