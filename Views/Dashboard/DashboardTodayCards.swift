@@ -441,7 +441,7 @@ struct Seance2ReminderStrip: View {
                         .foregroundColor(accent.opacity(0.85))
                     Text("\(programName) — Séance 2")
                         .font(.appCaption).fontWeight(.semibold)
-                        .foregroundColor(Color.appOnSurface.opacity(0.75))
+                        .foregroundColor(Color.appOnSurface.opacity(0.90))
                         .lineLimit(1)
                 }
 
@@ -450,7 +450,7 @@ struct Seance2ReminderStrip: View {
                 HStack(spacing: 4) {
                     Text("\(count) exo\(count > 1 ? "s" : "") à faire")
                         .font(.appCaption).fontWeight(.medium)
-                        .foregroundColor(Color.appOnSurface.opacity(0.55))
+                        .foregroundColor(Color.appOnSurface.opacity(0.75))
                     Image(systemName: "arrow.right")
                         .font(.system(size: 10)).fontWeight(.bold)
                         .foregroundColor(accent.opacity(0.7))
@@ -464,8 +464,8 @@ struct Seance2ReminderStrip: View {
             }
             .padding(.horizontal, 12)
             .frame(height: 44)
-            .background(Color.appCard)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSurfaceInset, lineWidth: 0.5))
+            .background(accent.opacity(0.15))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.35), lineWidth: 0.5))
             .cornerRadius(10)
         }
         .buttonStyle(.plain)
