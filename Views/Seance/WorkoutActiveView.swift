@@ -691,12 +691,14 @@ struct WorkoutSeanceView: View {
                 // multiples du log d'exercice.
                 if canMove {
                     Button {
-                        if isSecondSession {
-                            SeanceSplitStore.remove(date: data.todayDate, exercise: name)
-                        } else {
-                            SeanceSplitStore.add(date: data.todayDate, exercise: name)
+                        withAnimation(.easeInOut(duration: 0.28)) {
+                            if isSecondSession {
+                                SeanceSplitStore.remove(date: data.todayDate, exercise: name)
+                            } else {
+                                SeanceSplitStore.add(date: data.todayDate, exercise: name)
+                            }
+                            assignments = SeanceSplitStore.load(date: data.todayDate)
                         }
-                        assignments = SeanceSplitStore.load(date: data.todayDate)
                     } label: {
                         Image(systemName: isSecondSession ? "arrow.left.circle.fill" : "arrow.right.circle.fill")
                             .font(.appBody)
@@ -717,6 +719,7 @@ struct WorkoutSeanceView: View {
             .zIndex(isDragging ? 1 : 0)
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: shift)
             .animation(.spring(response: 0.2, dampingFraction: 0.9), value: isDragging)
+            .transition(.opacity.combined(with: .scale(scale: 0.92)))
     }
 
     private func dragGesture(for name: String) -> some Gesture {
@@ -1244,13 +1247,27 @@ struct WorkoutSeanceView: View {
                 .padding(.top, 32)
                 .padding(.bottom, 48)
 
-                // Refusion — geste second niveau, séance 2 uniquement
+                // Refusion — geste second niveau, séance 2 uniquement.
+                // Medium-tier : bordure forge sans fill (visible mais sobre, contraste
+                // volontaire avec le CTA d'envoi premium).
                 if isSecondSession && !assignments.isEmpty {
                     Button { showRefusionConfirm = true } label: {
-                        Text("Tout ramener à la séance 1")
-                            .font(.appCaption).foregroundColor(.gray)
-                            .underline()
+                        HStack(spacing: 8) {
+                            Image(systemName: "1.circle.fill")
+                                .font(.appLabel)
+                            Text("Tout ramener à la séance 1")
+                                .font(.appLabel).fontWeight(.medium)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .foregroundColor(Color.forge)
+                        .background(Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.forge.opacity(0.4), lineWidth: 1)
+                        )
                     }
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 24)
                     .confirmationDialog(
                         "Vider la séance 2 ?",
@@ -1258,8 +1275,10 @@ struct WorkoutSeanceView: View {
                         titleVisibility: .visible
                     ) {
                         Button("Tout ramener", role: .destructive) {
-                            SeanceSplitStore.clear(date: data.todayDate)
-                            assignments = []
+                            withAnimation(.easeInOut(duration: 0.28)) {
+                                SeanceSplitStore.clear(date: data.todayDate)
+                                assignments = []
+                            }
                         }
                         Button("Annuler", role: .cancel) {}
                     }
