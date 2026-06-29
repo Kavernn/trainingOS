@@ -96,10 +96,10 @@ struct TodayCardView: View {
                 if let session = todaySession {
                     TodaySessionRecap(session: session, color: todayColor, totalWorkoutMin: dash.totalWorkoutMinToday)
                 }
-                NavigationLink(destination: BonusSeanceView()) {
+                NavigationLink(destination: BonusSeanceView(isRestDay: false)) {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.circle")
-                        Text("Faire une séance bonus")
+                        Text("Faire une séance 2")
                             .font(.appLabel.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
@@ -153,10 +153,10 @@ struct TodayCardView: View {
                 }
 
                 if dash.today == "Repos" {
-                    NavigationLink(destination: BonusSeanceView()) {
+                    NavigationLink(destination: BonusSeanceView(isRestDay: true)) {
                         HStack(spacing: 8) {
                             Image(systemName: hasPartialLogs ? "play.fill" : "plus.circle.fill")
-                            Text(hasPartialLogs ? "Continuer la séance" : "Faire une séance")
+                            Text(hasPartialLogs ? "Continuer la séance" : "Faire une séance libre")
                                 .font(.appBody.weight(.bold))
                         }
                         .frame(maxWidth: .infinity)

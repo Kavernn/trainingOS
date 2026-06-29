@@ -47,6 +47,7 @@ class BonusSeanceViewModel: SeanceViewModel {
 
 // MARK: - View
 struct BonusSeanceView: View {
+    var isRestDay: Bool = false
     @StateObject private var vm = BonusSeanceViewModel()
     @State private var localExercises: [String: String] = [:]
     @State private var exerciseOrder: [String] = []
@@ -134,15 +135,10 @@ struct BonusSeanceView: View {
                     VStack(spacing: 16) {
                         // Header
                         HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("SÉANCE BONUS")
-                                    .font(.appLabel.weight(.black))
-                                    .tracking(3)
-                                    .foregroundColor(.gray)
-                                Text("Séance libre")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.gray)
-                            }
+                            Text(isRestDay ? "SÉANCE LIBRE" : "SÉANCE 2")
+                                .font(.appLabel.weight(.black))
+                                .tracking(3)
+                                .foregroundColor(.gray)
                             Spacer()
                         }
                         .padding(.horizontal, 16)
@@ -244,7 +240,7 @@ struct BonusSeanceView: View {
                 .scrollDismissesKeyboard(.interactively)
             }
         }
-        .navigationTitle("Séance Bonus")
+        .navigationTitle(isRestDay ? "Séance libre" : "Séance 2")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if timer.isVisible {

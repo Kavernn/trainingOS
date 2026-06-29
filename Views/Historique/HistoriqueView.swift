@@ -597,7 +597,7 @@ struct MuscuSessionCard: View {
                                 .font(.appBody.weight(.bold))
                                 .foregroundColor(.appTextPrimary)
                             if session.sessionType == "bonus" {
-                                Text("BONUS")
+                                Text("LIBRE")
                                     .font(.appMicro.weight(.black))
                                     .tracking(1)
                                     .foregroundColor(.statusPurple)
