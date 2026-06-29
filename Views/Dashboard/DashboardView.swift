@@ -128,6 +128,12 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.035)
                                 }
 
+                                // 1c — Nouvelle carte sommeil (cohabite temporairement avec 1b, palier 1 du chantier)
+                                if eveningHour >= 20 || eveningHour < 3 {
+                                    EveningSleepCard()
+                                        .appearAnimation(delay: 0.038)
+                                }
+
                                 // 2 — Alerte critique
                                 if let signal = vm.criticalSignal(dash: dash) {
                                     CriticalAlertCard(signal: signal) {
