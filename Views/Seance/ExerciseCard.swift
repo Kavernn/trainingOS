@@ -237,163 +237,44 @@ struct ExerciseCard: View {
 
     @ViewBuilder private func setRows() -> some View {
         VStack(spacing: 6) {
-            HStack {
-                Text("SET")
-                    .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
-                    .frame(width: 28, alignment: .leading)
-                Text(weightColumnLabel)
-                    .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
-                if evm.equipmentType != "bodyweight" {
-                    HStack(spacing: 2) {
-                        Button { adjustAllWeights(-1) } label: {
-                            Image(systemName: "minus")
-                                .font(.appMicro).fontWeight(.bold)
-                                .frame(width: 22, height: 18)
-                                .foregroundColor(.gray.opacity(0.7))
-                                .background(Color.appSurfaceInset)
-                                .cornerRadius(4)
-                        }
-                        .buttonStyle(.plain)
-                        Button { adjustAllWeights(1) } label: {
-                            Image(systemName: "plus")
-                                .font(.appMicro).fontWeight(.bold)
-                                .frame(width: 22, height: 18)
-                                .foregroundColor(Color.forge.opacity(0.85))
-                                .background(Color.forge.opacity(0.1))
-                                .cornerRadius(4)
-                        }
-                        .buttonStyle(.plain)
-                    }
+            // Header — bascule horizontal → vertical si le contenu ne rentre pas
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    setHeaderWeightLabels()
+                    Spacer()
+                    setHeaderRepsLabels()
                 }
-                if evm.equipmentType == "barbell" {
-                    Button {
-                        triggerImpact(style: .light)
-                        showPlateCalculator = true
-                    } label: {
-                        Image(systemName: "scalemass.fill")
-                            .font(.appCaption).fontWeight(.semibold)
-                            .foregroundColor(Color.forge.opacity(0.8))
-                            .padding(.horizontal, 6).padding(.vertical, 3)
-                            .background(Color.forge.opacity(0.12))
-                            .clipShape(Capsule())
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack { setHeaderWeightLabels(); Spacer() }
+                    HStack {
+                        Color.clear.frame(width: 28, height: 1)
+                        setHeaderRepsLabels()
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
-                }
-                Spacer()
-                Text(evm.equipmentType == "fixed_weight" ? "REPS (OPT.)" : "REPS")
-                    .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
-                    .frame(width: 140, alignment: .center)
-                // W-C2 — hide RIR column for time-based exercises
-                if showRIRColumn && !isTimeBased {
-                    HStack(spacing: 3) {
-                        VStack(spacing: 1) {
-                            Text("RIR")
-                                .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(Color.statusCyan.opacity(0.7))
-                            Text("avant échec")
-                                .font(.appMicro).foregroundColor(.gray.opacity(0.45))
-                        }
-                        CardInfoButton(title: "RPE & RIR", entries: InfoEntry.rpeRirEntries)
-                    }
-                    .frame(width: 70, alignment: .center)
                 }
             }
             ForEach(evm.sets.indices, id: \.self) { i in
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
-                HStack(spacing: 8) {
-                    if isActive && !evm.repCountMode {
-                        Image(systemName: "chevron.right.2")
-                            .font(.appMicro).fontWeight(.semibold)
-                            .foregroundColor(Color.forge.opacity(0.35))
-                            .transition(.opacity)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
+                        setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
+                        setRowPrescriptionIcon(i: i)
+                        setRowActionButton(i: i, isActive: isActive, isDone: isDone)
                     }
-                    Text("S\(i + 1)")
-                        .font(isActive ? .appBody : .appCaption).fontWeight(.bold)
-                        .foregroundColor(isDone ? Color.appSuccess : isActive ? Color.statusOrange : .gray)
-                        .frame(width: 28)
-                        .onLongPressGesture(minimumDuration: 0.35) {
-                            guard i > 0 else { return }
-                            evm.sets[i].weight = evm.sets[i - 1].weight
-                            evm.sets[i].reps   = evm.sets[i - 1].reps
-                            triggerImpact(style: .medium)
+                    VStack(spacing: 6) {
+                        HStack(spacing: 8) {
+                            setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
+                            Spacer()
                         }
-                    VStack(spacing: 2) {
-                        StepperInput(
-                            valueStr: $evm.sets[i].weight,
-                            increment: weightIncrement,
-                            minimum: 0,
-                            placeholder: Double(evm.perSetHint(for: i)
-                                .replacingOccurrences(of: ",", with: ".")) ?? 0,
-                            isDisabled: evm.setBySetMode && !isActive && !isDone,
-                            autoFocus: false
-                        )
-                        if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
-                            let rawVal = Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) ?? 0
-                            let totalLbs = evm.totalWeight(for: units.toStorage(rawVal))
-                            if totalLbs > 0 {
-                                Text("= \(units.format(totalLbs, decimals: 0))")
-                                    .font(.appMicro).fontWeight(.medium)
-                                    .foregroundColor(.gray.opacity(0.45))
-                            }
+                        HStack(spacing: 8) {
+                            Color.clear.frame(width: 28, height: 1)
+                            setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
+                            setRowPrescriptionIcon(i: i)
+                            Spacer()
+                            setRowActionButton(i: i, isActive: isActive, isDone: isDone)
                         }
-                    }
-                    if evm.repCountMode && isActive {
-                        Text("—")
-                            .font(.appBody).fontWeight(.bold)
-                            .foregroundColor(Color.statusPurple)
-                            .multilineTextAlignment(.center)
-                            .frame(width: 56)
-                            .padding(8)
-                            .background(Color.statusPurple.opacity(0.1))
-                            .cornerRadius(8)
-                    } else {
-                        StepperInput(
-                            valueStr: $evm.sets[i].reps,
-                            increment: 1,
-                            minimum: evm.equipmentType == "fixed_weight" ? 0 : 1,
-                            placeholder: Double(evm.lastRepsParts.indices.contains(i)
-                                ? evm.lastRepsParts[i] : "1") ?? 1,
-                            isInteger: true,
-                            isDisabled: evm.setBySetMode && !isActive && !isDone
-                        )
-                        .frame(width: 140)
-                    }
-                    // W-C2 — hide RIR tiles for time-based exercises
-                    if showRIRColumn && !isTimeBased {
-                        RPEHelper.RIRTiles(
-                            rir: $evm.sets[i].rir,
-                            disabled: evm.setBySetMode && !isActive && !isDone
-                        )
-                        .frame(width: 70)
-                    }
-
-                    if let p = prescription, !evm.sets[i].reps.isEmpty, let entered = Int(evm.sets[i].reps) {
-                        Image(systemName: entered >= p.repMin ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                            .font(.appLabel)
-                            .foregroundColor(entered >= p.repMin ? Color.appSuccess : Color.statusOrange)
-                            .transition(.opacity)
-                    }
-
-                    if isActive && !evm.repCountMode {
-                        Button {
-                            withAnimation {
-                                triggerImpact(style: .medium)
-                                if evm.currentSetIndex < evm.sets.count - 1 {
-                                    evm.currentSetIndex += 1
-                                } else {
-                                    evm.setBySetMode = false
-                                    doLog()
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.appTitle)
-                                .foregroundColor(Color.forge)
-                        }
-                        .buttonStyle(SpringButtonStyle(scale: 0.88))
-                    } else if isDone {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.appHeadline).foregroundColor(Color.appSuccess.opacity(0.6))
                     }
                 }
                 .padding(isActive ? 6 : 0)
@@ -431,6 +312,173 @@ struct ExerciseCard: View {
                     .font(.appCaption).foregroundColor(Color.forge.opacity(0.7))
                     .padding(.top, 2)
             }
+        }
+    }
+
+    @ViewBuilder private func setHeaderWeightLabels() -> some View {
+        Text("SET")
+            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
+            .frame(width: 28, alignment: .leading)
+        Text(weightColumnLabel)
+            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
+        if evm.equipmentType != "bodyweight" {
+            HStack(spacing: 2) {
+                Button { adjustAllWeights(-1) } label: {
+                    Image(systemName: "minus")
+                        .font(.appMicro).fontWeight(.bold)
+                        .frame(width: 22, height: 18)
+                        .foregroundColor(.gray.opacity(0.7))
+                        .background(Color.appSurfaceInset)
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                Button { adjustAllWeights(1) } label: {
+                    Image(systemName: "plus")
+                        .font(.appMicro).fontWeight(.bold)
+                        .frame(width: 22, height: 18)
+                        .foregroundColor(Color.forge.opacity(0.85))
+                        .background(Color.forge.opacity(0.1))
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        if evm.equipmentType == "barbell" {
+            Button {
+                triggerImpact(style: .light)
+                showPlateCalculator = true
+            } label: {
+                Image(systemName: "scalemass.fill")
+                    .font(.appCaption).fontWeight(.semibold)
+                    .foregroundColor(Color.forge.opacity(0.8))
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .background(Color.forge.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder private func setHeaderRepsLabels() -> some View {
+        Text(evm.equipmentType == "fixed_weight" ? "REPS (OPT.)" : "REPS")
+            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
+            .frame(width: 140, alignment: .center)
+        // W-C2 — hide RIR column for time-based exercises
+        if showRIRColumn && !isTimeBased {
+            HStack(spacing: 3) {
+                VStack(spacing: 1) {
+                    Text("RIR")
+                        .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(Color.statusCyan.opacity(0.7))
+                    Text("avant échec")
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.45))
+                }
+                CardInfoButton(title: "RPE & RIR", entries: InfoEntry.rpeRirEntries)
+            }
+            .frame(width: 70, alignment: .center)
+        }
+    }
+
+    @ViewBuilder private func setRowWeightSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
+        if isActive && !evm.repCountMode {
+            Image(systemName: "chevron.right.2")
+                .font(.appMicro).fontWeight(.semibold)
+                .foregroundColor(Color.forge.opacity(0.35))
+                .transition(.opacity)
+        }
+        Text("S\(i + 1)")
+            .font(isActive ? .appBody : .appCaption).fontWeight(.bold)
+            .foregroundColor(isDone ? Color.appSuccess : isActive ? Color.statusOrange : .gray)
+            .frame(width: 28)
+            .onLongPressGesture(minimumDuration: 0.35) {
+                guard i > 0 else { return }
+                evm.sets[i].weight = evm.sets[i - 1].weight
+                evm.sets[i].reps   = evm.sets[i - 1].reps
+                triggerImpact(style: .medium)
+            }
+        VStack(spacing: 2) {
+            StepperInput(
+                valueStr: $evm.sets[i].weight,
+                increment: weightIncrement,
+                minimum: 0,
+                placeholder: Double(evm.perSetHint(for: i)
+                    .replacingOccurrences(of: ",", with: ".")) ?? 0,
+                isDisabled: evm.setBySetMode && !isActive && !isDone,
+                autoFocus: false
+            )
+            if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
+                let rawVal = Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) ?? 0
+                let totalLbs = evm.totalWeight(for: units.toStorage(rawVal))
+                if totalLbs > 0 {
+                    Text("= \(units.format(totalLbs, decimals: 0))")
+                        .font(.appMicro).fontWeight(.medium)
+                        .foregroundColor(.gray.opacity(0.45))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func setRowRepsSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
+        if evm.repCountMode && isActive {
+            Text("—")
+                .font(.appBody).fontWeight(.bold)
+                .foregroundColor(Color.statusPurple)
+                .multilineTextAlignment(.center)
+                .frame(width: 56)
+                .padding(8)
+                .background(Color.statusPurple.opacity(0.1))
+                .cornerRadius(8)
+        } else {
+            StepperInput(
+                valueStr: $evm.sets[i].reps,
+                increment: 1,
+                minimum: evm.equipmentType == "fixed_weight" ? 0 : 1,
+                placeholder: Double(evm.lastRepsParts.indices.contains(i)
+                    ? evm.lastRepsParts[i] : "1") ?? 1,
+                isInteger: true,
+                isDisabled: evm.setBySetMode && !isActive && !isDone
+            )
+            .frame(width: 140)
+        }
+        // W-C2 — hide RIR tiles for time-based exercises
+        if showRIRColumn && !isTimeBased {
+            RPEHelper.RIRTiles(
+                rir: $evm.sets[i].rir,
+                disabled: evm.setBySetMode && !isActive && !isDone
+            )
+            .frame(width: 70)
+        }
+    }
+
+    @ViewBuilder private func setRowPrescriptionIcon(i: Int) -> some View {
+        if let p = prescription, !evm.sets[i].reps.isEmpty, let entered = Int(evm.sets[i].reps) {
+            Image(systemName: entered >= p.repMin ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                .font(.appLabel)
+                .foregroundColor(entered >= p.repMin ? Color.appSuccess : Color.statusOrange)
+                .transition(.opacity)
+        }
+    }
+
+    @ViewBuilder private func setRowActionButton(i: Int, isActive: Bool, isDone: Bool) -> some View {
+        if isActive && !evm.repCountMode {
+            Button {
+                withAnimation {
+                    triggerImpact(style: .medium)
+                    if evm.currentSetIndex < evm.sets.count - 1 {
+                        evm.currentSetIndex += 1
+                    } else {
+                        evm.setBySetMode = false
+                        doLog()
+                    }
+                }
+            } label: {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.appTitle)
+                    .foregroundColor(Color.forge)
+            }
+            .buttonStyle(SpringButtonStyle(scale: 0.88))
+        } else if isDone {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.appHeadline).foregroundColor(Color.appSuccess.opacity(0.6))
         }
     }
 
