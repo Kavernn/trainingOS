@@ -120,18 +120,9 @@ struct DashboardView: View {
 
                                 // 1b — Routine de soir (visible dès 20h, et jusqu'à 3h pour couchers tardifs)
                                 let eveningHour = Calendar.current.component(.hour, from: Date())
-                                if (eveningHour >= 20 || eveningHour < 3),
-                                   let ritual = vm.ritualToday {
-                                    EveningRoutineCard(ritual: ritual) {
-                                        Task { await vm.refreshRitual() }
-                                    }
-                                    .appearAnimation(delay: 0.035)
-                                }
-
-                                // 1c — Nouvelle carte sommeil (cohabite temporairement avec 1b, palier 1 du chantier)
                                 if eveningHour >= 20 || eveningHour < 3 {
                                     EveningSleepCard()
-                                        .appearAnimation(delay: 0.038)
+                                        .appearAnimation(delay: 0.035)
                                 }
 
                                 // 2 — Alerte critique

@@ -84,7 +84,7 @@ final class SmartAlarmService: ObservableObject {
         await rescheduleIfBedtimeExists()
     }
 
-    // Called from EveningRoutineCard "Je me couche" tap — bedtime = Date.now
+    // Called from EveningSleepSheet "Armer réveil cyclique" tap — bedtime = Date.now
     func scheduleAlarm(bedtimeDate: Date) async throws {
         guard isEnabled else { return }
         UserDefaults.standard.set(bedtimeDate.timeIntervalSinceReferenceDate, forKey: Keys.lastBedtimeTS)
