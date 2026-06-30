@@ -329,6 +329,31 @@ final class ExerciseViewModel: ObservableObject {
         clearDraft()
     }
 
+    /// Bloque le log si un set est incomplet (miroir des règles du compactMap, exposées
+    /// avec un message clair au lieu d'un drop silencieux). Retourne nil si tout est OK.
+    /// Pour time-based, exige durée > 0 par set (corrige le path qui ne drappait pas).
+    private func invalidSetMessage() -> String? {
+        for (i, s) in sets.enumerated() {
+            let n = i + 1
+            if isTimeBased {
+                if s.duration <= 0 { return "Set \(n) : durée requise" }
+                continue
+            }
+            let weightStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+            let repsTrimmed = s.reps.trimmingCharacters(in: .whitespaces)
+            switch equipmentType {
+            case "bodyweight":
+                if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
+            case "fixed_weight":
+                guard let w = Double(weightStr), w > 0 else { return "Set \(n) : poids requis" }
+            default:
+                guard let w = Double(weightStr), w > 0 else { return "Set \(n) : poids requis" }
+                if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
+            }
+        }
+        return nil
+    }
+
     // Returns ExerciseLogResult to assign to the binding, or nil if can't log.
     // Caller is responsible for: setting logResult binding, calling onLogged, triggering haptic.
     @discardableResult
@@ -336,6 +361,11 @@ final class ExerciseViewModel: ObservableObject {
         let alreadyLogged = isLogged || alreadyLoggedViaBinding || isSkipped
         let repsOk = !repsStr.isEmpty || equipmentType == "fixed_weight"
         guard !alreadyLogged || isEditing, canLog, repsOk else { return nil }
+
+        if let msg = invalidSetMessage() {
+            logError = msg
+            return nil
+        }
 
         if isEditing { isLogged = false }
         isLogged  = true
@@ -521,6 +551,7 @@ class SeanceViewModel: ObservableObject {
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
             seanceData = decoded
             restoreLogResults(from: decoded)
+            SeanceSplitStore.reconcile(date: decoded.todayDate, loggedNames: decoded.loggedTodayNames)
         }
 
         if seanceData == nil { isLoading = true }
@@ -529,6 +560,7 @@ class SeanceViewModel: ObservableObject {
             let fresh = try await APIService.shared.fetchSeanceData()
             seanceData = fresh
             restoreLogResults(from: fresh)
+            SeanceSplitStore.reconcile(date: fresh.todayDate, loggedNames: fresh.loggedTodayNames)
         } catch {
             if seanceData == nil { self.error = error.localizedDescription }
         }
@@ -616,6 +648,11 @@ class SeanceViewModel: ObservableObject {
                 batchInvalidations.append(.exerciseLogged(isSecond: result.isSecond, isBonus: result.isBonus))
                 if response.isPR == true {
                     prCelebrations.append((name: result.name, oneRM: response.oneRM ?? 0))
+                }
+                // Décrémente le Set d'assignments si l'exo y était (résout compteur dash + séance complétée).
+                if let dateStr = seanceData?.todayDate,
+                   SeanceSplitStore.load(date: dateStr).contains(result.name) {
+                    SeanceSplitStore.remove(date: dateStr, exercise: result.name)
                 }
             } catch {
                 failedExercises.append(result.name)
