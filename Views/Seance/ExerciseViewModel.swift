@@ -285,7 +285,9 @@ final class ExerciseViewModel: ObservableObject {
         }
         if !isTimeBased && !sets.isEmpty {
             setBySetMode = true
-            currentSetIndex = 0
+            // Reprend au 1er set incomplet ; si tous remplis (✓ final pas tapé),
+            // reste sur le dernier — prêt à valider.
+            currentSetIndex = firstIncompleteSetIndex() ?? max(0, sets.count - 1)
         }
     }
 
@@ -329,26 +331,45 @@ final class ExerciseViewModel: ObservableObject {
         clearDraft()
     }
 
+    /// Vrai si le set est jugé "complet" selon equipmentType. Règle unique partagée
+    /// entre la validation au log (invalidSetMessage) et la dérivation de currentSetIndex
+    /// à la restauration (firstIncompleteSetIndex).
+    private func isSetComplete(_ s: SetInput) -> Bool {
+        if isTimeBased { return s.duration > 0 }
+        let weightStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        let repsTrimmed = s.reps.trimmingCharacters(in: .whitespaces)
+        switch equipmentType {
+        case "bodyweight":
+            return !repsTrimmed.isEmpty
+        case "fixed_weight":
+            return (Double(weightStr) ?? 0) > 0
+        default:
+            return (Double(weightStr) ?? 0) > 0 && !repsTrimmed.isEmpty
+        }
+    }
+
+    /// Index du premier set incomplet. Sert à reprendre au bon endroit après crash.
+    private func firstIncompleteSetIndex() -> Int? {
+        sets.firstIndex(where: { !isSetComplete($0) })
+    }
+
     /// Bloque le log si un set est incomplet (miroir des règles du compactMap, exposées
     /// avec un message clair au lieu d'un drop silencieux). Retourne nil si tout est OK.
     /// Pour time-based, exige durée > 0 par set (corrige le path qui ne drappait pas).
     private func invalidSetMessage() -> String? {
         for (i, s) in sets.enumerated() {
+            if isSetComplete(s) { continue }
             let n = i + 1
-            if isTimeBased {
-                if s.duration <= 0 { return "Set \(n) : durée requise" }
-                continue
-            }
+            if isTimeBased { return "Set \(n) : durée requise" }
             let weightStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
-            let repsTrimmed = s.reps.trimmingCharacters(in: .whitespaces)
             switch equipmentType {
             case "bodyweight":
-                if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
+                return "Set \(n) : reps requises"
             case "fixed_weight":
-                guard let w = Double(weightStr), w > 0 else { return "Set \(n) : poids requis" }
+                return "Set \(n) : poids requis"
             default:
-                guard let w = Double(weightStr), w > 0 else { return "Set \(n) : poids requis" }
-                if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
+                if (Double(weightStr) ?? 0) <= 0 { return "Set \(n) : poids requis" }
+                return "Set \(n) : reps requises"
             }
         }
         return nil
