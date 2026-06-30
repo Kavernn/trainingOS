@@ -224,9 +224,8 @@ struct EngagementCreationView: View {
     }
 
     private var tomorrowISODate: String {
-        let tmrw = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-        let fmt  = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
-        return fmt.string(from: tmrw)
+        let tmrw = Calendar.mtl.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+        return DateFormatter.isoDate.string(from: tmrw)
     }
 
     private func confirm() {
