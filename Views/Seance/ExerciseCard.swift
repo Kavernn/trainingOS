@@ -236,17 +236,18 @@ struct ExerciseCard: View {
     // MARK: - Set rows
 
     @ViewBuilder private func setRows() -> some View {
-        VStack(spacing: 6) {
-            // Header — bascule horizontal → vertical si le contenu ne rentre pas
+        VStack(spacing: 4) {
+            // Header — bascule horizontal → vertical si le contenu ne rentre pas.
+            // Spacer retiré (causait un décalage avec les rangées sans Spacer).
             ViewThatFits(in: .horizontal) {
-                HStack {
+                HStack(spacing: 4) {
                     setHeaderWeightLabels()
-                    Spacer()
                     setHeaderRepsLabels()
+                    Spacer()
                 }
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack { setHeaderWeightLabels(); Spacer() }
-                    HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) { setHeaderWeightLabels(); Spacer() }
+                    HStack(spacing: 4) {
                         Color.clear.frame(width: 28, height: 1)
                         setHeaderRepsLabels()
                         Spacer()
@@ -257,19 +258,20 @@ struct ExerciseCard: View {
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 4) {
                         setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
                         setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
                         setRowPrescriptionIcon(i: i)
                         setRowActionButton(i: i, isActive: isActive, isDone: isDone)
                     }
-                    VStack(spacing: 6) {
-                        HStack(spacing: 8) {
+                    VStack(spacing: 4) {
+                        HStack(spacing: 4) {
                             setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
                             Spacer()
                         }
-                        HStack(spacing: 8) {
-                            Color.clear.frame(width: 28, height: 1)
+                        HStack(spacing: 4) {
+                            // 44 en actif = chevron(12) + spacing(4) + S1(28) ; 28 sinon
+                            Color.clear.frame(width: isActive ? 44 : 28, height: 1)
                             setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
                             setRowPrescriptionIcon(i: i)
                             Spacer()
@@ -277,7 +279,7 @@ struct ExerciseCard: View {
                         }
                     }
                 }
-                .padding(isActive ? 6 : 0)
+                .padding(isActive ? 4 : 0)
                 .background(isActive ? Color.forge.opacity(0.12) : Color.clear)
                 .cornerRadius(8)
                 .animation(.easeInOut(duration: 0.2), value: evm.currentSetIndex)
@@ -374,7 +376,7 @@ struct ExerciseCard: View {
     @ViewBuilder private func setHeaderRepsLabels() -> some View {
         Text(evm.equipmentType == "fixed_weight" ? "REPS (OPT.)" : "REPS")
             .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
-            .frame(width: 140, alignment: .center)
+            .frame(width: evm.setBySetMode ? 132 : 140, alignment: .center)
         // W-C2 — hide RIR column for time-based exercises
         if showRIRColumn && !isTimeBased {
             HStack(spacing: 3) {
@@ -395,6 +397,7 @@ struct ExerciseCard: View {
             Image(systemName: "chevron.right.2")
                 .font(.appMicro).fontWeight(.semibold)
                 .foregroundColor(Color.forge.opacity(0.35))
+                .frame(width: 12)
                 .transition(.opacity)
         }
         Text("S\(i + 1)")
@@ -414,8 +417,10 @@ struct ExerciseCard: View {
             placeholder: Double(evm.perSetHint(for: i)
                 .replacingOccurrences(of: ",", with: ".")) ?? 0,
             isDisabled: evm.setBySetMode && !isActive && !isDone,
-            autoFocus: false
+            autoFocus: false,
+            isCompact: evm.setBySetMode
         )
+        .frame(width: evm.setBySetMode ? 132 : 140)
     }
 
     @ViewBuilder private func setRowRepsSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
@@ -436,9 +441,10 @@ struct ExerciseCard: View {
                 placeholder: Double(evm.lastRepsParts.indices.contains(i)
                     ? evm.lastRepsParts[i] : "1") ?? 1,
                 isInteger: true,
-                isDisabled: evm.setBySetMode && !isActive && !isDone
+                isDisabled: evm.setBySetMode && !isActive && !isDone,
+                isCompact: evm.setBySetMode
             )
-            .frame(width: 140)
+            .frame(width: evm.setBySetMode ? 132 : 140)
         }
         // W-C2 — hide RIR tiles for time-based exercises
         if showRIRColumn && !isTimeBased {

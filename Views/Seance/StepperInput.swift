@@ -8,6 +8,8 @@ struct StepperInput: View {
     var isInteger: Bool = false
     var isDisabled: Bool = false
     var autoFocus: Bool = false
+    // Mode compact : centre minWidth 52 → 44. Zones tap 44pt préservées.
+    var isCompact: Bool = false
 
     @FocusState private var isManualFocused: Bool
     @State private var holdTask: Task<Void, Never>? = nil
@@ -48,14 +50,14 @@ struct StepperInput: View {
                 Text(valueStr.isEmpty ? placeholderText : displayText)
                     .font(.appTitle)
                     .foregroundColor(valueStr.isEmpty ? .gray.opacity(0.35) : .white)
-                    .frame(minWidth: 52, alignment: .center)
+                    .frame(minWidth: isCompact ? 44 : 52, alignment: .center)
                     .allowsHitTesting(false)
 
                 TextField("", text: $valueStr)
                     .keyboardType(isInteger ? .numberPad : .decimalPad)
                     .focused($isManualFocused)
                     .opacity(0.01)
-                    .frame(minWidth: 52)
+                    .frame(minWidth: isCompact ? 44 : 52)
                     .disabled(isDisabled)
                     .multilineTextAlignment(.center)
             }
