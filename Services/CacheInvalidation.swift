@@ -86,7 +86,7 @@ enum CacheInvalidation {
         case .deloadApplied:
             return ["seance_data", "dashboard"]
         case .recoveryLogged:
-            return ["recovery_data", "hrv_analysis", "readiness"]
+            return ["recovery_data", "hrv_analysis", "readiness", "morning_brief"]
         case .pssSubmitted:
             return ["pss_history", "pss_check_due_full"]
         case .moodLogged:
@@ -105,7 +105,7 @@ enum CacheInvalidation {
             return ["seance_data", "seance_soir_data"]
         case .wearableSynced:
             return ["recovery_data", "cardio_data", "hrv_analysis",
-                    "sleep_history", "sleep_today", "sleep_stats", "readiness"]
+                    "sleep_history", "sleep_today", "sleep_stats", "readiness", "morning_brief"]
         case .ritualActioned:
             return ["ritual_today", "ritual_streak"]
         case .ritualUpdated:
