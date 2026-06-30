@@ -17,6 +17,7 @@ class SeanceSoirViewModel: SeanceViewModel {
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
             seanceData = decoded
             restoreLogResults(from: decoded)
+            SeanceSplitStore.reconcile(date: decoded.todayDate, loggedNames: decoded.loggedTodayNames)
         }
 
         if seanceData == nil { isLoading = true }
@@ -25,6 +26,7 @@ class SeanceSoirViewModel: SeanceViewModel {
             let fresh = try await APIService.shared.fetchSeanceData()
             seanceData = fresh
             restoreLogResults(from: fresh)
+            SeanceSplitStore.reconcile(date: fresh.todayDate, loggedNames: fresh.loggedTodayNames)
         } catch {
             if seanceData == nil { self.error = error.localizedDescription }
         }
@@ -45,6 +47,11 @@ class SeanceSoirViewModel: SeanceViewModel {
                     sets: result.sets, force: true,
                     isSecond: true, isBonus: false,
                     equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes)
+                // Décrémente le Set d'assignments si l'exo y était (résout compteur dash + séance complétée).
+                if let dateStr = seanceData?.todayDate,
+                   SeanceSplitStore.load(date: dateStr).contains(result.name) {
+                    SeanceSplitStore.remove(date: dateStr, exercise: result.name)
+                }
             } catch {
                 failedExercises.append(result.name)
             }

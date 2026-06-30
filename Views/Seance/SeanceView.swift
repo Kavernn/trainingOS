@@ -569,6 +569,9 @@ struct AlreadyLoggedSeanceView: View {
         .onAppear {
             seance2Count = SeanceSplitStore.load(date: data.todayDate).count
         }
+        .onReceive(NotificationCenter.default.publisher(for: .seanceSplitStoreDidChange)) { _ in
+            seance2Count = SeanceSplitStore.load(date: data.todayDate).count
+        }
         .sheet(isPresented: $showExtra) {
             ExtraSessionSheet(data: data)
         }

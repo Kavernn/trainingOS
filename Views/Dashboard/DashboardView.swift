@@ -285,6 +285,9 @@ struct DashboardView: View {
                         .onAppear {
                             seance2Count = SeanceSplitStore.load(date: todayStr).count
                         }
+                        .onReceive(NotificationCenter.default.publisher(for: .seanceSplitStoreDidChange)) { _ in
+                            seance2Count = SeanceSplitStore.load(date: todayStr).count
+                        }
                 } else if let err = loadingState.error {
                     VStack(spacing: 16) {
                         Image(systemName: "wifi.exclamationmark")

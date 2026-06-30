@@ -3,6 +3,10 @@ import OSLog
 
 private let splitLogger = Logger(subsystem: "TrainingOS", category: "seance_split")
 
+extension Notification.Name {
+    static let seanceSplitStoreDidChange = Notification.Name("seanceSplitStoreDidChange")
+}
+
 enum SeanceSplitStore {
     private static let keyPrefix = "seance2_assignments_"
 
@@ -21,6 +25,7 @@ enum SeanceSplitStore {
         var current = load(date: date)
         current.insert(exercise)
         persist(date: date, set: current)
+        notifyChange()
     }
 
     static func remove(date: String, exercise: String) {
@@ -31,6 +36,7 @@ enum SeanceSplitStore {
         } else {
             persist(date: date, set: current)
         }
+        notifyChange()
     }
 
     static func contains(date: String, exercise: String) -> Bool {
@@ -39,6 +45,21 @@ enum SeanceSplitStore {
 
     static func clear(date: String) {
         UserDefaults.standard.removeObject(forKey: key(date: date))
+        notifyChange()
+    }
+
+    /// Self-healing : retire du Set les exos déjà loggés (utile si un log a été fait
+    /// avant l'instauration du remove dans finish(), ou via un path qui ne décrémente pas).
+    static func reconcile(date: String, loggedNames: Set<String>) {
+        let current = load(date: date)
+        let cleaned = current.subtracting(loggedNames)
+        guard cleaned.count != current.count else { return }
+        if cleaned.isEmpty {
+            UserDefaults.standard.removeObject(forKey: key(date: date))
+        } else {
+            persist(date: date, set: cleaned)
+        }
+        notifyChange()
     }
 
     static func purgeOldEntries(currentDate: String) {
@@ -52,5 +73,9 @@ enum SeanceSplitStore {
     private static func persist(date: String, set: Set<String>) {
         let sorted = set.sorted()
         UserDefaults.standard.set(sorted, forKey: key(date: date))
+    }
+
+    private static func notifyChange() {
+        NotificationCenter.default.post(name: .seanceSplitStoreDidChange, object: nil)
     }
 }
