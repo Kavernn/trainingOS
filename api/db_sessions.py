@@ -989,19 +989,25 @@ def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) ->
 
 
 def get_session_exercise_logs(session_date: str) -> List[dict]:
-    """Return [{exercise_name, weight, reps}] for a given session date."""
+    """Return [{exercise_name, weight, reps}] for ALL sessions on a given date.
+
+    Lit toutes les sessions du jour (morning + evening + bonus) via
+    get_today_sessions_all et concatène leurs exercise_logs. Le streak et
+    autres consommateurs comptent ainsi les jours où la seule séance est
+    une bonus (jour de repos).
+    """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
 
     def _do() -> List[dict]:
-        session = get_workout_session(session_date)
-        if not session:
+        sessions = get_today_sessions_all(session_date)
+        if not sessions:
             return []
-        session_id = session["id"]
+        session_ids = [s["id"] for s in sessions]
         resp = (
             db_core._client.table("exercise_logs")
             .select("weight, reps, exercises(name)")
-            .eq("session_id", session_id)
+            .in_("session_id", session_ids)
             .execute()
         )
         rows = resp.data or []
