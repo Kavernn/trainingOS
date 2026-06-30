@@ -67,30 +67,37 @@ enum CacheInvalidation {
 
     // MARK: - Keys
 
+    // Brief contract: toute mutation qui modifie un signal lu par api/morning_brief.py
+    // (LSS = HRV/sleep/RHR + PSS + RPE + nutrition, engagement_streak, profil, session du jour)
+    // DOIT inclure "morning_brief" dans ses keys, sinon le verdict du brief reste stale.
+    // Cases couvertes au 2026-06-30 : exerciseLogged, sessionLogged, sessionMutated,
+    // programmeApproved, deloadApplied, recoveryLogged, wearableSynced, pssSubmitted,
+    // moodLogged, ritualActioned, ritualUpdated, nutritionLogged, profileUpdated.
+    // (hiitLogged: log isolé hors sessions → ne nourrit pas le brief, ne pas ajouter.)
     var keys: [String] {
         switch self {
         case .exerciseLogged(let isSecond, let isBonus):
-            var k = ["dashboard", "stats_data", "streak_data"]
+            var k = ["dashboard", "stats_data", "streak_data", "morning_brief"]
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionLogged(let isSecond, let isBonus):
-            var k = ["dashboard", "historique_data", "stats_data", "streak_data"]
+            var k = ["dashboard", "historique_data", "stats_data", "streak_data", "morning_brief"]
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionMutated:
-            return ["historique_data", "dashboard"]
+            return ["historique_data", "dashboard", "morning_brief"]
         case .hiitLogged:
             return ["dashboard", "hiit_data"]
         case .programmeApproved:
-            return ["programme_data", "stats_data"]
+            return ["programme_data", "stats_data", "morning_brief"]
         case .deloadApplied:
-            return ["seance_data", "dashboard"]
+            return ["seance_data", "dashboard", "morning_brief"]
         case .recoveryLogged:
             return ["recovery_data", "hrv_analysis", "readiness", "morning_brief"]
         case .pssSubmitted:
-            return ["pss_history", "pss_check_due_full"]
+            return ["pss_history", "pss_check_due_full", "morning_brief"]
         case .moodLogged:
-            return ["mood_history", "mood_check_due"]
+            return ["mood_history", "mood_check_due", "dashboard", "morning_brief"]
         case .journalLogged:
             return ["journal_entries"]
         case .breathworkLogged:
@@ -107,9 +114,9 @@ enum CacheInvalidation {
             return ["recovery_data", "cardio_data", "hrv_analysis",
                     "sleep_history", "sleep_today", "sleep_stats", "readiness", "morning_brief"]
         case .ritualActioned:
-            return ["ritual_today", "ritual_streak"]
+            return ["ritual_today", "ritual_streak", "morning_brief"]
         case .ritualUpdated:
-            return ["ritual_today", "ritual_streak", "ritual_stats"]
+            return ["ritual_today", "ritual_streak", "ritual_stats", "morning_brief"]
         case .ritualItemActioned:
             return ["ritual_today"]
         case .sleepMutated:
@@ -145,7 +152,7 @@ enum CacheInvalidation {
         case .plateauDismissed:
             return ["plateau_alerts"]
         case .nutritionLogged:
-            return ["nutrition_data", "dashboard", "readiness"]
+            return ["nutrition_data", "dashboard", "readiness", "morning_brief"]
         case .cardioLogged:
             return ["cardio_history", "stats_cardio"]
         case .energyLogged:
@@ -155,7 +162,7 @@ enum CacheInvalidation {
         case .dashboardInvalidated:
             return ["dashboard"]
         case .profileUpdated:
-            return ["profil_data", "dashboard", "readiness"]
+            return ["profil_data", "dashboard", "readiness", "morning_brief"]
         }
     }
 
