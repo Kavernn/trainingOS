@@ -51,7 +51,7 @@ struct TodayCardView: View {
                         .foregroundColor(isLoggedToday ? Color.statusGreen : todayColor)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(dash.today)
+                    Text(dash.today.isEmpty ? "Repos" : dash.today)
                         .font(.appHeadline.weight(.bold))
                         .foregroundColor(isLoggedToday ? Color.statusGreen : todayColor)
                         .lineLimit(1)

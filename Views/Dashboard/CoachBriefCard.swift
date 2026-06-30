@@ -43,6 +43,8 @@ struct CoachInsightCard: View {
             alertContent(alert)
         } else if let brief {
             coachContent(brief)
+        } else {
+            EmptyView()
         }
     }
 
