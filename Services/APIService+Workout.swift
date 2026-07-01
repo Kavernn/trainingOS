@@ -120,15 +120,83 @@ extension APIService {
         CacheInvalidation.hiitLogged.invalidate()
     }
 
+    // MARK: - Inventaire mutations
+
+    func saveExercise(_ body: [String: Any]) async throws {
+        _ = try await offlinePost(endpoint: "/api/save_exercise", payload: body)
+        CacheInvalidation.inventaireMutated.invalidate()
+    }
+
+    func deleteExerciseItem(name: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/delete_exercise", payload: ["name": name])
+        CacheInvalidation.inventaireMutated.invalidate()
+    }
+
+    func classifyExercise(_ body: [String: Any]) async throws {
+        _ = try await offlinePost(endpoint: "/api/exercises/classify", payload: body)
+        CacheInvalidation.inventaireMutated.invalidate()
+    }
+
+    // MARK: - Programme mutations
+
+    func saveEveningSchedule(_ schedule: [String: String]) async throws {
+        _ = try await offlinePost(endpoint: "/api/evening_schedule", payload: schedule as [String: Any])
+        CacheInvalidation.programmeMutated.invalidate()
+    }
+
+    func saveMorningSchedule(_ schedule: [String: String]) async throws {
+        _ = try await offlinePost(endpoint: "/api/morning_schedule", payload: ["schedule": schedule])
+        CacheInvalidation.programmeMutated.invalidate()
+    }
+
+    func postProgrammeMutation(_ body: [String: Any]) async throws {
+        _ = try await offlinePost(endpoint: "/api/programme", payload: body)
+        CacheInvalidation.programmeMutated.invalidate()
+    }
+
+    func createProgram(name: String) async throws -> String {
+        guard let data = try await offlinePost(endpoint: "/api/programs",
+                                                payload: ["action": "create", "name": name]) else {
+            throw APIError.queuedOffline
+        }
+        CacheInvalidation.programmeMutated.invalidate()
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let pid  = json["id"] as? String else {
+            throw APIError.decodingFailed(endpoint: "/api/programs",
+                                          error: NSError(domain: "programs", code: 0))
+        }
+        return pid
+    }
+
+    func setActiveProgram(id: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/programs",
+                                   payload: ["action": "set_active", "program_id": id])
+        CacheInvalidation.programmeMutated.invalidate()
+    }
+
+    func renameProgram(id: String, name: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/programs",
+                                   payload: ["action": "rename", "program_id": id, "name": name])
+        CacheInvalidation.programmeMutated.invalidate()
+    }
+
+    func deleteProgram(id: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/programs",
+                                   payload: ["action": "delete", "program_id": id])
+        CacheInvalidation.programmeMutated.invalidate()
+    }
+
     func deleteHIIT(date: String, sessionType: String) async throws {
         _ = try await offlinePost(endpoint: "/api/delete_hiit",
                                   payload: ["date": date, "session_type": sessionType])
+        CacheInvalidation.hiitLogged.invalidate()
     }
 
     func hiitEdit(body: [String: Any]) async throws -> Data {
         guard let data = try await offlinePost(endpoint: "/api/hiit/edit", payload: body) else {
             throw APIError.queuedOffline
         }
+        CacheInvalidation.hiitLogged.invalidate()
         return data
     }
 

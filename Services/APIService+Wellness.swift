@@ -76,6 +76,7 @@ extension APIService {
 
     func deleteRecovery(date: String) async throws {
         _ = try await offlinePost(endpoint: "/api/delete_recovery", payload: ["date": date])
+        CacheInvalidation.recoveryLogged.invalidate()
     }
 
     // MARK: - HRV Analysis
@@ -151,6 +152,8 @@ extension APIService {
     }
 
     // MARK: - Smart Alarm
+    // Écrit dans smart_alarm_sessions (lu uniquement par /api/smart_alarm/latency
+    // non cachée + sync HK pour calibration) — aucun impact sur les clés cachées.
     func logBedtimeTap(_ bedtimeDate: Date) async throws {
         let fmt = DateFormatter()
         fmt.dateFormat = "HH:mm"

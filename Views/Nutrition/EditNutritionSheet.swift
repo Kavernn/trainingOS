@@ -110,6 +110,7 @@ struct EditNutritionSheet: View {
         if let v = Double(lipides.replacingOccurrences(of: ",", with: "."))   { body["lipides"]   = v }
         do {
             _ = try await APIService.shared.offlinePost(endpoint: "/api/nutrition/edit", payload: body)
+            CacheInvalidation.nutritionLogged.invalidate()
             await onSaved()
             isSaving = false
             dismiss()

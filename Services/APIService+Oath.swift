@@ -25,6 +25,8 @@ extension APIService {
         return try APIService.decoder.decode(OathModel.self, from: data)
     }
 
+    // Log d'usage — non lu par les reads cachés (oath_current/oath_versions couvrent
+    // l'oath actif, pas les recalls). Rien à invalider.
     func logOathRecall(oathId: String, trigger: String) async throws {
         let body: [String: Any] = ["oath_id": oathId, "trigger": trigger]
         _ = try await offlinePost(endpoint: "/api/oath/recall", payload: body)

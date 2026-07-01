@@ -161,15 +161,12 @@ final class GymFinderViewModel: NSObject, ObservableObject {
         }
     }
 
+    // Contribution best-effort au crowdsource gym data — silencieux volontaire,
+    // queued offline via offlinePost (aucun cache local à invalider).
     func submitContribution(_ payload: GymContributionPayload) async {
-        guard let body = try? JSONEncoder().encode(payload) else { return }
-        guard let url = URL(string: "\(APIConfig.base)/api/gyms/contribute") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = body
-        req.timeoutInterval = 10
-        _ = try? await URLSession.authed.data(for: req)
+        guard let body = try? JSONEncoder().encode(payload),
+              let dict = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] else { return }
+        _ = try? await APIService.shared.offlinePost(endpoint: "/api/gyms/contribute", payload: dict)
     }
 
     // MARK: - Favorites

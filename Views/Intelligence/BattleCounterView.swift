@@ -43,6 +43,12 @@ struct BattleCounterView: View {
         .sheet(isPresented: $showMilestone) {
             oathMilestoneSheet(day: milestoneDay, oath: vm.currentOath)
         }
+        .alert("Note", isPresented: Binding(
+            get: { vm.error != nil },
+            set: { if !$0 { vm.error = nil } }
+        )) {
+            Button("OK", role: .cancel) { vm.error = nil }
+        } message: { Text(vm.error ?? "") }
     }
 
     // MARK: Streak card
@@ -112,13 +118,17 @@ struct BattleCounterView: View {
 
     private func statsRow(_ s: WarRoomSummary) -> some View {
         HStack(spacing: 12) {
+            if let rateWeek = s.winRateWeek {
+                statCell(value: rateWeek, label: "SEMAINE %")
+            } else {
+                statCellPlaceholder(label: "SEMAINE %")
+            }
             statCell(value: s.totalVictories, label: "VICTOIRES")
             statCell(value: s.totalBattles,   label: "BATAILLES")
             if let rate90 = s.winRate90d {
                 statCell(value: rate90, label: "TAUX 90J %")
             } else {
-                let rate = s.totalBattles > 0 ? Int(Double(s.totalVictories) / Double(s.totalBattles) * 100) : 0
-                statCell(value: rate, label: "RATIO %")
+                statCellPlaceholder(label: "TAUX 90J %")
             }
         }
     }
@@ -138,6 +148,23 @@ struct BattleCounterView: View {
         .background(Color.appCard, in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label.capitalized) : \(value)")
+    }
+
+    private func statCellPlaceholder(label: String) -> some View {
+        VStack(spacing: 4) {
+            Text("—")
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.secondary)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Color.secondary)
+                .tracking(2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color.appCard, in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label.capitalized) : pas assez de données")
     }
 
     // MARK: Today card
@@ -160,7 +187,7 @@ struct BattleCounterView: View {
                         .foregroundStyle(statusColor(status))
                     Spacer()
                     Button("Modifier") {
-                        Task { await vm.logBattle(status == .victory ? .lost : .victory) }
+                        Task { await vm.logBattle(status == .victory ? .lost : .victory, force: true) }
                     }
                     .font(.appLabel)
                     .foregroundStyle(Color.secondary)

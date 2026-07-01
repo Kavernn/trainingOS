@@ -205,14 +205,24 @@ class WarRoomViewModel: ObservableObject {
         warMap = (try? await api.getWarMap()) ?? []
     }
 
-    func logBattle(_ status: BattleStatus) async {
+    func logBattle(_ status: BattleStatus, force: Bool = false) async {
         let prevStreak = summary?.victoryStreak ?? 0
         let today = ISO8601DateFormatter().string(from: Date()).prefix(10).description
-        if let s = try? await api.upsertBattle(date: today, status: status) {
+        do {
+            let s = try await api.upsertBattle(date: today, status: status, force: force)
             if status == .lost && prevStreak > 0 && s.victoryStreak == 0 {
                 streakJustReset = true
             }
             summary = s
+        } catch APIError.queuedOffline {
+            // mutation enfilée hors-ligne — rien à signaler à l'user
+        } catch let err as APIError {
+            if case .serverError(409, _) = err {
+                await loadSummary()  // re-sync : un log existe déjà côté serveur
+            }
+            error = err.localizedDescription
+        } catch {
+            self.error = error.localizedDescription
         }
         await loadBattles()
     }

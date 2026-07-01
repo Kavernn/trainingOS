@@ -31,9 +31,10 @@ extension APIService {
         return try APIService.decoder.decode([WarRoomBattle].self, from: data)
     }
 
-    func upsertBattle(date: String, status: BattleStatus, notes: String? = nil) async throws -> WarRoomSummary {
+    func upsertBattle(date: String, status: BattleStatus, notes: String? = nil, force: Bool = false) async throws -> WarRoomSummary {
         var body: [String: Any] = ["date": date, "status": status.rawValue]
         if let notes { body["notes"] = notes }
+        if force { body["force"] = true }
         let data = try await offlinePost(endpoint: "/api/war_room/battle", payload: body)
         CacheInvalidation.warRoomBattleLogged.invalidate()
         guard let data else { throw APIError.queuedOffline }

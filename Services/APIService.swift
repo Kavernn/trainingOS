@@ -160,7 +160,8 @@ class APIService: ObservableObject {
         do {
             let (data, response) = try await URLSession.authed.data(for: req)
             if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
-                let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+                let parsed = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+                let msg = parsed["message"] as? String ?? parsed["error"] as? String
                 throw APIError.serverError(http.statusCode, msg ?? "HTTP \(http.statusCode)")
             }
             return data

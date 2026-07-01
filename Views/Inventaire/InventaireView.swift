@@ -423,29 +423,13 @@ struct CatalogueView: View {
         if let orig = originalName, orig != item.name {
             body["original_name"] = orig
         }
-        guard let url = URL(string: "\(kBaseURL)/api/save_exercise") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        _ = try? await URLSession.authed.data(for: req)
-        CacheService.shared.clear(for: "inventaire_data")
-        CacheService.shared.clear(for: "programme_data")
-        CacheService.shared.clear(for: "seance_data")
+        _ = try? await APIService.shared.saveExercise(body)
         await loadData()
     }
 
     private func deleteItem(_ name: String) async {
-        guard let url = URL(string: "\(kBaseURL)/api/delete_exercise") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["name": name])
-        _ = try? await URLSession.authed.data(for: req)
+        _ = try? await APIService.shared.deleteExerciseItem(name: name)
         await MainActor.run { items.removeAll { $0.name == name } }
-        CacheService.shared.clear(for: "inventaire_data")
-        CacheService.shared.clear(for: "programme_data")
-        CacheService.shared.clear(for: "seance_data")
     }
 
     // MARK: – Helpers
@@ -1980,20 +1964,11 @@ struct AddExerciseToProgramSheet: View {
 
     private func addTo(seance seanceName: String) async {
         await MainActor.run { pendingSeance = seanceName }
-        guard let url = URL(string: "\(kBaseURL)/api/programme") else {
-            await MainActor.run { pendingSeance = nil }; return
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let scheme = exercise.defaultScheme.isEmpty ? "3x8-12" : exercise.defaultScheme
-        req.httpBody = try? JSONSerialization.data(withJSONObject: [
+        _ = try? await APIService.shared.postProgrammeMutation([
             "action": "add", "jour": seanceName,
             "exercise": exercise.name, "scheme": scheme
         ])
-        _ = try? await URLSession.authed.data(for: req)
-        CacheService.shared.clear(for: "programme_data")
-        CacheService.shared.clear(for: "seance_data")
         await MainActor.run {
             pendingSeance = nil
             onAdded()
@@ -2175,17 +2150,12 @@ struct ClassificationGapsSheet: View {
     }
 
     private func applyGap(_ gap: ClassificationGap) async {
-        guard let url = URL(string: "\(kBaseURL)/api/exercises/classify") else { return }
         await MainActor.run { applyingName = gap.name }
         var body: [String: Any] = ["name": gap.name]
         if let v = gap.suggestedMuscleGroup  ?? gap.currentMuscleGroup  { body["muscle_group"]     = v }
         if let v = gap.suggestedMuscleSpecific                           { body["muscle_specific"]  = v }
         if let v = gap.suggestedMovementPattern                          { body["movement_pattern"] = v }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        _ = try? await URLSession.authed.data(for: req)
+        _ = try? await APIService.shared.classifyExercise(body)
         await MainActor.run {
             appliedNames.insert(gap.name)
             applyingName = nil

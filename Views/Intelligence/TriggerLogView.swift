@@ -118,6 +118,7 @@ struct TriggerLogView: View {
     @State private var yielded:     Bool   = false
     @State private var contextNote: String = ""
     @State private var saving       = false
+    @State private var infoMessage: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -166,20 +167,34 @@ struct TriggerLogView: View {
                         .disabled(saving)
                 }
             }
+            .alert("Note", isPresented: Binding(
+                get: { infoMessage != nil },
+                set: { if !$0 { infoMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { infoMessage = nil }
+            } message: { Text(infoMessage ?? "") }
         }
     }
 
     private func save() {
         saving = true
         Task {
-            _ = try? await APIService.shared.logTrigger(
-                context:     context,
-                intensity:   intensity,
-                yielded:     yielded,
-                contextNote: contextNote.isEmpty ? nil : contextNote
-            )
-            await vm.loadTriggers()
-            dismiss()
+            do {
+                _ = try await APIService.shared.logTrigger(
+                    context:     context,
+                    intensity:   intensity,
+                    yielded:     yielded,
+                    contextNote: contextNote.isEmpty ? nil : contextNote
+                )
+                await vm.loadTriggers()
+                dismiss()
+            } catch APIError.queuedOffline {
+                await vm.loadTriggers()
+                dismiss()
+            } catch {
+                saving = false
+                infoMessage = error.localizedDescription
+            }
         }
     }
 }

@@ -239,7 +239,7 @@ func makeBeep(hz: Double, duration: Double) -> AVAudioPlayer? {
 extension Calendar {
     static let mtl: Calendar = {
         var c = Calendar(identifier: .iso8601)
-        c.timeZone = TimeZone(identifier: "America/Montreal")!
+        c.timeZone = TimeZone(identifier: "America/Montreal") ?? .current
         return c
     }()
 }

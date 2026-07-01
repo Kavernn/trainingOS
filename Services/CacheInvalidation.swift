@@ -10,6 +10,8 @@ enum CacheInvalidation {
     case sessionMutated           // delete / update / edit
     case hiitLogged
     case programmeApproved
+    case programmeMutated        // create / rename / delete / setActive / structure / schedule
+    case inventaireMutated       // save / delete / classify exercise dans le catalogue
     case deloadApplied
 
     // MARK: - Wellness
@@ -90,6 +92,11 @@ enum CacheInvalidation {
             return ["dashboard", "hiit_data"]
         case .programmeApproved:
             return ["programme_data", "stats_data", "morning_brief"]
+        case .programmeMutated:
+            return ["programme_data", "seance_data", "seance_soir_data",
+                    "stats_data", "dashboard", "morning_brief"]
+        case .inventaireMutated:
+            return ["inventaire_data", "programme_data", "seance_data", "seance_soir_data"]
         case .deloadApplied:
             return ["seance_data", "dashboard", "morning_brief"]
         case .recoveryLogged:

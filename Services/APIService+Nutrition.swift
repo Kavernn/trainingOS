@@ -12,6 +12,11 @@ extension APIService {
         return try APIService.decoder.decode(NutritionDataResponse.self, from: data).history
     }
 
+    func deleteNutritionEntry(id: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/nutrition/delete", payload: ["id": id])
+        CacheInvalidation.nutritionLogged.invalidate()
+    }
+
     func addNutritionEntry(name: String, calories: Double, proteines: Double,
                            glucides: Double, lipides: Double, mealType: String? = nil,
                            source: String = "manual", date: String? = nil) async throws {
@@ -42,6 +47,9 @@ extension APIService {
         if let dtt = dayTypeTargets { payload["day_type_targets"] = dtt }
         if let t   = nutritionEndTime { payload["nutrition_end_time"] = t }
         _ = try await offlinePost(endpoint: "/api/nutrition/settings", payload: payload)
+        // Targets changent → toutes les données dérivées (nutrition_data, dashboard,
+        // readiness, morning_brief) doivent être recalculées.
+        CacheInvalidation.nutritionLogged.invalidate()
     }
 
     // MARK: - Food Catalog
@@ -93,6 +101,8 @@ extension APIService {
         return try APIService.decoder.decode(Resp.self, from: data).template
     }
 
+    // Templates non cachées (fetchMealTemplates n'utilise pas fetchWithCache) —
+    // rien à invalider sur update/delete.
     func updateMealTemplate(id: String, name: String, items: [MealTemplateItem]) async throws {
         let itemDicts: [[String: Any]] = items.map {
             ["name": $0.name, "calories": $0.calories,

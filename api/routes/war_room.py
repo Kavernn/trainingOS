@@ -75,7 +75,7 @@ def api_wr_battle_upsert():
 
     battle_date  = data.get("date") or _today_mtl()
     today_status = db.get_war_room_today_status(battle_date)
-    if today_status.get("has_result"):
+    if today_status.get("has_result") and not data.get("force"):
         return jsonify({
             "error":     "already_logged",
             "message":   "Résultat déjà loggué aujourd'hui",

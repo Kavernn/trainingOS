@@ -52,13 +52,11 @@ final class NutritionViewModel: ObservableObject {
 
     func deleteEntry(_ entry: NutritionEntry) async {
         guard let eid = entry.entryId else { return }
-        guard let url = URL(string: "\(APIConfig.base)/api/nutrition/delete") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["id": eid])
-        _ = try? await URLSession.authed.data(for: req)
-        CacheInvalidation.nutritionLogged.invalidate()
+        do {
+            try await APIService.shared.deleteNutritionEntry(id: eid)
+        } catch {
+            networkError = "Suppression échouée — réessaie"
+        }
         await loadData(silent: true)
     }
 }

@@ -7,6 +7,8 @@ from utils import _today_mtl_date as _today
 
 logger = logging.getLogger("trainingos.war_room")
 
+MIN_LOGGED_DAYS_FOR_RATE = 3  # seuil de fiabilité pour afficher un % de victoires
+
 
 def _pearson(xs: list[float], ys: list[float]) -> float:
     """Pearson r on paired lists. Returns 0 on invalid input."""
@@ -20,6 +22,10 @@ def _pearson(xs: list[float], ys: list[float]) -> float:
     if dx == 0 or dy == 0:
         return 0.0
     return round(num / (dx * dy), 3)
+
+
+def _monday(d: date) -> date:
+    return d - timedelta(days=d.weekday())
 
 
 # ── Pattern correlation ───────────────────────────────────────────────────────
@@ -246,13 +252,26 @@ def compute_summary() -> dict:
 
     # 30-day and 90-day win rates — resilience metric, unaffected by a single lapse
     def _win_rate(days: int) -> int | None:
-        window = {(today - timedelta(days=i)).isoformat() for i in range(days)}
+        window    = {(today - timedelta(days=i)).isoformat() for i in range(days)}
         logged    = sum(1 for d in window if battles_by_date.get(d) in ("victory", "lost"))
         victories = sum(1 for d in window if battles_by_date.get(d) == "victory")
-        return round(victories / logged * 100) if logged > 0 else None
+        if logged < MIN_LOGGED_DAYS_FOR_RATE:
+            return None
+        return round(victories / logged * 100)
 
-    win_rate_30d = _win_rate(30)
-    win_rate_90d = _win_rate(90)
+    def _win_rate_week() -> int | None:
+        week_start   = _monday(today)
+        days_elapsed = (today - week_start).days + 1  # lundi=1, mardi=2, ...
+        week_dates   = {(week_start + timedelta(days=i)).isoformat() for i in range(days_elapsed)}
+        logged       = sum(1 for d in week_dates if battles_by_date.get(d) in ("victory", "lost"))
+        victories    = sum(1 for d in week_dates if battles_by_date.get(d) == "victory")
+        if logged < MIN_LOGGED_DAYS_FOR_RATE:
+            return None
+        return round(victories / logged * 100)
+
+    win_rate_30d  = _win_rate(30)
+    win_rate_90d  = _win_rate(90)
+    win_rate_week = _win_rate_week()
 
     war_start = config.get("war_start_date")
     war_days  = 0
@@ -273,4 +292,5 @@ def compute_summary() -> dict:
         "war_days":        war_days,
         "win_rate_30d":    win_rate_30d,
         "win_rate_90d":    win_rate_90d,
+        "win_rate_week":   win_rate_week,
     }

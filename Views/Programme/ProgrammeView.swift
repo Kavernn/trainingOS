@@ -873,20 +873,11 @@ struct ProgrammeView: View {
     }
 
     private func saveEveningSchedule() async {
-        guard let url = URL(string: "\(kBaseURL)/api/evening_schedule") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: eveningSchedule)
         do {
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-                await MainActor.run { lastSaveError = true }
-            }
+            try await APIService.shared.saveEveningSchedule(eveningSchedule)
         } catch {
             await MainActor.run { lastSaveError = true }
         }
-        CacheService.shared.clear(for: "seance_soir_data")
     }
 
     // MARK: – Mutations
@@ -894,25 +885,15 @@ struct ProgrammeView: View {
     private func postProgramme(_ body: [String: Any]) async {
         await MainActor.run { mutationCount += 1; lastSaveError = false }
         defer { Task { @MainActor in mutationCount = max(0, mutationCount - 1) } }
-        guard let url = URL(string: "\(kBaseURL)/api/programme") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         var enrichedBody = body
         if !selectedProgramId.isEmpty, enrichedBody["program_id"] == nil {
             enrichedBody["program_id"] = selectedProgramId
         }
-        req.httpBody = try? JSONSerialization.data(withJSONObject: enrichedBody)
         do {
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-                await MainActor.run { lastSaveError = true }
-            }
+            try await APIService.shared.postProgrammeMutation(enrichedBody)
         } catch {
             await MainActor.run { lastSaveError = true }
         }
-        CacheService.shared.clear(for: "programme_data")
-        CacheService.shared.clear(for: "seance_data")
     }
 
     private func addExercise(seance: String, exercise: String, scheme: String) async {
@@ -972,21 +953,11 @@ struct ProgrammeView: View {
     }
 
     private func saveSchedule() async {
-        guard let url = URL(string: "\(kBaseURL)/api/morning_schedule") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["schedule": schedule])
         do {
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-                await MainActor.run { lastSaveError = true }
-            }
+            try await APIService.shared.saveMorningSchedule(schedule)
         } catch {
             await MainActor.run { lastSaveError = true }
         }
-        CacheService.shared.clear(for: "seance_data")
-        CacheService.shared.clear(for: "programme_data")
     }
 
     private func createSeance(name: String) async {
@@ -1002,23 +973,8 @@ struct ProgrammeView: View {
     // MARK: – Programme CRUD
 
     private func createProgram(name: String) async {
-        guard let url = URL(string: "\(kBaseURL)/api/programs") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "create", "name": name])
         do {
-            let (data, resp) = try await URLSession.authed.data(for: req)
-            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-                await MainActor.run { lastSaveError = true }
-                return
-            }
-            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let pid  = json["id"] as? String else {
-                await MainActor.run { lastSaveError = true }
-                return
-            }
-            CacheService.shared.clear(for: "programme_data")
+            let pid = try await APIService.shared.createProgram(name: name)
             await MainActor.run {
                 let p = ProgramInfo(id: pid, name: name)
                 programs.append(p)
@@ -1035,18 +991,8 @@ struct ProgrammeView: View {
         guard !selectedProgramId.isEmpty else { return }
         await MainActor.run { isSettingActive = true }
         defer { Task { @MainActor in isSettingActive = false } }
-        guard let url = URL(string: "\(kBaseURL)/api/programs") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "set_active", "program_id": selectedProgramId])
         do {
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            guard let http = resp as? HTTPURLResponse, http.statusCode < 400 else {
-                await MainActor.run { lastSaveError = true }
-                return
-            }
-            CacheService.shared.clear(for: "seance_data")
+            try await APIService.shared.setActiveProgram(id: selectedProgramId)
             await MainActor.run {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     activeProgramId = selectedProgramId
@@ -1058,18 +1004,8 @@ struct ProgrammeView: View {
     }
 
     private func renameProgram(id: String, name: String) async {
-        guard let url = URL(string: "\(kBaseURL)/api/programs") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "rename", "program_id": id, "name": name])
         do {
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-                await MainActor.run { lastSaveError = true }
-                return
-            }
-            CacheService.shared.clear(for: "programme_data")
+            try await APIService.shared.renameProgram(id: id, name: name)
             await MainActor.run {
                 if let idx = programs.firstIndex(where: { $0.id == id }) {
                     programs[idx] = ProgramInfo(id: id, name: name)
@@ -1081,18 +1017,8 @@ struct ProgrammeView: View {
     }
 
     private func deleteProgram(id: String) async {
-        guard let url = URL(string: "\(kBaseURL)/api/programs") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "delete", "program_id": id])
         do {
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-                await MainActor.run { lastSaveError = true }
-                return
-            }
-            CacheService.shared.clear(for: "programme_data")
+            try await APIService.shared.deleteProgram(id: id)
             await MainActor.run {
                 programs.removeAll { $0.id == id }
                 if selectedProgramId == id { selectedProgramId = programs.first?.id ?? "" }
