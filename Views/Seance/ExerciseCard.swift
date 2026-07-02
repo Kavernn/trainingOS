@@ -307,6 +307,7 @@ struct ExerciseCard: View {
                 }
                 .padding(.top, 2)
             }
+            overloadHintLine()
             if evm.repCountMode {
                 RepCounterSection(evm: evm, doLog: doLog)
             } else if evm.setBySetMode {
@@ -315,6 +316,98 @@ struct ExerciseCard: View {
                     .padding(.top, 2)
             }
         }
+    }
+
+    // MARK: - Progressive Overload hint (client-only comparison vs last session)
+
+    @ViewBuilder private func overloadHintLine() -> some View {
+        if evm.overloadEnabled {
+            let reached  = evm.overloadReached
+            let progress = overloadProgress
+            let barColor = reached ? Color.appSuccess : Color.forge
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    if reached {
+                        Image(systemName: "checkmark")
+                            .font(.appCaption.weight(.bold))
+                            .foregroundColor(Color.appSuccess)
+                    }
+                    Text(overloadLabel)
+                        .font(.appCaption)
+                        .foregroundColor(reached ? Color.appSuccess : .gray)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                    Spacer()
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.appSurfaceInset)
+                        Capsule()
+                            .fill(barColor)
+                            .frame(width: max(0, geo.size.width * progress))
+                            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: progress)
+                    }
+                }
+                .frame(height: 3)
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private var overloadProgress: Double {
+        var best = 0.0
+        if let t = evm.overloadTargetReps, t > 0 {
+            best = max(best, Double(evm.overloadCurrentReps) / Double(t + 1))
+        }
+        if let t = evm.overloadTargetVolumeLbs, t > 0 {
+            best = max(best, evm.overloadCurrentVolumeLbs / t)
+        }
+        // La barre n'atteint 100% qu'au dépassement STRICT (cohérent avec
+        // le check) : à l'égalité exacte volume, on plafonne juste sous.
+        return evm.overloadReached ? 1.0 : min(best, 0.97)
+    }
+
+    /// Ligne d'entête du hint. Format non dépassé :
+    ///   "Dern. : 24 reps · 2 480 lbs — encore 8 reps ou 340 lbs"
+    /// Format dépassé :
+    ///   "Dépassé — dern. : 24 reps · 2 480 lbs"
+    private var overloadLabel: String {
+        let reference = overloadReferenceLabel
+        if evm.overloadReached {
+            return reference.isEmpty ? "Dépassé" : "Dépassé — dern. : \(reference)"
+        }
+        let deficit = overloadDeficitLabel
+        if reference.isEmpty { return deficit }
+        if deficit.isEmpty   { return "Dern. : \(reference)" }
+        return "Dern. : \(reference) — \(deficit.lowercased())"
+    }
+
+    /// Fabrique la partie référence : "24 reps · 2 480 lbs" (chaque partie
+    /// omise si sa cible n'existe pas).
+    private var overloadReferenceLabel: String {
+        var parts: [String] = []
+        if let t = evm.overloadTargetReps       { parts.append("\(t) reps") }
+        if let t = evm.overloadTargetVolumeLbs {
+            let displayed = UnitSettings.shared.display(t)
+            parts.append("\(Int(displayed.rounded())) \(UnitSettings.shared.label)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private var overloadDeficitLabel: String {
+        var parts: [String] = []
+        if let target = evm.overloadTargetReps {
+            let strict = max(1, target + 1 - evm.overloadCurrentReps)
+            parts.append("\(strict) reps")
+        }
+        if let target = evm.overloadTargetVolumeLbs {
+            let rawLbs = max(0, target - evm.overloadCurrentVolumeLbs)
+            let displayed = UnitSettings.shared.display(rawLbs)
+            let strict = max(1, Int(displayed.rounded(.up)))
+            parts.append("\(strict) \(UnitSettings.shared.label)")
+        }
+        guard !parts.isEmpty else { return "" }
+        return "Encore " + parts.joined(separator: " ou ")
     }
 
     @ViewBuilder private func setHeaderWeightLabels() -> some View {

@@ -15,8 +15,12 @@ Old format (KV):
 New format (relational): exercise_logs table with exercise_id FK, no computed fields.
 """
 import db
+import logging
 from datetime import datetime, timezone, timedelta
 from utils import _today_mtl as _today_local
+from volume import calc_exercise_volume
+
+_logger = logging.getLogger(__name__)
 
 
 def _calc_1rm(weight, reps_str):
@@ -66,6 +70,23 @@ def load_weights(exercise_names: list[str] | None = None, limit_per: int = 20) -
                     entry["1rm"] = _calc_1rm(entry["weight"], entry["reps"])
                 if row.get("sets"):
                     entry["sets"] = row["sets"]
+                # Volume dérivé à la lecture : source unique côté client pour la
+                # cible progressive-overload. Jamais persisté en DB (le schéma
+                # exercise_logs n'a pas de colonne dédiée ; set_volume vit dans
+                # sets_json). Fail loud si le calcul plante — l'entry sort sans
+                # la clé, iOS traite l'absence comme "pas de cible".
+                w_val = entry.get("weight")
+                r_val = entry.get("reps")
+                if w_val is not None and r_val is not None:
+                    try:
+                        entry["exercise_volume"] = calc_exercise_volume(
+                            w_val, r_val, sets_json=row.get("sets")
+                        )
+                    except Exception as e:
+                        _logger.warning(
+                            "load_weights: exercise_volume calc failed for %s (date=%s): %s",
+                            name, entry.get("date"), e
+                        )
                 history.append(entry)
 
             if not history:

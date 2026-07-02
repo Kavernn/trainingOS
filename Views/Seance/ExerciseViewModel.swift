@@ -254,6 +254,65 @@ final class ExerciseViewModel: ObservableObject {
 
     var inputHint: Double { ExerciseCalculator.inputHint(currentWeight: currentWeight, equipmentType: equipmentType) }
 
+    // MARK: - Progressive Overload (comparaison live vs dernière séance)
+
+    /// Feature désactivée pour tracking par temps et équipement bodyweight,
+    /// ou si aucune cible utilisable n'existe (première fois qu'on fait cet exo).
+    var overloadEnabled: Bool {
+        guard !isTimeBased, equipmentType != "bodyweight" else { return false }
+        return overloadTargetReps != nil || overloadTargetVolumeLbs != nil
+    }
+
+    /// Σ reps de tous les sets de la dernière occurrence de cet exo. nil si history vide.
+    var overloadTargetReps: Int? {
+        guard let last = weightData?.history?.first?.sets, !last.isEmpty else { return nil }
+        var total = 0
+        for s in last {
+            if let r = Int(s.reps.trimmingCharacters(in: .whitespaces)) { total += r }
+        }
+        return total > 0 ? total : nil
+    }
+
+    /// Volume total (LBS storage) de la dernière occurrence, pré-calculé côté backend.
+    var overloadTargetVolumeLbs: Double? {
+        guard let v = weightData?.history?.first?.exerciseVolume, v > 0 else { return nil }
+        return v
+    }
+
+    /// Σ reps saisies dans les sets en cours. Entrées vides ou invalides ignorées.
+    var overloadCurrentReps: Int {
+        var total = 0
+        for s in sets {
+            if let r = Int(s.reps.trimmingCharacters(in: .whitespaces)), r > 0 { total += r }
+        }
+        return total
+    }
+
+    /// Volume live en LBS storage. Miroir strict de la formule logExercise :
+    /// input display → UnitSettings.toStorage(LBS) → totalWeight(equipmentType) × reps.
+    /// C'est cette formule qui doit être utilisée pour rester comparable au
+    /// exerciseVolume calculé côté backend.
+    var overloadCurrentVolumeLbs: Double {
+        let units = UnitSettings.shared
+        var total = 0.0
+        for s in sets {
+            let wStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+            guard let wDisplay = Double(wStr), wDisplay > 0 else { continue }
+            guard let reps = Int(s.reps.trimmingCharacters(in: .whitespaces)), reps > 0 else { continue }
+            let setTotal = ExerciseCalculator.totalWeight(for: units.toStorage(wDisplay), equipmentType: equipmentType)
+            total += setTotal * Double(reps)
+        }
+        return total
+    }
+
+    /// Vrai dès qu'une des deux cibles est STRICTEMENT dépassée.
+    /// Égaler la dernière séance ne compte pas.
+    var overloadReached: Bool {
+        if let t = overloadTargetReps,      overloadCurrentReps      > t { return true }
+        if let t = overloadTargetVolumeLbs, overloadCurrentVolumeLbs > t { return true }
+        return false
+    }
+
     // MARK: - Draft persistence
 
     private var draftStore: ExerciseDraftPersistence { ExerciseDraftPersistence(exerciseName: name) }
