@@ -20,6 +20,7 @@ struct SelfCareView: View {
     @State private var isLoading = true
     @State private var showAddSheet = false
     @State private var isSaving = false
+    @State private var saveError: String? = nil
 
     private var completedIds: Set<String> {
         Set(today?.completed ?? [])
@@ -111,6 +112,12 @@ struct SelfCareView: View {
             AddHabitSheet()
         }
         .task { await loadData() }
+        .alert("Note", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK", role: .cancel) { saveError = nil }
+        } message: { Text(saveError ?? "") }
     }
 
     private func loadData() async {
@@ -126,32 +133,45 @@ struct SelfCareView: View {
     }
 
     private func toggle(_ habit: SelfCareHabit) {
+        let oldPending = pending
         if pending.contains(habit.id) {
             pending.remove(habit.id)
         } else {
             pending.insert(habit.id)
             ActionFeedbackManager.shared.show(.habitCompleted(name: habit.name))
         }
-        saveLog()
+        saveLog(rollbackTo: oldPending)
     }
 
     private func addDefaultHabit(_ suggestion: DefaultHabitSuggestion) {
         Task {
-            _ = try? await APIService.shared.addSelfCareHabit(
-                name: suggestion.name, icon: suggestion.icon, category: suggestion.category
-            )
-            await loadData()
+            do {
+                _ = try await APIService.shared.addSelfCareHabit(
+                    name: suggestion.name, icon: suggestion.icon, category: suggestion.category
+                )
+                await loadData()
+            } catch {
+                await MainActor.run { saveError = "Habitude non créée — réessaie" }
+            }
         }
     }
 
-    private func saveLog() {
+    private func saveLog(rollbackTo: Set<String>? = nil) {
         isSaving = true
         Task {
-            let result = try? await APIService.shared.submitSelfCareLog(habitIds: Array(pending))
-            await MainActor.run {
-                if let result { today = result }
-                isSaving = false
-                BehaviorTracker.shared.record(.selfCareCheck)
+            do {
+                let result = try await APIService.shared.submitSelfCareLog(habitIds: Array(pending))
+                await MainActor.run {
+                    today = result
+                    isSaving = false
+                    BehaviorTracker.shared.record(.selfCareCheck)
+                }
+            } catch {
+                await MainActor.run {
+                    if let rollbackTo { pending = rollbackTo }
+                    isSaving = false
+                    saveError = "Log non enregistré — réessaie"
+                }
             }
         }
     }
@@ -214,6 +234,7 @@ private struct AddHabitSheet: View {
     @State private var icon = "star.fill"
     @State private var category = "mental"
     @State private var isSubmitting = false
+    @State private var saveError: String? = nil
 
     private let categories = ["mental", "physique", "social", "sommeil"]
     private let icons = ["star.fill", "heart.fill", "book.fill", "drop.fill",
@@ -262,18 +283,31 @@ private struct AddHabitSheet: View {
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
                 }
             }
+            .alert("Note", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK", role: .cancel) { saveError = nil }
+            } message: { Text(saveError ?? "") }
         }
     }
 
     private func submit() {
         isSubmitting = true
         Task {
-            _ = try? await APIService.shared.addSelfCareHabit(
-                name:     name.trimmingCharacters(in: .whitespaces),
-                icon:     icon,
-                category: category
-            )
-            await MainActor.run { dismiss() }
+            do {
+                _ = try await APIService.shared.addSelfCareHabit(
+                    name:     name.trimmingCharacters(in: .whitespaces),
+                    icon:     icon,
+                    category: category
+                )
+                await MainActor.run { dismiss() }
+            } catch {
+                await MainActor.run {
+                    isSubmitting = false
+                    saveError = "Habitude non créée — réessaie"
+                }
+            }
         }
     }
 }

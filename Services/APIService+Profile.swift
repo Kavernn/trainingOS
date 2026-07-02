@@ -85,7 +85,7 @@ extension APIService {
         if let v = hrvSensitivity { body["hrv_sensitivity"]  = v }
         guard !body.isEmpty else { return }
         _ = try await offlinePost(endpoint: "/api/update_profile", payload: body)
-        CacheService.shared.clear(for: "readiness")
+        CacheInvalidation.profileUpdated.invalidate()
     }
 
     // MARK: - Weights

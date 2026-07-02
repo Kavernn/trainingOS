@@ -208,7 +208,7 @@ struct XPView: View {
                         .font(.appCaption.weight(.bold)).tracking(2)
                         .foregroundColor(Color.forge)
                     Text("\(level)")
-                        .font(.system(size: 44, weight: .black))
+                        .font(.appHero)
                         .foregroundColor(Color.forge)
                 }
             }
@@ -310,7 +310,7 @@ struct XPView: View {
 
     private func hasPerfectWeek(sessions: [String: SessionEntry]) -> Bool {
         var weekCounts: [String: Int] = [:]
-        let tz = TimeZone.current.secondsFromGMT()
+        let tz = Calendar.mtl.timeZone.secondsFromGMT()
         for dateStr in sessions.keys {
             guard let date = DateFormatter.isoDate.date(from: dateStr) else { continue }
             let epochDays = (Int(date.timeIntervalSince1970) + tz) / 86400

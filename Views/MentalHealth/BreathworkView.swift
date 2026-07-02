@@ -133,6 +133,7 @@ struct BreathworkTimerView: View {
     @State private var isFinished = false
     @State private var timer: Timer?
     @State private var circleScale: CGFloat = 1.0
+    @State private var saveError: String? = nil
 
     private var currentPhase: BreathworkPhase {
         technique.phases[currentPhaseIndex % technique.phases.count]
@@ -158,6 +159,12 @@ struct BreathworkTimerView: View {
                 timerBody
             }
         }
+        .alert("Note", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK", role: .cancel) { saveError = nil }
+        } message: { Text(saveError ?? "") }
     }
 
     // MARK: Timer body
@@ -321,11 +328,17 @@ struct BreathworkTimerView: View {
 
     private func saveSession() {
         Task {
-            _ = try? await APIService.shared.submitBreathworkSession(
-                techniqueId: technique.id,
-                durationSec: totalSecondsElapsed,
-                cycles:      cyclesCompleted
-            )
+            do {
+                _ = try await APIService.shared.submitBreathworkSession(
+                    techniqueId: technique.id,
+                    durationSec: totalSecondsElapsed,
+                    cycles:      cyclesCompleted
+                )
+            } catch {
+                await MainActor.run {
+                    saveError = "Session breathwork non enregistrée — réessaie"
+                }
+            }
         }
     }
 }

@@ -168,11 +168,11 @@ struct RecoveryScoreRing: View {
                 VStack(spacing: 2) {
                     if let s = summary.recoveryScore {
                         Text("\(Int(s))")
-                            .font(.system(size: 26, weight: .black))
+                            .font(.appTitle.weight(.black))
                             .foregroundColor(scoreColor)
                     } else {
                         Text("—")
-                            .font(.system(size: 26, weight: .black))
+                            .font(.appTitle.weight(.black))
                             .foregroundColor(.gray)
                     }
                     Text("/ 100").font(.appCaption).foregroundColor(.gray)
@@ -351,8 +351,8 @@ struct CardioSummaryCard: View {
                 Text("CARDIO").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 if let t = summary.cardioType {
                     Text(t.capitalized).font(.appCaption.weight(.medium))
-                        .foregroundColor(.teal).padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.teal.opacity(0.12)).cornerRadius(4)
+                        .foregroundColor(.statusCyan).padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.statusCyan.opacity(0.12)).cornerRadius(4)
                 }
             }
             HStack(spacing: 20) {

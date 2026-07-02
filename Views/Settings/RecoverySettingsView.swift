@@ -8,6 +8,8 @@ struct RecoverySettingsView: View {
 
     @State private var wakeDate: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date()
     @State private var bedDate:  Date = Calendar.current.date(from: DateComponents(hour: 23, minute: 0)) ?? Date()
+    @State private var saveError: String? = nil
+    @State private var isRevertingSleepGoal = false
 
     private let sensitivityOptions: [(id: String, label: String, subtitle: String)] = [
         ("conservative", "Conservateur", "Zones 85% / 115% — moins d'alertes"),
@@ -84,8 +86,18 @@ struct RecoverySettingsView: View {
                 Section("Sensibilité HRV") {
                     ForEach(sensitivityOptions, id: \.id) { option in
                         Button {
+                            let old = hrvSensitivity
                             hrvSensitivity = option.id
-                            Task { try? await APIService.shared.updateProfileSettings(hrvSensitivity: option.id) }
+                            Task {
+                                do {
+                                    try await APIService.shared.updateProfileSettings(hrvSensitivity: option.id)
+                                } catch {
+                                    await MainActor.run {
+                                        hrvSensitivity = old
+                                        saveError = "Réglage HRV non sauvegardé — réessaie"
+                                    }
+                                }
+                            }
                         } label: {
                             HStack(spacing: 12) {
                                 settingsIcon(
@@ -123,9 +135,26 @@ struct RecoverySettingsView: View {
         .navigationTitle("Récupération & Sommeil")
         .navigationBarTitleDisplayMode(.large)
         .onAppear { loadStoredTimes() }
-        .onChange(of: sleepGoalHours) { _, newValue in
-            Task { try? await APIService.shared.updateProfileSettings(sleepGoalHours: newValue) }
+        .onChange(of: sleepGoalHours) { oldValue, newValue in
+            if isRevertingSleepGoal { isRevertingSleepGoal = false; return }
+            Task {
+                do {
+                    try await APIService.shared.updateProfileSettings(sleepGoalHours: newValue)
+                } catch {
+                    await MainActor.run {
+                        isRevertingSleepGoal = true
+                        sleepGoalHours = oldValue
+                        saveError = "Objectif de sommeil non sauvegardé — réessaie"
+                    }
+                }
+            }
         }
+        .alert("Note", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK", role: .cancel) { saveError = nil }
+        } message: { Text(saveError ?? "") }
     }
 
     @ViewBuilder

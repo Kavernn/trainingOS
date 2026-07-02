@@ -76,7 +76,7 @@ struct DisplaySettingsView: View {
                             }
                             Spacer()
                             Text(stepsGoal.formatted())
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.statusGreen)
                         }
 
@@ -106,7 +106,7 @@ struct DisplaySettingsView: View {
                             step: 250
                         ) {
                             Text(hydrationLabel)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.appTextPrimary)
                         }
                     }
@@ -134,7 +134,7 @@ struct DisplaySettingsView: View {
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: hasChange ? "paintpalette.fill" : "checkmark.circle.fill")
-                        .font(.system(size: 14))
+                        .font(.appBody)
                         .foregroundColor(hasChange ? pendingTheme.previewColor : .statusGreen)
                     Text(hasChange ? "Appliquer « \(pendingTheme.displayName) »" : "Thème appliqué")
                         .font(.appBody.weight(.semibold))
@@ -142,7 +142,7 @@ struct DisplaySettingsView: View {
                     Spacer()
                     if hasChange {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(Color.appOnSurface.opacity(0.3))
                     }
                 }
@@ -181,7 +181,7 @@ struct DisplaySettingsView: View {
                 .padding(.bottom, isApplied ? 4 : 0)
 
                 Text(option.displayName)
-                    .font(.system(size: 11, weight: isPending ? .bold : .regular))
+                    .font(isPending ? .appCaption.weight(.bold) : .appCaption)
                     .foregroundColor(isPending ? .white : Color.appOnSurface.opacity(0.4))
             }
             .frame(width: 64)
