@@ -22,11 +22,6 @@ from volume import calc_exercise_volume
 
 _logger = logging.getLogger(__name__)
 
-# --- OVERLOAD_DEBUG (temporaire — retiré dans le diff de fix) ---
-# Nom EXACT stocké en DB pour l'exo test (Title Case confirmé par
-# scripts/seed_load_profiles.py:57). Filtre sensible à la casse.
-_OVERLOAD_DEBUG_NAME = "Seated Z Press"
-
 
 def _calc_1rm(weight, reps_str):
     """1RM estimate: Epley ≤10 reps, Brzycki >10 reps, 0 if >20 reps (too imprecise).
@@ -96,23 +91,6 @@ def load_weights(exercise_names: list[str] | None = None, limit_per: int = 20) -
 
             if not history:
                 continue
-
-            # --- OVERLOAD_DEBUG (temporaire — retiré dans le diff de fix) ---
-            if name == _OVERLOAD_DEBUG_NAME:
-                first_entry  = history[0]
-                last_entry   = history[-1]
-                sets_raw     = first_entry.get("sets")
-                sets_type    = type(sets_raw).__name__
-                sets_preview = repr(sets_raw)[:200] if sets_raw is not None else "None"
-                vol          = first_entry.get("exercise_volume", "ABSENT")
-                _logger.warning(
-                    "OVERLOAD_DEBUG %s: n_history=%d w=%s r=%s sets_type=%s "
-                    "sets_preview=%s vol=%s first_date=%s last_date=%s",
-                    name, len(history),
-                    first_entry.get("weight"), first_entry.get("reps"),
-                    sets_type, sets_preview, vol,
-                    first_entry.get("date"), last_entry.get("date"),
-                )
 
             latest = history[0]
             weights[name] = {

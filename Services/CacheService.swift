@@ -5,7 +5,8 @@ final class CacheService {
 
     // Bump this when any API response schema changes to auto-clear stale disk cache.
     // v7: merged expiry+savedAt into 16-byte header in .cache file (eliminates .expiry/.savedAt)
-    private static let schemaVersion = "v7"
+    // v8: seance_data.weights.history entries now carry exercise_volume (progressive overload target)
+    private static let schemaVersion = "v8"
 
     /// Call once at app launch. Wipes all cache files if schema version changed.
     static func invalidateIfVersionChanged() {
