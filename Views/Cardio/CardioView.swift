@@ -443,7 +443,7 @@ struct CardioMetricCard: View {
                     .font(.appCaption).foregroundColor(.gray.opacity(0.5))
             }
             Text(value)
-                .font(.system(size: 26, weight: .bold)).foregroundColor(.appTextPrimary)
+                .font(.appTitle).foregroundColor(.appTextPrimary)
             if !guide.isEmpty {
                 Text(guide)
                     .font(.appCaption).foregroundColor(.secondary)
@@ -494,7 +494,7 @@ struct CardioMetricDetailSheet: View {
                                 }
                             }
                             Text(value)
-                                .font(.system(size: 40, weight: .heavy)).foregroundColor(.appTextPrimary)
+                                .font(.appHero).foregroundColor(.appTextPrimary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(18).background(color.opacity(0.07)).cornerRadius(16)

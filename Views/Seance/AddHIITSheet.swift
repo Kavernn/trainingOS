@@ -97,6 +97,7 @@ struct AddHIITSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("RONDES").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $rounds).keyboardType(.numberPad)
+                                    // exception assumée — lisibilité formulaire, hors token
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
@@ -106,6 +107,7 @@ struct AddHIITSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("TRAVAIL (s)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $workTime).keyboardType(.numberPad)
+                                    // exception assumée — lisibilité formulaire, hors token
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
@@ -115,6 +117,7 @@ struct AddHIITSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("REPOS (s)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $restTime).keyboardType(.numberPad)
+                                    // exception assumée — lisibilité formulaire, hors token
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .multilineTextAlignment(.center)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
@@ -129,6 +132,7 @@ struct AddHIITSheet: View {
                             HStack {
                                 Text("RPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                 Spacer()
+                                // exception assumée — lisibilité formulaire, hors token
                                 Text("\(rpe, specifier: "%.1f")").font(.system(size: 18, weight: .black)).foregroundColor(rpeColor(rpe))
                             }
                             Slider(value: $rpe, in: 1...10, step: 0.5).tint(rpeColor(rpe))

@@ -92,7 +92,7 @@ private struct CardioTypeCard: View {
         Button(action: onTap) {
             VStack(spacing: 10) {
                 Image(systemName: type.icon)
-                    .font(.system(size: 28, weight: .medium))
+                    .font(.appTitle)
                     .foregroundColor(isSelected ? Color.statusCyan : Color.appOnSurface.opacity(0.7))
                     .frame(height: 34)
 
@@ -213,7 +213,7 @@ private struct CardioIdleView: View {
                             }
                         }
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.teal)
+                        .foregroundColor(Color.statusCyan)
                     }
                     .padding(.horizontal, 16)
                 }
@@ -470,14 +470,16 @@ private struct MetricsBlock: View {
 
     private func primaryText(_ value: String) -> some View {
         Text(value)
+            // exception assumée — lisibilité effort, KPI live hors token
             .font(.system(size: 72, weight: .black, design: .monospaced))
             .foregroundColor(.appTextPrimary)
             .frame(maxWidth: .infinity, alignment: .center)
             .minimumScaleFactor(0.5)
     }
 
-    private func secondaryText(_ value: String, color: Color = .teal) -> some View {
+    private func secondaryText(_ value: String, color: Color = Color.statusCyan) -> some View {
         Text(value)
+            // exception assumée — lisibilité effort, KPI secondaire hors token
             .font(.system(size: 36, weight: .bold))
             .foregroundColor(color)
     }

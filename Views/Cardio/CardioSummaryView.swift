@@ -105,7 +105,7 @@ struct CardioSummaryView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .teal).ignoresSafeArea()
+            AmbientBackground(color: Color.statusCyan).ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -138,10 +138,10 @@ struct CardioSummaryView: View {
     private var headerSection: some View {
         VStack(spacing: 8) {
             Image(systemName: typeInfo.icon)
-                .font(.system(size: 40, weight: .medium))
-                .foregroundColor(.teal)
+                .font(.appHero)
+                .foregroundColor(Color.statusCyan)
             Text(typeInfo.label)
-                .font(.system(size: 26, weight: .bold))
+                .font(.appTitle)
                 .foregroundColor(.appTextPrimary)
             Text(sessionDateStr)
                 .font(.appLabel.weight(.regular))
@@ -154,7 +154,7 @@ struct CardioSummaryView: View {
     private var metricsSection: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
             SummaryMetric(label: "DURÉE",    value: durationStr,                                    color: .white)
-            SummaryMetric(label: "DISTANCE", value: String(format: "%.2f km", session.distanceKm), color: .teal)
+            SummaryMetric(label: "DISTANCE", value: String(format: "%.2f km", session.distanceKm), color: Color.statusCyan)
             if isVelo {
                 SummaryMetric(label: "VITESSE MOY", value: speedStr,  color: .statusBlue)
             } else {
@@ -219,6 +219,7 @@ struct CardioSummaryView: View {
                 .foregroundColor(Color.appOnSurface.opacity(0.7))
             Spacer()
             Text(splitPace)
+                // exception assumée — monospaced pour splits pace, hors token
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
                 .foregroundColor(isFaster ? .statusGreen : .statusRed)
         }
@@ -257,7 +258,7 @@ struct CardioSummaryView: View {
             HStack(spacing: 12) {
                 Image(systemName: "brain.head.profile")
                     .font(.appTitle.weight(.regular))
-                    .foregroundColor(.teal.opacity(0.5))
+                    .foregroundColor(Color.statusCyan.opacity(0.5))
                 VStack(alignment: .leading, spacing: 6) {
                     RoundedRectangle(cornerRadius: 4).fill(Color.appSurfaceInset).frame(height: 11)
                     RoundedRectangle(cornerRadius: 4).fill(Color.appSurfaceInset).frame(width: 160, height: 11)
@@ -273,10 +274,10 @@ struct CardioSummaryView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "brain.head.profile")
                         .font(.appBody)
-                        .foregroundColor(.teal)
+                        .foregroundColor(Color.statusCyan)
                     Text("CONSEIL COACH")
                         .font(.appCaption.weight(.bold)).tracking(1.5)
-                        .foregroundColor(.teal)
+                        .foregroundColor(Color.statusCyan)
                     Spacer()
                     if note.isPersonalized {
                         Text("Basé sur tes données")
@@ -292,8 +293,8 @@ struct CardioSummaryView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.teal.opacity(0.08))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.teal.opacity(0.2), lineWidth: 1))
+            .background(Color.statusCyan.opacity(0.08))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusCyan.opacity(0.2), lineWidth: 1))
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal, 16)
         }
@@ -325,7 +326,7 @@ struct CardioSummaryView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
-                .background(Color.teal)
+                .background(Color.statusCyan)
                 .foregroundColor(.black)
                 .cornerRadius(16)
             }

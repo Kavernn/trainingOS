@@ -46,12 +46,14 @@ struct AddCardioSheet: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("DURÉE (MIN)").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("30", text: $durationMin).keyboardType(.decimalPad)
+                                    // exception assumée — lisibilité formulaire, hors token
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                             }
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("DISTANCE (\(UnitSettings.shared.distanceUnit))").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $distanceKm).keyboardType(.decimalPad)
+                                    // exception assumée — lisibilité formulaire, hors token
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.appTextPrimary)
                                     .padding(10).background(Color.appSurfaceInset).cornerRadius(10)
                             }
@@ -63,6 +65,7 @@ struct AddCardioSheet: View {
                             HStack {
                                 Text("RPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                 Spacer()
+                                // exception assumée — lisibilité formulaire, hors token
                                 Text("\(rpe, specifier: "%.1f")").font(.system(size: 18, weight: .black)).foregroundColor(rpeColor(rpe))
                             }
                             Slider(value: $rpe, in: 1...10, step: 0.5).tint(rpeColor(rpe))
