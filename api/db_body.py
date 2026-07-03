@@ -1,8 +1,10 @@
 from __future__ import annotations
 import logging
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 import db_core
 from db_exercises import get_or_create_exercise_id
+from utils import _today_mtl
 
 
 def get_body_weight_logs(limit: int = 100) -> List[dict]:
@@ -497,5 +499,69 @@ def delete_cardio_log(date: str, type_: str) -> bool:
 
 
 def get_readiness_history(days: int = 28) -> list:
-    """Return historical readiness scores. No persistence table yet — always cold-start."""
-    return []
+    """Return historical readiness scores from readiness_daily table.
+
+    Lecture pure : SELECT sur les N derniers jours, sans calcul ni backfill.
+    Retourne [] si la table est vide (nouvel utilisateur ou historique en construction).
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+    from datetime import date as _date
+    cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
+
+    def _do() -> list:
+        resp = (
+            db_core._client.table("readiness_daily")
+            .select("date, score")
+            .gte("date", cutoff)
+            .order("date")
+            .execute()
+        )
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_readiness_history retry error: %s", e2)
+                return []
+        db_core.logger.error("get_readiness_history error: %s", e)
+        return []
+
+
+def upsert_readiness_daily(date: str, score: int) -> bool:
+    """UPSERT idempotent du score readiness du jour.
+
+    NE LÈVE JAMAIS : le seul consommateur (readiness.compute()) doit toujours
+    pouvoir retourner son score même si la persistance échoue. Log warning
+    explicite en cas d'erreur, retourne False.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+    if not isinstance(score, int) or score < 0 or score > 100:
+        db_core.logger.warning("upsert_readiness_daily: score invalide %r pour %s", score, date)
+        return False
+    payload = {
+        "date":        date,
+        "score":       score,
+        "computed_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    def _do() -> bool:
+        resp = db_core._client.table("readiness_daily").upsert(payload, on_conflict="date").execute()
+        return bool(resp.data)
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.warning("upsert_readiness_daily retry error: %s", e2)
+                return False
+        db_core.logger.warning("upsert_readiness_daily error: %s", e)
+        return False

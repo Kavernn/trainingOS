@@ -122,6 +122,7 @@ from db_body import (
     insert_cardio_log,
     delete_cardio_log,
     get_readiness_history,
+    upsert_readiness_daily,
 )
 
 # ── Profile ───────────────────────────────────────────────────────────────────

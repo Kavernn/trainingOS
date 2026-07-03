@@ -828,6 +828,18 @@ def compute() -> dict:
             "active_energy_penalty": ae_applied,
             "computed_at":           datetime.now(timezone.utc).isoformat(),
         }
+
+        # Écriture PROSPECTIVE STRICTE (score du jour, jamais rétroactive).
+        # target_date = _today_mtl() par design : compute() lit et calcule sur
+        # aujourd'hui. Fail loud LOG uniquement, jamais throw — le score est
+        # retourné à l'app même si la persistance échoue (chart perd un point,
+        # pas de crash).
+        target_date = _today_mtl()
+        try:
+            db.upsert_readiness_daily(target_date, score)
+        except Exception as e:
+            logger.warning("readiness_daily persist failed for %s: %s", target_date, e)
+
         _CACHE["result"] = {"data": data, "ts": now}
         return data
 
