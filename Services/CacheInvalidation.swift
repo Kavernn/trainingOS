@@ -177,6 +177,7 @@ enum CacheInvalidation {
         switch self {
         case .pssSubmitted:   return ["life_stress_trend"]
         case .nutritionLogged: return ["life_stress_trend"]
+        case .wearableSynced: return ["energy_daily", "energy_history"]
         default: return []
         }
     }
