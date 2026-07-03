@@ -188,6 +188,7 @@ struct EnergyHeaderCard: View {
                         .frame(width: 68, height: 68)
                         .rotationEffect(.degrees(-90))
                     Text("\(score)")
+                        // exception assumée — design rounded KPI énergie/santé, hors token
                         .font(.system(size: 20, weight: .black, design: .rounded))
                         .foregroundColor(color)
                 }
@@ -255,6 +256,7 @@ struct EnergyHeaderCard: View {
                 .tracking(0.5)
                 .foregroundColor(.gray)
             Text(value)
+                // exception assumée — design rounded KPI énergie/santé, hors token
                 .font(.system(size: 16, weight: .black, design: .rounded))
                 .foregroundColor(color)
             if !unit.isEmpty {
@@ -303,7 +305,7 @@ private struct EnergyBreakdownCard: View {
                     breakdownRow(label: "Cardio",
                                  subtitle: "\(energy.breakdown?.cardio?.count ?? 0) session(s)",
                                  value: eatC,
-                                 color: .teal,
+                                 color: Color.statusCyan,
                                  total: tdee)
                 }
                 if neatVal > 0 {
@@ -363,6 +365,7 @@ private struct EnergyBreakdownCard: View {
                         .foregroundColor(.appTextPrimary)
                     Spacer()
                     Text("\(tdee) kcal")
+                        // exception assumée — design rounded KPI énergie/santé, hors token
                         .font(.system(size: 15, weight: .black, design: .rounded))
                         .foregroundColor(Color.forge)
                 }
@@ -415,6 +418,7 @@ private struct EnergyErrorCard: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
+                // exception assumée — .regular volontaire pour icône alerte discrète
                 .font(.appTitle.weight(.regular))
                 .foregroundColor(Color.forge)
             Text(message)
@@ -927,6 +931,7 @@ private struct UnifiedRecoverySleepSection: View {
                     .frame(width: 52, height: 52)
                     .rotationEffect(.degrees(-90))
                 Text(hours.map { String(format: "%.1fh", $0) } ?? "—")
+                    // exception assumée — design rounded KPI énergie/santé, hors token
                     .font(.system(size: 11, weight: .black, design: .rounded))
                     .foregroundColor(durColor)
             }
@@ -1079,6 +1084,7 @@ private struct UnifiedRecoverySleepSection: View {
     private func sleepStat(label: String, value: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
+                // exception assumée — design rounded KPI énergie/santé, hors token
                 .font(.system(size: 14, weight: .black, design: .rounded))
                 .foregroundColor(.appTextPrimary)
             Text(label)
@@ -1157,6 +1163,7 @@ private struct TappableSleepStat: View {
         Button { showInfo = true } label: {
             VStack(spacing: 2) {
                 Text(value)
+                    // exception assumée — design rounded KPI énergie/santé, hors token
                     .font(.system(size: 14, weight: .black, design: .rounded))
                     .foregroundColor(.appTextPrimary)
                 HStack(spacing: 2) {
