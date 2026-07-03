@@ -166,6 +166,7 @@ struct RecoveryScoreRing: View {
             ProgressRing(progress: score / 100, color: scoreColor, size: 100, lineWidth: 12,
                          backgroundColor: scoreColor.opacity(0.15), animation: .easeOut(duration: 0.8)) {
                 VStack(spacing: 2) {
+                    // KPI hero — .black volontaire (override displayWeight), densité > variance thème
                     if let s = summary.recoveryScore {
                         Text("\(Int(s))")
                             .font(.appTitle.weight(.black))
