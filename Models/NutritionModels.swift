@@ -100,6 +100,19 @@ struct NutritionDayHistory: Identifiable, Decodable {
     let proteines: Double
 }
 
+// MARK: - Nutrition Day Summary (GET /api/nutrition?date=)
+struct NutritionDaySummary: Codable {
+    let date: String
+    let calories: Double
+    let proteines: Double
+    let entriesCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case date, calories, proteines
+        case entriesCount = "entries_count"
+    }
+}
+
 // MARK: - Nutrition Data Response
 struct NutritionDataResponse: Decodable {
     var settings: NutritionSettings?

@@ -12,6 +12,37 @@ extension APIService {
         return try APIService.decoder.decode(NutritionDataResponse.self, from: data).history
     }
 
+    func fetchNutritionDay(date: String) async throws -> NutritionDaySummary {
+        let url = try buildURL(path: "/api/nutrition",
+                               queryItems: [URLQueryItem(name: "date", value: date)])
+        let (data, _) = try await URLSession.authed.data(from: url)
+        return try APIService.decoder.decode(NutritionDaySummary.self, from: data)
+    }
+
+    func postYesterdayEstimate(pctCalories: Double, pctProteines: Double) async throws {
+        // Bypass offlinePost : le serveur calcule "yesterday" à l'exécution.
+        // Un replay différé (SyncManager) écrirait pour la mauvaise date.
+        // Fail loud sur réseau ; le sheet gère le retry manuel.
+        let url = try buildURL(path: "/api/nutrition/estimate_yesterday")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: [
+            "pct_calories":  pctCalories,
+            "pct_proteines": pctProteines,
+        ])
+        req.timeoutInterval = 15
+        let (data, response) = try await URLSession.authed.data(for: req)
+        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+            let parsed = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+            let msg = (parsed["error"] as? String)
+                  ?? (parsed["message"] as? String)
+                  ?? "HTTP \(http.statusCode)"
+            throw APIError.serverError(http.statusCode, msg)
+        }
+        CacheInvalidation.nutritionLogged.invalidate()
+    }
+
     func deleteNutritionEntry(id: String) async throws {
         _ = try await offlinePost(endpoint: "/api/nutrition/delete", payload: ["id": id])
         CacheInvalidation.nutritionLogged.invalidate()

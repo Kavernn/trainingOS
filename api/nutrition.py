@@ -148,7 +148,7 @@ def get_today_totals() -> dict:
 
 def add_entry(nom: str, calories: float, proteines: float = 0,
               glucides: float = 0, lipides: float = 0, meal_type: str = None,
-              source: str = "manual") -> dict:
+              source: str = "manual", date: str | None = None) -> dict:
     now_mtl = datetime.now(timezone.utc)
     try:
         from zoneinfo import ZoneInfo
@@ -159,7 +159,7 @@ def add_entry(nom: str, calories: float, proteines: float = 0,
         calories = proteines * 4 + glucides * 4 + lipides * 9
     entry = {
         "id":        str(uuid.uuid4()),
-        "date":      _today_mtl(),
+        "date":      date or _today_mtl(),
         "nom":       nom,
         "calories":  round(calories),
         "proteines": round(proteines, 1),
@@ -179,3 +179,56 @@ def delete_entry(entry_id: str) -> bool:
 
 def get_recent_days(n: int = 7) -> list:
     return db.get_nutrition_entries_recent(n)
+
+
+# ── Retroactive estimate ─────────────────────────────────────────────────────
+
+_ESTIMATE_MAX_PCT = 200  # borne haute permissive (surestimation possible)
+
+
+def replace_day_with_estimate(pct_calories: float, pct_proteines: float) -> dict:
+    """Remplace le total nutrition de la VEILLE (MTL) par une estimation en %
+    des cibles courantes. Delete-all-yesterday PUIS insert, bundlé côté domaine.
+
+    Fail loud :
+      - pct hors [0, _ESTIMATE_MAX_PCT] → ValueError.
+      - delete échoue → ValueError, aucun insert, état inchangé.
+      - insert échoue après delete réussi → ValueError explicite,
+        journée à 0 et le caller doit le savoir.
+    """
+    for name, v in (("pct_calories", pct_calories), ("pct_proteines", pct_proteines)):
+        if not (0 <= v <= _ESTIMATE_MAX_PCT):
+            raise ValueError(f"{name} hors bornes [0, {_ESTIMATE_MAX_PCT}] : {v}")
+
+    from datetime import date as _date, timedelta
+    yesterday = (_date.fromisoformat(_today_mtl()) - timedelta(days=1)).isoformat()
+
+    settings    = load_settings()
+    cal_target  = settings["limite_calories"]
+    prot_target = settings["objectif_proteines"]
+    cal  = round(cal_target  * pct_calories  / 100)
+    prot = round(prot_target * pct_proteines / 100, 1)
+
+    if not db.delete_nutrition_entries_for_date(yesterday):
+        raise ValueError(
+            f"delete_nutrition_entries_for_date({yesterday}) a échoué — "
+            "état inchangé, réessaie plus tard"
+        )
+
+    try:
+        entry = add_entry(
+            nom="Estimation rétroactive",
+            calories=cal, proteines=prot,
+            source="estimated_percent", date=yesterday,
+        )
+    except Exception as e:
+        raise ValueError(
+            f"delete OK mais insert échoué pour {yesterday} — journée à 0 : {e}"
+        ) from e
+
+    return {
+        "date":      yesterday,
+        "calories":  cal,
+        "proteines": prot,
+        "entry":     entry,
+    }

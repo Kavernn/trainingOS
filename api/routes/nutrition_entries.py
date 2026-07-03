@@ -32,6 +32,27 @@ def api_nutrition_add():
     return jsonify({"success": True, "entry": entry, "totals": get_today_totals()})
 
 
+@nutrition_bp.route("/api/nutrition/estimate_yesterday", methods=["POST"])
+def api_nutrition_estimate_yesterday():
+    """Remplace le total nutrition de la veille par une estimation en % des cibles.
+    Server-computed date (yesterday MTL) — iOS ne peut jamais viser un autre jour.
+    """
+    from nutrition import replace_day_with_estimate
+    data = request.get_json() or {}
+    try:
+        pct_cal  = float(data.get("pct_calories"))
+        pct_prot = float(data.get("pct_proteines"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "pct_calories et pct_proteines doivent être numériques"}), 422
+    try:
+        result = replace_day_with_estimate(pct_cal, pct_prot)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 422
+    import readiness as _readiness
+    _readiness.invalidate_cache()
+    return jsonify({"success": True, **result})
+
+
 @nutrition_bp.route("/api/nutrition/delete", methods=["POST"])
 def api_nutrition_delete():
     from nutrition import (delete_entry as nutrition_delete_entry, get_today_totals)

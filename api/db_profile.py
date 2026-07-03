@@ -271,6 +271,31 @@ def delete_nutrition_entry(entry_id: str) -> bool:
         return False
 
 
+def delete_nutrition_entries_for_date(date: str) -> bool:
+    """Delete ALL nutrition entries for a specific date. Returns True on success
+    (aussi True quand aucune entry n'existait — l'état cible est "veille vide").
+    Returns False si offline / erreur DB — le caller doit fail loud dans ce cas.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        resp = db_core._client.table("nutrition_entries").delete().eq("date", date).execute()
+        return resp.data is not None
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("delete_nutrition_entries_for_date retry error: %s", e2)
+                return False
+        db_core.logger.error("delete_nutrition_entries_for_date error: %s", e)
+        return False
+
+
 def update_nutrition_entry(entry_id: str, patch: dict) -> bool:
     """Update fields of a nutrition entry by id. Returns True on success."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
