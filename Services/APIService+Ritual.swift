@@ -8,11 +8,6 @@ extension APIService {
         return try APIService.decoder.decode(RitualToday.self, from: data)
     }
 
-    func saveEveningRoutineItem(_ field: String, value: Bool) async throws {
-        _ = try await offlinePost(endpoint: "/api/ritual/evening_routine", payload: [field: value])
-        CacheInvalidation.ritualItemActioned.invalidate()
-    }
-
     // MARK: - Engagement flow
 
     func createEngagements(date: String, texts: [String]) async throws {

@@ -50,32 +50,14 @@ def api_ritual_today():
 
     today_str            = _today_mtl().isoformat()
     tomorrow_str         = (_today_mtl() + timedelta(days=1)).isoformat()
-    existing             = _db.get_ritual_today(today_str)
     engagements          = _db.get_engagements_for_date(today_str)
     tomorrow_engagements = _db.get_engagements_for_date(tomorrow_str)
 
-    routine_fields = {
-        "routine_no_food":      bool((existing or {}).get("routine_no_food", False)),
-        "routine_dim_lights":   bool((existing or {}).get("routine_dim_lights", False)),
-        "routine_shower":       bool((existing or {}).get("routine_shower", False)),
-        "routine_connection":   bool((existing or {}).get("routine_connection", False)),
-        "routine_deconnect":    bool((existing or {}).get("routine_deconnect", False)),
-        "routine_bedtime_ok":   bool((existing or {}).get("routine_bedtime_ok", False)),
-        "routine_completed_at": (existing or {}).get("routine_completed_at"),
-    }
-
     return jsonify({
-        "date":                  today_str,
-        "engagements":           engagements,
-        "tomorrow_engagements":  tomorrow_engagements,
-        **routine_fields,
+        "date":                 today_str,
+        "engagements":          engagements,
+        "tomorrow_engagements": tomorrow_engagements,
     })
-
-
-_ROUTINE_ITEMS = {
-    "routine_no_food", "routine_dim_lights", "routine_shower",
-    "routine_connection", "routine_deconnect", "routine_bedtime_ok",
-}
 
 
 @ritual_bp.route("/api/ritual/engagements", methods=["GET"])
@@ -116,36 +98,3 @@ def api_ritual_engagements_update(engagement_id: str):
     if not ok:
         return jsonify({"error": "Erreur base de données"}), 500
     return jsonify({"ok": True})
-
-
-@ritual_bp.route("/api/ritual/evening_routine", methods=["POST"])
-def api_ritual_evening_routine():
-    """Auto-save a single evening routine item. Toggles one field at a time."""
-    import db as _db
-
-    data = request.get_json(silent=True) or {}
-    today_str = _today_mtl().isoformat()
-
-    patch_fields = {k: bool(data[k]) for k in _ROUTINE_ITEMS if k in data}
-    if not patch_fields:
-        return jsonify({"error": "no routine field provided"}), 400
-
-    existing = _db.get_ritual_today(today_str) or {"date": today_str}
-    patch = {**existing, **patch_fields}
-
-    all_done = all(patch.get(item, False) for item in _ROUTINE_ITEMS)
-    if all_done and not existing.get("routine_completed_at"):
-        patch["routine_completed_at"] = datetime.now(timezone.utc).isoformat()
-    elif not all_done:
-        patch["routine_completed_at"] = None
-
-    ok = _db.upsert_ritual(patch)
-    if not ok:
-        return jsonify({"error": "Erreur base de données"}), 500
-
-    return jsonify({
-        "ok": True,
-        "updated": list(patch_fields.keys()),
-        "all_done": all_done,
-        "routine_completed_at": patch.get("routine_completed_at"),
-    })

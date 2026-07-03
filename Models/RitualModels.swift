@@ -44,15 +44,6 @@ struct RitualEngagementsResponse: Codable {
 
 struct RitualToday: Codable {
     let date: String
-    // Evening routine checklist (migration 065)
-    let routineNoFood: Bool
-    let routineDimLights: Bool
-    let routineShower: Bool
-    let routineConnection: Bool
-    let routineDeconnect: Bool
-    let routineBedtimeOk: Bool
-    let routineCompletedAt: String?
-    // Engagement flow (nouveau système)
     let engagements: [RitualEngagement]         // engagements du jour à adresser
     let tomorrowEngagements: [RitualEngagement] // engagements créés pour demain
 
@@ -75,13 +66,6 @@ struct RitualToday: Codable {
 
     enum CodingKeys: String, CodingKey {
         case date
-        case routineNoFood         = "routine_no_food"
-        case routineDimLights      = "routine_dim_lights"
-        case routineShower         = "routine_shower"
-        case routineConnection     = "routine_connection"
-        case routineDeconnect      = "routine_deconnect"
-        case routineBedtimeOk      = "routine_bedtime_ok"
-        case routineCompletedAt    = "routine_completed_at"
         case engagements           = "engagements"
         case tomorrowEngagements   = "tomorrow_engagements"
     }
@@ -89,13 +73,6 @@ struct RitualToday: Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         date                  = (try? c.decode(String.self, forKey: .date))                          ?? ""
-        routineNoFood         = (try? c.decode(Bool.self,   forKey: .routineNoFood))                 ?? false
-        routineDimLights      = (try? c.decode(Bool.self,   forKey: .routineDimLights))              ?? false
-        routineShower         = (try? c.decode(Bool.self,   forKey: .routineShower))                 ?? false
-        routineConnection     = (try? c.decode(Bool.self,   forKey: .routineConnection))             ?? false
-        routineDeconnect      = (try? c.decode(Bool.self,   forKey: .routineDeconnect))              ?? false
-        routineBedtimeOk      = (try? c.decode(Bool.self,   forKey: .routineBedtimeOk))              ?? false
-        routineCompletedAt    = try? c.decode(String.self,  forKey: .routineCompletedAt)
         engagements           = (try? c.decode([RitualEngagement].self, forKey: .engagements))         ?? []
         tomorrowEngagements   = (try? c.decode([RitualEngagement].self, forKey: .tomorrowEngagements)) ?? []
     }

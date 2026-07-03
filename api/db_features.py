@@ -36,32 +36,6 @@ def get_ritual_today(date_str: str) -> Optional[dict]:
         return None
 
 
-def upsert_ritual(data: dict) -> bool:
-    """Insert or update a daily_ritual row by date."""
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return False
-
-    def _do() -> bool:
-        resp = (
-            db_core._client.table("daily_ritual")
-            .upsert(data, on_conflict="date")
-            .execute()
-        )
-        return bool(resp.data)
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("upsert_ritual retry: %s", e2)
-                return False
-        db_core.logger.error("upsert_ritual error: %s", e)
-        return False
-
-
 def get_ritual_history(limit: int = 365) -> List[dict]:
     """Return all ritual rows ordered by date DESC."""
     if db_core._client is None or db_core.MODE == "OFFLINE":

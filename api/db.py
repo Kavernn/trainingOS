@@ -243,7 +243,6 @@ from db_stats import (
 # ── Features (Ritual, War Room, Spirit, Oath, Seasons) ────────────────────────
 from db_features import (
     get_ritual_today,
-    upsert_ritual,
     get_ritual_history,
     get_engagements_for_date,
     get_engagements_since,
