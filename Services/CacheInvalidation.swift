@@ -161,7 +161,7 @@ enum CacheInvalidation {
         case .nutritionLogged:
             return ["nutrition_data", "dashboard", "readiness", "morning_brief"]
         case .cardioLogged:
-            return ["cardio_history", "stats_cardio"]
+            return ["cardio_data", "cardio_metrics", "streak_data"]
         case .energyLogged:
             return ["energy_daily_today", "energy_history_7"]
         case .foodCatalogUpdated:
