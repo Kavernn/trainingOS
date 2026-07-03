@@ -84,16 +84,17 @@ final class AppState: ObservableObject {
         guard let ydayDate = cal.date(byAdding: .day, value: -1, to: Date()) else { return }
         let yesterday = DateFormatter.isoDate.string(from: ydayDate)
 
+        // sequential — iOS 26 beta async let LIFO crash
         // Fetch settings + day summary. Si l'un échoue → NE PAS poser la clé.
-        async let dataResp: NutritionDataResponse = {
-            let url = try APIService.shared.buildURL(path: "/api/nutrition_data")
-            let (data, _) = try await URLSession.authed.data(from: url)
-            return try APIService.decoder.decode(NutritionDataResponse.self, from: data)
+        let resp: NutritionDataResponse? = await {
+            guard let url = try? APIService.shared.buildURL(path: "/api/nutrition_data"),
+                  let (data, _) = try? await URLSession.authed.data(from: url) else { return nil }
+            return try? APIService.decoder.decode(NutritionDataResponse.self, from: data)
         }()
-        async let daySummary: NutritionDaySummary = APIService.shared.fetchNutritionDay(date: yesterday)
+        let day: NutritionDaySummary? = try? await APIService.shared.fetchNutritionDay(date: yesterday)
 
-        guard let resp     = try? await dataResp,
-              let day      = try? await daySummary,
+        guard let resp,
+              let day,
               let calT     = resp.settings?.calories,  calT  > 0,
               let protT    = resp.settings?.proteines, protT > 0 else {
             return
