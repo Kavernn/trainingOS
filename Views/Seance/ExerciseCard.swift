@@ -770,6 +770,18 @@ struct ExerciseCard: View {
         .buttonStyle(.plain)
     }
 
+    /// Résumé compact des séries loggées pour l'affichage en chip.
+    /// Reps identiques → "N×R" ; reps variées → r.reps brut.
+    private func loggedRepsSummary(_ r: ExerciseLogResult) -> String {
+        let parts = r.reps.split(separator: ",").map(String.init)
+        guard !parts.isEmpty else { return r.reps }
+        let count = r.sets.count > 0 ? r.sets.count : parts.count
+        if let first = parts.first, parts.allSatisfy({ $0 == first }) {
+            return "\(count)×\(first)"
+        }
+        return r.reps
+    }
+
     @ViewBuilder private var headerTrailing: some View {
         if alreadyLogged && !evm.isEditing, let r = logResult {
             HStack(spacing: 8) {
@@ -793,8 +805,12 @@ struct ExerciseCard: View {
                                 .map { evm.formatDuration($0) }.first ?? "—")
                             .font(.appLabel).fontWeight(.black).foregroundColor(.appTextPrimary)
                     } else {
-                        Text(units.format(r.weight)).font(.appLabel).fontWeight(.black).foregroundColor(.appTextPrimary)
-                        Text(r.reps).font(.appMicro).foregroundColor(.gray)
+                        Text(loggedRepsSummary(r))
+                            .font(.appLabel).fontWeight(.black).foregroundColor(.appTextPrimary)
+                        if r.weight > 0 {
+                            Text(units.format(r.weight))
+                                .font(.appMicro).foregroundColor(.gray)
+                        }
                     }
                 }
                 Button {

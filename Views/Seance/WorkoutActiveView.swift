@@ -632,6 +632,9 @@ struct WorkoutSeanceView: View {
             logResult: $vm.logResults[name],
             onLogged: {
                 let loggedNames = Set(vm.logResults.keys)
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                    expandedExercises.remove(name)
+                }
                 if let next = exercises.first(where: { !loggedNames.contains($0.0) && $0.0 != name }) {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                         expandedExercises.insert(next.0)
