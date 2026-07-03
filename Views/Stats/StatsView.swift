@@ -559,8 +559,7 @@ struct StatsView: View {
     func recalcKPIs() {
         let fmt = DateFormatter.isoDate
 
-        var iso = Calendar(identifier: .iso8601)
-        iso.timeZone = TimeZone.current
+        let iso = Calendar.mtl
         let daysSinceMonday = (iso.component(.weekday, from: Date()) + 5) % 7
         let mondayDate = iso.date(byAdding: .day, value: -daysSinceMonday, to: Date()) ?? Date()
         let mondayStr = fmt.string(from: mondayDate)

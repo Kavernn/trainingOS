@@ -160,7 +160,7 @@ extension DateFormatter {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM"
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone.current
+        f.timeZone = TimeZone(identifier: "America/Montreal") ?? .current
         return f
     }()
 
