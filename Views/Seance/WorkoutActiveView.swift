@@ -95,8 +95,6 @@ struct WorkoutSeanceView: View {
     @State private var lastScrollY: CGFloat? = nil
 
     // AI analysis pre-load
-    @State private var preloadedAIAnalysis: String? = nil
-    @State private var isPreloadingAI = false
 
     // Toast
     @State private var toast: ToastMessage? = nil
@@ -134,54 +132,6 @@ struct WorkoutSeanceView: View {
     }
     private var progressTotal: Int { exerciseRenderItems.count }
     private var progressComplete: Bool { progressTotal > 0 && progressDone >= progressTotal }
-
-    private func preloadAIAnalysis() {
-        guard !isPreloadingAI, preloadedAIAnalysis == nil, !vm.logResults.isEmpty else { return }
-        isPreloadingAI = true
-        let logRes = vm.logResults
-        let elapsed = Double(vm.chrono.elapsedSeconds) / 60.0
-        let rpeVal = computedSessionRPE
-        let summary = logRes.map { k, v in
-            "\(k): \(v.reps) @ \(String(format: "%.0f", v.weight))lbs RPE\(String(format: "%.1f", v.rpe ?? rpeVal))"
-        }.joined(separator: ", ")
-        let prompt = "Séance terminée en \(Int(elapsed)) min. Exercices: \(summary). RPE global: \(String(format: "%.1f", rpeVal)). Donne une analyse courte (3-4 phrases) : points positifs, point à améliorer, conseil pour la prochaine séance."
-
-        // W-B4 — apply 10-second timeout; set analysis to nil and stop spinner if exceeded
-        let apiTask = Task {
-            do {
-                let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
-                var req = URLRequest(url: url)
-                req.httpMethod = "POST"
-                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                req.httpBody = try JSONSerialization.data(withJSONObject: [
-                    "context": "Post-session analysis",
-                    "messages": [["role": "user", "content": prompt]]
-                ])
-                let (data, _) = try await URLSession.authed.data(for: req)
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let reply = json["response"] as? String {
-                    await MainActor.run { preloadedAIAnalysis = reply; isPreloadingAI = false }
-                } else { await MainActor.run { isPreloadingAI = false } }
-            } catch {
-                await MainActor.run {
-                    isPreloadingAI = false
-                    toast = ToastMessage(message: "Analyse IA indisponible", style: .error)
-                }
-            }
-        }
-        Task {
-            try? await Task.sleep(nanoseconds: 60_000_000_000)
-            if !apiTask.isCancelled {
-                apiTask.cancel()
-                await MainActor.run {
-                    if isPreloadingAI {
-                        isPreloadingAI = false
-                        preloadedAIAnalysis = nil
-                    }
-                }
-            }
-        }
-    }
 
     private func abandonMessage() -> String {
         let logged = vm.logResults.count
@@ -1336,7 +1286,6 @@ struct WorkoutSeanceView: View {
         .onChange(of: showUnloggedWarning) { _, isShowing in
             guard !isShowing, confirmedFromWarning else { return }
             confirmedFromWarning = false
-            preloadAIAnalysis()
             showFinish = true
         }
         .sheet(isPresented: $showFinish) {
@@ -1347,7 +1296,6 @@ struct WorkoutSeanceView: View {
                 rpe: $rpe,
                 comment: $comment,
                 preEnergy: energyPre,
-                preloadedAnalysis: preloadedAIAnalysis,
                 onSubmit: { _ in
                     let dur = Double(vm.chrono.stop())
                     recapSnapshot = SessionRecapSnapshot(
@@ -1373,7 +1321,6 @@ struct WorkoutSeanceView: View {
             let allDone = total > 0 && done >= total
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { completionGlow = allDone }
             guard allDone else { return }
-            preloadAIAnalysis()
             allLoggedPulse = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { allLoggedPulse = false }
         }
@@ -1433,7 +1380,7 @@ struct WorkoutSeanceView: View {
             Text(vm.submitError ?? "")
         }
         .alert("Terminer la séance ?", isPresented: $showFinishConfirm) {
-            Button("Terminer") { preloadAIAnalysis(); showFinish = true }
+            Button("Terminer") { showFinish = true }
             Button("Annuler", role: .cancel) {}
         } message: {
             let logged = vm.logResults.count
@@ -1447,7 +1394,7 @@ struct WorkoutSeanceView: View {
         // W-D11 — abandon session alert
         .alert("Quitter la séance ?", isPresented: $showAbandonAlert) {
             if vm.logResults.count > 0 {
-                Button("Sauvegarder l'effort") { preloadAIAnalysis(); showFinish = true }
+                Button("Sauvegarder l'effort") { showFinish = true }
             }
             Button("Quitter sans sauvegarder", role: .destructive) {
                 vm.logResults.removeAll()

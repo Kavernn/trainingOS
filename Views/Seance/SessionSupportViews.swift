@@ -171,7 +171,6 @@ struct FinishSessionSheet: View {
     @Binding var rpe: Double
     @Binding var comment: String
     var preEnergy: Int? = nil
-    var preloadedAnalysis: String? = nil
     var onSubmit: (Int?) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -179,9 +178,6 @@ struct FinishSessionSheet: View {
     @State private var confirmDiscard = false
     @State private var showConfirmSubmit = false
     @State private var pendingEnergy: Int? = nil
-    @State private var aiAnalysis: String? = nil
-    @State private var isLoadingAI = false
-    @State private var aiError = false
     @State private var showExtras = false
 
     private var hasUnsavedData: Bool { !comment.isEmpty || energyPre != 3 }
@@ -352,39 +348,6 @@ struct FinishSessionSheet: View {
                             }
                             .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
 
-                            // IA analyse post-séance
-                            VStack(alignment: .leading, spacing: 8) {
-                                Button(action: loadAIAnalysis) {
-                                    HStack(spacing: 6) {
-                                        if isLoadingAI {
-                                            ProgressView().tint(.statusPurple).scaleEffect(0.7)
-                                        } else {
-                                            Image(systemName: "brain.head.profile").font(.appLabel)
-                                        }
-                                        Text(isLoadingAI ? "Analyse en cours…" : aiAnalysis == nil ? "Analyse IA post-séance" : "Relancer l'analyse")
-                                            .font(.appLabel)
-                                    }
-                                    .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                    .background(Color.statusPurple.opacity(0.12))
-                                    .foregroundColor(.statusPurple)
-                                    .cornerRadius(10)
-                                }
-                                .disabled(isLoadingAI)
-
-                                if aiError {
-                                    Text("Analyse IA indisponible — réessaie")
-                                        .font(.appCaption)
-                                        .foregroundColor(Color.statusRed.opacity(0.8))
-                                }
-
-                                if let analysis = aiAnalysis {
-                                    Text(analysis)
-                                        .font(.appLabel).foregroundColor(Color.appOnSurface.opacity(0.85))
-                                        .padding(12).background(Color.statusPurple.opacity(0.08))
-                                        .cornerRadius(10)
-                                }
-                            }
-                            .padding(.horizontal, 20)
                         }
 
                         // Soumission partielle — visible si des exercices ne sont pas loggués
@@ -444,54 +407,7 @@ struct FinishSessionSheet: View {
                 }
                 Button("Continuer l'entraînement", role: .cancel) {}
             }
-            .onAppear {
-                if let preloaded = preloadedAnalysis {
-                    aiAnalysis = preloaded
-                } else {
-                    loadAIAnalysis()
-                }
-            }
             .interactiveDismissDisabled(hasUnsavedData)
-        }
-    }
-
-    private func loadAIAnalysis() {
-        guard !isLoadingAI else { return }
-        isLoadingAI = true
-        aiError = false
-        let exoSummary = logResults.map { k, v in
-            "\(k): \(v.reps) @ \(String(format: "%.0f", v.weight))lbs RPE\(String(format: "%.1f", v.rpe ?? rpe))"
-        }.joined(separator: ", ")
-        let prompt = "Séance terminée en \(Int(elapsedMin)) min. Exercices: \(exoSummary). RPE global: \(String(format: "%.1f", rpe)). Donne une analyse courte (3-4 phrases) : points positifs, point à améliorer, conseil pour la prochaine séance."
-        // W-B4 — 10-second timeout; show "Analyse indisponible" instead of infinite spinner
-        let apiTask = Task {
-            do {
-                guard let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach") else { return }
-                var req = URLRequest(url: url)
-                req.httpMethod = "POST"
-                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                req.httpBody = try JSONSerialization.data(withJSONObject: [
-                    "context": "Post-session analysis",
-                    "messages": [["role": "user", "content": prompt]]
-                ])
-                let (data, _) = try await URLSession.authed.data(for: req)
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let reply = json["response"] as? String {
-                    await MainActor.run { aiAnalysis = reply; isLoadingAI = false }
-                } else { await MainActor.run { isLoadingAI = false } }
-            } catch { await MainActor.run { isLoadingAI = false; aiError = true } }
-        }
-        Task {
-            try? await Task.sleep(nanoseconds: 60_000_000_000)
-            if !apiTask.isCancelled {
-                apiTask.cancel()
-                await MainActor.run {
-                    if isLoadingAI {
-                        isLoadingAI = false
-                        aiError = true
-                    }
-                }
-            }
         }
     }
 
