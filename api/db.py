@@ -137,6 +137,7 @@ from db_profile import (
     insert_nutrition_entry,
     update_nutrition_entry,
     delete_nutrition_entry,
+    delete_nutrition_entries_for_date,
     get_nutrition_entries_recent,
     get_hydration_today,
     log_hydration,
