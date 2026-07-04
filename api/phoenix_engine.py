@@ -184,8 +184,8 @@ def _war_room_multiplier() -> float:
         if lost:
             last_reset_str = (lost[0].get("date") or "")
             if last_reset_str:
-                from datetime import date as _d
-                days_since = (_d.today() - _d.fromisoformat(last_reset_str)).days
+                today_mtl = date.fromisoformat(_today_iso())
+                days_since = (today_mtl - date.fromisoformat(last_reset_str)).days
                 if days_since < 7:
                     # Recovery ramp: 0.85 at day 0 → 1.00 at day 7
                     return 0.85 + (days_since / 7.0) * 0.15
