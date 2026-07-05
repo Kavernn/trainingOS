@@ -213,9 +213,6 @@ from db_wellness import (
     compute_smart_goal_current,
     compute_smart_goal_progress,
     SMART_GOAL_META,
-    get_latest_generated_program,
-    save_generated_program,
-    update_generated_program,
 )
 
 # ── Stats / Analytics ─────────────────────────────────────────────────────────

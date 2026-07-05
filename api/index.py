@@ -81,8 +81,6 @@ from routes.nutrition_food      import nutrition_food_bp
 from routes.nutrition_templates import nutrition_templates_bp
 from routes.nutrition_analytics import nutrition_analytics_bp
 from routes.nutrition_hydration import nutrition_hydration_bp
-from routes.ai_coach_tools   import ai_coach_tools_bp
-from routes.ai_coach_program import ai_coach_program_bp
 from routes.ai_coach_memory  import ai_coach_memory_bp
 from routes.goals        import goals_bp
 from routes.analytics_load  import analytics_load_bp
@@ -159,8 +157,6 @@ app.register_blueprint(nutrition_food_bp)
 app.register_blueprint(nutrition_templates_bp)
 app.register_blueprint(nutrition_analytics_bp)
 app.register_blueprint(nutrition_hydration_bp)
-app.register_blueprint(ai_coach_tools_bp)
-app.register_blueprint(ai_coach_program_bp)
 app.register_blueprint(ai_coach_memory_bp)
 app.register_blueprint(goals_bp)
 app.register_blueprint(analytics_load_bp)

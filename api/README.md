@@ -217,10 +217,6 @@ Dérivé du `session_name` de la séance démarrée aujourd'hui (`workout_sessio
 | GET | `/api/peak_prediction` | Peak performance prediction |
 | GET | `/api/insights/correlations` | Training–wellness correlations |
 | GET | `/api/stats_data` | Full stats payload (weights, sessions, muscle stats) |
-| POST | `/api/ai/propose` | AI progression proposal `{exercise, history}` |
-| POST | `/api/ai/narrative` | AI post-session narrative `{session_data}` |
-| POST | `/api/ai/coach` | Chat with AI coach `{message, history}` |
-| GET | `/api/ai/coach/history` | Chat history |
 
 **Rate limit:** 10 AI calls/hour (shared across workers via Supabase `ai_rate_limit` table).
 
