@@ -164,9 +164,7 @@
 		GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */; };
 		GF006001AA00300B2F5DEEEE /* GymFinderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */; };
 		GF007001AA00300B2F5DEEEE /* GymFinderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF007000AA00300B2F5DEEEE /* GymFinderService.swift */; };
-		IA0001IA0001IA0001IA0001 /* ProposalsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0001IR0001IR0001IR0001 /* ProposalsCard.swift */; };
 		IA0002IA0002IA0002IA0002 /* InsightsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0002IR0002IR0002IR0002 /* InsightsCard.swift */; };
-		IA0003IA0003IA0003IA0003 /* NarrativeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0003IR0003IR0003IR0003 /* NarrativeCard.swift */; };
 		IA0004IA0004IA0004IA0004 /* NutritionPerfInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */; };
 		IA0005IA0005IA0005IA0005 /* CoachGreetingHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */; };
 		IA0006IA0006IA0006IA0006 /* CoachMissionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0006IR0006IR0006IR0006 /* CoachMissionCard.swift */; };
@@ -174,7 +172,6 @@
 		IA0008IA0008IA0008IA0008 /* TodayMetricsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */; };
 		IA0009IA0009IA0009IA0009 /* SmartInsightsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0009IR0009IR0009IR0009 /* SmartInsightsSection.swift */; };
 		IA0011IA0011IA0011IA0011 /* RoundedCorner.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0011IR0011IR0011IR0011 /* RoundedCorner.swift */; };
-		IA0012IA0012IA0012IA0012 /* ProgramPreviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0012IR0012IR0012IR0012 /* ProgramPreviewSheet.swift */; };
 		IA0013IA0013IA0013IA0013 /* IntelligenceAnalyticsCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */; };
 		IA0014IA0014IA0014IA0014 /* CoachContextSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */; };
 		MAC0002MAC0002MAC0002MA2 /* MidWorkoutAdvisorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */; };
@@ -471,9 +468,7 @@
 		GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderViewModel.swift; sourceTree = "<group>"; };
 		GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderModels.swift; sourceTree = "<group>"; };
 		GF007000AA00300B2F5DEEEE /* GymFinderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderService.swift; sourceTree = "<group>"; };
-		IR0001IR0001IR0001IR0001 /* ProposalsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProposalsCard.swift; sourceTree = "<group>"; };
 		IR0002IR0002IR0002IR0002 /* InsightsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsCard.swift; sourceTree = "<group>"; };
-		IR0003IR0003IR0003IR0003 /* NarrativeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NarrativeCard.swift; sourceTree = "<group>"; };
 		IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerfInsightCard.swift; sourceTree = "<group>"; };
 		IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachGreetingHeader.swift; sourceTree = "<group>"; };
 		IR0006IR0006IR0006IR0006 /* CoachMissionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMissionCard.swift; sourceTree = "<group>"; };
@@ -481,7 +476,6 @@
 		IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayMetricsRow.swift; sourceTree = "<group>"; };
 		IR0009IR0009IR0009IR0009 /* SmartInsightsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartInsightsSection.swift; sourceTree = "<group>"; };
 		IR0011IR0011IR0011IR0011 /* RoundedCorner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundedCorner.swift; sourceTree = "<group>"; };
-		IR0012IR0012IR0012IR0012 /* ProgramPreviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramPreviewSheet.swift; sourceTree = "<group>"; };
 		IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceAnalyticsCards.swift; sourceTree = "<group>"; };
 		IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachContextSummary.swift; sourceTree = "<group>"; };
 		MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MidWorkoutAdvisorCard.swift; sourceTree = "<group>"; };
@@ -798,9 +792,7 @@
 			children = (
 				D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */,
 				AA00100B2F5D98B8002AE470 /* IntelligenceView.swift */,
-				IR0001IR0001IR0001IR0001 /* ProposalsCard.swift */,
 				IR0002IR0002IR0002IR0002 /* InsightsCard.swift */,
-				IR0003IR0003IR0003IR0003 /* NarrativeCard.swift */,
 				IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */,
 				IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */,
 				FCEBA1D5B9BA47DD98CD46E2 /* InsightPrincipalCard.swift */,
@@ -812,7 +804,6 @@
 				IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */,
 				IR0009IR0009IR0009IR0009 /* SmartInsightsSection.swift */,
 				IR0011IR0011IR0011IR0011 /* RoundedCorner.swift */,
-				IR0012IR0012IR0012IR0012 /* ProgramPreviewSheet.swift */,
 				IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */,
 				IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */,
 				8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */,
@@ -1537,9 +1528,7 @@
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* InfoButton.swift in Sources */,
 				AA00200A2F5D98BA002AE470 /* InventaireView.swift in Sources */,
 				AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */,
-				IA0001IA0001IA0001IA0001 /* ProposalsCard.swift in Sources */,
 				IA0002IA0002IA0002IA0002 /* InsightsCard.swift in Sources */,
-				IA0003IA0003IA0003IA0003 /* NarrativeCard.swift in Sources */,
 				D68A5C8D2FD0D0B900B824DF /* WatchConnectivityManager.swift in Sources */,
 				IA0004IA0004IA0004IA0004 /* NutritionPerfInsightCard.swift in Sources */,
 				IA0005IA0005IA0005IA0005 /* CoachGreetingHeader.swift in Sources */,
@@ -1551,7 +1540,6 @@
 				IA0008IA0008IA0008IA0008 /* TodayMetricsRow.swift in Sources */,
 				IA0009IA0009IA0009IA0009 /* SmartInsightsSection.swift in Sources */,
 				IA0011IA0011IA0011IA0011 /* RoundedCorner.swift in Sources */,
-				IA0012IA0012IA0012IA0012 /* ProgramPreviewSheet.swift in Sources */,
 				IA0013IA0013IA0013IA0013 /* IntelligenceAnalyticsCards.swift in Sources */,
 				IA0014IA0014IA0014IA0014 /* CoachContextSummary.swift in Sources */,
 				663379608FE0A821EC0F7D89 /* CardioView.swift in Sources */,

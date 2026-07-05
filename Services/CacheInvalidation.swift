@@ -9,7 +9,6 @@ enum CacheInvalidation {
     case sessionLogged(isSecond: Bool, isBonus: Bool)
     case sessionMutated           // delete / update / edit
     case hiitLogged
-    case programmeApproved
     case programmeMutated        // create / rename / delete / setActive / structure / schedule
     case inventaireMutated       // save / delete / classify exercise dans le catalogue
     case deloadApplied
@@ -73,7 +72,7 @@ enum CacheInvalidation {
     // (LSS = HRV/sleep/RHR + PSS + RPE + nutrition, engagement_streak, profil, session du jour)
     // DOIT inclure "morning_brief" dans ses keys, sinon le verdict du brief reste stale.
     // Cases couvertes au 2026-06-30 : exerciseLogged, sessionLogged, sessionMutated,
-    // programmeApproved, deloadApplied, recoveryLogged, wearableSynced, pssSubmitted,
+    // deloadApplied, recoveryLogged, wearableSynced, pssSubmitted,
     // moodLogged, ritualActioned, ritualUpdated, nutritionLogged, profileUpdated.
     // (hiitLogged: log isolé hors sessions → ne nourrit pas le brief, ne pas ajouter.)
     var keys: [String] {
@@ -90,8 +89,6 @@ enum CacheInvalidation {
             return ["historique_data", "dashboard", "morning_brief"]
         case .hiitLogged:
             return ["dashboard", "hiit_data"]
-        case .programmeApproved:
-            return ["programme_data", "stats_data", "morning_brief"]
         case .programmeMutated:
             return ["programme_data", "seance_data", "seance_soir_data",
                     "stats_data", "dashboard", "morning_brief"]

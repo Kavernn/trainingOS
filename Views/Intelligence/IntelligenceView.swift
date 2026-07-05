@@ -7,16 +7,11 @@ private let logger = Logger(subsystem: "TrainingOS", category: "Intelligence")
 struct IntelligenceView: View {
     @EnvironmentObject private var theme: AppTheme
     @StateObject private var dailyBriefService = DailyBriefService.shared
-    @State private var showPropose = false
-    @State private var proposals: [AIProposal] = []
-    @State private var isLoadingProposals = false
     @State private var correlations: CorrelationsData? = nil
     @State private var isLoadingCorrelations = false
     @State private var showInsights = false
     @ObservedObject private var api   = APIService.shared
     @ObservedObject private var units = UnitSettings.shared
-    @State private var narrative:        String?                  = nil
-    @State private var isLoadingNarrative = false
     @State private var recoveryData:    [RecoveryEntry]          = []
     @State private var weightsData:     [String: WeightData]     = [:]
     @State private var bodyWeightData:  [BodyWeightEntry]        = []
@@ -24,11 +19,6 @@ struct IntelligenceView: View {
     @State private var sessionsData:    [String: SessionEntry]   = [:]
     @State private var acwrData:        ACWRData?                = nil
     @State private var lssData:         LifeStressScore?         = nil
-    @State private var proposalError:   String?                  = nil
-    @State private var generatedProgram: GeneratedProgram?       = nil
-    @State private var isGeneratingProgram                       = false
-    @State private var showProgramPreview                        = false
-    @State private var programError:    String?                  = nil
     @State private var selectedSection: CoachSection = .briefing
     @ObservedObject private var memoryStore = CoachMemoryStore.shared
     @State private var nutritionHistory: [NutritionDayHistory]  = []
@@ -266,7 +256,6 @@ struct IntelligenceView: View {
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 if api.dashboard == nil { await api.fetchDashboard() }
-                Task { generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram() }
                 await loadContextData()
                 let streak = computeStreak(from: sessionsData)
                 await APIService.shared.syncDeloadFlag()
@@ -290,19 +279,6 @@ struct IntelligenceView: View {
                 if newVal == true && oldVal != true {
                     postSessionLoggedAt = ISO8601DateFormatter().string(from: Date())
                     Task { await loadPostSession() }
-                }
-            }
-            .fullScreenCover(isPresented: $showProgramPreview) {
-                if let gp = generatedProgram {
-                    ProgramPreviewSheet(program: gp) { _ in
-                        showProgramPreview = false
-                        var updated = gp
-                        updated.status = .active
-                        generatedProgram = updated
-                    } onReject: {
-                        showProgramPreview = false
-                        generatedProgram = nil
-                    }
                 }
             }
             .sheet(isPresented: $showWeeklyReport) {
@@ -578,96 +554,6 @@ struct IntelligenceView: View {
                 .padding(.horizontal, 16)
             }
 
-            if generatedProgram != nil && !isGeneratingProgram {
-                Button { showProgramPreview = true } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "doc.text.magnifyingglass").font(.appLabel)
-                        Text("Voir le dernier programme généré")
-                            .font(.appLabel)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(white: 0.4))
-                    }
-                    .padding(14)
-                    .background(Color.statusBlue.opacity(0.1))
-                    .foregroundColor(.statusBlue)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .padding(.horizontal, 16)
-            }
-
-            if !proposals.isEmpty {
-                ProposalsCard(proposals: proposals, onDismiss: { proposals = []; proposalError = nil })
-                    .padding(.horizontal, 16)
-            }
-
-            if let err = proposalError {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle").foregroundColor(Color.appWarning)
-                    Text(err).font(.system(size: 12)).foregroundColor(.gray)
-                    Spacer()
-                    Button { proposalError = nil } label: {
-                        Image(systemName: "xmark").foregroundColor(.gray)
-                    }
-                }
-                .padding(12)
-                .background(Color.appWarning.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .padding(.horizontal, 16)
-            }
-
-            if let err = programError {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle").foregroundColor(Color.appWarning)
-                    Text(err).font(.system(size: 12)).foregroundColor(.gray)
-                    Spacer()
-                    Button { programError = nil } label: {
-                        Image(systemName: "xmark").foregroundColor(.gray)
-                    }
-                }
-                .padding(12)
-                .background(Color.appWarning.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .padding(.horizontal, 16)
-            }
-
-            HStack(spacing: 10) {
-                Button { loadProposals() } label: {
-                    HStack(spacing: 6) {
-                        if isLoadingProposals {
-                            ProgressView().tint(.statusPurple).scaleEffect(0.75)
-                        } else {
-                            Image(systemName: "wand.and.stars").font(.appLabel)
-                        }
-                        Text("Propositions").font(.appLabel)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.statusPurple.opacity(0.15))
-                    .foregroundColor(.statusPurple)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .disabled(isLoadingProposals)
-
-                Button { generateProgram() } label: {
-                    HStack(spacing: 6) {
-                        if isGeneratingProgram {
-                            ProgressView().tint(.statusBlue).scaleEffect(0.75)
-                        } else {
-                            Image(systemName: "calendar.badge.plus").font(.appLabel)
-                        }
-                        Text("Générer").font(.appLabel)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.statusBlue.opacity(0.15))
-                    .foregroundColor(.statusBlue)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .disabled(isGeneratingProgram)
-            }
-            .padding(.horizontal, 16)
         }
         .padding(.top, 8)
         .padding(.bottom, 28)
@@ -688,21 +574,6 @@ struct IntelligenceView: View {
                 .background(Color.appSurfaceInset)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 4)
-
-            // NIVEAU 3a — Récit IA (accordion)
-            bilanAccordionRow(id: "recit", icon: "text.quote", label: "Récit IA", accent: .teal) {
-                if isLoadingNarrative {
-                    SkeletonBar(height: 80, radius: 12).padding(.horizontal, 16).padding(.bottom, 4)
-                } else if let text = narrative {
-                    NarrativeCard(text: text, onDismiss: { narrative = nil }).padding(.horizontal, 16).padding(.bottom, 4)
-                } else {
-                    Text("Aucun récit généré pour cette semaine.")
-                        .font(.appLabel)
-                        .foregroundColor(Color(white: 0.45))
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-                }
-            }
 
             // NIVEAU 3b — Analyses (accordion)
             bilanAccordionRow(id: "analyses", icon: "chart.dots.scatter", label: "Analyses", accent: .statusPurple) {
@@ -779,7 +650,6 @@ struct IntelligenceView: View {
         .padding(.top, 8)
         .padding(.bottom, 28)
         .onAppear {
-            if narrative == nil && !isLoadingNarrative { loadNarrative() }
             if overtrainingRisk == nil { Task { await loadIntelligenceFeatures() } }
             if intelligenceInsights.isEmpty && !isLoadingIntelligence { Task { await loadProactiveIntelligence() } }
         }
@@ -889,13 +759,9 @@ struct IntelligenceView: View {
         let isExpanded = expandedBilan.contains(id)
         VStack(spacing: 0) {
             Button {
-                let expanding = !expandedBilan.contains(id)
                 withAnimation(.easeInOut(duration: 0.2)) {
                     if expandedBilan.contains(id) { expandedBilan.remove(id) }
                     else { expandedBilan.insert(id) }
-                }
-                if expanding && id == "recit" && narrative == nil && !isLoadingNarrative {
-                    loadNarrative()
                 }
             } label: {
                 HStack(spacing: 8) {
@@ -1355,141 +1221,6 @@ struct IntelligenceView: View {
         )
     }
 
-    private func buildContext() -> String {
-        guard let dash = api.dashboard else { return "no data" }
-        var lines: [String] = []
-
-        // Coach memory — injected first for maximum AI attention
-        let memBlock = CoachMemoryStore.shared.contextBlock
-        if !memBlock.isEmpty {
-            lines.append("=== MÉMOIRE COACH (persistante) ===")
-            lines.append(memBlock)
-            lines.append("===")
-        }
-
-        // Profile + date (1 line)
-        let p = dash.profile
-        var info: [String] = []
-        if let n = p.name    { info.append(n) }
-        if let w = p.weight  { info.append("\(String(format: "%.0f", w))lbs") }
-        if let a = p.age     { info.append("\(a)ans") }
-        if let g = p.goal    { info.append(g) }
-        if let l = p.level   { info.append(l) }
-        lines.append("[\(info.joined(separator: " ")) | \(dash.todayDate) \(dash.today) S\(dash.week)]")
-
-        // LSS + ACWR (1-2 lines)
-        if let lss = lssData {
-            let c = lss.components
-            var t = "LSS:\(String(format: "%.0f", lss.score))"
-            if let v = c.sleepQuality    { t += " som:\(String(format: "%.0f", v))" }
-            if let v = c.hrvTrend        { t += " hrv:\(String(format: "%.0f", v))" }
-            if let v = c.rhrTrend        { t += " rhr:\(String(format: "%.0f", v))" }
-            if let v = c.subjectiveStress { t += " stress:\(String(format: "%.0f", v))" }
-            if let v = c.trainingFatigue { t += " fatigue:\(String(format: "%.0f", v))" }
-            var flags: [String] = []
-            if lss.flags.hrvDrop          { flags.append("!hrv") }
-            if lss.flags.sleepDeprivation { flags.append("!som") }
-            if lss.flags.trainingOverload { flags.append("!surcharge") }
-            if !flags.isEmpty { t += " \(flags.joined(separator: " "))" }
-            lines.append(t)
-        }
-        // Mesocycle phase — critical context for RPE targets and volume expectations
-        if let meso = mesocycleInfo {
-            var mesoLine = "mésocycle: S\(meso.week)/8 \(meso.phase) cibleRPE:\(meso.rpeTarget)"
-            if !meso.note.isEmpty { mesoLine += " (\(meso.note))" }
-            lines.append(mesoLine)
-        }
-
-        // Schedule
-        let sched = dash.schedule.sorted { $0.key < $1.key }.map { "\($0.key):\($0.value)" }.joined(separator: " ")
-        if !sched.isEmpty { lines.append("prog: \(sched)") }
-
-        // Fil chrono — rythme et charge uniquement (exercices couverts par last_session_block + programContext)
-        let allSessions = sessionsData.isEmpty ? dash.sessions : sessionsData
-        let recent = allSessions.sorted { $0.key > $1.key }.prefix(3)
-        if !recent.isEmpty {
-            let fil = recent.map { (date, s) -> String in
-                let dd = String(date.suffix(5))
-                var parts = [dd]
-                if let rpe = s.rpe         { parts.append("RPE:\(String(format: "%.1f", rpe))") }
-                if let sets = s.totalSets  { parts.append("s:\(sets)") }
-                if let dur = s.durationMin { parts.append("\(dur)m") }
-                return parts.joined(separator: " ")
-            }.joined(separator: " | ")
-            lines.append("fil: \(fil)")
-        }
-
-        // Recovery (last 5)
-        let recov = recoveryData.prefix(5).compactMap { r -> String? in
-            guard let date = r.date else { return nil }
-            let dd = String(date.suffix(5))
-            var t = dd
-            if let v = r.sleepHours   { t += " \(String(format: "%.1f", v))h" }
-            if let v = r.sleepQuality { t += " q:\(String(format: "%.0f", v))" }
-            if let v = r.hrv          { t += " hrv:\(String(format: "%.0f", v))" }
-            if let v = r.restingHr    { t += " rhr:\(String(format: "%.0f", v))" }
-            if let v = r.soreness     { t += " soreness:\(String(format: "%.0f", v))" }
-            return t
-        }
-        if !recov.isEmpty { lines.append("récup: " + recov.joined(separator: " | ")) }
-
-        // Body weight trend (1 line)
-        let bw = Array(bodyWeightData.prefix(5))
-        if !bw.isEmpty {
-            let pts = bw.map { e -> String in
-                var s = "\(String(e.date.suffix(5))):\(String(format: "%.1f", e.weight))"
-                if let bf = e.bodyFat { s += "(\(String(format: "%.0f", bf))%)" }
-                return s
-            }.joined(separator: " ")
-            if bw.count >= 2 {
-                let delta = bw[0].weight - bw[bw.count - 1].weight
-                lines.append("poids(\(delta >= 0 ? "+" : "")\(String(format: "%.1f", delta))lbs): \(pts)")
-            } else {
-                lines.append("poids: \(pts)")
-            }
-        }
-
-        // Mental health (7d summary)
-        if let mental = mentalData {
-            var mt: [String] = []
-            if let mood = mental.avgMood { mt.append("humeur:\(String(format: "%.1f", mood))/10") }
-            mt.append("trend:\(mental.moodTrend)")
-            if let pss = mental.pssScore { mt.append("PSS:\(pss)") }
-            if let cat = mental.pssCategory { mt.append("(\(cat))") }
-            mt.append("autosoins:\(String(format: "%.0f", mental.selfCareRate * 100))%")
-            if !mental.topEmotions.isEmpty { mt.append("émotions:\(mental.topEmotions.prefix(3).joined(separator: "/"))") }
-            lines.append("mental(7j): \(mt.joined(separator: " "))")
-        }
-
-        // Goals (1 line)
-        if !dash.goals.isEmpty {
-            let gs = dash.goals.sorted { $0.key < $1.key }.map { (k, v) in
-                "\(k):\(String(format: "%.0f", v.current))/\(String(format: "%.0f", v.goal))\(v.achieved ? "✓" : "")"
-            }.joined(separator: " ")
-            lines.append("goals: \(gs)")
-        }
-
-        // Lifts (top 6, 1 per line compressed)
-        let lifts = weightsData.compactMap { (name, w) -> (String, WeightData)? in
-            w.currentWeight != nil ? (name, w) : nil
-        }.sorted { ($0.1.currentWeight ?? 0) > ($1.1.currentWeight ?? 0) }.prefix(6)
-        if !lifts.isEmpty {
-            lines.append("lifts:")
-            for (name, w) in lifts {
-                var row = "\(name):\(String(format: "%.0f", w.currentWeight ?? 0))lbs"
-                if let r = w.lastReps   { row += "(\(r))" }
-                if let d = w.lastLogged { row += " \(String(d.suffix(5)))" }
-                lines.append("  \(row)")
-            }
-        }
-
-        let result = lines.joined(separator: "\n")
-        if result.count > 3000 {
-            logger.warning("buildContext over budget: \(result.count) chars (limit 3000)")
-        }
-        return result
-    }
-
     private func purgeStaleMemoryEntries() {
         // Remove any milestone that references deleted test data (e.g. 450lbs squat)
         let stale = CoachMemoryStore.shared.entries.filter {
@@ -1511,30 +1242,6 @@ struct IntelligenceView: View {
         return "W\(weekIndex)"
     }
 
-    private func loadNarrative() {
-        guard !isLoadingNarrative else { return }
-        // Return cached narrative for current week
-        let cacheKey = "narrative_\(currentWeekKey)"
-        if let cached = CacheService.shared.load(for: cacheKey),
-           let text = String(data: cached, encoding: .utf8) {
-            narrative = text; return
-        }
-        let context = buildContext()
-        isLoadingNarrative = true
-        Task {
-            do {
-                let text = try await APIService.shared.fetchWeeklyNarrative(context: context, weekKey: currentWeekKey)
-                // Cache for the week
-                if let data = text.data(using: .utf8) {
-                    CacheService.shared.save(data, for: cacheKey)
-                }
-                await MainActor.run { narrative = text; isLoadingNarrative = false }
-            } catch {
-                await MainActor.run { isLoadingNarrative = false }
-            }
-        }
-    }
-
     private func loadInsights() {
         guard !isLoadingCorrelations else { return }
         isLoadingCorrelations = true
@@ -1548,92 +1255,6 @@ struct IntelligenceView: View {
                 }
             } catch {
                 await MainActor.run { isLoadingCorrelations = false }
-            }
-        }
-    }
-
-    private func generateProgram() {
-        guard !isGeneratingProgram else { return }
-        isGeneratingProgram = true
-        programError = nil
-        Task {
-            do {
-                let gp = try await APIService.shared.generateProgram()
-                await MainActor.run {
-                    generatedProgram    = gp
-                    isGeneratingProgram = false
-                    showProgramPreview  = true
-                }
-            } catch {
-                await MainActor.run {
-                    isGeneratingProgram = false
-                    programError = error.localizedDescription
-                }
-            }
-        }
-    }
-
-    private func loadProposals() {
-        guard !isLoadingProposals else { return }
-        isLoadingProposals = true
-        proposals = []
-        proposalError = nil
-        Task {
-            // Ensure dashboard is loaded
-            if APIService.shared.dashboard == nil {
-                await APIService.shared.fetchDashboard()
-            }
-            let context = buildContext()
-            guard context != "no data" else {
-                await MainActor.run {
-                    isLoadingProposals = false
-                    proposalError = "Données non disponibles — ouvre le dashboard d'abord."
-                }
-                return
-            }
-            do {
-                guard let url = URL(string: "\(APIService.shared.baseURL)/api/ai/propose") else { return }
-                var req = URLRequest(url: url)
-                req.httpMethod = "POST"
-                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                req.httpBody = try JSONSerialization.data(withJSONObject: ["context": context])
-                let (data, response) = try await URLSession.authed.data(for: req)
-                if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                    let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
-                    await MainActor.run {
-                        isLoadingProposals = false
-                        proposalError = msg ?? "Erreur serveur (\(http.statusCode))"
-                    }
-                    return
-                }
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let raw = json["proposals"] as? [[String: Any]] {
-                    let parsed = raw.compactMap { d -> AIProposal? in
-                        guard let reason = d["reason"] as? String else { return nil }
-                        return AIProposal(
-                            jour: d["jour"] as? String ?? "",
-                            action: d["action"] as? String ?? "",
-                            exercise: d["exercise"] as? String ?? d["old_exercise"] as? String ?? "",
-                            scheme: d["scheme"] as? String ?? "",
-                            reason: reason
-                        )
-                    }
-                    await MainActor.run {
-                        proposals = parsed
-                        isLoadingProposals = false
-                        if parsed.isEmpty { proposalError = "Aucune proposition générée." }
-                    }
-                } else {
-                    await MainActor.run {
-                        isLoadingProposals = false
-                        proposalError = "Réponse inattendue du serveur."
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    isLoadingProposals = false
-                    proposalError = "Erreur réseau : \(error.localizedDescription)"
-                }
             }
         }
     }
