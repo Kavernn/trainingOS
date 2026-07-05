@@ -218,8 +218,6 @@ Dérivé du `session_name` de la séance démarrée aujourd'hui (`workout_sessio
 | GET | `/api/insights/correlations` | Training–wellness correlations |
 | GET | `/api/stats_data` | Full stats payload (weights, sessions, muscle stats) |
 
-**Rate limit:** 10 AI calls/hour (shared across workers via Supabase `ai_rate_limit` table).
-
 ### `GET /api/acwr` — Détail
 
 Retourne le ratio ACWR du jour calculé par EWMA (Blanch & Gabbett 2016).

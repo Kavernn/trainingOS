@@ -104,37 +104,6 @@ def cap_scheme_sets(scheme: str, max_sets: int = 3) -> str:
     return f"{max_sets}{m.group(2)}" if m and int(m.group(1)) > max_sets else (scheme or "")
 
 
-# ── Rate limiting for Anthropic AI routes ─────────────────────────────────────
-# Stored in Supabase so the limit is shared across all Vercel workers.
-# Table: ai_rate_limit (hour_key TEXT PRIMARY KEY, count INTEGER DEFAULT 0)
-# Schema: CREATE TABLE IF NOT EXISTS ai_rate_limit (hour_key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0);
-_AI_MAX_TOKENS = 10  # calls per hour
-
-def _ai_rate_check() -> bool:
-    """Return True if the request is allowed, False if rate limited.
-    Uses Supabase for cross-worker consistency on Vercel."""
-    from datetime import timezone
-    hour_key = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H")
-    try:
-        import db as _db
-        client = _db._client
-        if client is None:
-            return True  # offline mode — allow
-        # Read current count for this hour
-        resp = client.table("ai_rate_limit").select("count").eq("hour_key", hour_key).limit(1).execute()
-        current = resp.data[0]["count"] if resp.data else 0
-        if current >= _AI_MAX_TOKENS:
-            return False
-        # Increment (slight race window acceptable at this scale)
-        client.table("ai_rate_limit").upsert(
-            {"hour_key": hour_key, "count": current + 1},
-            on_conflict="hour_key",
-        ).execute()
-        return True
-    except Exception:
-        return True  # fail open — better to allow than block on infra error
-
-
 # ── Input validation ─────────────────────────────────────────
 
 def require_fields(data: dict, *fields: str):

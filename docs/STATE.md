@@ -538,4 +538,3 @@ Commit : `f37c331`.
 
 ### Fix API
 
-- `api/routes/coach_tip.py` : `BadRequestError` Anthropic (billing insuffisant) capturé explicitement → HTTP 200 + `null` au lieu de 500 non nécessaire

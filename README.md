@@ -18,7 +18,6 @@ Application iOS native de tracking fitness/santé connectée à un backend Flask
 | `SUPABASE_URL` | URL du projet Supabase |
 | `SUPABASE_KEY` | Clé service role Supabase |
 | `SECRET_KEY` | Clé Flask sessions |
-| `ANTHROPIC_API_KEY` | Pour les routes IA (coach, planner) |
 | `X_RAPIDAPI_KEY` | Optionnel — API nutrition externe |
 
 ---
