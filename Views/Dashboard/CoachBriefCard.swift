@@ -5,7 +5,6 @@ import SwiftUI
 struct CoachInsightCard: View {
     let brief: MorningBriefData?
     let sessionCompletedToday: Bool
-    var tip: CoachTip? = nil
     var alert: ProactiveAlert? = nil
     var onDismissAlert: (() -> Void)? = nil
 
@@ -16,26 +15,6 @@ struct CoachInsightCard: View {
         if hour >= 14 && hour < 18 { return "Coach · Pré-séance" }
         if hour >= 19              { return "Coach · Ce soir" }
         return "Coach"
-    }
-
-    private func tipColor(for domain: String) -> Color {
-        switch domain {
-        case "nutrition": return .statusGreen
-        case "training":  return .statusOrange
-        case "recovery":  return .statusBlue
-        case "sleep":     return .statusPurple
-        default:          return .statusOrange
-        }
-    }
-
-    private func tipIcon(for domain: String) -> String {
-        switch domain {
-        case "nutrition": return "fork.knife.circle.fill"
-        case "training":  return "figure.strengthtraining.traditional"
-        case "recovery":  return "heart.fill"
-        case "sleep":     return "moon.fill"
-        default:          return "lightbulb.fill"
-        }
     }
 
     var body: some View {
@@ -119,25 +98,6 @@ struct CoachInsightCard: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
-                    if let tip {
-                        Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5).padding(.top, 4)
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: tipIcon(for: tip.domain))
-                                .font(.appCaption)
-                                .foregroundColor(tipColor(for: tip.domain))
-                                .padding(.top, 1)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(tip.title)
-                                    .font(.appCaption.weight(.bold))
-                                    .foregroundColor(Color.appOnSurface.opacity(0.9))
-                                Text(tip.body)
-                                    .font(.appCaption)
-                                    .foregroundColor(.gray)
-                                    .lineLimit(2)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)

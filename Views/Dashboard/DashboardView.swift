@@ -166,7 +166,6 @@ struct DashboardView: View {
                                     CoachInsightCard(
                                         brief: vm.morningBrief,
                                         sessionCompletedToday: dash.alreadyLoggedToday,
-                                        tip: vm.coachTip,
                                         alert: alertService.visibleAlert,
                                         onDismissAlert: {
                                             withAnimation(.easeOut(duration: 0.25)) {

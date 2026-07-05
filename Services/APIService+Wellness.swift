@@ -138,13 +138,6 @@ extension APIService {
     }
 
     // MARK: - Coach / Morning Brief
-    func fetchDailyCoachTip() async throws -> CoachTip {
-        let today = DateFormatter.isoDate.string(from: Date())
-        let url = try buildURL(path: "/api/coach/daily_tip")
-        let data = try await fetchWithCache(url: url, key: "coach_tip_\(today)")
-        return try APIService.decoder.decode(CoachTip.self, from: data)
-    }
-
     func fetchMorningBrief() async throws -> MorningBriefData {
         let url = try buildURL(path: "/api/coach/morning_brief")
         let data = try await fetchWithCache(url: url, key: "morning_brief")

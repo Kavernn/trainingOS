@@ -19,7 +19,6 @@ private final class P2State: @unchecked Sendable {
 }
 
 private final class P3State: @unchecked Sendable {
-    var coachTip: CoachTip? = nil
     var readinessData: ReadinessResponse? = nil
     var streakData: StreakResponse? = nil
     var warRoomEnabled = false
@@ -126,7 +125,6 @@ final class DashboardViewModel: ObservableObject {
     @Published var moodDue: MoodDueStatus?
     @Published var morningBrief: MorningBriefData?
     @Published var todayRecovery: RecoveryEntry?
-    @Published var coachTip: CoachTip?
     @Published var readinessData: ReadinessResponse?
     @Published var dailyPattern: PatternEntry?
     @Published var ritualToday: RitualToday?
@@ -305,7 +303,6 @@ final class DashboardViewModel: ObservableObject {
         if analyticsLoadedDate != today {
             let p3 = P3State()
             await withTaskGroup(of: Void.self) { group in
-                group.addTask { @MainActor in p3.coachTip     = try? await APIService.shared.fetchDailyCoachTip() }
                 group.addTask { @MainActor in p3.readinessData = try? await APIService.shared.fetchReadiness() }
                 group.addTask { @MainActor in p3.streakData      = try? await APIService.shared.fetchStreaks(date: today) }
                 group.addTask { @MainActor in p3.weeklyTonnage   = try? await APIService.shared.fetchWeeklyTonnage().volume }
@@ -346,7 +343,6 @@ final class DashboardViewModel: ObservableObject {
                 }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
-            coachTip             = p3.coachTip
             readinessData        = p3.readinessData
             streakData           = p3.streakData
             weeklyTonnage        = p3.weeklyTonnage

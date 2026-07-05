@@ -202,37 +202,6 @@ def api_daily_insight():
     except Exception:
         pass
 
-    # ── P4 — Fallback IA (Haiku, 1 phrase) ───────────────────────────────────
-    try:
-        import os
-        import anthropic as _anthropic
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-        if api_key:
-            from morning_brief import get_morning_brief
-            brief = get_morning_brief()
-            ctx = "\n".join([
-                f"LSS: {brief.get('lss', '?')}/100",
-                f"Séance prévue: {brief.get('session_today', '?')}",
-                f"Recommandation système: {brief.get('recommendation', '?')}",
-            ])
-            msg = _anthropic.Anthropic(api_key=api_key).messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=60,
-                system=(
-                    "Tu es un coach sportif. Génère UN insight d'entraînement en 1 phrase (max 15 mots). "
-                    "Direct, basé sur les données, actionnable. Tutoiement. Français. Pas de ponctuation superflue."
-                ),
-                messages=[{"role": "user", "content": ctx}],
-            )
-            return _insight(
-                "ai_fallback", "brain.head.profile",
-                "Insight du jour",
-                msg.content[0].text.strip(),
-                "Coach IA", "coach", 4,
-            )
-    except Exception:
-        pass
-
     return jsonify({
         "type": "none", "icon": "", "title": "", "body": "",
         "source": "", "action": "", "priority": 0,
