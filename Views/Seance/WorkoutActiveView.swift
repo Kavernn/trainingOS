@@ -73,7 +73,6 @@ struct WorkoutSeanceView: View {
     // Session recap
     @State private var showRecap = false
     @State private var recapSnapshot: SessionRecapSnapshot? = nil
-    @State private var didLoadPreCoaching = false
 
     // Energy pre-session
     @AppStorage("energy_pre_value") private var energyPre: Int = 3
@@ -1520,17 +1519,6 @@ struct WorkoutSeanceView: View {
                 }
             }
             computeGhost()
-            guard !didLoadPreCoaching else { return }
-            didLoadPreCoaching = true
-            Task {
-                let sType = isSecondSession ? "evening" : "morning"
-                if let sug = try? await APIService.shared.fetchProgressionSuggestions(
-                    date: data.todayDate, sessionType: sType, sessionName: data.today
-                ), !sug.filter({ $0.suggestionType != "maintain" }).isEmpty {
-                    progressionSuggestions = sug
-                    showProgressionSheet = true
-                }
-            }
         }
         .onChange(of: data.inventoryTypes) { fresh in
             if !fresh.isEmpty { inventoryTypes = fresh }
