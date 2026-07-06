@@ -80,9 +80,6 @@ struct WorkoutSeanceView: View {
     @AppStorage("energy_pre_date") private var energyPreDate = ""
     @State private var energyConfirmed = false
 
-    // Mid-workout intelligence
-    @State private var dismissedAdviceId: String? = nil
-
     // Session override (calendrier)
     @State private var showSessionPicker = false
 
@@ -109,6 +106,15 @@ struct WorkoutSeanceView: View {
     @State private var showAbandonAlert = false
     @State private var allLoggedPulse = false
     @State private var completionGlow = false
+
+    // Context panel — collapsed by default (Vince skips it mid-session)
+    @State private var showContextPanel = false
+
+    // Add-ons panel — collapsed by default (cardio/HIIT rarely added mid-session)
+    @State private var showAddonsPanel = false
+
+    // Resume banner — dismissable per view instance
+    @State private var showResumeBanner = true
 
     // Warmup guidance banner — shown pre-session, dismissable
     @State private var showWarmupBanner = true
@@ -198,48 +204,6 @@ struct WorkoutSeanceView: View {
             }
             return acc + r.weight * reps
         }
-    }
-
-    private var midWorkoutAdvice: MidWorkoutAdvice? {
-        let logged    = vm.logResults.count
-        let total     = exercises.count
-        let remaining = total - logged
-        let durationMin = Double(vm.chrono.elapsedSeconds) / 60.0
-        guard logged >= 2 else { return nil }
-
-        if computedSessionRPE >= 9.0 && remaining > 0 {
-            return MidWorkoutAdvice(
-                id: "high_rpe",
-                icon: "exclamationmark.triangle.fill", color: .statusRed,
-                title: "Fatigue critique",
-                message: "Effort très élevé (RIR \(RPEHelper.rirFromRPE(computedSessionRPE)) / RPE \(String(format: "%.0f", computedSessionRPE))) — réduis les charges de 5-10% sur les \(remaining) exercice(s) restant(s), ou supprime une série."
-            )
-        }
-        if computedSessionRPE <= 6.0 && remaining > 1 {
-            return MidWorkoutAdvice(
-                id: "low_rpe",
-                icon: "bolt.fill", color: .statusGreen,
-                title: "Tu as de la réserve",
-                message: "Effort faible (RIR 4+ / RPE \(String(format: "%.0f", computedSessionRPE))) — tu peux monter les charges de 2.5–5% sur les prochains exercices."
-            )
-        }
-        if durationMin > 90 && remaining > 0 {
-            return MidWorkoutAdvice(
-                id: "too_long",
-                icon: "clock.badge.exclamationmark.fill", color: Color.appWarning,
-                title: "Séance longue — \(Int(durationMin)) min",
-                message: "Les \(remaining) exercice(s) restant(s) sont optionnels. La qualité prime sur la quantité après 90 min."
-            )
-        }
-        if ghostBeaten && remaining > 0 {
-            return MidWorkoutAdvice(
-                id: "ghost_beaten",
-                icon: "figure.run", color: .statusPurple,
-                title: "Fantôme battu !",
-                message: "Volume déjà supérieur à ta dernière séance — reste prudent sur l'intensité jusqu'à la fin."
-            )
-        }
-        return nil
     }
 
     private struct GhostSnapshot: Codable {
@@ -361,7 +325,7 @@ struct WorkoutSeanceView: View {
                     .font(.appCaption).fontWeight(.semibold)
                     .foregroundColor(Color.forge)
                     Button { orderSaveError = false } label: {
-                        Image(systemName: "xmark").font(.appCaption).foregroundColor(.gray)
+                        Image(systemName: "xmark").font(.appCaption).foregroundColor(Color.appTextSecondary)
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -402,7 +366,7 @@ struct WorkoutSeanceView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(name).font(.appLabel).fontWeight(.regular).foregroundColor(.appTextPrimary)
-                        Text(scheme).font(.appCaption).foregroundColor(.gray)
+                        Text(scheme).font(.appCaption).foregroundColor(Color.appTextSecondary)
                     }
                     Spacer()
                     Image(systemName: "pencil").font(.appLabel).foregroundColor(Color.forge.opacity(0.7))
@@ -438,7 +402,7 @@ struct WorkoutSeanceView: View {
             Text("À FAIRE")
                 .font(.appMicro).fontWeight(.bold)
                 .tracking(2)
-                .foregroundColor(.gray.opacity(0.4))
+                .foregroundColor(Color.appTextMuted)
                 .fixedSize()
             Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
         }
@@ -794,6 +758,138 @@ struct WorkoutSeanceView: View {
         }
     }
 
+    private var contextSummaryText: String {
+        var parts: [String] = ["⚡\(energyPre)"]
+        if let r = readiness, let score = r.score {
+            parts.append("readiness \(Int(score))")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    @ViewBuilder private var contextToggleButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.22)) { showContextPanel.toggle() }
+        } label: {
+            HStack(spacing: 8) {
+                Text("Contexte")
+                    .font(.appCaption).fontWeight(.semibold)
+                    .foregroundColor(Color.appTextSecondary)
+                Text(contextSummaryText)
+                    .font(.appCaption)
+                    .foregroundColor(Color.appTextSecondary.opacity(0.75))
+                    .lineLimit(1)
+                Spacer()
+                Image(systemName: "chevron.down")
+                    .font(.appMicro).fontWeight(.bold)
+                    .foregroundColor(Color.appTextSecondary)
+                    .rotationEffect(.degrees(showContextPanel ? 180 : 0))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .background(Color.appSurfaceInset)
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder private var contextPanel: some View {
+        VStack(spacing: 8) {
+            // Readiness chip
+            if let r = readiness, let score = r.score {
+                ReadinessChip(score: score, label: r.label, color: r.color)
+            }
+
+            // Macro nutrition hint — lecture seule, calculé depuis DashboardViewModel
+            if let hint = appState.macroSessionHint {
+                HStack(spacing: 6) {
+                    Image(systemName: hint.isAbove ? "fork.knife" : "exclamationmark.circle")
+                        .font(.appMicro).fontWeight(.medium)
+                        .foregroundColor(hint.isAbove ? .statusGreen : .statusOrange)
+                    Text(hint.isAbove
+                         ? "Bonne nutrition hier — conditions optimales"
+                         : "Nutrition de la veille sous ton seuil optimal (\(hint.macro))")
+                        .font(.appCaption)
+                        .foregroundColor(hint.isAbove ? Color.statusGreen.opacity(0.85) : Color.statusOrange.opacity(0.85))
+                        .lineLimit(1)
+                    Spacer()
+                }
+            }
+
+            // Énergie inline — remplace la modal bloquante
+            HStack(spacing: 6) {
+                Text("ÉNERGIE")
+                    .font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
+                ForEach(1...5, id: \.self) { val in
+                    Button {
+                        withAnimation { energyPre = val }
+                        energyPreDate = data.todayDate
+                        // Fix #15 — transient confirmation checkmark
+                        energyConfirmed = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            withAnimation { energyConfirmed = false }
+                        }
+                    } label: {
+                        Image(systemName: val <= energyPre ? "bolt.fill" : "bolt")
+                            .font(.appBody)
+                            .foregroundColor(val <= energyPre ? .statusYellow : .gray.opacity(0.25))
+                    }
+                    .buttonStyle(.plain)
+                }
+                // W-D8 — on resume, indicate that energy can be updated
+                if vm.isResuming && energyPreDate == data.todayDate && !energyConfirmed {
+                    Text("Mise à jour ?")
+                        .font(.appMicro).fontWeight(.medium)
+                        .foregroundColor(Color.statusYellow.opacity(0.6))
+                }
+                Spacer()
+                if energyConfirmed {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.appLabel)
+                        .foregroundColor(.statusGreen)
+                        .transition(.scale.combined(with: .opacity))
+                } else if energyPreDate == data.todayDate {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.appMicro).foregroundColor(Color.statusGreen.opacity(0.6))
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(Color.statusYellow.opacity(0.07))
+            .cornerRadius(10)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    @ViewBuilder private var addonsToggleButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.22)) { showAddonsPanel.toggle() }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle")
+                    .font(.appCaption)
+                    .foregroundColor(Color.appTextSecondary)
+                Text("Ajouter cardio / HIIT")
+                    .font(.appCaption).fontWeight(.semibold)
+                    .foregroundColor(Color.appTextSecondary)
+                if cardioCount > 0 || hiitCount > 0 {
+                    Text("· \(cardioCount + hiitCount) ajouté(s)")
+                        .font(.appCaption)
+                        .foregroundColor(Color.appTextSecondary.opacity(0.75))
+                }
+                Spacer()
+                Image(systemName: "chevron.down")
+                    .font(.appMicro).fontWeight(.bold)
+                    .foregroundColor(Color.appTextSecondary)
+                    .rotationEffect(.degrees(showAddonsPanel ? 180 : 0))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .background(Color.appSurfaceInset)
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
         ScrollView {
@@ -890,73 +986,18 @@ struct WorkoutSeanceView: View {
                         .shadow(color: allDone ? Color.appSuccess.opacity(0.35) : .clear, radius: 5)
                         .animation(.easeInOut(duration: 0.3), value: allDone)
 
-                    // Readiness chip
-                    if let r = readiness, let score = r.score {
-                        ReadinessChip(score: score, label: r.label, color: r.color)
+                    contextToggleButton
+                    if showContextPanel {
+                        contextPanel
                     }
-
-                    // Macro nutrition hint — lecture seule, calculé depuis DashboardViewModel
-                    if let hint = appState.macroSessionHint {
-                        HStack(spacing: 6) {
-                            Image(systemName: hint.isAbove ? "fork.knife" : "exclamationmark.circle")
-                                .font(.appMicro).fontWeight(.medium)
-                                .foregroundColor(hint.isAbove ? .statusGreen : .statusOrange)
-                            Text(hint.isAbove
-                                 ? "Bonne nutrition hier — conditions optimales"
-                                 : "Nutrition de la veille sous ton seuil optimal (\(hint.macro))")
-                                .font(.appCaption)
-                                .foregroundColor(hint.isAbove ? Color.statusGreen.opacity(0.85) : Color.statusOrange.opacity(0.85))
-                                .lineLimit(1)
-                            Spacer()
-                        }
-                    }
-
-                    // Énergie inline — remplace la modal bloquante
-                    HStack(spacing: 6) {
-                        Text("ÉNERGIE")
-                            .font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
-                        ForEach(1...5, id: \.self) { val in
-                            Button {
-                                withAnimation { energyPre = val }
-                                energyPreDate = data.todayDate
-                                // Fix #15 — transient confirmation checkmark
-                                energyConfirmed = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    withAnimation { energyConfirmed = false }
-                                }
-                            } label: {
-                                Image(systemName: val <= energyPre ? "bolt.fill" : "bolt")
-                                    .font(.appBody)
-                                    .foregroundColor(val <= energyPre ? .statusYellow : .gray.opacity(0.25))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        // W-D8 — on resume, indicate that energy can be updated
-                        if vm.isResuming && energyPreDate == data.todayDate && !energyConfirmed {
-                            Text("Mise à jour ?")
-                                .font(.appMicro).fontWeight(.medium)
-                                .foregroundColor(Color.statusYellow.opacity(0.6))
-                        }
-                        Spacer()
-                        if energyConfirmed {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.appLabel)
-                                .foregroundColor(.statusGreen)
-                                .transition(.scale.combined(with: .opacity))
-                        } else if energyPreDate == data.todayDate {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.appMicro).foregroundColor(Color.statusGreen.opacity(0.6))
-                        }
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 7)
-                    .background(Color.statusYellow.opacity(0.07))
-                    .cornerRadius(10)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
 
+                exerciseSection
+
                 // Resume banner — shown when exercises were already logged (partial prior session)
-                if vm.isResuming {
+                if vm.isResuming && showResumeBanner {
                     let loggedNames = exercises.map(\.0).filter { vm.logResults[$0] != nil }
                     let loggedPreview = loggedNames.prefix(3).joined(separator: " · ")
                     let loggedExtra = max(0, loggedNames.count - 3)
@@ -989,6 +1030,13 @@ struct WorkoutSeanceView: View {
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.statusRed.opacity(0.1))
                         .cornerRadius(6)
+                        Button { withAnimation { showResumeBanner = false } } label: {
+                            Image(systemName: "xmark")
+                                .font(.appCaption).fontWeight(.semibold)
+                                .foregroundColor(.gray)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 4)
                     }
                     .padding(.horizontal, 12).padding(.vertical, 10)
                     .background(Color.statusCyan.opacity(0.08))
@@ -1016,7 +1064,7 @@ struct WorkoutSeanceView: View {
                 }
 
                 // Ghost mode banner — suppressed while resume banner is active to avoid header clutter
-                if showGhost, let ghost = ghostData, !vm.isResuming {
+                if showGhost, let ghost = ghostData, !vm.isResuming, vm.logResults.isEmpty {
                     GhostBanner(
                         ghost: ghost,
                         currentVolume: currentVolume,
@@ -1098,9 +1146,11 @@ struct WorkoutSeanceView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
-                exerciseSection
-
-                optionalAddonsSection
+                addonsToggleButton
+                if showAddonsPanel {
+                    optionalAddonsSection
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 // Effort live — visible dès qu'un exercice est loggé
                 if !vm.logResults.isEmpty {
@@ -1111,7 +1161,7 @@ struct WorkoutSeanceView: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Effort séance")
                                 .font(.appCaption).fontWeight(.semibold)
-                                .foregroundColor(.gray)
+                                .foregroundColor(Color.appTextSecondary)
                             Text(RPEHelper.option(for: RPEHelper.rirFromRPE(computedSessionRPE)).label)
                                 .font(.appCaption)
                                 .foregroundColor(RPEHelper.color(for: computedSessionRPE))
@@ -1125,16 +1175,6 @@ struct WorkoutSeanceView: View {
                     .background(RPEHelper.color(for: computedSessionRPE).opacity(0.08))
                     .cornerRadius(12)
                     .padding(.horizontal, 16)
-                }
-
-                // Mid-workout intelligence card
-                if let advice = midWorkoutAdvice, dismissedAdviceId != advice.id {
-                    MidWorkoutAdvisorCard(advice: advice) {
-                        withAnimation(.easeOut(duration: 0.25)) { dismissedAdviceId = advice.id }
-                    }
-                    .padding(.horizontal, 16)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: advice.id)
                 }
 
                 // CTA Séance 2 — visible uniquement en séance matin avec assignments non vide
@@ -1156,12 +1196,18 @@ struct WorkoutSeanceView: View {
                     .padding(.horizontal, 16)
                 }
 
+                Rectangle()
+                    .fill(Color.appSurfaceInset)
+                    .frame(height: 0.5)
+                    .padding(.horizontal, 32)
+                    .padding(.top, 24)
+
                 // Terminer la séance — dernier élément du scroll, jamais sticky
                 VStack(spacing: 0) {
                     if vm.logResults.isEmpty {
                         Text("Loggue au moins 1 exercice pour terminer")
                             .font(.appCaption)
-                            .foregroundColor(.gray.opacity(0.45))
+                            .foregroundColor(Color.appTextMuted)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.bottom, 6)
                             .transition(.opacity)

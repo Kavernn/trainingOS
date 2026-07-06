@@ -311,9 +311,7 @@ struct ExerciseCard: View {
             if evm.repCountMode {
                 RepCounterSection(evm: evm, doLog: doLog)
             } else if evm.setBySetMode {
-                Text("Set \(evm.currentSetIndex + 1)/\(evm.sets.count) — appuie ✓ après chaque set")
-                    .font(.appCaption).foregroundColor(Color.forge.opacity(0.7))
-                    .padding(.top, 2)
+                logRoundButton
             }
         }
     }
@@ -559,27 +557,37 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func setRowActionButton(i: Int, isActive: Bool, isDone: Bool) -> some View {
-        if isActive && !evm.repCountMode {
-            Button {
-                withAnimation {
-                    triggerImpact(style: .medium)
-                    if evm.currentSetIndex < evm.sets.count - 1 {
-                        evm.currentSetIndex += 1
-                    } else {
-                        evm.setBySetMode = false
-                        doLog()
-                    }
-                }
-            } label: {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.appTitle)
-                    .foregroundColor(Color.forge)
-            }
-            .buttonStyle(SpringButtonStyle(scale: 0.88))
-        } else if isDone {
+        if isDone {
             Image(systemName: "checkmark.circle.fill")
                 .font(.appHeadline).foregroundColor(Color.appSuccess.opacity(0.6))
         }
+    }
+
+    @ViewBuilder private var logRoundButton: some View {
+        Button {
+            withAnimation {
+                triggerImpact(style: .medium)
+                if evm.currentSetIndex < evm.sets.count - 1 {
+                    evm.currentSetIndex += 1
+                } else {
+                    evm.setBySetMode = false
+                    doLog()
+                }
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color.forge)
+                    .frame(width: 72, height: 72)
+                    .shadow(color: Color.forge.opacity(0.35), radius: 8, x: 0, y: 2)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+        .buttonStyle(SpringButtonStyle(scale: 0.88))
+        .frame(maxWidth: .infinity)
+        .padding(.top, 8)
     }
 
     @ViewBuilder private func timeSetRows() -> some View {
@@ -740,7 +748,7 @@ struct ExerciseCard: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(name).font(.appHeadline).fontWeight(.bold).foregroundColor(.appTextPrimary)
+                        Text(name).font(isExpanded ? .appTitle : .appHeadline).fontWeight(.bold).foregroundColor(.appTextPrimary)
                         if isReplaced {
                             Text("remplacé")
                                 .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)

@@ -174,7 +174,6 @@
 		IA0011IA0011IA0011IA0011 /* RoundedCorner.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0011IR0011IR0011IR0011 /* RoundedCorner.swift */; };
 		IA0013IA0013IA0013IA0013 /* IntelligenceAnalyticsCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */; };
 		IA0014IA0014IA0014IA0014 /* CoachContextSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */; };
-		MAC0002MAC0002MAC0002MA2 /* MidWorkoutAdvisorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */; };
 		MC000002MC000002MC000002 /* MetricCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC000001MC000001MC000001 /* MetricCell.swift */; };
 		NA0001NA0001NA0001NA0001 /* NutritionActionMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */; };
 		NA0002NA0002NA0002NA0002 /* ProteinProgressCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */; };
@@ -478,7 +477,6 @@
 		IR0011IR0011IR0011IR0011 /* RoundedCorner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundedCorner.swift; sourceTree = "<group>"; };
 		IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceAnalyticsCards.swift; sourceTree = "<group>"; };
 		IR0014IR0014IR0014IR0014 /* CoachContextSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachContextSummary.swift; sourceTree = "<group>"; };
-		MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MidWorkoutAdvisorCard.swift; sourceTree = "<group>"; };
 		MC000001MC000001MC000001 /* MetricCell.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetricCell.swift; sourceTree = "<group>"; };
 		NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionActionMessage.swift; sourceTree = "<group>"; };
@@ -1042,7 +1040,6 @@
 				ACS0001ACS0001ACS0001AC1 /* AddCardioSheet.swift */,
 				AHS0001AHS0001AHS0001AH1 /* AddHIITSheet.swift */,
 				SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */,
-				MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */,
 				WGB0001WGB0001WGB0001WG1 /* WarmupGuidanceBanner.swift */,
 				STV0001STV0001STV0001ST1 /* SessionTimerView.swift */,
 			);
@@ -1450,7 +1447,6 @@
 				ACS0002ACS0002ACS0002AC2 /* AddCardioSheet.swift in Sources */,
 				AHS0002AHS0002AHS0002AH2 /* AddHIITSheet.swift in Sources */,
 				SPK0002SPK0002SPK0002SP2 /* SessionPreferenceKeys.swift in Sources */,
-				MAC0002MAC0002MAC0002MA2 /* MidWorkoutAdvisorCard.swift in Sources */,
 				WGB0002WGB0002WGB0002WG2 /* WarmupGuidanceBanner.swift in Sources */,
 				STV0002STV0002STV0002ST2 /* SessionTimerView.swift in Sources */,
 				AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */,
