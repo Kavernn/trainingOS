@@ -138,6 +138,8 @@ def log_second_session(
         extra["total_reps"] = total_reps
     if total_sets is not None:
         extra["total_sets"] = total_sets
+    if session_name is not None:
+        extra["session_name"] = session_name
 
     entry.setdefault("extra_sessions", []).append(extra)
     save_sessions(sessions)

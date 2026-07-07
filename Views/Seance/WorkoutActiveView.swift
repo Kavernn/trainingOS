@@ -1749,9 +1749,14 @@ struct WorkoutSeanceView: View {
 
     private func addExercise(_ name: String, scheme: String) async {
         let ok = await postProgramme(["action": "add", "jour": data.today, "exercise": name, "scheme": scheme, "block_type": "strength"])
+        guard ok else {
+            await MainActor.run { toast = ToastMessage(message: "Erreur ajout exercice", style: .error) }
+            return
+        }
+        let fetched = try? await APIService.shared.fetchExerciseWeightData(name: name)
         await MainActor.run {
-            if ok { localProgram[name] = scheme }
-            else  { toast = ToastMessage(message: "Erreur ajout exercice", style: .error) }
+            localProgram[name] = scheme
+            if let f = fetched { swapWeightData[name] = f }
         }
     }
 

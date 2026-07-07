@@ -42,11 +42,14 @@ class SeanceSoirViewModel: SeanceViewModel {
 
         for result in logResults.values {
             do {
-                _ = try await APIService.shared.logExercise(
+                let response = try await APIService.shared.logExercise(
                     exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
                     sets: result.sets, force: true,
                     isSecond: true, isBonus: false,
                     equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes)
+                if response.isPR == true {
+                    prCelebrations.append((name: result.name, oneRM: response.oneRM ?? 0))
+                }
                 // Décrémente le Set d'assignments si l'exo y était (résout compteur dash + séance complétée).
                 if let dateStr = seanceData?.todayDate,
                    SeanceSplitStore.load(date: dateStr).contains(result.name) {
@@ -73,6 +76,9 @@ class SeanceSoirViewModel: SeanceViewModel {
             commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
         }
         await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
+        if let date = seanceData?.todayDate {
+            SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+        }
         showSuccess = true
     }
 }
@@ -81,6 +87,7 @@ class SeanceSoirViewModel: SeanceViewModel {
 
 struct SeanceSoirView: View {
     @StateObject private var vm = SeanceSoirViewModel()
+    @State private var showPRCelebration = false
 
     var body: some View {
         NavigationStack {
@@ -106,6 +113,17 @@ struct SeanceSoirView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await vm.load() }
+        .onChange(of: vm.showSuccess) { success in
+            guard success, !vm.prCelebrations.isEmpty else { return }
+            showPRCelebration = true
+        }
+        .fullScreenCover(isPresented: $showPRCelebration) {
+            PRCelebrationView(prs: vm.prCelebrations) {
+                vm.prCelebrations = []
+                showPRCelebration = false
+                Task { await vm.load() }
+            }
+        }
     }
 
     @ViewBuilder
