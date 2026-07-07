@@ -6,7 +6,7 @@ logger = logging.getLogger("trainingos")
 daily_brief_bp = Blueprint("daily_brief", __name__)
 
 
-def _build_fallback_brief(brief_data: dict) -> dict:
+def _build_brief(brief_data: dict) -> dict:
     """Generate a brief from morning_brief data without calling Claude."""
     rec = brief_data.get("recommendation", "go")
     adjustments = brief_data.get("adjustments", [])
@@ -68,7 +68,7 @@ def get_daily_brief():
     try:
         from morning_brief import get_morning_brief
         brief_data = get_morning_brief()
-        result = _build_fallback_brief(brief_data)
+        result = _build_brief(brief_data)
 
         use_quote = bool(result.get("use_quote", True))
         mot = None if use_quote else (result.get("mot") or None)

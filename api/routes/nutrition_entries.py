@@ -18,15 +18,19 @@ def api_nutrition_add():
         val = float(data.get(field, 0))
         if val < 0 or val > 10000:
             return jsonify({"error": f"{field} invalide (0–10000)"}), 422
-    entry = nutrition_add_entry(
-        nom       = data.get("nom", ""),
-        calories  = calories_val,
-        proteines = float(data.get("proteines", 0)),
-        glucides  = float(data.get("glucides", 0)),
-        lipides   = float(data.get("lipides", 0)),
-        meal_type = data.get("meal_type"),
-        source    = data.get("source", "manual"),
-    )
+    try:
+        entry = nutrition_add_entry(
+            nom       = data.get("nom", ""),
+            calories  = calories_val,
+            proteines = float(data.get("proteines", 0)),
+            glucides  = float(data.get("glucides", 0)),
+            lipides   = float(data.get("lipides", 0)),
+            meal_type = data.get("meal_type"),
+            source    = data.get("source", "manual"),
+        )
+    except Exception as e:
+        logger.error("nutrition_add insert failed: %s", e)
+        return jsonify({"error": "Échec d'enregistrement — réessaie plus tard"}), 500
     import readiness as _readiness
     _readiness.invalidate_cache()
     return jsonify({"success": True, "entry": entry, "totals": get_today_totals()})

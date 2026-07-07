@@ -244,9 +244,9 @@ def insert_nutrition_entry(data: dict) -> dict:
                 return _do()
             except Exception as e2:
                 db_core.logger.error("insert_nutrition_entry retry error: %s", e2)
-                return data
+                raise
         db_core.logger.error("insert_nutrition_entry error: %s", e)
-        return data
+        raise
 
 
 def delete_nutrition_entry(entry_id: str) -> bool:

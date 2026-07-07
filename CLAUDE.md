@@ -14,7 +14,7 @@ Stack : Swift (iOS natif) + Python API (Vercel) + Supabase.
 5. **Fix chirurgical** — touche uniquement ce qui est nécessaire.
 6. **Soumets chaque diff avant merge.**
 7. **Un changement à la fois = un build.** Jamais N modifications en un diff indiagnosticable.
-8. **Soft-delete uniquement** (`is_deleted`) — jamais de hard delete sur `exercise_logs`.
+8. **Suppression : hard sur `exercise_logs`, soft (`deleted_at`) sur `exercises`.** Pas de colonne `is_deleted` (n'existe pas). Détail complet : `docs/CONVENTIONS.md` §4.
 
 ## PRINCIPES ARCHITECTURAUX
 
@@ -45,7 +45,7 @@ Langue : français. Terminologie domaine en français (séance, programme, exerc
 
 ## DOC DE RÉFÉRENCE (lire à la demande, pas chargée par défaut)
 
-- **Conventions de données** (sources de vérité, unités lbs, e1RM, soft-delete) → `docs/CONVENTIONS.md`
+- **Conventions de données** (sources de vérité, unités lbs, e1RM, delete strategy hard/soft) → `docs/CONVENTIONS.md`
 - **Système de thèmes** (thèmes, tokens, fonds de mood fixes) → `docs/THEMING.md`
 - **Architecture** (coach briefing, dashboard, couches) → `docs/ARCHITECTURE.md`
 - **Pièges connus** (AlarmKit inventé, withTaskGroup iOS 26, timezone MTL) → `tasks/lessons.md`
