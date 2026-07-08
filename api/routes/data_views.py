@@ -289,16 +289,16 @@ def api_exercise_detail():
     history_raw = get_exercise_detail_history(name, limit=10)
 
     def calc_e1rm(weight, reps_str):
-        try:
-            reps = int(str(reps_str).split("-")[0]) if reps_str else 0
-            w = float(weight) if weight else 0.0
-            if reps <= 0 or w <= 0 or reps > 15:
-                return None
-            if reps <= 10:
-                return round(w * (1 + reps / 30), 1)
-            return round(w * 36 / (37 - reps), 1)
-        except Exception:
+        if not reps_str or not weight:
             return None
+        try:
+            w = float(weight)
+        except (TypeError, ValueError):
+            return None
+        if w <= 0:
+            return None
+        from progression import estimate_1rm
+        return estimate_1rm(w, str(reps_str)) or None
 
     history = []
     e1rms = []
