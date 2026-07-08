@@ -407,27 +407,9 @@ def api_log_session():
         if not second_session and not bonus_session:
             existing = _db.get_workout_session(today)
             if existing and existing.get("completed"):
-                sid = existing.get("id")
-                if sid:
-                    if isinstance(exercise_logs, list) and exercise_logs:
-                        for row in exercise_logs:
-                            if not isinstance(row, dict):
-                                continue
-                            ex_name = str(row.get("exercise", "")).strip()
-                            ex_reps = str(row.get("reps", "")).strip()
-                            try:
-                                ex_weight = float(row.get("weight", 0) or 0)
-                            except Exception:
-                                ex_weight = 0.0
-                            if not ex_name or not ex_reps:
-                                continue
-                            _db.upsert_exercise_log_direct(sid, ex_name, ex_weight, ex_reps)
-                    elif isinstance(exos, list):
-                        for raw_exo in exos:
-                            parsed = _parse_exo_summary(str(raw_exo))
-                            if not parsed:
-                                continue
-                            _db.upsert_exercise_log_direct(sid, parsed[0], parsed[1], parsed[2])
+                # Idempotence : session déjà terminée, exercise_logs déjà écrits par /api/log
+                # (loop iOS par-exo, weight=first-set + sets_json peuplé + rpe + notes).
+                # Pour éditer, utiliser /api/session/edit ou /api/update_session.
                 return jsonify({"success": True})
 
         weights   = load_weights()
@@ -469,26 +451,9 @@ def api_log_session():
         else:
             sid = (_db.get_or_create_workout_session(today) or {}).get("id")
 
-        if sid and isinstance(exercise_logs, list) and exercise_logs:
-            for row in exercise_logs:
-                if not isinstance(row, dict):
-                    continue
-                ex_name = str(row.get("exercise", "")).strip()
-                ex_reps = str(row.get("reps", "")).strip()
-                try:
-                    ex_weight = float(row.get("weight", 0) or 0)
-                except Exception:
-                    ex_weight = 0.0
-                if not ex_name or not ex_reps:
-                    continue
-                _db.upsert_exercise_log_direct(sid, ex_name, ex_weight, ex_reps)
-        elif sid and isinstance(exos, list):
-            for raw_exo in exos:
-                parsed = _parse_exo_summary(str(raw_exo))
-                if not parsed:
-                    continue
-                ex_name, ex_weight, ex_reps = parsed
-                _db.upsert_exercise_log_direct(sid, ex_name, ex_weight, ex_reps)
+        # exercise_logs déjà écrits par le loop iOS via /api/log (par-exo).
+        # Pas de ré-upsert bulk ici : le payload sans sets_json/rpe/notes réécrirait
+        # les colonnes avec DEFAULT (sets_json→[]) et le weight avec la moyenne iOS.
 
         return jsonify({"success": True})
     except Exception:
