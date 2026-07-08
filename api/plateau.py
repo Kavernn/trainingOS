@@ -44,6 +44,9 @@ def _epley(weight_lbs: float, reps: int) -> float:
     if reps > 15:
         return 0.0
     if reps <= 1:
+        # r≤1 : 1RM d'un single = le single lui-même. Choix intentionnel — les
+        # autres copies e1RM (progression, volume, data_views, SQL) appliquent
+        # Epley et surestiment à r=1 (w × 1.033). Ne PAS aligner sur elles.
         return weight_lbs
     if reps <= 10:
         return round(weight_lbs * (1.0 + reps / 30.0), 1)   # Epley (1985)
