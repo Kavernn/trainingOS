@@ -79,7 +79,7 @@ def _confidence(effect: float, n: int) -> str:
 
 # ── Volume per exercise_log entry ─────────────────────────────────────────────
 
-def _entry_volume(e: dict) -> float | None:
+def _entry_volume_from_sets(e: dict) -> float | None:
     sets = e.get("sets")
     if isinstance(sets, list) and sets:
         total = 0.0
@@ -224,7 +224,7 @@ def _load_ex_by_date(days: int = 90) -> dict[str, dict[str, float]]:
             d = str(e.get("date") or "")[:10]
             if d < cutoff:
                 continue
-            v = _entry_volume(e)
+            v = _entry_volume_from_sets(e)
             if v and v > 0:
                 prev = result[name].get(d)
                 if prev is None or v > prev:

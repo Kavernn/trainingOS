@@ -70,25 +70,17 @@ def total_reps_count(reps) -> int:
 # ---------------------------------------------------------------------------
 
 def calc_1rm(weight: float, reps) -> float:
-    """Estimate 1-rep-max using best-set reps (Epley ≤10 reps, Brzycki 11-15 reps).
-
-    Rules:
-      - Returns 0.0 when weight is None, zero, or negative.
-      - Returns 0.0 when best-set reps > 15 (too imprecise to programme loads).
-      - Uses the highest set's reps as the representative value (best-set 1RM).
-      - Rounded to 1 decimal place.
-    """
+    """Estimate 1RM. Délègue la formule à progression.estimate_1rm (source unique).
+    Garde les préconditions de volume (w<=0, reps vide) → 0.0. Retour float (None→0.0)."""
     if weight is None:
         return 0.0
     w = float(weight)
     if w <= 0:
         return 0.0
-    r = max_reps(reps)
-    if r <= 0 or r > 15:
+    if not reps:
         return 0.0
-    if r <= 10:
-        return round(w * (1 + r / 30), 1)          # Epley (1985)
-    return round(w * (36 / (37 - r)), 1)            # Brzycki (1993)
+    from progression import estimate_1rm
+    return estimate_1rm(w, str(reps)) or 0.0
 
 
 # ---------------------------------------------------------------------------
