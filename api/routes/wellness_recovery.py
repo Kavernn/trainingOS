@@ -56,31 +56,49 @@ def api_recovery_data():
 
 @wellness_recovery_bp.route("/api/log_recovery", methods=["POST"])
 def api_log_recovery():
+    # Merge par présence : un champ ABSENT du POST préserve l'existant en DB.
+    # Un champ PRÉSENT (même à None) écrit la nouvelle valeur.
+    # Sans ce merge, `.upsert()` brut écrit NULL sur les colonnes absentes du payload —
+    # même piège que sets_json. Pattern inspiré d'api_healthkit_sync.
     import db as _db
-    data  = request.get_json(silent=True) or {}
-    soreness_val   = data.get("soreness")
-    fatigue_val    = data.get("fatigue_perceived")
-    energy_pre_val = data.get("energy_pre")
-    entry = {
-        "date":              data.get("date", _today_mtl()),
-        "sleep_hours":       data.get("sleep_hours"),
-        "sleep_quality":     data.get("sleep_quality"),
-        "resting_hr":        data.get("resting_hr"),
-        "hrv":               data.get("hrv"),
-        "steps":             data.get("steps"),
-        "active_energy":     data.get("active_energy"),
-        "soreness":          soreness_val if soreness_val else None,
-        "fatigue_perceived": fatigue_val if fatigue_val is not None else None,
-        "energy_pre":        energy_pre_val if energy_pre_val else None,
-        "hr_morning":        data.get("hr_morning"),
-        "hr_post_workout":   data.get("hr_post_workout"),
-        "hr_evening":        data.get("hr_evening"),
-        "notes":             data.get("notes", ""),
-        "bedtime":           data.get("bedtime"),
-        "wake_time":         data.get("wake_time"),
-        "source":            "manual",
-    }
-    ok = _db.upsert_recovery_log(entry)
+    data     = request.get_json(silent=True) or {}
+    date     = data.get("date", _today_mtl())
+    logs     = _db.get_recovery_logs() or []
+    existing = next((e for e in logs if e.get("date") == date), {})
+
+    merged = dict(existing)
+    merged["date"] = date
+
+    MERGEABLE = (
+        "sleep_hours", "resting_hr", "hrv",
+        "steps", "active_energy",
+        "hr_morning", "hr_post_workout", "hr_evening",
+        "bedtime", "wake_time",
+    )
+    for field in MERGEABLE:
+        if field in data:
+            merged[field] = data[field]
+
+    # CHECK constraint safeguards — colonnes 1-10 : 0 = non renseigné → NULL.
+    # fatigue_perceived n'a pas de CHECK (migration 038) : accepte 0.
+    if "sleep_quality" in data:
+        v = data["sleep_quality"]; merged["sleep_quality"] = v if v else None
+    if "soreness" in data:
+        v = data["soreness"]; merged["soreness"] = v if v else None
+    if "energy_pre" in data:
+        v = data["energy_pre"]; merged["energy_pre"] = v if v else None
+    if "fatigue_perceived" in data:
+        v = data["fatigue_perceived"]; merged["fatigue_perceived"] = v if v is not None else None
+
+    # Notes : préserver l'existante si le POST envoie une note vide
+    # (cohérent avec la sémantique "champ absent" — pour effacer, UI dédiée).
+    if data.get("notes"):
+        merged["notes"] = data["notes"]
+
+    # Toute écriture via cet endpoint = saisie utilisateur → manual > healthkit.
+    merged["source"] = "manual"
+
+    ok = _db.upsert_recovery_log(merged)
     if not ok:
         return jsonify({"error": "Erreur base de données"}), 500
     import readiness as _readiness
