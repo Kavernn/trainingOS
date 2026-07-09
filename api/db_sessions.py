@@ -1466,6 +1466,43 @@ def upsert_exercise_log(
         return False
 
 
+def get_exercise_log_sets_json(session_date: str, session_type: str, exercise_name: str) -> Optional[list]:
+    """Return sets_json for an exercise_log matched by (date, session_type, exercise_name), or None if missing."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return None
+
+    def _do() -> Optional[list]:
+        session = get_workout_session_by_type(session_date, session_type)
+        if not session:
+            return None
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            return None
+        resp = (
+            db_core._client.table("exercise_logs")
+            .select("sets_json")
+            .eq("session_id", session["id"])
+            .eq("exercise_id", exercise_id)
+            .limit(1)
+            .execute()
+        )
+        if not resp.data:
+            return None
+        return resp.data[0].get("sets_json") or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_exercise_log_sets_json retry error: %s", e2)
+                return None
+        db_core.logger.error("get_exercise_log_sets_json(%s,%s,%s) error: %s", session_date, session_type, exercise_name, e)
+        return None
+
+
 def upsert_exercise_log_by_type(
     session_date: str,
     session_type: str,

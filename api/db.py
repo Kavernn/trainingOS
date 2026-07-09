@@ -88,6 +88,7 @@ from db_sessions import (
     bulk_set_rest_seconds,
     upsert_exercise_log,
     upsert_exercise_log_by_type,
+    get_exercise_log_sets_json,
     delete_exercise_log_entry,
     delete_exercise_log_entry_by_type,
     bulk_upsert_exercise_logs,

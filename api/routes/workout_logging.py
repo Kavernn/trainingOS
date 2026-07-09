@@ -15,6 +15,29 @@ def _pr_confidence(baseline_count: int) -> str:
     return "high"
 
 
+def _rebuild_sets_json(old_sets: list | None, new_weight: float, new_reps_str: str) -> list | None:
+    """Reconstruit sets_json depuis (weight, reps CSV). new_weight appliqué à tous les sets;
+    reps depuis parse_reps; rir/rpe préservés depuis old_sets à l'index correspondant.
+    Retourne None si reps_str vide/invalide (le caller décide du fallback)."""
+    from progression import parse_reps
+    try:
+        reps_list = parse_reps(new_reps_str)
+    except Exception:
+        return None
+    if not reps_list:
+        return None
+    old = old_sets or []
+    rebuilt = []
+    for i, r in enumerate(reps_list):
+        entry = {"weight": float(new_weight), "reps": r}
+        if i < len(old) and isinstance(old[i], dict):
+            for k in ("rir", "rpe"):
+                if old[i].get(k) is not None:
+                    entry[k] = old[i][k]
+        rebuilt.append(entry)
+    return rebuilt
+
+
 @workout_bp.route("/api/log", methods=["POST"])
 def api_log():
     try:
@@ -265,7 +288,16 @@ def api_session_edit():
                     weights[ex]["last_reps"]      = most_recent["reps"]
                 for entry in history:
                     if entry.get("date") == date:
-                        _db.upsert_exercise_log(date, ex, entry.get("weight"), entry.get("reps"))
+                        entry_weight = entry.get("weight")
+                        entry_reps   = str(entry.get("reps", ""))
+                        old_sets = _db.get_exercise_log_sets_json(date, session_type, ex)
+                        rebuilt  = _rebuild_sets_json(old_sets, entry_weight, entry_reps)
+                        final_sets = rebuilt if rebuilt is not None else (old_sets if old_sets is not None else [])
+                        _db.upsert_exercise_log_by_type(
+                            date, session_type, ex,
+                            entry_weight, entry_reps,
+                            sets_json=final_sets,
+                        )
                         try:
                             _db.recompute_exercise_pr(ex)
                         except Exception as _pr_exc:
