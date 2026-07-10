@@ -83,6 +83,7 @@ struct SessionEntry: Codable {
     let sessionVolume: Double?
     let totalReps: Int?
     let totalSets: Int?
+    let sessionCount: Int?
 
     enum CodingKeys: String, CodingKey {
         case exos, rpe, comment
@@ -92,6 +93,7 @@ struct SessionEntry: Codable {
         case sessionVolume = "session_volume"
         case totalReps     = "total_reps"
         case totalSets     = "total_sets"
+        case sessionCount  = "session_count"
     }
 
     init(from decoder: Decoder) throws {
@@ -119,6 +121,7 @@ struct SessionEntry: Codable {
         energyPre = decodeInt(.energyPre)
         totalReps = decodeInt(.totalReps)
         totalSets = decodeInt(.totalSets)
+        sessionCount = decodeInt(.sessionCount)
     }
 }
 

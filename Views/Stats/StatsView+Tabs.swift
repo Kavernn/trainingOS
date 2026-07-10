@@ -150,7 +150,7 @@ extension StatsView {
 
         // 4. KPI Grid
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            KPICard(value: "\(filteredSessions.count)", label: "Séances (\(period.rawValue))", color: Color.forge)
+            KPICard(value: "\(filteredSessions.values.reduce(0) { $0 + ($1.sessionCount ?? 1) })", label: "Séances (\(period.rawValue))", color: Color.forge)
             KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel", color: .statusBlue)
             KPICard(
                 value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",

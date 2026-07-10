@@ -130,11 +130,15 @@ struct StatsView: View {
     @State var cachedPersonalRecords: [(String, Double)] = []
 
     // ── KPIs ────────────────────────────────────────────────────────
-    var totalSessions: Int { sessions.count }
+    var totalSessions: Int {
+        sessions.values.reduce(0) { $0 + ($1.sessionCount ?? 1) }
+    }
 
     var sessionsThisMonth: Int {
         let key = DateFormatter.isoYearMonth.string(from: Date())
-        return sessions.keys.filter { $0.hasPrefix(key) }.count
+        return sessions.reduce(0) { acc, kv in
+            kv.key.hasPrefix(key) ? acc + (kv.value.sessionCount ?? 1) : acc
+        }
     }
 
     var avgRPE30: Double {
@@ -186,7 +190,9 @@ struct StatsView: View {
 
     var weeklyFrequency: [(String, Double)] {
         var counts: [String: Double] = [:]
-        filteredSessions.keys.forEach { counts[isoWeekKey($0), default: 0] += 1 }
+        for (date, entry) in filteredSessions {
+            counts[isoWeekKey(date), default: 0] += Double(entry.sessionCount ?? 1)
+        }
         return last8Weeks.map { ($0, counts[$0] ?? 0) }
     }
 
@@ -267,11 +273,15 @@ struct StatsView: View {
 
     var thisWeekSessions:   Int {
         let (mon, sun) = weekBounds(weeksAgo: 0)
-        return sessions.keys.filter { $0 >= mon && $0 <= sun }.count
+        return sessions.reduce(0) { acc, kv in
+            (kv.key >= mon && kv.key <= sun) ? acc + (kv.value.sessionCount ?? 1) : acc
+        }
     }
     var lastWeekSessions:   Int {
         let (mon, sun) = weekBounds(weeksAgo: 1)
-        return sessions.keys.filter { $0 >= mon && $0 <= sun }.count
+        return sessions.reduce(0) { acc, kv in
+            (kv.key >= mon && kv.key <= sun) ? acc + (kv.value.sessionCount ?? 1) : acc
+        }
     }
     var thisWeekVolume: Double {
         let (mon, sun) = weekBounds(weeksAgo: 0)

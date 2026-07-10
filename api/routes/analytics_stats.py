@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from collections import defaultdict
 from datetime import datetime, timedelta, date as _date
 import logging
 import time
@@ -7,6 +8,56 @@ from utils import _today_mtl
 logger = logging.getLogger("trainingos")
 
 analytics_stats_bp = Blueprint("analytics_stats", __name__)
+
+
+def _aggregate_sessions_by_date(rows: list[dict]) -> dict[str, dict]:
+    """Regroupe 1..N workout_sessions par date en UNE entry agrégée.
+
+    Filtre d'entrée : (completed OR rpe not None) — mêmes séances "loggées" qu'avant.
+    Tri intra-groupe : logged_at ASC (matin → soir).
+
+    Règles par champ (cf. audit Stats Lot B) :
+      rpe          : moyenne des non-nil arrondie 0.1
+      duration_min : somme des non-nil
+      energy_pre   : première non-nil (matin — signal état de fatigue au réveil)
+      comment      : première non-vide (matin)
+      logged_at    : max
+      completed    : any
+      session_count: len(entries) — champ nouveau lu par iOS pour compter les vraies séances
+
+    NE PAS produire session_volume : le volume Stats vient de weights.history
+    (exercise_logs), l'ajouter ici doublerait le comptage.
+    """
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for s in rows:
+        if not isinstance(s, dict):
+            continue
+        if not (s.get("completed") or s.get("rpe") is not None):
+            continue
+        d = s.get("date")
+        if d:
+            groups[d].append(s)
+
+    out: dict[str, dict] = {}
+    for date, entries in groups.items():
+        entries.sort(key=lambda e: e.get("logged_at") or "")
+
+        rpes      = [float(e["rpe"])          for e in entries if e.get("rpe")          is not None]
+        durations = [float(e["duration_min"]) for e in entries if e.get("duration_min") is not None]
+        energies  = [int(e["energy_pre"])     for e in entries if e.get("energy_pre")   is not None]
+        comments  = [str(e["comment"])        for e in entries if e.get("comment")]
+
+        out[date] = {
+            "date":          date,
+            "rpe":           round(sum(rpes) / len(rpes), 1) if rpes else None,
+            "duration_min":  sum(durations)                    if durations else None,
+            "energy_pre":    energies[0]                       if energies else None,
+            "comment":       comments[0]                       if comments else None,
+            "logged_at":     max((e.get("logged_at") or "") for e in entries) or None,
+            "completed":     any(bool(e.get("completed")) for e in entries),
+            "session_count": len(entries),
+        }
+    return out
 
 
 @analytics_stats_bp.route("/api/stats_data")
@@ -22,11 +73,7 @@ def api_stats_data():
     weights      = load_weights()
     _cutoff_180  = (_date.fromisoformat(_today_mtl()) - timedelta(days=180)).isoformat()
     all_sessions = _db.get_workout_sessions(limit=500, since=_cutoff_180)
-    sessions = {
-        s["date"]: s
-        for s in all_sessions
-        if isinstance(s, dict) and (s.get("completed") or s.get("rpe") is not None)
-    }
+    sessions     = _aggregate_sessions_by_date(all_sessions)
     hiit_log     = load_hiit_log()
     body_weight  = load_body_weight()
     recovery_log = _db.get_recovery_logs() or []
