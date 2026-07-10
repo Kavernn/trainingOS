@@ -17,9 +17,10 @@ extension APIService {
                      fatigue: Double? = nil, energyPre: Double? = nil,
                      activeEnergy: Double? = nil, hrMorning: Double? = nil,
                      hrPostWorkout: Double? = nil, hrEvening: Double? = nil,
-                     notes: String, date: String? = nil,
+                     notes: String? = nil, date: String? = nil,
                      bedtime: String? = nil, wakeTime: String? = nil) async throws {
-        var body: [String: Any] = ["notes": notes]
+        var body: [String: Any] = [:]
+        if let v = notes         { body["notes"]              = v }
         if let v = sleepHours    { body["sleep_hours"]        = v }
         if let v = sleepQuality  { body["sleep_quality"]      = v }
         if let v = restingHr     { body["resting_hr"]         = v }

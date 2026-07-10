@@ -1,5 +1,45 @@
 import SwiftUI
 
+// MARK: - Manual metric kind (tap-to-enter depuis Readiness)
+
+enum ManualMetricKind: Identifiable {
+    case fatigue
+    case sleepQuality
+
+    var id: String { title }
+
+    var title: String {
+        switch self {
+        case .fatigue:      return "Ressenti"
+        case .sleepQuality: return "Qualité du sommeil"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .fatigue:      return "Ton niveau de fatigue perçue"
+        case .sleepQuality: return "Comment tu as dormi cette nuit"
+        }
+    }
+
+    // 1...10 pour les deux — évite CHECK constraint (sleep_quality 1-10 strict).
+    var range: ClosedRange<Double> { 1...10 }
+
+    var lowLabel: String {
+        switch self {
+        case .fatigue:      return "Frais"
+        case .sleepQuality: return "Mauvaise"
+        }
+    }
+
+    var highLabel: String {
+        switch self {
+        case .fatigue:      return "Épuisé"
+        case .sleepQuality: return "Excellente"
+        }
+    }
+}
+
 // MARK: - Compact badge (shown on TodayCard above the button)
 
 struct ReadinessBadge: View {
@@ -52,6 +92,7 @@ struct ReadinessSheet: View {
     let onProceed: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var showGymFinder = false
+    @State private var pendingMetric: ManualMetricKind? = nil
 
     var body: some View {
         NavigationStack {
@@ -110,7 +151,14 @@ struct ReadinessSheet: View {
                         SectionHeader("ANALYSE")
                         let mods = modulesArray
                         ForEach(mods.indices, id: \.self) { i in
-                            ModuleRow(mod: mods[i])
+                            let m = mods[i]
+                            // Tappable ssi métrique manuelle (kind != nil) ET pas encore saisie (has_manual != true).
+                            // Fail-open si backend has_manual absent (== nil) — tap ouvre le sheet, sauvegarde idempotente.
+                            let isTappable = (m.kind != nil) && (m.hasManual != true)
+                            ModuleRow(
+                                mod: (label: m.label, score: m.score, detail: m.detail),
+                                onTap: isTappable ? { pendingMetric = m.kind } : nil
+                            )
                             if i < mods.count - 1 {
                                 Divider().background(Color.appSeparatorSubtle).padding(.leading, 16)
                             }
@@ -201,6 +249,9 @@ struct ReadinessSheet: View {
                     .accessibilityLabel("Fermer")
                 }
             }
+            .sheet(item: $pendingMetric) { kind in
+                QuickMetricSheet(kind: kind, onSaved: { })
+            }
         }
     }
 
@@ -222,18 +273,18 @@ struct ReadinessSheet: View {
         }
     }
 
-    private var modulesArray: [(label: String, score: Int?, detail: String)] {
+    private var modulesArray: [(label: String, score: Int?, detail: String, kind: ManualMetricKind?, hasManual: Bool?)] {
         let m = readiness.modules
         return [
-            (m.hrv.label,           m.hrv.score,           m.hrv.detail),
-            (m.rhr.label,           m.rhr.score,           m.rhr.detail),
-            (m.acwr.label,          m.acwr.score,          m.acwr.detail),
-            (m.sleepQuality.label,  m.sleepQuality.score,  m.sleepQuality.detail),
-            (m.sleepDuration.label, m.sleepDuration.score, m.sleepDuration.detail),
-            (m.subjective.label,    m.subjective.score,    m.subjective.detail),
-            (m.muscleRec.label,     m.muscleRec.score,     m.muscleRec.detail),
-            (m.nutrition.label,     m.nutrition.score,     m.nutrition.detail),
-            (m.pattern.label,       m.pattern.score,       m.pattern.detail),
+            (m.hrv.label,           m.hrv.score,           m.hrv.detail,           nil,            nil),
+            (m.rhr.label,           m.rhr.score,           m.rhr.detail,           nil,            nil),
+            (m.acwr.label,          m.acwr.score,          m.acwr.detail,          nil,            nil),
+            (m.sleepQuality.label,  m.sleepQuality.score,  m.sleepQuality.detail,  .sleepQuality,  m.sleepQuality.hasManual),
+            (m.sleepDuration.label, m.sleepDuration.score, m.sleepDuration.detail, nil,            nil),
+            (m.subjective.label,    m.subjective.score,    m.subjective.detail,    .fatigue,       m.subjective.hasManual),
+            (m.muscleRec.label,     m.muscleRec.score,     m.muscleRec.detail,     nil,            nil),
+            (m.nutrition.label,     m.nutrition.score,     m.nutrition.detail,     nil,            nil),
+            (m.pattern.label,       m.pattern.score,       m.pattern.detail,       nil,            nil),
         ]
     }
 }
@@ -280,6 +331,7 @@ private struct VerdictOrb: View {
 
 private struct ModuleRow: View {
     let mod: (label: String, score: Int?, detail: String)
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -307,9 +359,16 @@ private struct ModuleRow: View {
                     .lineLimit(1)
             }
             Spacer()
+            if onTap != nil {
+                Image(systemName: "chevron.right")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.gray)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .onTapGesture { onTap?() }
     }
 
     private var scoreColor: Color {
@@ -388,5 +447,104 @@ private struct SectionHeader: View {
             .padding(.horizontal, 16)
             .padding(.top, 12)
             .padding(.bottom, 4)
+    }
+}
+
+// MARK: - Quick Metric Sheet (saisie ciblée depuis une ligne ANALYSE)
+
+struct QuickMetricSheet: View {
+    let kind: ManualMetricKind
+    let onSaved: () async -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var value: Double
+    @State private var isSaving = false
+    @State private var apiError: String? = nil
+
+    init(kind: ManualMetricKind, onSaved: @escaping () async -> Void) {
+        self.kind = kind
+        self.onSaved = onSaved
+        _value = State(initialValue: kind.range.lowerBound)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBg.ignoresSafeArea()
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(kind.title)
+                            .font(.appTitle.weight(.bold))
+                            .foregroundColor(.appTextPrimary)
+                        Text(kind.subtitle)
+                            .font(.appLabel)
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(spacing: 12) {
+                        Text(String(format: "%.0f / 10", value))
+                            .font(.system(size: 44, weight: .black, design: .rounded))
+                            .foregroundColor(.appTextPrimary)
+                            .frame(maxWidth: .infinity)
+                        Slider(value: $value, in: kind.range, step: 1).tint(Color.forge)
+                        HStack {
+                            Text(kind.lowLabel).font(.appMicro).foregroundColor(.gray)
+                            Spacer()
+                            Text(kind.highLabel).font(.appMicro).foregroundColor(.gray)
+                        }
+                    }
+                    .padding(16)
+                    .background(Color.appCard)
+                    .cornerRadius(12)
+
+                    Spacer()
+
+                    PrimaryButton(title: "Enregistrer", isLoading: isSaving, action: save)
+                }
+                .padding(20)
+            }
+            .navigationTitle(kind.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
+                }
+            }
+            .alert("Erreur",
+                   isPresented: Binding(get: { apiError != nil },
+                                        set: { if !$0 { apiError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(apiError ?? "") }
+        }
+    }
+
+    private func save() {
+        isSaving = true
+        Task {
+            do {
+                switch kind {
+                case .fatigue:
+                    try await APIService.shared.logRecovery(
+                        sleepHours: nil, sleepQuality: nil, restingHr: nil,
+                        hrv: nil, steps: nil, soreness: nil,
+                        fatigue: value
+                    )
+                case .sleepQuality:
+                    try await APIService.shared.logRecovery(
+                        sleepHours: nil, sleepQuality: value, restingHr: nil,
+                        hrv: nil, steps: nil, soreness: nil
+                    )
+                }
+                triggerNotificationFeedback(.success)
+                triggerImpact(style: .medium)
+                await onSaved()
+                isSaving = false
+                dismiss()
+            } catch {
+                isSaving = false
+                apiError = "Erreur réseau — réessaie"
+            }
+        }
     }
 }
