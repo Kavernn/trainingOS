@@ -219,11 +219,18 @@ def api_post_session():
     target_date = request.args.get("date") or _today_mtl()
 
     try:
-        session = _db.get_workout_session(target_date)
-        if not session or not (session.get("completed") or session.get("rpe") is not None):
+        sessions_today = _db.get_today_sessions_all(target_date) or []
+        completed = [
+            s for s in sessions_today
+            if s.get("completed") or s.get("rpe") is not None
+        ]
+        if not completed:
             return jsonify({"error": "Aucune séance complétée pour cette date"}), 404
+        # Commente la séance la plus récemment terminée (evening > morning si les deux).
+        completed.sort(key=lambda s: s.get("logged_at") or "", reverse=True)
+        session = completed[0]
     except Exception as e:
-        logger.error("post_session get_workout_session: %s", e)
+        logger.error("post_session get_today_sessions_all: %s", e)
         return jsonify({"error": "Erreur lors de la récupération de la séance"}), 500
 
     session_rpe  = session.get("rpe")

@@ -187,14 +187,6 @@ def log_bonus_session(
         logger.error("log_bonus_session failed for %s: %s", date, e)
 
 
-def session_exists(date: str) -> bool:
-    try:
-        session = db.get_workout_session(date)
-        return session is not None and session.get("completed", False)
-    except Exception:
-        return False
-
-
 def get_last_sessions(n: int = 10) -> list:
     try:
         rows = db.get_workout_sessions(limit=n)
