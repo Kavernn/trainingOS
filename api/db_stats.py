@@ -133,11 +133,10 @@ def get_programme_compliance(weeks: int = 8) -> list[dict]:
 
     def _do() -> list[dict]:
         from datetime import date as _date, timedelta, datetime as _dt
-        # Planned sessions per week — morning slot, non-null session_id (training days only)
+        # Planned sessions per week — tous slots (morning + evening), session_id non-null
         sched_resp = (
             db_core._client.table("weekly_schedule")
             .select("session_id")
-            .eq("slot", "morning")
             .not_.is_("session_id", "null")
             .execute()
         )
