@@ -38,15 +38,9 @@ struct ReadinessModules: Codable {
 }
 
 struct ReadinessModule: Codable {
-    let score:     Int?   // nil = données insuffisantes → afficher "—"
-    let label:     String
-    let detail:    String
-    let hasManual: Bool?  // nil = module non-manuel ; true/false = saisie utilisateur pour subjective/sleepQuality
-
-    enum CodingKeys: String, CodingKey {
-        case score, label, detail
-        case hasManual = "has_manual"
-    }
+    let score:  Int?   // nil = données insuffisantes → afficher "—"
+    let label:  String
+    let detail: String
 }
 
 struct MuscleGroupRecovery: Codable {

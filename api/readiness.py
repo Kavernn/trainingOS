@@ -748,15 +748,6 @@ def compute() -> dict:
     try:
         rec_logs = db.get_recovery_logs() or []
 
-        # Signal de saisie manuelle (Tranche 3 tap-to-enter).
-        # has_manual concerne UNIQUEMENT subjective (fatigue_perceived) et sleepQuality (sleep_quality).
-        # Le fallback soreness du _score_subjective (l.271) n'entre PAS dans has_manual — soreness
-        # peut être HK-synced, donc sa présence ne prouve pas que l'utilisateur a saisi son ressenti.
-        _today_s   = _today_mtl()
-        _today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == _today_s), None) or {}
-        _has_fatigue = _today_rec.get("fatigue_perceived") is not None
-        _has_sleepq  = _today_rec.get("sleep_quality") is not None
-
         hrv_score,  hrv_det              = _score_hrv(rec_logs)
         rhr_score,  rhr_det              = _score_rhr(rec_logs)
         acwr_score, acwr_det             = _score_acwr()
@@ -794,9 +785,9 @@ def compute() -> dict:
             "hrv":            {"score": _mod_score(hrv_score),  "label": "HRV",            "detail": _hrv_detail(hrv_det)},
             "rhr":            {"score": _mod_score(rhr_score),  "label": "FC repos",        "detail": _rhr_detail(rhr_det)},
             "acwr":           {"score": _mod_score(acwr_score), "label": "Charge",          "detail": _acwr_detail(acwr_det)},
-            "sleep_quality":  {"score": _mod_score(sq_score),   "label": "Qualité sommeil", "detail": _sleep_quality_detail(sq_det), "has_manual": _has_sleepq},
+            "sleep_quality":  {"score": _mod_score(sq_score),   "label": "Qualité sommeil", "detail": _sleep_quality_detail(sq_det)},
             "sleep_duration": {"score": _mod_score(sd_score),   "label": "Durée sommeil",   "detail": _sleep_duration_detail(sd_det)},
-            "subjective":     {"score": _mod_score(sub_score),  "label": "Ressenti",        "detail": _subjective_detail(sub_det), "has_manual": _has_fatigue},
+            "subjective":     {"score": _mod_score(sub_score),  "label": "Ressenti",        "detail": _subjective_detail(sub_det)},
             "muscle_rec":     {"score": _mod_score(m_score),    "label": "Récup musc",      "detail": _muscle_detail(m_det)},
             "nutrition":      {"score": _mod_score(n_score),    "label": "Nutrition",       "detail": _nutrition_detail(n_det)},
             "pattern":        {"score": _mod_score(p_score),    "label": "Pattern",         "detail": _pattern_detail(p_det)},
