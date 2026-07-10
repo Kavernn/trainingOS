@@ -1,0 +1,28 @@
+# Environnements & build local (les gros)
+venv/
+graphify-out/
+mcp/
+.pytest_cache/
+.local_kv.db
+
+# iOS / Swift (inutile pour l'API)
+Views/
+Services/
+Models/
+Utilities/
+TrainingOS/
+TrainingOSTests/
+TrainingOSUITests/
+TrainingOS.xcodeproj/
+"VinceSeven Watch Watch App/"
+"VinceSeven Watch Watch AppUITests/"
+ContentView.swift
+TrainingOSApp.swift
+AppIcon.zip
+AppIcon_v2.zip
+
+# Dev / docs / tests
+docs/
+tasks/
+scripts/
+tests/
