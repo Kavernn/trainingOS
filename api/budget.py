@@ -17,10 +17,21 @@ PAIE_CENTS = 174391
 PLAN_START = date(2026, 7, 15)
 
 
+def _adjust_for_weekend(d: date) -> date:
+    """Paie avancée au vendredi si weekend ; jamais reculée.
+    Fériés exclus (carnet de ménage)."""
+    if d.weekday() == 5: return d - timedelta(days=1)
+    if d.weekday() == 6: return d - timedelta(days=2)
+    return d
+
+
 def _paydays_for_month(year: int, month: int) -> tuple[date, date]:
-    """Retourne (paie_1, paie_2) : le 15 et min(30, dernier_jour)."""
+    """Retourne (paie_1, paie_2) : le 15 et min(30, dernier_jour), ajustés weekend→vendredi."""
     last = calendar.monthrange(year, month)[1]
-    return date(year, month, 15), date(year, month, min(30, last))
+    return (
+        _adjust_for_weekend(date(year, month, 15)),
+        _adjust_for_weekend(date(year, month, min(30, last))),
+    )
 
 
 def current_period_start(today: date) -> date:
@@ -38,8 +49,8 @@ def next_payday(today: date) -> date:
     p1, p2 = _paydays_for_month(today.year, today.month)
     if today < p1: return p1
     if today < p2: return p2
-    if today.month == 12: return date(today.year + 1, 1, 15)
-    return date(today.year, today.month + 1, 15)
+    y, m = (today.year + 1, 1) if today.month == 12 else (today.year, today.month + 1)
+    return _paydays_for_month(y, m)[0]
 
 
 def _paydays_between(start: date, end: date):
