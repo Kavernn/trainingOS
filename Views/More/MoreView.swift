@@ -76,6 +76,7 @@ struct MoreView: View {
                         MoreRow(icon: "heart.text.square.fill", color: .statusCyan,    title: "Tableau santé")         { HealthDashboardView() }
                         MoreRow(icon: "scalemass.fill",         color: .appSuccess,    title: "Composition")           { BodyCompView() }
                         MoreRow(icon: "figure.run",             color: .statusCyan,    title: "Cardio")                { CardioView() }
+                        MoreRow(icon: "wallet.pass.fill",       color: Color.forge,    title: "Budget & Finances")     { BudgetView() }
                         MoreRow(icon: "brain.fill",            color: .statusCyan,    title: "Mental & Âme",
                                 subtitle: "Mesures · Pratique · The Void")                { MentalAmeView() }
                     }
