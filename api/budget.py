@@ -10,6 +10,7 @@ from datetime import date, timedelta
 
 from utils import _today_mtl_date
 import db_budget
+import budget_projection
 
 logger = logging.getLogger("trainingos.budget")
 
@@ -87,7 +88,13 @@ def compute_status() -> dict:
     end   = next_payday(today) - timedelta(days=1)
 
     envelopes = db_budget.get_envelopes()
+    debts     = db_budget.get_debt_accounts()
+    logs      = db_budget.list_debt_and_fund_logs_since(PLAN_START.isoformat())
     period_expenses = db_budget.sum_expenses_by_envelope(start.isoformat(), end.isoformat())
+
+    proj = budget_projection.compute(today, envelopes, debts, logs)
+    paid_by_debt = proj["paid_by_debt"]
+
     envelope_status = []
     for e in envelopes:
         period_limit = e["limit_cents"] // 2
@@ -100,35 +107,38 @@ def compute_status() -> dict:
             "remaining_cents":  period_limit - spent,
         })
 
-    debts = db_budget.get_debt_accounts()
     debt_status = []
     for d in debts:
-        paid = db_budget.sum_debt_payments(d["key"])
+        paid = paid_by_debt.get(d["key"], 0)
         if d["is_savings"]:
             target = d["target_cents"] or 0
             debt_status.append({
-                "key":           d["key"],
-                "label":         d["label"],
-                "is_savings":    True,
-                "current_cents": paid,
-                "target_cents":  target,
-                "progress_pct":  round(100 * paid / target, 1) if target else 0.0,
+                "key":                       d["key"],
+                "label":                     d["label"],
+                "is_savings":                True,
+                "current_cents":             paid,
+                "target_cents":              target,
+                "progress_pct":              round(100 * paid / target, 1) if target else 0.0,
+                "projected_completion_date": proj["fund_completion"],
             })
         else:
             debt_status.append({
-                "key":           d["key"],
-                "label":         d["label"],
-                "is_savings":    False,
-                "balance_cents": d["initial_cents"] - paid,
-                "initial_cents": d["initial_cents"],
-                "interest_rate": float(d["interest_rate"]) if d.get("interest_rate") is not None else None,
-                "attack_order":  d["attack_order"],
+                "key":                  d["key"],
+                "label":                d["label"],
+                "is_savings":           False,
+                "balance_cents":        d["initial_cents"] - paid,
+                "initial_cents":        d["initial_cents"],
+                "interest_rate":        float(d["interest_rate"]) if d.get("interest_rate") is not None else None,
+                "attack_order":         d["attack_order"],
+                "projected_death_date": proj["death_dates"].get(d["key"]),
             })
 
     return {
-        "period_start":         start.isoformat(),
-        "period_end":           end.isoformat(),
-        "days_to_next_payday":  (next_payday(today) - today).days,
-        "envelopes":            envelope_status,
-        "debts":                debt_status,
+        "period_start":        start.isoformat(),
+        "period_end":          end.isoformat(),
+        "days_to_next_payday": (next_payday(today) - today).days,
+        "envelopes":           envelope_status,
+        "debts":               debt_status,
+        "projection":          proj["projection"],
+        "next_milestone":      proj["next_milestone"],
     }

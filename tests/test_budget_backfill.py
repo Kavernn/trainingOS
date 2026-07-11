@@ -69,29 +69,21 @@ def test_backfill_incremental_after_last(fake_db):
     assert fake_db.inserted == [("2026-07-30", 174391)]
 
 
-# ── Correction 2 : fund_transfer inclus ─────────────────────────────────────
+# ── Correction 2 : fund_transfer inclus dans paid_by_debt ───────────────────
 
-def test_sum_debt_payments_includes_fund_transfer(monkeypatch):
-    """fund_transfer alimente les fonds d'épargne (fonds_voyage)."""
-    import db_core
-
-    class FakeTable:
-        def select(self, *a, **k): return self
-        def eq(self, k, v):        return self
-        def in_(self, k, vs):      return self
-        def execute(self):
-            return type("R", (), {"data": [
-                {"amount_cents": 5000},
-                {"amount_cents": 3000},
-                {"amount_cents": 2000},
-            ]})()
-
-    class FakeClient:
-        def table(self, name): return FakeTable()
-
-    monkeypatch.setattr(db_core, "_client", FakeClient())
-    monkeypatch.setattr(db_core, "MODE", "SUPABASE")
-    assert db_budget.sum_debt_payments("fonds_voyage") == 10000
+def test_paid_by_debt_includes_fund_transfer():
+    """fund_transfer alimente fonds_voyage — même sommation que debt_payment.
+    Remplace sum_debt_payments : agrégation Python sur un SELECT unique."""
+    from budget_projection import _paid_by_debt
+    logs = [
+        {"date": "2026-07-16", "type": "fund_transfer", "debt_key": "fonds_voyage", "amount_cents": 5000},
+        {"date": "2026-07-17", "type": "fund_transfer", "debt_key": "fonds_voyage", "amount_cents": 3000},
+        {"date": "2026-07-18", "type": "fund_transfer", "debt_key": "fonds_voyage", "amount_cents": 2000},
+        {"date": "2026-07-19", "type": "debt_payment",  "debt_key": "decouvert",    "amount_cents": 12345},
+    ]
+    result = _paid_by_debt(logs)
+    assert result["fonds_voyage"] == 10000
+    assert result["decouvert"] == 12345
 
 
 # ── POST /api/budget/log validations ────────────────────────────────────────

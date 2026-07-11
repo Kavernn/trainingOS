@@ -163,25 +163,25 @@ def sum_expenses_by_envelope(start_iso: str, end_iso: str) -> dict:
         return {}
 
 
-def sum_debt_payments(debt_key: str) -> int:
-    """SUM(amount_cents) pour debt_key donné, types debt_payment + fund_transfer.
-    fund_transfer inclus car alimente les fonds d'épargne (fonds_voyage)."""
+def list_debt_and_fund_logs_since(start_iso: str) -> list:
+    """[{date, type, debt_key, amount_cents}] pour debt_payment + fund_transfer
+    depuis start_iso. Alimente budget_projection : rythme, paid_by_debt, jalons."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
-        return 0
-    def _do() -> int:
+        return []
+    def _do() -> list:
         resp = (db_core._client.table("money_logs")
-                .select("amount_cents")
-                .eq("debt_key", debt_key)
+                .select("date, type, debt_key, amount_cents")
                 .in_("type", ["debt_payment", "fund_transfer"])
+                .gte("date", start_iso)
                 .execute())
-        return sum(int(r.get("amount_cents") or 0) for r in (resp.data or []))
+        return resp.data or []
     try:
         return _do()
     except Exception as e:
         if db_core._is_disconnect(e) and db_core._reconnect():
             try: return _do()
             except Exception as e2:
-                db_core.logger.error("sum_debt_payments retry error: %s", e2)
-                return 0
-        db_core.logger.error("sum_debt_payments error: %s", e)
-        return 0
+                db_core.logger.error("list_debt_and_fund_logs_since retry error: %s", e2)
+                return []
+        db_core.logger.error("list_debt_and_fund_logs_since error: %s", e)
+        return []
