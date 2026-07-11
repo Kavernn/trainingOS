@@ -100,6 +100,7 @@ from routes.wellness_mood     import wellness_mood_bp
 from routes.wellness_spirit   import wellness_spirit_bp
 from routes.patterns     import patterns_bp
 from routes.readiness    import readiness_bp
+from routes.budget       import budget_bp
 from routes.time_capsule import time_capsule_bp
 from routes.workout_dna  import workout_dna_bp
 from routes.plateau      import plateau_bp
@@ -175,6 +176,7 @@ app.register_blueprint(wellness_mood_bp)
 app.register_blueprint(wellness_spirit_bp)
 app.register_blueprint(patterns_bp)
 app.register_blueprint(readiness_bp)
+app.register_blueprint(budget_bp)
 app.register_blueprint(time_capsule_bp)
 app.register_blueprint(workout_dna_bp)
 app.register_blueprint(plateau_bp)
