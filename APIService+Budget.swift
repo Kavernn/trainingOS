@@ -5,7 +5,7 @@ extension APIService {
     /// GET /api/budget/status
     func fetchBudgetStatus() async throws -> BudgetStatus {
         guard let url = URL(string: APIConfig.base + "/api/budget/status") else {
-            throw APIError.invalidURL(path: "/api/budget/status")
+            throw APIError.invalidURL
         }
         let (data, resp) = try await URLSession.authed.data(from: url)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -23,7 +23,7 @@ extension APIService {
     /// utilisateur réessaie manuellement.
     func logBudget(_ entry: BudgetLogEntry) async throws {
         guard let url = URL(string: APIConfig.base + "/api/budget/log") else {
-            throw APIError.invalidURL(path: "/api/budget/log")
+            throw APIError.invalidURL
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
