@@ -3,23 +3,41 @@ import SwiftUI
 struct BudgetLogSheet: View {
     let envelopes: [BudgetEnvelope]
     let debts: [BudgetDebt]
-    var onSaved: (BudgetLogEntry) async -> Void
+    let activeDebt: BudgetDebt?         // cible auto du windfall (nil = pas de dette active)
+    var onSaved: (BudgetLogEntry, Int?) async -> Void  // Int? = totalCents pour windfall
 
     @Environment(\.dismiss) private var dismiss
+
+    // Décision de plan 2026-07-12 : windfall = 80 % attaque dette, 20 % libre non loggé.
+    private static let WINDFALL_SPLIT: Double = 0.8
 
     enum LogType: String, CaseIterable, Identifiable {
         case expense       = "Dépense"
         case debtPayment   = "Paiement dette"
         case fundTransfer  = "Fonds voyage"
+        case windfall      = "Surprise"
         var id: String { rawValue }
         var serverType: String {
             switch self {
             case .expense:      return "expense"
             case .debtPayment:  return "debt_payment"
             case .fundTransfer: return "fund_transfer"
+            case .windfall:     return "windfall"
             }
         }
     }
+
+    // Windfall masqué si aucune dette active — option qu'on ne peut pas mal utiliser.
+    private var availableTypes: [LogType] {
+        var out: [LogType] = [.expense, .debtPayment, .fundTransfer]
+        if activeDebt != nil { out.append(.windfall) }
+        return out
+    }
+
+    private var windfallSplitCents: Int {
+        Int((Double(amountCents) * Self.WINDFALL_SPLIT).rounded())
+    }
+    private var windfallFreeCents: Int { amountCents - windfallSplitCents }
 
     @State private var type: LogType = .expense
     @State private var envelopeKey: String = ""
@@ -45,6 +63,7 @@ struct BudgetLogSheet: View {
         case .expense:      return !envelopeKey.isEmpty
         case .debtPayment:  return !debtKey.isEmpty
         case .fundTransfer: return true
+        case .windfall:     return activeDebt != nil && amountCents > 0
         }
     }
 
@@ -91,7 +110,7 @@ struct BudgetLogSheet: View {
 
     private var typePicker: some View {
         Picker("Type", selection: $type) {
-            ForEach(LogType.allCases) { Text($0.rawValue).tag($0) }
+            ForEach(availableTypes) { Text($0.rawValue).tag($0) }
         }
         .pickerStyle(.segmented)
     }
@@ -119,12 +138,26 @@ struct BudgetLogSheet: View {
                 Text("Cible").font(.appLabel).foregroundStyle(.secondary)
                 Text("Fonds voyage").font(.appBody).foregroundStyle(Color.appTextPrimary)
             }
+        case .windfall:
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Cible auto (80 / 20)").font(.appLabel).foregroundStyle(.secondary)
+                if let active = activeDebt, amountCents > 0 {
+                    Text("\(BudgetFormat.dollars(windfallSplitCents)) → \(active.label) · \(BudgetFormat.dollars(windfallFreeCents)) libres pour toi")
+                        .font(.appBody).foregroundStyle(Color.appTextPrimary)
+                } else if activeDebt == nil {
+                    Text("Aucune dette active").font(.appCaption).foregroundStyle(.secondary)
+                } else {
+                    Text("Saisis un montant pour voir le split")
+                        .font(.appCaption).foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
     private var amountField: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Montant ($)").font(.appLabel).foregroundStyle(.secondary)
+            Text(type == .windfall ? "Montant total reçu ($)" : "Montant ($)")
+                .font(.appLabel).foregroundStyle(.secondary)
             TextField("0.00", text: $amountStr)
                 .keyboardType(.numbersAndPunctuation)
                 .font(.appHeadline)
@@ -164,20 +197,33 @@ struct BudgetLogSheet: View {
         defer { isSaving = false }
 
         let trimmedNote = note.trimmingCharacters(in: .whitespaces)
+        let sendCents: Int
+        let sendDebtKey: String?
+        let totalCents: Int?
+        switch type {
+        case .expense:
+            sendCents = amountCents; sendDebtKey = nil; totalCents = nil
+        case .debtPayment:
+            sendCents = amountCents; sendDebtKey = debtKey; totalCents = nil
+        case .fundTransfer:
+            sendCents = amountCents; sendDebtKey = "fonds_voyage"; totalCents = nil
+        case .windfall:
+            // 80 % loggé sur la cible active, 20 % non loggé (reste dans la poche).
+            sendCents = windfallSplitCents; sendDebtKey = activeDebt?.key; totalCents = amountCents
+        }
         let entry = BudgetLogEntry(
             date:         ymdString(date),
             type:         type.serverType,
-            amountCents:  amountCents,
+            amountCents:  sendCents,
             envelopeKey:  type == .expense ? envelopeKey : nil,
-            debtKey:      type == .debtPayment ? debtKey
-                         : type == .fundTransfer ? "fonds_voyage" : nil,
+            debtKey:      sendDebtKey,
             note:         trimmedNote.isEmpty ? nil : trimmedNote
         )
         do {
             try await APIService.shared.logBudget(entry)
             triggerNotificationFeedback(.success)
             triggerImpact(style: .medium)
-            await onSaved(entry)
+            await onSaved(entry, totalCents)
             dismiss()
         } catch {
             errorMessage = "Échec : \(error.localizedDescription)"

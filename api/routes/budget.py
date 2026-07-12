@@ -19,8 +19,8 @@ def api_budget_log():
     if err: return err
 
     type_ = data["type"]
-    if type_ not in ("expense", "debt_payment", "fund_transfer"):
-        return jsonify({"error": "type invalide (expense|debt_payment|fund_transfer)"}), 400
+    if type_ not in ("expense", "debt_payment", "fund_transfer", "windfall"):
+        return jsonify({"error": "type invalide (expense|debt_payment|fund_transfer|windfall)"}), 400
 
     try:
         amount = int(data["amount_cents"])
@@ -32,9 +32,14 @@ def api_budget_log():
     if type_ == "expense":
         if not env or debt:
             return jsonify({"error": "expense exige envelope_key et interdit debt_key"}), 400
-    else:  # debt_payment | fund_transfer
+    else:  # debt_payment | fund_transfer | windfall
         if not debt or env:
             return jsonify({"error": f"{type_} exige debt_key et interdit envelope_key"}), 400
+
+    # windfall n'accepte pas de contre-écriture. Correction d'un windfall erroné :
+    # logger un debt_payment négatif (note obligatoire) sur la même debt_key.
+    if type_ == "windfall" and amount <= 0:
+        return jsonify({"error": "windfall exige amount_cents > 0"}), 400
 
     note = (data.get("note") or "").strip()
     if amount < 0 and not note:

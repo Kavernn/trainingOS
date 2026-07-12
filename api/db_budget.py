@@ -108,7 +108,7 @@ def insert_income_if_absent(date_iso: str, amount_cents: int) -> bool:
 
 
 def insert_log(entry: dict) -> bool:
-    """Insert générique d'un money_log (expense/debt_payment/fund_transfer).
+    """Insert générique d'un money_log (expense/debt_payment/fund_transfer/windfall).
     Le pairage type↔clé est validé côté route AVANT l'appel."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
@@ -164,14 +164,15 @@ def sum_expenses_by_envelope(start_iso: str, end_iso: str) -> dict:
 
 
 def list_debt_and_fund_logs_since(start_iso: str) -> list:
-    """[{date, type, debt_key, amount_cents}] pour debt_payment + fund_transfer
-    depuis start_iso. Alimente budget_projection : rythme, paid_by_debt, jalons."""
+    """[{date, type, debt_key, amount_cents}] pour debt_payment + fund_transfer + windfall
+    depuis start_iso. Alimente budget_projection : rythme (allowlist explicite exclut
+    windfall), paid_by_debt (allowlist implicite inclut windfall), jalons."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
     def _do() -> list:
         resp = (db_core._client.table("money_logs")
                 .select("date, type, debt_key, amount_cents")
-                .in_("type", ["debt_payment", "fund_transfer"])
+                .in_("type", ["debt_payment", "fund_transfer", "windfall"])
                 .gte("date", start_iso)
                 .execute())
         return resp.data or []

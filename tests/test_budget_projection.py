@@ -291,6 +291,47 @@ def test_compute_fund_deadline_and_at_deadline_in_payload():
     assert 0 <= proj["fund_at_deadline"] <= FUND_TARGET
 
 
+# ── Windfall — balance oui, rythme non ─────────────────────────────────────
+
+def test_paid_by_debt_includes_windfall():
+    """Windfall compte dans paid_by_debt (réduit la balance)."""
+    logs = [
+        {"date": "2026-07-16", "type": "debt_payment", "debt_key": "decouvert", "amount_cents": 5000},
+        {"date": "2026-07-17", "type": "windfall",     "debt_key": "decouvert", "amount_cents": 8000},
+    ]
+    assert bp._paid_by_debt(logs) == {"decouvert": 13000}
+
+
+def test_measured_rates_excludes_windfall():
+    """≥2 périodes complètes, uniquement des windfalls → rate mesuré = 0
+    (protection anti-yo-yo : le one-shot ne doit pas gonfler la projection)."""
+    logs = [
+        {"date": "2026-07-20", "type": "windfall", "debt_key": "decouvert", "amount_cents": 50000},
+        {"date": "2026-08-05", "type": "windfall", "debt_key": "decouvert", "amount_cents": 30000},
+    ]
+    proj = bp.compute(date(2026, 8, 15), [], DEBTS, logs)
+    assert proj["projection"]["is_fallback_rate"] is False
+    assert proj["projection"]["attack_rate_cents_per_day"] == 0
+    assert proj["projection"]["fund_rate_cents_per_day"] == 0
+
+
+def test_windfall_advances_death_via_balance_only():
+    """À rate mesuré identique, un windfall raccourcit la mort par baisse du solde,
+    pas par accélération du rythme. Prouve que balance et rate sont découplés."""
+    debt_payment_logs = [
+        {"date": "2026-07-20", "type": "debt_payment", "debt_key": "decouvert", "amount_cents": 30000},
+    ]
+    mixed_logs = debt_payment_logs + [
+        {"date": "2026-08-05", "type": "windfall", "debt_key": "decouvert", "amount_cents": 40000},
+    ]
+    proj_a = bp.compute(date(2026, 8, 15), [], DEBTS, debt_payment_logs)
+    proj_b = bp.compute(date(2026, 8, 15), [], DEBTS, mixed_logs)
+    # Même rythme mesuré (windfall exclu du calcul).
+    assert proj_a["projection"]["attack_rate_cents_per_day"] == proj_b["projection"]["attack_rate_cents_per_day"]
+    # Mais la mort avance (balance réduite par le windfall).
+    assert proj_b["death_dates"]["decouvert"] < proj_a["death_dates"]["decouvert"]
+
+
 # ── Payload shape ───────────────────────────────────────────────────────────
 
 def test_compute_payload_shape():

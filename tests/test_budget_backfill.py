@@ -191,3 +191,45 @@ def test_post_valid_fund_transfer_returns_201(client):
         "debt_key": "fonds_voyage",
     })
     assert r.status_code == 201
+
+
+# ── POST windfall (revenu surprise, split 80/20 côté iOS) ────────────────────
+
+def test_post_windfall_missing_debt_returns_400(client):
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "windfall", "amount_cents": 8000,
+    })
+    assert r.status_code == 400
+
+
+def test_post_windfall_with_envelope_returns_400(client):
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "windfall", "amount_cents": 8000,
+        "debt_key": "decouvert", "envelope_key": "variable",
+    })
+    assert r.status_code == 400
+
+
+def test_post_windfall_negative_returns_400(client):
+    """Pas de contre-écriture windfall — corriger via debt_payment négatif + note."""
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "windfall", "amount_cents": -8000,
+        "debt_key": "decouvert", "note": "test",
+    })
+    assert r.status_code == 400
+
+
+def test_post_windfall_zero_returns_400(client):
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "windfall", "amount_cents": 0,
+        "debt_key": "decouvert",
+    })
+    assert r.status_code == 400
+
+
+def test_post_valid_windfall_returns_201(client):
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "windfall", "amount_cents": 8000,
+        "debt_key": "decouvert",
+    })
+    assert r.status_code == 201

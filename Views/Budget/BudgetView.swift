@@ -69,12 +69,13 @@ struct BudgetView: View {
             }
         }) {
             BudgetLogSheet(
-                envelopes: status?.envelopes ?? [],
-                debts:     status?.debts     ?? [],
-                onSaved:   { entry in
+                envelopes:  status?.envelopes ?? [],
+                debts:      status?.debts     ?? [],
+                activeDebt: activeDebt(status),
+                onSaved:    { entry, total in
                     let old = status
                     await load()
-                    if let data = buildCelebration(entry: entry, old: old, new: status) {
+                    if let data = buildCelebration(entry: entry, old: old, new: status, totalCents: total) {
                         pendingCelebration = data
                     }
                 }
@@ -257,13 +258,14 @@ struct BudgetView: View {
     private func buildCelebration(
         entry: BudgetLogEntry,
         old: BudgetStatus?,
-        new: BudgetStatus?
+        new: BudgetStatus?,
+        totalCents: Int?
     ) -> BudgetCelebrationData? {
         guard entry.type != "expense" else { return nil }
 
         let amount = entry.amountCents
         switch entry.type {
-        case "debt_payment":
+        case "debt_payment", "windfall":
             guard let debtKey = entry.debtKey else { return nil }
             let oldDebt = old?.debts.first(where: { $0.key == debtKey })
             let newDebt = new?.debts.first(where: { $0.key == debtKey })
@@ -276,7 +278,8 @@ struct BudgetView: View {
                 amountCents: amount,
                 targetLabel: label,
                 daysEarlier: days,
-                verb: "meurt"
+                verb: "meurt",
+                totalCents: totalCents
             )
         case "fund_transfer":
             guard let fundKey = entry.debtKey else { return nil }
@@ -291,11 +294,21 @@ struct BudgetView: View {
                 amountCents: amount,
                 targetLabel: label,
                 daysEarlier: days,
-                verb: "atteint"
+                verb: "atteint",
+                totalCents: nil
             )
         default:
             return nil
         }
+    }
+
+    // Même règle que BudgetCard.activeDebt : première dette non-savings avec balance > 0
+    // par attack_order. 4 lignes dupliquées (2 usages) — helper prématuré au 3e appel.
+    private func activeDebt(_ s: BudgetStatus?) -> BudgetDebt? {
+        s?.debts
+            .filter { !$0.isSavings && ($0.balanceCents ?? 0) > 0 }
+            .sorted { ($0.attackOrder ?? Int.max) < ($1.attackOrder ?? Int.max) }
+            .first
     }
 }
 
@@ -385,10 +398,11 @@ struct BudgetCard: View {
 
 struct BudgetCelebrationData: Identifiable {
     let id = UUID()
-    let amountCents: Int      // négatif = sortie
+    let amountCents: Int      // montant loggé (80 % pour windfall)
     let targetLabel: String
     let daysEarlier: Int?     // nil ou 0 → fallback
     let verb: String          // "meurt" | "atteint"
+    let totalCents: Int?      // windfall : total reçu ; nil sinon → format standard
 }
 
 struct BudgetCelebrationView: View {
@@ -397,16 +411,27 @@ struct BudgetCelebrationView: View {
 
     @State private var appear = false
 
+    // Windfall : "100 $ reçu" en gros, "80 $ → …" en sous-texte.
+    // Autres : "150 $" en gros, "… meurt X j plus tôt" en sous-texte.
     private var amountText: String {
-        BudgetFormat.dollars(data.amountCents)
+        if let total = data.totalCents {
+            return "\(BudgetFormat.dollars(total)) reçu"
+        }
+        return BudgetFormat.dollars(data.amountCents)
     }
 
     private var subtitle: String {
+        let base: String
         if let days = data.daysEarlier, days > 0 {
             let jour = days == 1 ? "jour" : "jours"
-            return "\(data.targetLabel) \(data.verb) \(days) \(jour) plus tôt"
+            base = "\(data.targetLabel) \(data.verb) \(days) \(jour) plus tôt"
+        } else {
+            base = "sur \(data.targetLabel)"
         }
-        return "sur \(data.targetLabel)"
+        if data.totalCents != nil {
+            return "\(BudgetFormat.dollars(data.amountCents)) → \(base)"
+        }
+        return base
     }
 
     var body: some View {
