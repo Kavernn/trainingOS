@@ -135,10 +135,25 @@ def compute_status() -> dict:
                 "projected_death_date": proj["death_dates"].get(d["key"]),
             })
 
+    # Transferts planifiés loggés aujourd'hui — pour le mode Jour de Paie.
+    # Filtre local sur `logs` déjà chargé (aucune requête supplémentaire).
+    # Windfall exclu (pas un transfert planifié). Montants ≤ 0 exclus : une
+    # contre-écriture seule laisserait un item coché avec transfert net nul.
+    today_iso = today.isoformat()
+    today_transfers = [
+        {"type": l["type"], "debt_key": l["debt_key"], "amount_cents": l["amount_cents"]}
+        for l in logs
+        if l["date"] == today_iso
+        and l["type"] in ("fund_transfer", "debt_payment")
+        and l["amount_cents"] > 0
+    ]
+
     return {
         "period_start":        start.isoformat(),
         "period_end":          end.isoformat(),
         "days_to_next_payday": (next_payday(today) - today).days,
+        "is_payday_today":     start == today,
+        "today_transfers":     today_transfers,
         "envelopes":           envelope_status,
         "debts":               debt_status,
         "projection":          proj["projection"],

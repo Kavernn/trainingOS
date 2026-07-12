@@ -233,3 +233,95 @@ def test_post_valid_windfall_returns_201(client):
         "debt_key": "decouvert",
     })
     assert r.status_code == 201
+
+
+# ── Payload : is_payday_today + today_transfers ─────────────────────────────
+
+class FakeStatusDB:
+    """Fake db_budget pour compute_status — logs paramétrables, DB vide sinon."""
+    def __init__(self, logs=None):
+        self.logs = logs or []
+    def get_envelopes(self): return []
+    def get_debt_accounts(self): return []
+    def list_debt_and_fund_logs_since(self, _iso): return self.logs
+    def sum_expenses_by_envelope(self, _s, _e): return {}
+    def get_last_income_date(self): return None
+    # False = backfill no-op dans les tests, voulu (aucun effet de bord DB).
+    def insert_income_if_absent(self, _iso, _cents): return False
+
+
+@pytest.fixture
+def status_db(monkeypatch):
+    fake = FakeStatusDB()
+    monkeypatch.setattr(budget, "db_budget", fake)
+    return fake
+
+
+def _set_today(monkeypatch, today):
+    monkeypatch.setattr(budget, "_today_mtl_date", lambda: today)
+
+
+def test_is_payday_today_true_on_payday(status_db, monkeypatch):
+    """2026-07-15 = paie du 15 → is_payday_today True (start == today)."""
+    _set_today(monkeypatch, date(2026, 7, 15))
+    payload = budget.compute_status()
+    assert payload["is_payday_today"] is True
+
+
+def test_is_payday_today_false_off_payday(status_db, monkeypatch):
+    """2026-07-20 = milieu de période → is_payday_today False."""
+    _set_today(monkeypatch, date(2026, 7, 20))
+    payload = budget.compute_status()
+    assert payload["is_payday_today"] is False
+
+
+def test_today_transfers_empty(status_db, monkeypatch):
+    _set_today(monkeypatch, date(2026, 7, 20))
+    payload = budget.compute_status()
+    assert payload["today_transfers"] == []
+
+
+def test_today_transfers_includes_fund_transfer(status_db, monkeypatch):
+    _set_today(monkeypatch, date(2026, 7, 20))
+    status_db.logs = [
+        {"date": "2026-07-20", "type": "fund_transfer",
+         "debt_key": "fonds_voyage", "amount_cents": 37500},
+    ]
+    payload = budget.compute_status()
+    assert payload["today_transfers"] == [
+        {"type": "fund_transfer", "debt_key": "fonds_voyage", "amount_cents": 37500},
+    ]
+
+
+def test_today_transfers_includes_debt_payment(status_db, monkeypatch):
+    _set_today(monkeypatch, date(2026, 7, 20))
+    status_db.logs = [
+        {"date": "2026-07-20", "type": "debt_payment",
+         "debt_key": "decouvert", "amount_cents": 47250},
+    ]
+    payload = budget.compute_status()
+    assert payload["today_transfers"] == [
+        {"type": "debt_payment", "debt_key": "decouvert", "amount_cents": 47250},
+    ]
+
+
+def test_today_transfers_excludes_windfall(status_db, monkeypatch):
+    """Windfall n'est pas un transfert planifié — exclu même s'il est loggé aujourd'hui."""
+    _set_today(monkeypatch, date(2026, 7, 20))
+    status_db.logs = [
+        {"date": "2026-07-20", "type": "windfall",
+         "debt_key": "decouvert", "amount_cents": 8000},
+    ]
+    payload = budget.compute_status()
+    assert payload["today_transfers"] == []
+
+
+def test_today_transfers_excludes_negative_amounts(status_db, monkeypatch):
+    """Contre-écriture seule ne doit pas cocher un item payday (transfert net nul)."""
+    _set_today(monkeypatch, date(2026, 7, 20))
+    status_db.logs = [
+        {"date": "2026-07-20", "type": "fund_transfer",
+         "debt_key": "fonds_voyage", "amount_cents": -37500},
+    ]
+    payload = budget.compute_status()
+    assert payload["today_transfers"] == []
