@@ -47,6 +47,7 @@ struct BudgetLogSheet: View {
     @State private var note: String = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var isCorrection: Bool = false
 
     // Gère "," et "." pour le clavier iOS FR.
     private var amountDollars: Double {
@@ -56,14 +57,17 @@ struct BudgetLogSheet: View {
 
     private var attackableDebts: [BudgetDebt] { debts.filter { !$0.isSavings } }
 
+    // Toggle masqué en windfall (spec) — état effectif dépend du type.
+    private var isCorrectionActive: Bool { isCorrection && type != .windfall }
+
     private var canSave: Bool {
-        guard amountCents != 0 else { return false }
-        if amountCents < 0, note.trimmingCharacters(in: .whitespaces).isEmpty { return false }
+        guard amountCents > 0 else { return false }
+        if isCorrectionActive, note.trimmingCharacters(in: .whitespaces).isEmpty { return false }
         switch type {
         case .expense:      return !envelopeKey.isEmpty
         case .debtPayment:  return !debtKey.isEmpty
         case .fundTransfer: return true
-        case .windfall:     return activeDebt != nil && amountCents > 0
+        case .windfall:     return activeDebt != nil
         }
     }
 
@@ -76,6 +80,7 @@ struct BudgetLogSheet: View {
                         typePicker
                         keyPicker
                         amountField
+                        correctionToggle
                         dateField
                         noteField
                         if let msg = errorMessage {
@@ -105,6 +110,9 @@ struct BudgetLogSheet: View {
         .onAppear {
             if envelopeKey.isEmpty, let first = envelopes.first { envelopeKey = first.key }
             if debtKey.isEmpty, let first = attackableDebts.first { debtKey = first.key }
+        }
+        .onChange(of: type) { _, newValue in
+            if newValue == .windfall { isCorrection = false }
         }
     }
 
@@ -159,14 +167,24 @@ struct BudgetLogSheet: View {
             Text(type == .windfall ? "Montant total reçu ($)" : "Montant ($)")
                 .font(.appLabel).foregroundStyle(.secondary)
             TextField("0.00", text: $amountStr)
-                .keyboardType(.numbersAndPunctuation)
+                .keyboardType(.decimalPad)
                 .font(.appHeadline)
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
-            if amountCents < 0 {
-                Text("Contre-écriture — note obligatoire")
+            if isCorrectionActive {
+                Text("Ce montant sera soustrait — note obligatoire")
                     .font(.appCaption).foregroundStyle(Color.appWarning)
             }
+        }
+    }
+
+    @ViewBuilder private var correctionToggle: some View {
+        if type != .windfall {
+            Toggle(isOn: $isCorrection) {
+                Text("Contre-écriture (correction)")
+                    .font(.appLabel).foregroundStyle(Color.appTextPrimary)
+            }
+            .tint(Color.appWarning)
         }
     }
 
@@ -180,14 +198,19 @@ struct BudgetLogSheet: View {
     }
 
     private var noteField: some View {
-        let required = amountCents < 0
+        let required = isCorrectionActive
         return VStack(alignment: .leading, spacing: 6) {
             Text("Note\(required ? " (obligatoire)" : " (optionnelle)")")
-                .font(.appLabel).foregroundStyle(.secondary)
+                .font(.appLabel)
+                .foregroundStyle(required ? Color.appWarning : .secondary)
             TextField("Ex : Loblaws — courses semaine", text: $note)
                 .font(.appBody)
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(required ? Color.appWarning : .clear, lineWidth: 1)
+                )
         }
     }
 
@@ -202,11 +225,14 @@ struct BudgetLogSheet: View {
         let totalCents: Int?
         switch type {
         case .expense:
-            sendCents = amountCents; sendDebtKey = nil; totalCents = nil
+            sendCents = isCorrectionActive ? -amountCents : amountCents
+            sendDebtKey = nil; totalCents = nil
         case .debtPayment:
-            sendCents = amountCents; sendDebtKey = debtKey; totalCents = nil
+            sendCents = isCorrectionActive ? -amountCents : amountCents
+            sendDebtKey = debtKey; totalCents = nil
         case .fundTransfer:
-            sendCents = amountCents; sendDebtKey = "fonds_voyage"; totalCents = nil
+            sendCents = isCorrectionActive ? -amountCents : amountCents
+            sendDebtKey = "fonds_voyage"; totalCents = nil
         case .windfall:
             // 80 % loggé sur la cible active, 20 % non loggé (reste dans la poche).
             sendCents = windfallSplitCents; sendDebtKey = activeDebt?.key; totalCents = amountCents
