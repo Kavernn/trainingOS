@@ -1,5 +1,15 @@
 import SwiftUI
 
+// Miroir de api/budget_projection.py — plan front-load 2026-07-12.
+// Si le plan change : mettre à jour LES DEUX côtés (backend + iOS).
+enum BudgetPlan {
+    static let planSwitchDate        = "2026-09-13"   // yyyy-MM-dd MTL
+    static let fundDeadline          = "2026-09-12"
+    static let attackPerPeriodBefore = 47250          // cents
+    static let attackPerPeriodAfter  = 84750
+    static let fundPerPeriod         = 37500          // 375 $
+}
+
 struct BudgetLogSheet: View {
     let envelopes: [BudgetEnvelope]
     let debts: [BudgetDebt]
@@ -59,6 +69,19 @@ struct BudgetLogSheet: View {
 
     // Toggle masqué en windfall (spec) — état effectif dépend du type.
     private var isCorrectionActive: Bool { isCorrection && type != .windfall }
+
+    // Comparaisons piecewise sur String "yyyy-MM-dd" MTL — pas de Date/timezone.
+    private var todayYMD: String { ymdString(Date()) }
+    private var attackChipCents: Int {
+        todayYMD < BudgetPlan.planSwitchDate
+          ? BudgetPlan.attackPerPeriodBefore
+          : BudgetPlan.attackPerPeriodAfter
+    }
+    private var fundChipEligible: Bool { todayYMD <= BudgetPlan.fundDeadline }
+    private var selectedEnvelope: BudgetEnvelope? {
+        envelopes.first(where: { $0.key == envelopeKey })
+    }
+    private var effectiveCents: Int { isCorrectionActive ? -amountCents : amountCents }
 
     private var canSave: Bool {
         guard amountCents > 0 else { return false }
@@ -171,9 +194,63 @@ struct BudgetLogSheet: View {
                 .font(.appHeadline)
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
+            chipsRow
+            envelopeBalanceRow
             if isCorrectionActive {
                 Text("Ce montant sera soustrait — note obligatoire")
                     .font(.appCaption).foregroundStyle(Color.appWarning)
+            }
+        }
+    }
+
+    @ViewBuilder private var chipsRow: some View {
+        switch type {
+        case .fundTransfer where fundChipEligible:
+            HStack {
+                amountChip(BudgetPlan.fundPerPeriod)
+                Spacer()
+            }
+        case .debtPayment:
+            HStack {
+                amountChip(attackChipCents)
+                Spacer()
+            }
+        default:
+            EmptyView()
+        }
+    }
+
+    private func amountChip(_ cents: Int) -> some View {
+        Button {
+            amountStr = String(format: "%.2f", Double(cents) / 100.0)
+        } label: {
+            Text(BudgetFormat.dollars(cents))
+                .font(.appCaption.weight(.semibold))
+                .foregroundStyle(Color.appTextPrimary)
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(Capsule().fill(Color.white.opacity(0.08)))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Solde live : "Après …" = remaining - effectiveCents.
+    // Contre-écriture : effective négatif → after > remaining (crédit explicite).
+    @ViewBuilder private var envelopeBalanceRow: some View {
+        if type == .expense, let env = selectedEnvelope {
+            let after = env.remainingCents - effectiveCents
+            let afterTint: Color = {
+                if after < 0                  { return .appDanger }
+                if after < env.limitCents / 5 { return .appWarning }
+                return .secondary
+            }()
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Reste \(BudgetFormat.dollars(env.remainingCents)) / \(BudgetFormat.dollars(env.limitCents))")
+                    .font(.appCaption).foregroundStyle(.secondary)
+                if amountCents > 0 {
+                    let prefix = isCorrectionActive ? "Après cette correction" : "Après ce log"
+                    Text("\(prefix) : \(BudgetFormat.dollars(after))")
+                        .font(.appCaption).foregroundStyle(afterTint)
+                }
             }
         }
     }

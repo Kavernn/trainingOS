@@ -35,24 +35,34 @@ struct BudgetView: View {
                 .padding()
             }
 
-            // FAB bouton ajout
-            VStack {
-                Spacer()
-                HStack {
+            // FAB bouton ajout — masqué tant que le premier load n'a pas abouti
+            // (sheet inutilisable sans envelopes/debts).
+            if status != nil {
+                VStack {
                     Spacer()
-                    Button {
-                        showLogSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 56, height: 56)
-                            .background(Color.forge)
-                            .clipShape(Circle())
-                            .shadow(radius: 8, y: 4)
+                    HStack {
+                        Spacer()
+                        Button {
+                            Task {
+                                // Refresh silencieux avant ouverture — envelopes fraîches.
+                                // Si le refresh échoue, on garde status existant et on ouvre quand même.
+                                if let fresh = try? await APIService.shared.fetchBudgetStatus() {
+                                    status = fresh
+                                }
+                                showLogSheet = true
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 56, height: 56)
+                                .background(Color.forge)
+                                .clipShape(Circle())
+                                .shadow(radius: 8, y: 4)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
                     }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 20)
                 }
             }
         }
