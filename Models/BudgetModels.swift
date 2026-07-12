@@ -77,20 +77,24 @@ struct BudgetDebt: Decodable, Identifiable {
     let progressPct: Double?
     let projectedDeathDate: String?
     let projectedCompletionDate: String?
+    let deadlineDate: String?
+    let projectedAmountAtDeadlineCents: Int?
     var id: String { key }
 
     enum CodingKeys: String, CodingKey {
         case key, label
-        case isSavings               = "is_savings"
-        case balanceCents            = "balance_cents"
-        case initialCents            = "initial_cents"
-        case interestRate            = "interest_rate"
-        case attackOrder             = "attack_order"
-        case currentCents            = "current_cents"
-        case targetCents             = "target_cents"
-        case progressPct             = "progress_pct"
-        case projectedDeathDate      = "projected_death_date"
-        case projectedCompletionDate = "projected_completion_date"
+        case isSavings                        = "is_savings"
+        case balanceCents                     = "balance_cents"
+        case initialCents                     = "initial_cents"
+        case interestRate                     = "interest_rate"
+        case attackOrder                      = "attack_order"
+        case currentCents                     = "current_cents"
+        case targetCents                      = "target_cents"
+        case progressPct                      = "progress_pct"
+        case projectedDeathDate               = "projected_death_date"
+        case projectedCompletionDate          = "projected_completion_date"
+        case deadlineDate                     = "deadline_date"
+        case projectedAmountAtDeadlineCents   = "projected_amount_at_deadline_cents"
     }
 }
 

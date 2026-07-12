@@ -141,6 +141,29 @@ def _project_fund_completion(fund_paid: int, target: int, rate_fn, today: date) 
     return _project_forward(today, remaining, rate_fn)
 
 
+def _project_fund_amount_at(start: date, deadline: date, current: int,
+                              target: int, rate_fn) -> int:
+    """Montant du fund à une date fixe, borné par target.
+    Symétrique à _project_fund_completion (date→montant vs montant→date)."""
+    if deadline <= start: return current
+    if current >= target: return target
+    gain = 0.0
+    d = start
+    days_left = (deadline - d).days
+    for _ in range(_MAX_SEGMENTS):
+        if days_left <= 0: break
+        rate, next_change = rate_fn(d)
+        if rate <= 0: break
+        if next_change is None or next_change <= d:
+            gain += rate * days_left
+            break
+        span = min((next_change - d).days, days_left)
+        gain += rate * span
+        days_left -= span
+        d = next_change
+    return min(current + int(round(gain)), target)
+
+
 # ── Jalons ─────────────────────────────────────────────────────────────────
 
 def _debt_thresholds(initial: int) -> list[int]:
@@ -229,10 +252,18 @@ def compute(today: date, envelopes: list, debts: list, logs: list) -> dict:
     fund = next((d for d in debts if d["is_savings"]), None)
     fund_paid = int(paid_by_debt.get(fund["key"], 0)) if fund else 0
     fund_completion = None
+    fund_deadline_iso: str | None = None
+    fund_at_deadline: int | None = None
     if fund is not None:
         target = int(fund.get("target_cents") or 0)
         if target > 0:
             fund_completion = _project_fund_completion(fund_paid, target, rate_fn_fund, today)
+        fund_deadline_iso = fund.get("deadline_date")
+        if fund_deadline_iso and target > 0:
+            deadline_d = date.fromisoformat(fund_deadline_iso)
+            fund_at_deadline = _project_fund_amount_at(
+                today, deadline_d, fund_paid, target, rate_fn_fund
+            )
 
     milestone = _next_milestone(non_savings_sorted, paid_by_debt,
                                  fund, fund_paid, rate_fn_attack, rate_fn_fund, today)
@@ -246,6 +277,8 @@ def compute(today: date, envelopes: list, debts: list, logs: list) -> dict:
         },
         "death_dates":     {k: (v.isoformat() if v else None) for k, v in death_dates.items()},
         "fund_completion": fund_completion.isoformat() if fund_completion else None,
+        "fund_deadline":   fund_deadline_iso,
+        "fund_at_deadline": fund_at_deadline,
         "next_milestone":  _milestone_payload(milestone, today),
     }
 

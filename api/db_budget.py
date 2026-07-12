@@ -33,7 +33,7 @@ def get_debt_accounts() -> list:
         return []
     def _do() -> list:
         resp = (db_core._client.table("debt_accounts")
-                .select("key, label, initial_cents, interest_rate, attack_order, is_savings, target_cents")
+                .select("key, label, initial_cents, interest_rate, attack_order, is_savings, target_cents, deadline_date")
                 .order("attack_order", desc=False, nullsfirst=False)
                 .execute())
         return resp.data or []

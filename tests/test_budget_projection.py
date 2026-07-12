@@ -226,13 +226,77 @@ def test_compute_milestone_debt_threshold_normal_case():
     assert m["threshold_cents"] == 157500
 
 
+# ── _project_fund_amount_at ─────────────────────────────────────────────────
+
+def test_fund_amount_at_deadline_past_returns_current():
+    """Deadline < start → montant courant tel quel."""
+    assert bp._project_fund_amount_at(
+        date(2026, 7, 11), date(2026, 7, 10), 5000, 150000, bp._constant_rate_fn(100.0)
+    ) == 5000
+
+
+def test_fund_amount_at_already_at_target_returns_target():
+    """current ≥ target → target (clamp)."""
+    assert bp._project_fund_amount_at(
+        date(2026, 7, 11), date(2026, 8, 11), 150000, 150000, bp._constant_rate_fn(100.0)
+    ) == 150000
+
+
+def test_fund_amount_at_rate_zero_returns_current():
+    """rate = 0 → aucune accumulation."""
+    assert bp._project_fund_amount_at(
+        date(2026, 7, 11), date(2026, 8, 11), 5000, 150000, bp._constant_rate_fn(0.0)
+    ) == 5000
+
+
+def test_fund_amount_at_partial_accumulation_below_target():
+    """rate × days < remaining → current + gain, non clampé."""
+    # 30 j × 100/j = 3000 gain. current 5000 → 8000. Target 150000 non atteint.
+    assert bp._project_fund_amount_at(
+        date(2026, 7, 11), date(2026, 8, 10), 5000, 150000, bp._constant_rate_fn(100.0)
+    ) == 8000
+
+
+def test_fund_amount_at_clamped_at_target():
+    """rate × days > remaining → clamp à target."""
+    # 100 j × 2000/j = 200000. current 5000 → 205000 → clamp 150000.
+    assert bp._project_fund_amount_at(
+        date(2026, 7, 11), date(2026, 10, 19), 5000, 150000, bp._constant_rate_fn(2000.0)
+    ) == 150000
+
+
+def test_fund_amount_at_constant_rate_no_switch():
+    """Rate constant sans changement → segment unique linéaire."""
+    # PLANNED_FUND * 24 / 365 ≈ 1643.84 c/j × 30 j.
+    result = bp._project_fund_amount_at(
+        date(2026, 7, 11), date(2026, 8, 10), 0, 150000, bp._fallback_fund_rate_fn
+    )
+    expected = int(round(bp.PLANNED_FUND * 24 / 365 * 30))
+    assert result == expected
+
+
+def test_compute_fund_deadline_and_at_deadline_in_payload():
+    """Contrat additif : quand fund a deadline_date, compute retourne les 2 nouvelles clés."""
+    debts_with_deadline = [
+        {"key": "decouvert",    "initial_cents": DECOUVERT_INITIAL, "attack_order": 1, "is_savings": False, "target_cents": None},
+        {"key": "carte",        "initial_cents": CARTE_INITIAL,     "attack_order": 2, "is_savings": False, "target_cents": None},
+        {"key": "fonds_voyage", "initial_cents": 0, "attack_order": None, "is_savings": True,
+         "target_cents": FUND_TARGET, "deadline_date": "2026-09-12"},
+    ]
+    proj = bp.compute(date(2026, 7, 11), [], debts_with_deadline, [])
+    assert proj["fund_deadline"] == "2026-09-12"
+    assert isinstance(proj["fund_at_deadline"], int)
+    assert 0 <= proj["fund_at_deadline"] <= FUND_TARGET
+
+
 # ── Payload shape ───────────────────────────────────────────────────────────
 
 def test_compute_payload_shape():
     """Contrat de sortie : clés attendues, types corrects."""
     proj = bp.compute(date(2026, 7, 11), [], DEBTS, [])
     assert set(proj.keys()) == {"paid_by_debt", "projection", "death_dates",
-                                 "fund_completion", "next_milestone"}
+                                 "fund_completion", "fund_deadline", "fund_at_deadline",
+                                 "next_milestone"}
     p = proj["projection"]
     assert set(p.keys()) == {"attack_rate_cents_per_day", "fund_rate_cents_per_day", "is_fallback_rate"}
     assert isinstance(p["attack_rate_cents_per_day"], int)

@@ -515,7 +515,9 @@ struct BudgetTrajectoryEvent: Identifiable {
     let dateStr: String
     let daysRemaining: Int
     let kind: Kind
-    enum Kind { case today, debtDeath, fundCompletion }
+    let subtitle: String?
+    let subtitleTint: Color?
+    enum Kind { case today, debtDeath, fundCompletion, fundDeadline }
 }
 
 enum BudgetTrajectory {
@@ -526,18 +528,37 @@ enum BudgetTrajectory {
             date: today,
             dateStr: shortDate(today),
             daysRemaining: 0,
-            kind: .today
+            kind: .today,
+            subtitle: nil,
+            subtitleTint: nil
         )]
 
         for d in s.debts {
             if d.isSavings {
-                if let ymd = d.projectedCompletionDate, let date = BudgetFormat.parseYMD(ymd) {
+                // Précédence : deadline réelle > projection completion.
+                if let ymd = d.deadlineDate, let date = BudgetFormat.parseYMD(ymd) {
+                    let target = d.targetCents ?? 0
+                    let projected = d.projectedAmountAtDeadlineCents ?? (d.currentCents ?? 0)
+                    let subtitle = "~\(BudgetFormat.dollars(projected)) / \(BudgetFormat.dollars(target)) au départ"
+                    let tint: Color = projected >= target ? .appSuccess : .appWarning
+                    out.append(.init(
+                        label: "\(d.label) · départ",
+                        date: date,
+                        dateStr: BudgetFormat.shortDate(ymd) ?? ymd,
+                        daysRemaining: daysBetween(today, date),
+                        kind: .fundDeadline,
+                        subtitle: subtitle,
+                        subtitleTint: tint
+                    ))
+                } else if let ymd = d.projectedCompletionDate, let date = BudgetFormat.parseYMD(ymd) {
                     out.append(.init(
                         label: d.label,
                         date: date,
                         dateStr: BudgetFormat.shortDate(ymd) ?? ymd,
                         daysRemaining: daysBetween(today, date),
-                        kind: .fundCompletion
+                        kind: .fundCompletion,
+                        subtitle: nil,
+                        subtitleTint: nil
                     ))
                 }
             } else {
@@ -547,7 +568,9 @@ enum BudgetTrajectory {
                         date: date,
                         dateStr: BudgetFormat.shortDate(ymd) ?? ymd,
                         daysRemaining: daysBetween(today, date),
-                        kind: .debtDeath
+                        kind: .debtDeath,
+                        subtitle: nil,
+                        subtitleTint: nil
                     ))
                 }
             }
@@ -576,6 +599,7 @@ struct BudgetTrajectoryRow: View {
         case .today:          return Color.appTextPrimary.opacity(0.7)
         case .debtDeath:      return Color.forge
         case .fundCompletion: return Color.appSuccess
+        case .fundDeadline:   return Color.appInfo
         }
     }
 
@@ -584,6 +608,7 @@ struct BudgetTrajectoryRow: View {
         case .today:          return "circle.fill"
         case .debtDeath:      return "xmark.circle.fill"
         case .fundCompletion: return "airplane"
+        case .fundDeadline:   return "airplane.circle.fill"
         }
     }
 
@@ -607,6 +632,11 @@ struct BudgetTrajectoryRow: View {
                 Text(event.dateStr)
                     .font(.appCaption)
                     .foregroundStyle(.secondary)
+                if let sub = event.subtitle {
+                    Text(sub)
+                        .font(.appCaption)
+                        .foregroundStyle(event.subtitleTint ?? Color.appTextPrimary.opacity(0.8))
+                }
                 if event.daysRemaining > 0 {
                     Text("dans \(event.daysRemaining) j")
                         .font(.appCaption)

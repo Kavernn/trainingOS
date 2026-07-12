@@ -113,13 +113,15 @@ def compute_status() -> dict:
         if d["is_savings"]:
             target = d["target_cents"] or 0
             debt_status.append({
-                "key":                       d["key"],
-                "label":                     d["label"],
-                "is_savings":                True,
-                "current_cents":             paid,
-                "target_cents":              target,
-                "progress_pct":              round(100 * paid / target, 1) if target else 0.0,
-                "projected_completion_date": proj["fund_completion"],
+                "key":                                 d["key"],
+                "label":                               d["label"],
+                "is_savings":                          True,
+                "current_cents":                       paid,
+                "target_cents":                        target,
+                "progress_pct":                        round(100 * paid / target, 1) if target else 0.0,
+                "projected_completion_date":           proj["fund_completion"],
+                "deadline_date":                       proj["fund_deadline"],
+                "projected_amount_at_deadline_cents":  proj["fund_at_deadline"],
             })
         else:
             debt_status.append({
