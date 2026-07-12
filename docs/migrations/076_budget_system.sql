@@ -44,3 +44,25 @@ INSERT INTO debt_accounts (key, label, initial_cents, interest_rate, attack_orde
   ('decouvert',    'Découvert',    210000,  0.21, 1, FALSE, NULL),
   ('carte',        'Carte crédit', 1364000, 0.20, 2, FALSE, NULL),
   ('fonds_voyage', 'Fonds voyage', 0,       NULL, NULL, TRUE, 150000);
+
+-- RLS activé par défaut sur Supabase : sans policies, PostgREST retourne vide
+-- silencieusement (pas d'erreur, juste [] côté API). Pattern anon_all +
+-- service_role_all sur les 3 tables budget.
+
+ALTER TABLE budget_envelopes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_all" ON budget_envelopes
+    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "service_role_all" ON budget_envelopes
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+ALTER TABLE debt_accounts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_all" ON debt_accounts
+    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "service_role_all" ON debt_accounts
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+ALTER TABLE money_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_all" ON money_logs
+    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "service_role_all" ON money_logs
+    FOR ALL TO service_role USING (true) WITH CHECK (true);

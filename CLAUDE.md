@@ -25,6 +25,7 @@ Stack : Swift (iOS natif) + Python API (Vercel) + Supabase.
 - Vérifier qu'un nouveau retour (None/erreur) est géré en aval.
 - Anti-over-engineering : distinguer le PROBABLE du THÉORIQUE. Ne pas sur-investir dans l'improbable.
 - Distinguer une ERREUR (bug à corriger) d'un CHOIX DE MODÉLISATION (Vince juge).
+- **RLS Supabase** : toute nouvelle table doit inclure `ENABLE ROW LEVEL SECURITY` + policies `anon_all` et `service_role_all` dans la migration. Sans policies, PostgREST retourne `[]` silencieusement (pas d'erreur). Vérifier après création : `SELECT tablename, policyname FROM pg_policies WHERE tablename = '<t>';`
 
 ## FORMAT DE TRAVAIL
 
