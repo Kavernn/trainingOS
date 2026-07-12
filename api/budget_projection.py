@@ -13,10 +13,12 @@ from datetime import date, timedelta
 import budget as _b
 
 MIN_PERIODS_FOR_MEASURED = 2
-PLANNED_ATTACK_SWITCH = date(2026, 10, 1)
-PLANNED_ATTACK_BEFORE = 59750
+# Front-load voyage : 4 paies × 375 $ = 1500 $ atteint au 2026-09-12. La paie du
+# 15 sept est la première à plein régime (SWITCH = lendemain du départ).
+PLANNED_ATTACK_SWITCH = date(2026, 9, 13)
+PLANNED_ATTACK_BEFORE = 47250  # (169500 - 75000) / 2 : attaque réduite pré-départ
 PLANNED_ATTACK_AFTER  = 84750
-PLANNED_FUND          = 25000
+PLANNED_FUND          = 37500  # 375 $/paie sur les 4 paies avant départ
 _PERIODS_PER_YEAR     = 24
 _MAX_SEGMENTS         = 32           # ponytail: fallback = 2 segments, marge large.
 _MAX_HORIZON_DAYS     = 365 * 30     # ponytail: >30 ans = None (rythme aberrant).

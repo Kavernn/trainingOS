@@ -74,13 +74,13 @@ def test_complete_periods_two_after_second_payday():
 # ── Rate function bascule (bord exact 2026-10-01) ───────────────────────────
 
 def test_fallback_attack_before_switch():
-    rate, nxt = bp._fallback_attack_rate_fn(date(2026, 9, 30))
+    rate, nxt = bp._fallback_attack_rate_fn(date(2026, 9, 12))
     assert rate == bp.PLANNED_ATTACK_BEFORE * 24 / 365
-    assert nxt == date(2026, 10, 1)
+    assert nxt == date(2026, 9, 13)
 
 
 def test_fallback_attack_on_switch():
-    rate, nxt = bp._fallback_attack_rate_fn(date(2026, 10, 1))
+    rate, nxt = bp._fallback_attack_rate_fn(date(2026, 9, 13))
     assert rate == bp.PLANNED_ATTACK_AFTER * 24 / 365
     assert nxt is None
 
@@ -111,13 +111,15 @@ def test_project_forward_constant_rate_single_segment():
     assert result == date(2026, 7, 21)
 
 
-def test_project_forward_traverses_bascule_2026_10_01():
+def test_project_forward_traverses_bascule_2026_09_13():
     """Valeurs calculées à la main pour prouver la traversée segment par segment.
-    Segment 1 (2026-09-15 → 2026-10-01, 16 j × 3928.767 c/j) : 62 860.27 cents.
-    Segment 2 (dès 2026-10-01, 5572.60 c/j) : reste 147 139.73 → ceil(26.4013) = 27 j.
-    2026-10-01 + 27 j = 2026-10-28."""
-    death = bp._project_forward(date(2026, 9, 15), 210000, bp._fallback_attack_rate_fn)
-    assert death == date(2026, 10, 28)
+    Rythme pré-départ = 47250 * 24 / 365 = 3106.849 c/j.
+    Rythme post-départ = 84750 * 24 / 365 = 5572.603 c/j.
+    Segment 1 (2026-08-15 → 2026-09-13, 29 j × 3106.849) : 90 098.63 cents.
+    Segment 2 (dès 2026-09-13, 5572.603 c/j) : reste 119 901.37 → ceil(21.5163) = 22 j.
+    2026-09-13 + 22 j = 2026-10-05."""
+    death = bp._project_forward(date(2026, 8, 15), 210000, bp._fallback_attack_rate_fn)
+    assert death == date(2026, 10, 5)
 
 
 # ── compute() : fallback vs measured ────────────────────────────────────────
