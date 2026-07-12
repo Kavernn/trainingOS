@@ -14,6 +14,7 @@ struct BudgetLogSheet: View {
     let envelopes: [BudgetEnvelope]
     let debts: [BudgetDebt]
     let activeDebt: BudgetDebt?         // cible auto du windfall (nil = pas de dette active)
+    var prefill: PlannedTransfer? = nil // Mode Jour de Paie : pré-remplit type/cible/montant.
     var onSaved: (BudgetLogEntry, Int?) async -> Void  // Int? = totalCents pour windfall
 
     @Environment(\.dismiss) private var dismiss
@@ -71,7 +72,7 @@ struct BudgetLogSheet: View {
     private var isCorrectionActive: Bool { isCorrection && type != .windfall }
 
     // Comparaisons piecewise sur String "yyyy-MM-dd" MTL — pas de Date/timezone.
-    private var todayYMD: String { ymdString(Date()) }
+    private var todayYMD: String { BudgetFormat.todayYMDMTL }
     private var attackChipCents: Int {
         todayYMD < BudgetPlan.planSwitchDate
           ? BudgetPlan.attackPerPeriodBefore
@@ -133,6 +134,7 @@ struct BudgetLogSheet: View {
         .onAppear {
             if envelopeKey.isEmpty, let first = envelopes.first { envelopeKey = first.key }
             if debtKey.isEmpty, let first = attackableDebts.first { debtKey = first.key }
+            if let pt = prefill { applyPrefill(pt) }
         }
         .onChange(of: type) { _, newValue in
             if newValue == .windfall { isCorrection = false }
@@ -338,5 +340,15 @@ struct BudgetLogSheet: View {
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = TimeZone(identifier: "America/Montreal")
         return f.string(from: d)
+    }
+
+    private func applyPrefill(_ pt: PlannedTransfer) {
+        switch pt.serverType {
+        case "fund_transfer": type = .fundTransfer
+        case "debt_payment":  type = .debtPayment
+        default: break
+        }
+        debtKey = pt.debtKey
+        amountStr = String(format: "%.2f", Double(pt.amountCents) / 100.0)
     }
 }

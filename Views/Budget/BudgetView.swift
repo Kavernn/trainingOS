@@ -81,11 +81,11 @@ struct BudgetView: View {
             BudgetLogSheet(
                 envelopes:  status?.envelopes ?? [],
                 debts:      status?.debts     ?? [],
-                activeDebt: activeDebt(status),
+                activeDebt: status?.activeDebt,
                 onSaved:    { entry, total in
                     let old = status
                     await load()
-                    if let data = buildCelebration(entry: entry, old: old, new: status, totalCents: total) {
+                    if let data = BudgetCelebrationData.build(entry: entry, old: old, new: status, totalCents: total) {
                         pendingCelebration = data
                     }
                 }
@@ -263,93 +263,95 @@ struct BudgetView: View {
         isLoading = false
     }
 
-    // MARK: - Célébration
-
-    private func buildCelebration(
-        entry: BudgetLogEntry,
-        old: BudgetStatus?,
-        new: BudgetStatus?,
-        totalCents: Int?
-    ) -> BudgetCelebrationData? {
-        guard entry.type != "expense" else { return nil }
-
-        let amount = entry.amountCents
-        switch entry.type {
-        case "debt_payment", "windfall":
-            guard let debtKey = entry.debtKey else { return nil }
-            let oldDebt = old?.debts.first(where: { $0.key == debtKey })
-            let newDebt = new?.debts.first(where: { $0.key == debtKey })
-            let label = newDebt?.label ?? oldDebt?.label ?? "Dette"
-            let days  = BudgetFormat.daysEarlier(
-                old: oldDebt?.projectedDeathDate,
-                new: newDebt?.projectedDeathDate
-            )
-            return BudgetCelebrationData(
-                amountCents: amount,
-                targetLabel: label,
-                daysEarlier: days,
-                verb: "meurt",
-                totalCents: totalCents
-            )
-        case "fund_transfer":
-            guard let fundKey = entry.debtKey else { return nil }
-            let oldFund = old?.debts.first(where: { $0.key == fundKey })
-            let newFund = new?.debts.first(where: { $0.key == fundKey })
-            let label = newFund?.label ?? oldFund?.label ?? "Fonds voyage"
-            let days  = BudgetFormat.daysEarlier(
-                old: oldFund?.projectedCompletionDate,
-                new: newFund?.projectedCompletionDate
-            )
-            return BudgetCelebrationData(
-                amountCents: amount,
-                targetLabel: label,
-                daysEarlier: days,
-                verb: "atteint",
-                totalCents: nil
-            )
-        default:
-            return nil
-        }
-    }
-
-    // Même règle que BudgetCard.activeDebt : première dette non-savings avec balance > 0
-    // par attack_order. 4 lignes dupliquées (2 usages) — helper prématuré au 3e appel.
-    private func activeDebt(_ s: BudgetStatus?) -> BudgetDebt? {
-        s?.debts
-            .filter { !$0.isSavings && ($0.balanceCents ?? 0) > 0 }
-            .sorted { ($0.attackOrder ?? Int.max) < ($1.attackOrder ?? Int.max) }
-            .first
-    }
+    // Célébration : logique extraite dans BudgetCelebrationData.build (partagée
+    // avec DashboardView pour le mode Jour de Paie).
+    // activeDebt : extrait dans BudgetStatus.activeDebt (3e usage).
 }
 
 // MARK: - BudgetCard (dashboard)
 
 struct BudgetCard: View {
     let status: BudgetStatus
+    var onTransferTap: ((PlannedTransfer) -> Void)? = nil
 
     private var totalVariable: Int {
         status.envelopes.reduce(0) { $0 + $1.remainingCents }
     }
 
-    private var activeDebt: BudgetDebt? {
-        status.debts
-            .filter { !$0.isSavings && ($0.balanceCents ?? 0) > 0 }
-            .sorted { ($0.attackOrder ?? Int.max) < ($1.attackOrder ?? Int.max) }
-            .first
+    private var isFallback: Bool { status.projection?.isFallbackRate == true }
+    private var isPayday: Bool { status.isPaydayToday == true }
+
+    // Transferts planifiés du jour — piecewise via BudgetPlan (mêmes seuils que les chips).
+    private var plannedTransfers: [PlannedTransfer] {
+        let today = BudgetFormat.todayYMDMTL
+        var out: [PlannedTransfer] = []
+        if today <= BudgetPlan.fundDeadline {
+            out.append(PlannedTransfer(
+                serverType:  "fund_transfer",
+                label:       "Fonds voyage",
+                debtKey:     "fonds_voyage",
+                amountCents: BudgetPlan.fundPerPeriod
+            ))
+        }
+        if let active = status.activeDebt {
+            let amount = today < BudgetPlan.planSwitchDate
+                ? BudgetPlan.attackPerPeriodBefore
+                : BudgetPlan.attackPerPeriodAfter
+            out.append(PlannedTransfer(
+                serverType:  "debt_payment",
+                label:       active.label,
+                debtKey:     active.key,
+                amountCents: amount
+            ))
+        }
+        return out
     }
 
-    private var isFallback: Bool { status.projection?.isFallbackRate == true }
+    // Fait = un log (type, debt_key) existe aujourd'hui (montants non comparés).
+    private func isDone(_ pt: PlannedTransfer) -> Bool {
+        (status.todayTransfers ?? []).contains {
+            $0.type == pt.serverType && $0.debtKey == pt.debtKey
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            headerRow
-            if let debt = activeDebt { debtRow(debt) }
-            if let milestone = status.nextMilestone { milestoneRow(milestone) }
+            if isPayday {
+                paydayHeader
+                if plannedTransfers.isEmpty {
+                    Text("Aucun transfert planifié aujourd'hui")
+                        .font(.appCaption).foregroundStyle(.secondary)
+                } else {
+                    ForEach(plannedTransfers) { pt in
+                        PaydayTransferRow(
+                            transfer: pt,
+                            done: isDone(pt),
+                            onTap: { onTransferTap?(pt) }
+                        )
+                    }
+                }
+            } else {
+                headerRow
+                if let debt = status.activeDebt { debtRow(debt) }
+                if let milestone = status.nextMilestone { milestoneRow(milestone) }
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 14).fill(Color.appCard))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: 0.5))
+    }
+
+    private var paydayHeader: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "banknote.fill")
+                .foregroundColor(Color.forge)
+                .font(.appLabel.weight(.semibold))
+            Text("Jour de paie")
+                .font(.appHeadline.weight(.bold))
+                .foregroundColor(Color.appTextPrimary)
+            Spacer()
+        }
     }
 
     private var headerRow: some View {
@@ -413,6 +415,84 @@ struct BudgetCelebrationData: Identifiable {
     let daysEarlier: Int?     // nil ou 0 → fallback
     let verb: String          // "meurt" | "atteint"
     let totalCents: Int?      // windfall : total reçu ; nil sinon → format standard
+
+    // Extrait de BudgetView.buildCelebration — partagé avec DashboardView
+    // (mode Jour de Paie). Delta nil → message fallback (jamais "0 jour plus tôt").
+    static func build(
+        entry: BudgetLogEntry,
+        old: BudgetStatus?,
+        new: BudgetStatus?,
+        totalCents: Int?
+    ) -> BudgetCelebrationData? {
+        guard entry.type != "expense" else { return nil }
+
+        let amount = entry.amountCents
+        switch entry.type {
+        case "debt_payment", "windfall":
+            guard let debtKey = entry.debtKey else { return nil }
+            let oldDebt = old?.debts.first(where: { $0.key == debtKey })
+            let newDebt = new?.debts.first(where: { $0.key == debtKey })
+            let label = newDebt?.label ?? oldDebt?.label ?? "Dette"
+            let days  = BudgetFormat.daysEarlier(
+                old: oldDebt?.projectedDeathDate,
+                new: newDebt?.projectedDeathDate
+            )
+            return BudgetCelebrationData(
+                amountCents: amount,
+                targetLabel: label,
+                daysEarlier: days,
+                verb: "meurt",
+                totalCents: totalCents
+            )
+        case "fund_transfer":
+            guard let fundKey = entry.debtKey else { return nil }
+            let oldFund = old?.debts.first(where: { $0.key == fundKey })
+            let newFund = new?.debts.first(where: { $0.key == fundKey })
+            let label = newFund?.label ?? oldFund?.label ?? "Fonds voyage"
+            let days  = BudgetFormat.daysEarlier(
+                old: oldFund?.projectedCompletionDate,
+                new: newFund?.projectedCompletionDate
+            )
+            return BudgetCelebrationData(
+                amountCents: amount,
+                targetLabel: label,
+                daysEarlier: days,
+                verb: "atteint",
+                totalCents: nil
+            )
+        default:
+            return nil
+        }
+    }
+}
+
+// MARK: - PaydayTransferRow (mode Jour de Paie)
+
+struct PaydayTransferRow: View {
+    let transfer: PlannedTransfer
+    let done: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(done ? Color.appSuccess : Color.appTextPrimary.opacity(0.4))
+                    .font(.appBody)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(transfer.label)
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(Color.appTextPrimary.opacity(done ? 0.5 : 1))
+                    Text(BudgetFormat.dollars(transfer.amountCents))
+                        .font(.appCaption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(done)  // anti-doublon accidentel ; log additionnel via le FAB de BudgetView.
+    }
 }
 
 struct BudgetCelebrationView: View {
@@ -520,6 +600,14 @@ enum BudgetFormat {
         guard let old, let new,
               let od = parseYMD(old), let nd = parseYMD(new) else { return nil }
         return Calendar.current.dateComponents([.day], from: nd, to: od).day
+    }
+
+    // Utilisé par BudgetLogSheet (chips) et BudgetCard (payday planned transfers).
+    static var todayYMDMTL: String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "America/Montreal")
+        return f.string(from: Date())
     }
 
     static func milestoneLabel(_ m: BudgetMilestone, debts: [BudgetDebt], isFallback: Bool) -> String {

@@ -31,6 +31,10 @@ struct DashboardView: View {
     @State private var educationalLoadedDate: String? = nil
     @State private var lessonOfDay: EducationalCapsule? = nil
     @State private var lessonSheetCapsule: EducationalCapsule? = nil
+    // Mode Jour de Paie — sheet pré-remplie + célébration après log.
+    @State private var budgetPrefill: PlannedTransfer? = nil
+    @State private var pendingBudgetCelebration: BudgetCelebrationData? = nil
+    @State private var budgetCelebrationData: BudgetCelebrationData? = nil
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -259,11 +263,29 @@ struct DashboardView: View {
 
                                 // 12 — Budget & finances
                                 if let bs = vm.budgetStatus {
-                                    NavigationLink { BudgetView() } label: {
-                                        BudgetCard(status: bs)
+                                    if bs.isPaydayToday == true {
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            BudgetCard(status: bs, onTransferTap: { pt in
+                                                budgetPrefill = pt
+                                            })
+                                            NavigationLink { BudgetView() } label: {
+                                                HStack {
+                                                    Spacer()
+                                                    Text("Voir tout →")
+                                                        .font(.appCaption)
+                                                        .foregroundStyle(.secondary)
+                                                }
+                                            }
+                                            .padding(.horizontal, 4)
+                                        }
+                                        .appearAnimation(delay: 0.23)
+                                    } else {
+                                        NavigationLink { BudgetView() } label: {
+                                            BudgetCard(status: bs)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .appearAnimation(delay: 0.23)
                                     }
-                                    .buttonStyle(.plain)
-                                    .appearAnimation(delay: 0.23)
                                 }
 
 
@@ -392,6 +414,40 @@ struct DashboardView: View {
             EducationalCapsuleDetailSheet(capsule: capsule) {
                 lessonSheetCapsule = nil
             }
+        }
+        // Mode Jour de Paie : tap sur un transfert planifié → sheet pré-remplie
+        // → sur log, calcul du delta et présentation de la célébration en fullScreenCover
+        // (différé 0.3s pour éviter le conflit sheet→cover — même piège qu'en 3B).
+        .sheet(item: $budgetPrefill, onDismiss: {
+            if let data = pendingBudgetCelebration {
+                pendingBudgetCelebration = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    budgetCelebrationData = data
+                }
+            }
+        }) { pt in
+            if let bs = vm.budgetStatus {
+                BudgetLogSheet(
+                    envelopes:  bs.envelopes,
+                    debts:      bs.debts,
+                    activeDebt: bs.activeDebt,
+                    prefill:    pt,
+                    onSaved:    { entry, total in
+                        let old = vm.budgetStatus
+                        if let fresh = try? await APIService.shared.fetchBudgetStatus() {
+                            vm.budgetStatus = fresh
+                        }
+                        if let data = BudgetCelebrationData.build(
+                            entry: entry, old: old, new: vm.budgetStatus, totalCents: total
+                        ) {
+                            pendingBudgetCelebration = data
+                        }
+                    }
+                )
+            }
+        }
+        .fullScreenCover(item: $budgetCelebrationData) { data in
+            BudgetCelebrationView(data: data) { budgetCelebrationData = nil }
         }
     }
 

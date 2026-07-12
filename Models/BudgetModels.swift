@@ -7,6 +7,8 @@ struct BudgetStatus: Decodable {
     let periodStart: String
     let periodEnd: String
     let daysToNextPayday: Int
+    let isPaydayToday: Bool?
+    let todayTransfers: [BudgetTodayTransfer]?
     let envelopes: [BudgetEnvelope]
     let debts: [BudgetDebt]
     let projection: BudgetProjection?
@@ -16,8 +18,20 @@ struct BudgetStatus: Decodable {
         case periodStart        = "period_start"
         case periodEnd          = "period_end"
         case daysToNextPayday   = "days_to_next_payday"
+        case isPaydayToday      = "is_payday_today"
+        case todayTransfers     = "today_transfers"
         case envelopes, debts, projection
         case nextMilestone      = "next_milestone"
+    }
+}
+
+// 3e usage → extraction (BudgetView, BudgetCard, DashboardView).
+extension BudgetStatus {
+    var activeDebt: BudgetDebt? {
+        debts
+            .filter { !$0.isSavings && ($0.balanceCents ?? 0) > 0 }
+            .sorted { ($0.attackOrder ?? Int.max) < ($1.attackOrder ?? Int.max) }
+            .first
     }
 }
 
@@ -96,6 +110,30 @@ struct BudgetDebt: Decodable, Identifiable {
         case deadlineDate                     = "deadline_date"
         case projectedAmountAtDeadlineCents   = "projected_amount_at_deadline_cents"
     }
+}
+
+// Retour backend : logs debt/fund du jour (pour cocher les items payday).
+struct BudgetTodayTransfer: Decodable, Equatable, Identifiable {
+    let type: String
+    let debtKey: String
+    let amountCents: Int
+    var id: String { "\(type)-\(debtKey)" }
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case debtKey     = "debt_key"
+        case amountCents = "amount_cents"
+    }
+}
+
+// Transfert planifié affiché sur la BudgetCard en mode Jour de Paie.
+// Construit iOS depuis BudgetPlan — pas un champ backend.
+struct PlannedTransfer: Identifiable, Equatable {
+    let id = UUID()
+    let serverType: String   // "fund_transfer" | "debt_payment"
+    let label: String
+    let debtKey: String
+    let amountCents: Int
 }
 
 struct BudgetLogEntry: Encodable {
