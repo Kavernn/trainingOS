@@ -15,6 +15,7 @@ private final class P2State: @unchecked Sendable {
     var dailyPattern: PatternEntry? = nil
     var ritualToday: RitualToday? = nil
     var cardioToday: CardioEntry? = nil
+    var budgetStatus: BudgetStatus? = nil
     var criticalFailures = 0
 }
 
@@ -134,6 +135,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var hrvAnalysis: HRVAnalysis? = nil
     @Published var yesterdayNutrition: NutritionDayHistory?
     @Published var cardioToday: CardioEntry? = nil
+    @Published var budgetStatus: BudgetStatus? = nil
     @Published var streakData: StreakResponse? = nil
     @Published var weeklyTonnage: Int? = nil
     @Published var partialLoadWarning = false
@@ -280,6 +282,10 @@ final class DashboardViewModel: ObservableObject {
                 p2.cardioToday = all.first(where: { $0.date == today })
                 return 0
             }
+            group.addTask { @MainActor in
+                p2.budgetStatus = try? await APIService.shared.fetchBudgetStatus()
+                return 0
+            }
             for await failures in group { p2.criticalFailures += failures }
         }
 
@@ -294,6 +300,7 @@ final class DashboardViewModel: ObservableObject {
         dailyPattern       = p2.dailyPattern
         ritualToday        = p2.ritualToday
         cardioToday        = p2.cardioToday
+        budgetStatus       = p2.budgetStatus
         if p2.criticalFailures >= 1 { partialLoadWarning = true }
 
         // Propagate macro nutrition hint to session coaching view

@@ -257,8 +257,14 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.22)
                                 }
 
-
-
+                                // 12 — Budget & finances
+                                if let bs = vm.budgetStatus {
+                                    NavigationLink { BudgetView() } label: {
+                                        BudgetCard(status: bs)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .appearAnimation(delay: 0.23)
+                                }
 
 
 

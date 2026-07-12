@@ -3,7 +3,7 @@ import SwiftUI
 struct BudgetLogSheet: View {
     let envelopes: [BudgetEnvelope]
     let debts: [BudgetDebt]
-    var onSaved: () async -> Void
+    var onSaved: (BudgetLogEntry) async -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -177,7 +177,7 @@ struct BudgetLogSheet: View {
             try await APIService.shared.logBudget(entry)
             triggerNotificationFeedback(.success)
             triggerImpact(style: .medium)
-            await onSaved()
+            await onSaved(entry)
             dismiss()
         } catch {
             errorMessage = "Échec : \(error.localizedDescription)"

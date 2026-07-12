@@ -556,3 +556,9 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 - [x] PR detection + notification locale iOS
 - [x] CRUD complet inventaire
 - [x] Checklist "Avant de partir" sur dashboard
+
+---
+
+## 🧹 Carnet de ménage
+
+- [ ] **BudgetView.swift ~600 lignes** — extraire `BudgetCelebrationView`, `BudgetCard` et `BudgetFormat` dans leurs fichiers en Tranche 4, avec ajout au target Xcode fait proprement une fois (2026-07-11)
