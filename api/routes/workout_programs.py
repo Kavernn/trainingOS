@@ -68,8 +68,24 @@ def api_programme():
         seance_name = (jour or "").strip()
         if not seance_name:
             return jsonify({"error": "Nom invalide"}), 400
-        _db.save_full_program({seance_name: {"blocks": [make_strength_block({}, order=0)]}}, program_id)
-        return jsonify({"success": True})
+        # Idempotence : évite qu'un double-tap ou un rejeu SyncManager rappelle
+        # save_full_program avec un bloc vide sur une session déjà peuplée
+        # (déclencherait le garde-fou "refusing to save 0 exercises over N existing").
+        # Match exact — même sémantique que l'index unique (program_id, name)
+        # de program_sessions : TEXT sans citext ni LOWER, sensible casse/accents.
+        existing = _db.get_full_program(program_id) or {}
+        if seance_name in existing:
+            logger.info(
+                "create_seance: '%s' already exists for program %s — no-op",
+                seance_name, program_id,
+            )
+            return jsonify({"success": True, "created": False})
+        _db.save_full_program(
+            {seance_name: {"blocks": [make_strength_block({}, order=0)]}},
+            program_id,
+        )
+        logger.info("create_seance: '%s' created for program %s", seance_name, program_id)
+        return jsonify({"success": True, "created": True})
 
     if action == "delete_seance":
         if not jour:
@@ -141,6 +157,10 @@ def api_programme():
             exercises[exercise] = scheme
             if exercise not in inv:
                 add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5})
+            logger.info(
+                "programme add: jour='%s' exercise='%s' scheme='%s' post_count=%d",
+                jour, exercise, scheme, len(exercises),
+            )
 
         elif action == "remove":
             exercise_to_remove = data.get("exercise", "")
