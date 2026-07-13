@@ -669,6 +669,14 @@ struct ProgrammeView: View {
             guard !newId.isEmpty else { return }
             Task { await loadData(programId: newId); await loadSuggestions() }
         }
+        // Rafraîchit inventory/inventorySchemes à l'ouverture d'AddExerciseSheet.
+        // Résout le cas "exo fraîchement créé au catalogue absent du mapping local"
+        // (racine du prefill scheme=nil et du muscle affiché par déduction).
+        // Pattern budget : refresh au call site du bouton, pas d'infra de publisher.
+        .onChange(of: addTarget?.id) { _, newId in
+            guard newId != nil else { return }
+            Task { await loadData() }
+        }
     }
 
     // MARK: – Body helpers (extracted to keep type-checker happy)
