@@ -1737,7 +1737,11 @@ struct AddExerciseSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
-    @State private var scheme = "3x8-12"
+    // Fallback "3x8-12" resté UNIQUEMENT dans les fallbacks d'inventorySchemes[ex]
+    // (L1838) et côté backend. Ici on part vide : le lookup à la sélection remplit
+    // dès qu'un exo du catalogue est sélectionné. Champ vide → canSave=false, donc
+    // l'utilisateur ne peut jamais envoyer un scheme fantôme au serveur.
+    @State private var scheme = ""
     @State private var selectedGroup: String? = nil
     @State private var confirmDiscard = false
 
