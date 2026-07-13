@@ -2444,6 +2444,7 @@ struct CreateSeanceSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var confirmDiscard = false
+    @State private var hasSubmitted = false
 
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
     private var isDirty: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -2501,11 +2502,12 @@ struct CreateSeanceSheet: View {
                     Button("Créer") {
                         let trimmed = name.trimmingCharacters(in: .whitespaces)
                         guard !trimmed.isEmpty else { return }
+                        hasSubmitted = true
                         onCreate(trimmed)
                         dismiss()
                     }
                     .foregroundColor(canSave ? Color.forge : .gray)
-                    .disabled(!canSave)
+                    .disabled(!canSave || hasSubmitted)
                 }
             }
             .interactiveDismissDisabled(isDirty)
