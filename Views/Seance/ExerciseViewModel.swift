@@ -113,20 +113,37 @@ enum ExerciseCalculator {
                 (p3, round2_5(currentWeight * Double(p3) / 100))]
     }
 
+    /// Valeur exacte par côté extraite des sets bruts de la dernière séance.
+    /// Renvoie nil UNIQUEMENT si les sets bruts sont absents (pas de données historiques
+    /// disponibles pour ce set). "0.0" est une valeur exacte légitime — ex : barbell à la
+    /// barre seule (45 lbs total → 0 par côté), bodyweight sans charge additionnelle.
+    /// Sert la restitution stricte (fillFromLastSession) ET le hint indicatif (perSetHint).
+    static func perSideExact(for index: Int, weightData: WeightData?, equipmentType: String) -> String? {
+        guard let lastSets = weightData?.history?.first?.sets,
+              index < lastSets.count else { return nil }
+        let w = lastSets[index].weight
+        let perSide: Double
+        switch equipmentType {
+        case "barbell":                  perSide = w > 45 ? (w - 45) / 2 : 0
+        case "dumbbell", "cable_double": perSide = w / 2
+        case "bodyweight":               perSide = 0
+        default:                         perSide = w
+        }
+        return UnitSettings.shared.inputStr(perSide)
+    }
+
     static func perSetHint(for index: Int, weightData: WeightData?, equipmentType: String) -> String {
+        // Comportement strictement inchangé vs pré-refactor :
+        // - sets absents → tombe sur hint (moyenne / currentWeight).
+        // - sets présents + bodyweight → "0.0" (usage attendu par les suggestions).
+        // - sets présents + perSide = 0 (barre seule) → hint fallback (perSide 0 n'est pas
+        //   une SUGGESTION utile ; la restitution stricte utilise perSideExact directement).
+        if let exact = perSideExact(for: index, weightData: weightData, equipmentType: equipmentType),
+           equipmentType == "bodyweight" || (Double(exact) ?? 0) > 0 {
+            return exact
+        }
         let units = UnitSettings.shared
         let hint = inputHint(currentWeight: weightData?.currentWeight ?? 0, equipmentType: equipmentType)
-        if let lastSets = weightData?.history?.first?.sets, index < lastSets.count {
-            let w = lastSets[index].weight
-            let perSide: Double
-            switch equipmentType {
-            case "barbell":                  perSide = w > 45 ? (w - 45) / 2 : 0
-            case "dumbbell", "cable_double": perSide = w / 2
-            case "bodyweight":               return "0.0"
-            default:                         perSide = w
-            }
-            if perSide > 0 { return units.inputStr(perSide) }
-        }
         return hint > 0 ? units.inputStr(hint) : "0.0"
     }
 
@@ -367,7 +384,11 @@ final class ExerciseViewModel: ObservableObject {
             sets = Array(sets.prefix(targetCount))
         }
         for i in sets.indices {
-            sets[i].weight = perSetHint(for: i)
+            // Restitution stricte : lit sets bruts par set. Fallback CHAMP VIDE, jamais
+            // la moyenne. Restituer une moyenne (currentWeight agrégé) comme "ce que tu as
+            // fait" est un mensonge (crime prouvé : Bench 71,7 lbs uniformes sur 3 sets).
+            // "0.0" reste une restitution valide (barre seule, bodyweight).
+            sets[i].weight = ExerciseCalculator.perSideExact(for: i, weightData: weightData, equipmentType: equipmentType) ?? ""
             sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
         }
     }
