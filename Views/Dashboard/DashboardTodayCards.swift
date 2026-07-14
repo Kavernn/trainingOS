@@ -24,6 +24,21 @@ struct TodayCardView: View {
 
     var todayColor: Color { Color.sessionTypeColor(dash.today) }
 
+    /// Séance 2 = union planifiée-backend + exos poussés localement (SeanceSplitStore
+    /// UserDefaults). Le push local est INVISIBLE au backend (aucune trace serveur),
+    /// donc has_evening_session seul rate le cas standard de Vince.
+    private var hasLocalPushedExercises: Bool {
+        !SeanceSplitStore.load(date: dash.todayDate).isEmpty
+    }
+    private var pushedCount: Int {
+        SeanceSplitStore.load(date: dash.todayDate).count
+    }
+    private var seance2Label: String {
+        if let name = dash.eveningSessionName { return "Commencer la séance 2 · \(name)" }
+        if pushedCount > 0 { return "Commencer la séance 2 · \(pushedCount) exo\(pushedCount > 1 ? "s" : "")" }
+        return "Commencer la séance 2"
+    }
+
     var todayIcon: String {
         let low = dash.today.lowercased()
         if low.contains("yoga")  { return "figure.mind.and.body" }
@@ -96,14 +111,15 @@ struct TodayCardView: View {
                 if let session = todaySession {
                     TodaySessionRecap(session: session, color: todayColor, totalWorkoutMin: dash.totalWorkoutMinToday)
                 }
-                // Pivot Volet F : séance 2 planifiée non complétée → CTA principal vers
-                // SeanceSoirView (le vrai flow evening, is_second=true), pas BonusSeanceView
-                // (session_type=bonus). Sinon fallback bonus (comportement historique).
-                if dash.hasEveningSession && !dash.secondSessionCompleted {
+                // Pivot Volet F v2 : séance 2 non complétée ET (planifiée backend OU exos
+                // poussés localement) → CTA principal vers SeanceSoirView (le vrai flow
+                // evening, is_second=true), pas BonusSeanceView (session_type=bonus).
+                // Sinon fallback bonus (comportement historique).
+                if (dash.hasEveningSession || hasLocalPushedExercises) && !dash.secondSessionCompleted {
                     NavigationLink(destination: SeanceSoirView()) {
                         HStack(spacing: 8) {
                             Image(systemName: "play.fill")
-                            Text(dash.eveningSessionName.map { "Commencer la séance 2 · \($0)" } ?? "Commencer la séance 2")
+                            Text(seance2Label)
                                 .font(.appBody.weight(.bold))
                         }
                         .frame(maxWidth: .infinity)
@@ -454,48 +470,47 @@ struct CriticalAlertCard: View {
 
 // MARK: - Séance 2 reminder strip (P2.B.4)
 // Strip 44px léger, n'apparaît que les jours splittés. Tap → tab Séance.
+// Vue passive : la navigation est portée par le NavigationLink parent (le seul
+// call site est DashboardView). Un Button interne intercepterait le tap et
+// empêcherait le NavigationLink de fire.
 struct Seance2ReminderStrip: View {
     let programName: String
     let count: Int
     let accent: Color
-    let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 10) {
-                HStack(spacing: 6) {
-                    Image(systemName: "2.circle.fill")
-                        .font(.appCaption).fontWeight(.bold)
-                        .foregroundColor(accent.opacity(0.85))
-                    Text("\(programName) — Séance 2")
-                        .font(.appCaption).fontWeight(.semibold)
-                        .foregroundColor(Color.appOnSurface.opacity(0.90))
-                        .lineLimit(1)
-                }
-
-                Spacer()
-
-                HStack(spacing: 4) {
-                    Text("\(count) exo\(count > 1 ? "s" : "") à faire")
-                        .font(.appCaption).fontWeight(.medium)
-                        .foregroundColor(Color.appOnSurface.opacity(0.75))
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 10)).fontWeight(.bold)
-                        .foregroundColor(accent.opacity(0.7))
-                }
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(
-                    Capsule()
-                        .fill(Color.appSurfaceInset)
-                        .overlay(Capsule().stroke(accent.opacity(0.4), lineWidth: 0.5))
-                )
+        HStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "2.circle.fill")
+                    .font(.appCaption).fontWeight(.bold)
+                    .foregroundColor(accent.opacity(0.85))
+                Text("\(programName) — Séance 2")
+                    .font(.appCaption).fontWeight(.semibold)
+                    .foregroundColor(Color.appOnSurface.opacity(0.90))
+                    .lineLimit(1)
             }
-            .padding(.horizontal, 12)
-            .frame(height: 44)
-            .background(accent.opacity(0.15))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.35), lineWidth: 0.5))
-            .cornerRadius(10)
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                Text("\(count) exo\(count > 1 ? "s" : "") à faire")
+                    .font(.appCaption).fontWeight(.medium)
+                    .foregroundColor(Color.appOnSurface.opacity(0.75))
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 10)).fontWeight(.bold)
+                    .foregroundColor(accent.opacity(0.7))
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(Color.appSurfaceInset)
+                    .overlay(Capsule().stroke(accent.opacity(0.4), lineWidth: 0.5))
+            )
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+        .frame(height: 44)
+        .background(accent.opacity(0.15))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.35), lineWidth: 0.5))
+        .cornerRadius(10)
     }
 }

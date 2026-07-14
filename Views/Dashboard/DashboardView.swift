@@ -149,12 +149,14 @@ struct DashboardView: View {
 
                                 // 3b — Rappel Séance 2 (P2.B.4) — visible uniquement les jours splittés
                                 if seance2Count > 0 {
-                                    Seance2ReminderStrip(
-                                        programName: dash.today,
-                                        count: seance2Count,
-                                        accent: Color.sessionTypeColor(dash.today),
-                                        onTap: { onOpenSession?() }
-                                    )
+                                    NavigationLink(destination: SeanceSoirView()) {
+                                        Seance2ReminderStrip(
+                                            programName: dash.today,
+                                            count: seance2Count,
+                                            accent: Color.sessionTypeColor(dash.today)
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                     .appearAnimation(delay: 0.055)
                                 }
 
