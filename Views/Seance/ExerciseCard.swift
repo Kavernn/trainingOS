@@ -691,19 +691,10 @@ struct ExerciseCard: View {
             evm.initializeSets()
             if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }
         }
-        .onChange(of: isExpanded) { _, expanded in
-            guard expanded, !alreadyLogged else { return }
-            for i in evm.sets.indices where evm.sets[i].weight.isEmpty {
-                let hint = evm.perSetHint(for: i)
-                guard hint != "0.0", !hint.isEmpty else { continue }
-                evm.sets[i].weight = hint
-            }
-            for i in evm.sets.indices where evm.sets[i].reps.isEmpty {
-                let hint = evm.lastRepsParts.indices.contains(i) ? evm.lastRepsParts[i] : ""
-                guard let reps = Int(hint), reps > 0 else { continue }
-                evm.sets[i].reps = hint
-            }
-        }
+        // Pré-remplissage automatique supprimé (2026-07-13) : saisir est un
+        // acte utilisateur, le placeholder gris est le hint, "Reprendre la
+        // dernière séance" est la restitution explicite. Trois canaux, jamais
+        // mélangés. (Crime : cards qui semblaient déjà faites à l'ouverture.)
         .onChange(of: evm.setsCount) {
             evm.syncSetsCount()
         }
