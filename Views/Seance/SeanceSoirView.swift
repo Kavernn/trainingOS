@@ -86,6 +86,13 @@ class SeanceSoirViewModel: SeanceViewModel {
 
 // MARK: - View
 
+/// ⚠️ CONTRAINTE DE PRÉSENTATION : cette vue doit être présentée en `.sheet`
+/// ou `.fullScreenCover`, JAMAIS en `NavigationLink` push. Ses `.alert` et
+/// `.sheet` empilés (via WorkoutSeanceView) ne firent pas en contexte push
+/// (bug prouvé 2026-07-13, volet G : bouton "Terminer" muet — le tap set le
+/// @State mais l'alert de confirmation ne s'affiche pas). Call sites en règle :
+/// WorkoutActiveView.swift:1315 (sheet), SeanceView.swift:502 (sheet),
+/// DashboardTodayCards.swift (sheet), DashboardView.swift (sheet).
 struct SeanceSoirView: View {
     @StateObject private var vm = SeanceSoirViewModel()
     @State private var showPRCelebration = false

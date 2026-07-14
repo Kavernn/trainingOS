@@ -7,6 +7,9 @@ struct TodayCardView: View {
     var onOpenSession: (() -> Void)? = nil
     var readiness: ReadinessResponse? = nil
     @State private var showReadinessSheet = false
+    // Volet G : SeanceSoirView en .sheet obligatoirement (voir commentaire au head
+    // de SeanceSoirView.swift). NavigationLink push cassait les .alert internes.
+    @State private var showSeance2Sheet = false
     @ObservedObject private var api = APIService.shared
 
     /// Source de vérité : flag serveur OU session dans le dict OU flag optimiste local.
@@ -116,7 +119,8 @@ struct TodayCardView: View {
                 // evening, is_second=true), pas BonusSeanceView (session_type=bonus).
                 // Sinon fallback bonus (comportement historique).
                 if (dash.hasEveningSession || hasLocalPushedExercises) && !dash.secondSessionCompleted {
-                    NavigationLink(destination: SeanceSoirView()) {
+                    // Sheet obligatoire (Volet G) — voir SeanceSoirView.swift head.
+                    Button { showSeance2Sheet = true } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "play.fill")
                             Text(seance2Label)
@@ -138,6 +142,7 @@ struct TodayCardView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                     .padding(.bottom, 16)
+                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
                 } else {
                     NavigationLink(destination: BonusSeanceView(isRestDay: false)) {
                         HStack(spacing: 6) {

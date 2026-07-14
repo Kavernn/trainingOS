@@ -27,6 +27,8 @@ struct DashboardView: View {
     @State private var showQuickBattle = false
     @State private var warRoomToastMessage: String? = nil
     @State private var seance2Count: Int = 0   // P2.B.4 — rappel Séance 2
+    // Volet G : SeanceSoirView en .sheet obligatoirement (voir SeanceSoirView.swift head).
+    @State private var showSeance2Sheet = false
     @State private var educationalCapsules: [EducationalCapsule] = []
     @State private var educationalLoadedDate: String? = nil
     @State private var lessonOfDay: EducationalCapsule? = nil
@@ -149,7 +151,8 @@ struct DashboardView: View {
 
                                 // 3b — Rappel Séance 2 (P2.B.4) — visible uniquement les jours splittés
                                 if seance2Count > 0 {
-                                    NavigationLink(destination: SeanceSoirView()) {
+                                    // Sheet obligatoire (Volet G) — voir SeanceSoirView.swift head.
+                                    Button { showSeance2Sheet = true } label: {
                                         Seance2ReminderStrip(
                                             programName: dash.today,
                                             count: seance2Count,
@@ -158,6 +161,7 @@ struct DashboardView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .appearAnimation(delay: 0.055)
+                                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
                                 }
 
                                 // 4 — Recovery trio (Readiness + HRV + Sommeil)
