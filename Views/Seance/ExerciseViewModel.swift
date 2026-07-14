@@ -305,6 +305,16 @@ final class ExerciseViewModel: ObservableObject {
 
     // MARK: - Progressive Overload (comparaison live vs dernière séance)
 
+    /// Baseline de progression = dernière séance d'un jour ANTÉRIEUR (date < sessionDate).
+    /// La séance 2 ne se compare jamais au matin même (volume complémentaire ≠ compétition
+    /// intra-jour). Décision Vince 2026-07-13.
+    /// Dégradation douce si sessionDate indisponible ("") → history.first (comportement pré-fix).
+    private func firstPriorHistoryEntry() -> WeightHistoryEntry? {
+        guard let history = weightData?.history else { return nil }
+        guard !sessionDate.isEmpty else { return history.first }
+        return history.first(where: { ($0.date ?? "") < sessionDate })
+    }
+
     /// Feature désactivée pour tracking par temps et équipement bodyweight,
     /// ou si aucune cible utilisable n'existe (première fois qu'on fait cet exo).
     var overloadEnabled: Bool {
@@ -312,9 +322,9 @@ final class ExerciseViewModel: ObservableObject {
         return overloadTargetReps != nil || overloadTargetVolumeLbs != nil
     }
 
-    /// Σ reps de tous les sets de la dernière occurrence de cet exo. nil si history vide.
+    /// Σ reps de tous les sets de la dernière occurrence ANTÉRIEURE de cet exo. nil si history vide.
     var overloadTargetReps: Int? {
-        guard let last = weightData?.history?.first?.sets, !last.isEmpty else { return nil }
+        guard let last = firstPriorHistoryEntry()?.sets, !last.isEmpty else { return nil }
         var total = 0
         for s in last {
             if let r = Int(s.reps.trimmingCharacters(in: .whitespaces)) { total += r }
@@ -322,9 +332,9 @@ final class ExerciseViewModel: ObservableObject {
         return total > 0 ? total : nil
     }
 
-    /// Volume total (LBS storage) de la dernière occurrence, pré-calculé côté backend.
+    /// Volume total (LBS storage) de la dernière occurrence ANTÉRIEURE, calculé à la lecture backend.
     var overloadTargetVolumeLbs: Double? {
-        guard let v = weightData?.history?.first?.exerciseVolume, v > 0 else { return nil }
+        guard let v = firstPriorHistoryEntry()?.exerciseVolume, v > 0 else { return nil }
         return v
     }
 
