@@ -65,7 +65,8 @@ struct ExerciseCard: View {
          nextExerciseName: String? = nil,
          isReplaced: Bool = false, originalName: String? = nil,
          onSwap: (() -> Void)? = nil,
-         movementPattern: String = "") {
+         movementPattern: String = "",
+         sessionDate: String = "") {
         self.name            = name
         self.scheme          = scheme
         self.weightData      = weightData
@@ -93,7 +94,8 @@ struct ExerciseCard: View {
             equipmentType: equipmentType, trackingType: trackingType,
             bodyWeight: bodyWeight, isSecondSession: isSecondSession,
             isBonusSession: isBonusSession, restSeconds: restSeconds,
-            prescription: prescription, suggestion: suggestion))
+            prescription: prescription, suggestion: suggestion,
+            sessionDate: sessionDate))
     }
 
     // MARK: - View-layer computed

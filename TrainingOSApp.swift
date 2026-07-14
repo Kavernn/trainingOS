@@ -157,6 +157,7 @@ struct TrainingOSApp: App {
         .onAppear {
             CacheService.invalidateIfVersionChanged()
             SeanceSplitStore.purgeOldEntries(currentDate: DateFormatter.isoDate.string(from: Date()))
+            ExerciseDraftPersistence.purgeOldExerciseDrafts(currentDate: DateFormatter.isoDate.string(from: Date()))
             SyncManager.shared.setup()
             UNUserNotificationCenter.current().delegate = AppNotificationDelegate.shared
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in

@@ -98,7 +98,8 @@ struct BonusSeanceView: View {
                     }
                 }
             },
-            nextExerciseName: next
+            nextExerciseName: next,
+            sessionDate: vm.seanceData?.todayDate ?? ""
         )
         .padding(.horizontal, 16)
     }

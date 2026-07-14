@@ -581,7 +581,8 @@ struct WorkoutSeanceView: View {
                 swapPending = name
                 showSwapSheet = true
             },
-            movementPattern: inventoryPatterns[name] ?? ""
+            movementPattern: inventoryPatterns[name] ?? "",
+            sessionDate: data.todayDate
         )
         let logged   = vm.logResults[name] != nil
         let hasDraft = SessionDraftStore.load(date: data.todayDate, sessionType: vm.draftSessionType)

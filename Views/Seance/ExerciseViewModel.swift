@@ -33,7 +33,7 @@ struct ExerciseLogResult {
     var notes: String = ""
 }
 
-private struct DraftSet: Codable {
+struct DraftSet: Codable {
     var weight: String
     var reps: String
     var rir: Int
@@ -43,9 +43,16 @@ private struct DraftSet: Codable {
 
 // MARK: - ExerciseDraftPersistence
 
-private struct ExerciseDraftPersistence {
+// Draft par carte d'exercice. Scopé par (date, session_type, name) pour éviter
+// qu'un draft matin fuite en soir (crime Volet C — l'app se positionnait au 3e set
+// avec les valeurs matin déjà "loggées" sans geste utilisateur).
+struct ExerciseDraftPersistence {
+    let date: String
+    let sessionType: String
     let exerciseName: String
-    private var key: String { "exo_draft_\(exerciseName)" }
+
+    static let keyPrefix = "exo_draft_"
+    private var key: String { "\(Self.keyPrefix)\(date)_\(sessionType)_\(exerciseName)" }
 
     @discardableResult
     func save(_ drafts: [DraftSet]) -> Bool {
@@ -60,6 +67,28 @@ private struct ExerciseDraftPersistence {
     }
 
     func clear() { UserDefaults.standard.removeObject(forKey: key) }
+
+    /// Purge : (a) tous les drafts au ancien format "exo_draft_<name>" (orphelins
+    /// par le changement de clé), (b) les drafts nouveau format dont la date < currentDate.
+    /// Appelée au démarrage app à côté de SeanceSplitStore.purgeOldEntries.
+    static func purgeOldExerciseDrafts(currentDate: String) {
+        let defaults = UserDefaults.standard
+        for k in defaults.dictionaryRepresentation().keys where k.hasPrefix(keyPrefix) {
+            let suffix = String(k.dropFirst(keyPrefix.count))
+            // Nouveau format : "<date>_<sessionType>_<name>" — 1er segment = date ISO 10 char.
+            let firstUnderscore = suffix.firstIndex(of: "_")
+            let firstSegment = firstUnderscore.map { String(suffix[suffix.startIndex..<$0]) } ?? suffix
+            let isNewFormat = firstSegment.count == 10 && firstSegment.split(separator: "-").count == 3
+            if isNewFormat {
+                if firstSegment < currentDate {
+                    defaults.removeObject(forKey: k)
+                }
+            } else {
+                // Ancien format sans date → orphelin, purge inconditionnelle
+                defaults.removeObject(forKey: k)
+            }
+        }
+    }
 }
 
 // MARK: - ExerciseCalculator
@@ -176,6 +205,7 @@ final class ExerciseViewModel: ObservableObject {
     let restSeconds: Int?
     let prescription: ExercisePrescription?
     let suggestion: ProgressionSuggestion?
+    let sessionDate: String
 
     // Published state (was @State in ExerciseCard)
     @Published var sets: [SetInput] = []
@@ -202,7 +232,8 @@ final class ExerciseViewModel: ObservableObject {
          trackingType: String = "reps", bodyWeight: Double = 0,
          isSecondSession: Bool = false, isBonusSession: Bool = false,
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
-         suggestion: ProgressionSuggestion? = nil) {
+         suggestion: ProgressionSuggestion? = nil,
+         sessionDate: String = "") {
         self.name            = name
         self.scheme          = scheme
         self.weightData      = weightData
@@ -214,6 +245,7 @@ final class ExerciseViewModel: ObservableObject {
         self.restSeconds     = restSeconds
         self.prescription    = prescription
         self.suggestion      = suggestion
+        self.sessionDate     = sessionDate
 
         // W-D9 — reduced debounce from 1.5s to 0.5s for faster draft saves
         $sets
@@ -332,7 +364,14 @@ final class ExerciseViewModel: ObservableObject {
 
     // MARK: - Draft persistence
 
-    private var draftStore: ExerciseDraftPersistence { ExerciseDraftPersistence(exerciseName: name) }
+    private var sessionTypeForDraft: String {
+        if isBonusSession { return "bonus" }
+        if isSecondSession { return "evening" }
+        return "morning"
+    }
+    private var draftStore: ExerciseDraftPersistence {
+        ExerciseDraftPersistence(date: sessionDate, sessionType: sessionTypeForDraft, exerciseName: name)
+    }
 
     private func saveDraft() {
         let draft = sets.map { DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe) }
