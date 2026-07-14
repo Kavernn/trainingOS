@@ -684,6 +684,26 @@ est `HealthKitService.fetchLatestBodyWeight()`. Toute autre conversion dans ce c
 
 ---
 
+## Backend — UNIQUE(date, session_type) sur workout_sessions EXISTE en prod
+
+Le rapport Crime 4 initial disait "à vérifier si constraint absente". Verdict tranché
+2026-07-14 : **présente en prod**, prouvée par 8×409 dans les logs Vercel d'un POST
+`/api/log_session` du 14 juillet (les 8 dates = exactement les dates à double session
+identifiées via SQL Vince). Le chantier "contraintes DDL" ne garde donc que la
+`UNIQUE(session_id, type, order_index)` sur `program_blocks` (proposée au Volet 1).
+
+## Backend — Volet H-bis PLANIFIÉ : api_session_edit → save_sessions → salve ~120 PATCH
+
+Même vestige KV que `log_second_session` (supprimé au Volet H) mais côté édition
+post-séance : `api/routes/workout_logging.py:api_session_edit` appelle
+`sessions.save_sessions(sessions)` qui itère TOUT le dict des sessions et PATCH
+chaque row. Chaque édition depuis HistoriqueView déclenche donc ~120 PATCH
+`workout_sessions` séquentiels + 400 PGRST204 sur `extra_sessions` (colonne morte)
++ 409 sur les dates à double session. Rang : à traiter APRÈS le cleanup SQL. Fix
+pressenti : `api_session_edit` PATCH la seule date éditée via
+`update_workout_session_by_type(date, session_type, patch)`, plus de load/save
+global du dict.
+
 ## iOS — Fenêtre de vestiges UserDefaults 2026-07-13 (drafts d'exercice)
 
 **Contexte** : entre le fix Volet C (`d4d0634` — scoping draft par date+session_type)

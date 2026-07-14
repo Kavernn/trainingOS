@@ -421,7 +421,7 @@ def api_update_session():
 @workout_bp.route("/api/log_session", methods=["POST"])
 def api_log_session():
     try:
-        from sessions import log_session, log_second_session, log_bonus_session
+        from sessions import log_session, log_bonus_session
         from weights import load_weights
         from volume import _calc_session_volume_legacy
         from utils import _today_mtl
@@ -475,8 +475,11 @@ def api_log_session():
                               blocks=blocks, **vol_stats)
             _db.complete_workout_session_bonus(today, patch=session_patch)
         elif second_session:
-            log_second_session(today, rpe, comment, exos, duration_min, energy_pre,
-                               blocks=blocks, **vol_stats, session_name=session_name)
+            # Volet H : log_second_session supprimé (vestige KV — écrivait
+            # extra_sessions (colonne morte) et déclenchait save_sessions →
+            # ~120 PATCH par fin de séance 2). Le vrai patch de la row evening
+            # se fait ci-dessous via update_workout_session_by_type, aucune
+            # perte fonctionnelle.
             _db.update_workout_session_by_type(today, "evening", {
                 **{k: v for k, v in session_patch.items() if v is not None},
                 "completed": True,

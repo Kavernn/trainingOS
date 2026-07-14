@@ -97,54 +97,6 @@ def log_session(
         logger.error("log_session failed for %s: %s", date, e)
 
 
-def log_second_session(
-    date: str,
-    rpe,
-    comment: str,
-    exos: list | None = None,
-    duration_min=None,
-    energy_pre=None,
-    blocks: list | None = None,
-    session_volume=None,
-    total_reps=None,
-    total_sets=None,
-    session_name: str | None = None,
-):
-    """Append a second session to the same day without overwriting the first."""
-    sessions = load_sessions()
-    entry = sessions.setdefault(date, {"exos": [], "logged_at": _now_mtl().strftime("%Y-%m-%d %H:%M")})
-
-    legacy_exos = exos or []
-    if blocks is not None and not legacy_exos:
-        strength = next((b for b in blocks if b.get("type") == "strength"), None)
-        if strength:
-            legacy_exos = strength.get("exos", [])
-
-    extra: dict = {
-        "rpe":       rpe,
-        "comment":   comment,
-        "exos":      legacy_exos,
-        "logged_at": _now_mtl().strftime("%Y-%m-%d %H:%M"),
-    }
-    if blocks is not None:
-        extra["blocks"] = blocks
-    if duration_min is not None:
-        extra["duration_min"] = duration_min
-    if energy_pre is not None:
-        extra["energy_pre"] = energy_pre
-    if session_volume is not None:
-        extra["session_volume"] = session_volume
-    if total_reps is not None:
-        extra["total_reps"] = total_reps
-    if total_sets is not None:
-        extra["total_sets"] = total_sets
-    if session_name is not None:
-        extra["session_name"] = session_name
-
-    entry.setdefault("extra_sessions", []).append(extra)
-    save_sessions(sessions)
-
-
 def log_bonus_session(
     date: str,
     rpe,
