@@ -681,7 +681,10 @@ class SeanceViewModel: ObservableObject {
     @Published var isResuming = false
     @Published var commitWarning: String?
     @Published var commitWarningStyle: ToastStyle = .error
-    @Published private(set) var isFinishing = false
+    // private(set) retiré : les overrides finish() des sous-classes
+    // (SeanceSoirViewModel, BonusSeanceViewModel) doivent pouvoir set le
+    // guard de double-submit symétrique au parent.
+    @Published var isFinishing = false
     @Published var prCelebrations: [(name: String, oneRM: Double)] = []
 
     var sessionStart = Date()
