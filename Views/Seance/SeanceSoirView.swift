@@ -35,6 +35,14 @@ class SeanceSoirViewModel: SeanceViewModel {
 
     override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false) async {
         precondition(!bonusSession, "SeanceSoirViewModel ne supporte pas bonus — path bonus via SeanceViewModel(draftSessionType: \"bonus\") + ExtraSessionSheet.")
+        // Guard double-submit — symétrie avec SeanceViewModel.finish (L778-788, parent
+        // matin). Sans ça, un tap répété sur "Terminer" pouvait lancer 2 tâches
+        // parallèles qui postent chacune la même séance 2 (bouton .disabled sur
+        // vm.isFinishing devenait inefficace car le flag restait toujours false).
+        guard !isFinishing else { return }
+        isFinishing = true
+        defer { isFinishing = false }
+
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
         let exerciseLogs: [[String: Any]] = logResults.values.map {
             ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
