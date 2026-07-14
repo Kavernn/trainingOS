@@ -720,11 +720,20 @@ class SeanceViewModel: ObservableObject {
     func restoreLogResults(from data: SeanceData) {
         let program = data.fullProgram[data.today] ?? [:]
         var restored: [String: ExerciseLogResult] = [:]
-        for exerciseName in program.keys {
-            if let first = data.weights[exerciseName]?.history?.first,
-               first.date == data.todayDate,
-               let w = first.weight, let r = first.reps {
-                restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
+        // Restauration depuis l'historique serveur : UNIQUEMENT en session matin.
+        // En séance 2 (evening) ou bonus, les exos du matin ne doivent PAS remonter
+        // dans logResults — sinon finish() les ré-poste vides sur la nouvelle session
+        // (Crime 4 racine : rows placeholder sets_json=[] avec agrégats matin,
+        // 16+ dates polluées prouvées au SQL Vince 2026-07-13). Le draft local
+        // ci-dessous reste actif pour toutes les sous-classes (scoped par
+        // sessionType via Volet C).
+        if draftSessionType == "morning" {
+            for exerciseName in program.keys {
+                if let first = data.weights[exerciseName]?.history?.first,
+                   first.date == data.todayDate,
+                   let w = first.weight, let r = first.reps {
+                    restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
+                }
             }
         }
         for pending in SessionDraftStore.load(date: data.todayDate, sessionType: draftSessionType) {
