@@ -87,6 +87,22 @@ def api_log():
 
         sets_data = data.get("sets", [])
 
+        # Défense Crime 4 (post-Diff 6) : refuse un is_second=true avec sets vides
+        # sur un exo déjà loggé matin AUJOURD'HUI avec sets_json rempli. Post-Diff 6
+        # aucun chemin iOS légitime n'envoie ce combo (restore matin skip en soir/bonus,
+        # fillFromLastSession restitue les sets bruts). La ceinture protège contre
+        # régression future ou vieux build. Une row morning polluée (sets_json=[])
+        # ne déclenche PAS le 409 : on ne défend que les vraies données.
+        if is_second and not sets_data:
+            _today_for_check = session_date or _today_mtl()
+            morning_sets = _db.get_exercise_log_sets_json(_today_for_check, "morning", exercise)
+            if morning_sets and len(morning_sets) > 0:
+                logger.info(
+                    "api/log refuse morning_log_exists: is_second=true sets vides, exo=%s a %d sets matin",
+                    exercise, len(morning_sets),
+                )
+                return jsonify({"error": "morning_log_exists"}), 409
+
         if sets_data:
             first_weights = [float(s["weight"]) for s in sets_data
                              if s.get("weight") and float(s["weight"]) > 0]

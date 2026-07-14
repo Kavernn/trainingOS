@@ -533,6 +533,42 @@ class TestApiLog(BaseRouteTest):
             self.assertEqual(409, r.status_code)
             self.assertEqual("already_logged", data.get("error"))
 
+    def test_log_second_empty_sets_morning_logged_returns_409(self):
+        """Défense Crime 4 : POST is_second=true avec sets vides + morning déjà loggé
+        avec sets_json rempli → 409 morning_log_exists."""
+        with patch("utils._today_mtl", return_value="2026-03-10"), \
+             patch("db.get_exercise_log_sets_json", return_value=[{"weight": 185, "reps": "6"}]):
+            r = self.post("/api/log", self._log_payload(is_second=True, sets=[]))
+            data = json.loads(r.data)
+            self.assertEqual(409, r.status_code)
+            self.assertEqual("morning_log_exists", data.get("error"))
+
+    def test_log_second_with_sets_bypasses_guard(self):
+        """POST is_second=true avec sets non-vides → guard non déclenché."""
+        with patch("utils._today_mtl", return_value="2026-03-10"), \
+             patch("db.get_exercise_log_sets_json", return_value=[{"weight": 185, "reps": "6"}]):
+            r = self.post("/api/log", self._log_payload(
+                is_second=True,
+                sets=[{"weight": 200, "reps": "5"}],
+            ))
+            self.assertNotEqual(409, r.status_code)
+
+    def test_log_second_empty_sets_no_morning_bypasses_guard(self):
+        """POST is_second=true sans row morning existante → guard non déclenché
+        (cas nouveau exo du soir)."""
+        with patch("utils._today_mtl", return_value="2026-03-10"), \
+             patch("db.get_exercise_log_sets_json", return_value=None):
+            r = self.post("/api/log", self._log_payload(is_second=True, sets=[]))
+            self.assertNotEqual(409, r.status_code)
+
+    def test_log_second_empty_sets_polluted_morning_bypasses_guard(self):
+        """Morning polluée (sets_json=[]) → guard non déclenché : on défend
+        les vraies données, pas les fantômes du Crime 4 legacy."""
+        with patch("utils._today_mtl", return_value="2026-03-10"), \
+             patch("db.get_exercise_log_sets_json", return_value=[]):
+            r = self.post("/api/log", self._log_payload(is_second=True, sets=[]))
+            self.assertNotEqual(409, r.status_code)
+
 
 # ── /api/deload_status ───────────────────────────────────────────────────────
 
