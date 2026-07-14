@@ -686,13 +686,17 @@ est `HealthKitService.fetchLatestBodyWeight()`. Toute autre conversion dans ce c
 
 ## Tests — 21 fixtures pytest dormantes (`MagicMock is not JSON serializable`)
 
-**État constaté 2026-07-13** : 21 tests d'intégration route échouent sur tree pristine
+**État constaté 2026-07-13** : 37 tests d'intégration route échouent sur tree pristine
 (vérifié par `git stash` + rerun), tous avec la même stack trace :
 ```
 TypeError: Object of type MagicMock is not JSON serializable
 ```
 Fichiers concernés : `tests/test_read_api_routes.py`, `tests/test_main_routes.py`,
 `tests/test_programme_inventory_sync.py` (2 cas seulement).
+
+Note d'écart : mesuré à 21 lors du commit 9b23f82 sur un périmètre restreint
+(`TestProgrammeData` seul du fichier `test_read_api_routes.py`). Réévalué à 37
+au commit suivant sur le fichier COMPLET. Baseline de référence = **37**.
 
 **Cause probable :** le fixture `BaseRouteTest` (`tests/conftest.py:646`) mocke
 certaines valeurs Supabase avec `MagicMock()` non-sérialisable, qui remontent jusqu'au

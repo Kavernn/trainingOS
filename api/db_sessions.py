@@ -898,15 +898,25 @@ def get_all_exercise_history(cutoff_days: int = 180, full_history: bool = False)
                             sets_json = _json.loads(sets_json)
                         except Exception:
                             sets_json = []
-                    if isinstance(sets_json, list):
+                    # Nuance : sets_json=[] (list vide) = placeholder Crime 4 (row copiée
+                    # matin→soir avec weight/reps agrégés mais aucun détail par set) —
+                    # traité comme absent, weight/reps restent la seule vérité. Un vieux
+                    # log pré-migration sets_json a sets_json=NULL (pas []) et tombe déjà
+                    # sur le `if sets_json:` L894 → non impacté.
+                    if isinstance(sets_json, list) and sets_json:
                         entry["sets"] = sets_json
                 result.setdefault(name, []).append(entry)
             if len(rows) < page_size:
                 break
             offset += page_size
-        # Sort each exercise history newest-first
+        # Sort each exercise history newest-first. À date égale, la row avec des
+        # sets non-vides passe en tête — le prefill iOS (perSideExact) tombe sur
+        # les vrais sets, pas sur la row placeholder Crime 4 (matin copié en soir).
         for name in result:
-            result[name].sort(key=lambda x: x.get("date", ""), reverse=True)
+            result[name].sort(
+                key=lambda x: (x.get("date", ""), len(x.get("sets") or [])),
+                reverse=True,
+            )
         return result
 
     try:
