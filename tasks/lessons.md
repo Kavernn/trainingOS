@@ -684,7 +684,30 @@ est `HealthKitService.fetchLatestBodyWeight()`. Toute autre conversion dans ce c
 
 ---
 
-## Tests — 21 fixtures pytest dormantes (`MagicMock is not JSON serializable`)
+## iOS — Fenêtre de vestiges UserDefaults 2026-07-13 (drafts d'exercice)
+
+**Contexte** : entre le fix Volet C (`d4d0634` — scoping draft par date+session_type)
+et le fix Volet E (`ff545d6` — suppression du pré-remplissage automatique à l'expand),
+le canal `.onChange(of: isExpanded)` de `ExerciseCard.swift` (bloc supprimé au fix E)
+pouvait écrire des drafts pour la clé `exo_draft_<today>_evening_<name>` sans que
+Vince ait tapé quoi que ce soit — via `perSetHint` + `lastRepsParts` + debounce
+saveDraft L248-252 d'`ExerciseViewModel`.
+
+Ces drafts sont **auto-résolus** par `purgeOldExerciseDrafts`
+(`Views/Seance/ExerciseViewModel.swift:75-92`) qui purge quand
+`firstSegment < currentDate` (strict). À minuit MTL, la purge supprime les drafts
+d'aujourd'hui → problème disparaît sans code additionnel.
+
+**Contournement immédiat** si un vestige gêne une séance en cours :
+- "Reprendre la dernière séance" (canal explicite) écrase le draft avec les vraies valeurs.
+- OU saisie manuelle des valeurs correctes.
+
+**Règle** : si un symptôme "sets pré-remplis sans geste" réapparaît **APRÈS le 2026-07-14**,
+ce n'est PAS un vestige de cette fenêtre. Rouvrir l'enquête : un autre canal écrit encore.
+
+---
+
+## Tests — 37 fixtures pytest dormantes (`MagicMock is not JSON serializable`)
 
 **État constaté 2026-07-13** : 37 tests d'intégration route échouent sur tree pristine
 (vérifié par `git stash` + rerun), tous avec la même stack trace :
