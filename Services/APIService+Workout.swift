@@ -139,26 +139,49 @@ extension APIService {
 
     // MARK: - Programme mutations
 
+    /// POST direct sur le module PROGRAMME (structure : programme, schedules, création).
+    /// offlinePost interdit ici : un replay silencieux dupliquerait ou fantômerait la
+    /// mutation (précédent budget, précédent create_seance qui a nécessité
+    /// l'idempotence backend 954fcd3). Erreur → throw APIError → le call site remonte
+    /// au badge lastSaveError existant. Doctrine CLAUDE.md :
+    /// mutations de STRUCTURE = POST direct + throw ; logs de TERRAIN (exercice,
+    /// séance, recovery) = offlinePost toléré (gym hors-ligne).
+    private func postProgrammeDirect(endpoint: String, payload: [String: Any]) async throws -> Data {
+        guard let url = URL(string: APIConfig.base + endpoint) else {
+            throw APIError.invalidURL(path: endpoint)
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        let (data, resp) = try await URLSession.authed.data(for: req)
+        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+                      ?? "erreur réseau"
+            throw APIError.serverError(code, msg)
+        }
+        return data
+    }
+
     func saveEveningSchedule(_ schedule: [String: String]) async throws {
-        _ = try await offlinePost(endpoint: "/api/evening_schedule", payload: schedule as [String: Any])
+        _ = try await postProgrammeDirect(endpoint: "/api/evening_schedule", payload: schedule as [String: Any])
         CacheInvalidation.programmeMutated.invalidate()
     }
 
     func saveMorningSchedule(_ schedule: [String: String]) async throws {
-        _ = try await offlinePost(endpoint: "/api/morning_schedule", payload: ["schedule": schedule])
+        _ = try await postProgrammeDirect(endpoint: "/api/morning_schedule", payload: ["schedule": schedule])
         CacheInvalidation.programmeMutated.invalidate()
     }
 
     func postProgrammeMutation(_ body: [String: Any]) async throws {
-        _ = try await offlinePost(endpoint: "/api/programme", payload: body)
+        _ = try await postProgrammeDirect(endpoint: "/api/programme", payload: body)
         CacheInvalidation.programmeMutated.invalidate()
     }
 
     func createProgram(name: String) async throws -> String {
-        guard let data = try await offlinePost(endpoint: "/api/programs",
-                                                payload: ["action": "create", "name": name]) else {
-            throw APIError.queuedOffline
-        }
+        let data = try await postProgrammeDirect(endpoint: "/api/programs",
+                                                  payload: ["action": "create", "name": name])
         CacheInvalidation.programmeMutated.invalidate()
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let pid  = json["id"] as? String else {
