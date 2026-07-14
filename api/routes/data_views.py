@@ -13,7 +13,7 @@ def api_dashboard():
     from user_profile import load_user_profile
     from goals import load_goals
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
-                         get_suggested_weights_for_today)
+                         get_suggested_weights_for_today, get_today_evening)
     from nutrition import (load_settings as load_nutrition_settings)
     from blocks import get_strength_exercises
     from utils import get_current_week, load_hiit_log
@@ -132,6 +132,13 @@ def api_dashboard():
 
     _total_workout_min_today = sum(int(s.get("duration_min") or 0) for s in _today_all)
 
+    # Séance 2 planifiée : source de vérité UNIQUE = get_today_evening() (planner.py),
+    # même helper que /api/seance_soir_data → jamais de divergence entre menu et vue.
+    _evening_session_name = get_today_evening()
+    _second_session_completed = bool(
+        (_db.get_workout_session_second(today_date) or {}).get("completed")
+    )
+
     return jsonify({
         "today":               today_str,
         "week":                get_current_week(),
@@ -148,6 +155,9 @@ def api_dashboard():
         "nutrition_settings":  load_nutrition_settings(),
         "profile":             profile,
         "total_workout_min_today": _total_workout_min_today if _total_workout_min_today > 0 else None,
+        "has_evening_session":     _evening_session_name is not None,
+        "evening_session_name":    _evening_session_name,
+        "second_session_completed": _second_session_completed,
     })
 
 

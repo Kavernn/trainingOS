@@ -37,6 +37,9 @@ struct DashboardData: Codable {
     let nutritionSettings: NutritionSettings?
     let profile: UserProfile
     let totalWorkoutMinToday: Double?
+    let hasEveningSession: Bool
+    let eveningSessionName: String?
+    let secondSessionCompleted: Bool
 
     enum CodingKeys: String, CodingKey {
         case today, week
@@ -51,6 +54,9 @@ struct DashboardData: Codable {
         case nutritionSettings = "nutrition_settings"
         case profile
         case totalWorkoutMinToday = "total_workout_min_today"
+        case hasEveningSession = "has_evening_session"
+        case eveningSessionName = "evening_session_name"
+        case secondSessionCompleted = "second_session_completed"
     }
 
     init(from decoder: Decoder) throws {
@@ -70,6 +76,10 @@ struct DashboardData: Codable {
         nutritionSettings   = try? c.decode(NutritionSettings.self, forKey: .nutritionSettings)
         profile             = try c.decode(UserProfile.self, forKey: .profile)
         totalWorkoutMinToday = try? c.decode(Double.self, forKey: .totalWorkoutMinToday)
+        // Rétrocompatible : cache pré-fix Volet F → false/nil → comportement dashboard actuel.
+        hasEveningSession      = (try? c.decode(Bool.self, forKey: .hasEveningSession)) ?? false
+        eveningSessionName     = try? c.decode(String.self, forKey: .eveningSessionName)
+        secondSessionCompleted = (try? c.decode(Bool.self, forKey: .secondSessionCompleted)) ?? false
     }
 }
 

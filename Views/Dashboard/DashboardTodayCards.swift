@@ -96,23 +96,51 @@ struct TodayCardView: View {
                 if let session = todaySession {
                     TodaySessionRecap(session: session, color: todayColor, totalWorkoutMin: dash.totalWorkoutMinToday)
                 }
-                NavigationLink(destination: BonusSeanceView(isRestDay: false)) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus.circle")
-                        Text("Faire une séance 2")
-                            .font(.appLabel.weight(.semibold))
+                // Pivot Volet F : séance 2 planifiée non complétée → CTA principal vers
+                // SeanceSoirView (le vrai flow evening, is_second=true), pas BonusSeanceView
+                // (session_type=bonus). Sinon fallback bonus (comportement historique).
+                if dash.hasEveningSession && !dash.secondSessionCompleted {
+                    NavigationLink(destination: SeanceSoirView()) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.fill")
+                            Text(dash.eveningSessionName.map { "Commencer la séance 2 · \($0)" } ?? "Commencer la séance 2")
+                                .font(.appBody.weight(.bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            LinearGradient(
+                                colors: [todayColor, todayColor.opacity(0.75)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .shadow(color: todayColor.opacity(0.4), radius: 10, y: 4)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color.gray.opacity(0.12))
-                    .foregroundColor(.gray)
-                    .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+                    .buttonStyle(SpringButtonStyle())
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+                } else {
+                    NavigationLink(destination: BonusSeanceView(isRestDay: false)) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle")
+                            Text("Faire une séance 2")
+                                .font(.appLabel.weight(.semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.gray.opacity(0.12))
+                        .foregroundColor(.gray)
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+                    }
+                    .buttonStyle(SpringButtonStyle())
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
                 }
-                .buttonStyle(SpringButtonStyle())
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 16)
             } else {
                 // ── Programme prévu (pas encore loggé) ───────────────────
                 if !exercises.isEmpty {
