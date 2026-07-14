@@ -681,3 +681,42 @@ La conversion vers lbs est faite **une seule fois**, à `Services/HealthKitServi
 **Règle :** Si un poids semble "bizarre" dans un flux HealthKit → API → DB, vérifier d'abord
 que la valeur n'est pas déjà en lbs avant d'appliquer une conversion. La seule frontière légale
 est `HealthKitService.fetchLatestBodyWeight()`. Toute autre conversion dans ce chemin est un bug.
+
+---
+
+## Tests — 21 fixtures pytest dormantes (`MagicMock is not JSON serializable`)
+
+**État constaté 2026-07-13** : 21 tests d'intégration route échouent sur tree pristine
+(vérifié par `git stash` + rerun), tous avec la même stack trace :
+```
+TypeError: Object of type MagicMock is not JSON serializable
+```
+Fichiers concernés : `tests/test_read_api_routes.py`, `tests/test_main_routes.py`,
+`tests/test_programme_inventory_sync.py` (2 cas seulement).
+
+**Cause probable :** le fixture `BaseRouteTest` (`tests/conftest.py:646`) mocke
+certaines valeurs Supabase avec `MagicMock()` non-sérialisable, qui remontent jusqu'au
+`jsonify()` de Flask via un chemin non-encapsulé (probablement une clé récemment
+ajoutée au payload d'un endpoint que le fixture n'a jamais mockée explicitement).
+
+**Impact :** les gardiens de `inventory_schemes`, `inventory_types`, `already_logged`,
+plusieurs invariants dashboard/historique/session-edit sont **dormants**. Modifier ces
+endpoints ne casse pas les tests parce qu'ils échouent déjà avant d'atteindre l'assertion.
+Un changement qui régresse la génération de `inventory_schemes` passerait pytest sans
+alerte.
+
+**Règle en attendant réparation :** test manuel obligatoire (Vince builde + valide UI)
+pour toute modification des payloads `/api/seance_data`, `/api/seance_soir_data`,
+`/api/programme_data`, `/api/dashboard`, `/api/historique_data`, `/api/session/edit`.
+La fixture MagicMock doit être remise en état dans un chantier dédié (hors périmètre
+d'un fix bug applicatif) — audit `conftest.py:646` + mocking correct des retours Supabase
+(dict sérialisable au lieu de `MagicMock()`).
+
+**Commande pour compter :**
+```bash
+pytest tests/test_read_api_routes.py tests/test_main_routes.py \
+       tests/test_programme_inventory_sync.py 2>&1 | grep -c "MagicMock is not JSON"
+```
+Baseline attendue = 21. Si le nombre BAISSE (fix incidental d'un fixture), célébrer.
+Si BOOST (nouveau endpoint ajouté sans fixture correspondante), ajouter le mock au
+`BaseRouteTest`.
