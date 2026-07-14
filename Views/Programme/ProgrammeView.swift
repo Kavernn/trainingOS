@@ -1890,7 +1890,18 @@ struct AddExerciseSheet: View {
                             .cornerRadius(8)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 4)
+
+                    // Hint visible quand le scheme bloque canSave : un exo choisi sans
+                    // scheme (catalogue muet ou saisie manuelle) → dire pourquoi le
+                    // bouton reste inactif au lieu de laisser Vince taper dans le vide.
+                    if scheme.isEmpty && !name.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Text("Précisez un scheme (ex : 4x6-8) pour activer Enregistrer")
+                            .font(.appCaption)
+                            .foregroundColor(.statusOrange)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 8)
+                    }
 
                     // Inventory suggestions
                     if !filtered.isEmpty {

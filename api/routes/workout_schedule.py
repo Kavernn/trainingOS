@@ -65,6 +65,9 @@ def api_seance_data():
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_rest     = {name: (info.get("rest_seconds") or 120) for name, info in inv.items()}
     inventory_hints    = {name: info["tips"] for name, info in inv.items() if info.get("tips")}
+    # Ne mappe QUE les schemes réellement présents en DB (jamais de "3x8-12"
+    # inventé). Un exo sans default_scheme → absent → champ vide côté iOS.
+    inventory_schemes  = {name: info["default_scheme"] for name, info in inv.items() if info.get("default_scheme")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     exercise_supersets = _db.get_session_supersets(program_id_param or _db.get_active_program_id())
 
@@ -109,6 +112,7 @@ def api_seance_data():
         "inventory_tracking": inventory_tracking,
         "inventory_rest": inventory_rest,
         "inventory_hints": inventory_hints,
+        "inventory_schemes": inventory_schemes,
         "exercise_order": exercise_order,
         "exercise_supersets": exercise_supersets,
         "prescriptions": prescriptions,
@@ -147,6 +151,8 @@ def api_seance_soir_data():
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_rest     = {name: (info.get("rest_seconds") or 120) for name, info in inv.items()}
+    # Ne mappe QUE les schemes réellement présents en DB (voir /api/seance_data).
+    inventory_schemes  = {name: info["default_scheme"] for name, info in inv.items() if info.get("default_scheme")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     suggestions     = get_suggested_weights_for_today(weights, full_program)
 
@@ -163,6 +169,7 @@ def api_seance_soir_data():
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
         "inventory_rest": inventory_rest,
+        "inventory_schemes": inventory_schemes,
         "exercise_order": exercise_order,
     })
 

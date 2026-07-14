@@ -221,7 +221,10 @@ def api_programme_data():
     inventory_types    = {name: info.get("type") or "machine"          for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps")   for name, info in inv.items()}
     inventory_rest     = {name: 120 for name in inv}
-    inventory_schemes  = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
+    # N'expose QUE les schemes réellement présents en DB. Un exo sans default_scheme
+    # → absent du mapping → champ vide côté iOS → hint "Précisez un scheme" → Vince
+    # décide. Le catalogue propose ce qu'il SAIT, jamais ce qu'il invente.
+    inventory_schemes  = {name: info["default_scheme"] for name, info in inv.items() if info.get("default_scheme")}
     inventory_muscles  = {name: info.get("muscles") or []             for name, info in inv.items()}
     inventory_patterns = {name: info.get("pattern") or ""             for name, info in inv.items()}
     exercise_order     = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
