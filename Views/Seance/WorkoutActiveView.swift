@@ -40,6 +40,7 @@ struct WorkoutSeanceView: View {
     @State private var inventoryRest: [String: Int] = [:]
     @State private var inventoryHints: [String: String] = [:]
     @State private var inventorySchemes: [String: String] = [:]
+    @State private var inventoryMuscleGroups: [String: String] = [:]
     @State private var sessionSupersets: [String: SupersetEntry] = [:]
     @State private var draggingName: String?
     @State private var dragOffset: CGFloat = 0
@@ -1455,7 +1456,7 @@ struct WorkoutSeanceView: View {
             Text(abandonMessage())
         }
         .sheet(item: $addTarget) { (sn: SeanceName) in
-            AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes) { ex, scheme in
+            AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes, inventoryMuscleGroups: inventoryMuscleGroups) { ex, scheme in
                 Task { await addExercise(ex, scheme: scheme) }
             }
         }
@@ -1464,6 +1465,7 @@ struct WorkoutSeanceView: View {
                 seance: data.today,
                 inventory: inventory,
                 inventorySchemes: inventorySchemes,
+                inventoryMuscleGroups: inventoryMuscleGroups,
                 recentExercises: recentAdHocExercises
             ) { ex, scheme in
                 // Local-only: adds to this session without modifying the programme
@@ -1583,6 +1585,9 @@ struct WorkoutSeanceView: View {
         .onChange(of: data.inventorySchemes) { fresh in
             if !fresh.isEmpty { inventorySchemes = fresh }
         }
+        .onChange(of: data.inventoryMuscleGroups) { fresh in
+            if !fresh.isEmpty { inventoryMuscleGroups = fresh }
+        }
         .onChange(of: data.exerciseSupersets) { fresh in
             let updated = fresh[data.today] ?? [:]
             if !updated.isEmpty { sessionSupersets = updated }
@@ -1641,6 +1646,7 @@ struct WorkoutSeanceView: View {
             self.inventoryRest     = data.inventoryRest
             self.inventoryHints    = data.inventoryHints
             self.inventorySchemes  = data.inventorySchemes
+            self.inventoryMuscleGroups = data.inventoryMuscleGroups
             self.sessionSupersets  = data.exerciseSupersets[data.today] ?? [:]
         }
 
@@ -1659,6 +1665,7 @@ struct WorkoutSeanceView: View {
         let muscles  = (json["inventory_muscles"] as? [String: [String]]) ?? [:]
         let patterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
         let schemes  = (json["inventory_schemes"] as? [String: String]) ?? [:]
+        let muscleGroups = (json["inventory_muscle_groups"] as? [String: String]) ?? [:]
 
         await MainActor.run {
             self.inventory = inv
@@ -1668,6 +1675,7 @@ struct WorkoutSeanceView: View {
             if !muscles.isEmpty  { self.inventoryMuscles  = muscles }
             if !patterns.isEmpty { self.inventoryPatterns = patterns }
             if !schemes.isEmpty  { self.inventorySchemes  = schemes }
+            if !muscleGroups.isEmpty { self.inventoryMuscleGroups = muscleGroups }
             if let fresh = fromNetwork {
                 self.localProgram  = fresh
                 self.exerciseOrder = orderNet ?? self.exerciseOrder

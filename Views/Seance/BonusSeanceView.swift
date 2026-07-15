@@ -54,6 +54,7 @@ struct BonusSeanceView: View {
     @State private var inventoryTypes: [String: String] = [:]
     @State private var inventoryTracking: [String: String] = [:]
     @State private var inventorySchemes: [String: String] = [:]
+    @State private var inventoryMuscleGroups: [String: String] = [:]
     @State private var inventory: [String] = []
     @State private var showAddExercise = false
     @State private var showFinish = false
@@ -270,7 +271,8 @@ struct BonusSeanceView: View {
             AddExerciseSheet(
                 seance: "Bonus",
                 inventory: inventory,
-                inventorySchemes: inventorySchemes
+                inventorySchemes: inventorySchemes,
+                inventoryMuscleGroups: inventoryMuscleGroups
             ) { name, scheme in
                 if localExercises[name] == nil {
                     exerciseOrder.append(name)
@@ -338,11 +340,13 @@ struct BonusSeanceView: View {
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
         let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
         let schemes  = (json["inventory_schemes"] as? [String: String]) ?? [:]
+        let muscleGroups = (json["inventory_muscle_groups"] as? [String: String]) ?? [:]
         await MainActor.run {
             inventory         = inv
             inventoryTypes    = types
             inventoryTracking = tracking
             inventorySchemes  = schemes
+            inventoryMuscleGroups = muscleGroups
             isLoading         = false
         }
     }

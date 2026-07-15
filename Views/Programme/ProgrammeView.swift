@@ -37,6 +37,7 @@ struct ProgrammeView: View {
     @State private var eveningSchedule: [String: String] = [:]
     @State private var inventory: [String] = []
     @State private var inventorySchemes: [String: String] = [:]
+    @State private var inventoryMuscleGroups: [String: String] = [:]
     @State private var inventoryPatterns: [String: String] = [:]
     @State private var inventoryOneRM: [String: Double] = [:]
     @State private var isLoading = true
@@ -217,19 +218,6 @@ struct ProgrammeView: View {
     private let muscleMEV: [String: Int] = ["Pecs": 10, "Dos": 10, "Épaules": 8, "Biceps": 6, "Triceps": 6, "Jambes": 8, "Fessiers": 6, "Core": 6]
     private let muscleMAV: [String: Int] = ["Pecs": 16, "Dos": 16, "Épaules": 14, "Biceps": 12, "Triceps": 12, "Jambes": 14, "Fessiers": 10, "Core": 12]
 
-    private func muscleGroup(for exercise: String) -> String {
-        let e = exercise.lowercased()
-        if ["bench","fly","chest","dip","pec","incline"].contains(where: { e.contains($0) }) { return "Pecs" }
-        if ["row","pulldown","pull-up","pull up","lat","deadlift","rdl","back"].contains(where: { e.contains($0) }) { return "Dos" }
-        if ["squat","leg press","lunge","quad","hack"].contains(where: { e.contains($0) }) { return "Jambes" }
-        if ["curl","bicep"].contains(where: { e.contains($0) }) { return "Biceps" }
-        if ["tricep","pushdown","skull","extension"].contains(where: { e.contains($0) }) { return "Triceps" }
-        if ["press","lateral","shoulder","delt","ohp"].contains(where: { e.contains($0) }) { return "Épaules" }
-        if ["glute","hip thrust","fessier"].contains(where: { e.contains($0) }) { return "Fessiers" }
-        if ["plank","core","ab","crunch"].contains(where: { e.contains($0) }) { return "Core" }
-        return "Autre"
-    }
-
     private func parseSets(from scheme: String) -> Int {
         guard let xRange = scheme.range(of: "x", options: .caseInsensitive) else { return 3 }
         let setsPart = String(scheme[scheme.startIndex..<xRange.lowerBound])
@@ -251,7 +239,7 @@ struct ProgrammeView: View {
             let f = freq[seance] ?? 0
             guard f > 0 else { continue }
             for (exercise, scheme) in exercises {
-                let muscle = muscleGroup(for: exercise)
+                let muscle = inventoryMuscleGroups[exercise] ?? "Autre"
                 guard muscle != "Autre" else { continue }
                 let sets = parseSets(from: scheme)
                 vol[muscle, default: 0] += sets * f
@@ -593,7 +581,7 @@ struct ProgrammeView: View {
                 }
             }
             .sheet(item: $addTarget) { sn in
-                AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes) { ex, scheme in
+                AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes, inventoryMuscleGroups: inventoryMuscleGroups) { ex, scheme in
                     Task { await addExercise(seance: sn.id, exercise: ex, scheme: scheme) }
                 }
             }
@@ -787,6 +775,7 @@ struct ProgrammeView: View {
         schedule         = (json["schedule"] as? [String: String]) ?? [:]
         inventory        = (json["inventory"] as? [String]) ?? []
         inventorySchemes  = (json["inventory_schemes"]  as? [String: String]) ?? [:]
+        inventoryMuscleGroups = (json["inventory_muscle_groups"] as? [String: String]) ?? [:]
         inventoryPatterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
         if let raw = json["inventory_1rm"] as? [String: Any] {
             inventoryOneRM = raw.compactMapValues { $0 as? Double }
@@ -1740,6 +1729,7 @@ struct AddExerciseSheet: View {
     let seance: String
     let inventory: [String]
     let inventorySchemes: [String: String]
+    let inventoryMuscleGroups: [String: String]
     var recentExercises: [String] = []
     let onAdd: (String, String) -> Void
 
@@ -1755,25 +1745,21 @@ struct AddExerciseSheet: View {
 
     private var isDirty: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
 
-    private let muscleGroupOrder = ["Pecs", "Dos", "Jambes", "Épaules", "Biceps", "Triceps", "Fessiers", "Core"]
-
-    private func muscleGroup(for exercise: String) -> String {
-        let e = exercise.lowercased()
-        if ["bench","fly","chest","dip","pec","incline","pec"].contains(where: { e.contains($0) }) { return "Pecs" }
-        if ["row","pulldown","pull-up","pull up","lat","deadlift","rdl","back"].contains(where: { e.contains($0) }) { return "Dos" }
-        if ["squat","leg press","lunge","quad","hack"].contains(where: { e.contains($0) }) { return "Jambes" }
-        if ["curl","bicep"].contains(where: { e.contains($0) }) { return "Biceps" }
-        if ["tricep","pushdown","skull","extension"].contains(where: { e.contains($0) }) { return "Triceps" }
-        if ["press","lateral","shoulder","delt","ohp"].contains(where: { e.contains($0) }) { return "Épaules" }
-        if ["glute","hip thrust","fessier","hip hinge"].contains(where: { e.contains($0) }) { return "Fessiers" }
-        if ["plank","core","ab","crunch","sit-up"].contains(where: { e.contains($0) }) { return "Core" }
-        return "Autre"
+    // Ordre canonique + append trié des nouveaux groupes (Cou, Hanches, etc.)
+    // que le catalogue peut porter — évite un sorted() alphabétique pur qui
+    // casserait l'ergonomie du picker.
+    private let canonicalMuscleOrder = ["Pecs", "Dos", "Jambes", "Épaules", "Biceps", "Triceps", "Fessiers", "Core"]
+    private var muscleGroupOrder: [String] {
+        let present = Set(inventoryMuscleGroups.values)
+        let canonical = canonicalMuscleOrder.filter { present.contains($0) }
+        let extras = present.subtracting(canonicalMuscleOrder).sorted()
+        return canonical + extras
     }
 
     private var filtered: [String] {
         var result = name.isEmpty ? inventory : inventory.filter { $0.localizedCaseInsensitiveContains(name) }
         if let grp = selectedGroup {
-            result = result.filter { muscleGroup(for: $0) == grp }
+            result = result.filter { (inventoryMuscleGroups[$0] ?? "Autre") == grp }
         }
         return result
     }
@@ -1918,7 +1904,7 @@ struct AddExerciseSheet: View {
                                         .foregroundColor(.appTextPrimary)
                                         .font(.appLabel.weight(.regular))
                                     Spacer()
-                                    Text(muscleGroup(for: ex))
+                                    Text(inventoryMuscleGroups[ex] ?? "Autre")
                                         .font(.appCaption)
                                         .foregroundColor(.gray.opacity(0.6))
                                     if name == ex {

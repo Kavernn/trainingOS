@@ -234,6 +234,7 @@ struct SeanceData: Codable {
     let inventoryRest: [String: Int]
     let inventoryHints: [String: String]
     let inventorySchemes: [String: String]
+    let inventoryMuscleGroups: [String: String]
     let exerciseOrder: [String: [String]]
     let exerciseSupersets: [String: [String: SupersetEntry]]
     let prescriptions: [String: ExercisePrescription]?
@@ -252,6 +253,7 @@ struct SeanceData: Codable {
         case inventoryRest        = "inventory_rest"
         case inventoryHints       = "inventory_hints"
         case inventorySchemes     = "inventory_schemes"
+        case inventoryMuscleGroups = "inventory_muscle_groups"
         case exerciseOrder        = "exercise_order"
         case exerciseSupersets    = "exercise_supersets"
         case exerciseSuggestions  = "exercise_suggestions"
@@ -273,6 +275,7 @@ struct SeanceData: Codable {
         inventoryRest      = (try? c.decode([String: Int].self,    forKey: .inventoryRest))     ?? [:]
         inventoryHints     = (try? c.decode([String: String].self, forKey: .inventoryHints))    ?? [:]
         inventorySchemes   = (try? c.decode([String: String].self, forKey: .inventorySchemes))  ?? [:]
+        inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]
         exerciseOrder      = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))   ?? [:]
         exerciseSupersets  = (try? c.decode([String: [String: SupersetEntry]].self, forKey: .exerciseSupersets)) ?? [:]
         prescriptions      = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
@@ -286,6 +289,7 @@ struct SeanceData: Codable {
          inventoryTypes: [String: String], inventoryTracking: [String: String] = [:],
          inventoryRest: [String: Int] = [:], inventoryHints: [String: String] = [:],
          inventorySchemes: [String: String] = [:],
+         inventoryMuscleGroups: [String: String] = [:],
          exerciseOrder: [String: [String]], exerciseSupersets: [String: [String: SupersetEntry]] = [:],
          prescriptions: [String: ExercisePrescription]? = nil,
          exerciseSuggestions: [String: ProgressionSuggestion]? = nil,
@@ -303,6 +307,7 @@ struct SeanceData: Codable {
         self.inventoryRest       = inventoryRest
         self.inventoryHints      = inventoryHints
         self.inventorySchemes    = inventorySchemes
+        self.inventoryMuscleGroups = inventoryMuscleGroups
         self.exerciseOrder       = exerciseOrder
         self.exerciseSupersets   = exerciseSupersets
         self.prescriptions       = prescriptions
@@ -324,6 +329,7 @@ struct SeanceSoirData: Codable {
     let inventoryTracking: [String: String]
     let inventoryRest: [String: Int]
     let inventorySchemes: [String: String]
+    let inventoryMuscleGroups: [String: String]
     let exerciseOrder: [String: [String]]
 
     enum CodingKeys: String, CodingKey {
@@ -338,6 +344,7 @@ struct SeanceSoirData: Codable {
         case inventoryTracking = "inventory_tracking"
         case inventoryRest     = "inventory_rest"
         case inventorySchemes  = "inventory_schemes"
+        case inventoryMuscleGroups = "inventory_muscle_groups"
         case exerciseOrder     = "exercise_order"
     }
 
@@ -355,6 +362,7 @@ struct SeanceSoirData: Codable {
         inventoryTracking = (try? c.decode([String: String].self,   forKey: .inventoryTracking)) ?? [:]
         inventoryRest     = (try? c.decode([String: Int].self,      forKey: .inventoryRest))     ?? [:]
         inventorySchemes  = (try? c.decode([String: String].self,   forKey: .inventorySchemes))  ?? [:]
+        inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]
         exerciseOrder     = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))     ?? [:]
     }
 
@@ -364,6 +372,7 @@ struct SeanceSoirData: Codable {
                          schedule: schedule, fullProgram: fullProgram, weights: weights,
                          week: week, inventoryTypes: inventoryTypes, inventoryTracking: inventoryTracking,
                          inventoryRest: inventoryRest, inventorySchemes: inventorySchemes,
+                         inventoryMuscleGroups: inventoryMuscleGroups,
                          exerciseOrder: exerciseOrder)
     }
 }

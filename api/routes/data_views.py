@@ -235,6 +235,10 @@ def api_programme_data():
     # → absent du mapping → champ vide côté iOS → hint "Précisez un scheme" → Vince
     # décide. Le catalogue propose ce qu'il SAIT, jamais ce qu'il invente.
     inventory_schemes  = {name: info["default_scheme"] for name, info in inv.items() if info.get("default_scheme")}
+    # Même règle pour muscle_group : n'expose que les valeurs réelles en DB.
+    # Un exo sans muscle_group → absent du mapping → iOS affiche "Autre" en fallback,
+    # jamais une déduction par nom (crime : Neck Curl → "Biceps" via pattern "curl").
+    inventory_muscle_groups = {name: info["muscle_group"] for name, info in inv.items() if info.get("muscle_group")}
     inventory_muscles  = {name: info.get("muscles") or []             for name, info in inv.items()}
     inventory_patterns = {name: info.get("pattern") or ""             for name, info in inv.items()}
     exercise_order     = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
@@ -249,6 +253,7 @@ def api_programme_data():
         "inventory_tracking":  inventory_tracking,
         "inventory_rest":      inventory_rest,
         "inventory_schemes":   inventory_schemes,
+        "inventory_muscle_groups": inventory_muscle_groups,
         "inventory_muscles":   inventory_muscles,
         "inventory_patterns":  inventory_patterns,
         "inventory_1rm":       inventory_1rm,
