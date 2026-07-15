@@ -113,13 +113,13 @@ def test_project_forward_constant_rate_single_segment():
 
 def test_project_forward_traverses_bascule_2026_09_13():
     """Valeurs calculées à la main pour prouver la traversée segment par segment.
-    Rythme pré-départ = 47250 * 24 / 365 = 3106.849 c/j.
-    Rythme post-départ = 84750 * 24 / 365 = 5572.603 c/j.
-    Segment 1 (2026-08-15 → 2026-09-13, 29 j × 3106.849) : 90 098.63 cents.
-    Segment 2 (dès 2026-09-13, 5572.603 c/j) : reste 119 901.37 → ceil(21.5163) = 22 j.
-    2026-09-13 + 22 j = 2026-10-05."""
+    Rythme pré-départ = 45781 * 24 / 365 = 3010.269 c/j.
+    Rythme post-départ = 83281 * 24 / 365 = 5476.833 c/j.
+    Segment 1 (2026-08-15 → 2026-09-13, 29 j × 3010.269) : 87 297.79 cents.
+    Segment 2 (dès 2026-09-13, 5476.833 c/j) : reste 122 702.21 → ceil(22.4047) = 23 j.
+    2026-09-13 + 23 j = 2026-10-06."""
     death = bp._project_forward(date(2026, 8, 15), 210000, bp._fallback_attack_rate_fn)
-    assert death == date(2026, 10, 5)
+    assert death == date(2026, 10, 6)
 
 
 # ── compute() : fallback vs measured ────────────────────────────────────────

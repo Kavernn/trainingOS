@@ -5,8 +5,8 @@ import SwiftUI
 enum BudgetPlan {
     static let planSwitchDate        = "2026-09-13"   // yyyy-MM-dd MTL
     static let fundDeadline          = "2026-09-12"
-    static let attackPerPeriodBefore = 47250          // cents
-    static let attackPerPeriodAfter  = 84750
+    static let attackPerPeriodBefore = 45781          // cents — 457,81 $/paie (front-load voyage)
+    static let attackPerPeriodAfter  = 83281          //         832,81 $/paie plein régime
     static let fundPerPeriod         = 37500          // 375 $
 }
 
