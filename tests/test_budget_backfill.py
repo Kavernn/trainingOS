@@ -285,11 +285,12 @@ def test_today_transfers_includes_fund_transfer(status_db, monkeypatch):
     _set_today(monkeypatch, date(2026, 7, 20))
     status_db.logs = [
         {"date": "2026-07-20", "type": "fund_transfer",
-         "debt_key": "fonds_voyage", "amount_cents": 37500},
+         "debt_key": "fonds_voyage", "envelope_key": None, "amount_cents": 37500},
     ]
     payload = budget.compute_status()
     assert payload["today_transfers"] == [
-        {"type": "fund_transfer", "debt_key": "fonds_voyage", "amount_cents": 37500},
+        {"type": "fund_transfer", "debt_key": "fonds_voyage",
+         "envelope_key": None, "amount_cents": 37500},
     ]
 
 
@@ -297,11 +298,26 @@ def test_today_transfers_includes_debt_payment(status_db, monkeypatch):
     _set_today(monkeypatch, date(2026, 7, 20))
     status_db.logs = [
         {"date": "2026-07-20", "type": "debt_payment",
-         "debt_key": "decouvert", "amount_cents": 45781},
+         "debt_key": "decouvert", "envelope_key": None, "amount_cents": 45781},
     ]
     payload = budget.compute_status()
     assert payload["today_transfers"] == [
-        {"type": "debt_payment", "debt_key": "decouvert", "amount_cents": 45781},
+        {"type": "debt_payment", "debt_key": "decouvert",
+         "envelope_key": None, "amount_cents": 45781},
+    ]
+
+
+def test_today_transfers_includes_expense(status_db, monkeypatch):
+    """Expense (hypothèque payday) doit être coché comme les transferts."""
+    _set_today(monkeypatch, date(2026, 7, 20))
+    status_db.logs = [
+        {"date": "2026-07-20", "type": "expense",
+         "debt_key": None, "envelope_key": "fixes", "amount_cents": 45000},
+    ]
+    payload = budget.compute_status()
+    assert payload["today_transfers"] == [
+        {"type": "expense", "debt_key": None,
+         "envelope_key": "fixes", "amount_cents": 45000},
     ]
 
 
@@ -325,3 +341,29 @@ def test_today_transfers_excludes_negative_amounts(status_db, monkeypatch):
     ]
     payload = budget.compute_status()
     assert payload["today_transfers"] == []
+
+
+def test_today_net_spent_nets_contre_ecriture(status_db, monkeypatch):
+    """Positif + contre-écriture même montant → net 0 (solde live intact)."""
+    _set_today(monkeypatch, date(2026, 7, 20))
+    status_db.logs = [
+        {"date": "2026-07-20", "type": "debt_payment",
+         "debt_key": "decouvert", "amount_cents": 57000},
+        {"date": "2026-07-20", "type": "debt_payment",
+         "debt_key": "decouvert", "amount_cents": -57000},
+    ]
+    payload = budget.compute_status()
+    assert payload["today_net_spent_cents"] == 0
+
+
+def test_today_net_spent_excludes_windfall_and_income(status_db, monkeypatch):
+    """Windfall (surprise) et income (entrée paie) hors somme."""
+    _set_today(monkeypatch, date(2026, 7, 20))
+    status_db.logs = [
+        {"date": "2026-07-20", "type": "windfall",
+         "debt_key": "decouvert", "amount_cents": 8000},
+        {"date": "2026-07-20", "type": "expense",
+         "envelope_key": "fixes", "amount_cents": 45000},
+    ]
+    payload = budget.compute_status()
+    assert payload["today_net_spent_cents"] == 45000

@@ -8,6 +8,39 @@ enum BudgetPlan {
     static let attackPerPeriodBefore = 45781          // cents — 457,81 $/paie (front-load voyage)
     static let attackPerPeriodAfter  = 83281          //         832,81 $/paie plein régime
     static let fundPerPeriod         = 37500          // 375 $
+
+    // Paie brute (Vince, source liste 2026-07-15). Utilisé pour le solde live
+    // du mode Jour de Paie ("Reste à distribuer : X / 1 743,91 $").
+    static let payPerPeriodCents     = 174391         // 1 743,91 $/paie
+
+    // Composition des fixes en cents MENSUELS. La vue divise par 2 pour l'affichage
+    // par paie (arrondi half-away-from-zero pour Claude 3219/2 → 1610).
+    // Ordre = ordre d'apparition dans la sheet dépliable.
+    struct FixLine: Identifiable {
+        let label: String
+        let monthlyCents: Int
+        var id: String { label }
+        var perPeriodCents: Int {
+            Int((Double(monthlyCents) / 2.0).rounded(.toNearestOrAwayFromZero))
+        }
+    }
+    static let fixesPerMonth: [FixLine] = [
+        FixLine(label: "Hypothèque", monthlyCents: 90000),
+        FixLine(label: "Gaz",        monthlyCents: 13000),
+        FixLine(label: "Vapo",       monthlyCents:  8000),
+        FixLine(label: "Claude",     monthlyCents:  3219),
+        FixLine(label: "Supabase",   monthlyCents:  3000),
+    ]
+    static var fixesTotalPerPeriodCents: Int {
+        fixesPerMonth.reduce(0) { $0 + $1.perPeriodCents }
+    }
+    // Première ligne (hypothèque) = seule action payday parmi les fixes.
+    static var hypothequePerPeriodCents: Int {
+        fixesPerMonth.first?.perPeriodCents ?? 0
+    }
+    static var fixesDiversPerPeriodCents: Int {
+        fixesTotalPerPeriodCents - hypothequePerPeriodCents
+    }
 }
 
 struct BudgetLogSheet: View {
@@ -346,9 +379,11 @@ struct BudgetLogSheet: View {
         switch pt.serverType {
         case "fund_transfer": type = .fundTransfer
         case "debt_payment":  type = .debtPayment
+        case "expense":       type = .expense
         default: break
         }
-        debtKey = pt.debtKey
+        if let dk = pt.debtKey     { debtKey     = dk }
+        if let ek = pt.envelopeKey { envelopeKey = ek }
         amountStr = String(format: "%.2f", Double(pt.amountCents) / 100.0)
     }
 }

@@ -9,19 +9,21 @@ struct BudgetStatus: Decodable {
     let daysToNextPayday: Int
     let isPaydayToday: Bool?
     let todayTransfers: [BudgetTodayTransfer]?
+    let todayNetSpentCents: Int?
     let envelopes: [BudgetEnvelope]
     let debts: [BudgetDebt]
     let projection: BudgetProjection?
     let nextMilestone: BudgetMilestone?
 
     enum CodingKeys: String, CodingKey {
-        case periodStart        = "period_start"
-        case periodEnd          = "period_end"
-        case daysToNextPayday   = "days_to_next_payday"
-        case isPaydayToday      = "is_payday_today"
-        case todayTransfers     = "today_transfers"
+        case periodStart         = "period_start"
+        case periodEnd           = "period_end"
+        case daysToNextPayday    = "days_to_next_payday"
+        case isPaydayToday       = "is_payday_today"
+        case todayTransfers      = "today_transfers"
+        case todayNetSpentCents  = "today_net_spent_cents"
         case envelopes, debts, projection
-        case nextMilestone      = "next_milestone"
+        case nextMilestone       = "next_milestone"
     }
 }
 
@@ -112,16 +114,19 @@ struct BudgetDebt: Decodable, Identifiable {
     }
 }
 
-// Retour backend : logs debt/fund du jour (pour cocher les items payday).
+// Retour backend : logs positifs du jour (expense + fund + debt) pour
+// cocher les items payday et alimenter le solde live.
 struct BudgetTodayTransfer: Decodable, Equatable, Identifiable {
     let type: String
-    let debtKey: String
+    let debtKey: String?
+    let envelopeKey: String?
     let amountCents: Int
-    var id: String { "\(type)-\(debtKey)" }
+    var id: String { "\(type)-\(debtKey ?? envelopeKey ?? "")" }
 
     enum CodingKeys: String, CodingKey {
         case type
         case debtKey     = "debt_key"
+        case envelopeKey = "envelope_key"
         case amountCents = "amount_cents"
     }
 }
@@ -130,9 +135,10 @@ struct BudgetTodayTransfer: Decodable, Equatable, Identifiable {
 // Construit iOS depuis BudgetPlan — pas un champ backend.
 struct PlannedTransfer: Identifiable, Equatable {
     let id = UUID()
-    let serverType: String   // "fund_transfer" | "debt_payment"
+    let serverType: String       // "expense" | "fund_transfer" | "debt_payment"
     let label: String
-    let debtKey: String
+    let debtKey: String?         // set pour fund/debt
+    let envelopeKey: String?     // set pour expense
     let amountCents: Int
 }
 

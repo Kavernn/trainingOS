@@ -140,13 +140,30 @@ def compute_status() -> dict:
     # Windfall exclu (pas un transfert planifié). Montants ≤ 0 exclus : une
     # contre-écriture seule laisserait un item coché avec transfert net nul.
     today_iso = today.isoformat()
+    # today_transfers : positifs uniquement — pour cocher les items payday
+    # (isDone iOS). Windfall exclu (pas un plan). Négatifs exclus (contre-
+    # écriture seule laisserait un item coché avec transfert net nul).
     today_transfers = [
-        {"type": l["type"], "debt_key": l["debt_key"], "amount_cents": l["amount_cents"]}
+        {
+            "type":         l["type"],
+            "debt_key":     l.get("debt_key"),
+            "envelope_key": l.get("envelope_key"),
+            "amount_cents": l["amount_cents"],
+        }
         for l in logs
         if l["date"] == today_iso
-        and l["type"] in ("fund_transfer", "debt_payment")
+        and l["type"] in ("expense", "fund_transfer", "debt_payment")
         and l["amount_cents"] > 0
     ]
+    # today_net_spent_cents : somme SIGNÉE (positifs + négatifs) — alimente
+    # le solde live "Reste à distribuer" côté iOS. Windfall + income exclus
+    # par les filtres de type (windfall via cette liste, income via db_budget).
+    today_net_spent_cents = sum(
+        int(l.get("amount_cents") or 0)
+        for l in logs
+        if l["date"] == today_iso
+        and l["type"] in ("expense", "fund_transfer", "debt_payment")
+    )
 
     return {
         "period_start":        start.isoformat(),
@@ -154,6 +171,7 @@ def compute_status() -> dict:
         "days_to_next_payday": (next_payday(today) - today).days,
         "is_payday_today":     start == today,
         "today_transfers":     today_transfers,
+        "today_net_spent_cents": today_net_spent_cents,
         "envelopes":           envelope_status,
         "debts":               debt_status,
         "projection":          proj["projection"],

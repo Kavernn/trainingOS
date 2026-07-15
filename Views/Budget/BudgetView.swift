@@ -282,14 +282,24 @@ struct BudgetCard: View {
     private var isPayday: Bool { status.isPaydayToday == true }
 
     // Transferts planifiés du jour — piecewise via BudgetPlan (mêmes seuils que les chips).
+    // Ordre = ordre d'exécution naturel : hypothèque → voyage → attaque.
     private var plannedTransfers: [PlannedTransfer] {
         let today = BudgetFormat.todayYMDMTL
-        var out: [PlannedTransfer] = []
+        var out: [PlannedTransfer] = [
+            PlannedTransfer(
+                serverType:  "expense",
+                label:       "Hypothèque",
+                debtKey:     nil,
+                envelopeKey: "fixes",
+                amountCents: BudgetPlan.hypothequePerPeriodCents
+            )
+        ]
         if today <= BudgetPlan.fundDeadline {
             out.append(PlannedTransfer(
                 serverType:  "fund_transfer",
                 label:       "Fonds voyage",
                 debtKey:     "fonds_voyage",
+                envelopeKey: nil,
                 amountCents: BudgetPlan.fundPerPeriod
             ))
         }
@@ -299,19 +309,32 @@ struct BudgetCard: View {
                 : BudgetPlan.attackPerPeriodAfter
             out.append(PlannedTransfer(
                 serverType:  "debt_payment",
-                label:       active.label,
+                label:       "Attaque · \(active.label)",
                 debtKey:     active.key,
+                envelopeKey: nil,
                 amountCents: amount
             ))
         }
         return out
     }
 
-    // Fait = un log (type, debt_key) existe aujourd'hui (montants non comparés).
+    // Fait = un log du même type + même clé (debt pour fund/debt, envelope pour expense)
+    // existe aujourd'hui. Montants non comparés (ceinture existante conservée).
     private func isDone(_ pt: PlannedTransfer) -> Bool {
         (status.todayTransfers ?? []).contains {
-            $0.type == pt.serverType && $0.debtKey == pt.debtKey
+            guard $0.type == pt.serverType else { return false }
+            if pt.serverType == "expense" { return $0.envelopeKey == pt.envelopeKey }
+            return $0.debtKey == pt.debtKey
         }
+    }
+
+    // Solde live : paie − somme SIGNÉE des money_logs du jour (today_net_spent_cents,
+    // fourni par le backend — nette les contre-écritures, exclut income + windfall).
+    private var remainingToDistributeCents: Int {
+        BudgetPlan.payPerPeriodCents - (status.todayNetSpentCents ?? 0)
+    }
+    private var allPaydayDone: Bool {
+        !plannedTransfers.isEmpty && plannedTransfers.allSatisfy(isDone)
     }
 
     var body: some View {
@@ -329,6 +352,7 @@ struct BudgetCard: View {
                             onTap: { onTransferTap?(pt) }
                         )
                     }
+                    paydayFooter
                 }
             } else {
                 headerRow
@@ -342,15 +366,42 @@ struct BudgetCard: View {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: 0.5))
     }
 
+    // "Reste à distribuer : X / 1 743,91 $" — décrémente à chaque log positif du jour.
     private var paydayHeader: some View {
         HStack(spacing: 8) {
             Image(systemName: "banknote.fill")
                 .foregroundColor(Color.forge)
                 .font(.appLabel.weight(.semibold))
-            Text("Jour de paie")
-                .font(.appHeadline.weight(.bold))
-                .foregroundColor(Color.appTextPrimary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Jour de paie")
+                    .font(.appCaption)
+                    .foregroundColor(.secondary)
+                Text("Reste à distribuer : \(BudgetFormat.dollars(remainingToDistributeCents)) / \(BudgetFormat.dollars(BudgetPlan.payPerPeriodCents))")
+                    .font(.appHeadline.weight(.bold))
+                    .foregroundColor(remainingToDistributeCents < 0 ? Color.appWarning : Color.appTextPrimary)
+            }
             Spacer()
+        }
+    }
+
+    // Ligne informative finale : reste dans le compte pour le mois.
+    private var paydayFooter: some View {
+        let fixesDivers = BudgetPlan.fixesDiversPerPeriodCents
+        let groceries: Int = {
+            (status.envelopes.first(where: { $0.key == "epicerie" })?.limitCents ?? 0) / 2
+        }()
+        let variable: Int = {
+            (status.envelopes.first(where: { $0.key == "variable" })?.limitCents ?? 0) / 2
+        }()
+        let leftover = groceries + variable + fixesDivers
+        return VStack(alignment: .leading, spacing: 2) {
+            Divider().padding(.vertical, 2)
+            Text("Reste dans ton compte : \(BudgetFormat.dollars(leftover))")
+                .font(.appCaption.weight(.semibold))
+                .foregroundColor(Color.appTextPrimary.opacity(0.85))
+            Text("Épicerie \(BudgetFormat.dollars(groceries)), variable \(BudgetFormat.dollars(variable)), fixes divers \(BudgetFormat.dollars(fixesDivers))." + (allPaydayDone ? " Rien d'autre à faire aujourd'hui." : ""))
+                .font(.appCaption)
+                .foregroundColor(.secondary)
         }
     }
 

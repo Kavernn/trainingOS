@@ -164,15 +164,17 @@ def sum_expenses_by_envelope(start_iso: str, end_iso: str) -> dict:
 
 
 def list_debt_and_fund_logs_since(start_iso: str) -> list:
-    """[{date, type, debt_key, amount_cents}] pour debt_payment + fund_transfer + windfall
-    depuis start_iso. Alimente budget_projection : rythme (allowlist explicite exclut
-    windfall), paid_by_debt (allowlist implicite inclut windfall), jalons."""
+    """[{date, type, debt_key, envelope_key, amount_cents}] pour expense +
+    debt_payment + fund_transfer + windfall depuis start_iso. Alimente
+    budget_projection (rythme et paid_by_debt ignorent expense via filtres de
+    type et absence de debt_key) et today_transfers (broader filter dans
+    budget.py — expense inclus pour cocher hypothèque et alimenter le solde live)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
     def _do() -> list:
         resp = (db_core._client.table("money_logs")
-                .select("date, type, debt_key, amount_cents")
-                .in_("type", ["debt_payment", "fund_transfer", "windfall"])
+                .select("date, type, debt_key, envelope_key, amount_cents")
+                .in_("type", ["expense", "debt_payment", "fund_transfer", "windfall"])
                 .gte("date", start_iso)
                 .execute())
         return resp.data or []
