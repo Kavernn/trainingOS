@@ -730,10 +730,21 @@ tombait ensuite sur cette row polluée → 71,7 lbs uniformes prouvés
   perte fonctionnelle : `update_workout_session_by_type` fait déjà le
   vrai PATCH sur la row evening.
 
+**Fatigue backend éliminée en collatéral (suite)** :
+- **Volet H-bis** backend (`2da7e5c`) — suppression de la salve KV dans
+  `api_session_edit` (`load_sessions` + mutation + `save_sessions` sur
+  tout l'historique) qui déclenchait ~120 PATCH par édition depuis
+  HistoriqueView, dont un qui écrivait par erreur les métadonnées d'une
+  session evening/bonus éditée sur la row morning du même jour
+  (`update_workout_session` filtre hardcodé `session_type='morning'`).
+  Le PATCH ciblé `update_workout_session_by_type` existait déjà, il
+  suffisait de retirer la salve amont. `save_sessions` supprimée aussi
+  (dead code après ce diff). Test anti-régression `test_edit_no_kv_salve`
+  (`tests/test_session_hiit_routes.py`) : 50 sessions chargées, edit rpe
+  = exactement 1 appel by_type + 0 morning-only. Le dernier vestige KV
+  du dossier est mort.
+
 **Chantiers ouverts hérités du dossier** :
-- **Volet H-bis PLANIFIÉ** : `api_session_edit` appelle `save_sessions`
-  → même salve ~120 PATCH par édition post-séance depuis HistoriqueView.
-  Rang : à traiter quand la douleur remonte.
 - **Chantier fixtures pytest** : ~45 tests dormants
   (`MagicMock is not JSON serializable`) rendent inefficace la couverture
   des endpoints `/api/log`, `/api/session/edit`, `/api/dashboard`,
@@ -760,17 +771,37 @@ Le rapport Crime 4 initial disait "à vérifier si constraint absente". Verdict 
 identifiées via SQL Vince). Le chantier "contraintes DDL" ne garde donc que la
 `UNIQUE(session_id, type, order_index)` sur `program_blocks` (proposée au Volet 1).
 
-## Backend — Volet H-bis PLANIFIÉ : api_session_edit → save_sessions → salve ~120 PATCH
+## Backend — Volet H-bis FERMÉ (2026-07-15, 2da7e5c) : salve KV api_session_edit supprimée
 
-Même vestige KV que `log_second_session` (supprimé au Volet H) mais côté édition
-post-séance : `api/routes/workout_logging.py:api_session_edit` appelle
-`sessions.save_sessions(sessions)` qui itère TOUT le dict des sessions et PATCH
-chaque row. Chaque édition depuis HistoriqueView déclenche donc ~120 PATCH
-`workout_sessions` séquentiels + 400 PGRST204 sur `extra_sessions` (colonne morte)
-+ 409 sur les dates à double session. Rang : à traiter APRÈS le cleanup SQL. Fix
-pressenti : `api_session_edit` PATCH la seule date éditée via
-`update_workout_session_by_type(date, session_type, patch)`, plus de load/save
-global du dict.
+Diagnostic : `api_session_edit` faisait DÉJÀ le bon PATCH ciblé via
+`update_workout_session_by_type` (ligne 270), mais **en amont** une salve KV
+`load_sessions` → mutation dict → `save_sessions` chargeait ~500 rows et
+itérait `update_workout_session(date, entry)` sur chaque date. Ce helper
+filtre hardcodé `session_type='morning'` — donc éditer une session evening
+ou bonus polluait la row morning du même jour avec ses métadonnées
+(rpe, comment). Pollution silencieuse, indétectable côté iOS.
+
+Fix : retrait des lignes 251-260 dans `api_session_edit`. `save_sessions`
+supprimée de `api/sessions.py` (dead code après ce diff, plus aucun appelant).
+`load_sessions` conservée (consommateurs légitimes : `get_session_blocks`,
+dashboard, sessions, notes, historique).
+
+Gardien anti-régression : `test_edit_no_kv_salve` charge 50 sessions
+historiques puis vérifie qu'un edit rpe fait exactement **1** appel à
+`update_workout_session_by_type` et **0** à `update_workout_session`. Toute
+future tentative de réintroduire une salve KV échouera ce test.
+
+**Dégât historique du bug morning-only (SQL de détection)** : les éditions
+evening/bonus passées ont pu contaminer la row morning du même jour.
+Signal fort = `comment` identique non-trivial (>3 chars) entre morning et
+sibling non-morning. Signal faible = `rpe` seul (coïncidence fréquente).
+Cas indétectable : éditions avec `comment=""`. Query fournie hors-repo, à
+faire tourner par Vince — cleanup décidé séparément.
+
+**Règle** : le dossier "vestige KV `load_sessions/save_sessions`" est
+maintenant CLOS. Si un symptôme "salve de PATCH sur toute l'historique"
+réapparaît, ce n'est PAS un vestige — un NOUVEAU chemin d'écriture est
+apparu. Rouvrir l'enquête.
 
 ## iOS — Fenêtre de vestiges UserDefaults 2026-07-13 (drafts d'exercice)
 
