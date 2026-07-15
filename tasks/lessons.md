@@ -684,6 +684,74 @@ est `HealthKitService.fetchLatestBodyWeight()`. Toute autre conversion dans ce c
 
 ---
 
+## Dossier Crime 4 — FERMÉ 2026-07-14
+
+**Le crime** : `SeanceViewModel.restoreLogResults` (parent) itérait
+`data.weights.history?.first` pour tous les exos du programme du jour sans
+distinguer la session. En séance 2 (evening) et bonus, les exos loggés le
+matin remontaient dans `logResults` avec (weight, reps) agrégés matin et
+`sets=[]` par défaut. Le `finish()` des sous-classes bouclait
+`logResults.values`, forçait `isSecond=true`/`isBonus=true` et envoyait
+POST `/api/log` → row placeholder `sets_json=[]` créée en session
+soir/bonus, weight/reps = copie exacte du matin. Le prefill "Reprendre"
+tombait ensuite sur cette row polluée → 71,7 lbs uniformes prouvés
+(fallback moyenne dans `perSetHint`).
+
+**Chronologie des fixes** (chronologique 2026-07-13 → 2026-07-14) :
+1. **Diff 2** iOS (`7d982ec`) — `perSideExact` : restitution exacte
+   set-par-set dans `fillFromLastSession`, jamais la moyenne agrégée.
+2. **Diff 3-A** backend (`e755618`) — `get_all_exercise_history` : guard
+   `sets_json=[]` traité comme absent + tri déterministe `(date DESC,
+   len(sets) DESC)` qui pousse les rows saines devant les fantômes.
+3. **Diff 6** iOS (`359a178`) — **PRODUCTION STOPPÉE** : le bloc
+   restore-history de `restoreLogResults` est skippé si
+   `draftSessionType != "morning"`. Plus jamais de placeholder créé en
+   soir/bonus. Fix Option B (parent, un seul point de code) couvre
+   `SeanceSoirViewModel` + `BonusSeanceViewModel` + toute future
+   sous-classe.
+4. **Diff 7** backend (`1a123fc`) — **CEINTURE** : POST `/api/log` refuse
+   409 `morning_log_exists` si `is_second=true` + sets vides + exo déjà
+   loggé matin avec `sets_json` rempli. Défense contre régression future
+   ou vieux build.
+5. **Cleanup SQL** 2026-07-14 — sédiments purgés par Vince après
+   validation ligne par ligne : **50 rows fantômes supprimées sur
+   11 dates**. Query : INNER JOIN sur (date, exercise_id, weight, reps)
+   entre morning saine et evening/bonus vide → duplicata prouvé, jamais
+   de faux positif. **1 exclusion** : row Deadhang `2026-07-14 evening`
+   (`7d06e36f-5c31-4c51-bc41-c13ef1ad9345`) conservée sur témoignage
+   utilisateur — Vince l'a vraiment refait le soir, éditée dans l'app
+   pour lui donner ses vrais holds via `/api/session/edit` (path f4515f4
+   qui reconstruit `sets_json` correctement).
+
+**Fatigue backend éliminée en collatéral** :
+- **Volet H** backend (`d15743a`) — suppression du vestige KV
+  `log_second_session` qui déclenchait ~120 PATCH par fin de séance 2
+  (`load_sessions` + `save_sessions` sur toute l'historique). Aucune
+  perte fonctionnelle : `update_workout_session_by_type` fait déjà le
+  vrai PATCH sur la row evening.
+
+**Chantiers ouverts hérités du dossier** :
+- **Volet H-bis PLANIFIÉ** : `api_session_edit` appelle `save_sessions`
+  → même salve ~120 PATCH par édition post-séance depuis HistoriqueView.
+  Rang : à traiter quand la douleur remonte.
+- **Chantier fixtures pytest** : ~45 tests dormants
+  (`MagicMock is not JSON serializable`) rendent inefficace la couverture
+  des endpoints `/api/log`, `/api/session/edit`, `/api/dashboard`,
+  `/api/programme_data`, `/api/seance_data`. Tout ajout de champ payload
+  passera sans alerte pytest jusqu'à réparation. Cf note
+  `## Tests — 37 fixtures pytest dormantes` (baseline mesurée 37 sur
+  scope 3 fichiers, ~45 sur scope 4 fichiers).
+- **Chantier contraintes DDL** : réduit à `UNIQUE(session_id, type,
+  order_index)` sur `program_blocks` (proposée au Volet 1). La `UNIQUE
+  (date, session_type)` sur `workout_sessions` est déjà présente en prod
+  (prouvé au Volet H par les 8×409).
+
+**Règle discriminante** : si un symptôme "sets pré-remplis fantômes en
+séance 2/bonus" réapparaît après ce commit, ce n'est PAS un vestige.
+Rouvrir l'enquête.
+
+---
+
 ## Backend — UNIQUE(date, session_type) sur workout_sessions EXISTE en prod
 
 Le rapport Crime 4 initial disait "à vérifier si constraint absente". Verdict tranché
