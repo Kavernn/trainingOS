@@ -248,17 +248,7 @@ def api_session_edit():
         if not date:
             return jsonify({"error": "date manquante"}), 400
 
-        from sessions import load_sessions, save_sessions
         from weights import load_weights
-        sessions = load_sessions()
-        if date not in sessions:
-            sessions[date] = {}
-        if "rpe" in data:
-            sessions[date]["rpe"] = data["rpe"]
-        if "comment" in data:
-            sessions[date]["comment"] = data["comment"]
-        save_sessions(sessions)
-
         import db as _db
         session_type = data.get("session_type", "morning")
         supabase_patch = {}

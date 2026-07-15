@@ -28,15 +28,6 @@ def load_sessions() -> dict:
     return {}
 
 
-def save_sessions(sessions: dict):
-    try:
-        for date, entry in sessions.items():
-            if isinstance(entry, dict):
-                db.update_workout_session(date, entry)
-    except Exception as e:
-        logger.error("save_sessions failed: %s", e)
-
-
 def log_session(
     date: str,
     rpe,

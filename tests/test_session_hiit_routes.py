@@ -77,6 +77,34 @@ class TestSessionEdit(BaseRouteTest):
         dates = [e["date"] for e in self.store["weights"]["Bench Press"]["history"]]
         self.assertIn("2026-01-01", dates)
 
+    def test_edit_no_kv_salve(self):
+        """Anti-régression Volet H-bis (fin du dernier vestige KV):
+        éditer UN champ (rpe) = UN seul PATCH by_type ciblé.
+        Aucun appel à update_workout_session (morning-only buggé, salve ~120)."""
+        # Simule un historique chargé (50 dates) pour prouver l'absence de salve
+        for i in range(50):
+            d = f"2025-{(i // 28) + 1:02d}-{(i % 28) + 1:02d}"
+            self.store["sessions"][d] = {"rpe": 6, "comment": ""}
+
+        from unittest.mock import MagicMock as _MM
+        db_mod = sys.modules["db"]
+        by_type_spy = _MM(return_value=True)
+        morning_spy = _MM(return_value=True)
+        db_mod.update_workout_session_by_type = by_type_spy
+        db_mod.update_workout_session         = morning_spy
+
+        r = self.post("/api/session/edit", {
+            "date": "2026-03-10", "session_type": "evening", "rpe": 9,
+        })
+        self.assertEqual(200, r.status_code)
+        self.assertEqual(1, by_type_spy.call_count,
+                         "PATCH ciblé unique attendu, pas de salve KV")
+        self.assertEqual(0, morning_spy.call_count,
+                         "update_workout_session (morning-only) ne doit plus être appelé")
+        call = by_type_spy.call_args
+        self.assertEqual(("2026-03-10", "evening"), (call.args[0], call.args[1]))
+        self.assertEqual({"rpe": 9}, call.args[2])
+
 
 # ── /api/session/delete ───────────────────────────────────────────────────────
 
