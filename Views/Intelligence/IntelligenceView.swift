@@ -718,10 +718,11 @@ struct IntelligenceView: View {
                             label: label, color: color
                         )
                     }
-                    if let m = meso {
+                    if let m = meso, m.hasCycle,
+                       let wk = m.weekInCycle, let label = m.phaseLabel {
                         bilanSignalChip(
-                            icon: m.icon.isEmpty ? "calendar" : m.icon,
-                            label: "S\(m.weekInCycle) — \(m.phaseLabel)",
+                            icon: (m.icon?.isEmpty == false) ? m.icon! : "calendar",
+                            label: "S\(wk) — \(label)",
                             color: .statusPurple
                         )
                     }
