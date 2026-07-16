@@ -17,6 +17,21 @@ extension APIService {
         return try JSONDecoder().decode(BudgetStatus.self, from: data)
     }
 
+    /// GET /api/budget/logs?month=YYYY-MM — registre chronologique (lecture seule).
+    /// Retourne les money_logs du mois demandé, triés date DESC id DESC.
+    func fetchBudgetLogs(month: String) async throws -> [BudgetLog] {
+        guard let url = URL(string: APIConfig.base + "/api/budget/logs?month=\(month)") else {
+            throw APIError.invalidURL(path: "/api/budget/logs")
+        }
+        let (data, resp) = try await URLSession.authed.data(from: url)
+        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+            throw APIError.serverError(code, "GET /api/budget/logs")
+        }
+        struct Wrapper: Decodable { let logs: [BudgetLog] }
+        return try JSONDecoder().decode(Wrapper.self, from: data).logs
+    }
+
     /// POST /api/budget/log — POST direct, PAS d'offlinePost.
     /// Un replay de queue produirait un log doublé (pas de contrainte d'unicité serveur
     /// sur les expenses), faussant les enveloppes silencieusement. Échec → erreur affichée,

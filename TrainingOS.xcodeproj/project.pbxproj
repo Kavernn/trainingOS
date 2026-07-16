@@ -56,6 +56,7 @@
 		969C99267447D1135148E764 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */; };
 		98F2B4FCDA654951AFC6B525 /* InsightPrincipalCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCEBA1D5B9BA47DD98CD46E2 /* InsightPrincipalCard.swift */; };
 		9BBA8416FAF9815FEDC4D28D /* BudgetLogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B30EC27F098E14EEC958E23 /* BudgetLogSheet.swift */; };
+		A7F8B4D3C2E19056871F3A2B /* BudgetJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A9E5D4C3F20167982E4B3C /* BudgetJournalView.swift */; };
 		9E8ED6F12F56136AE817562F /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27D3508F57CBFDAD2C6FDA2D /* HealthKitService.swift */; };
 		9FAB21F7C04FE500FE46A479 /* WorkoutDNAModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6493A275C48565558F7C13 /* WorkoutDNAModels.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* InfoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */; };
@@ -351,6 +352,7 @@
 		93A7E0875FEEC403AA54E384 /* BudgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BudgetView.swift; path = Views/Budget/BudgetView.swift; sourceTree = SOURCE_ROOT; };
 		955D6FDBE3CAB80990772A49 /* APIService+Plateau.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Plateau.swift"; sourceTree = "<group>"; };
 		9B30EC27F098E14EEC958E23 /* BudgetLogSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BudgetLogSheet.swift; path = Views/Budget/BudgetLogSheet.swift; sourceTree = SOURCE_ROOT; };
+		B8A9E5D4C3F20167982E4B3C /* BudgetJournalView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BudgetJournalView.swift; path = Views/Budget/BudgetJournalView.swift; sourceTree = SOURCE_ROOT; };
 		9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutDNAView.swift; sourceTree = "<group>"; };
 		9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadinessView.swift; sourceTree = "<group>"; };
 		A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRCelebrationView.swift; sourceTree = "<group>"; };
@@ -663,6 +665,7 @@
 			children = (
 				93A7E0875FEEC403AA54E384 /* BudgetView.swift */,
 				9B30EC27F098E14EEC958E23 /* BudgetLogSheet.swift */,
+				B8A9E5D4C3F20167982E4B3C /* BudgetJournalView.swift */,
 			);
 			name = Budget;
 			path = Budget;
@@ -1698,6 +1701,7 @@
 				B93876F1AFB5C3A9128202F4 /* APIService+Budget.swift in Sources */,
 				4F2587C8F16651F2C786BD4F /* BudgetView.swift in Sources */,
 				9BBA8416FAF9815FEDC4D28D /* BudgetLogSheet.swift in Sources */,
+				A7F8B4D3C2E19056871F3A2B /* BudgetJournalView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

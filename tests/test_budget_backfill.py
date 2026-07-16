@@ -282,6 +282,103 @@ def test_post_windfall_with_category_key_returns_400(client):
     assert r.status_code == 400
 
 
+# ── GET /api/budget/logs (Diff C — Registre) ────────────────────────────────
+
+def test_logs_month_missing_returns_400(client):
+    r = client.get("/api/budget/logs")
+    assert r.status_code == 400
+
+
+def test_logs_month_format_invalid_returns_400(client):
+    r = client.get("/api/budget/logs?month=juillet")
+    assert r.status_code == 400
+
+
+def test_logs_returns_empty_when_no_data(client):
+    import db_budget as _dbb
+    _dbb.list_money_logs_by_month = lambda ym: []
+    r = client.get("/api/budget/logs?month=2020-01")
+    assert r.status_code == 200
+    assert r.get_json() == {"logs": []}
+
+
+def test_logs_returns_month_sorted(client):
+    """Ordre = tel que fourni par le helper (date DESC, id DESC en prod)."""
+    import db_budget as _dbb
+    _dbb.list_money_logs_by_month = lambda ym: [
+        {"id": 3, "date": "2026-07-16", "type": "expense", "amount_cents": 4500,
+         "envelope_key": "fixes", "debt_key": None, "category_key": "gaz", "note": None},
+        {"id": 2, "date": "2026-07-15", "type": "expense", "amount_cents": 2000,
+         "envelope_key": "epicerie", "debt_key": None, "category_key": None, "note": None},
+        {"id": 1, "date": "2026-07-15", "type": "income", "amount_cents": 174391,
+         "envelope_key": None, "debt_key": None, "category_key": None, "note": None},
+    ]
+    r = client.get("/api/budget/logs?month=2026-07")
+    assert r.status_code == 200
+    logs = r.get_json()["logs"]
+    assert [log["id"] for log in logs] == [3, 2, 1]
+
+
+def test_logs_includes_all_types(client):
+    """income + expense + debt_payment + fund_transfer + windfall tous exposés."""
+    import db_budget as _dbb
+    _dbb.list_money_logs_by_month = lambda ym: [
+        {"id": 5, "date": "2026-07-15", "type": "windfall", "amount_cents": 8000,
+         "envelope_key": None, "debt_key": "decouvert", "category_key": None, "note": None},
+        {"id": 4, "date": "2026-07-15", "type": "fund_transfer", "amount_cents": 37500,
+         "envelope_key": None, "debt_key": "fonds_voyage", "category_key": None, "note": None},
+        {"id": 3, "date": "2026-07-15", "type": "debt_payment", "amount_cents": 45000,
+         "envelope_key": None, "debt_key": "decouvert", "category_key": None, "note": None},
+        {"id": 2, "date": "2026-07-15", "type": "expense", "amount_cents": 4500,
+         "envelope_key": "fixes", "debt_key": None, "category_key": "gaz", "note": None},
+        {"id": 1, "date": "2026-07-15", "type": "income", "amount_cents": 174391,
+         "envelope_key": None, "debt_key": None, "category_key": None, "note": None},
+    ]
+    r = client.get("/api/budget/logs?month=2026-07")
+    types = {log["type"] for log in r.get_json()["logs"]}
+    assert types == {"income", "expense", "debt_payment", "fund_transfer", "windfall"}
+
+
+def test_logs_includes_negatives(client):
+    """Contre-écritures (amount négatif) présentes — contrairement à today_transfers."""
+    import db_budget as _dbb
+    _dbb.list_money_logs_by_month = lambda ym: [
+        {"id": 2, "date": "2026-07-16", "type": "expense", "amount_cents": -4500,
+         "envelope_key": "epicerie", "debt_key": None, "category_key": "epicerie",
+         "note": "annulation doublon"},
+    ]
+    r = client.get("/api/budget/logs?month=2026-07")
+    logs = r.get_json()["logs"]
+    assert logs[0]["amount_cents"] == -4500
+
+
+def test_logs_exposes_category_key_and_note(client):
+    """Les 2 champs Diff B sont bien renvoyés au client."""
+    import db_budget as _dbb
+    _dbb.list_money_logs_by_month = lambda ym: [
+        {"id": 1, "date": "2026-07-16", "type": "expense", "amount_cents": 4500,
+         "envelope_key": "variable", "debt_key": None, "category_key": "boisson",
+         "note": "café artisan"},
+    ]
+    r = client.get("/api/budget/logs?month=2026-07")
+    log = r.get_json()["logs"][0]
+    assert log["category_key"] == "boisson"
+    assert log["note"] == "café artisan"
+
+
+def test_logs_scoped_passes_month_param_to_helper(client):
+    """La route transmet le month reçu au helper — pas de fallback silencieux."""
+    captured = {}
+    import db_budget as _dbb
+    def stub(ym):
+        captured["ym"] = ym
+        return []
+    _dbb.list_money_logs_by_month = stub
+    r = client.get("/api/budget/logs?month=2026-03")
+    assert r.status_code == 200
+    assert captured["ym"] == "2026-03"
+
+
 # ── Payload : is_payday_today + today_transfers ─────────────────────────────
 
 class FakeStatusDB:

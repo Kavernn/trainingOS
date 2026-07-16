@@ -19,6 +19,16 @@ struct BudgetView: View {
                         envelopesSection(s.envelopes)
                         debtsSection(s.debts)
                         trajectorySection(s)
+                        NavigationLink {
+                            BudgetJournalView(envelopes: s.envelopes, debts: s.debts)
+                        } label: {
+                            HStack {
+                                Text("Voir le journal →")
+                                    .font(.appCaption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                        }
                     }
                     .padding()
                     .padding(.bottom, 100)
@@ -649,6 +659,12 @@ enum BudgetFormat {
     static func dollars(_ cents: Int) -> String {
         currencyFormatter.string(from: NSNumber(value: Double(cents) / 100.0))
             ?? "\(cents/100) $"
+    }
+
+    // Diff C — Registre : signe explicite pour tous les positifs (+X). Les
+    // négatifs héritent du "-" natif du currencyFormatter.
+    static func dollarsSigned(_ cents: Int) -> String {
+        cents > 0 ? "+\(dollars(cents))" : dollars(cents)
     }
 
     // "13 640 $" — dollars arrondis, séparateur milliers fr_CA (espace).

@@ -1,4 +1,5 @@
-"""GET /api/budget/status, POST /api/budget/log."""
+"""GET /api/budget/status, POST /api/budget/log, GET /api/budget/logs."""
+import re
 from flask import Blueprint, jsonify, request
 import budget as _b
 import db_budget
@@ -6,10 +7,25 @@ from utils import require_fields
 
 budget_bp = Blueprint("budget", __name__)
 
+_MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
+
 
 @budget_bp.route("/api/budget/status", methods=["GET"])
 def api_budget_status():
     return jsonify(_b.compute_status())
+
+
+@budget_bp.route("/api/budget/logs", methods=["GET"])
+def api_budget_logs():
+    """Registre chronologique — lecture seule.
+    Retourne les money_logs du mois demandé (YYYY-MM), triés date DESC id DESC.
+    Tous types (income + expense + debt_payment + fund_transfer + windfall),
+    positifs et négatifs (contre-écritures incluses)."""
+    month = request.args.get("month", "")
+    if not _MONTH_RE.match(month):
+        return jsonify({"error": "month requis, format YYYY-MM"}), 400
+    logs = db_budget.list_money_logs_by_month(month)
+    return jsonify({"logs": logs})
 
 
 @budget_bp.route("/api/budget/log", methods=["POST"])

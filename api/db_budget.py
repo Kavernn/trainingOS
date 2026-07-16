@@ -164,6 +164,42 @@ def sum_expenses_by_envelope(start_iso: str, end_iso: str) -> dict:
         return {}
 
 
+def list_money_logs_by_month(year_month: str) -> list:
+    """[{id, date, type, amount_cents, envelope_key, debt_key, category_key, note}]
+    pour un mois YYYY-MM. Order date DESC, id DESC. TOUS types (income + expense +
+    debt_payment + fund_transfer + windfall), positifs ET négatifs (contre-écritures
+    incluses — contrairement à today_transfers filtré > 0). Registre Diff C."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+    y, m = year_month.split("-")
+    y_i, m_i = int(y), int(m)
+    start = f"{y_i:04d}-{m_i:02d}-01"
+    if m_i == 12:
+        next_y, next_m = y_i + 1, 1
+    else:
+        next_y, next_m = y_i, m_i + 1
+    end = f"{next_y:04d}-{next_m:02d}-01"  # borne exclusive
+    def _do() -> list:
+        resp = (db_core._client.table("money_logs")
+                .select("id, date, type, amount_cents, envelope_key, debt_key, category_key, note")
+                .gte("date", start)
+                .lt("date", end)
+                .order("date", desc=True)
+                .order("id", desc=True)
+                .execute())
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try: return _do()
+            except Exception as e2:
+                db_core.logger.error("list_money_logs_by_month retry error: %s", e2)
+                return []
+        db_core.logger.error("list_money_logs_by_month error: %s", e)
+        return []
+
+
 def list_debt_and_fund_logs_since(start_iso: str) -> list:
     """[{date, type, debt_key, envelope_key, amount_cents}] pour expense +
     debt_payment + fund_transfer + windfall depuis start_iso. Alimente

@@ -145,6 +145,27 @@ struct PlannedTransfer: Identifiable, Equatable {
     let amountCents: Int
 }
 
+// Diff C — Registre : entrée money_logs telle qu'exposée par GET /api/budget/logs.
+// Décodable-only ; les écritures passent par BudgetLogEntry.
+struct BudgetLog: Decodable, Identifiable {
+    let id: Int
+    let date: String            // YYYY-MM-DD MTL
+    let type: String            // "income" | "expense" | "debt_payment" | "fund_transfer" | "windfall"
+    let amountCents: Int        // brut (positif normal, négatif = contre-écriture)
+    let envelopeKey: String?
+    let debtKey: String?
+    let categoryKey: String?
+    let note: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, date, type, note
+        case amountCents = "amount_cents"
+        case envelopeKey = "envelope_key"
+        case debtKey     = "debt_key"
+        case categoryKey = "category_key"
+    }
+}
+
 struct BudgetLogEntry: Encodable {
     let date: String            // "YYYY-MM-DD" MTL
     let type: String            // "expense" | "debt_payment" | "fund_transfer" | "windfall"
