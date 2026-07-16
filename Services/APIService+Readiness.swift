@@ -1,6 +1,16 @@
 import Foundation
 import UserNotifications
 
+struct ReadinessHistoryPoint: Decodable, Identifiable {
+    let date: String
+    let score: Int
+    var id: String { date }
+}
+
+struct ReadinessHistoryResponse: Decodable {
+    let history: [ReadinessHistoryPoint]
+}
+
 extension APIService {
     /// Synchronise le flag deload_active en UserDefaults depuis le serveur.
     /// Annule immédiatement les notifs culpabilisantes si le deload vient de s'activer.
@@ -65,6 +75,13 @@ extension APIService {
         let url  = try buildURL(path: "/api/readiness")
         let data = try await fetchWithCache(url: url, key: "readiness")
         return try APIService.decoder.decode(ReadinessResponse.self, from: data)
+    }
+
+    func fetchReadinessHistory(days: Int = 14) async throws -> [ReadinessHistoryPoint] {
+        let url  = try buildURL(path: "/api/readiness/history",
+                                queryItems: [URLQueryItem(name: "days", value: String(days))])
+        let data = try await fetchWithCache(url: url, key: "readiness_history_\(days)d")
+        return try APIService.decoder.decode(ReadinessHistoryResponse.self, from: data).history
     }
 
     func fetchStreaks(date: String? = nil) async throws -> StreakResponse {

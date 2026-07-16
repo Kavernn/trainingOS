@@ -43,6 +43,8 @@ final class CacheService {
         "programme_data":     24 * 3600,
         // Health
         "recovery_data":      3600,
+        // Readiness history — matches backend readiness cache TTL 1800s (readiness.py:736)
+        "readiness_history":  30 * 60,
         "cardio_data":        30 * 60,
         "acwr":               60 * 60,
         // Streak — invalidated on session logged
