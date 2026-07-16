@@ -23,6 +23,8 @@ def api_mood_log():
             notes    = data.get("notes"),
             triggers = data.get("triggers"),
         )
+        from routes.daily_brief import invalidate_cache as _brief_invalidate
+        _brief_invalidate()
         return jsonify(entry), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 422

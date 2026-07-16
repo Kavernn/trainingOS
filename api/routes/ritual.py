@@ -83,6 +83,8 @@ def api_ritual_engagements_create():
     if len(texts) > 5:
         return jsonify({"error": "maximum 5 engagements per day"}), 400
     rows = _db.create_engagements(date_str, texts)
+    from routes.daily_brief import invalidate_cache as _brief_invalidate
+    _brief_invalidate()
     return jsonify({"ok": True, "engagements": rows})
 
 

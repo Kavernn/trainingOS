@@ -56,6 +56,8 @@ def api_apply_deload():
                 weights[exercise]["current_weight"] = float(new_weight)
                 updated.append(exercise)
         save_weights(weights)
+        from routes.daily_brief import invalidate_cache as _brief_invalidate
+        _brief_invalidate()
         return jsonify({"success": True, "updated": updated})
     except Exception:
         raise

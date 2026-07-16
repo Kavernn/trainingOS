@@ -24,11 +24,18 @@ class DailyBriefService: ObservableObject {
     @Published var isLoading = false
     @Published var isStale = false
 
-    private let cacheDataKey = "daily_brief_v1_data"
-    private let cacheDateKey = "daily_brief_v1_date"
+    fileprivate static let cacheDataKey = "daily_brief_v1_data"
+    fileprivate static let cacheDateKey = "daily_brief_v1_date"
+
+    /// Invalidation paresseuse : vide la clé date pour forcer un refetch au prochain
+    /// loadIfNeeded (à l'affichage), sans déclencher de fetch réseau ici.
+    /// Appelée par CacheInvalidation quand une écriture source du brief a lieu.
+    nonisolated static func invalidate() {
+        UserDefaults.standard.removeObject(forKey: cacheDateKey)
+    }
 
     func forceRefresh() async {
-        UserDefaults.standard.removeObject(forKey: cacheDateKey)
+        UserDefaults.standard.removeObject(forKey: Self.cacheDateKey)
         await loadIfNeeded()
     }
 
@@ -36,7 +43,7 @@ class DailyBriefService: ObservableObject {
         let todayStr = DateFormatter.isoDate.string(from: Date())
 
         // Serve from UserDefaults cache if already fresh today
-        if UserDefaults.standard.string(forKey: cacheDateKey) == todayStr,
+        if UserDefaults.standard.string(forKey: Self.cacheDateKey) == todayStr,
            let cached = loadCached() {
             brief = cached
             isStale = false
@@ -61,14 +68,14 @@ class DailyBriefService: ObservableObject {
     }
 
     private func loadCached() -> DailyBrief? {
-        guard let data = UserDefaults.standard.data(forKey: cacheDataKey) else { return nil }
+        guard let data = UserDefaults.standard.data(forKey: Self.cacheDataKey) else { return nil }
         return try? JSONDecoder().decode(DailyBrief.self, from: data)
     }
 
     private func saveCached(_ brief: DailyBrief, date: String) {
         if let data = try? JSONEncoder().encode(brief) {
-            UserDefaults.standard.set(data, forKey: cacheDataKey)
-            UserDefaults.standard.set(date, forKey: cacheDateKey)
+            UserDefaults.standard.set(data, forKey: Self.cacheDataKey)
+            UserDefaults.standard.set(date, forKey: Self.cacheDateKey)
         }
     }
 }

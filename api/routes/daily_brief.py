@@ -6,6 +6,20 @@ logger = logging.getLogger("trainingos")
 daily_brief_bp = Blueprint("daily_brief", __name__)
 
 
+def invalidate_cache() -> None:
+    """DELETE la ligne du jour uniquement — jamais l'historique.
+    Miroir de readiness.invalidate_cache : appelée par toute route qui mute
+    un signal source du brief (contrat CacheInvalidation.swift:71-77 côté iOS).
+    """
+    try:
+        import db as _db
+        from utils import _today_mtl
+        if _db._client:
+            _db._client.table("daily_brief").delete().eq("date", _today_mtl()).execute()
+    except Exception as e:
+        logger.warning("daily_brief invalidate_cache failed: %s", e)
+
+
 def _build_brief(brief_data: dict) -> dict:
     """Generate a brief from morning_brief data without calling Claude."""
     rec = brief_data.get("recommendation", "go")

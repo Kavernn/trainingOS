@@ -8,6 +8,11 @@ logger = logging.getLogger("trainingos")
 workout_bp = Blueprint("workout", __name__)
 
 
+def _invalidate_brief():
+    from routes.daily_brief import invalidate_cache
+    invalidate_cache()
+
+
 def _pr_confidence(baseline_count: int) -> str:
     if baseline_count < 3:  return "new"
     if baseline_count < 6:  return "low"
@@ -223,6 +228,7 @@ def api_log():
             _db.update_exercise_current_weight(exercise, round(new_w, 1))
         achieved = check_goals_achieved(weights)
 
+        _invalidate_brief()
         return jsonify({
             "success":         True,
             "status":          status,
@@ -310,6 +316,7 @@ def api_session_edit():
                             logger.warning("PR recompute skipped for %s: %s", ex, _pr_exc)
                         break
 
+        _invalidate_brief()
         return jsonify({"success": True})
     except Exception:
         raise
@@ -353,6 +360,7 @@ def api_session_delete():
         if entries:
             _db.bulk_upsert_exercise_logs(entries)
 
+        _invalidate_brief()
         return jsonify({"success": True})
     except Exception:
         raise
@@ -403,6 +411,8 @@ def api_update_session():
             ok = _db.update_workout_session(date, patch)
         if ex_errors:
             return jsonify({"success": False, "metadata_updated": ok, "exercise_errors": ex_errors}), 400
+        if ok:
+            _invalidate_brief()
         return jsonify({"success": ok})
     except Exception:
         raise
@@ -496,6 +506,7 @@ def api_log_session():
         # Pas de ré-upsert bulk ici : le payload sans sets_json/rpe/notes réécrirait
         # les colonnes avec DEFAULT (sets_json→[]) et le weight avec la moyenne iOS.
 
+        _invalidate_brief()
         return jsonify({"success": True})
     except Exception:
         raise

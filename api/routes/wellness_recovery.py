@@ -103,6 +103,8 @@ def api_log_recovery():
         return jsonify({"error": "Erreur base de données"}), 500
     import readiness as _readiness
     _readiness.invalidate_cache()
+    from routes.daily_brief import invalidate_cache as _brief_invalidate
+    _brief_invalidate()
     return jsonify({"ok": True})
 
 @wellness_recovery_bp.route("/api/delete_recovery", methods=["POST"])
@@ -112,6 +114,8 @@ def api_delete_recovery():
     _db.delete_recovery_log(data.get("date", ""))
     import readiness as _readiness
     _readiness.invalidate_cache()
+    from routes.daily_brief import invalidate_cache as _brief_invalidate
+    _brief_invalidate()
     return jsonify({"ok": True})
 
 
@@ -176,6 +180,8 @@ def api_healthkit_sync():
 
     import readiness as _readiness
     _readiness.invalidate_cache()
+    from routes.daily_brief import invalidate_cache as _brief_invalidate
+    _brief_invalidate()
     return jsonify({"ok": True, "entry": entry})
 
 

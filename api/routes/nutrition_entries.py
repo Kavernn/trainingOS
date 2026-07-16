@@ -33,6 +33,8 @@ def api_nutrition_add():
         return jsonify({"error": "Échec d'enregistrement — réessaie plus tard"}), 500
     import readiness as _readiness
     _readiness.invalidate_cache()
+    from routes.daily_brief import invalidate_cache as _brief_invalidate
+    _brief_invalidate()
     return jsonify({"success": True, "entry": entry, "totals": get_today_totals()})
 
 
@@ -54,6 +56,8 @@ def api_nutrition_estimate_yesterday():
         return jsonify({"error": str(e)}), 422
     import readiness as _readiness
     _readiness.invalidate_cache()
+    from routes.daily_brief import invalidate_cache as _brief_invalidate
+    _brief_invalidate()
     return jsonify({"success": True, **result})
 
 
@@ -64,6 +68,8 @@ def api_nutrition_delete():
     ok   = nutrition_delete_entry(data.get("id", ""))
     import readiness as _readiness
     _readiness.invalidate_cache()
+    from routes.daily_brief import invalidate_cache as _brief_invalidate
+    _brief_invalidate()
     return jsonify({"success": ok, "totals": get_today_totals()})
 
 

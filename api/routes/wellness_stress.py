@@ -75,6 +75,8 @@ def api_pss_submit():
             triggers        = data.get("triggers"),
             trigger_ratings = data.get("trigger_ratings"),
         )
+        from routes.daily_brief import invalidate_cache as _brief_invalidate
+        _brief_invalidate()
         return jsonify(record), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 422
@@ -121,6 +123,8 @@ def api_pss_delete():
         return jsonify({"error": "base de données non disponible"}), 503
     try:
         _db_pss._client.table("pss_records").delete().eq("id", record_id).execute()
+        from routes.daily_brief import invalidate_cache as _brief_invalidate
+        _brief_invalidate()
         return jsonify({"success": True})
     except Exception:
         raise

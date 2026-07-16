@@ -78,6 +78,8 @@ def api_update_profile():
         if "sleep_goal_hours" in payload or "hrv_sensitivity" in payload:
             import readiness as _r
             _r._CACHE.clear()
+        from routes.daily_brief import invalidate_cache as _brief_invalidate
+        _brief_invalidate()
         return jsonify({"success": True})
     return jsonify({"success": False, "error": "Erreur sauvegarde Supabase"}), 500
 
