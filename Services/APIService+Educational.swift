@@ -11,7 +11,8 @@ extension APIService {
             items.append(URLQueryItem(name: "category", value: c))
         }
         let url  = try buildURL(path: "/api/educational/content", queryItems: items)
-        let key  = "educational:\(category ?? "all")"
+        // Séparateur "_" pour aligner sur la convention TTL par préfixe (CacheService.swift:100-103).
+        let key  = "educational_\(category ?? "all")"
         let data = try await fetchWithCache(url: url, key: key)
         return try APIService.decoder.decode([EducationalCapsule].self, from: data)
     }

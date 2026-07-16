@@ -75,6 +75,16 @@ final class CacheService {
         "one_rm_programming":  30 * 60,    // change à chaque /api/log via weights.history
         "mesocycle_status":    60 * 60,    // active_program.cycle_start_date change rare
         "pain_journal":        60 * 60,    // agrégat exercise_logs.pain_zone, change lent
+        // Coach page — 7 clés autrefois sur défaut implicite 3600s, désormais explicites.
+        // Filet vs mécanisme principal : quand une invalidation existe (plateau/patterns),
+        // TTL long OK ; sinon TTL = seul rempart contre le stale, aligné readiness (30 min).
+        "plateau_alerts":       60 * 60,        // invalidé par plateauDismissed → filet
+        "patterns_daily":       30 * 60,        // invalidé par patternsPinMutated → filet quotidien
+        "workout_dna_90":       6 * 3600,       // agrégation 90j, une séance bouge peu
+        "insights_correlations": 6 * 3600,      // corrélations historique long
+        "educational":          24 * 3600,      // contenu éditorial statique (préfixe match: educational_all / educational_<cat>)
+        "daily_insight":        30 * 60,        // dérivé readiness/sessions sans invalidation, TTL = seul filet
+        "proactive_insights":   30 * 60,        // recalculé selon état du jour, famille readiness
     ]
 
     init(directory: URL? = nil) {
