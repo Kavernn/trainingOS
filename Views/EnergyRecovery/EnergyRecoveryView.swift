@@ -14,6 +14,7 @@ struct EnergyRecoveryView: View {
     @State private var hrvAnalysis: HRVAnalysis?
     @State private var sleepHistory: [SleepEntry] = []
     @State private var sleepStats: SleepStats?
+    @State private var readinessHistory: [ReadinessHistoryPoint] = []
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -48,6 +49,7 @@ struct EnergyRecoveryView: View {
                                     hrvAnalysis: hrvAnalysis,
                                     sleepHistory: sleepHistory,
                                     sleepStats: sleepStats,
+                                    readinessHistory: readinessHistory,
                                     onRefresh: { await loadData() }
                                 )
                             }
@@ -83,7 +85,10 @@ struct EnergyRecoveryView: View {
         let e       = try? await APIService.shared.fetchEnergyDaily()
         let h       = try? await APIService.shared.fetchEnergyHistory()
         let rec     = try? await APIService.shared.fetchRecoveryData()
-        let readiness = try? await APIService.shared.fetchReadiness()
+        // fetchReadiness DOIT précéder fetchReadinessHistory : compute() persiste
+        // readiness_daily du jour courant, l'history LIT cette table.
+        let readiness  = try? await APIService.shared.fetchReadiness()
+        let readinessH = try? await APIService.shared.fetchReadinessHistory(days: 14)
         let hrv     = try? await APIService.shared.fetchHRVAnalysis()
         let sleepPg = try? await APIService.shared.fetchSleepHistory(limit: 10)
         let sstats  = try? await APIService.shared.fetchSleepStats()
@@ -92,6 +97,7 @@ struct EnergyRecoveryView: View {
             history      = h ?? []
             recoveryLog  = rec ?? []
             dailySummary = readiness.map { DailySummary(recoveryScore: Double($0.score)) }
+            readinessHistory = readinessH ?? []
             hrvAnalysis  = hrv
             sleepHistory = sleepPg?.items ?? []
             sleepStats   = sstats
@@ -656,6 +662,7 @@ private struct RecoverySleepTabContent: View {
     let hrvAnalysis: HRVAnalysis?
     let sleepHistory: [SleepEntry]
     let sleepStats: SleepStats?
+    let readinessHistory: [ReadinessHistoryPoint]
     let onRefresh: () async -> Void
 
     var body: some View {
@@ -665,6 +672,7 @@ private struct RecoverySleepTabContent: View {
             hrv: hrvAnalysis,
             sleepHistory: sleepHistory,
             sleepStats: sleepStats,
+            readinessHistory: readinessHistory,
             onRefresh: onRefresh
         )
         .padding(.horizontal, 16)
@@ -680,6 +688,7 @@ private struct UnifiedRecoverySleepSection: View {
     let hrv: HRVAnalysis?
     let sleepHistory: [SleepEntry]
     let sleepStats: SleepStats?
+    let readinessHistory: [ReadinessHistoryPoint]
     let onRefresh: () async -> Void
 
     @ObservedObject private var watchSync = WatchSyncService.shared
@@ -1014,8 +1023,8 @@ private struct UnifiedRecoverySleepSection: View {
             sleepStatsRow(stats: stats)
         }
 
-        if log.count >= 3 {
-            Recovery14dChart(log: log)
+        if !readinessHistory.isEmpty {
+            Recovery14dChart(history: readinessHistory)
         }
         if sleepHistory.count >= 2 {
             Sleep10dChart(history: sleepHistory)
@@ -1186,7 +1195,7 @@ private struct TappableSleepStat: View {
 // MARK: - Graphique Readiness 14j
 
 private struct Recovery14dChart: View {
-    let log: [RecoveryEntry]
+    let history: [ReadinessHistoryPoint]
 
     private struct ChartPoint: Identifiable {
         let id: String
@@ -1195,31 +1204,32 @@ private struct Recovery14dChart: View {
         let color: Color
     }
 
-    private var ordered: [RecoveryEntry] { Array(log.prefix(14).reversed()) }
-
-    private func readinessScore(for e: RecoveryEntry) -> Double? {
-        var components: [(v: Double, w: Double)] = []
-        if let h = e.hrv       { components.append((min(100, max(0, (h - 20) / 60 * 100)), 2.0)) }
-        if let r = e.restingHr { components.append((max(0, min(100, (80 - r) / 35 * 100)), 1.5)) }
-        if let f = e.fatigue   { components.append((max(0, (10 - f) / 10 * 100), 2.0)) }
-        if let s = e.soreness  { components.append((max(0, (10 - s) / 10 * 100), 1.0)) }
-        guard !components.isEmpty else { return nil }
-        let tw = components.reduce(0) { $0 + $1.w }
-        return components.reduce(0) { $0 + $1.v * $1.w } / tw
-    }
-
-    private func shortDate(_ e: RecoveryEntry) -> String {
-        guard let d = e.date else { return "—" }
-        let parts = d.split(separator: "-")
-        guard parts.count == 3 else { return d }
-        return "\(parts[2])/\(parts[1])"
-    }
+    // 14 dates calendaires MTL (aujourd'hui − 13 → aujourd'hui inclus), plus ancien à gauche.
+    private static let mtl = TimeZone(identifier: "America/Toronto")!
+    private static let ymd: DateFormatter = {
+        let f = DateFormatter()
+        f.calendar   = Calendar(identifier: .iso8601)
+        f.locale     = Locale(identifier: "en_US_POSIX")
+        f.timeZone   = mtl
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
 
     private var chartPoints: [ChartPoint] {
-        ordered.compactMap { e in
-            guard let score = readinessScore(for: e) else { return nil }
+        var cal = Calendar(identifier: .iso8601)
+        cal.timeZone = Self.mtl
+        let today = cal.startOfDay(for: Date())
+        let byDate: [String: Int] = Dictionary(uniqueKeysWithValues: history.map { ($0.date, $0.score) })
+        return (0..<14).reversed().compactMap { offset in
+            guard let day = cal.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            let key = Self.ymd.string(from: day)
+            // Jour sans score = aucun BarMark émis (gap visible, jamais interpolé, jamais 0).
+            guard let s = byDate[key] else { return nil }
+            let score = Double(s)
+            let parts = key.split(separator: "-")
+            let label = parts.count == 3 ? "\(parts[2])/\(parts[1])" : key
             let color: Color = score >= 75 ? .statusGreen : score >= 50 ? .statusOrange : .statusRed
-            return ChartPoint(id: e.id, label: shortDate(e), score: score, color: color)
+            return ChartPoint(id: key, label: label, score: score, color: color)
         }
     }
 
