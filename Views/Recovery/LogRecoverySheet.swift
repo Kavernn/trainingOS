@@ -125,6 +125,14 @@ struct LogRecoverySheet: View {
                         if showFullMode {
                             // ── MODE COMPLET ─────────────────────────────
 
+                            // Activité — pas en tête, prioritaire visuellement
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("ACTIVITÉ QUOTIDIENNE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                RecoveryField(label: "PAS", placeholder: "8500", text: $stepsStr, keyboardType: .numberPad)
+                            }
+                            .padding(14).background(Color.appCard).cornerRadius(12)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+
                             // Sommeil complet + bedtime/wakeTime
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("SOMMEIL").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -227,11 +235,10 @@ struct LogRecoverySheet: View {
                             .padding(14).background(Color.appCard).cornerRadius(12)
                             .transition(.opacity.combined(with: .move(edge: .top)))
 
-                            // Activité
+                            // HRV & dépense
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("ACTIVITÉ QUOTIDIENNE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("HRV & DÉPENSE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                 HStack(spacing: 12) {
-                                    RecoveryField(label: "PAS", placeholder: "8500", text: $stepsStr, keyboardType: .numberPad)
                                     VStack(alignment: .leading, spacing: 4) {
                                         RecoveryField(label: "HRV (ms)", placeholder: "45", text: $hrvStr)
                                         if let hrv = Double(hrvStr.replacingOccurrences(of: ",", with: ".")),
@@ -241,6 +248,7 @@ struct LogRecoverySheet: View {
                                                 .foregroundColor(Color.forge)
                                         }
                                     }
+                                    Spacer().frame(maxWidth: .infinity)
                                 }
                                 HStack(spacing: 12) {
                                     RecoveryField(label: "ÉNERGIE ACTIVE (kcal)", placeholder: "350", text: $activeEnergyStr, keyboardType: .numberPad)
