@@ -148,6 +148,7 @@ def compute_status() -> dict:
             "type":         l["type"],
             "debt_key":     l.get("debt_key"),
             "envelope_key": l.get("envelope_key"),
+            "category_key": l.get("category_key"),
             "amount_cents": l["amount_cents"],
         }
         for l in logs

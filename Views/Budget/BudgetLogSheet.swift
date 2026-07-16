@@ -42,6 +42,50 @@ enum BudgetPlan {
     static var fixesDiversPerPeriodCents: Int {
         fixesTotalPerPeriodCents - hypothequePerPeriodCents
     }
+
+    // Plan de comptes G/L (Diff B) — chaque dollar classé à la saisie.
+    // key = snake_case stable (persistée dans money_logs.category_key).
+    // label = FR affiché. L'enveloppe s'infère du groupe (envelopeFor).
+    // Vince choisit la catégorie ; la vue déduit et affiche l'enveloppe en
+    // confirmation non-éditable. Ordre = ordre d'apparition dans le menu.
+    struct Category: Identifiable {
+        let key: String
+        let label: String
+        var id: String { key }
+    }
+    static let categoriesByEnvelope: [(envelopeKey: String, categories: [Category])] = [
+        ("fixes", [
+            Category(key: "hypotheque", label: "Hypothèque"),
+            Category(key: "gaz",        label: "Gaz"),
+            Category(key: "vapo",       label: "Vapo"),
+            Category(key: "gym",        label: "Gym"),
+            Category(key: "claude",     label: "Claude"),
+            Category(key: "supabase",   label: "Supabase"),
+        ]),
+        ("epicerie", [
+            Category(key: "epicerie",   label: "Épicerie"),
+        ]),
+        ("variable", [
+            Category(key: "nourriture", label: "Nourriture (hors épicerie)"),
+            Category(key: "boisson",    label: "Boisson"),
+            Category(key: "loisirs",    label: "Loisirs"),
+            Category(key: "ai",         label: "IA (autres outils)"),
+            Category(key: "epoxy",      label: "Époxy"),
+            Category(key: "gaming",     label: "Gaming"),
+            Category(key: "linge",      label: "Linge"),
+            Category(key: "autre",      label: "Autre"),
+        ]),
+    ]
+
+    // Lookup : key catégorie → envelope_key inféré. nil si categoryKey inconnue.
+    static func envelopeFor(categoryKey: String) -> String? {
+        for group in categoriesByEnvelope {
+            if group.categories.contains(where: { $0.key == categoryKey }) {
+                return group.envelopeKey
+            }
+        }
+        return nil
+    }
 }
 
 struct BudgetLogSheet: View {
@@ -85,7 +129,7 @@ struct BudgetLogSheet: View {
     private var windfallFreeCents: Int { amountCents - windfallSplitCents }
 
     @State private var type: LogType = .expense
-    @State private var envelopeKey: String = ""
+    @State private var categoryKey: String = ""    // Diff B : source de la classification.
     @State private var debtKey: String = ""
     @State private var amountStr: String = ""
     @State private var date: Date = Date()
@@ -102,11 +146,6 @@ struct BudgetLogSheet: View {
 
     private var attackableDebts: [BudgetDebt] { debts.filter { !$0.isSavings } }
 
-    // Dettes vivantes pour le sous-titre de l'enveloppe "attaque" dans le menu.
-    private var activeDebtsForSubtitle: [BudgetDebt] {
-        BudgetFormat.activeDebts(from: debts)
-    }
-
     // Fonds voyage (savings debt) — sous-titre "1 500 $ pour le 12 septembre".
     private var fundVoyageSubtitle: String? {
         let fund = debts.first(where: { $0.key == "fonds_voyage" })
@@ -115,32 +154,31 @@ struct BudgetLogSheet: View {
         return "\(BudgetFormat.dollarsRounded(target)) pour le \(deadline)"
     }
 
-    // Menu enveloppes avec composition en sous-titre — LE point de décision critique
-    // (spec Vince : "chaque enveloppe doit être classable du premier coup").
-    private var envelopeMenu: some View {
+    // Menu catégories groupé par enveloppe (Diff B) — LE nouveau point de
+    // décision : Vince choisit la catégorie, l'enveloppe s'infère et s'affiche
+    // en confirmation non-éditable ("→ Poste : X" caption sous le menu).
+    private func envelopeLabelFor(_ key: String) -> String {
+        envelopes.first(where: { $0.key == key })?.label ?? key
+    }
+    private var categoryMenu: some View {
         Menu {
-            ForEach(envelopes) { env in
-                Button {
-                    envelopeKey = env.key
-                } label: {
-                    Text(env.label)
-                    Text(BudgetFormat.envelopeSubtitle(env, activeDebts: activeDebtsForSubtitle))
+            ForEach(BudgetPlan.categoriesByEnvelope, id: \.envelopeKey) { group in
+                Section {
+                    ForEach(group.categories) { cat in
+                        Button {
+                            categoryKey = cat.key
+                        } label: {
+                            Text(cat.label)
+                        }
+                    }
+                } header: {
+                    Text(envelopeLabelFor(group.envelopeKey))
                 }
             }
         } label: {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(selectedEnvelope?.label ?? "Choisir un poste")
-                        .font(.appBody).foregroundStyle(Color.appTextPrimary)
-                    if let env = selectedEnvelope {
-                        let subtitle = BudgetFormat.envelopeSubtitle(env, activeDebts: activeDebtsForSubtitle)
-                        if !subtitle.isEmpty {
-                            Text(subtitle)
-                                .font(.appCaption).foregroundStyle(.secondary)
-                                .lineLimit(1).truncationMode(.tail)
-                        }
-                    }
-                }
+                Text(selectedCategoryLabel ?? "Choisir une catégorie")
+                    .font(.appBody).foregroundStyle(Color.appTextPrimary)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption).foregroundStyle(.secondary)
@@ -162,8 +200,21 @@ struct BudgetLogSheet: View {
           : BudgetPlan.attackPerPeriodAfter
     }
     private var fundChipEligible: Bool { todayYMD <= BudgetPlan.fundDeadline }
+
+    // envelopeKey inféré depuis la catégorie (Diff B). "" si aucune catégorie choisie.
+    private var envelopeKey: String {
+        BudgetPlan.envelopeFor(categoryKey: categoryKey) ?? ""
+    }
     private var selectedEnvelope: BudgetEnvelope? {
         envelopes.first(where: { $0.key == envelopeKey })
+    }
+    private var selectedCategoryLabel: String? {
+        for group in BudgetPlan.categoriesByEnvelope {
+            if let c = group.categories.first(where: { $0.key == categoryKey }) {
+                return c.label
+            }
+        }
+        return nil
     }
     private var effectiveCents: Int { isCorrectionActive ? -amountCents : amountCents }
 
@@ -171,7 +222,7 @@ struct BudgetLogSheet: View {
         guard amountCents > 0 else { return false }
         if isCorrectionActive, note.trimmingCharacters(in: .whitespaces).isEmpty { return false }
         switch type {
-        case .expense:      return !envelopeKey.isEmpty
+        case .expense:      return !categoryKey.isEmpty  // Diff B : cat drive envelope.
         case .debtPayment:  return !debtKey.isEmpty
         case .fundTransfer: return true
         case .windfall:     return activeDebt != nil
@@ -215,7 +266,8 @@ struct BudgetLogSheet: View {
             }
         }
         .onAppear {
-            if envelopeKey.isEmpty, let first = envelopes.first { envelopeKey = first.key }
+            // Diff B : plus d'auto-sélection d'enveloppe. Vince doit choisir une
+            // catégorie — invariant "chaque dollar classé" enforcé via canSave.
             if debtKey.isEmpty, let first = attackableDebts.first { debtKey = first.key }
             if let pt = prefill { applyPrefill(pt) }
         }
@@ -235,8 +287,12 @@ struct BudgetLogSheet: View {
         switch type {
         case .expense:
             VStack(alignment: .leading, spacing: 6) {
-                Text("Enveloppe").font(.appLabel).foregroundStyle(.secondary)
-                envelopeMenu
+                Text("Catégorie").font(.appLabel).foregroundStyle(.secondary)
+                categoryMenu
+                if !categoryKey.isEmpty, !envelopeKey.isEmpty {
+                    Text("→ Poste : \(envelopeLabelFor(envelopeKey))")
+                        .font(.appCaption).foregroundStyle(.secondary)
+                }
             }
         case .debtPayment:
             VStack(alignment: .leading, spacing: 6) {
@@ -407,6 +463,7 @@ struct BudgetLogSheet: View {
             amountCents:  sendCents,
             envelopeKey:  type == .expense ? envelopeKey : nil,
             debtKey:      sendDebtKey,
+            categoryKey:  type == .expense ? categoryKey : nil,  // Diff B G/L.
             note:         trimmedNote.isEmpty ? nil : trimmedNote
         )
         do {
@@ -435,7 +492,7 @@ struct BudgetLogSheet: View {
         default: break
         }
         if let dk = pt.debtKey     { debtKey     = dk }
-        if let ek = pt.envelopeKey { envelopeKey = ek }
+        if let ck = pt.categoryKey { categoryKey = ck }  // Diff B : cat drive env.
         amountStr = String(format: "%.2f", Double(pt.amountCents) / 100.0)
     }
 }

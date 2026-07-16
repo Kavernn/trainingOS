@@ -235,6 +235,53 @@ def test_post_valid_windfall_returns_201(client):
     assert r.status_code == 201
 
 
+# ── POST category_key (Diff B — G/L, chaque dollar classé) ──────────────────
+
+def test_post_expense_with_category_key_returns_201(client):
+    """Diff B : expense accepte category_key (persisté)."""
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "expense", "amount_cents": 2500,
+        "envelope_key": "epicerie", "category_key": "epicerie",
+    })
+    assert r.status_code == 201
+
+
+def test_post_expense_without_category_key_returns_201(client):
+    """Diff B : backend accepte expense sans category_key (backward-compat
+    logs historiques + old iOS). L'invariant "chaque dollar classé" est
+    enforcé côté iOS via canSave."""
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "expense", "amount_cents": 2500,
+        "envelope_key": "epicerie",
+    })
+    assert r.status_code == 201
+
+
+def test_post_debt_payment_with_category_key_returns_400(client):
+    """Diff B : category_key réservé aux dépenses."""
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "debt_payment", "amount_cents": 5000,
+        "debt_key": "decouvert", "category_key": "hypotheque",
+    })
+    assert r.status_code == 400
+
+
+def test_post_fund_transfer_with_category_key_returns_400(client):
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "fund_transfer", "amount_cents": 10000,
+        "debt_key": "fonds_voyage", "category_key": "epicerie",
+    })
+    assert r.status_code == 400
+
+
+def test_post_windfall_with_category_key_returns_400(client):
+    r = client.post("/api/budget/log", json={
+        "date": "2026-07-16", "type": "windfall", "amount_cents": 8000,
+        "debt_key": "decouvert", "category_key": "autre",
+    })
+    assert r.status_code == 400
+
+
 # ── Payload : is_payday_today + today_transfers ─────────────────────────────
 
 class FakeStatusDB:
@@ -285,12 +332,13 @@ def test_today_transfers_includes_fund_transfer(status_db, monkeypatch):
     _set_today(monkeypatch, date(2026, 7, 20))
     status_db.logs = [
         {"date": "2026-07-20", "type": "fund_transfer",
-         "debt_key": "fonds_voyage", "envelope_key": None, "amount_cents": 37500},
+         "debt_key": "fonds_voyage", "envelope_key": None,
+         "category_key": None, "amount_cents": 37500},
     ]
     payload = budget.compute_status()
     assert payload["today_transfers"] == [
         {"type": "fund_transfer", "debt_key": "fonds_voyage",
-         "envelope_key": None, "amount_cents": 37500},
+         "envelope_key": None, "category_key": None, "amount_cents": 37500},
     ]
 
 
@@ -298,26 +346,29 @@ def test_today_transfers_includes_debt_payment(status_db, monkeypatch):
     _set_today(monkeypatch, date(2026, 7, 20))
     status_db.logs = [
         {"date": "2026-07-20", "type": "debt_payment",
-         "debt_key": "decouvert", "envelope_key": None, "amount_cents": 43581},
+         "debt_key": "decouvert", "envelope_key": None,
+         "category_key": None, "amount_cents": 43581},
     ]
     payload = budget.compute_status()
     assert payload["today_transfers"] == [
         {"type": "debt_payment", "debt_key": "decouvert",
-         "envelope_key": None, "amount_cents": 43581},
+         "envelope_key": None, "category_key": None, "amount_cents": 43581},
     ]
 
 
 def test_today_transfers_includes_expense(status_db, monkeypatch):
-    """Expense (hypothèque payday) doit être coché comme les transferts."""
+    """Expense (hypothèque payday) doit être coché comme les transferts.
+    Diff B : category_key exposée (nil sur logs historiques, set sur nouveaux)."""
     _set_today(monkeypatch, date(2026, 7, 20))
     status_db.logs = [
         {"date": "2026-07-20", "type": "expense",
-         "debt_key": None, "envelope_key": "fixes", "amount_cents": 45000},
+         "debt_key": None, "envelope_key": "fixes",
+         "category_key": "hypotheque", "amount_cents": 45000},
     ]
     payload = budget.compute_status()
     assert payload["today_transfers"] == [
-        {"type": "expense", "debt_key": None,
-         "envelope_key": "fixes", "amount_cents": 45000},
+        {"type": "expense", "debt_key": None, "envelope_key": "fixes",
+         "category_key": "hypotheque", "amount_cents": 45000},
     ]
 
 

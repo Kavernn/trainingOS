@@ -29,12 +29,17 @@ def api_budget_log():
 
     env  = data.get("envelope_key")
     debt = data.get("debt_key")
+    cat  = data.get("category_key")
     if type_ == "expense":
         if not env or debt:
             return jsonify({"error": "expense exige envelope_key et interdit debt_key"}), 400
     else:  # debt_payment | fund_transfer | windfall
         if not debt or env:
             return jsonify({"error": f"{type_} exige debt_key et interdit envelope_key"}), 400
+        # category_key réservé aux dépenses (Diff B : plan de comptes G/L).
+        # debt_key classe déjà les 3 autres types.
+        if cat is not None:
+            return jsonify({"error": f"{type_} interdit category_key (réservé aux dépenses)"}), 400
 
     # windfall n'accepte pas de contre-écriture. Correction d'un windfall erroné :
     # logger un debt_payment négatif (note obligatoire) sur la même debt_key.
@@ -51,6 +56,7 @@ def api_budget_log():
         "amount_cents": amount,
         "envelope_key": env,
         "debt_key":     debt,
+        "category_key": cat,
         "note":         note or None,
     }
     if not db_budget.insert_log(entry):

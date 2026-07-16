@@ -118,6 +118,7 @@ def insert_log(entry: dict) -> bool:
         "amount_cents": int(entry["amount_cents"]),
         "envelope_key": entry.get("envelope_key"),
         "debt_key":     entry.get("debt_key"),
+        "category_key": entry.get("category_key"),
         "note":         entry.get("note"),
     }
     def _do() -> bool:
@@ -173,7 +174,7 @@ def list_debt_and_fund_logs_since(start_iso: str) -> list:
         return []
     def _do() -> list:
         resp = (db_core._client.table("money_logs")
-                .select("date, type, debt_key, envelope_key, amount_cents")
+                .select("date, type, debt_key, envelope_key, category_key, amount_cents")
                 .in_("type", ["expense", "debt_payment", "fund_transfer", "windfall"])
                 .gte("date", start_iso)
                 .execute())

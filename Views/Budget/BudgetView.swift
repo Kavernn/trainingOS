@@ -309,6 +309,7 @@ struct BudgetCard: View {
                 label:       "Payer l'hypothèque",
                 debtKey:     nil,
                 envelopeKey: "fixes",
+                categoryKey: "hypotheque",   // Diff B : G/L, envelope inférée à la sheet.
                 amountCents: BudgetPlan.hypothequePerPeriodCents
             )
         ]
@@ -318,6 +319,7 @@ struct BudgetCard: View {
                 label:       "Virer au fonds voyage",
                 debtKey:     "fonds_voyage",
                 envelopeKey: nil,
+                categoryKey: nil,
                 amountCents: BudgetPlan.fundPerPeriod
             ))
         }
@@ -330,6 +332,7 @@ struct BudgetCard: View {
                 label:       "Rembourser · \(active.label)",
                 debtKey:     active.key,
                 envelopeKey: nil,
+                categoryKey: nil,
                 amountCents: amount
             ))
         }

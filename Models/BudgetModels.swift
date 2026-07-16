@@ -120,6 +120,7 @@ struct BudgetTodayTransfer: Decodable, Equatable, Identifiable {
     let type: String
     let debtKey: String?
     let envelopeKey: String?
+    let categoryKey: String?     // Diff B : G/L, nil sauf expense.
     let amountCents: Int
     var id: String { "\(type)-\(debtKey ?? envelopeKey ?? "")" }
 
@@ -127,6 +128,7 @@ struct BudgetTodayTransfer: Decodable, Equatable, Identifiable {
         case type
         case debtKey     = "debt_key"
         case envelopeKey = "envelope_key"
+        case categoryKey = "category_key"
         case amountCents = "amount_cents"
     }
 }
@@ -139,15 +141,17 @@ struct PlannedTransfer: Identifiable, Equatable {
     let label: String
     let debtKey: String?         // set pour fund/debt
     let envelopeKey: String?     // set pour expense
+    let categoryKey: String?     // Diff B : G/L, set pour expense (nil pour fund/debt).
     let amountCents: Int
 }
 
 struct BudgetLogEntry: Encodable {
     let date: String            // "YYYY-MM-DD" MTL
-    let type: String            // "expense" | "debt_payment" | "fund_transfer"
+    let type: String            // "expense" | "debt_payment" | "fund_transfer" | "windfall"
     let amountCents: Int
-    let envelopeKey: String?
-    let debtKey: String?
+    let envelopeKey: String?    // set pour expense (inféré depuis categoryKey)
+    let debtKey: String?        // set pour debt_payment | fund_transfer | windfall
+    let categoryKey: String?    // Diff B : G/L, set pour expense (nil pour les 3 autres types)
     let note: String?
 
     enum CodingKeys: String, CodingKey {
@@ -155,5 +159,6 @@ struct BudgetLogEntry: Encodable {
         case amountCents  = "amount_cents"
         case envelopeKey  = "envelope_key"
         case debtKey      = "debt_key"
+        case categoryKey  = "category_key"
     }
 }
