@@ -5,8 +5,8 @@ import SwiftUI
 enum BudgetPlan {
     static let planSwitchDate        = "2026-09-13"   // yyyy-MM-dd MTL
     static let fundDeadline          = "2026-09-12"
-    static let attackPerPeriodBefore = 45781          // cents — 457,81 $/paie (front-load voyage)
-    static let attackPerPeriodAfter  = 83281          //         832,81 $/paie plein régime
+    static let attackPerPeriodBefore = 43581          // cents — 435,81 $/paie (front-load voyage)
+    static let attackPerPeriodAfter  = 81081          //         810,81 $/paie plein régime
     static let fundPerPeriod         = 37500          // 375 $
 
     // Paie brute (Vince, source liste 2026-07-15). Utilisé pour le solde live
@@ -15,7 +15,7 @@ enum BudgetPlan {
 
     // Composition des fixes en cents MENSUELS. La vue divise par 2 pour l'affichage
     // par paie (arrondi half-away-from-zero pour Claude 3219/2 → 1610).
-    // Ordre = ordre d'apparition dans la sheet dépliable.
+    // Ordre : montant mensuel décroissant (règle, pas juste convention d'écriture).
     struct FixLine: Identifiable {
         let label: String
         let monthlyCents: Int
@@ -28,6 +28,7 @@ enum BudgetPlan {
         FixLine(label: "Hypothèque", monthlyCents: 90000),
         FixLine(label: "Gaz",        monthlyCents: 13000),
         FixLine(label: "Vapo",       monthlyCents:  8000),
+        FixLine(label: "Gym",        monthlyCents:  4400),
         FixLine(label: "Claude",     monthlyCents:  3219),
         FixLine(label: "Supabase",   monthlyCents:  3000),
     ]

@@ -16,13 +16,14 @@ MIN_PERIODS_FOR_MEASURED = 2
 # Front-load voyage : 4 paies × 375 $ = 1500 $ atteint au 2026-09-12. La paie du
 # 15 sept est la première à plein régime (SWITCH = lendemain du départ).
 PLANNED_ATTACK_SWITCH = date(2026, 9, 13)
-# Plan réaligné 2026-07-15 sur les fixes réels (1 172,19 $/mois).
-# Waterfall/paie = 1 743,91 $ − 586,10 (fixes) − 200 (épicerie) − 125 (variable)
-# = 832,81 $ plein régime = 83 281 ¢, dont 375 $ redirigés au fund avant départ
-# = 457,81 $ = 45 781 ¢ pré-switch. Monthly attaque = 166 563 ¢ (perte 1 ¢/mois
-# via floor //2 dans budget.py:100, négligeable).
-PLANNED_ATTACK_BEFORE = 45781
-PLANNED_ATTACK_AFTER  = 83281
+# Plan réaligné bis 2026-07-16 : ajout du gym (44 $/mois, fixe oublié au premier
+# passage). Fixes réels 1 172,19 + 44 = 1 216,19 $/mois. Waterfall/paie =
+# 1 743,91 $ − 608,10 (fixes) − 200 (épicerie) − 125 (variable) = 810,81 $
+# plein régime = 81 081 ¢, dont 375 $ redirigés au fund avant départ = 435,81 $
+# = 43 581 ¢ pré-switch. Monthly attaque = 162 163 ¢ (perte 1 ¢/mois via floor
+# //2 dans budget.py:100, négligeable).
+PLANNED_ATTACK_BEFORE = 43581
+PLANNED_ATTACK_AFTER  = 81081
 PLANNED_FUND          = 37500  # 375 $/paie sur les 4 paies avant départ
 _PERIODS_PER_YEAR     = 24
 _MAX_SEGMENTS         = 32           # ponytail: fallback = 2 segments, marge large.

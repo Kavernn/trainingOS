@@ -298,12 +298,12 @@ def test_today_transfers_includes_debt_payment(status_db, monkeypatch):
     _set_today(monkeypatch, date(2026, 7, 20))
     status_db.logs = [
         {"date": "2026-07-20", "type": "debt_payment",
-         "debt_key": "decouvert", "envelope_key": None, "amount_cents": 45781},
+         "debt_key": "decouvert", "envelope_key": None, "amount_cents": 43581},
     ]
     payload = budget.compute_status()
     assert payload["today_transfers"] == [
         {"type": "debt_payment", "debt_key": "decouvert",
-         "envelope_key": None, "amount_cents": 45781},
+         "envelope_key": None, "amount_cents": 43581},
     ]
 
 
