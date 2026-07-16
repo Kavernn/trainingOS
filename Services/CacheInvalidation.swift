@@ -78,30 +78,34 @@ enum CacheInvalidation {
     var keys: [String] {
         switch self {
         case .exerciseLogged(let isSecond, let isBonus):
-            var k = ["dashboard", "stats_data", "streak_data", "morning_brief"]
+            var k = ["dashboard", "stats_data", "streak_data", "morning_brief",
+                     "overtraining_risk", "one_rm_programming", "pain_journal"]
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionLogged(let isSecond, let isBonus):
-            var k = ["dashboard", "historique_data", "stats_data", "streak_data", "morning_brief"]
+            var k = ["dashboard", "historique_data", "stats_data", "streak_data", "morning_brief",
+                     "overtraining_risk", "one_rm_programming", "mesocycle_status"]
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionMutated:
-            return ["historique_data", "dashboard", "morning_brief"]
+            return ["historique_data", "dashboard", "morning_brief", "mesocycle_status"]
         case .hiitLogged:
             return ["dashboard", "hiit_data"]
         case .programmeMutated:
             return ["programme_data", "seance_data", "seance_soir_data",
-                    "stats_data", "dashboard", "morning_brief"]
+                    "stats_data", "dashboard", "morning_brief", "mesocycle_status"]
         case .inventaireMutated:
             return ["inventaire_data", "programme_data", "seance_data", "seance_soir_data"]
         case .deloadApplied:
             return ["seance_data", "dashboard", "morning_brief"]
         case .recoveryLogged:
-            return ["recovery_data", "hrv_analysis", "readiness", "morning_brief"]
+            return ["recovery_data", "hrv_analysis", "readiness", "morning_brief",
+                    "overtraining_risk"]
         case .pssSubmitted:
             return ["pss_history", "pss_check_due_full", "morning_brief"]
         case .moodLogged:
-            return ["mood_history", "mood_check_due", "dashboard", "morning_brief"]
+            return ["mood_history", "mood_check_due", "dashboard", "morning_brief",
+                    "overtraining_risk"]
         case .journalLogged:
             return ["journal_entries"]
         case .breathworkLogged:
@@ -116,7 +120,8 @@ enum CacheInvalidation {
             return ["seance_data", "seance_soir_data"]
         case .wearableSynced:
             return ["recovery_data", "cardio_data", "hrv_analysis",
-                    "sleep_history", "sleep_today", "sleep_stats", "readiness", "morning_brief"]
+                    "sleep_history", "sleep_today", "sleep_stats", "readiness", "morning_brief",
+                    "overtraining_risk"]
         case .ritualActioned:
             return ["ritual_today", "ritual_streak", "morning_brief"]
         case .ritualUpdated:

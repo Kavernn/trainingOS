@@ -523,40 +523,57 @@ struct PainJournalResponse: Codable {
 
 // MARK: - Overtraining Risk
 struct OvertrainingRisk: Codable {
-    let riskScore:      Int
-    let level:          String   // "low" | "moderate" | "high"
-    let flags:          [String]
-    let recommendation: String
+    let riskScore:        Int
+    let level:            String   // "low" | "moderate" | "high"
+    let flags:            [String]
+    let recommendation:   String
+    // Optionnels — backend post-fix garantit leur présence, mais un payload cache
+    // pré-fix ou en transit doit décoder normalement (couplage évité).
+    let dataCoverage:     Int?     // 0-4 sources évaluables
+    let insufficientData: Bool?    // true à coverage 0 seul
+
+    /// True quand aucune source n'était évaluable — l'iOS doit afficher un état vide
+    /// explicite au lieu du "low" fantôme. Défaut safe: false si champ absent.
+    var isInsufficient: Bool { insufficientData ?? false }
 
     enum CodingKeys: String, CodingKey {
         case level, flags, recommendation
-        case riskScore = "risk_score"
+        case riskScore        = "risk_score"
+        case dataCoverage     = "data_coverage"
+        case insufficientData = "insufficient_data"
     }
 }
 
 // MARK: - Mesocycle Status
+// Contrat backend post-fix : `phase == nil` signale l'absence de cycle réel
+// (reason == "no_cycle_start" | "error"). Tous les champs de phase sont optionnels
+// pour couvrir ce cas — JAMAIS de phase calendaire inventée.
 struct MesocycleStatus: Codable {
     let currentWeek:       Int
-    let weekInCycle:       Int
-    let weeksSinceDeload:  Int
-    let phase:             String
-    let phaseLabel:        String
-    let description:       String
-    let icon:              String
-    let rpeTarget:         String
-    let volGuidance:       String
+    let phase:             String?
+    let reason:            String?          // "no_cycle_start" | "error" quand phase == nil
+    // Présents uniquement en cycle réel
+    let weekInCycle:       Int?
+    let weeksSinceDeload:  Int?
+    let phaseLabel:        String?
+    let description:       String?
+    let icon:              String?
+    let rpeTarget:         String?
+    let volGuidance:       String?
     let lastDeloadDate:    String?
-    let nextDeloadInWeeks: Int
+    let nextDeloadInWeeks: Int?
+
+    var hasCycle: Bool { phase != nil }
 
     enum CodingKeys: String, CodingKey {
-        case phase, description, icon
-        case currentWeek      = "current_week"
-        case weekInCycle      = "week_in_cycle"
-        case weeksSinceDeload = "weeks_since_deload"
-        case phaseLabel       = "phase_label"
-        case rpeTarget        = "rpe_target"
-        case volGuidance      = "vol_guidance"
-        case lastDeloadDate   = "last_deload_date"
+        case phase, description, icon, reason
+        case currentWeek       = "current_week"
+        case weekInCycle       = "week_in_cycle"
+        case weeksSinceDeload  = "weeks_since_deload"
+        case phaseLabel        = "phase_label"
+        case rpeTarget         = "rpe_target"
+        case volGuidance       = "vol_guidance"
+        case lastDeloadDate    = "last_deload_date"
         case nextDeloadInWeeks = "next_deload_in_weeks"
     }
 }

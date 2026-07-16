@@ -42,6 +42,11 @@ struct IntelligenceView: View {
     @State private var mesocycleStatus: MesocycleStatus? = nil
     @State private var painJournal: PainJournalResponse? = nil
     @State private var oneRMData: OneRMResponse? = nil
+    // Erreurs réseau distinctes — les cartes affichent un état "erreur" séparé de "vide"
+    @State private var overtrainingError: String? = nil
+    @State private var mesocycleError: String? = nil
+    @State private var painJournalError: String? = nil
+    @State private var oneRMError: String? = nil
     @State private var isLoadingOvertraining = false
 
     // Pattern engine
@@ -585,25 +590,16 @@ struct IntelligenceView: View {
                     )
                     .padding(.horizontal, 16)
                 }
-                if let risk = overtrainingRisk {
-                    OvertrainingRiskCard(risk: risk).padding(.horizontal, 16)
-                }
-                if let meso = mesocycleStatus {
-                    MesocycleStatusCard(status: meso).padding(.horizontal, 16)
-                }
-                if let pain = painJournal, !pain.byExercise.isEmpty {
-                    PainJournalCard(data: pain).padding(.horizontal, 16)
-                }
-                if let oneRM = oneRMData, !oneRM.exercises.isEmpty {
-                    OneRMProgrammingCard(data: oneRM).padding(.horizontal, 16)
-                }
-                if overtrainingRisk == nil && mesocycleStatus == nil {
-                    Text("Chargement des analyses…")
-                        .font(.appLabel)
-                        .foregroundColor(Color(white: 0.45))
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-                }
+                // Cartes toujours rendues — chaque carte gère loading/loaded/empty/error.
+                // Le pattern crime "try? avalé silencieusement" est remplacé par un état explicite.
+                OvertrainingRiskCard(risk: overtrainingRisk, error: overtrainingError)
+                    .padding(.horizontal, 16)
+                MesocycleStatusCard(status: mesocycleStatus, error: mesocycleError)
+                    .padding(.horizontal, 16)
+                PainJournalCard(data: painJournal, error: painJournalError)
+                    .padding(.horizontal, 16)
+                OneRMProgrammingCard(data: oneRMData, error: oneRMError)
+                    .padding(.horizontal, 16)
             }
 
             // NIVEAU 3c — Intelligence proactive (accordion)
@@ -1260,35 +1256,40 @@ struct IntelligenceView: View {
     }
 
     private func loadIntelligenceFeatures() async {
-        let base = APIService.shared.baseURL
+        // Migration : 4 appels directs URLSession → APIService + cache + throw catché.
+        // Erreurs visibles côté carte, jamais indistinguables d'une absence de données.
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
-                guard let url = URL(string: "\(base)/api/overtraining_risk"),
-                      let (d, _) = try? await URLSession.authed.data(from: url),
-                      let r = try? APIService.decoder.decode(OvertrainingRisk.self, from: d)
-                else { return }
-                await MainActor.run { self.overtrainingRisk = r }
+                do {
+                    let r = try await APIService.shared.fetchOvertrainingRisk()
+                    await MainActor.run { self.overtrainingRisk = r; self.overtrainingError = nil }
+                } catch {
+                    await MainActor.run { self.overtrainingError = "Impossible de calculer le risque — réessaie plus tard" }
+                }
             }
             group.addTask {
-                guard let url = URL(string: "\(base)/api/mesocycle_status"),
-                      let (d, _) = try? await URLSession.authed.data(from: url),
-                      let r = try? APIService.decoder.decode(MesocycleStatus.self, from: d)
-                else { return }
-                await MainActor.run { self.mesocycleStatus = r }
+                do {
+                    let r = try await APIService.shared.fetchMesocycleStatus()
+                    await MainActor.run { self.mesocycleStatus = r; self.mesocycleError = nil }
+                } catch {
+                    await MainActor.run { self.mesocycleError = "Impossible de charger l'état du cycle" }
+                }
             }
             group.addTask {
-                guard let url = URL(string: "\(base)/api/pain_journal"),
-                      let (d, _) = try? await URLSession.authed.data(from: url),
-                      let r = try? APIService.decoder.decode(PainJournalResponse.self, from: d)
-                else { return }
-                await MainActor.run { self.painJournal = r }
+                do {
+                    let r = try await APIService.shared.fetchPainJournal()
+                    await MainActor.run { self.painJournal = r; self.painJournalError = nil }
+                } catch {
+                    await MainActor.run { self.painJournalError = "Impossible de charger le journal des douleurs" }
+                }
             }
             group.addTask {
-                guard let url = URL(string: "\(base)/api/one_rm_programming"),
-                      let (d, _) = try? await URLSession.authed.data(from: url),
-                      let r = try? APIService.decoder.decode(OneRMResponse.self, from: d)
-                else { return }
-                await MainActor.run { self.oneRMData = r }
+                do {
+                    let r = try await APIService.shared.fetchOneRMProgramming()
+                    await MainActor.run { self.oneRMData = r; self.oneRMError = nil }
+                } catch {
+                    await MainActor.run { self.oneRMError = "Impossible de charger la programmation 1RM" }
+                }
             }
         }
     }

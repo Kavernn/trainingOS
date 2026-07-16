@@ -70,6 +70,11 @@ final class CacheService {
         "morning_brief": 3600,
         // Weather — Open-Meteo, refreshed every 30 min
         "weather_data":  1800,
+        // Coach analytics (cartes bilan) — data physio du jour + agrégations lentes
+        "overtraining_risk":   30 * 60,    // dépend des logs du jour, même famille que readiness
+        "one_rm_programming":  30 * 60,    // change à chaque /api/log via weights.history
+        "mesocycle_status":    60 * 60,    // active_program.cycle_start_date change rare
+        "pain_journal":        60 * 60,    // agrégat exercise_logs.pain_zone, change lent
     ]
 
     init(directory: URL? = nil) {

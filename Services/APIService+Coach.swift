@@ -52,4 +52,32 @@ extension APIService {
         let data = try await fetchWithCache(url: url, key: key)
         return try APIService.decoder.decode(PostSessionData.self, from: data)
     }
+
+    // MARK: - Coach analytics cards (bilan)
+    // Migration L1262-1294 IntelligenceView : appels directs URLSession supprimés
+    // au profit de l'architecture standard (cache + invalidation + throw).
+
+    func fetchOvertrainingRisk() async throws -> OvertrainingRisk {
+        let url  = try buildURL(path: "/api/overtraining_risk")
+        let data = try await fetchWithCache(url: url, key: "overtraining_risk")
+        return try APIService.decoder.decode(OvertrainingRisk.self, from: data)
+    }
+
+    func fetchMesocycleStatus() async throws -> MesocycleStatus {
+        let url  = try buildURL(path: "/api/mesocycle_status")
+        let data = try await fetchWithCache(url: url, key: "mesocycle_status")
+        return try APIService.decoder.decode(MesocycleStatus.self, from: data)
+    }
+
+    func fetchPainJournal() async throws -> PainJournalResponse {
+        let url  = try buildURL(path: "/api/pain_journal")
+        let data = try await fetchWithCache(url: url, key: "pain_journal")
+        return try APIService.decoder.decode(PainJournalResponse.self, from: data)
+    }
+
+    func fetchOneRMProgramming() async throws -> OneRMResponse {
+        let url  = try buildURL(path: "/api/one_rm_programming")
+        let data = try await fetchWithCache(url: url, key: "one_rm_programming")
+        return try APIService.decoder.decode(OneRMResponse.self, from: data)
+    }
 }
