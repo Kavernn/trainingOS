@@ -110,6 +110,10 @@ struct EnergyHistoryDay: Codable, Identifiable {
 // MARK: - Display helpers
 
 extension EnergyDaily {
+    // Source unique assumée — le backend expose balance_status, ce mapping 0-100
+    // est la présentation iOS. Décision d'audit juillet 2026 : pas de score
+    // backend, un seul consommateur. Toute évolution du mapping se fait ici et
+    // nulle part ailleurs.
     var energyScore: Int {
         switch balanceStatus {
         case "balanced":         return 90

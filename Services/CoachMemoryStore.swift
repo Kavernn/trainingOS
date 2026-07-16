@@ -5,8 +5,9 @@ import OSLog
 private let logger = Logger(subsystem: "TrainingOS", category: "CoachMemory")
 
 // MARK: - Coach Memory
-// Persistent, structured facts the AI coach accumulates over time.
-// Injected into every coach conversation via buildContext().
+// Faits structurés persistants accumulés au fil du temps.
+// Synced serveur (ai_coach_memory.py, replace complet via user_profile.coach_memory)
+// et analysés localement par CoachMemoryAnalyzer (7j cooldown).
 
 struct CoachMemoryEntry: Codable, Identifiable {
     let id: String
@@ -68,26 +69,6 @@ final class CoachMemoryStore: ObservableObject {
         entries.removeAll { $0.id == id }
         save()
         pushToServer()
-    }
-
-    // MARK: - Context block injected into AI prompts
-
-    var contextBlock: String {
-        guard !entries.isEmpty else { return "" }
-        // Guarantee at least 1 entry per type so milestones (confidence=1.0) don't crowd out
-        // actionable patterns/risks/correlations. Fill remaining slots by confidence.
-        var slots: [CoachMemoryEntry] = []
-        for type in CoachMemoryEntry.MemType.allCases {
-            if let best = entries.filter({ $0.type == type }).max(by: { $0.confidence < $1.confidence }) {
-                slots.append(best)
-            }
-        }
-        let slotIDs = Set(slots.map(\.id))
-        let remaining = entries
-            .filter { !slotIDs.contains($0.id) }
-            .sorted { $0.confidence > $1.confidence }
-        let combined = (slots + remaining).prefix(12)
-        return combined.map { "[\($0.type.rawValue)] \($0.content)" }.joined(separator: "\n")
     }
 
     // MARK: - Weekly auto-analysis
