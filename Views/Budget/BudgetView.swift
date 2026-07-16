@@ -110,18 +110,20 @@ struct BudgetView: View {
     }
 
     private func envelopesSection(_ envelopes: [BudgetEnvelope]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let active = BudgetFormat.activeDebts(from: status?.debts ?? [])
+        return VStack(alignment: .leading, spacing: 12) {
             Text("Enveloppes")
                 .font(.appTitle)
                 .foregroundStyle(Color.appTextPrimary)
-            ForEach(envelopes) { envelopeRow($0) }
+            ForEach(envelopes) { envelopeRow($0, activeDebts: active) }
         }
     }
 
-    private func envelopeRow(_ e: BudgetEnvelope) -> some View {
+    private func envelopeRow(_ e: BudgetEnvelope, activeDebts: [BudgetDebt]) -> some View {
         let limit = max(e.limitCents, 1)
         let pct   = Double(e.spentCents) / Double(limit)
         let over  = e.remainingCents < 0
+        let subtitle = BudgetFormat.envelopeSubtitle(e, activeDebts: activeDebts)
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(e.label).font(.appHeadline).foregroundStyle(Color.appTextPrimary)
@@ -129,6 +131,13 @@ struct BudgetView: View {
                 Text("\(BudgetFormat.dollars(e.remainingCents)) / \(BudgetFormat.dollars(e.limitCents))")
                     .font(.appLabel)
                     .foregroundStyle(over ? Color.appDanger : .secondary)
+            }
+            if !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.appCaption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             ProgressView(value: min(max(pct, 0), 1.0))
                 .tint(envelopeColor(pct))
@@ -190,6 +199,10 @@ struct BudgetView: View {
         let current = d.currentCents ?? 0
         let target  = max(d.targetCents ?? 1, 1)
         let pct     = Double(current) / Double(target)
+        let subtitle: String? = {
+            guard let deadline = BudgetFormat.dayMonth(d.deadlineDate) else { return nil }
+            return "\(BudgetFormat.dollarsRounded(target)) pour le \(deadline)"
+        }()
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Image(systemName: "airplane").foregroundStyle(Color.appInfo)
@@ -197,6 +210,11 @@ struct BudgetView: View {
                 Spacer()
                 Text("\(BudgetFormat.dollars(current)) / \(BudgetFormat.dollars(target))")
                     .font(.appLabel).foregroundStyle(.secondary)
+            }
+            if let subtitle {
+                Text(subtitle)
+                    .font(.appCaption).foregroundStyle(.secondary)
+                    .lineLimit(1).truncationMode(.tail)
             }
             ProgressView(value: min(max(pct, 0), 1.0)).tint(Color.appSuccess)
             if let p = d.progressPct {
@@ -628,6 +646,59 @@ enum BudgetFormat {
     static func dollars(_ cents: Int) -> String {
         currencyFormatter.string(from: NSNumber(value: Double(cents) / 100.0))
             ?? "\(cents/100) $"
+    }
+
+    // "13 640 $" — dollars arrondis, séparateur milliers fr_CA (espace).
+    private static let roundedFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.locale = Locale(identifier: "fr_CA")
+        f.maximumFractionDigits = 0
+        return f
+    }()
+    static func dollarsRounded(_ cents: Int) -> String {
+        let dollars = Int((Double(cents) / 100.0).rounded())
+        let s = roundedFormatter.string(from: NSNumber(value: dollars)) ?? "\(dollars)"
+        return "\(s) $"
+    }
+
+    // "12 septembre" — jour + mois complet fr_CA, sans année.
+    static func dayMonth(_ ymd: String?) -> String? {
+        guard let ymd, let d = parseYMD(ymd) else { return nil }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_CA")
+        f.dateFormat = "d MMMM"
+        return f.string(from: d)
+    }
+
+    // Dettes actives (non-savings, solde > 0) triées par attack_order.
+    static func activeDebts(from debts: [BudgetDebt]) -> [BudgetDebt] {
+        debts
+            .filter { !$0.isSavings && ($0.balanceCents ?? 0) > 0 }
+            .sorted { ($0.attackOrder ?? Int.max) < ($1.attackOrder ?? Int.max) }
+    }
+
+    // Sous-titre "composition" affiché sous chaque enveloppe (liste + picker sheet).
+    // Fixes : lignes mensuelles depuis BudgetPlan. Attaque : dettes vivantes.
+    // Épicerie / Dépenses libres : limite mensuelle + description d'usage.
+    static func envelopeSubtitle(_ env: BudgetEnvelope, activeDebts: [BudgetDebt]) -> String {
+        switch env.key {
+        case "fixes":
+            return BudgetPlan.fixesPerMonth
+                .map { "\($0.label) \(dollarsRounded($0.monthlyCents))" }
+                .joined(separator: " · ")
+        case "attaque":
+            if activeDebts.isEmpty { return "Aucune dette 🎉" }
+            return activeDebts
+                .map { "\($0.label) \(dollarsRounded($0.balanceCents ?? 0))" }
+                .joined(separator: " → puis ")
+        case "epicerie":
+            return "\(dollarsRounded(env.limitCents))/mois pour manger"
+        case "variable":
+            return "\(dollarsRounded(env.limitCents))/mois — sorties, extras, imprévus"
+        default:
+            return ""
+        }
     }
 
     static func parseYMD(_ s: String) -> Date? {

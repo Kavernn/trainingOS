@@ -101,6 +101,55 @@ struct BudgetLogSheet: View {
 
     private var attackableDebts: [BudgetDebt] { debts.filter { !$0.isSavings } }
 
+    // Dettes vivantes pour le sous-titre de l'enveloppe "attaque" dans le menu.
+    private var activeDebtsForSubtitle: [BudgetDebt] {
+        BudgetFormat.activeDebts(from: debts)
+    }
+
+    // Fonds voyage (savings debt) — sous-titre "1 500 $ pour le 12 septembre".
+    private var fundVoyageSubtitle: String? {
+        let fund = debts.first(where: { $0.key == "fonds_voyage" })
+        let target = fund?.targetCents ?? 0
+        guard target > 0, let deadline = BudgetFormat.dayMonth(fund?.deadlineDate) else { return nil }
+        return "\(BudgetFormat.dollarsRounded(target)) pour le \(deadline)"
+    }
+
+    // Menu enveloppes avec composition en sous-titre — LE point de décision critique
+    // (spec Vince : "chaque enveloppe doit être classable du premier coup").
+    private var envelopeMenu: some View {
+        Menu {
+            ForEach(envelopes) { env in
+                Button {
+                    envelopeKey = env.key
+                } label: {
+                    Text(env.label)
+                    Text(BudgetFormat.envelopeSubtitle(env, activeDebts: activeDebtsForSubtitle))
+                }
+            }
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(selectedEnvelope?.label ?? "Choisir un poste")
+                        .font(.appBody).foregroundStyle(Color.appTextPrimary)
+                    if let env = selectedEnvelope {
+                        let subtitle = BudgetFormat.envelopeSubtitle(env, activeDebts: activeDebtsForSubtitle)
+                        if !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(.appCaption).foregroundStyle(.secondary)
+                                .lineLimit(1).truncationMode(.tail)
+                        }
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
+        }
+        .tint(Color.forge)
+    }
+
     // Toggle masqué en windfall (spec) — état effectif dépend du type.
     private var isCorrectionActive: Bool { isCorrection && type != .windfall }
 
@@ -186,10 +235,7 @@ struct BudgetLogSheet: View {
         case .expense:
             VStack(alignment: .leading, spacing: 6) {
                 Text("Enveloppe").font(.appLabel).foregroundStyle(.secondary)
-                Picker("Enveloppe", selection: $envelopeKey) {
-                    ForEach(envelopes) { Text($0.label).tag($0.key) }
-                }
-                .pickerStyle(.menu).tint(Color.forge)
+                envelopeMenu
             }
         case .debtPayment:
             VStack(alignment: .leading, spacing: 6) {
@@ -203,6 +249,11 @@ struct BudgetLogSheet: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Destination").font(.appLabel).foregroundStyle(.secondary)
                 Text("Fonds voyage").font(.appBody).foregroundStyle(Color.appTextPrimary)
+                if let subtitle = fundVoyageSubtitle {
+                    Text(subtitle)
+                        .font(.appCaption).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.tail)
+                }
             }
         case .windfall:
             VStack(alignment: .leading, spacing: 6) {
