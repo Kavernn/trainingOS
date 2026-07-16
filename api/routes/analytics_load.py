@@ -194,20 +194,28 @@ def api_hrv_analysis():
 
 @analytics_load_bp.route("/api/overtraining_risk")
 def api_overtraining_risk():
-    """Composite overtraining risk score from RPE trend, HRV drop, mood dip, performance drop."""
+    """Composite overtraining risk score from RPE trend, HRV drop, mood dip, performance drop.
+
+    data_coverage compte les sources ÉVALUABLES (assez de données pour être calculées),
+    indépendamment de leur contribution en points. Une HRV saine (0 pt) compte : elle
+    prouve le risque bas. insufficient_data=True uniquement à coverage 0 (seul cas
+    indistinguable d'un vrai « low »).
+    """
     import db as _db
     from datetime import date as date_cls
 
-    today  = date_cls.fromisoformat(_today_mtl()).isoformat()
-    risk   = 0
-    flags  = []
-    detail = {}
+    today       = date_cls.fromisoformat(_today_mtl()).isoformat()
+    risk        = 0
+    flags       = []
+    detail      = {}
+    contributed = 0
 
     # 1. RPE trend (7j vs 21j)
     sessions_raw = _db.get_workout_sessions(limit=30)
     rpe_7  = [s["rpe"] for s in sessions_raw if s.get("rpe") and str(s.get("date","")) >= (date_cls.fromisoformat(_today_mtl()) - timedelta(days=7)).isoformat()]
     rpe_21 = [s["rpe"] for s in sessions_raw if s.get("rpe") and str(s.get("date","")) >= (date_cls.fromisoformat(_today_mtl()) - timedelta(days=21)).isoformat()]
     if len(rpe_7) >= 2 and len(rpe_21) >= 3:
+        contributed += 1
         avg7  = sum(rpe_7)  / len(rpe_7)
         avg21 = sum(rpe_21) / len(rpe_21)
         detail["rpe_avg_7d"]  = round(avg7,  1)
@@ -220,6 +228,8 @@ def api_overtraining_risk():
 
     # 2. HRV drop (today vs 28d baseline) — direct call within same blueprint
     hrv_baseline_resp = api_hrv_baseline().get_json()
+    if hrv_baseline_resp.get("today_hrv") is not None:
+        contributed += 1
     if hrv_baseline_resp.get("flag_rest"):
         risk += 2
         flags.append(f"HRV sous baseline ({hrv_baseline_resp.get('today_hrv')} vs {hrv_baseline_resp.get('baseline')})")
@@ -229,6 +239,7 @@ def api_overtraining_risk():
     mood_logs = _db.get_mood_logs(days=7)
     recent_moods = [m["score"] for m in mood_logs[:3] if m.get("score") is not None]
     if recent_moods:
+        contributed += 1
         avg_mood = sum(recent_moods) / len(recent_moods)
         detail["avg_mood_3d"] = round(avg_mood, 1)
         if avg_mood < 5:
@@ -241,6 +252,7 @@ def api_overtraining_risk():
     rec_log = _db.get_recovery_logs(limit=5)
     today_rec = next((e for e in rec_log if str(e.get("date",""))[:10] == today), None)
     if today_rec:
+        contributed += 1
         from health_data import compute_recovery_score
         rec_score = compute_recovery_score(today_rec)
         detail["recovery_score"] = rec_score
@@ -262,11 +274,13 @@ def api_overtraining_risk():
         recommendation = "Entraîne-toi normalement."
 
     return jsonify({
-        "risk_score":     risk,
-        "level":          level,
-        "flags":          flags,
-        "recommendation": recommendation,
-        "detail":         detail,
+        "risk_score":        risk,
+        "level":             level,
+        "flags":             flags,
+        "recommendation":    recommendation,
+        "detail":            detail,
+        "data_coverage":     contributed,
+        "insufficient_data": contributed == 0,
     })
 
 
@@ -332,13 +346,21 @@ def api_one_rm_programming():
 
 @analytics_load_bp.route("/api/mesocycle_status")
 def api_mesocycle_status():
-    """Return current mesocycle phase based on training weeks since last deload."""
+    """Return current mesocycle phase based on training weeks since last deload.
+
+    Doctrine anti-fantôme : ne JAMAIS retourner une phase inventée à partir de la
+    semaine calendaire ISO quand aucun cycle réel n'est démarré. Absence explicite :
+    phase=null + reason in {"no_cycle_start", "error"}.
+    """
     from utils import get_current_week
     import db as _db
+    from datetime import date as date_cls
 
     current_week = get_current_week()
+    today        = date_cls.fromisoformat(_today_mtl())
 
-    sessions_raw = _db.get_workout_sessions(limit=60)
+    # Métadata : dernière séance nommée "deload"/"décharge" (60 dernières), exposée en last_deload_date
+    sessions_raw     = _db.get_workout_sessions(limit=60)
     last_deload_date = None
     for s in sessions_raw:
         sname = (s.get("session_name") or "").lower()
@@ -347,19 +369,29 @@ def api_mesocycle_status():
             if last_deload_date is None or d > last_deload_date:
                 last_deload_date = d
 
-    from datetime import date as date_cls
-    if last_deload_date:
-        weeks_since = (date_cls.fromisoformat(_today_mtl()) - date_cls.fromisoformat(last_deload_date)).days // 7
-    else:
-        weeks_since = current_week % 8
-
+    # Source primaire : active_program.cycle_start_date
+    weeks_since       = None
+    active_prog_error = False
     try:
         active_prog = _db.get_active_program()
         if active_prog and active_prog.get("cycle_start_date"):
             cycle_start = date_cls.fromisoformat(str(active_prog["cycle_start_date"])[:10])
-            weeks_since = max(0, (date_cls.fromisoformat(_today_mtl()) - cycle_start).days // 7)
-    except Exception:
-        pass
+            weeks_since = max(0, (today - cycle_start).days // 7)
+    except Exception as e:
+        logger.warning("mesocycle_status active_program lookup failed: %s", e)
+        active_prog_error = True
+
+    # Fallback : dernière séance deload
+    if weeks_since is None and last_deload_date:
+        weeks_since = (today - date_cls.fromisoformat(last_deload_date)).days // 7
+
+    # Absence explicite (jamais de phase calendaire inventée)
+    if weeks_since is None:
+        return jsonify({
+            "current_week": current_week,
+            "phase":        None,
+            "reason":       "error" if active_prog_error else "no_cycle_start",
+        })
 
     week_in_cycle = weeks_since % 8
     if week_in_cycle <= 2:
