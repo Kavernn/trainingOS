@@ -57,9 +57,9 @@ struct BudgetLogSheet: View {
 
     enum LogType: String, CaseIterable, Identifiable {
         case expense       = "Dépense"
-        case debtPayment   = "Paiement dette"
-        case fundTransfer  = "Fonds voyage"
-        case windfall      = "Surprise"
+        case debtPayment   = "Remboursement de dette"
+        case fundTransfer  = "Virer à un fonds"
+        case windfall      = "Rentrée d'argent"
         var id: String { rawValue }
         var serverType: String {
             switch self {
@@ -146,7 +146,7 @@ struct BudgetLogSheet: View {
                                 .foregroundStyle(Color.appDanger)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        PrimaryButton(title: "Logger", isLoading: isSaving) {
+                        PrimaryButton(title: "Enregistrer", isLoading: isSaving) {
                             Task { await save() }
                         }
                         .disabled(!canSave)
@@ -156,7 +156,7 @@ struct BudgetLogSheet: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .navigationTitle("Nouveau log")
+            .navigationTitle("Nouveau mouvement")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -201,19 +201,19 @@ struct BudgetLogSheet: View {
             }
         case .fundTransfer:
             VStack(alignment: .leading, spacing: 6) {
-                Text("Cible").font(.appLabel).foregroundStyle(.secondary)
+                Text("Destination").font(.appLabel).foregroundStyle(.secondary)
                 Text("Fonds voyage").font(.appBody).foregroundStyle(Color.appTextPrimary)
             }
         case .windfall:
             VStack(alignment: .leading, spacing: 6) {
-                Text("Cible auto (80 / 20)").font(.appLabel).foregroundStyle(.secondary)
+                Text("Répartition auto 80 / 20").font(.appLabel).foregroundStyle(.secondary)
                 if let active = activeDebt, amountCents > 0 {
                     Text("\(BudgetFormat.dollars(windfallSplitCents)) → \(active.label) · \(BudgetFormat.dollars(windfallFreeCents)) libres pour toi")
                         .font(.appBody).foregroundStyle(Color.appTextPrimary)
                 } else if activeDebt == nil {
-                    Text("Aucune dette active").font(.appCaption).foregroundStyle(.secondary)
+                    Text("Aucune dette à rembourser").font(.appCaption).foregroundStyle(.secondary)
                 } else {
-                    Text("Saisis un montant pour voir le split")
+                    Text("Saisis un montant pour voir la répartition")
                         .font(.appCaption).foregroundStyle(.secondary)
                 }
             }
@@ -232,7 +232,7 @@ struct BudgetLogSheet: View {
             chipsRow
             envelopeBalanceRow
             if isCorrectionActive {
-                Text("Ce montant sera soustrait — note obligatoire")
+                Text("Ce montant sera annulé — écris pourquoi")
                     .font(.appCaption).foregroundStyle(Color.appWarning)
             }
         }
@@ -282,7 +282,7 @@ struct BudgetLogSheet: View {
                 Text("Reste \(BudgetFormat.dollars(env.remainingCents)) / \(BudgetFormat.dollars(env.limitCents))")
                     .font(.appCaption).foregroundStyle(.secondary)
                 if amountCents > 0 {
-                    let prefix = isCorrectionActive ? "Après cette correction" : "Après ce log"
+                    let prefix = isCorrectionActive ? "Après cette correction" : "Après cette dépense"
                     Text("\(prefix) : \(BudgetFormat.dollars(after))")
                         .font(.appCaption).foregroundStyle(afterTint)
                 }
@@ -293,7 +293,7 @@ struct BudgetLogSheet: View {
     @ViewBuilder private var correctionToggle: some View {
         if type != .windfall {
             Toggle(isOn: $isCorrection) {
-                Text("Contre-écriture (correction)")
+                Text("Correction")
                     .font(.appLabel).foregroundStyle(Color.appTextPrimary)
             }
             .tint(Color.appWarning)

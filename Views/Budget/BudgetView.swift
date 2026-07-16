@@ -66,7 +66,7 @@ struct BudgetView: View {
                 }
             }
         }
-        .navigationTitle("Budget & Finances")
+        .navigationTitle("Budget")
         .navigationBarTitleDisplayMode(.inline)
         .task { if status == nil { await load() } }
         .sheet(isPresented: $showLogSheet, onDismiss: {
@@ -133,7 +133,7 @@ struct BudgetView: View {
             ProgressView(value: min(max(pct, 0), 1.0))
                 .tint(envelopeColor(pct))
             if over {
-                Text("Dépassement : \(BudgetFormat.dollars(-e.remainingCents))")
+                Text("Dépassé de \(BudgetFormat.dollars(-e.remainingCents))")
                     .font(.appCaption)
                     .foregroundStyle(Color.appDanger)
             }
@@ -148,7 +148,7 @@ struct BudgetView: View {
             return (a.attackOrder ?? Int.max) < (b.attackOrder ?? Int.max)
         }
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Plan d'attaque")
+            Text("Dettes à rembourser")
                 .font(.appTitle)
                 .foregroundStyle(Color.appTextPrimary)
             ForEach(sorted) { d in
@@ -177,7 +177,7 @@ struct BudgetView: View {
             }
             ProgressView(value: min(max(pct, 0), 1.0)).tint(Color.forge)
             if let rate = d.interestRate {
-                Text("Taux \(Int((rate * 100).rounded())) %")
+                Text("Intérêts \(Int((rate * 100).rounded())) %")
                     .font(.appCaption)
                     .foregroundStyle(.secondary)
             }
@@ -213,11 +213,11 @@ struct BudgetView: View {
     private func trajectorySection(_ s: BudgetStatus) -> some View {
         let events = BudgetTrajectory.events(from: s)
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Trajectoire")
+            Text("Ce qui s'en vient")
                 .font(.appTitle)
                 .foregroundStyle(Color.appTextPrimary)
             if events.isEmpty {
-                Text("Aucune projection disponible")
+                Text("Rien à projeter pour l'instant")
                     .font(.appCaption)
                     .foregroundStyle(.secondary)
             } else {
@@ -288,7 +288,7 @@ struct BudgetCard: View {
         var out: [PlannedTransfer] = [
             PlannedTransfer(
                 serverType:  "expense",
-                label:       "Hypothèque",
+                label:       "Payer l'hypothèque",
                 debtKey:     nil,
                 envelopeKey: "fixes",
                 amountCents: BudgetPlan.hypothequePerPeriodCents
@@ -297,7 +297,7 @@ struct BudgetCard: View {
         if today <= BudgetPlan.fundDeadline {
             out.append(PlannedTransfer(
                 serverType:  "fund_transfer",
-                label:       "Fonds voyage",
+                label:       "Virer au fonds voyage",
                 debtKey:     "fonds_voyage",
                 envelopeKey: nil,
                 amountCents: BudgetPlan.fundPerPeriod
@@ -309,7 +309,7 @@ struct BudgetCard: View {
                 : BudgetPlan.attackPerPeriodAfter
             out.append(PlannedTransfer(
                 serverType:  "debt_payment",
-                label:       "Attaque · \(active.label)",
+                label:       "Rembourser · \(active.label)",
                 debtKey:     active.key,
                 envelopeKey: nil,
                 amountCents: amount
@@ -342,7 +342,7 @@ struct BudgetCard: View {
             if isPayday {
                 paydayHeader
                 if plannedTransfers.isEmpty {
-                    Text("Aucun transfert planifié aujourd'hui")
+                    Text("Aucune action prévue aujourd'hui")
                         .font(.appCaption).foregroundStyle(.secondary)
                 } else {
                     ForEach(plannedTransfers) { pt in
@@ -399,7 +399,7 @@ struct BudgetCard: View {
             Text("Reste dans ton compte : \(BudgetFormat.dollars(leftover))")
                 .font(.appCaption.weight(.semibold))
                 .foregroundColor(Color.appTextPrimary.opacity(0.85))
-            Text("Épicerie \(BudgetFormat.dollars(groceries)), variable \(BudgetFormat.dollars(variable)), fixes divers \(BudgetFormat.dollars(fixesDivers))." + (allPaydayDone ? " Rien d'autre à faire aujourd'hui." : ""))
+            Text("Épicerie \(BudgetFormat.dollars(groceries)), dépenses libres \(BudgetFormat.dollars(variable)), fixes divers \(BudgetFormat.dollars(fixesDivers))." + (allPaydayDone ? " Rien d'autre à faire aujourd'hui." : ""))
                 .font(.appCaption)
                 .foregroundColor(.secondary)
         }
@@ -667,13 +667,13 @@ enum BudgetFormat {
         let suffix = isFallback ? " · plan" : ""
         switch m.kind {
         case "debt_death":
-            let base = dateStr.map { "\(target) meurt ~\($0)" } ?? "\(target) meurt bientôt"
+            let base = dateStr.map { "\(target) remboursée ~\($0)" } ?? "\(target) bientôt remboursée"
             return base + suffix
         case "fund_threshold":
             if let seuil = m.thresholdCents, let dateStr {
                 return "\(target) atteint \(dollars(seuil)) ~\(dateStr)\(suffix)"
             }
-            return "\(target) prochain seuil" + suffix
+            return "\(target) prochaine étape" + suffix
         default:
             return dateStr.map { "\(target) ~\($0)\(suffix)" } ?? target
         }
@@ -738,7 +738,7 @@ enum BudgetTrajectory {
             } else {
                 if let ymd = d.projectedDeathDate, let date = BudgetFormat.parseYMD(ymd) {
                     out.append(.init(
-                        label: "\(d.label) — mort",
+                        label: "\(d.label) · remboursée",
                         date: date,
                         dateStr: BudgetFormat.shortDate(ymd) ?? ymd,
                         daysRemaining: daysBetween(today, date),
