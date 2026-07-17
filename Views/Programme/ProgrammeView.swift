@@ -1,7 +1,5 @@
 import SwiftUI
 
-private let kBaseURL = APIConfig.base
-
 private enum SessionType {
     case pushA, pushB, pullA, pullB, legs, yoga, recovery, custom
 
@@ -31,16 +29,12 @@ private enum SessionType {
 }
 
 struct ProgrammeView: View {
-    @State private var fullProgram: [String: [String: String]] = [:]
-    @State private var exerciseOrder: [String: [String]] = [:]
-    @State private var schedule: [String: String] = [:]
-    @State private var eveningSchedule: [String: String] = [:]
-    @State private var inventory: [String] = []
-    @State private var inventorySchemes: [String: String] = [:]
-    @State private var inventoryMuscleGroups: [String: String] = [:]
-    @State private var inventoryPatterns: [String: String] = [:]
-    @State private var inventoryOneRM: [String: Double] = [:]
-    @State private var isLoading = true
+    // Lot 2 commit 1 : les 14 champs SERVEUR + isLoading + programSuggestions +
+    // exerciseWeights + exerciseSupersets + multi-progs sont migrés dans
+    // ProgrammeViewModel. La vue lit vm.xxx et écrit via bindings/setters directs
+    // sur les @Published. Les handlers de mutation migrent au commit 2.
+    @StateObject private var vm = ProgrammeViewModel()
+
     @State private var seance2ExosToday: Set<String> = []
     @State private var addTarget: SeanceName?
     @State private var editTarget: ExerciseTarget?
@@ -66,9 +60,9 @@ struct ProgrammeView: View {
     private func pasteSeance(into seance: String) {
         let pasted = clipboard
         guard !pasted.isEmpty else { return }
-        var prog = fullProgram[seance] ?? [:]
+        var prog = vm.fullProgram[seance] ?? [:]
         for (ex, scheme) in pasted { prog[ex] = scheme }
-        fullProgram[seance] = prog
+        vm.fullProgram[seance] = prog
         clipboardData = "{}"
         clipboardName = ""
         Task {
@@ -118,7 +112,7 @@ struct ProgrammeView: View {
 
     private func applyPhaseScheme() async {
         let scheme = phaseShortScheme
-        for (seance, exercises) in fullProgram {
+        for (seance, exercises) in vm.fullProgram {
             for exercise in exercises.keys {
                 await editExercise(seance: seance, oldName: exercise, newName: exercise, scheme: scheme)
             }
@@ -141,15 +135,16 @@ struct ProgrammeView: View {
         }
     }
 
-    @State private var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
-    @State private var exerciseSupersets: [String: [String: SupersetEntry]] = [:]
-    @State private var programSuggestions: [String: [String: ProgressionSuggestion]] = [:]
+    // exerciseWeights, exerciseSupersets, programSuggestions migrés dans vm (commit 1).
+    // mutationCount, lastSaveError restent en vue commit 1 — migrent commit 2 avec
+    // les handlers de mutation qui les écrivent.
     @State private var mutationCount = 0
     @State private var lastSaveError = false
 
-    // Session reorder
+    // Session reorder — drag transitoire UI-local. Sync avec vm.orderedSeances via
+    // .onChange (VM = source de vérité, drag = miroir jetable, drop = commit unique).
+    // Repris au Lot 5 (DragReorderState).
     @State private var sessionOrder: [String] = []
-    @State private var apiSessionOrder: [String] = []
     @State private var draggingSession: String? = nil
     @State private var sessionDragY: CGFloat = 0
     @State private var sessionCardHeights: [String: CGFloat] = [:]
@@ -173,17 +168,14 @@ struct ProgrammeView: View {
         return 0
     }
 
-    private func refreshSessionOrder() {
-        let existing = Set(fullProgram.keys)
-        let base = apiSessionOrder.isEmpty ? orderedSeances : apiSessionOrder
-        var ordered = base.filter { existing.contains($0) }
-        let missing = orderedSeances.filter { !ordered.contains($0) }
-        ordered += missing
-        sessionOrder = ordered
-    }
+    // refreshSessionOrder() supprimé — orderedSeances est maintenant computed dans
+    // le VM. La vue s'y resynchronise via .onChange(of: vm.orderedSeances).
 
     private func saveSessionOrder() {
-        apiSessionOrder = sessionOrder
+        // TODO commit 2 : vm.saveSessionOrder(sessionOrder) doit throw ; échec →
+        // vm.lastSaveError = true (chip toolbar). Sinon un drag échoué laisse l'ordre
+        // local mentir jusqu'au prochain loadData.
+        vm.apiSessionOrder = sessionOrder
         let order = sessionOrder
         Task { await postProgramme(["action": "reorder_sessions", "order": order]) }
     }
@@ -198,12 +190,10 @@ struct ProgrammeView: View {
     @State private var undoDeleteTask: Task<Void, Never>? = nil
     @State private var saveSuccessMsg: String? = nil
 
-    // Multi-programmes
-    @State private var programs: [ProgramInfo] = []
-    @State private var selectedProgramId: String = ""
-    @State private var activeProgramId: String = ""
+    // Multi-programmes : programs, selectedProgramId, activeProgramId, allSessions
+    // migrés dans vm. isSettingActive reste vue commit 1 (utilisé par setActiveProgramme
+    // qui migre commit 2).
     @State private var isSettingActive = false
-    @State private var allSessions: [String] = []         // toutes les sessions, tous programmes
     @State private var showCreateProgram = false
     @State private var newProgramName = ""
     @State private var renameProgramTarget: ProgramInfo? = nil
@@ -223,7 +213,7 @@ struct ProgrammeView: View {
 
     private var weeklySessionFrequency: [String: Int] {
         var freq: [String: Int] = [:]
-        for session in schedule.values where session != "Repos" {
+        for session in vm.schedule.values where session != "Repos" {
             freq[session, default: 0] += 1
         }
         return freq
@@ -232,11 +222,11 @@ struct ProgrammeView: View {
     private var weeklyVolumeByMuscle: [String: Int] {
         let freq = weeklySessionFrequency
         var vol: [String: Int] = [:]
-        for (seance, exercises) in fullProgram {
+        for (seance, exercises) in vm.fullProgram {
             let f = freq[seance] ?? 0
             guard f > 0 else { continue }
             for (exercise, scheme) in exercises {
-                guard let dbMuscle = inventoryMuscleGroups[exercise] else { continue }
+                guard let dbMuscle = vm.inventoryMuscleGroups[exercise] else { continue }
                 guard let doctrinal = TrainingDoctrine.doctrinalMuscleGroup(for: dbMuscle) else { continue }
                 let sets = parseSets(from: scheme)
                 vol[doctrinal, default: 0] += sets * f
@@ -253,7 +243,7 @@ struct ProgrammeView: View {
     }
 
     private func isScheduledThisWeek(_ s: String) -> Bool {
-        schedule.values.contains(s) || eveningSchedule.values.contains(s)
+        vm.schedule.values.contains(s) || vm.eveningSchedule.values.contains(s)
     }
 
     private var todaySessionName: String? {
@@ -261,7 +251,7 @@ struct ProgrammeView: View {
         let idx = (weekday + 5) % 7  // 1=Sun → idx=6, 2=Mon → idx=0, …, 7=Sat → idx=5
         guard idx < TrainingDoctrine.dayNames.count else { return nil }
         let day = TrainingDoctrine.dayNames[idx]
-        return schedule[day].flatMap { $0 == "Repos" ? nil : $0 }
+        return vm.schedule[day].flatMap { $0 == "Repos" ? nil : $0 }
     }
 
     private var todayDateStr: String {
@@ -269,31 +259,26 @@ struct ProgrammeView: View {
     }
 
     private var activeProgrammeName: String {
-        programs.first { $0.id == activeProgramId }?.name ?? ""
+        vm.programs.first { $0.id == vm.activeProgramId }?.name ?? ""
     }
 
-    /// Known seances in canonical order, then any custom seances alphabetically.
-    var orderedSeances: [String] {
-        let known  = TrainingDoctrine.canonicalSeanceOrder.filter { fullProgram[$0] != nil }
-        let custom = fullProgram.keys.filter { !TrainingDoctrine.canonicalSeanceOrder.contains($0) }.sorted()
-        return known + custom
-    }
+    // orderedSeances migré dans vm — computed sur vm.fullProgram + TrainingDoctrine.
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
-                if isLoading {
+                if vm.isLoading {
                     ProgressView().tint(Color.forge)
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
                             // ── Onglets programmes ────────────────────────
-                            if programs.count > 1 {
+                            if vm.programs.count > 1 {
                                 ProgramTabsView(
-                                    programs: programs,
-                                    selectedId: $selectedProgramId,
-                                    activeId: activeProgramId,
+                                    programs: vm.programs,
+                                    selectedId: $vm.selectedProgramId,
+                                    activeId: vm.activeProgramId,
                                     onAdd: { showCreateProgram = true },
                                     onRename: { p in
                                         renameProgramTarget = p
@@ -306,7 +291,7 @@ struct ProgrammeView: View {
                                 )
                                 .padding(.horizontal, 16)
 
-                                if !selectedProgramId.isEmpty, selectedProgramId != activeProgramId {
+                                if !vm.selectedProgramId.isEmpty, vm.selectedProgramId != vm.activeProgramId {
                                     Button {
                                         Task { await setActiveProgramme() }
                                     } label: {
@@ -348,7 +333,7 @@ struct ProgrammeView: View {
                             }
 
                             EditableWeekScheduleCard(
-                                schedule: $schedule,
+                                schedule: $vm.schedule,
                                 dayNames: TrainingDoctrine.dayNames,
                                 sessions: sessionsList,
                                 onSave: { Task { await saveSchedule() } }
@@ -356,7 +341,7 @@ struct ProgrammeView: View {
                             .padding(.horizontal, 16)
 
                             EveningScheduleCard(
-                                eveningSchedule: $eveningSchedule,
+                                eveningSchedule: $vm.eveningSchedule,
                                 dayNames: TrainingDoctrine.dayNames,
                                 sessions: sessionsList,
                                 onSave: { Task { await saveEveningSchedule() } }
@@ -482,7 +467,7 @@ struct ProgrammeView: View {
                     .refreshable {
                         CacheService.shared.clear(for: "programme_data")
                         seance2ExosToday = SeanceSplitStore.load(date: todayDateStr)
-                        await loadData(programId: selectedProgramId.isEmpty ? nil : selectedProgramId)
+                        await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
                     }
                 }
 
@@ -578,7 +563,7 @@ struct ProgrammeView: View {
                 }
             }
             .sheet(item: $addTarget) { sn in
-                AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes, inventoryMuscleGroups: inventoryMuscleGroups) { ex, scheme in
+                AddExerciseSheet(seance: sn.id, inventory: vm.inventory, inventorySchemes: vm.inventorySchemes, inventoryMuscleGroups: vm.inventoryMuscleGroups) { ex, scheme in
                     Task { await addExercise(seance: sn.id, exercise: ex, scheme: scheme) }
                 }
             }
@@ -648,11 +633,19 @@ struct ProgrammeView: View {
                 Text("Toutes les séances de ce programme seront supprimées. Cette action est irréversible.")
             }
         }
-        .task { await loadData(); await loadSuggestions() }
+        .task { await vm.loadData(); await vm.loadSuggestions() }
         .onAppear { seance2ExosToday = SeanceSplitStore.load(date: todayDateStr) }
-        .onChange(of: selectedProgramId) { _, newId in
+        .onChange(of: vm.selectedProgramId) { _, newId in
             guard !newId.isEmpty else { return }
-            Task { await loadData(programId: newId); await loadSuggestions() }
+            Task { await vm.loadData(programId: newId); await vm.loadSuggestions() }
+        }
+        // Sync VM → vue : le VM est source de vérité pour l'ordre des séances
+        // (vm.orderedSeances = canoniques présentes + custom alpha). Toute
+        // hydratation (loadData) ou mutation qui change la liste écrase le drag
+        // local. Le drag est terminé au drop (saveSessionOrder → vm.apiSessionOrder
+        // mis à jour), donc pas de conflit avec le miroir.
+        .onChange(of: vm.orderedSeances) { _, newOrder in
+            sessionOrder = newOrder
         }
         // Rafraîchit inventory/inventorySchemes à l'ouverture d'AddExerciseSheet.
         // Résout le cas "exo fraîchement créé au catalogue absent du mapping local"
@@ -660,14 +653,14 @@ struct ProgrammeView: View {
         // Pattern budget : refresh au call site du bouton, pas d'infra de publisher.
         .onChange(of: addTarget?.id) { _, newId in
             guard newId != nil else { return }
-            Task { await loadData() }
+            Task { await vm.loadData() }
         }
     }
 
     // MARK: – Body helpers (extracted to keep type-checker happy)
 
     private var sessionsList: [String] {
-        let list = allSessions.isEmpty ? orderedSeances : allSessions
+        let list = vm.allSessions.isEmpty ? vm.orderedSeances : vm.allSessions
         var seen = Set<String>()
         return list.filter { seen.insert($0).inserted }
     }
@@ -686,16 +679,20 @@ struct ProgrammeView: View {
     @ViewBuilder
     private func sessionCard(for seance: String) -> some View {
         let isSessionDragging: Bool = draggingSession == seance
+        // Binding proxy vers vm.fullProgram[seance] : la sous-vue reçoit un slice
+        // du dict racine, écrit via setter. Publish sur mutation logique (add/delete/
+        // edit) uniquement — pas de perte de focus car les sous-vues (Add/EditSheet)
+        // ont leur propre @State pour la frappe.
         let exercisesBinding = Binding<[String: String]>(
-            get: { self.fullProgram[seance] ?? [:] },
-            set: { self.fullProgram[seance] = $0 }
+            get: { self.vm.fullProgram[seance] ?? [:] },
+            set: { self.vm.fullProgram[seance] = $0 }
         )
         let orderedNamesBinding = Binding<[String]>(
             get: {
-                if let names = self.exerciseOrder[seance] { return names }
-                return self.fullProgram[seance]?.keys.sorted() ?? []
+                if let names = self.vm.exerciseOrder[seance] { return names }
+                return self.vm.fullProgram[seance]?.keys.sorted() ?? []
             },
-            set: { self.exerciseOrder[seance] = $0 }
+            set: { self.vm.exerciseOrder[seance] = $0 }
         )
         let pasteAction: Optional<() -> Void> = clipboard.isEmpty
             ? Optional<() -> Void>.none
@@ -709,7 +706,7 @@ struct ProgrammeView: View {
             orderedNames: orderedNamesBinding,
             onAdd:        { addTarget = SeanceName(id: seance) },
             onEdit:       { ex, scheme in
-                let w = exerciseWeights[ex]
+                let w = vm.exerciseWeights[ex]
                 editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme, lastWeight: w?.weight, lastReps: w?.reps, lastDate: w?.date)
             },
             onDelete:     { ex in deleteWithUndo(seance: seance, exercise: ex) },
@@ -718,7 +715,7 @@ struct ProgrammeView: View {
                 deleteSeanceTarget = seance
                 confirmDeleteSeance = true
             },
-            onCopy:  { copySeance(name: seance, exercises: fullProgram[seance] ?? [:]) },
+            onCopy:  { copySeance(name: seance, exercises: vm.fullProgram[seance] ?? [:]) },
             onPaste: pasteAction,
             isToday: seance == todaySessionName,
             seance2ExosToday: seance == todaySessionName ? seance2ExosToday : [],
@@ -741,11 +738,11 @@ struct ProgrammeView: View {
                     sessionDragY = 0
                 }
             },
-            supersets:        exerciseSupersets[seance] ?? [:],
-            exerciseWeights:  exerciseWeights,
-            suggestions:      programSuggestions[seance] ?? [:],
-            inventoryPatterns: inventoryPatterns,
-            inventoryOneRM:    inventoryOneRM
+            supersets:        vm.exerciseSupersets[seance] ?? [:],
+            exerciseWeights:  vm.exerciseWeights,
+            suggestions:      vm.programSuggestions[seance] ?? [:],
+            inventoryPatterns: vm.inventoryPatterns,
+            inventoryOneRM:    vm.inventoryOneRM
         )
         .padding(.horizontal, 16)
         .background(
@@ -764,111 +761,11 @@ struct ProgrammeView: View {
     }
 
     // MARK: – Load
-
-    private func applyJSON(_ json: [String: Any]) {
-        if let raw = json["full_program"] as? [String: [String: Any]] {
-            fullProgram = raw.mapValues { $0.compactMapValues { $0 as? String } }
-        }
-        schedule         = (json["schedule"] as? [String: String]) ?? [:]
-        inventory        = (json["inventory"] as? [String]) ?? []
-        inventorySchemes  = (json["inventory_schemes"]  as? [String: String]) ?? [:]
-        inventoryMuscleGroups = (json["inventory_muscle_groups"] as? [String: String]) ?? [:]
-        inventoryPatterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
-        if let raw = json["inventory_1rm"] as? [String: Any] {
-            inventoryOneRM = raw.compactMapValues { $0 as? Double }
-        }
-        if let order = json["exercise_order"] as? [String: [String]] {
-            exerciseOrder = order
-        }
-        if let order = json["session_order"] as? [String] {
-            apiSessionOrder = order
-        }
-        if let ss = json["exercise_supersets"] as? [String: [String: [String: Any]]] {
-            var parsed: [String: [String: SupersetEntry]] = [:]
-            for (seance, pairs) in ss {
-                var seanceMap: [String: SupersetEntry] = [:]
-                for (exName, entry) in pairs {
-                    if let a = entry["A"] as? String, let b = entry["B"] as? String {
-                        let r = entry["rest"] as? Int
-                        seanceMap[exName] = SupersetEntry(a: a, b: b, rest: r)
-                    }
-                }
-                parsed[seance] = seanceMap
-            }
-            exerciseSupersets = parsed
-        }
-        // Programs
-        if let rawPrograms = json["programs"] as? [[String: Any]] {
-            programs = rawPrograms.compactMap { d in
-                guard let id = d["id"] as? String, let name = d["name"] as? String else { return nil }
-                return ProgramInfo(id: id, name: name)
-            }
-        }
-        if let pid = json["current_program_id"] as? String, !pid.isEmpty {
-            if selectedProgramId.isEmpty { selectedProgramId = pid }
-            activeProgramId = pid
-        }
-        if let sessions = json["all_sessions"] as? [String] {
-            allSessions = sessions
-        }
-        refreshSessionOrder()
-    }
-
-    private func loadSuggestions() async {
-        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
-        let dateStr = fmt.string(from: Date())
-        var result: [String: [String: ProgressionSuggestion]] = [:]
-        for seance in sessionOrder {
-            if let list = try? await APIService.shared.fetchProgressionSuggestions(
-                date: dateStr, sessionType: "morning", sessionName: seance
-            ) {
-                result[seance] = Dictionary(uniqueKeysWithValues: list.map { ($0.exerciseName, $0) })
-            }
-        }
-        await MainActor.run { programSuggestions = result }
-    }
-
-    private func loadData(programId: String? = nil) async {
-        var urlStr = "\(kBaseURL)/api/programme_data"
-        let pid = programId ?? (selectedProgramId.isEmpty ? nil : selectedProgramId)
-        if let pid = pid { urlStr += "?program_id=\(pid)" }
-        guard let url = URL(string: urlStr) else { await MainActor.run { isLoading = false }; return }
-        // Affichage immédiat depuis cache
-        if let cached = CacheService.shared.load(for: "programme_data"),
-           let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
-            await MainActor.run { applyJSON(json); isLoading = false }
-        }
-        // sequential — async let LIFO crash on iOS 26 beta
-        if let (data, _) = try? await URLSession.authed.data(from: url),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            CacheService.shared.save(data, for: "programme_data")
-            await MainActor.run { applyJSON(json); isLoading = false }
-        } else {
-            await MainActor.run { isLoading = false }
-        }
-        if let eURL = URL(string: "\(kBaseURL)/api/evening_schedule"),
-           let (eData, _) = try? await URLSession.authed.data(from: eURL),
-           let eJson = try? JSONSerialization.jsonObject(with: eData) as? [String: String] {
-            await MainActor.run { eveningSchedule = eJson }
-        }
-        if let wURL = URL(string: "\(kBaseURL)/api/seance_data"),
-           let (wData, _) = try? await URLSession.authed.data(from: wURL),
-           let wJson = try? JSONSerialization.jsonObject(with: wData) as? [String: Any],
-           let weights = wJson["weights"] as? [String: [String: Any]] {
-            await MainActor.run {
-                exerciseWeights = weights.compactMapValues { d in
-                    let w  = d["current_weight"] as? Double
-                    let r  = d["last_reps"]      as? String
-                    let dt = d["last_logged"]    as? String
-                    return (w, r, dt)
-                }
-            }
-        }
-    }
+    // applyJSON, loadData, loadSuggestions migrés dans ProgrammeViewModel (commit 1).
 
     private func saveEveningSchedule() async {
         do {
-            try await APIService.shared.saveEveningSchedule(eveningSchedule)
+            try await APIService.shared.saveEveningSchedule(vm.eveningSchedule)
         } catch {
             await MainActor.run { lastSaveError = true }
         }
@@ -880,8 +777,8 @@ struct ProgrammeView: View {
         await MainActor.run { mutationCount += 1; lastSaveError = false }
         defer { Task { @MainActor in mutationCount = max(0, mutationCount - 1) } }
         var enrichedBody = body
-        if !selectedProgramId.isEmpty, enrichedBody["program_id"] == nil {
-            enrichedBody["program_id"] = selectedProgramId
+        if !vm.selectedProgramId.isEmpty, enrichedBody["program_id"] == nil {
+            enrichedBody["program_id"] = vm.selectedProgramId
         }
         do {
             try await APIService.shared.postProgrammeMutation(enrichedBody)
@@ -893,8 +790,8 @@ struct ProgrammeView: View {
     private func addExercise(seance: String, exercise: String, scheme: String) async {
         await postProgramme(["action": "add", "jour": seance, "exercise": exercise, "scheme": scheme])
         await MainActor.run {
-            fullProgram[seance, default: [:]][exercise] = scheme
-            exerciseOrder[seance, default: []].append(exercise)
+            vm.fullProgram[seance, default: [:]][exercise] = scheme
+            vm.exerciseOrder[seance, default: []].append(exercise)
             if !lastSaveError { showSaveSuccess("Exercice ajouté") }
         }
     }
@@ -911,11 +808,11 @@ struct ProgrammeView: View {
             Task { await deleteExercise(seance: prev.seance, exercise: prev.name) }
         }
         // Snapshot for undo
-        let idx = exerciseOrder[seance]?.firstIndex(of: exercise) ?? 0
-        let scheme = fullProgram[seance]?[exercise] ?? ""
+        let idx = vm.exerciseOrder[seance]?.firstIndex(of: exercise) ?? 0
+        let scheme = vm.fullProgram[seance]?[exercise] ?? ""
         // Optimistic local removal
-        fullProgram[seance]?.removeValue(forKey: exercise)
-        exerciseOrder[seance]?.removeAll { $0 == exercise }
+        vm.fullProgram[seance]?.removeValue(forKey: exercise)
+        vm.exerciseOrder[seance]?.removeAll { $0 == exercise }
         // Show undo toast
         withAnimation { undoDeleteItem = UndoDeleteItem(seance: seance, name: exercise, scheme: scheme, orderIndex: idx) }
         // Auto-commit after 4 s
@@ -932,23 +829,23 @@ struct ProgrammeView: View {
         undoDeleteTask?.cancel()
         undoDeleteTask = nil
         // Restore local state
-        fullProgram[item.seance, default: [:]][item.name] = item.scheme
-        let idx = min(item.orderIndex, exerciseOrder[item.seance]?.count ?? 0)
-        exerciseOrder[item.seance, default: []].insert(item.name, at: idx)
+        vm.fullProgram[item.seance, default: [:]][item.name] = item.scheme
+        let idx = min(item.orderIndex, vm.exerciseOrder[item.seance]?.count ?? 0)
+        vm.exerciseOrder[item.seance, default: []].insert(item.name, at: idx)
         withAnimation { undoDeleteItem = nil }
     }
 
     private func reorderExercises(seance: String, order: [String]) async {
         // Guard: don't send if order is a subset of the actual exercises
         // (incomplete orderedNames would silently drop missing exercises)
-        let actual = fullProgram[seance]?.count ?? 0
+        let actual = vm.fullProgram[seance]?.count ?? 0
         guard order.count >= actual else { return }
         await postProgramme(["action": "reorder", "jour": seance, "ordre": order])
     }
 
     private func saveSchedule() async {
         do {
-            try await APIService.shared.saveMorningSchedule(schedule)
+            try await APIService.shared.saveMorningSchedule(vm.schedule)
         } catch {
             await MainActor.run { lastSaveError = true }
         }
@@ -956,11 +853,11 @@ struct ProgrammeView: View {
 
     private func createSeance(name: String) async {
         var body: [String: Any] = ["action": "create_seance", "jour": name]
-        if !selectedProgramId.isEmpty { body["program_id"] = selectedProgramId }
+        if !vm.selectedProgramId.isEmpty { body["program_id"] = vm.selectedProgramId }
         await postProgramme(body)
         await MainActor.run {
-            fullProgram[name] = [:]
-            exerciseOrder[name] = []
+            vm.fullProgram[name] = [:]
+            vm.exerciseOrder[name] = []
         }
     }
 
@@ -971,10 +868,10 @@ struct ProgrammeView: View {
             let pid = try await APIService.shared.createProgram(name: name)
             await MainActor.run {
                 let p = ProgramInfo(id: pid, name: name)
-                programs.append(p)
-                selectedProgramId = pid
-                fullProgram = [:]
-                exerciseOrder = [:]
+                vm.programs.append(p)
+                vm.selectedProgramId = pid
+                vm.fullProgram = [:]
+                vm.exerciseOrder = [:]
             }
         } catch {
             await MainActor.run { lastSaveError = true }
@@ -982,14 +879,14 @@ struct ProgrammeView: View {
     }
 
     private func setActiveProgramme() async {
-        guard !selectedProgramId.isEmpty else { return }
+        guard !vm.selectedProgramId.isEmpty else { return }
         await MainActor.run { isSettingActive = true }
         defer { Task { @MainActor in isSettingActive = false } }
         do {
-            try await APIService.shared.setActiveProgram(id: selectedProgramId)
+            try await APIService.shared.setActiveProgram(id: vm.selectedProgramId)
             await MainActor.run {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    activeProgramId = selectedProgramId
+                    vm.activeProgramId = vm.selectedProgramId
                 }
             }
         } catch {
@@ -1001,8 +898,8 @@ struct ProgrammeView: View {
         do {
             try await APIService.shared.renameProgram(id: id, name: name)
             await MainActor.run {
-                if let idx = programs.firstIndex(where: { $0.id == id }) {
-                    programs[idx] = ProgramInfo(id: id, name: name)
+                if let idx = vm.programs.firstIndex(where: { $0.id == id }) {
+                    vm.programs[idx] = ProgramInfo(id: id, name: name)
                 }
             }
         } catch {
@@ -1014,10 +911,10 @@ struct ProgrammeView: View {
         do {
             try await APIService.shared.deleteProgram(id: id)
             await MainActor.run {
-                programs.removeAll { $0.id == id }
-                if selectedProgramId == id { selectedProgramId = programs.first?.id ?? "" }
+                vm.programs.removeAll { $0.id == id }
+                if vm.selectedProgramId == id { vm.selectedProgramId = vm.programs.first?.id ?? "" }
             }
-            await loadData(programId: selectedProgramId.isEmpty ? nil : selectedProgramId)
+            await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
         } catch {
             await MainActor.run { lastSaveError = true }
         }
@@ -1026,11 +923,11 @@ struct ProgrammeView: View {
     private func deleteSeance(name: String) async {
         await postProgramme(["action": "delete_seance", "jour": name])
         await MainActor.run {
-            fullProgram.removeValue(forKey: name)
-            exerciseOrder.removeValue(forKey: name)
+            vm.fullProgram.removeValue(forKey: name)
+            vm.exerciseOrder.removeValue(forKey: name)
             // Clear from schedule if assigned
-            for (day, seance) in schedule where seance == name {
-                schedule.removeValue(forKey: day)
+            for (day, seance) in vm.schedule where seance == name {
+                vm.schedule.removeValue(forKey: day)
             }
         }
     }
@@ -1050,17 +947,17 @@ struct ProgrammeView: View {
             await postProgramme(["action": "scheme", "jour": seance, "exercise": newName, "scheme": scheme])
             await MainActor.run {
                 // Swift Dicts are value types — must read, mutate, then write back
-                for key in fullProgram.keys {
-                    if let oldScheme = fullProgram[key]?[oldName] {
-                        fullProgram[key]?[newName] = oldScheme
-                        fullProgram[key]?.removeValue(forKey: oldName)
+                for key in vm.fullProgram.keys {
+                    if let oldScheme = vm.fullProgram[key]?[oldName] {
+                        vm.fullProgram[key]?[newName] = oldScheme
+                        vm.fullProgram[key]?.removeValue(forKey: oldName)
                     }
                 }
-                fullProgram[seance]?[newName] = scheme
+                vm.fullProgram[seance]?[newName] = scheme
             }
         } else {
             await postProgramme(["action": "scheme", "jour": seance, "exercise": oldName, "scheme": scheme])
-            await MainActor.run { fullProgram[seance]?[oldName] = scheme }
+            await MainActor.run { vm.fullProgram[seance]?[oldName] = scheme }
         }
         await MainActor.run { if !lastSaveError { showSaveSuccess("Exercice modifié") } }
     }
