@@ -100,8 +100,7 @@ struct AlreadyLoggedSeanceView: View {
         let weekday = todayWeekday
         let todayIdx = (weekday + 5) % 7   // 0=Lun … 6=Dim
         let tomorrowIdx = (todayIdx + 1) % 7
-        let keys = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-        return data.schedule[keys[tomorrowIdx]] ?? "Repos"
+        return data.schedule[TrainingDoctrine.dayNames[tomorrowIdx]] ?? "Repos"
     }
 
     var tomorrowColor: Color {
@@ -801,11 +800,9 @@ struct ExtraSessionSheet: View {
     @State private var exitRpe: Double = 7
     @State private var exitComment: String = ""
 
-    private let knownOrder = ["Push A", "Pull A", "Legs", "Push B", "Pull B + Full Body", "Yoga / Tai Chi", "Recovery"]
-
     private var sessionList: [String] {
-        let known  = knownOrder.filter { data.fullProgram[$0] != nil }
-        let custom = data.fullProgram.keys.filter { !knownOrder.contains($0) }.sorted()
+        let known  = TrainingDoctrine.canonicalSeanceOrder.filter { data.fullProgram[$0] != nil }
+        let custom = data.fullProgram.keys.filter { !TrainingDoctrine.canonicalSeanceOrder.contains($0) }.sorted()
         return known + custom
     }
 

@@ -211,12 +211,9 @@ struct ProgrammeView: View {
     @State private var deleteProgramTarget: ProgramInfo? = nil
     @State private var confirmDeleteProgram = false
 
-    private let dayNames    = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-    private let seanceOrder = ["Push A", "Pull A", "Legs", "Push B", "Pull B + Full Body", "Yoga / Tai Chi", "Recovery"]
-
     // MARK: - Volume MEV/MAV
-    private let muscleMEV: [String: Int] = ["Pecs": 10, "Dos": 10, "Épaules": 8, "Biceps": 6, "Triceps": 6, "Jambes": 8, "Fessiers": 6, "Core": 6]
-    private let muscleMAV: [String: Int] = ["Pecs": 16, "Dos": 16, "Épaules": 14, "Biceps": 12, "Triceps": 12, "Jambes": 14, "Fessiers": 10, "Core": 12]
+    // Constantes doctrinales (dayNames, canonicalSeanceOrder, muscleMEV/MAV)
+    // extraites vers Models/TrainingDoctrine.swift — source unique.
 
     private func parseSets(from scheme: String) -> Int {
         guard let xRange = scheme.range(of: "x", options: .caseInsensitive) else { return 3 }
@@ -250,7 +247,7 @@ struct ProgrammeView: View {
 
     private var volumeAlerts: [String] {
         weeklyVolumeByMuscle.compactMap { muscle, sets in
-            guard let mev = muscleMEV[muscle], sets < mev else { return nil }
+            guard let mev = TrainingDoctrine.muscleMEV[muscle], sets < mev else { return nil }
             return "\(muscle) — \(sets)/\(mev) sets min."
         }.sorted()
     }
@@ -262,8 +259,8 @@ struct ProgrammeView: View {
     private var todaySessionName: String? {
         let weekday = Calendar.current.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7  // 1=Sun → idx=6, 2=Mon → idx=0, …, 7=Sat → idx=5
-        guard idx < dayNames.count else { return nil }
-        let day = dayNames[idx]
+        guard idx < TrainingDoctrine.dayNames.count else { return nil }
+        let day = TrainingDoctrine.dayNames[idx]
         return schedule[day].flatMap { $0 == "Repos" ? nil : $0 }
     }
 
@@ -277,8 +274,8 @@ struct ProgrammeView: View {
 
     /// Known seances in canonical order, then any custom seances alphabetically.
     var orderedSeances: [String] {
-        let known  = seanceOrder.filter { fullProgram[$0] != nil }
-        let custom = fullProgram.keys.filter { !seanceOrder.contains($0) }.sorted()
+        let known  = TrainingDoctrine.canonicalSeanceOrder.filter { fullProgram[$0] != nil }
+        let custom = fullProgram.keys.filter { !TrainingDoctrine.canonicalSeanceOrder.contains($0) }.sorted()
         return known + custom
     }
 
@@ -352,7 +349,7 @@ struct ProgrammeView: View {
 
                             EditableWeekScheduleCard(
                                 schedule: $schedule,
-                                dayNames: dayNames,
+                                dayNames: TrainingDoctrine.dayNames,
                                 sessions: sessionsList,
                                 onSave: { Task { await saveSchedule() } }
                             )
@@ -360,7 +357,7 @@ struct ProgrammeView: View {
 
                             EveningScheduleCard(
                                 eveningSchedule: $eveningSchedule,
-                                dayNames: dayNames,
+                                dayNames: TrainingDoctrine.dayNames,
                                 sessions: sessionsList,
                                 onSave: { Task { await saveEveningSchedule() } }
                             )
@@ -422,8 +419,8 @@ struct ProgrammeView: View {
                             if !volData.isEmpty {
                                 VolumeCard(
                                     volumeByMuscle: volData,
-                                    mev: muscleMEV,
-                                    mav: muscleMAV,
+                                    mev: TrainingDoctrine.muscleMEV,
+                                    mav: TrainingDoctrine.muscleMAV,
                                     alerts: volumeAlerts
                                 )
                                 .padding(.horizontal, 16)
@@ -2115,7 +2112,7 @@ struct EditableWeekScheduleCard: View {
 
     private var todayDayName: String {
         let idx = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
-        return ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"][idx]
+        return dayNames[idx]
     }
 
     var body: some View {

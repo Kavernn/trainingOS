@@ -799,8 +799,6 @@ struct BestDayOfWeekView: View {
     let sessions: [String: SessionEntry]
     let weights: [String: WeightData]
 
-    private let dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-
     // volume/RPE ratio per day of week — avoids session-type bias toward heavy days
     private var efficiencyByDow: [Int: Double] {
         let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 90 * 86400))
@@ -849,7 +847,7 @@ struct BestDayOfWeekView: View {
                 }
                 Spacer()
                 if let best = bestDow {
-                    Text("→ \(dayNames[best])")
+                    Text("→ \(TrainingDoctrine.dayNames[best])")
                         .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)
                 }
             }
@@ -864,7 +862,7 @@ struct BestDayOfWeekView: View {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(isBest ? Color.forge : Color.forge.opacity(0.3))
                             .frame(height: max(CGFloat(maxV > 0 ? v / maxV : 0) * 60, 3))
-                        Text(dayNames[d])
+                        Text(TrainingDoctrine.dayNames[d])
                             .font(.appMicro).foregroundColor(isBest ? Color.forge : .gray)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 70)
