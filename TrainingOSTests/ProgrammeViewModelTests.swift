@@ -63,7 +63,7 @@ final class ProgrammeViewModelTests: XCTestCase {
         XCTAssertEqual(vm.activeProgramId, "p1")
     }
 
-    func test_orderedSeances_canonicalThenCustomAlpha() {
+    func test_orderedSeances_canonicalWhenNoServerOrder() {
         let vm = ProgrammeViewModel()
         vm.fullProgram = [
             "Custom Yoga": [:],
@@ -71,9 +71,30 @@ final class ProgrammeViewModelTests: XCTestCase {
             "Aardvark": [:],
             "Legs": [:],
         ]
-
-        // Canonical d'abord (Push A avant Legs dans TrainingDoctrine),
+        // apiSessionOrder vide (premier launch / jamais dragé) → fallback doctrine :
+        // canonical d'abord (Push A avant Legs dans TrainingDoctrine),
         // puis les custom triées alpha (Aardvark avant Custom Yoga).
         XCTAssertEqual(vm.orderedSeances, ["Push A", "Legs", "Aardvark", "Custom Yoga"])
+    }
+
+    /// Régression commit 1 : orderedSeances ignorait apiSessionOrder, donc un drag
+    /// persisté serveur était perdu à la prochaine hydratation. Fix : apiSessionOrder
+    /// non-vide prime, avec filtrage des séances disparues et append des nouvelles.
+    func test_orderedSeances_respectsApiSessionOrder() {
+        let vm = ProgrammeViewModel()
+        // Scénario : Vince a drag "Legs" en 1er, puis a ajouté "Custom Nouvelle"
+        // après le dernier reorder serveur, et "Push B" a été supprimé.
+        vm.fullProgram = [
+            "Legs": [:],
+            "Push A": [:],
+            "Custom Nouvelle": [:],  // pas dans apiSessionOrder (créée après)
+        ]
+        vm.apiSessionOrder = ["Legs", "Push A", "Push B"]  // Push B n'existe plus
+
+        let ordered = vm.orderedSeances
+
+        // Base = ordre serveur, filtré des disparus (Push B out).
+        // Missing = nouvelles (Custom Nouvelle) en fin, canonique+alpha.
+        XCTAssertEqual(ordered, ["Legs", "Push A", "Custom Nouvelle"])
     }
 }

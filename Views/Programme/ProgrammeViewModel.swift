@@ -47,13 +47,27 @@ final class ProgrammeViewModel: ObservableObject {
 
     // MARK: - Doctrine dérivée
 
-    /// Séances connues dans l'ordre canonique, puis les custom triées alpha.
-    /// Source unique pour l'ordre d'affichage — la vue en dérive son sessionOrder
-    /// local (drag) via .onChange.
+    /// Ordre d'affichage des séances. Deux régimes :
+    ///  - apiSessionOrder non-vide (drag persisté serveur) : cet ordre prime.
+    ///    Les séances disparues du programme sont filtrées, les nouvelles séances
+    ///    (créées après le dernier reorder serveur) sont ajoutées en fin dans
+    ///    l'ordre canonique+alpha.
+    ///  - apiSessionOrder vide (premier launch, jamais dragé) : fallback sur
+    ///    canonique + custom alpha (doctrine pure).
+    ///
+    /// Reproduit la sémantique de refreshSessionOrder() d'avant Lot 2. Sans ça,
+    /// un drag persisté serait perdu à la prochaine hydratation (relance app).
     var orderedSeances: [String] {
         let known  = TrainingDoctrine.canonicalSeanceOrder.filter { fullProgram[$0] != nil }
         let custom = fullProgram.keys.filter { !TrainingDoctrine.canonicalSeanceOrder.contains($0) }.sorted()
-        return known + custom
+        let canonicalPlusCustom = known + custom
+
+        guard !apiSessionOrder.isEmpty else { return canonicalPlusCustom }
+
+        let existing = Set(fullProgram.keys)
+        let base = apiSessionOrder.filter { existing.contains($0) }
+        let missing = canonicalPlusCustom.filter { !base.contains($0) }
+        return base + missing
     }
 
     // MARK: - Chargement
