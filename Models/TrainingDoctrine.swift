@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let doctrineLogger = Logger(subsystem: "TrainingOS", category: "doctrine")
 
 /// Constantes doctrinales du domaine training (valeurs figées côté client).
 /// Séparé des structs Codable de WorkoutModels.swift — ici, du littéral figé,
@@ -17,23 +20,84 @@ enum TrainingDoctrine {
         "Yoga / Tai Chi", "Recovery",
     ]
 
-    /// Seuils de volume hebdomadaire par groupe musculaire (sets/sem).
-    /// MEV = Minimum Effective Volume, MAV = Maximum Adaptive Volume.
-    /// Réf. : Israetel volume landmarks framework, Schoenfeld et al. 2017.
-    ///
-    /// ⚠️ BUG LATENT (hors scope de ce diff d'extraction) : ces clés ne
-    /// matchent PAS les valeurs réelles de exercises.muscle_group en base
-    /// (SELECT DISTINCT 2026-07-16 : Pectoraux, Quadriceps, glutes,
-    /// Ischio-jambiers, Biceps+Avant-bras, Mollets, etc.). Le consommateur
-    /// ProgrammeView.weeklyVolumeByMuscle est donc partiellement muet pour
-    /// 4 groupes sur 8. À corriger dans un diff séparé — préservé tel quel
-    /// ici pour respecter "zéro changement de comportement".
+    // MARK: - Volume landmarks (MEV/MAV) — sets/sem par groupe doctrinal
+    //
+    // MEV = Minimum Effective Volume, MAV = Maximum Adaptive Volume.
+    // Réf. : Israetel Renaissance Periodization volume landmarks, Schoenfeld
+    // et al. 2017. Option A appliquée : chiffres actuels préservés pour les
+    // 8 groupes historiques, chiffres RP pour les 4 nouveaux séparés
+    // (Quadriceps, Ischio-jambiers, Mollets, Trapèzes). Révision RP complète
+    // = diff futur si l'usage révèle un mauvais calibrage.
+
     static let muscleMEV: [String: Int] = [
-        "Pecs": 10, "Dos": 10, "Épaules": 8, "Biceps": 6,
-        "Triceps": 6, "Jambes": 8, "Fessiers": 6, "Core": 6,
+        "Pectoraux":       10,
+        "Dos":             10,
+        "Épaules":          8,
+        "Biceps":           6,
+        "Triceps":          6,
+        "Quadriceps":       8,   // RP séparé (ex-"Jambes")
+        "Ischio-jambiers":  6,   // RP séparé
+        "Fessiers":         6,
+        "Mollets":          6,   // RP séparé
+        "Trapèzes":         4,   // RP séparé, seuil bas (stimulé indirectement en Row/OHP)
+        "Core":             6,
     ]
+
     static let muscleMAV: [String: Int] = [
-        "Pecs": 16, "Dos": 16, "Épaules": 14, "Biceps": 12,
-        "Triceps": 12, "Jambes": 14, "Fessiers": 10, "Core": 12,
+        "Pectoraux":       16,
+        "Dos":             16,
+        "Épaules":         14,
+        "Biceps":          12,
+        "Triceps":         12,
+        "Quadriceps":      18,   // RP
+        "Ischio-jambiers": 14,   // RP
+        "Fessiers":        10,
+        "Mollets":         12,   // RP
+        "Trapèzes":        10,   // RP conservateur
+        "Core":            12,
     ]
+
+    // MARK: - Mapping muscle_group DB → groupe doctrinal
+    //
+    // Valeurs réelles de exercises.muscle_group (SELECT DISTINCT 2026-07-16) :
+    // Épaules(20), Dos(16), Quadriceps(16), Pectoraux(15), Biceps(11),
+    // Ischio-jambiers(8), Triceps(8), Abdominaux(5), Avant-bras(5), glutes(5),
+    // Mollets(4), Core(3), Trapèzes(3), Cou(2).
+    // L'anomalie "glutes" (anglais dans une colonne française) est absorbée
+    // par le mapping ici — harmonisation de la colonne au backlog.
+    // Fusions doctrinales : Biceps+Avant-bras (avant-bras stimulés indirectement,
+    // pas de MEV RP propre) ; Abdominaux+Core (redondance sémantique).
+
+    private static let _dbToDoctrinal: [String: String] = [
+        "Pectoraux":         "Pectoraux",
+        "Dos":               "Dos",
+        "Épaules":           "Épaules",
+        "Biceps":            "Biceps",
+        "Biceps+Avant-bras": "Biceps",  // safety net (valeur historique)
+        "Avant-bras":        "Biceps",  // fusion doctrinale
+        "Triceps":           "Triceps",
+        "Quadriceps":        "Quadriceps",
+        "Ischio-jambiers":   "Ischio-jambiers",
+        "glutes":            "Fessiers",
+        "Mollets":           "Mollets",
+        "Trapèzes":          "Trapèzes",
+        "Abdominaux":        "Core",   // fusion doctrinale
+        "Core":              "Core",
+    ]
+
+    /// Valeurs DB explicitement hors du suivi de volume (aucun seuil pertinent
+    /// en musculation classique). Exclusion intentionnelle, silencieuse.
+    private static let _excludedFromVolume: Set<String> = ["Cou"]
+
+    /// Résout une valeur DB `muscle_group` vers son groupe doctrinal.
+    /// - Retourne nil si explicitement exclue (`_excludedFromVolume`).
+    /// - Retourne nil + warning OSLog si non mappée ni exclue — le crime
+    ///   "groupe silencieusement muet" devient un signal visible. Réponse
+    ///   attendue : ajouter la valeur au mapping ou au set d'exclusion.
+    static func doctrinalMuscleGroup(for dbValue: String) -> String? {
+        if _excludedFromVolume.contains(dbValue) { return nil }
+        if let mapped = _dbToDoctrinal[dbValue]  { return mapped }
+        doctrineLogger.warning("unknown muscle_group '\(dbValue, privacy: .public)' — ni mappé ni exclu. Ajouter à _dbToDoctrinal ou _excludedFromVolume.")
+        return nil
+    }
 }

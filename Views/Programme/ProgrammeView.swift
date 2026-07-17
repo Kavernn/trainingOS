@@ -236,10 +236,10 @@ struct ProgrammeView: View {
             let f = freq[seance] ?? 0
             guard f > 0 else { continue }
             for (exercise, scheme) in exercises {
-                let muscle = inventoryMuscleGroups[exercise] ?? "Autre"
-                guard muscle != "Autre" else { continue }
+                guard let dbMuscle = inventoryMuscleGroups[exercise] else { continue }
+                guard let doctrinal = TrainingDoctrine.doctrinalMuscleGroup(for: dbMuscle) else { continue }
                 let sets = parseSets(from: scheme)
-                vol[muscle, default: 0] += sets * f
+                vol[doctrinal, default: 0] += sets * f
             }
         }
         return vol
