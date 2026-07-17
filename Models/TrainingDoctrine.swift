@@ -57,6 +57,18 @@ enum TrainingDoctrine {
         "Core":            12,
     ]
 
+    /// Ordre visuel canonique pour l'affichage groupé (VolumeCard, futurs
+    /// consommateurs). Cohérent avec les clés de muscleMEV/MAV — la symétrie
+    /// est verrouillée par les tests (TrainingDoctrineTests).
+    /// Ordre : haut du corps antérieur → haut du corps postérieur → bras →
+    /// bas du corps antérieur → bas du corps postérieur → tronc.
+    static let canonicalMuscleOrder: [String] = [
+        "Pectoraux", "Dos", "Épaules", "Trapèzes",
+        "Biceps", "Triceps",
+        "Quadriceps", "Ischio-jambiers", "Fessiers", "Mollets",
+        "Core",
+    ]
+
     // MARK: - Mapping muscle_group DB → groupe doctrinal
     //
     // Valeurs réelles de exercises.muscle_group (SELECT DISTINCT 2026-07-16) :

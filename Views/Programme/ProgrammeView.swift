@@ -2313,7 +2313,7 @@ private struct VolumeCard: View {
 
     @State private var expanded = false
 
-    private let muscleOrder = ["Pecs", "Dos", "Jambes", "Épaules", "Biceps", "Triceps", "Fessiers", "Core"]
+    private let muscleOrder = TrainingDoctrine.canonicalMuscleOrder
 
     private var sortedMuscles: [(String, Int)] {
         muscleOrder.compactMap { m in
