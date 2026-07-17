@@ -1,0 +1,83 @@
+"""
+Tests: /api/readiness — doctrine anti-fantôme (CLAUDE.md).
+
+Le catch-all L846-855 retournait {score: 65} sur toute exception au calcul —
+score plausible inventé, affiché comme un vrai (bien que le decode iOS actuel
+échoue sur modules:{}, le pattern crime était en place, prêt à basculer).
+
+Test principal : compute error → HTTP 500 + {error, reason: "compute_error"},
+JAMAIS 65. Prouve la fin du fantôme.
+
+test_persist_failure_preserves_score non implémenté — conftest db mock
+lacunaire (get_all_exercise_history signature, cascade de deps). À écrire
+au chantier fixtures MagicMock.
+
+La doctrine 832-836 est préservée par structure : le try/except de
+persistance L838-841 est imbriqué DANS le try principal — une exception
+d'écriture est attrapée et loggée localement (L840-841), elle n'atteint
+jamais le catch-all L846-852 qui raise. Inspection confirmée sur
+readiness.py au commit du fix : indent 8 (persist except) vs indent 4
+(catch-all), aucun chemin ne relie l'un à l'autre.
+"""
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
+
+from unittest.mock import patch
+from conftest import BaseRouteTest, TODAY
+
+
+class _ReadinessBaseTest(BaseRouteTest):
+    """readiness._CACHE (module-level, 5 min TTL) doit être vidé entre tests
+    pour éviter qu'un score caché contamine un test suivant."""
+
+    def setUp(self):
+        super().setUp()
+        import readiness as _r
+        _r.invalidate_cache()
+        self._mtl_patch = patch("readiness._today_mtl", return_value=TODAY)
+        self._mtl_patch.start()
+
+    def tearDown(self):
+        self._mtl_patch.stop()
+        super().tearDown()
+
+
+class TestReadinessComputeError(_ReadinessBaseTest):
+
+    def test_compute_error_returns_500_never_score_65(self):
+        # Fait planter le calcul en amont — get_recovery_logs est la 1ère lecture db.
+        with patch("readiness.db.get_recovery_logs", side_effect=RuntimeError("db down")):
+            r = self.get("/api/readiness")
+
+        self.assertEqual(500, r.status_code)
+        payload = self.json(r)
+        self.assertEqual("compute_error", payload["reason"])
+        self.assertEqual("readiness compute failed", payload["error"])
+        # Assertion doctrine anti-fantôme : aucun champ score/verdict/modules ne remonte
+        for ghost in ("score", "verdict", "modules", "muscle_recovery", "why"):
+            self.assertNotIn(ghost, payload)
+
+
+class TestReadinessRouteContract(_ReadinessBaseTest):
+    """Route wrapper : transmet le payload de compute() tel quel sur succès.
+    Prouve qu'aucune couche de la route ne corrompt/remplace le vrai résultat."""
+
+    def test_nominal_passes_compute_payload_through(self):
+        fake = {
+            "score": 78, "verdict": "go", "why": "test",
+            "adjustment": None, "progression_modifier": 1.0,
+            "modules": {"hrv": {"score": 80, "label": "HRV", "detail": "ok"}},
+            "muscle_recovery": {}, "today_session": None,
+            "computed_at": "2026-03-14T12:00:00Z",
+        }
+        with patch("routes.readiness._r.compute", return_value=fake):
+            r = self.get("/api/readiness")
+
+        self.assertEqual(200, r.status_code)
+        self.assertEqual(78, self.json(r)["score"])
+        self.assertEqual("go", self.json(r)["verdict"])
+
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main(verbosity=2)

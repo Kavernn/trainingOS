@@ -7,7 +7,14 @@ readiness_bp = Blueprint("readiness", __name__)
 
 @readiness_bp.route("/api/readiness", methods=["GET"])
 def api_readiness():
-    return jsonify(_r.compute())
+    # Le fantôme {score:65} sur except a été supprimé de compute() — l'échec
+    # de calcul remonte et devient un HTTP 500 explicite. Message générique
+    # côté client (pas de fuite d'infra), détail complet logué serveur-side
+    # par compute() via logger.exception.
+    try:
+        return jsonify(_r.compute())
+    except Exception:
+        return jsonify({"error": "readiness compute failed", "reason": "compute_error"}), 500
 
 
 @readiness_bp.route("/api/readiness/history", methods=["GET"])

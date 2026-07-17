@@ -845,14 +845,11 @@ def compute() -> dict:
 
     except Exception as e:
         logger.exception("readiness.compute failed: %s", e)
-        return {
-            "score": 65, "verdict": "moderate",
-            "verdict_method": "absolute_cold_start", "baseline": None,
-            "why": "Données insuffisantes — écoute ton ressenti aujourd'hui.",
-            "adjustment": None, "progression_modifier": 1.0,
-            "modules": {}, "muscle_recovery": {}, "today_session": None,
-            "computed_at": datetime.now(timezone.utc).isoformat(),
-        }
+        # Doctrine anti-fantôme (CLAUDE.md) : plus jamais de score inventé sur except.
+        # L'échec de calcul remonte au blueprint → HTTP 500 explicite au client.
+        # Distinct de la persistance L838-841 (score réel + write raté = fail loud LOG,
+        # score retourné à l'app).
+        raise
 
 
 def invalidate_cache() -> None:
