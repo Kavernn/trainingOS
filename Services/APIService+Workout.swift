@@ -192,20 +192,20 @@ extension APIService {
     }
 
     func setActiveProgram(id: String) async throws {
-        _ = try await offlinePost(endpoint: "/api/programs",
-                                   payload: ["action": "set_active", "program_id": id])
+        _ = try await postProgrammeDirect(endpoint: "/api/programs",
+                                           payload: ["action": "set_active", "program_id": id])
         CacheInvalidation.programmeMutated.invalidate()
     }
 
     func renameProgram(id: String, name: String) async throws {
-        _ = try await offlinePost(endpoint: "/api/programs",
-                                   payload: ["action": "rename", "program_id": id, "name": name])
+        _ = try await postProgrammeDirect(endpoint: "/api/programs",
+                                           payload: ["action": "rename", "program_id": id, "name": name])
         CacheInvalidation.programmeMutated.invalidate()
     }
 
     func deleteProgram(id: String) async throws {
-        _ = try await offlinePost(endpoint: "/api/programs",
-                                   payload: ["action": "delete", "program_id": id])
+        _ = try await postProgrammeDirect(endpoint: "/api/programs",
+                                           payload: ["action": "delete", "program_id": id])
         CacheInvalidation.programmeMutated.invalidate()
     }
 
