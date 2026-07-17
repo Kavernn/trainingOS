@@ -1265,6 +1265,7 @@ struct IntelligenceView: View {
                     let r = try await APIService.shared.fetchOvertrainingRisk()
                     await MainActor.run { self.overtrainingRisk = r; self.overtrainingError = nil }
                 } catch {
+                    logger.warning("bilan overtraining failed: \(String(describing: type(of: error)), privacy: .public) — \(error.localizedDescription, privacy: .public)")
                     await MainActor.run { self.overtrainingError = "Impossible de calculer le risque — réessaie plus tard" }
                 }
             }
@@ -1273,6 +1274,7 @@ struct IntelligenceView: View {
                     let r = try await APIService.shared.fetchMesocycleStatus()
                     await MainActor.run { self.mesocycleStatus = r; self.mesocycleError = nil }
                 } catch {
+                    logger.warning("bilan mesocycle failed: \(String(describing: type(of: error)), privacy: .public) — \(error.localizedDescription, privacy: .public)")
                     await MainActor.run { self.mesocycleError = "Impossible de charger l'état du cycle" }
                 }
             }
@@ -1281,6 +1283,7 @@ struct IntelligenceView: View {
                     let r = try await APIService.shared.fetchPainJournal()
                     await MainActor.run { self.painJournal = r; self.painJournalError = nil }
                 } catch {
+                    logger.warning("bilan pain_journal failed: \(String(describing: type(of: error)), privacy: .public) — \(error.localizedDescription, privacy: .public)")
                     await MainActor.run { self.painJournalError = "Impossible de charger le journal des douleurs" }
                 }
             }
@@ -1289,6 +1292,7 @@ struct IntelligenceView: View {
                     let r = try await APIService.shared.fetchOneRMProgramming()
                     await MainActor.run { self.oneRMData = r; self.oneRMError = nil }
                 } catch {
+                    logger.warning("bilan one_rm_programming failed: \(String(describing: type(of: error)), privacy: .public) — \(error.localizedDescription, privacy: .public)")
                     await MainActor.run { self.oneRMError = "Impossible de charger la programmation 1RM" }
                 }
             }
