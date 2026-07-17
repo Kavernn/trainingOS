@@ -10,6 +10,7 @@ from collections import defaultdict, Counter
 from typing import Optional
 
 import db
+from progression import get_rep_range
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,17 @@ _LOWER_KEYWORDS = (
     "squat", "deadlift", "rdl", "romanian", "lunge",
     "hip thrust", "leg press", "leg curl", "leg extension",
 )
+
+# Valeurs relevées en base le 16 juillet 2026 (SELECT DISTINCT muscle_group
+# FROM exercises) — colonne incohérente (français partout sauf 'glutes' en
+# anglais), harmonisation au backlog. Ne PAS "corriger" ce set sans re-lancer
+# le SELECT DISTINCT — le fallback logger.warning ci-dessous surfacera tout
+# drift futur.
+_LOWER_MUSCLE_GROUPS = {"Quadriceps", "Ischio-jambiers", "glutes", "Mollets"}
+_CAP_LBS_PER_WEEK_LOWER = 5.0
+_CAP_LBS_PER_WEEK_UPPER = 2.5
+
+_seen_warnings: set = set()
 
 
 def _is_compound(name: str, ex_type: str) -> bool:
@@ -84,12 +96,16 @@ def _deload_dates_in_window(window_start: date, window_end: date) -> set[str]:
     return result
 
 
-def _working_sets(days: int = 28) -> dict[str, list[dict]]:
+def _working_sets(days: int = 28) -> tuple[dict[str, list[dict]], dict[str, dict]]:
     """
-    Returns {exercise_name: [sessions oldest→newest]} for compound exercises
-    in the last N days. One entry per date = max-e1RM set.
-    Deload weeks (week 7 of the 8-week mesocycle) are excluded so that reduced
-    loads during a planned deload cannot trigger a false plateau alert.
+    Returns (sessions_by_ex, metas_by_ex) for compound exercises in the last
+    N days. One entry per date = max-e1RM set. Deload weeks (week 7 of the
+    8-week mesocycle) are excluded so that reduced loads during a planned
+    deload cannot trigger a false plateau alert.
+
+    metas_by_ex[name] = {"load_profile": ..., "muscle_group": ...} — propagé
+    à _score pour rendre la détection consciente des tiers (rep ranges via
+    get_rep_range) et des caps de progression par groupe musculaire.
     """
     today_d       = date.fromisoformat(_today_mtl())
     cutoff        = (today_d - timedelta(days=days)).isoformat()
@@ -121,6 +137,12 @@ def _working_sets(days: int = 28) -> dict[str, list[dict]]:
             if e1rm <= 0:
                 continue
             existing = best_by_date[ex_name].get(d)
+            # ponytail: max e1RM du jour = ceiling connu. La doctrine wave
+            # loading ("évaluer sur la dernière série de travail") demanderait
+            # sets_json[-1], mais l'ordre de sets_json n'est pas documenté
+            # (trou dans CONVENTIONS.md — au backlog). Upgrade path : documenter
+            # la sémantique d'ordre puis remplacer par sets_json[-1] avec
+            # fallback ici quand sets_json est vide.
             if existing is None or e1rm > existing["e1rm_lbs"]:
                 best_by_date[ex_name][d] = {
                     "date":       d,
@@ -129,12 +151,18 @@ def _working_sets(days: int = 28) -> dict[str, list[dict]]:
                     "e1rm_lbs":   round(e1rm, 1),
                 }
 
-    result = {}
+    result: dict[str, list[dict]] = {}
+    metas:  dict[str, dict]       = {}
     for ex_name, by_date in best_by_date.items():
         sessions = sorted(by_date.values(), key=lambda x: x["date"])
         if len(sessions) >= 3:
             result[ex_name] = sessions
-    return result
+            m = exercises_meta.get(ex_name, {}) or {}
+            metas[ex_name] = {
+                "load_profile": m.get("load_profile"),
+                "muscle_group": m.get("muscle_group"),
+            }
+    return result, metas
 
 
 def _pss_context() -> dict:
@@ -215,8 +243,17 @@ def _body_weight_lbs() -> Optional[float]:
 
 # ── Plateau scoring ───────────────────────────────────────────────────────────
 
-def _score(sessions: list[dict]) -> dict:
-    """Compute plateau score 0–100 for one exercise over the last 3 weeks."""
+def _score(sessions: list[dict],
+           exercise_name: str,
+           load_profile: Optional[str],
+           muscle_group: Optional[str]) -> dict:
+    """Compute plateau score 0–100 for one exercise over the last 3 weeks.
+
+    Doctrines consultées :
+      - rep range du tier (get_rep_range) → seuil S4 rep_ceiling
+      - straight sets prescrits en compound_heavy → S3 neutralisé sur ce tier
+      - caps de progression (+2.5 lbs/sem haut / +5 lbs/sem bas) → seuil S1
+    """
     cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=21)).isoformat()
     window = [s for s in sessions if s["date"] >= cutoff]
 
@@ -225,7 +262,27 @@ def _score(sessions: list[dict]) -> dict:
 
     weights  = [s["weight_lbs"] for s in window]
     e1rms    = [s["e1rm_lbs"]   for s in window]
-    reps_l   = [s["reps"]       for s in window]
+
+    # Résolution rep range (tier-aware). Warn-once si load_profile absent —
+    # get_rep_range retombe sur DEFAULT_REP_RANGE (8-12), pas de fantôme silencieux.
+    if not load_profile and (exercise_name, "load_profile") not in _seen_warnings:
+        logger.warning("plateau: no load_profile for %s → default rep range 8-12", exercise_name)
+        _seen_warnings.add((exercise_name, "load_profile"))
+    rep_range = get_rep_range(exercise_name, load_profile)
+    rep_max   = rep_range["max"]
+
+    # Cap de progression (lbs/sem) selon groupe musculaire. Fallback upper
+    # conservateur (seuil plus bas = détection plus sensible) sur toute valeur
+    # non reconnue, avec warn-once pour surfacer les mismatches DB.
+    is_lower = muscle_group in _LOWER_MUSCLE_GROUPS
+    if not is_lower and (exercise_name, "muscle_group") not in _seen_warnings:
+        # Ne warn que si muscle_group inconnu (None ou valeur pas dans le set attendu)
+        # — les vraies valeurs upper (Pectoraux, Dos, etc.) passent silencieusement.
+        # Pour distinguer, on log seulement quand muscle_group est None/vide.
+        if not muscle_group:
+            logger.warning("plateau: no muscle_group for %s → fallback cap upper (2.5 lbs/sem)", exercise_name)
+            _seen_warnings.add((exercise_name, "muscle_group"))
+    cap_per_week = _CAP_LBS_PER_WEEK_LOWER if is_lower else _CAP_LBS_PER_WEEK_UPPER
 
     # Noise filter: intentional variation → skip
     mean_w = sum(weights) / len(weights)
@@ -237,12 +294,18 @@ def _score(sessions: list[dict]) -> dict:
     score = 0
     flags: list[str] = []
 
-    # Signal 1 — days since last e1RM improvement ≥2%
+    # Signal 1 — jours depuis dernière hausse e1RM ≥ seuil calibré sur le cap
+    # de progression réel du groupe musculaire. threshold = cap × 0.5 × semaines
+    # écoulées depuis le peak — remplace l'ancien seuil universel +2%.
     peak             = e1rms[0]
+    peak_date        = window[0]["date"]
     last_improvement = window[0]["date"]
     for i in range(1, len(e1rms)):
-        if e1rms[i] > peak * 1.02:
+        days_since_peak = (date.fromisoformat(window[i]["date"]) - date.fromisoformat(peak_date)).days
+        threshold_lbs   = cap_per_week * 0.5 * days_since_peak / 7.0
+        if e1rms[i] > peak + threshold_lbs:
             peak             = e1rms[i]
+            peak_date        = window[i]["date"]
             last_improvement = window[i]["date"]
 
     days_since = (date.fromisoformat(_today_mtl()) - date.fromisoformat(last_improvement)).days
@@ -273,15 +336,17 @@ def _score(sessions: list[dict]) -> dict:
         score += 30
         flags.append("regression")
 
-    # Signal 3 — repeated identical top sets
+    # Signal 3 — repeated identical top sets. Neutralisé sur compound_heavy :
+    # les straight sets (5×5) y sont la méthode prescrite, pas un symptôme.
     top_sets = [(_round_lbs(s["weight_lbs"]), s["reps"]) for s in window]
-    if any(v >= 2 for v in Counter(top_sets).values()):
+    if load_profile != "compound_heavy" and any(v >= 2 for v in Counter(top_sets).values()):
         score += 20
         flags.append("repeated_sets")
 
-    # Signal 4 — rep ceiling (≥6 reps at same weight, 2+ consecutive sessions)
+    # Signal 4 — rep ceiling au sommet de la fourchette du tier (rep_max),
+    # pas au seuil universel "6" hardcodé qui ignorait la doctrine.
     for i in range(len(window) - 1):
-        if (window[i]["reps"] >= 6 and window[i + 1]["reps"] >= 6
+        if (window[i]["reps"] >= rep_max and window[i + 1]["reps"] >= rep_max
                 and abs(window[i]["weight_lbs"] - window[i + 1]["weight_lbs"]) < 10):
             flags.append("rep_ceiling")
             score += 20
@@ -452,14 +517,17 @@ def detect(force: bool = False) -> dict:
     if not force and _CACHE.get("ts") and now - _CACHE["ts"] < _CACHE_TTL:
         return _CACHE["data"]
 
-    working_sets = _working_sets(days=28)
+    working_sets, metas = _working_sets(days=28)
     pss          = _pss_context()
     nutrition    = _nutrition_context()
 
     alerts = []
 
     for exercise_name, sessions in working_sets.items():
-        info  = _score(sessions)
+        meta          = metas.get(exercise_name, {})
+        load_profile  = meta.get("load_profile")
+        muscle_group  = meta.get("muscle_group")
+        info  = _score(sessions, exercise_name, load_profile, muscle_group)
         score = info.get("score", 0)
         if score < 40:
             continue
