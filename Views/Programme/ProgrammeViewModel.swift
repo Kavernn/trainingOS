@@ -1,15 +1,22 @@
 import SwiftUI
 import Combine
 
-/// ViewModel de ProgrammeView — Lot 2/3 (extraction data serveur + hydratation).
+/// ViewModel de ProgrammeView — source de vérité pour les données serveur du
+/// programme (inventaire, planning, multi-progs), l'état runtime de chargement
+/// et de mutation, et la doctrine dérivée testable (orderedSeances, volume MEV).
 ///
-/// Commit 1 : état SERVEUR (inventaire, programmes, planning), runtime nécessaire
-/// au chargement (isLoading, programSuggestions, exerciseWeights), hydratation
-/// atomique via applyJSON, chargement (loadData + loadSuggestions).
+/// Séparation vue/VM :
+///  - VM : données serveur (@Published), handlers de mutation async, computed
+///    doctrine dérivée. @MainActor : les mutations passent toutes par le main.
+///  - Vue : UI-LOCAL strict (sheets, alerts, drag transitoire, clipboard
+///    @AppStorage, undo delete, périodisation @AppStorage), délègue toute
+///    mutation serveur au VM via vm.<handler>.
 ///
-/// Handlers de mutation restent dans la vue jusqu'au commit 2 — ils lisent/écrivent
-/// vm.xxx via @Published. Commit 2 : migration des handlers + propagation throw
-/// pour saveSessionOrder (échec drop → vue → vm.lastSaveError).
+/// Contrats non-négociables :
+///  - Mutations de structure (setActiveProgram, rename, delete) = POST direct
+///    via APIService+Workout postProgrammeDirect + throw (cf. df2b648).
+///  - applyJSON atomique : une seule séquence de mutations groupées.
+///  - saveSessionOrder throws + rollback apiSessionOrder sur échec (65e77c2).
 @MainActor
 final class ProgrammeViewModel: ObservableObject {
 
@@ -26,10 +33,10 @@ final class ProgrammeViewModel: ObservableObject {
     @Published var inventoryOneRM: [String: Double] = [:]
     @Published var exerciseSupersets: [String: [String: SupersetEntry]] = [:]
 
-    /// Ordre serveur des séances. Hydraté par applyJSON, écrasé par saveSessionOrder
-    /// (côté vue commit 1 — migre commit 2). La vue en dérive son sessionOrder local
-    /// (drag) via .onChange sur orderedSeances. Jamais muter depuis le drag : le
-    /// round-trip serveur est l'unique voie d'écriture.
+    /// Miroir de l'ordre serveur des séances (drag persisté). Hydraté par
+    /// applyJSON, écrasé optimistement par saveSessionOrder puis rollback en cas
+    /// d'échec. La vue en dérive son sessionOrder local (drag) via .onChange sur
+    /// orderedSeances — seul le round-trip serveur (saveSessionOrder) écrit ici.
     @Published var apiSessionOrder: [String] = []
 
     // MARK: - Multi-programmes (SERVEUR)
@@ -233,9 +240,26 @@ final class ProgrammeViewModel: ObservableObject {
     }
 
     // MARK: - Mutations — wrapper
+    //
+    // Deux chemins d'écriture coexistent volontairement — contrats distincts,
+    // pas un doublon accidentel :
+    //
+    //  - postProgramme (silencieux) : contrat "mute mon état local APRÈS le POST,
+    //    optimistement uniquement si succès". Incrémente mutationCount (chip
+    //    toolbar), attrape l'erreur dans lastSaveError. Le handler lit ensuite
+    //    lastSaveError pour décider (ex: showSaveSuccess). Utilisé par 6
+    //    handlers : addExercise, deleteExercise, reorderExercises, editExercise,
+    //    createSeance, deleteSeance.
+    //
+    //  - postProgrammeThrowing (raw) : contrat "je mute AVANT le POST, je
+    //    rollback moi-même sur throw". Utilisé par saveSessionOrder qui a besoin
+    //    de rollback apiSessionOrder + propagation d'erreur à la vue (chip
+    //    lastSaveError positionné au call site du drop, pas ici).
+    //
+    // Fusion possible mais anti-lazy : 6 handlers dupliqueraient le try/catch +
+    // mutationCount + lastSaveError. Duplication supérieure au coût de 2
+    // wrappers privés.
 
-    /// Enrichit avec selectedProgramId puis POST. Throws — utilisé par
-    /// saveSessionOrder qui a besoin de rollback + propagation d'erreur à la vue.
     private func postProgrammeThrowing(_ body: [String: Any]) async throws {
         var enrichedBody = body
         if !selectedProgramId.isEmpty, enrichedBody["program_id"] == nil {
@@ -244,8 +268,6 @@ final class ProgrammeViewModel: ObservableObject {
         try await APIService.shared.postProgrammeMutation(enrichedBody)
     }
 
-    /// Wrapper silencieux : incrémente mutationCount, POST, set lastSaveError sur
-    /// échec. Utilisé par 90% des mutations (add/delete/edit/schemes/seances).
     private func postProgramme(_ body: [String: Any]) async {
         mutationCount += 1
         lastSaveError = false

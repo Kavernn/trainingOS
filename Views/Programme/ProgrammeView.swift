@@ -29,10 +29,10 @@ private enum SessionType {
 }
 
 struct ProgrammeView: View {
-    // Lot 2 commit 1 : les 14 champs SERVEUR + isLoading + programSuggestions +
-    // exerciseWeights + exerciseSupersets + multi-progs sont migrés dans
-    // ProgrammeViewModel. La vue lit vm.xxx et écrit via bindings/setters directs
-    // sur les @Published. Les handlers de mutation migrent au commit 2.
+    // Toute donnée serveur + runtime mutation vit dans le VM (@Published). La vue
+    // lit vm.xxx et écrit via bindings/setters directs. Seuls les états UI-LOCAL
+    // (sheets, alerts, drag transitoire, clipboard @AppStorage, undo, périodisation)
+    // restent ici.
     @StateObject private var vm = ProgrammeViewModel()
 
     @State private var seance2ExosToday: Set<String> = []
@@ -135,12 +135,10 @@ struct ProgrammeView: View {
         }
     }
 
-    // mutationCount, lastSaveError, saveSuccessMsg, isSettingActive migrés dans vm
-    // (commit 2, avec les handlers de mutation qui les écrivent).
-
-    // Session reorder — drag transitoire UI-local. Sync avec vm.orderedSeances via
-    // .onChange (VM = source de vérité, drag = miroir jetable, drop = commit unique).
-    // Repris au Lot 5 (DragReorderState).
+    // Session reorder — drag transitoire UI-local. Miroir jetable de
+    // vm.orderedSeances (source de vérité), sync via .onChange dans le body.
+    // Le drop commit vers vm.saveSessionOrder ; sur échec la vue set
+    // vm.lastSaveError = true (chip toolbar). Repris au Lot 5 (DragReorderState).
     @State private var sessionOrder: [String] = []
     @State private var draggingSession: String? = nil
     @State private var sessionDragY: CGFloat = 0
@@ -188,10 +186,10 @@ struct ProgrammeView: View {
     @State private var deleteProgramTarget: ProgramInfo? = nil
     @State private var confirmDeleteProgram = false
 
-    // MARK: - Volume MEV/MAV
-    // Migré dans ProgrammeViewModel (commit 3) : weeklySessionFrequency,
-    // weeklyVolumeByMuscle, volumeAlerts, parseSets. Testable unitairement.
-    // Constantes doctrinales dans Models/TrainingDoctrine.swift.
+    // MARK: - Helpers d'affichage
+    // Volume MEV/MAV (weeklyVolumeByMuscle, volumeAlerts) et doctrine ordre
+    // (orderedSeances) sont testables dans le VM. Constantes doctrinales
+    // (dayNames, canonicalSeanceOrder, muscleMEV/MAV) dans TrainingDoctrine.swift.
 
     private func isScheduledThisWeek(_ s: String) -> Bool {
         vm.schedule.values.contains(s) || vm.eveningSchedule.values.contains(s)
@@ -719,23 +717,17 @@ struct ProgrammeView: View {
         .animation(.spring(response: 0.25, dampingFraction: 0.85), value: sessionShiftFor(seance))
     }
 
-    // MARK: – Load & mutations
-    // Migré dans ProgrammeViewModel :
-    //   commit 1 : applyJSON, loadData, loadSuggestions
-    //   commit 2 : postProgramme (privé), addExercise, deleteExercise,
-    //              reorderExercises, editExercise, saveSchedule, saveEveningSchedule,
-    //              createSeance, deleteSeance, saveSessionOrder (throws),
-    //              createProgram, setActiveProgramme, renameProgram, deleteProgram,
-    //              showSaveSuccess.
-    // Restent en vue : deleteWithUndo (UI + task 4s), undoDelete (restore local),
-    // applyPhaseScheme (loop composant sur vm.editExercise), pasteSeance (clipboard
-    // @AppStorage). Elles délèguent le POST au VM via vm.<handler>.
-
     // MARK: – Undo delete (UI)
+    //
+    // Seuls handlers async encore en vue : delegate au VM après logique UI-locale.
+    //  - deleteWithUndo : delete local optimiste + task 4s → vm.deleteExercise.
+    //  - undoDelete : cancel task + restore local, zéro POST.
+    //  - applyPhaseScheme (plus haut) : loop → vm.editExercise.
+    //  - pasteSeance (plus haut) : clipboard @AppStorage → boucle vm.addExercise.
 
     /// Delete local optimiste + POST tardif via Task { sleep 4s }. Le cancel
     /// (undoDelete) restaure l'état local ET annule le task avant le POST — zéro
-    /// trafic serveur si annulé dans les 4s. Contrat préservé du commit 1.
+    /// trafic serveur si annulé dans les 4s.
     private func deleteWithUndo(seance: String, exercise: String) {
         // Commit any previous pending delete immediately
         if let prev = undoDeleteItem {
