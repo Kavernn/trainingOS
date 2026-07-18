@@ -28,6 +28,101 @@ private enum SessionType {
     }
 }
 
+// MARK: - Périodisation (source unique 5 phases)
+// Une seule définition : cases, semaines, verbe, spec chiffrée, repos, pourquoi,
+// short scheme, rôle badge. Tout consommateur (mesocycleCard, mesocycleRow,
+// ActiveProgrammeBanner, PeriodisationCard segments) dérive d'ici.
+fileprivate enum Phase: String, CaseIterable {
+    case accumulation    = "Accumulation"
+    case intensification = "Intensification"
+    case force           = "Force"
+    case peak            = "Peak"
+    case deload          = "Deload"
+
+    var weeks: ClosedRange<Int> {
+        switch self {
+        case .accumulation:    return 1...2
+        case .intensification: return 3...4
+        case .force:           return 5...8
+        case .peak:            return 9...10
+        case .deload:          return 11...11
+        }
+    }
+
+    var verb: String {
+        switch self {
+        case .accumulation:    return "Empile le volume"
+        case .intensification: return "Monte la charge"
+        case .force:           return "Pousse tes charges"
+        case .peak:            return "Vise le PR"
+        case .deload:          return "Récupère"
+        }
+    }
+
+    var scheme: String {
+        switch self {
+        case .accumulation:    return "4 × 10-12, 65-70% 1RM"
+        case .intensification: return "4 × 6-8, 75-82% 1RM"
+        case .force:           return "4-5 × 4-6, 82-90% 1RM"
+        case .peak:            return "5 × 1-3, 90-95% 1RM"
+        case .deload:          return "3 × 8-10, 55-65% 1RM"
+        }
+    }
+
+    var shortScheme: String {
+        switch self {
+        case .accumulation:    return "4x11"
+        case .intensification: return "4x7"
+        case .force:           return "5x5"
+        case .peak:            return "5x2"
+        case .deload:          return "3x9"
+        }
+    }
+
+    var rest: String {
+        switch self {
+        case .accumulation:    return "90s"
+        case .intensification: return "2min"
+        case .force:           return "3min"
+        case .peak:            return "4min"
+        case .deload:          return "90s"
+        }
+    }
+
+    var why: String {
+        switch self {
+        case .accumulation:    return "Poser la base — préparer les tissus."
+        case .intensification: return "Adapter le système nerveux."
+        case .force:           return "Recruter les fibres, gagner du kilo."
+        case .peak:            return "Test max, expression de la force."
+        case .deload:          return "Vider la fatigue, préparer le prochain cycle."
+        }
+    }
+
+    var badgeRole: BadgeRole {
+        switch self {
+        case .accumulation:    return .info
+        case .intensification: return .warning
+        case .force:           return .alert
+        case .peak:            return .evening
+        case .deload:          return .success
+        }
+    }
+
+    var color: Color { badgeRole.color }
+
+    var next: Phase {
+        let all = Phase.allCases
+        let i = all.firstIndex(of: self) ?? 0
+        return all[(i + 1) % all.count]
+    }
+
+    static func at(week: Int) -> Phase {
+        let w = max(1, week)
+        return Phase.allCases.first { $0.weeks.contains(w) } ?? .deload
+    }
+}
+
 struct ProgrammeView: View {
     // Toute donnée serveur + runtime mutation vit dans le VM (@Published). La vue
     // lit vm.xxx et écrit via bindings/setters directs. Seuls les états UI-LOCAL
@@ -80,66 +175,21 @@ struct ProgrammeView: View {
         }
     }
 
-    // MARK: - Périodisation
-    private enum Phase: String {
-        case hypertrophie = "Hypertrophie"
-        case force        = "Force"
-        case peak         = "Peak"
-        case deload       = "Deload"
-    }
+    // MARK: - Périodisation (enum Phase = source unique au niveau fichier)
     private var mesocycleWeek: Int {
         guard !periodisationStart.isEmpty,
               let start = DateFormatter.isoDate.date(from: periodisationStart) else { return 0 }
         let days = Int(Date().timeIntervalSince(start) / 86400)
         return max(1, days / 7 + 1)
     }
-    private var currentPhase: Phase {
-        let w = mesocycleWeek
-        if w <= 4 { return .hypertrophie }
-        if w <= 8 { return .force }
-        if w <= 10 { return .peak }
-        return .deload
-    }
-    private var phaseScheme: String {
-        switch currentPhase {
-        case .hypertrophie: return "3-4 × 8-12 reps — 65–75% 1RM"
-        case .force:        return "4-5 × 4-6 reps — 80–90% 1RM"
-        case .peak:         return "5 × 1-3 reps — 90–95% 1RM"
-        case .deload:       return "3 × 10-12 reps — 50–60% 1RM"
-        }
-    }
-
-    private var phaseShortScheme: String {
-        switch currentPhase {
-        case .hypertrophie: return "3x10"
-        case .force:        return "4x5"
-        case .peak:         return "5x2"
-        case .deload:       return "3x12"
-        }
-    }
+    private var currentPhase: Phase { Phase.at(week: mesocycleWeek) }
 
     private func applyPhaseScheme() async {
-        let scheme = phaseShortScheme
+        let scheme = currentPhase.shortScheme
         for (seance, exercises) in vm.fullProgram {
             for exercise in exercises.keys {
                 await vm.editExercise(seance: seance, oldName: exercise, newName: exercise, scheme: scheme)
             }
-        }
-    }
-    private var nextPhase: Phase {
-        switch currentPhase {
-        case .hypertrophie: return .force
-        case .force:        return .peak
-        case .peak:         return .deload
-        case .deload:       return .hypertrophie
-        }
-    }
-    private var phaseColor: Color {
-        switch currentPhase {
-        case .hypertrophie: return .statusOrange
-        case .force:        return .appDanger
-        case .peak:         return .statusYellow
-        case .deload:       return .appSuccess
         }
     }
 
@@ -360,7 +410,7 @@ struct ProgrammeView: View {
                 }
                 Button("Annuler", role: .cancel) {}
             } message: {
-                Text("Tous les exercices du programme passeront au scheme \(phaseShortScheme). Cette action est réversible exercice par exercice.")
+                Text("Tous les exercices du programme passeront au scheme \(currentPhase.shortScheme). Cette action est réversible exercice par exercice.")
             }
             .alert("Nouveau mésocycle ?", isPresented: $showResetMesocycle) {
                 Button("Recommencer", role: .destructive) {
@@ -445,7 +495,7 @@ struct ProgrammeView: View {
     }
 
     private var deleteSeanceTitle: String  { "Supprimer \(deleteSeanceTarget ?? "") ?" }
-    private var applyPhaseTitle: String    { "Appliquer \(currentPhase.rawValue) (\(phaseShortScheme)) ?" }
+    private var applyPhaseTitle: String    { "Appliquer \(currentPhase.rawValue) (\(currentPhase.shortScheme)) ?" }
     private var deleteProgramTitle: String { "Supprimer \(deleteProgramTarget?.name ?? "") ?" }
 
     @ViewBuilder
@@ -789,7 +839,7 @@ struct ProgrammeView: View {
                 if periodisationStart.isEmpty {
                     Text("Non démarré").font(.appLabel).foregroundColor(.appTextSecondary)
                 } else {
-                    Text("Sem \(mesocycleWeek) · \(currentPhase.rawValue)")
+                    Text("\(currentPhase.verb) · S\(mesocycleWeek)/11")
                         .font(.appLabel).foregroundColor(.appTextSecondary)
                 }
                 Image(systemName: "chevron.right").foregroundColor(.appTextSecondary)
@@ -1032,6 +1082,14 @@ struct ProgrammeView: View {
         }
     }
 
+    private var deloadHorizon: String {
+        let w = mesocycleWeek
+        if w >= 11 { return "en cours" }
+        let remaining = 11 - w
+        if remaining == 1 { return "la semaine prochaine" }
+        return "dans \(remaining) semaines"
+    }
+
     @ViewBuilder
     private var mesocycleCard: some View {
         if periodisationStart.isEmpty {
@@ -1048,29 +1106,37 @@ struct ProgrammeView: View {
             .background(Color.appCard)
             .cornerRadius(.appCardRadius)
         } else {
-            VStack(alignment: .leading, spacing: 12) {
+            let phase = currentPhase
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text("Semaine \(mesocycleWeek) sur 11")
                         .font(.appBody.weight(.semibold))
                         .foregroundColor(.appTextPrimary)
                     Spacer()
-                    AppBadge(currentPhase.rawValue.uppercased(), role: .info)
+                    AppBadge(phase.rawValue.uppercased(), role: phase.badgeRole)
                 }
-                Text(phaseScheme)
+                Text(phase.verb)
+                    .font(.appBody.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                Text(phase.scheme)
+                    .font(.appLabel)
+                    .foregroundColor(.appTextSecondary)
+                Text("Repos \(phase.rest)")
                     .font(.appLabel)
                     .foregroundColor(.appTextSecondary)
                 Rectangle()
                     .fill(Color.appTextSecondary.opacity(0.10))
                     .frame(height: .appHairline)
-                HStack {
-                    Text("Prochaine")
-                        .font(.appLabel)
-                        .foregroundColor(.appTextSecondary)
-                    Spacer()
-                    Text(nextPhase.rawValue)
-                        .font(.appLabel.weight(.medium))
-                        .foregroundColor(.appTextPrimary)
-                }
+                Text(phase.why)
+                    .font(.appLabel)
+                    .italic()
+                    .foregroundColor(.appTextSecondary)
+                Rectangle()
+                    .fill(Color.appTextSecondary.opacity(0.10))
+                    .frame(height: .appHairline)
+                Text("Deload \(deloadHorizon)")
+                    .font(.appLabel)
+                    .foregroundColor(.appTextSecondary)
             }
             .padding(.horizontal, .appCardInsetH)
             .padding(.vertical, .appCardInsetV)
@@ -1134,7 +1200,7 @@ struct ProgrammeView: View {
                     ActiveProgrammeBanner(
                         programmeName:  activeProgrammeName,
                         phase:          currentPhase.rawValue,
-                        phaseColor:     phaseColor,
+                        phaseColor:     currentPhase.color,
                         week:           mesocycleWeek,
                         totalWeeks:     11,
                         started:        !periodisationStart.isEmpty,
@@ -1163,9 +1229,9 @@ struct ProgrammeView: View {
                 PeriodisationCard(
                     week: mesocycleWeek,
                     phase: currentPhase.rawValue,
-                    scheme: phaseScheme,
-                    next: nextPhase.rawValue,
-                    color: phaseColor,
+                    scheme: currentPhase.scheme,
+                    next: currentPhase.next.rawValue,
+                    color: currentPhase.color,
                     started: !periodisationStart.isEmpty,
                     onStart: {
                         periodisationStart = DateFormatter.isoDate.string(from: Date())
@@ -1302,12 +1368,10 @@ struct PeriodisationCard: View {
         let weeks: ClosedRange<Int>
     }
 
-    private let segments: [PhaseSegment] = [
-        PhaseSegment(name: "Hypertrophie", shortScheme: "3-4×8-12", color: .statusOrange, weeks: 1...4),
-        PhaseSegment(name: "Force",        shortScheme: "4-5×4-6",  color: .appDanger,    weeks: 5...8),
-        PhaseSegment(name: "Peak",         shortScheme: "5×1-3",    color: .statusYellow, weeks: 9...10),
-        PhaseSegment(name: "Deload",       shortScheme: "3×10-12",  color: .appSuccess,   weeks: 11...11),
-    ]
+    // Dérivé de l'enum Phase (source unique) — un seul jeu de phases dans l'app.
+    private let segments: [PhaseSegment] = Phase.allCases.map {
+        PhaseSegment(name: $0.rawValue, shortScheme: $0.shortScheme, color: $0.color, weeks: $0.weeks)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
