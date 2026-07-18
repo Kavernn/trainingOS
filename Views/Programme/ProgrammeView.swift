@@ -221,7 +221,7 @@ struct ProgrammeView: View {
                     ProgressView().tint(Color.forge)
                 } else {
                     ScrollView {
-                        VStack(spacing: 16) {
+                        VStack(spacing: .appSectionSpacing) {
                             // ── Onglets programmes ────────────────────────
                             if vm.programs.count > 1 {
                                 ProgramTabsView(
@@ -238,7 +238,7 @@ struct ProgrammeView: View {
                                         confirmDeleteProgram = true
                                     }
                                 )
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, .appPagePadding)
 
                                 if !vm.selectedProgramId.isEmpty, vm.selectedProgramId != vm.activeProgramId {
                                     Button {
@@ -258,12 +258,12 @@ struct ProgrammeView: View {
                                         .padding(.vertical, 10)
                                         .background(Color.appSuccess.opacity(0.15))
                                         .foregroundColor(.appSuccess)
-                                        .cornerRadius(10)
-                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSuccess.opacity(0.3), lineWidth: 1))
+                                        .cornerRadius(.appCardRadius)
+                                        .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.appSuccess.opacity(0.3), lineWidth: 1))
                                     }
                                     .buttonStyle(.plain)
                                     .disabled(vm.isSettingActive)
-                                    .padding(.horizontal, 16)
+                                    .padding(.horizontal, .appPagePadding)
                                     .transition(.move(edge: .top).combined(with: .opacity))
                                 }
                             }
@@ -278,7 +278,7 @@ struct ProgrammeView: View {
                                     started:        !periodisationStart.isEmpty,
                                     todaySession:   todaySessionName
                                 )
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, .appPagePadding)
                             }
 
                             EditableWeekScheduleCard(
@@ -287,7 +287,7 @@ struct ProgrammeView: View {
                                 sessions: sessionsList,
                                 onSave: { Task { await vm.saveSchedule() } }
                             )
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, .appPagePadding)
 
                             EveningScheduleCard(
                                 eveningSchedule: $vm.eveningSchedule,
@@ -295,7 +295,7 @@ struct ProgrammeView: View {
                                 sessions: sessionsList,
                                 onSave: { Task { await vm.saveEveningSchedule() } }
                             )
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, .appPagePadding)
 
                             let applyAction: (() -> Void)? = periodisationStart.isEmpty ? nil : { showApplyPhaseConfirm = true }
                             PeriodisationCard(
@@ -311,7 +311,7 @@ struct ProgrammeView: View {
                                 onReset: { showResetMesocycle = true },
                                 onApply: applyAction
                             )
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, .appPagePadding)
 
                             if !clipboard.isEmpty {
                                 let clipboardLabel: String = clipboardName.isEmpty
@@ -341,11 +341,11 @@ struct ProgrammeView: View {
                                     }
                                     .buttonStyle(.plain)
                                 }
-                                .padding(.horizontal, 14).padding(.vertical, 10)
+                                .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
                                 .background(Color.forge.opacity(0.07))
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.2), lineWidth: 1))
-                                .cornerRadius(10)
-                                .padding(.horizontal, 16)
+                                .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.2), lineWidth: 1))
+                                .cornerRadius(.appCardRadius)
+                                .padding(.horizontal, .appPagePadding)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
 
@@ -357,7 +357,7 @@ struct ProgrammeView: View {
                                     mav: TrainingDoctrine.muscleMAV,
                                     alerts: vm.volumeAlerts
                                 )
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, .appPagePadding)
                             }
 
                             if sessionOrder.isEmpty {
@@ -373,7 +373,7 @@ struct ProgrammeView: View {
                                             .font(.appLabel.weight(.regular))
                                             .foregroundColor(.gray)
                                             .multilineTextAlignment(.center)
-                                            .padding(.horizontal, 16)
+                                            .padding(.horizontal, .appPagePadding)
                                     }
                                     VStack(spacing: 12) {
                                         Button { showCreateProgram = true } label: {
@@ -383,7 +383,7 @@ struct ProgrammeView: View {
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
                                                 .background(Color.forge)
-                                                .cornerRadius(14)
+                                                .cornerRadius(.appCardRadius)
                                         }
                                         .buttonStyle(.plain)
                                         Button {
@@ -395,8 +395,8 @@ struct ProgrammeView: View {
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
                                                 .background(Color.forge.opacity(0.10))
-                                                .cornerRadius(14)
-                                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.25), lineWidth: 1))
+                                                .cornerRadius(.appCardRadius)
+                                                .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.25), lineWidth: 1))
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -438,11 +438,11 @@ struct ProgrammeView: View {
                                 .font(.appLabel.weight(.bold))
                                 .foregroundColor(Color.forge)
                         }
-                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
                         .background(Color.appCard)
-                        .cornerRadius(12)
+                        .cornerRadius(.appCardRadius)
                         .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, .appPagePadding)
                         .padding(.bottom, fabBottomPadding)
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -460,11 +460,11 @@ struct ProgrammeView: View {
                                 .font(.appLabel.weight(.medium))
                                 .foregroundColor(.appTextPrimary)
                         }
-                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
                         .background(Color.appCard)
-                        .cornerRadius(12)
+                        .cornerRadius(.appCardRadius)
                         .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, .appPagePadding)
                         .padding(.bottom, fabBottomPadding)
                     }
                     .allowsHitTesting(false)
@@ -701,7 +701,7 @@ struct ProgrammeView: View {
             inventoryPatterns: vm.inventoryPatterns,
             inventoryOneRM:    vm.inventoryOneRM
         )
-        .padding(.horizontal, 16)
+        .padding(.horizontal, .appPagePadding)
         .background(
             GeometryReader { geo in
                 Color.clear.preference(
@@ -955,7 +955,7 @@ struct PeriodisationCard: View {
         .padding(16)
         .background(Color.appCard)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
-        .cornerRadius(14)
+        .cornerRadius(.appCardRadius)
     }
 }
 
@@ -1249,7 +1249,7 @@ struct EditableSeanceProgramCard: View {
                     .foregroundColor(.gray)
                     .padding(.leading, 2)
             }
-            .padding(.horizontal, 16).padding(.vertical, 12)
+            .padding(.horizontal, .appPagePadding).padding(.vertical, 12)
             .contentShape(Rectangle())
             .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
 
@@ -1265,7 +1265,7 @@ struct EditableSeanceProgramCard: View {
                             .font(.appLabel.weight(.regular))
                             .foregroundColor(.gray)
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 14)
+                    .padding(.horizontal, .appPagePadding).padding(.vertical, 14)
                 }
 
                 ForEach(orderedPairs, id: \.0) { name, scheme in
@@ -1318,7 +1318,7 @@ struct EditableSeanceProgramCard: View {
         }
         .background(Color.appCard)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(isToday ? Color.forge.opacity(0.7) : color.opacity(0.2), lineWidth: isToday ? 1.5 : 1))
-        .cornerRadius(14)
+        .cornerRadius(.appCardRadius)
         .shadow(color: isToday ? Color.forge.opacity(0.18) : .clear, radius: 14, y: 4)
     }
 }
@@ -1412,7 +1412,7 @@ struct ExerciseRow: View {
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
             }
-            .padding(.horizontal, 16).padding(.vertical, 10)
+            .padding(.horizontal, .appPagePadding).padding(.vertical, 10)
         }
         .buttonStyle(.plain)
     }
@@ -1480,7 +1480,7 @@ struct AddExerciseSheet: View {
                     .padding(10)
                     .background(Color.appCard)
                     .cornerRadius(10)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, .appPagePadding)
                     .padding(.top, 8)
 
                     // Muscle group filter chips
@@ -1494,7 +1494,7 @@ struct AddExerciseSheet: View {
                                     .foregroundColor(selectedGroup == nil ? .onAccent : Color.appOnSurface.opacity(0.7))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                     .background(selectedGroup == nil ? Color.forge : Color.appSurfaceInset)
-                                    .cornerRadius(14)
+                                    .cornerRadius(.appCardRadius)
                             }
                             .buttonStyle(.plain)
                             ForEach(muscleGroupOrder, id: \.self) { grp in
@@ -1507,12 +1507,12 @@ struct AddExerciseSheet: View {
                                         .foregroundColor(active ? .onAccent : Color.appOnSurface.opacity(0.7))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
                                         .background(active ? Color.forge : Color.appSurfaceInset)
-                                        .cornerRadius(14)
+                                        .cornerRadius(.appCardRadius)
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, .appPagePadding)
                         .padding(.vertical, 8)
                     }
 
@@ -1523,7 +1523,7 @@ struct AddExerciseSheet: View {
                                 .font(.appCaption.weight(.bold))
                                 .tracking(1.5)
                                 .foregroundColor(.gray.opacity(0.55))
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, .appPagePadding)
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     ForEach(recentExercises, id: \.self) { ex in
@@ -1548,11 +1548,11 @@ struct AddExerciseSheet: View {
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, .appPagePadding)
                             }
                             Divider()
                                 .background(Color.appSeparatorSubtle)
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, .appPagePadding)
                                 .padding(.top, 2)
                         }
                         .padding(.bottom, 6)
@@ -1570,7 +1570,7 @@ struct AddExerciseSheet: View {
                             .background(Color.appCard)
                             .cornerRadius(8)
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, .appPagePadding)
                     .padding(.bottom, 4)
 
                     // Hint visible quand le scheme bloque canSave : un exo choisi sans
@@ -1580,7 +1580,7 @@ struct AddExerciseSheet: View {
                         Text("Précisez un scheme (ex : 4x6-8) pour activer Enregistrer")
                             .font(.appCaption)
                             .foregroundColor(.statusOrange)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, .appPagePadding)
                             .padding(.bottom, 8)
                     }
 
@@ -1887,7 +1887,7 @@ struct EditableWeekScheduleCard: View {
         }
         .padding(16)
         .background(Color.appCard)
-        .cornerRadius(14)
+        .cornerRadius(.appCardRadius)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.2), lineWidth: 1))
     }
 
@@ -1981,7 +1981,7 @@ struct EveningScheduleCard: View {
         }
         .padding(16)
         .background(Color.appCard)
-        .cornerRadius(14)
+        .cornerRadius(.appCardRadius)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusBlue.opacity(0.25), lineWidth: 1))
     }
 
@@ -2135,7 +2135,7 @@ private struct VolumeCard: View {
         }
         .padding(14)
         .background(Color.appCard)
-        .cornerRadius(14)
+        .cornerRadius(.appCardRadius)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusPurple.opacity(0.2), lineWidth: 1))
     }
 }
@@ -2286,7 +2286,7 @@ private struct ActiveProgrammeBanner: View {
                     }
                 }
             }
-            .padding(.horizontal, 14).padding(.top, 12).padding(.bottom, started ? 10 : 14)
+            .padding(.horizontal, .appCardInsetH).padding(.top, 12).padding(.bottom, started ? 10 : 14)
 
             if started {
                 GeometryReader { geo in
@@ -2299,11 +2299,11 @@ private struct ActiveProgrammeBanner: View {
                     }
                 }
                 .frame(height: 3)
-                .padding(.horizontal, 14).padding(.bottom, 12)
+                .padding(.horizontal, .appCardInsetH).padding(.bottom, 12)
             }
         }
         .background(Color.appCard)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(phaseColor.opacity(0.15), lineWidth: 1))
-        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(phaseColor.opacity(0.15), lineWidth: 1))
+        .cornerRadius(.appCardRadius)
     }
 }

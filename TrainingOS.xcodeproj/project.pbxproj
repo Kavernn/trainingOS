@@ -200,6 +200,8 @@
 		OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA003000AA00300B2F5DCCCC /* OathView.swift */; };
 		OA004001AA00300B2F5DCCCC /* OathWriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA004000AA00300B2F5DCCCC /* OathWriteView.swift */; };
 		OB000002OB000002OB000002 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB000001OB000001OB000001 /* OnboardingView.swift */; };
+		BD000002BD000002BD000002 /* Badge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD000001BD000001BD000001 /* Badge.swift */; };
+		SH000002SH000002SH000002 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH000001SH000001SH000001 /* SectionHeader.swift */; };
 		PB000002PB000002PB000002 /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = PB000001PB000001PB000001 /* PrimaryButton.swift */; };
 		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
 		PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000001PS000001PS000001 /* ProgressionSuggestion.swift */; };
@@ -510,6 +512,8 @@
 		OA003000AA00300B2F5DCCCC /* OathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathView.swift; sourceTree = "<group>"; };
 		OA004000AA00300B2F5DCCCC /* OathWriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWriteView.swift; sourceTree = "<group>"; };
 		OB000001OB000001OB000001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		BD000001BD000001BD000001 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
+		SH000001SH000001SH000001 /* SectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		PB000001PB000001PB000001 /* PrimaryButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
 		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
 		PS000001PS000001PS000001 /* ProgressionSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestion.swift; sourceTree = "<group>"; };
@@ -695,9 +699,11 @@
 			isa = PBXGroup;
 			children = (
 				9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */,
+				BD000001BD000001BD000001 /* Badge.swift */,
 				64709C7BAEA141594DB92A70 /* EmptyStateView.swift */,
 				MC000001MC000001MC000001 /* MetricCell.swift */,
 				PB000001PB000001PB000001 /* PrimaryButton.swift */,
+				SH000001SH000001SH000001 /* SectionHeader.swift */,
 				SR000001SR000001SR000001 /* StatRow.swift */,
 				5F9FC27F6F10E2BBE5805E5F /* ToastView.swift */,
 				07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */,
@@ -1600,7 +1606,9 @@
 				E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */,
 				312D934570D77F3F3B873C09 /* EmptyStateView.swift in Sources */,
 				MC000002MC000002MC000002 /* MetricCell.swift in Sources */,
+				BD000002BD000002BD000002 /* Badge.swift in Sources */,
 				PB000002PB000002PB000002 /* PrimaryButton.swift in Sources */,
+				SH000002SH000002SH000002 /* SectionHeader.swift in Sources */,
 				SR000002SR000002SR000002 /* StatRow.swift in Sources */,
 				11DB911AE8186DDE463BAA71 /* ToastView.swift in Sources */,
 				B3B48DFB53C2B424CC9A1E51 /* ErrorBannerView.swift in Sources */,

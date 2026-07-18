@@ -17,6 +17,22 @@ enum APIConfig {
     // apiKey est défini dans Utilities/APIConfig.swift (gitignored — ne jamais commiter)
 }
 
+// MARK: - Design tokens (spacing / radius)
+//
+// Système visuel unique — remplace les magic numbers de spacing et radius
+// éparpillés dans les vues. Deux échelles radius : appCardRadius pour les
+// cartes et poids "conteneur", appPillRadius pour badges et chips.
+extension CGFloat {
+    static let appPagePadding:    CGFloat = 16   // padding horizontal des pages
+    static let appSectionSpacing: CGFloat = 24   // entre grandes sections
+    static let appCardSpacing:    CGFloat = 12   // entre cartes d'une même section
+    static let appCardRadius:     CGFloat = 14   // cartes racine
+    static let appCardInsetH:     CGFloat = 16   // padding H interne carte
+    static let appCardInsetV:     CGFloat = 14   // padding V interne carte
+    static let appHairline:       CGFloat = 0.5  // dividers subtils
+    static let appPillRadius:     CGFloat = 6    // badges et petits chips
+}
+
 // MARK: - Safe Calendar Operations
 extension Calendar {
     func safeDateByAdding(_ component: Calendar.Component, value: Int, to date: Date) -> Date {
