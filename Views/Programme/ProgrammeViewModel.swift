@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 import Combine
 
 /// ViewModel de ProgrammeView — Lot 2/3 (extraction data serveur + hydratation).
@@ -44,6 +44,17 @@ final class ProgrammeViewModel: ObservableObject {
     @Published var isLoading = true
     @Published var programSuggestions: [String: [String: ProgressionSuggestion]] = [:]
     @Published var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
+
+    // MARK: - Runtime mutations
+
+    /// Compteur de mutations en vol — chip "Sauvegarde…" en toolbar.
+    @Published var mutationCount: Int = 0
+    /// Flag "dernière mutation en erreur" — chip "Erreur réseau" en toolbar.
+    @Published var lastSaveError: Bool = false
+    /// Flag "activation de programme en cours" — disable le bouton.
+    @Published var isSettingActive: Bool = false
+    /// Toast success 1.5s — muté par showSaveSuccess.
+    @Published var saveSuccessMsg: String?
 
     // MARK: - Doctrine dérivée
 
@@ -173,5 +184,186 @@ final class ProgrammeViewModel: ObservableObject {
             }
         }
         programSuggestions = result
+    }
+
+    // MARK: - Mutations — wrapper
+
+    /// Enrichit avec selectedProgramId puis POST. Throws — utilisé par
+    /// saveSessionOrder qui a besoin de rollback + propagation d'erreur à la vue.
+    private func postProgrammeThrowing(_ body: [String: Any]) async throws {
+        var enrichedBody = body
+        if !selectedProgramId.isEmpty, enrichedBody["program_id"] == nil {
+            enrichedBody["program_id"] = selectedProgramId
+        }
+        try await APIService.shared.postProgrammeMutation(enrichedBody)
+    }
+
+    /// Wrapper silencieux : incrémente mutationCount, POST, set lastSaveError sur
+    /// échec. Utilisé par 90% des mutations (add/delete/edit/schemes/seances).
+    private func postProgramme(_ body: [String: Any]) async {
+        mutationCount += 1
+        lastSaveError = false
+        defer { mutationCount = max(0, mutationCount - 1) }
+        do { try await postProgrammeThrowing(body) }
+        catch { lastSaveError = true }
+    }
+
+    // MARK: - Mutations exercice
+
+    func addExercise(seance: String, exercise: String, scheme: String) async {
+        await postProgramme(["action": "add", "jour": seance, "exercise": exercise, "scheme": scheme])
+        fullProgram[seance, default: [:]][exercise] = scheme
+        exerciseOrder[seance, default: []].append(exercise)
+        if !lastSaveError { showSaveSuccess("Exercice ajouté") }
+    }
+
+    func deleteExercise(seance: String, exercise: String) async {
+        await postProgramme(["action": "remove", "jour": seance, "exercise": exercise])
+    }
+
+    func reorderExercises(seance: String, order: [String]) async {
+        // Guard : orderedNames incomplet dropperait silencieusement des exercices.
+        let actual = fullProgram[seance]?.count ?? 0
+        guard order.count >= actual else { return }
+        await postProgramme(["action": "reorder", "jour": seance, "ordre": order])
+    }
+
+    func editExercise(seance: String, oldName: String, newName: String, scheme: String) async {
+        if oldName != newName {
+            // rename synce tous les jours du programme + inventaire
+            await postProgramme(["action": "rename", "jour": seance, "old_exercise": oldName, "new_exercise": newName])
+            await postProgramme(["action": "scheme", "jour": seance, "exercise": newName, "scheme": scheme])
+            // Swift Dicts sont value types — read, mutate, write back
+            for key in fullProgram.keys {
+                if let oldScheme = fullProgram[key]?[oldName] {
+                    fullProgram[key]?[newName] = oldScheme
+                    fullProgram[key]?.removeValue(forKey: oldName)
+                }
+            }
+            fullProgram[seance]?[newName] = scheme
+        } else {
+            await postProgramme(["action": "scheme", "jour": seance, "exercise": oldName, "scheme": scheme])
+            fullProgram[seance]?[oldName] = scheme
+        }
+        if !lastSaveError { showSaveSuccess("Exercice modifié") }
+    }
+
+    // MARK: - Mutations planning
+
+    func saveSchedule() async {
+        do {
+            try await APIService.shared.saveMorningSchedule(schedule)
+        } catch {
+            lastSaveError = true
+        }
+    }
+
+    func saveEveningSchedule() async {
+        do {
+            try await APIService.shared.saveEveningSchedule(eveningSchedule)
+        } catch {
+            lastSaveError = true
+        }
+    }
+
+    // MARK: - Mutations séance
+
+    func createSeance(name: String) async {
+        var body: [String: Any] = ["action": "create_seance", "jour": name]
+        if !selectedProgramId.isEmpty { body["program_id"] = selectedProgramId }
+        await postProgramme(body)
+        fullProgram[name] = [:]
+        exerciseOrder[name] = []
+    }
+
+    func deleteSeance(name: String) async {
+        await postProgramme(["action": "delete_seance", "jour": name])
+        fullProgram.removeValue(forKey: name)
+        exerciseOrder.removeValue(forKey: name)
+        // Clear from schedule if assigned
+        for (day, seance) in schedule where seance == name {
+            schedule.removeValue(forKey: day)
+        }
+    }
+
+    /// Push l'ordre des séances au serveur. Throws — la vue attrape et set
+    /// lastSaveError. Sans ça un drag échoué laisserait apiSessionOrder mentir
+    /// jusqu'au prochain loadData (écrasement optimiste jamais rollback).
+    func saveSessionOrder(_ order: [String]) async throws {
+        let previous = apiSessionOrder
+        mutationCount += 1
+        lastSaveError = false
+        apiSessionOrder = order
+        defer { mutationCount = max(0, mutationCount - 1) }
+        do {
+            try await postProgrammeThrowing([
+                "action": "reorder_sessions",
+                "order": order,
+            ])
+        } catch {
+            apiSessionOrder = previous
+            throw error
+        }
+    }
+
+    // MARK: - Mutations programme
+
+    func createProgram(name: String) async {
+        do {
+            let pid = try await APIService.shared.createProgram(name: name)
+            let p = ProgramInfo(id: pid, name: name)
+            programs.append(p)
+            selectedProgramId = pid
+            fullProgram = [:]
+            exerciseOrder = [:]
+        } catch {
+            lastSaveError = true
+        }
+    }
+
+    func setActiveProgramme() async {
+        guard !selectedProgramId.isEmpty else { return }
+        isSettingActive = true
+        defer { isSettingActive = false }
+        do {
+            try await APIService.shared.setActiveProgram(id: selectedProgramId)
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                activeProgramId = selectedProgramId
+            }
+        } catch {
+            lastSaveError = true
+        }
+    }
+
+    func renameProgram(id: String, name: String) async {
+        do {
+            try await APIService.shared.renameProgram(id: id, name: name)
+            if let idx = programs.firstIndex(where: { $0.id == id }) {
+                programs[idx] = ProgramInfo(id: id, name: name)
+            }
+        } catch {
+            lastSaveError = true
+        }
+    }
+
+    func deleteProgram(id: String) async {
+        do {
+            try await APIService.shared.deleteProgram(id: id)
+            programs.removeAll { $0.id == id }
+            if selectedProgramId == id { selectedProgramId = programs.first?.id ?? "" }
+            await loadData(programId: selectedProgramId.isEmpty ? nil : selectedProgramId)
+        } catch {
+            lastSaveError = true
+        }
+    }
+
+    // MARK: - Toast success
+
+    func showSaveSuccess(_ msg: String) {
+        withAnimation { saveSuccessMsg = msg }
+        Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            withAnimation { self.saveSuccessMsg = nil }
+        }
     }
 }

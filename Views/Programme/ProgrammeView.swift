@@ -67,7 +67,7 @@ struct ProgrammeView: View {
         clipboardName = ""
         Task {
             for (ex, scheme) in pasted {
-                await addExercise(seance: seance, exercise: ex, scheme: scheme)
+                await vm.addExercise(seance: seance, exercise: ex, scheme: scheme)
             }
         }
     }
@@ -114,7 +114,7 @@ struct ProgrammeView: View {
         let scheme = phaseShortScheme
         for (seance, exercises) in vm.fullProgram {
             for exercise in exercises.keys {
-                await editExercise(seance: seance, oldName: exercise, newName: exercise, scheme: scheme)
+                await vm.editExercise(seance: seance, oldName: exercise, newName: exercise, scheme: scheme)
             }
         }
     }
@@ -135,11 +135,8 @@ struct ProgrammeView: View {
         }
     }
 
-    // exerciseWeights, exerciseSupersets, programSuggestions migrés dans vm (commit 1).
-    // mutationCount, lastSaveError restent en vue commit 1 — migrent commit 2 avec
-    // les handlers de mutation qui les écrivent.
-    @State private var mutationCount = 0
-    @State private var lastSaveError = false
+    // mutationCount, lastSaveError, saveSuccessMsg, isSettingActive migrés dans vm
+    // (commit 2, avec les handlers de mutation qui les écrivent).
 
     // Session reorder — drag transitoire UI-local. Sync avec vm.orderedSeances via
     // .onChange (VM = source de vérité, drag = miroir jetable, drop = commit unique).
@@ -170,15 +167,8 @@ struct ProgrammeView: View {
 
     // refreshSessionOrder() supprimé — orderedSeances est maintenant computed dans
     // le VM. La vue s'y resynchronise via .onChange(of: vm.orderedSeances).
-
-    private func saveSessionOrder() {
-        // TODO commit 2 : vm.saveSessionOrder(sessionOrder) doit throw ; échec →
-        // vm.lastSaveError = true (chip toolbar). Sinon un drag échoué laisse l'ordre
-        // local mentir jusqu'au prochain loadData.
-        vm.apiSessionOrder = sessionOrder
-        let order = sessionOrder
-        Task { await postProgramme(["action": "reorder_sessions", "order": order]) }
-    }
+    // saveSessionOrder() migré dans vm (throws) — la vue attrape dans le
+    // onSessionDragEnded et set vm.lastSaveError sur échec (chip toolbar).
 
     struct UndoDeleteItem {
         let seance: String
@@ -188,12 +178,9 @@ struct ProgrammeView: View {
     }
     @State private var undoDeleteItem: UndoDeleteItem? = nil
     @State private var undoDeleteTask: Task<Void, Never>? = nil
-    @State private var saveSuccessMsg: String? = nil
 
-    // Multi-programmes : programs, selectedProgramId, activeProgramId, allSessions
-    // migrés dans vm. isSettingActive reste vue commit 1 (utilisé par setActiveProgramme
-    // qui migre commit 2).
-    @State private var isSettingActive = false
+    // Multi-programmes : programs, selectedProgramId, activeProgramId, allSessions,
+    // isSettingActive migrés dans vm.
     @State private var showCreateProgram = false
     @State private var newProgramName = ""
     @State private var renameProgramTarget: ProgramInfo? = nil
@@ -293,10 +280,10 @@ struct ProgrammeView: View {
 
                                 if !vm.selectedProgramId.isEmpty, vm.selectedProgramId != vm.activeProgramId {
                                     Button {
-                                        Task { await setActiveProgramme() }
+                                        Task { await vm.setActiveProgramme() }
                                     } label: {
                                         HStack(spacing: 8) {
-                                            if isSettingActive {
+                                            if vm.isSettingActive {
                                                 ProgressView().tint(.appSuccess).scaleEffect(0.8)
                                             } else {
                                                 Image(systemName: "checkmark.seal.fill")
@@ -313,7 +300,7 @@ struct ProgrammeView: View {
                                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSuccess.opacity(0.3), lineWidth: 1))
                                     }
                                     .buttonStyle(.plain)
-                                    .disabled(isSettingActive)
+                                    .disabled(vm.isSettingActive)
                                     .padding(.horizontal, 16)
                                     .transition(.move(edge: .top).combined(with: .opacity))
                                 }
@@ -336,7 +323,7 @@ struct ProgrammeView: View {
                                 schedule: $vm.schedule,
                                 dayNames: TrainingDoctrine.dayNames,
                                 sessions: sessionsList,
-                                onSave: { Task { await saveSchedule() } }
+                                onSave: { Task { await vm.saveSchedule() } }
                             )
                             .padding(.horizontal, 16)
 
@@ -344,7 +331,7 @@ struct ProgrammeView: View {
                                 eveningSchedule: $vm.eveningSchedule,
                                 dayNames: TrainingDoctrine.dayNames,
                                 sessions: sessionsList,
-                                onSave: { Task { await saveEveningSchedule() } }
+                                onSave: { Task { await vm.saveEveningSchedule() } }
                             )
                             .padding(.horizontal, 16)
 
@@ -501,7 +488,7 @@ struct ProgrammeView: View {
                     .zIndex(10)
                 }
 
-                if let msg = saveSuccessMsg {
+                if let msg = vm.saveSuccessMsg {
                     VStack {
                         Spacer()
                         HStack(spacing: 8) {
@@ -520,7 +507,7 @@ struct ProgrammeView: View {
                     }
                     .allowsHitTesting(false)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: saveSuccessMsg != nil)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: vm.saveSuccessMsg != nil)
                     .zIndex(9)
                 }
             }
@@ -529,7 +516,7 @@ struct ProgrammeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 10) {
-                        if mutationCount > 0 {
+                        if vm.mutationCount > 0 {
                             HStack(spacing: 5) {
                                 ProgressView().scaleEffect(0.7).tint(Color.forge)
                                 Text("Sauvegarde…")
@@ -537,7 +524,7 @@ struct ProgrammeView: View {
                                     .foregroundColor(Color.forge)
                             }
                             .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        } else if lastSaveError {
+                        } else if vm.lastSaveError {
                             HStack(spacing: 4) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.appCaption)
@@ -553,29 +540,29 @@ struct ProgrammeView: View {
                                 .foregroundColor(Color.forge)
                         }
                     }
-                    .animation(.easeInOut(duration: 0.2), value: mutationCount)
-                    .animation(.easeInOut(duration: 0.2), value: lastSaveError)
+                    .animation(.easeInOut(duration: 0.2), value: vm.mutationCount)
+                    .animation(.easeInOut(duration: 0.2), value: vm.lastSaveError)
                 }
             }
             .sheet(isPresented: $showCreateSeance) {
                 CreateSeanceSheet { name in
-                    Task { await createSeance(name: name) }
+                    Task { await vm.createSeance(name: name) }
                 }
             }
             .sheet(item: $addTarget) { sn in
                 AddExerciseSheet(seance: sn.id, inventory: vm.inventory, inventorySchemes: vm.inventorySchemes, inventoryMuscleGroups: vm.inventoryMuscleGroups) { ex, scheme in
-                    Task { await addExercise(seance: sn.id, exercise: ex, scheme: scheme) }
+                    Task { await vm.addExercise(seance: sn.id, exercise: ex, scheme: scheme) }
                 }
             }
             .sheet(item: $editTarget) { target in
                 EditSchemeSheet(target: target) { newName, newScheme in
-                    Task { await editExercise(seance: target.seance, oldName: target.exercise, newName: newName, scheme: newScheme) }
+                    Task { await vm.editExercise(seance: target.seance, oldName: target.exercise, newName: newName, scheme: newScheme) }
                 }
             }
             .alert(deleteSeanceTitle, isPresented: $confirmDeleteSeance) {
                 Button("Supprimer", role: .destructive) {
                     if let target = deleteSeanceTarget {
-                        Task { await deleteSeance(name: target) }
+                        Task { await vm.deleteSeance(name: target) }
                     }
                 }
                 Button("Annuler", role: .cancel) {}
@@ -604,7 +591,7 @@ struct ProgrammeView: View {
                 Button("Créer") {
                     let name = newProgramName.trimmingCharacters(in: .whitespaces)
                     guard !name.isEmpty else { return }
-                    Task { await createProgram(name: name) }
+                    Task { await vm.createProgram(name: name) }
                     newProgramName = ""
                 }
                 Button("Annuler", role: .cancel) { newProgramName = "" }
@@ -615,7 +602,7 @@ struct ProgrammeView: View {
                 Button("Renommer") {
                     let name = renameProgramName.trimmingCharacters(in: .whitespaces)
                     guard !name.isEmpty, let target = renameProgramTarget else { return }
-                    Task { await renameProgram(id: target.id, name: name) }
+                    Task { await vm.renameProgram(id: target.id, name: name) }
                     renameProgramTarget = nil
                 }
                 Button("Annuler", role: .cancel) { renameProgramTarget = nil }
@@ -624,7 +611,7 @@ struct ProgrammeView: View {
             .alert(deleteProgramTitle, isPresented: $confirmDeleteProgram) {
                 Button("Supprimer", role: .destructive) {
                     if let target = deleteProgramTarget {
-                        Task { await deleteProgram(id: target.id) }
+                        Task { await vm.deleteProgram(id: target.id) }
                     }
                     deleteProgramTarget = nil
                 }
@@ -710,7 +697,7 @@ struct ProgrammeView: View {
                 editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme, lastWeight: w?.weight, lastReps: w?.reps, lastDate: w?.date)
             },
             onDelete:     { ex in deleteWithUndo(seance: seance, exercise: ex) },
-            onReorder:    { order in Task { await reorderExercises(seance: seance, order: order) } },
+            onReorder:    { order in Task { await vm.reorderExercises(seance: seance, order: order) } },
             onDeleteSeance: {
                 deleteSeanceTarget = seance
                 confirmDeleteSeance = true
@@ -731,7 +718,15 @@ struct ProgrammeView: View {
                         sessionOrder.move(fromOffsets: IndexSet(integer: from),
                                           toOffset: to > from ? to + 1 : to)
                     }
-                    saveSessionOrder()
+                    // Le drag est terminé — commit unique au serveur. Throws (contrairement
+                    // aux autres mutations) : échec → vm.lastSaveError = true (chip toolbar).
+                    // Sans ça, un drag échoué laisserait le miroir mentir jusqu'au prochain
+                    // loadData ; ici le rollback apiSessionOrder est fait par le VM.
+                    let orderToSave = sessionOrder
+                    Task {
+                        do { try await vm.saveSessionOrder(orderToSave) }
+                        catch { vm.lastSaveError = true }
+                    }
                 }
                 withAnimation(.spring(response: 0.25)) {
                     draggingSession = nil
@@ -760,52 +755,29 @@ struct ProgrammeView: View {
         .animation(.spring(response: 0.25, dampingFraction: 0.85), value: sessionShiftFor(seance))
     }
 
-    // MARK: – Load
-    // applyJSON, loadData, loadSuggestions migrés dans ProgrammeViewModel (commit 1).
+    // MARK: – Load & mutations
+    // Migré dans ProgrammeViewModel :
+    //   commit 1 : applyJSON, loadData, loadSuggestions
+    //   commit 2 : postProgramme (privé), addExercise, deleteExercise,
+    //              reorderExercises, editExercise, saveSchedule, saveEveningSchedule,
+    //              createSeance, deleteSeance, saveSessionOrder (throws),
+    //              createProgram, setActiveProgramme, renameProgram, deleteProgram,
+    //              showSaveSuccess.
+    // Restent en vue : deleteWithUndo (UI + task 4s), undoDelete (restore local),
+    // applyPhaseScheme (loop composant sur vm.editExercise), pasteSeance (clipboard
+    // @AppStorage). Elles délèguent le POST au VM via vm.<handler>.
 
-    private func saveEveningSchedule() async {
-        do {
-            try await APIService.shared.saveEveningSchedule(vm.eveningSchedule)
-        } catch {
-            await MainActor.run { lastSaveError = true }
-        }
-    }
+    // MARK: – Undo delete (UI)
 
-    // MARK: – Mutations
-
-    private func postProgramme(_ body: [String: Any]) async {
-        await MainActor.run { mutationCount += 1; lastSaveError = false }
-        defer { Task { @MainActor in mutationCount = max(0, mutationCount - 1) } }
-        var enrichedBody = body
-        if !vm.selectedProgramId.isEmpty, enrichedBody["program_id"] == nil {
-            enrichedBody["program_id"] = vm.selectedProgramId
-        }
-        do {
-            try await APIService.shared.postProgrammeMutation(enrichedBody)
-        } catch {
-            await MainActor.run { lastSaveError = true }
-        }
-    }
-
-    private func addExercise(seance: String, exercise: String, scheme: String) async {
-        await postProgramme(["action": "add", "jour": seance, "exercise": exercise, "scheme": scheme])
-        await MainActor.run {
-            vm.fullProgram[seance, default: [:]][exercise] = scheme
-            vm.exerciseOrder[seance, default: []].append(exercise)
-            if !lastSaveError { showSaveSuccess("Exercice ajouté") }
-        }
-    }
-
-    private func deleteExercise(seance: String, exercise: String) async {
-        await postProgramme(["action": "remove", "jour": seance, "exercise": exercise])
-    }
-
+    /// Delete local optimiste + POST tardif via Task { sleep 4s }. Le cancel
+    /// (undoDelete) restaure l'état local ET annule le task avant le POST — zéro
+    /// trafic serveur si annulé dans les 4s. Contrat préservé du commit 1.
     private func deleteWithUndo(seance: String, exercise: String) {
         // Commit any previous pending delete immediately
         if let prev = undoDeleteItem {
             undoDeleteTask?.cancel()
             undoDeleteTask = nil
-            Task { await deleteExercise(seance: prev.seance, exercise: prev.name) }
+            Task { await vm.deleteExercise(seance: prev.seance, exercise: prev.name) }
         }
         // Snapshot for undo
         let idx = vm.exerciseOrder[seance]?.firstIndex(of: exercise) ?? 0
@@ -819,7 +791,7 @@ struct ProgrammeView: View {
         undoDeleteTask = Task {
             try? await Task.sleep(nanoseconds: 4_000_000_000)
             guard !Task.isCancelled else { return }
-            await deleteExercise(seance: seance, exercise: exercise)
+            await vm.deleteExercise(seance: seance, exercise: exercise)
             await MainActor.run { withAnimation { undoDeleteItem = nil } }
         }
     }
@@ -833,133 +805,6 @@ struct ProgrammeView: View {
         let idx = min(item.orderIndex, vm.exerciseOrder[item.seance]?.count ?? 0)
         vm.exerciseOrder[item.seance, default: []].insert(item.name, at: idx)
         withAnimation { undoDeleteItem = nil }
-    }
-
-    private func reorderExercises(seance: String, order: [String]) async {
-        // Guard: don't send if order is a subset of the actual exercises
-        // (incomplete orderedNames would silently drop missing exercises)
-        let actual = vm.fullProgram[seance]?.count ?? 0
-        guard order.count >= actual else { return }
-        await postProgramme(["action": "reorder", "jour": seance, "ordre": order])
-    }
-
-    private func saveSchedule() async {
-        do {
-            try await APIService.shared.saveMorningSchedule(vm.schedule)
-        } catch {
-            await MainActor.run { lastSaveError = true }
-        }
-    }
-
-    private func createSeance(name: String) async {
-        var body: [String: Any] = ["action": "create_seance", "jour": name]
-        if !vm.selectedProgramId.isEmpty { body["program_id"] = vm.selectedProgramId }
-        await postProgramme(body)
-        await MainActor.run {
-            vm.fullProgram[name] = [:]
-            vm.exerciseOrder[name] = []
-        }
-    }
-
-    // MARK: – Programme CRUD
-
-    private func createProgram(name: String) async {
-        do {
-            let pid = try await APIService.shared.createProgram(name: name)
-            await MainActor.run {
-                let p = ProgramInfo(id: pid, name: name)
-                vm.programs.append(p)
-                vm.selectedProgramId = pid
-                vm.fullProgram = [:]
-                vm.exerciseOrder = [:]
-            }
-        } catch {
-            await MainActor.run { lastSaveError = true }
-        }
-    }
-
-    private func setActiveProgramme() async {
-        guard !vm.selectedProgramId.isEmpty else { return }
-        await MainActor.run { isSettingActive = true }
-        defer { Task { @MainActor in isSettingActive = false } }
-        do {
-            try await APIService.shared.setActiveProgram(id: vm.selectedProgramId)
-            await MainActor.run {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    vm.activeProgramId = vm.selectedProgramId
-                }
-            }
-        } catch {
-            await MainActor.run { lastSaveError = true }
-        }
-    }
-
-    private func renameProgram(id: String, name: String) async {
-        do {
-            try await APIService.shared.renameProgram(id: id, name: name)
-            await MainActor.run {
-                if let idx = vm.programs.firstIndex(where: { $0.id == id }) {
-                    vm.programs[idx] = ProgramInfo(id: id, name: name)
-                }
-            }
-        } catch {
-            await MainActor.run { lastSaveError = true }
-        }
-    }
-
-    private func deleteProgram(id: String) async {
-        do {
-            try await APIService.shared.deleteProgram(id: id)
-            await MainActor.run {
-                vm.programs.removeAll { $0.id == id }
-                if vm.selectedProgramId == id { vm.selectedProgramId = vm.programs.first?.id ?? "" }
-            }
-            await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
-        } catch {
-            await MainActor.run { lastSaveError = true }
-        }
-    }
-
-    private func deleteSeance(name: String) async {
-        await postProgramme(["action": "delete_seance", "jour": name])
-        await MainActor.run {
-            vm.fullProgram.removeValue(forKey: name)
-            vm.exerciseOrder.removeValue(forKey: name)
-            // Clear from schedule if assigned
-            for (day, seance) in vm.schedule where seance == name {
-                vm.schedule.removeValue(forKey: day)
-            }
-        }
-    }
-
-    private func showSaveSuccess(_ msg: String) {
-        withAnimation { saveSuccessMsg = msg }
-        Task {
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
-            await MainActor.run { withAnimation { saveSuccessMsg = nil } }
-        }
-    }
-
-    private func editExercise(seance: String, oldName: String, newName: String, scheme: String) async {
-        if oldName != newName {
-            // rename synce tous les jours du programme + inventaire
-            await postProgramme(["action": "rename", "jour": seance, "old_exercise": oldName, "new_exercise": newName])
-            await postProgramme(["action": "scheme", "jour": seance, "exercise": newName, "scheme": scheme])
-            await MainActor.run {
-                // Swift Dicts are value types — must read, mutate, then write back
-                for key in vm.fullProgram.keys {
-                    if let oldScheme = vm.fullProgram[key]?[oldName] {
-                        vm.fullProgram[key]?[newName] = oldScheme
-                        vm.fullProgram[key]?.removeValue(forKey: oldName)
-                    }
-                }
-                vm.fullProgram[seance]?[newName] = scheme
-            }
-        } else {
-            await postProgramme(["action": "scheme", "jour": seance, "exercise": oldName, "scheme": scheme])
-            await MainActor.run { vm.fullProgram[seance]?[oldName] = scheme }
-        }
-        await MainActor.run { if !lastSaveError { showSaveSuccess("Exercice modifié") } }
     }
 }
 
