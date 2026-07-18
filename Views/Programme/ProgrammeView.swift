@@ -846,25 +846,237 @@ struct ProgrammeView: View {
         .padding(.vertical, 40)
     }
 
-    // MARK: - Tab Semaine (placeholder — Lot D3)
+    // MARK: - Tab Semaine (consultation pure — planning, volume, mésocycle)
 
     private var weekContent: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "calendar")
-                .font(.system(size: 40))
-                .foregroundColor(.gray.opacity(0.4))
-            Text("Semaine")
-                .font(.appBody.weight(.semibold))
-                .foregroundColor(.appTextPrimary)
-            Text("Planning + volume + mésocycle — à venir (Lot D3).")
-                .font(.appLabel)
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, .appPagePadding)
+        ScrollView {
+            VStack(spacing: .appSectionSpacing) {
+                planningMatinSection
+                planningSoirSection
+                volumeSection
+                mesocycleSection
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, .appPagePadding)
+        }
+    }
+
+    private var todayDayName: String {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let idx = (weekday + 5) % 7
+        guard idx < TrainingDoctrine.dayNames.count else { return "" }
+        return TrainingDoctrine.dayNames[idx]
+    }
+
+    // Planning — deux blocs identiques matin / soir, lecture seule.
+
+    private var planningMatinSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AppSectionHeader("PLANNING MATIN")
+            planningCard(schedule: vm.schedule)
+        }
+    }
+
+    private var planningSoirSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AppSectionHeader("PLANNING SOIR")
+            planningCard(schedule: vm.eveningSchedule)
+        }
+    }
+
+    private func planningCard(schedule: [String: String]) -> some View {
+        let days = TrainingDoctrine.dayNames
+        return VStack(spacing: 0) {
+            ForEach(Array(days.enumerated()), id: \.offset) { pair in
+                planningRow(day: pair.element, session: schedule[pair.element])
+                if pair.offset < days.count - 1 {
+                    Rectangle()
+                        .fill(Color.appTextSecondary.opacity(0.10))
+                        .frame(height: .appHairline)
+                        .padding(.horizontal, .appCardInsetH)
+                }
+            }
+        }
+        .background(Color.appCard)
+        .cornerRadius(.appCardRadius)
+    }
+
+    private func planningRow(day: String, session: String?) -> some View {
+        let isToday = day == todayDayName
+        let displaySession = session ?? "Repos"
+        let isRepos = displaySession == "Repos" || displaySession.isEmpty
+        return HStack {
+            Text(day)
+                .frame(width: 44, alignment: .leading)
+                .font(.appLabel.weight(isToday ? .semibold : .regular))
+                .foregroundColor(isToday ? .forge : .appTextPrimary)
+            Text(displaySession)
+                .font(.appLabel.weight(isToday ? .semibold : .regular))
+                .foregroundColor(isRepos ? .appTextSecondary : .appTextPrimary)
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(height: 44)
+        .padding(.horizontal, .appCardInsetH)
+    }
+
+    // Volume — 11 barres doctrinales pleine largeur + alertes pied MEV+ / MAV+.
+    // volumeExcessAlerts calculé localement dans la vue (zéro logique VM nouvelle).
+
+    private var volumeSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AppSectionHeader("VOLUME HEBDOMADAIRE")
+            volumeCardView
+        }
+    }
+
+    private var volumeExcessAlerts: [String] {
+        vm.weeklyVolumeByMuscle.compactMap { muscle, sets in
+            guard let mav = TrainingDoctrine.muscleMAV[muscle], sets > mav else { return nil }
+            return "\(muscle) — \(sets)/\(mav) sets max."
+        }.sorted()
+    }
+
+    private var volumeCardView: some View {
+        let vol = vm.weeklyVolumeByMuscle
+        let underMEV = vm.volumeAlerts
+        let overMAV = volumeExcessAlerts
+        return VStack(alignment: .leading, spacing: 12) {
+            ForEach(TrainingDoctrine.canonicalMuscleOrder, id: \.self) { muscle in
+                volumeBar(
+                    muscle: muscle,
+                    sets: vol[muscle] ?? 0,
+                    mev: TrainingDoctrine.muscleMEV[muscle],
+                    mav: TrainingDoctrine.muscleMAV[muscle]
+                )
+            }
+            if !underMEV.isEmpty || !overMAV.isEmpty {
+                Rectangle()
+                    .fill(Color.appTextSecondary.opacity(0.10))
+                    .frame(height: .appHairline)
+                    .padding(.top, 4)
+            }
+            if !underMEV.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(underMEV, id: \.self) { alert in
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.appCaption)
+                                .foregroundColor(.statusOrange)
+                            Text(alert).font(.appLabel).foregroundColor(.statusOrange)
+                        }
+                    }
+                }
+            }
+            if !overMAV.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(overMAV, id: \.self) { alert in
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.appCaption)
+                                .foregroundColor(.appDanger)
+                            Text(alert).font(.appLabel).foregroundColor(.appDanger)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, .appCardInsetH)
+        .padding(.vertical, .appCardInsetV)
+        .background(Color.appCard)
+        .cornerRadius(.appCardRadius)
+    }
+
+    private func volumeBar(muscle: String, sets: Int, mev: Int?, mav: Int?) -> some View {
+        // Palette 3 zones : sous MEV = déficit stimulant (warning), fenêtre = cible
+        // (success), au-dessus MAV = volume junk (alert — le rouge est mérité).
+        // Fill ratio = sets/mav clampé, valeur textuelle = "sets/mav".
+        let mavVal = mav ?? max(sets, 1)
+        let ratio = min(1.0, Double(sets) / Double(mavVal))
+        let color: Color = {
+            guard let mev = mev, let mav = mav else { return .appTextSecondary }
+            if sets < mev { return .statusOrange }
+            if sets > mav { return .appDanger }
+            return .appSuccess
+        }()
+        return HStack(spacing: 12) {
+            Text(muscle)
+                .frame(width: 110, alignment: .leading)
+                .font(.appLabel)
+                .foregroundColor(.appTextPrimary)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.appTextSecondary.opacity(0.15))
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(color)
+                        .frame(width: max(0, geo.size.width * ratio))
+                }
+            }
+            .frame(height: 8)
+            Text("\(sets)/\(mav ?? sets)")
+                .frame(width: 56, alignment: .trailing)
+                .font(.appLabel.weight(.medium))
+                .foregroundColor(.appTextSecondary)
+                .monospacedDigit()
+        }
+    }
+
+    // Mésocycle — lecture pure. Actions (démarrer, reset, appliquer scheme) restent
+    // dans Structure jusqu'à D4. D4 : Structure = actions pures, la lecture mésocycle
+    // vivra dans Semaine seule (PeriodisationCard perdra sa partie lecture).
+
+    private var mesocycleSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AppSectionHeader("MÉSOCYCLE")
+            mesocycleCard
+        }
+    }
+
+    @ViewBuilder
+    private var mesocycleCard: some View {
+        if periodisationStart.isEmpty {
+            HStack(spacing: 12) {
+                Image(systemName: "waveform.path.ecg")
+                    .foregroundColor(.appTextSecondary)
+                Text("Non démarré — démarrer depuis Structure")
+                    .font(.appLabel)
+                    .foregroundColor(.appTextSecondary)
+                Spacer()
+            }
+            .padding(.horizontal, .appCardInsetH)
+            .padding(.vertical, .appCardInsetV)
+            .background(Color.appCard)
+            .cornerRadius(.appCardRadius)
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Semaine \(mesocycleWeek) sur 11")
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(.appTextPrimary)
+                    Spacer()
+                    AppBadge(currentPhase.rawValue.uppercased(), role: .info)
+                }
+                Text(phaseScheme)
+                    .font(.appLabel)
+                    .foregroundColor(.appTextSecondary)
+                Rectangle()
+                    .fill(Color.appTextSecondary.opacity(0.10))
+                    .frame(height: .appHairline)
+                HStack {
+                    Text("Prochaine")
+                        .font(.appLabel)
+                        .foregroundColor(.appTextSecondary)
+                    Spacer()
+                    Text(nextPhase.rawValue)
+                        .font(.appLabel.weight(.medium))
+                        .foregroundColor(.appTextPrimary)
+                }
+            }
+            .padding(.horizontal, .appCardInsetH)
+            .padding(.vertical, .appCardInsetV)
+            .background(Color.appCard)
+            .cornerRadius(.appCardRadius)
+        }
     }
 
     // MARK: - Tab Structure (édition — contenu actuel intact)
@@ -999,16 +1211,10 @@ struct ProgrammeView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
-                let volData = vm.weeklyVolumeByMuscle
-                if !volData.isEmpty {
-                    VolumeCard(
-                        volumeByMuscle: volData,
-                        mev: TrainingDoctrine.muscleMEV,
-                        mav: TrainingDoctrine.muscleMAV,
-                        alerts: vm.volumeAlerts
-                    )
-                    .padding(.horizontal, .appPagePadding)
-                }
+                // VolumeCard expulsée de Structure au Lot D3 — la lecture volume vit
+                // désormais dans le tab Semaine (volumeSection, 11 barres MEV/MAV pleine
+                // largeur). La struct VolumeCard reste physiquement dans le fichier jusqu'à
+                // D4 (suppression avec le nettoyage Structure).
 
                 if sessionOrder.isEmpty {
                     VStack(spacing: 20) {
