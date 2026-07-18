@@ -35,6 +35,14 @@ struct ProgrammeView: View {
     // restent ici.
     @StateObject private var vm = ProgrammeViewModel()
 
+    private enum ProgrammeTab: String, CaseIterable, Identifiable {
+        case today = "Aujourd'hui"
+        case week = "Semaine"
+        case structure = "Structure"
+        var id: String { rawValue }
+    }
+    @State private var selectedTab: ProgrammeTab = .today
+    @State private var showSeanceSoirSheet = false
     @State private var seance2ExosToday: Set<String> = []
     @State private var addTarget: SeanceName?
     @State private var editTarget: ExerciseTarget?
@@ -220,203 +228,13 @@ struct ProgrammeView: View {
                 if vm.isLoading {
                     ProgressView().tint(Color.forge)
                 } else {
-                    ScrollView {
-                        VStack(spacing: .appSectionSpacing) {
-                            // ── Onglets programmes ────────────────────────
-                            if vm.programs.count > 1 {
-                                ProgramTabsView(
-                                    programs: vm.programs,
-                                    selectedId: $vm.selectedProgramId,
-                                    activeId: vm.activeProgramId,
-                                    onAdd: { showCreateProgram = true },
-                                    onRename: { p in
-                                        renameProgramTarget = p
-                                        renameProgramName   = p.name
-                                    },
-                                    onDelete: { p in
-                                        deleteProgramTarget  = p
-                                        confirmDeleteProgram = true
-                                    }
-                                )
-                                .padding(.horizontal, .appPagePadding)
-
-                                if !vm.selectedProgramId.isEmpty, vm.selectedProgramId != vm.activeProgramId {
-                                    Button {
-                                        Task { await vm.setActiveProgramme() }
-                                    } label: {
-                                        HStack(spacing: 8) {
-                                            if vm.isSettingActive {
-                                                ProgressView().tint(.appSuccess).scaleEffect(0.8)
-                                            } else {
-                                                Image(systemName: "checkmark.seal.fill")
-                                                    .font(.appLabel.weight(.regular))
-                                            }
-                                            Text("Définir comme programme actif")
-                                                .font(.appLabel.weight(.semibold))
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(Color.appSuccess.opacity(0.15))
-                                        .foregroundColor(.appSuccess)
-                                        .cornerRadius(.appCardRadius)
-                                        .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.appSuccess.opacity(0.3), lineWidth: 1))
-                                    }
-                                    .buttonStyle(.plain)
-                                    .disabled(vm.isSettingActive)
-                                    .padding(.horizontal, .appPagePadding)
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                                }
-                            }
-
-                            if !activeProgrammeName.isEmpty || !periodisationStart.isEmpty {
-                                ActiveProgrammeBanner(
-                                    programmeName:  activeProgrammeName,
-                                    phase:          currentPhase.rawValue,
-                                    phaseColor:     phaseColor,
-                                    week:           mesocycleWeek,
-                                    totalWeeks:     11,
-                                    started:        !periodisationStart.isEmpty,
-                                    todaySession:   todaySessionName
-                                )
-                                .padding(.horizontal, .appPagePadding)
-                            }
-
-                            EditableWeekScheduleCard(
-                                schedule: $vm.schedule,
-                                dayNames: TrainingDoctrine.dayNames,
-                                sessions: sessionsList,
-                                onSave: { Task { await vm.saveSchedule() } }
-                            )
-                            .padding(.horizontal, .appPagePadding)
-
-                            EveningScheduleCard(
-                                eveningSchedule: $vm.eveningSchedule,
-                                dayNames: TrainingDoctrine.dayNames,
-                                sessions: sessionsList,
-                                onSave: { Task { await vm.saveEveningSchedule() } }
-                            )
-                            .padding(.horizontal, .appPagePadding)
-
-                            let applyAction: (() -> Void)? = periodisationStart.isEmpty ? nil : { showApplyPhaseConfirm = true }
-                            PeriodisationCard(
-                                week: mesocycleWeek,
-                                phase: currentPhase.rawValue,
-                                scheme: phaseScheme,
-                                next: nextPhase.rawValue,
-                                color: phaseColor,
-                                started: !periodisationStart.isEmpty,
-                                onStart: {
-                                    periodisationStart = DateFormatter.isoDate.string(from: Date())
-                                },
-                                onReset: { showResetMesocycle = true },
-                                onApply: applyAction
-                            )
-                            .padding(.horizontal, .appPagePadding)
-
-                            if !clipboard.isEmpty {
-                                let clipboardLabel: String = clipboardName.isEmpty
-                                    ? "\(clipboard.count) exos"
-                                    : "\(clipboardName) · \(clipboard.count) exos"
-                                HStack(spacing: 10) {
-                                    Image(systemName: "doc.on.clipboard.fill")
-                                        .font(.appLabel.weight(.regular))
-                                        .foregroundColor(Color.forge)
-                                    VStack(alignment: .leading, spacing: 1) {
-                                        Text("Clipboard")
-                                            .font(.appCaption.weight(.bold))
-                                            .tracking(1)
-                                            .foregroundColor(.gray)
-                                        Text(clipboardLabel)
-                                            .font(.appLabel.weight(.semibold))
-                                            .foregroundColor(.appTextPrimary)
-                                    }
-                                    Spacer()
-                                    Button {
-                                        clipboardData = "{}"
-                                        clipboardName = ""
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.appBody)
-                                            .foregroundColor(.gray.opacity(0.5))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
-                                .background(Color.forge.opacity(0.07))
-                                .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.2), lineWidth: 1))
-                                .cornerRadius(.appCardRadius)
-                                .padding(.horizontal, .appPagePadding)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                            }
-
-                            let volData = vm.weeklyVolumeByMuscle
-                            if !volData.isEmpty {
-                                VolumeCard(
-                                    volumeByMuscle: volData,
-                                    mev: TrainingDoctrine.muscleMEV,
-                                    mav: TrainingDoctrine.muscleMAV,
-                                    alerts: vm.volumeAlerts
-                                )
-                                .padding(.horizontal, .appPagePadding)
-                            }
-
-                            if sessionOrder.isEmpty {
-                                VStack(spacing: 20) {
-                                    VStack(spacing: 8) {
-                                        Image(systemName: "list.bullet.clipboard")
-                                            .font(.system(size: 40))
-                                            .foregroundColor(.gray.opacity(0.4))
-                                        Text("Aucun programme actif.")
-                                            .font(.appBody.weight(.semibold))
-                                            .foregroundColor(Color.appOnBackground.opacity(0.75))
-                                        Text("Importe ton programme ou démarre une séance libre.")
-                                            .font(.appLabel.weight(.regular))
-                                            .foregroundColor(.gray)
-                                            .multilineTextAlignment(.center)
-                                            .padding(.horizontal, .appPagePadding)
-                                    }
-                                    VStack(spacing: 12) {
-                                        Button { showCreateProgram = true } label: {
-                                            Text("Importer un programme")
-                                                .font(.appBody.weight(.semibold))
-                                                .foregroundColor(Color.onAccent)
-                                                .frame(maxWidth: .infinity)
-                                                .padding(.vertical, 14)
-                                                .background(Color.forge)
-                                                .cornerRadius(.appCardRadius)
-                                        }
-                                        .buttonStyle(.plain)
-                                        Button {
-                                            AppState.shared.pendingDeepLink = "seance"
-                                        } label: {
-                                            Text("Séance libre")
-                                                .font(.appBody.weight(.medium))
-                                                .foregroundColor(Color.forge)
-                                                .frame(maxWidth: .infinity)
-                                                .padding(.vertical, 14)
-                                                .background(Color.forge.opacity(0.10))
-                                                .cornerRadius(.appCardRadius)
-                                                .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.25), lineWidth: 1))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.horizontal, 24)
-                                }
-                                .padding(.vertical, 40)
-                            }
-
-                            ForEach(sessionOrder, id: \.self) { seance in
-                                sessionCard(for: seance)
-                            }
-                            .onPreferenceChange(SessionCardHeightKey.self) { sessionCardHeights.merge($0) { $1 } }
+                    VStack(spacing: 0) {
+                        segmentedControl
+                        switch selectedTab {
+                        case .today:     todayContent
+                        case .week:      weekContent
+                        case .structure: structureContent
                         }
-                        .padding(.vertical, 16)
-                    }
-                    .scrollDismissesKeyboard(.interactively)
-                    .refreshable {
-                        CacheService.shared.clear(for: "programme_data")
-                        seance2ExosToday = SeanceSplitStore.load(date: todayDateStr)
-                        await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
                     }
                 }
 
@@ -510,6 +328,11 @@ struct ProgrammeView: View {
                 CreateSeanceSheet { name in
                     Task { await vm.createSeance(name: name) }
                 }
+            }
+            // Doctrine SeanceSoirView : toujours .sheet, jamais push
+            // (SeanceSoirView.swift:97-102).
+            .sheet(isPresented: $showSeanceSoirSheet) {
+                SeanceSoirView()
             }
             .sheet(item: $addTarget) { sn in
                 AddExerciseSheet(seance: sn.id, inventory: vm.inventory, inventorySchemes: vm.inventorySchemes, inventoryMuscleGroups: vm.inventoryMuscleGroups) { ex, scheme in
@@ -762,6 +585,491 @@ struct ProgrammeView: View {
         vm.exerciseOrder[item.seance, default: []].insert(item.name, at: idx)
         withAnimation { undoDeleteItem = nil }
     }
+    // MARK: - Direction B — tab helpers
+
+    private var todayEveningSessionName: String? {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let idx = (weekday + 5) % 7
+        guard idx < TrainingDoctrine.dayNames.count else { return nil }
+        let day = TrainingDoctrine.dayNames[idx]
+        return vm.eveningSchedule[day].flatMap { $0 == "Repos" ? nil : $0 }
+    }
+
+    @ViewBuilder
+    private var segmentedControl: some View {
+        HStack(spacing: 0) {
+            ForEach(ProgrammeTab.allCases) { tab in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+                } label: {
+                    VStack(spacing: 6) {
+                        Text(tab.rawValue)
+                            .font(.appLabel.weight(.semibold))
+                            .foregroundColor(selectedTab == tab ? .appTextPrimary : .appTextSecondary)
+                            .frame(maxWidth: .infinity)
+                        Rectangle()
+                            .frame(height: 2)
+                            .foregroundColor(selectedTab == tab ? .forge : .clear)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, .appPagePadding)
+        .padding(.top, 4)
+    }
+
+    // MARK: - Tab Aujourd'hui
+
+    private var todayContent: some View {
+        ScrollView {
+            if vm.fullProgram.isEmpty {
+                emptyProgrammePlaceholder
+            } else {
+                VStack(spacing: .appSectionSpacing) {
+                    heroMatin
+                    heroSoir
+                    volumeRow
+                    mesocycleRow
+                }
+                .padding(.vertical, 16)
+            }
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .refreshable {
+            CacheService.shared.clear(for: "programme_data")
+            seance2ExosToday = SeanceSplitStore.load(date: todayDateStr)
+            await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
+        }
+    }
+
+    @ViewBuilder
+    private var heroMatin: some View {
+        if let name = todaySessionName {
+            heroCard(sessionName: name, badge: "MATIN", role: .info) {
+                NavigationLink(destination: SeanceView()) {
+                    heroCTA
+                }
+                .buttonStyle(.plain)
+            }
+        } else {
+            restCard(text: "Repos aujourd'hui")
+        }
+    }
+
+    @ViewBuilder
+    private var heroSoir: some View {
+        if let name = todayEveningSessionName {
+            heroCard(sessionName: name, badge: "SOIR", role: .evening) {
+                Button {
+                    showSeanceSoirSheet = true
+                } label: {
+                    heroCTA
+                }
+                .buttonStyle(.plain)
+            }
+        } else {
+            restCard(text: "Repos ce soir")
+        }
+    }
+
+    private var heroCTA: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "play.fill")
+            Text("COMMENCER")
+        }
+        .font(.appLabel.weight(.bold))
+        .tracking(1.5)
+        .foregroundColor(.onAccent)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(Color.forge)
+        .cornerRadius(.appCardRadius)
+    }
+
+    @ViewBuilder
+    private func heroCard<Cta: View>(
+        sessionName: String,
+        badge: String,
+        role: BadgeRole,
+        @ViewBuilder cta: () -> Cta
+    ) -> some View {
+        let exercises = vm.fullProgram[sessionName] ?? [:]
+        let ordered = vm.exerciseOrder[sessionName] ?? exercises.keys.sorted()
+        VStack(alignment: .leading, spacing: 16) {
+            AppBadge(badge, role: role)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(sessionName).font(.appHero).foregroundColor(.appTextPrimary)
+                Text(exercisesCountLabel(exercises.count))
+                    .font(.appLabel).foregroundColor(.appTextSecondary)
+            }
+            if exercises.isEmpty {
+                Text("Aucun exercice programmé.")
+                    .font(.appLabel).foregroundColor(.appTextSecondary)
+                Button {
+                    withAnimation { selectedTab = .structure }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("Voir dans Structure")
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.forge)
+                }
+                .buttonStyle(.plain)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(ordered, id: \.self) { ex in
+                        if let scheme = exercises[ex] {
+                            HStack {
+                                Text(ex).font(.appBody).foregroundColor(.appTextPrimary)
+                                Spacer()
+                                Text(scheme).font(.appLabel.weight(.medium)).foregroundColor(.appTextSecondary)
+                            }
+                        }
+                    }
+                }
+                cta()
+            }
+        }
+        .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
+        .background(Color.appCard)
+        .cornerRadius(.appCardRadius)
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private func restCard(text: String) -> some View {
+        HStack(spacing: 12) {
+            AppBadge("REPOS", role: .evening)
+            Text(text).font(.appLabel).foregroundColor(.appTextSecondary)
+            Spacer()
+        }
+        .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
+        .background(Color.appCard)
+        .cornerRadius(.appCardRadius)
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private func exercisesCountLabel(_ count: Int) -> String {
+        count == 0 ? "Aucun exercice" : "\(count) exercice\(count > 1 ? "s" : "")"
+    }
+
+    private var volumeRow: some View {
+        Button {
+            withAnimation { selectedTab = .week }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "chart.bar.fill").foregroundColor(.forge)
+                Text("Volume").font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
+                Spacer()
+                if vm.volumeAlerts.isEmpty {
+                    Text("Ok").font(.appLabel).foregroundColor(.appTextSecondary)
+                    Image(systemName: "checkmark").foregroundColor(.appSuccess)
+                } else {
+                    AppBadge("\(vm.volumeAlerts.count) sous MEV", role: .warning)
+                }
+                Image(systemName: "chevron.right").foregroundColor(.appTextSecondary)
+            }
+            .frame(height: 44)
+            .padding(.horizontal, .appPagePadding)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var mesocycleRow: some View {
+        Button {
+            withAnimation { selectedTab = .week }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "waveform.path.ecg").foregroundColor(.forge)
+                Text("Mésocycle").font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
+                Spacer()
+                if periodisationStart.isEmpty {
+                    Text("Non démarré").font(.appLabel).foregroundColor(.appTextSecondary)
+                } else {
+                    Text("Sem \(mesocycleWeek) · \(currentPhase.rawValue)")
+                        .font(.appLabel).foregroundColor(.appTextSecondary)
+                }
+                Image(systemName: "chevron.right").foregroundColor(.appTextSecondary)
+            }
+            .frame(height: 44)
+            .padding(.horizontal, .appPagePadding)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var emptyProgrammePlaceholder: some View {
+        VStack(spacing: 20) {
+            VStack(spacing: 8) {
+                Image(systemName: "list.bullet.clipboard")
+                    .font(.system(size: 40))
+                    .foregroundColor(.gray.opacity(0.4))
+                Text("Aucun programme actif.")
+                    .font(.appBody.weight(.semibold))
+                    .foregroundColor(Color.appOnBackground.opacity(0.75))
+                Text("Importe ton programme ou démarre une séance libre.")
+                    .font(.appLabel.weight(.regular))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, .appPagePadding)
+            }
+            VStack(spacing: 12) {
+                Button { showCreateProgram = true } label: {
+                    Text("Importer un programme")
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(Color.onAccent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.forge)
+                        .cornerRadius(.appCardRadius)
+                }
+                .buttonStyle(.plain)
+                Button {
+                    AppState.shared.pendingDeepLink = "seance"
+                } label: {
+                    Text("Séance libre")
+                        .font(.appBody.weight(.medium))
+                        .foregroundColor(Color.forge)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.forge.opacity(0.10))
+                        .cornerRadius(.appCardRadius)
+                        .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+        }
+        .padding(.vertical, 40)
+    }
+
+    // MARK: - Tab Semaine (placeholder — Lot D3)
+
+    private var weekContent: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "calendar")
+                .font(.system(size: 40))
+                .foregroundColor(.gray.opacity(0.4))
+            Text("Semaine")
+                .font(.appBody.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+            Text("Planning + volume + mésocycle — à venir (Lot D3).")
+                .font(.appLabel)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, .appPagePadding)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Tab Structure (édition — contenu actuel intact)
+
+    private var structureContent: some View {
+        ScrollView {
+            VStack(spacing: .appSectionSpacing) {
+                // ── Onglets programmes ────────────────────────
+                if vm.programs.count > 1 {
+                    ProgramTabsView(
+                        programs: vm.programs,
+                        selectedId: $vm.selectedProgramId,
+                        activeId: vm.activeProgramId,
+                        onAdd: { showCreateProgram = true },
+                        onRename: { p in
+                            renameProgramTarget = p
+                            renameProgramName   = p.name
+                        },
+                        onDelete: { p in
+                            deleteProgramTarget  = p
+                            confirmDeleteProgram = true
+                        }
+                    )
+                    .padding(.horizontal, .appPagePadding)
+
+                    if !vm.selectedProgramId.isEmpty, vm.selectedProgramId != vm.activeProgramId {
+                        Button {
+                            Task { await vm.setActiveProgramme() }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if vm.isSettingActive {
+                                    ProgressView().tint(.appSuccess).scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.appLabel.weight(.regular))
+                                }
+                                Text("Définir comme programme actif")
+                                    .font(.appLabel.weight(.semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.appSuccess.opacity(0.15))
+                            .foregroundColor(.appSuccess)
+                            .cornerRadius(.appCardRadius)
+                            .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.appSuccess.opacity(0.3), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(vm.isSettingActive)
+                        .padding(.horizontal, .appPagePadding)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
+
+                if !activeProgrammeName.isEmpty || !periodisationStart.isEmpty {
+                    ActiveProgrammeBanner(
+                        programmeName:  activeProgrammeName,
+                        phase:          currentPhase.rawValue,
+                        phaseColor:     phaseColor,
+                        week:           mesocycleWeek,
+                        totalWeeks:     11,
+                        started:        !periodisationStart.isEmpty,
+                        todaySession:   todaySessionName
+                    )
+                    .padding(.horizontal, .appPagePadding)
+                }
+
+                EditableWeekScheduleCard(
+                    schedule: $vm.schedule,
+                    dayNames: TrainingDoctrine.dayNames,
+                    sessions: sessionsList,
+                    onSave: { Task { await vm.saveSchedule() } }
+                )
+                .padding(.horizontal, .appPagePadding)
+
+                EveningScheduleCard(
+                    eveningSchedule: $vm.eveningSchedule,
+                    dayNames: TrainingDoctrine.dayNames,
+                    sessions: sessionsList,
+                    onSave: { Task { await vm.saveEveningSchedule() } }
+                )
+                .padding(.horizontal, .appPagePadding)
+
+                let applyAction: (() -> Void)? = periodisationStart.isEmpty ? nil : { showApplyPhaseConfirm = true }
+                PeriodisationCard(
+                    week: mesocycleWeek,
+                    phase: currentPhase.rawValue,
+                    scheme: phaseScheme,
+                    next: nextPhase.rawValue,
+                    color: phaseColor,
+                    started: !periodisationStart.isEmpty,
+                    onStart: {
+                        periodisationStart = DateFormatter.isoDate.string(from: Date())
+                    },
+                    onReset: { showResetMesocycle = true },
+                    onApply: applyAction
+                )
+                .padding(.horizontal, .appPagePadding)
+
+                if !clipboard.isEmpty {
+                    let clipboardLabel: String = clipboardName.isEmpty
+                        ? "\(clipboard.count) exos"
+                        : "\(clipboardName) · \(clipboard.count) exos"
+                    HStack(spacing: 10) {
+                        Image(systemName: "doc.on.clipboard.fill")
+                            .font(.appLabel.weight(.regular))
+                            .foregroundColor(Color.forge)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Clipboard")
+                                .font(.appCaption.weight(.bold))
+                                .tracking(1)
+                                .foregroundColor(.gray)
+                            Text(clipboardLabel)
+                                .font(.appLabel.weight(.semibold))
+                                .foregroundColor(.appTextPrimary)
+                        }
+                        Spacer()
+                        Button {
+                            clipboardData = "{}"
+                            clipboardName = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.appBody)
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
+                    .background(Color.forge.opacity(0.07))
+                    .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.2), lineWidth: 1))
+                    .cornerRadius(.appCardRadius)
+                    .padding(.horizontal, .appPagePadding)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                let volData = vm.weeklyVolumeByMuscle
+                if !volData.isEmpty {
+                    VolumeCard(
+                        volumeByMuscle: volData,
+                        mev: TrainingDoctrine.muscleMEV,
+                        mav: TrainingDoctrine.muscleMAV,
+                        alerts: vm.volumeAlerts
+                    )
+                    .padding(.horizontal, .appPagePadding)
+                }
+
+                if sessionOrder.isEmpty {
+                    VStack(spacing: 20) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "list.bullet.clipboard")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray.opacity(0.4))
+                            Text("Aucun programme actif.")
+                                .font(.appBody.weight(.semibold))
+                                .foregroundColor(Color.appOnBackground.opacity(0.75))
+                            Text("Importe ton programme ou démarre une séance libre.")
+                                .font(.appLabel.weight(.regular))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, .appPagePadding)
+                        }
+                        VStack(spacing: 12) {
+                            Button { showCreateProgram = true } label: {
+                                Text("Importer un programme")
+                                    .font(.appBody.weight(.semibold))
+                                    .foregroundColor(Color.onAccent)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(Color.forge)
+                                    .cornerRadius(.appCardRadius)
+                            }
+                            .buttonStyle(.plain)
+                            Button {
+                                AppState.shared.pendingDeepLink = "seance"
+                            } label: {
+                                Text("Séance libre")
+                                    .font(.appBody.weight(.medium))
+                                    .foregroundColor(Color.forge)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(Color.forge.opacity(0.10))
+                                    .cornerRadius(.appCardRadius)
+                                    .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.25), lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 24)
+                    }
+                    .padding(.vertical, 40)
+                }
+
+                ForEach(sessionOrder, id: \.self) { seance in
+                    sessionCard(for: seance)
+                }
+                .onPreferenceChange(SessionCardHeightKey.self) { sessionCardHeights.merge($0) { $1 } }
+            }
+            .padding(.vertical, 16)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .refreshable {
+            CacheService.shared.clear(for: "programme_data")
+            seance2ExosToday = SeanceSplitStore.load(date: todayDateStr)
+            await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
+        }
+    }
+
 }
 
 // MARK: - PeriodisationCard

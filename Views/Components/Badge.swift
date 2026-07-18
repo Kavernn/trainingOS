@@ -13,6 +13,11 @@ struct AppBadge: View {
     let text: String
     let role: BadgeRole
 
+    init(_ text: String, role: BadgeRole) {
+        self.text = text
+        self.role = role
+    }
+
     var body: some View {
         Text(text)
             .font(.appCaption.weight(.bold))
