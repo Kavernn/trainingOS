@@ -1038,7 +1038,7 @@ struct ProgrammeView: View {
             HStack(spacing: 12) {
                 Image(systemName: "waveform.path.ecg")
                     .foregroundColor(.appTextSecondary)
-                Text("Non démarré — démarrer depuis Structure")
+                Text("Aucun mésocycle en cours.")
                     .font(.appLabel)
                     .foregroundColor(.appTextSecondary)
                 Spacer()
