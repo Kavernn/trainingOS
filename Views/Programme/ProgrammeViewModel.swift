@@ -81,6 +81,52 @@ final class ProgrammeViewModel: ObservableObject {
         return base + missing
     }
 
+    /// Fréquence hebdo par séance (schedule.values, hors "Repos").
+    private var weeklySessionFrequency: [String: Int] {
+        var freq: [String: Int] = [:]
+        for session in schedule.values where session != "Repos" {
+            freq[session, default: 0] += 1
+        }
+        return freq
+    }
+
+    /// Volume hebdo par groupe musculaire doctrinal.
+    /// Formule : sets(scheme) × fréquence hebdo, groupé via
+    /// TrainingDoctrine.doctrinalMuscleGroup (mapping muscle DB → doctrinal).
+    /// Muscle DB inconnu = skip silencieux (robustesse — nouvelle valeur DB pas
+    /// encore mappée n'explose pas la card Volume).
+    var weeklyVolumeByMuscle: [String: Int] {
+        let freq = weeklySessionFrequency
+        var vol: [String: Int] = [:]
+        for (seance, exercises) in fullProgram {
+            let f = freq[seance] ?? 0
+            guard f > 0 else { continue }
+            for (exercise, scheme) in exercises {
+                guard let dbMuscle = inventoryMuscleGroups[exercise] else { continue }
+                guard let doctrinal = TrainingDoctrine.doctrinalMuscleGroup(for: dbMuscle) else { continue }
+                let sets = Self.parseSets(from: scheme)
+                vol[doctrinal, default: 0] += sets * f
+            }
+        }
+        return vol
+    }
+
+    /// Alertes "muscle sous MEV". Retour trié alpha pour affichage stable.
+    var volumeAlerts: [String] {
+        weeklyVolumeByMuscle.compactMap { muscle, sets in
+            guard let mev = TrainingDoctrine.muscleMEV[muscle], sets < mev else { return nil }
+            return "\(muscle) — \(sets)/\(mev) sets min."
+        }.sorted()
+    }
+
+    /// Parse "3x8" → 3, "5x1-3" → 5, "3-4 × 8-12" (× unicode) → 3 (défaut).
+    /// Robuste aux schemes malformés — pas de nil, valeur défaut.
+    private static func parseSets(from scheme: String) -> Int {
+        guard let xRange = scheme.range(of: "x", options: .caseInsensitive) else { return 3 }
+        let setsPart = String(scheme[scheme.startIndex..<xRange.lowerBound])
+        return Int(setsPart.trimmingCharacters(in: .whitespaces)) ?? 3
+    }
+
     // MARK: - Chargement
 
     /// Hydratation atomique du payload /api/programme_data. Contrat : une seule

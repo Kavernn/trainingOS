@@ -189,45 +189,9 @@ struct ProgrammeView: View {
     @State private var confirmDeleteProgram = false
 
     // MARK: - Volume MEV/MAV
-    // Constantes doctrinales (dayNames, canonicalSeanceOrder, muscleMEV/MAV)
-    // extraites vers Models/TrainingDoctrine.swift — source unique.
-
-    private func parseSets(from scheme: String) -> Int {
-        guard let xRange = scheme.range(of: "x", options: .caseInsensitive) else { return 3 }
-        let setsPart = String(scheme[scheme.startIndex..<xRange.lowerBound])
-        return Int(setsPart.trimmingCharacters(in: .whitespaces)) ?? 3
-    }
-
-    private var weeklySessionFrequency: [String: Int] {
-        var freq: [String: Int] = [:]
-        for session in vm.schedule.values where session != "Repos" {
-            freq[session, default: 0] += 1
-        }
-        return freq
-    }
-
-    private var weeklyVolumeByMuscle: [String: Int] {
-        let freq = weeklySessionFrequency
-        var vol: [String: Int] = [:]
-        for (seance, exercises) in vm.fullProgram {
-            let f = freq[seance] ?? 0
-            guard f > 0 else { continue }
-            for (exercise, scheme) in exercises {
-                guard let dbMuscle = vm.inventoryMuscleGroups[exercise] else { continue }
-                guard let doctrinal = TrainingDoctrine.doctrinalMuscleGroup(for: dbMuscle) else { continue }
-                let sets = parseSets(from: scheme)
-                vol[doctrinal, default: 0] += sets * f
-            }
-        }
-        return vol
-    }
-
-    private var volumeAlerts: [String] {
-        weeklyVolumeByMuscle.compactMap { muscle, sets in
-            guard let mev = TrainingDoctrine.muscleMEV[muscle], sets < mev else { return nil }
-            return "\(muscle) — \(sets)/\(mev) sets min."
-        }.sorted()
-    }
+    // Migré dans ProgrammeViewModel (commit 3) : weeklySessionFrequency,
+    // weeklyVolumeByMuscle, volumeAlerts, parseSets. Testable unitairement.
+    // Constantes doctrinales dans Models/TrainingDoctrine.swift.
 
     private func isScheduledThisWeek(_ s: String) -> Bool {
         vm.schedule.values.contains(s) || vm.eveningSchedule.values.contains(s)
@@ -387,13 +351,13 @@ struct ProgrammeView: View {
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
 
-                            let volData = weeklyVolumeByMuscle
+                            let volData = vm.weeklyVolumeByMuscle
                             if !volData.isEmpty {
                                 VolumeCard(
                                     volumeByMuscle: volData,
                                     mev: TrainingDoctrine.muscleMEV,
                                     mav: TrainingDoctrine.muscleMAV,
-                                    alerts: volumeAlerts
+                                    alerts: vm.volumeAlerts
                                 )
                                 .padding(.horizontal, 16)
                             }
