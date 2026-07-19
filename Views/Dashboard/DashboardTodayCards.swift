@@ -274,8 +274,10 @@ struct TodayCardView: View {
                 }
             }
         }
-        .glassCardAccent(isLoggedToday ? Color.statusGreen : todayColor)
-        .cornerRadius(16)
+        // Fond neutre : brutalist (cardAccentFillOpacity 1.0) + electric (0.80)
+        // rendaient la carte hero illisible (fond plein saturé sur textes .gray).
+        // L'accent reste porté par l'icône, le titre, les numéros et le CTA gradient.
+        .glassCard()
         .sheet(isPresented: $showReadinessSheet) {
             if let r = readiness {
                 ReadinessSheet(readiness: r) { onOpenSession?() }
