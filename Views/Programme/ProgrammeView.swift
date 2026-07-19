@@ -1449,6 +1449,26 @@ struct EditableSeanceProgramCard: View {
 
     var color: Color { SessionType(seance).color }
 
+    /// CTA pied de carte dépliée + empty state (même expression, deux emplois).
+    /// Plein largeur, ghost avec accent séance. Cible tap 48pt garantie.
+    @ViewBuilder
+    private var addExerciseFooter: some View {
+        Button(action: onAdd) {
+            HStack(spacing: 6) {
+                Image(systemName: "plus")
+                    .font(.appLabel.weight(.semibold))
+                Text("Ajouter un exercice")
+                    .font(.appLabel.weight(.semibold))
+            }
+            .foregroundColor(color)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(color.opacity(0.10))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func trendFor(_ name: String) -> String? {
         guard let entry = exerciseWeights[name], entry.weight != nil else { return nil }
         guard let dateStr = entry.date, !dateStr.isEmpty else { return "→" }
@@ -1556,17 +1576,6 @@ struct EditableSeanceProgramCard: View {
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(color.opacity(0.12))
                     .cornerRadius(8)
-                Button(action: onAdd) {
-                    Image(systemName: "plus")
-                        .font(.appLabel.weight(.bold))
-                        .foregroundColor(color)
-                        .padding(7)
-                        .background(color.opacity(0.15))
-                        .cornerRadius(8)
-                }
-                .buttonStyle(.plain)
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
                 if let copy = onCopy {
                     Button(action: copy) {
                         Image(systemName: "doc.on.doc")
@@ -1619,63 +1628,58 @@ struct EditableSeanceProgramCard: View {
                 Divider().background(Color.appSeparator)
 
                 if orderedPairs.isEmpty {
-                    HStack {
-                        Image(systemName: "plus.circle")
-                            .font(.appLabel.weight(.regular))
-                            .foregroundColor(color.opacity(0.5))
-                        Text("Aucun exercice — tape + pour en ajouter")
-                            .font(.appLabel.weight(.regular))
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.horizontal, .appPagePadding).padding(.vertical, 14)
-                }
+                    addExerciseFooter
+                } else {
+                    ForEach(orderedPairs, id: \.0) { name, scheme in
+                        let isDragging = dragging == name
+                        SwipeToDeleteRow(onDelete: { onDelete(name) }) {
+                            HStack(spacing: 0) {
+                                // ≡ Drag handle (reorder vertical — zone dédiée 40pt)
+                                Image(systemName: "line.3.horizontal")
+                                    .font(.appLabel.weight(.regular))
+                                    .foregroundColor(.gray.opacity(0.5))
+                                    .frame(width: 40)
+                                    .contentShape(Rectangle())
+                                    .gesture(dragGesture(for: name))
 
-                ForEach(orderedPairs, id: \.0) { name, scheme in
-                    let isDragging = dragging == name
-                    HStack(spacing: 0) {
-                        // ≡ Drag handle
-                        Image(systemName: "line.3.horizontal")
-                            .font(.appLabel.weight(.regular))
-                            .foregroundColor(.gray.opacity(0.5))
-                            .frame(width: 40)
-                            .contentShape(Rectangle())
-                            .gesture(dragGesture(for: name))
-
-                        // Exercise row (tap → edit, trash → delete)
-                        ExerciseRow(
-                            name:          name,
-                            scheme:        scheme,
-                            color:         color,
-                            onTap:         { onEdit(name, scheme) },
-                            onDelete:      { onDelete(name) },
-                            isSupersetted: supersets[name] != nil,
-                            trend:         trendFor(name),
-                            suggestion:    suggestions[name],
-                            isCompound:    name == firstCompoundName,
-                            e1rm:          inventoryOneRM[name],
-                            isSeance2:     seance2ExosToday.contains(name)
-                        )
-                    }
-                    .background(
-                        GeometryReader { geo in
-                            Color.clear.preference(
-                                key: ProgramRowHeightKey.self,
-                                value: [name: geo.size.height]
-                            )
+                                ExerciseRow(
+                                    name:          name,
+                                    scheme:        scheme,
+                                    color:         color,
+                                    onTap:         { onEdit(name, scheme) },
+                                    isSupersetted: supersets[name] != nil,
+                                    trend:         trendFor(name),
+                                    suggestion:    suggestions[name],
+                                    isCompound:    name == firstCompoundName,
+                                    e1rm:          inventoryOneRM[name],
+                                    isSeance2:     seance2ExosToday.contains(name)
+                                )
+                            }
                         }
-                    )
-                    .scaleEffect(isDragging ? 1.02 : 1.0, anchor: .center)
-                    .background(isDragging ? color.opacity(0.06) : Color.clear)
-                    .offset(y: isDragging ? dragY : shiftFor(name))
-                    .zIndex(isDragging ? 1 : 0)
-                    .animation(.spring(response: 0.25, dampingFraction: 0.85), value: shiftFor(name))
-                    .animation(.spring(response: 0.2,  dampingFraction: 0.9),  value: isDragging)
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear.preference(
+                                    key: ProgramRowHeightKey.self,
+                                    value: [name: geo.size.height]
+                                )
+                            }
+                        )
+                        .scaleEffect(isDragging ? 1.02 : 1.0, anchor: .center)
+                        .background(isDragging ? color.opacity(0.06) : Color.clear)
+                        .offset(y: isDragging ? dragY : shiftFor(name))
+                        .zIndex(isDragging ? 1 : 0)
+                        .animation(.spring(response: 0.25, dampingFraction: 0.85), value: shiftFor(name))
+                        .animation(.spring(response: 0.2,  dampingFraction: 0.9),  value: isDragging)
 
-                    if name != orderedPairs.last?.0 {
-                        Divider().background(Color.appSeparatorSubtle).padding(.leading, 40)
+                        if name != orderedPairs.last?.0 {
+                            Divider().background(Color.appSeparatorSubtle)
+                        }
                     }
+                    .onPreferenceChange(ProgramRowHeightKey.self) { rowHeights.merge($0) { $1 } }
+
+                    Divider().background(Color.appSeparator)
+                    addExerciseFooter
                 }
-                .onPreferenceChange(ProgramRowHeightKey.self) { rowHeights.merge($0) { $1 } }
             }
         }
         .background(Color.appCard)
@@ -1685,12 +1689,84 @@ struct EditableSeanceProgramCard: View {
     }
 }
 
+/// Wrap une row d'exercice avec swipe-to-delete horizontal. La zone du swipe
+/// est le CONTENU (donc le corps de la row + son handle ≡), pas les zones
+/// filles avec gestures déjà attachées : la dragGesture(for:) du handle vit
+/// sur l'Image intérieure et reste prioritaire sur son 40pt (résolution
+/// SwiftUI : geste enfant gagne le touch qui démarre sur lui). Résultat :
+///  - Touch sur ≡ → reorder vertical (dragGesture handle)
+///  - Touch ailleurs sur la row → swipe horizontal (ce composant)
+/// Départage par zone, pas par direction — jamais ambigu.
+///
+/// Seuil 90pt : au-delà, delete + undo 4s via onDelete (call site =
+/// deleteWithUndo). Sous le seuil, spring-back. Pas d'état intermédiaire
+/// « open » — un seul geste, deleteWithUndo est le safety net.
+struct SwipeToDeleteRow<Content: View>: View {
+    let onDelete: () -> Void
+    let content: Content
+    @State private var offset: CGFloat = 0
+
+    private let deleteThreshold: CGFloat = 90
+
+    init(onDelete: @escaping () -> Void, @ViewBuilder content: () -> Content) {
+        self.onDelete = onDelete
+        self.content = content()
+    }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            // Fond rouge révélé au swipe. Opacité progressive suit l'offset.
+            HStack {
+                Spacer()
+                Image(systemName: "trash.fill")
+                    .foregroundColor(.white)
+                    .font(.appBody.weight(.semibold))
+                    .padding(.trailing, 24)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.appDanger)
+            .opacity(offset < -10 ? min(1, -offset / 40) : 0)
+
+            content
+                .background(Color.appCard)
+                .offset(x: offset)
+                .gesture(
+                    DragGesture(minimumDistance: 12)
+                        .onChanged { val in
+                            let dx = val.translation.width
+                            let dy = val.translation.height
+                            // Discriminate direction — évite d'attraper un scroll
+                            // vertical de la ScrollView parente ou un reorder handle.
+                            guard abs(dx) > abs(dy) * 1.5 else { return }
+                            offset = min(0, dx)
+                        }
+                        .onEnded { val in
+                            let dx = val.translation.width
+                            let dy = val.translation.height
+                            let horiz = abs(dx) > abs(dy) * 1.5
+                            if horiz && dx < -deleteThreshold {
+                                triggerImpact(style: .medium)
+                                withAnimation(.easeOut(duration: 0.22)) { offset = -600 }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                    onDelete()
+                                }
+                            } else {
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                                    offset = 0
+                                }
+                            }
+                        }
+                )
+        }
+        .clipped()
+    }
+}
+
 struct ExerciseRow: View {
     let name: String
     let scheme: String
     let color: Color
     let onTap: () -> Void
-    let onDelete: () -> Void
     var isSupersetted: Bool = false
     var trend: String? = nil
     var suggestion: ProgressionSuggestion? = nil
@@ -1700,81 +1776,70 @@ struct ExerciseRow: View {
 
     @ObservedObject private var units = UnitSettings.shared
 
+    /// "↑ 4×5-7" si trend positif, "4×5-7" sinon. → (neutre) n'est pas préfixé
+    /// pour ne pas confondre avec la flèche de suggestion (→ 185).
+    private var displayScheme: String {
+        trend == "↑" ? "↑ \(scheme)" : scheme
+    }
+
+    /// Sous-titre méta ligne 2 (SS · Séance 2 · e1rm), un seul point-median.
+    /// Vide → ligne 2 non rendue, row à 46pt. Peuplée → ~60pt (hauteur assumée).
+    private var metaLine: String {
+        var parts: [String] = []
+        if isSupersetted { parts.append("SS") }
+        if isSeance2     { parts.append("Séance 2") }
+        if let e = e1rm  { parts.append("~\(units.format(e, decimals: 0)) max") }
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(name)
                         .font(isCompound ? .appBody.weight(.semibold) : .appLabel.weight(.medium))
                         .foregroundColor(.appTextPrimary)
-                    if let e = e1rm {
-                        Text("~\(units.format(e, decimals: 0)) max est.")
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if !metaLine.isEmpty {
+                        Text(metaLine)
                             .font(.appMicro)
-                            .foregroundColor(.appTextMuted)
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                if isSupersetted {
-                    Text("SS")
-                        .font(.appMicro.weight(.black))
-                        .foregroundColor(Color.forge)
-                        .padding(.horizontal, 5).padding(.vertical, 3)
-                        .background(Color.forge.opacity(0.15))
-                        .cornerRadius(4)
-                }
-                if isSeance2 {
-                    HStack(spacing: 3) {
-                        Image(systemName: "2.circle.fill")
-                            .font(.appMicro.weight(.bold))
-                            .foregroundColor(color.opacity(0.85))
-                        Text("Séance 2")
-                            .font(.appMicro.weight(.semibold))
-                            .foregroundColor(Color.appOnSurface.opacity(0.75))
-                    }
-                    .padding(.horizontal, 6).padding(.vertical, 3)
-                    .background(
-                        Capsule()
-                            .fill(Color.appSurfaceInset)
-                            .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 0.5))
-                    )
-                }
-                if let t = trend {
-                    Text(t)
-                        .font(.appCaption.weight(.bold))
-                        .foregroundColor(t == "↑" ? Color.appSuccess : t == "↓" ? Color.appDanger : Color(white: 0.5))
-                }
-                Text(scheme)
+
+                // Colonne scheme 86pt — anchor trailing, alignement vertical stable.
+                Text(displayScheme)
                     .font(.appCaption.weight(.bold))
                     .foregroundColor(color)
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(color.opacity(0.15))
                     .cornerRadius(6)
                     .lineLimit(1)
-                if let sug = suggestion,
-                   sug.suggestionType == "increase_weight",
-                   let sw = sug.suggestedWeight {
-                    Text("→ \(units.format(sw, decimals: 0))")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(Color.appSuccess)
-                        .padding(.horizontal, 6).padding(.vertical, 3)
-                        .background(Color.appSuccess.opacity(0.12))
-                        .cornerRadius(5)
+                    .frame(width: 86, alignment: .trailing)
+
+                // Colonne suggestion 64pt — frame réservée même vide pour que
+                // le trailing edge du scheme reste aligné entre toutes les rows.
+                Group {
+                    if let sug = suggestion,
+                       sug.suggestionType == "increase_weight",
+                       let sw = sug.suggestedWeight {
+                        Text("→ \(units.format(sw, decimals: 0))")
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(Color.appSuccess)
+                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .background(Color.appSuccess.opacity(0.12))
+                            .cornerRadius(5)
+                            .lineLimit(1)
+                    } else {
+                        Color.clear
+                    }
                 }
-                Button {
-                    onDelete()
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.appLabel.weight(.regular))
-                        .foregroundColor(Color.appDanger.opacity(0.6))
-                        .padding(6)
-                        .background(Color.appDanger.opacity(0.08))
-                        .cornerRadius(7)
-                }
-                .buttonStyle(.plain)
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
+                .frame(width: 64, alignment: .trailing)
             }
-            .padding(.horizontal, .appPagePadding).padding(.vertical, 10)
+            .padding(.horizontal, .appPagePadding).padding(.vertical, 12)
         }
         .buttonStyle(.plain)
     }
