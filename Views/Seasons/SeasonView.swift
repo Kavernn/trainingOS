@@ -9,6 +9,12 @@ struct SeasonView: View {
     @State private var showClose = false
     @State private var selectedReport: SeasonReport?
     @State private var showReport = false
+    @State private var chapterError: String?
+
+    private var chapterErrorBinding: Binding<Bool> {
+        Binding(get: { chapterError != nil },
+                set: { if !$0 { chapterError = nil } })
+    }
 
     var body: some View {
         NavigationStack {
@@ -64,6 +70,11 @@ struct SeasonView: View {
             if let r = selectedReport {
                 seasonReportSheet(r)
             }
+        }
+        .alert("Erreur", isPresented: chapterErrorBinding) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(chapterError ?? "")
         }
     }
 
@@ -184,9 +195,17 @@ struct SeasonView: View {
     private func chapterCard(_ season: Season) -> some View {
         Button {
             Task {
-                if let r = try? await APIService.shared.closeSeason(id: season.id) {
-                    selectedReport = r
-                    showReport = true
+                do {
+                    if let r = try await APIService.shared.closeSeason(id: season.id) {
+                        await MainActor.run {
+                            selectedReport = r
+                            showReport = true
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        chapterError = "Le rapport de saison n'a pas pu être chargé — vérifie ta connexion et réessaie."
+                    }
                 }
             }
         } label: {

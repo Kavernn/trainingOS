@@ -358,11 +358,52 @@ def generate_headline_delta(start_snap: dict, end_snap: dict, season_stats: dict
 
 # ── Close flow ────────────────────────────────────────────────────────────────
 
+def _report_from_completed(season: dict) -> dict:
+    """Recompose le rapport d'une saison déjà fermée SANS écriture ni
+    recompute snapshot. title/arc/ended_at sont figés en base ; narrative
+    et headline dérivent des snapshots stockés et de compute_season_stats
+    sur les dates immuables (started_at / ended_at). Cf. head guard de
+    close_season pour la motivation (anti-replay destructif)."""
+    season_id  = season["id"]
+    snapshots  = db.get_season_snapshots(season_id)
+    start_snap = next((s for s in snapshots if s["type"] == "start"), {}) or {}
+    end_snap   = next((s for s in snapshots if s["type"] == "end"),   {}) or {}
+    start_prs  = start_snap.get("top_prs") or []
+
+    ended_at = season.get("ended_at") or str(_today())
+    stats    = compute_season_stats(season["started_at"], ended_at, start_prs)
+    stats["ritual_completion_rate"] = end_snap.get("ritual_completion_rate", 0.0)
+
+    arc       = season.get("dominant_arc") or "steady_grind"
+    number    = season.get("number")
+    title     = season.get("generated_title") or f"SEASON {number} — {ARC_TITLES.get(arc, 'THE JOURNEY')}"
+    narrative = build_narrative(arc, start_snap, end_snap, stats, number)
+    headline  = generate_headline_delta(start_snap, end_snap, stats)
+
+    return {
+        "season":         season,
+        "start_snapshot": start_snap,
+        "end_snapshot":   end_snap,
+        "stats":          stats,
+        "narrative":      narrative,
+        "headline_delta": headline,
+        "arc":            arc,
+        "title":          title,
+    }
+
+
 def close_season(season_id: str) -> Optional[dict]:
     """Compute end snapshot, detect arc, generate report, persist close."""
     season = db.get_season_by_id(season_id)
     if not season:
         return None
+
+    # Idempotence : saison déjà fermée → rapport existant, zéro écriture.
+    # Un replay (offlinePost iOS reconnect OU chapterCard SeasonView L187
+    # sur saison passée) écrasait sinon title/arc/ended_at avec les stats
+    # du moment du replay — destructif du rapport original figé.
+    if season.get("status") == "completed":
+        return _report_from_completed(season)
 
     today      = str(_today())
     start_date = season["started_at"]

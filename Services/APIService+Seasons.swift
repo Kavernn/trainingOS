@@ -46,7 +46,17 @@ extension APIService {
     }
 
     func closeSeason(id: String) async throws -> SeasonReport? {
-        guard let data = try await offlinePost(endpoint: "/api/seasons/\(id)/close", payload: [:]) else { return nil }
+        // POST direct + throw (pas offlinePost) : la fermeture d'une saison
+        // est un événement de STRUCTURE (unique par définition), pas un log
+        // de terrain. Le replay silencieux à la reconnexion écrasait le
+        // rapport avant l'idempotence serveur (season_engine head guard).
+        // Pattern miroir de updateSeason L59-73 ci-bas.
+        var req = URLRequest(url: try buildURL(path: "/api/seasons/\(id)/close"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody  = try? JSONSerialization.data(withJSONObject: [:])
+        req.timeoutInterval = 20
+        let (data, _) = try await URLSession.authed.data(for: req)
         CacheInvalidation.seasonMutated.invalidate()
         do {
             return try APIService.decoder.decode(SeasonReport.self, from: data)

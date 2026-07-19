@@ -12,6 +12,12 @@ struct SeasonCloseView: View {
     @State private var editingTitle = false
     @State private var isSaving = false
     @State private var appeared = false
+    @State private var closeError: String?
+
+    private var closeErrorBinding: Binding<Bool> {
+        Binding(get: { closeError != nil },
+                set: { if !$0 { closeError = nil } })
+    }
 
     var body: some View {
         ZStack {
@@ -26,6 +32,12 @@ struct SeasonCloseView: View {
         }
         .animation(.easeInOut(duration: 0.5), value: step)
         .task { await performClose() }
+        .alert("Erreur", isPresented: closeErrorBinding) {
+            Button("Réessayer") { Task { await performClose() } }
+            Button("Annuler", role: .cancel) { onSealed() }
+        } message: {
+            Text(closeError ?? "")
+        }
     }
 
     // MARK: - Capture
@@ -191,11 +203,17 @@ struct SeasonCloseView: View {
     // MARK: - Actions
 
     private func performClose() async {
-        let r = try? await APIService.shared.closeSeason(id: season.id)
-        await MainActor.run {
-            report = r
-            if let r { customTitle = r.title }
-            withAnimation { step = .report }
+        do {
+            let r = try await APIService.shared.closeSeason(id: season.id)
+            await MainActor.run {
+                report = r
+                if let r { customTitle = r.title }
+                withAnimation { step = .report }
+            }
+        } catch {
+            await MainActor.run {
+                closeError = "La saison n'a pas pu être fermée — vérifie ta connexion et réessaie."
+            }
         }
     }
 
