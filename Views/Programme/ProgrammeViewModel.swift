@@ -16,7 +16,9 @@ import Combine
 ///  - Mutations de structure (setActiveProgram, rename, delete) = POST direct
 ///    via APIService+Workout postProgrammeDirect + throw (cf. df2b648).
 ///  - applyJSON atomique : une seule séquence de mutations groupées.
-///  - saveSessionOrder throws + rollback apiSessionOrder sur échec (65e77c2).
+///  - orderedSeances dérive du planning (schedule Lun→Dim première apparition,
+///    non-planifiées alpha ensuite). Source unique — plus de drag persisté
+///    serveur ni de miroir apiSessionOrder (supprimés D5).
 @MainActor
 final class ProgrammeViewModel: ObservableObject {
 
@@ -32,12 +34,6 @@ final class ProgrammeViewModel: ObservableObject {
     @Published var inventoryPatterns: [String: String] = [:]
     @Published var inventoryOneRM: [String: Double] = [:]
     @Published var exerciseSupersets: [String: [String: SupersetEntry]] = [:]
-
-    /// Miroir de l'ordre serveur des séances (drag persisté). Hydraté par
-    /// applyJSON, écrasé optimistement par saveSessionOrder puis rollback en cas
-    /// d'échec. La vue en dérive son sessionOrder local (drag) via .onChange sur
-    /// orderedSeances — seul le round-trip serveur (saveSessionOrder) écrit ici.
-    @Published var apiSessionOrder: [String] = []
 
     // MARK: - Multi-programmes (SERVEUR)
 
@@ -65,27 +61,23 @@ final class ProgrammeViewModel: ObservableObject {
 
     // MARK: - Doctrine dérivée
 
-    /// Ordre d'affichage des séances. Deux régimes :
-    ///  - apiSessionOrder non-vide (drag persisté serveur) : cet ordre prime.
-    ///    Les séances disparues du programme sont filtrées, les nouvelles séances
-    ///    (créées après le dernier reorder serveur) sont ajoutées en fin dans
-    ///    l'ordre canonique+alpha.
-    ///  - apiSessionOrder vide (premier launch, jamais dragé) : fallback sur
-    ///    canonique + custom alpha (doctrine pure).
+    /// Ordre d'affichage des séances : dérivé du planning matin, source unique.
+    ///  - Base : ordre d'apparition dans schedule Lun→Dim (première occurrence
+    ///    d'une séance donnée l'ancre à ce jour).
+    ///  - Ensuite : les séances de fullProgram non planifiées, triées alpha.
     ///
-    /// Reproduit la sémantique de refreshSessionOrder() d'avant Lot 2. Sans ça,
-    /// un drag persisté serait perdu à la prochaine hydratation (relance app).
+    /// D5 : remplace le régime dual apiSessionOrder+drag persisté serveur. Le
+    /// planning devient la vérité — plus de double source à réconcilier. Un
+    /// utilisateur qui veut réordonner ses séances déplace le planning.
     var orderedSeances: [String] {
-        let known  = TrainingDoctrine.canonicalSeanceOrder.filter { fullProgram[$0] != nil }
-        let custom = fullProgram.keys.filter { !TrainingDoctrine.canonicalSeanceOrder.contains($0) }.sorted()
-        let canonicalPlusCustom = known + custom
-
-        guard !apiSessionOrder.isEmpty else { return canonicalPlusCustom }
-
-        let existing = Set(fullProgram.keys)
-        let base = apiSessionOrder.filter { existing.contains($0) }
-        let missing = canonicalPlusCustom.filter { !base.contains($0) }
-        return base + missing
+        var scheduled: [String] = []
+        var seen = Set<String>()
+        for day in TrainingDoctrine.dayNames {
+            guard let s = schedule[day], s != "Repos", fullProgram[s] != nil else { continue }
+            if seen.insert(s).inserted { scheduled.append(s) }
+        }
+        let unscheduled = fullProgram.keys.filter { !seen.contains($0) }.sorted()
+        return scheduled + unscheduled
     }
 
     /// Fréquence hebdo par séance (schedule.values, hors "Repos").
@@ -154,9 +146,9 @@ final class ProgrammeViewModel: ObservableObject {
         if let order = json["exercise_order"] as? [String: [String]] {
             exerciseOrder = order
         }
-        if let order = json["session_order"] as? [String] {
-            apiSessionOrder = order
-        }
+        // json["session_order"] : lu par le backend mais plus consommé côté iOS
+        // depuis D5 (l'ordre dérive du planning, cf. orderedSeances). Colonne SQL
+        // conservée pour l'historique ; endpoint reorder_sessions orphelin.
         if let ss = json["exercise_supersets"] as? [String: [String: [String: Any]]] {
             var parsed: [String: [String: SupersetEntry]] = [:]
             for (seance, pairs) in ss {
@@ -252,9 +244,9 @@ final class ProgrammeViewModel: ObservableObject {
     //    createSeance, deleteSeance.
     //
     //  - postProgrammeThrowing (raw) : contrat "je mute AVANT le POST, je
-    //    rollback moi-même sur throw". Utilisé par saveSessionOrder qui a besoin
-    //    de rollback apiSessionOrder + propagation d'erreur à la vue (chip
-    //    lastSaveError positionné au call site du drop, pas ici).
+    //    rollback moi-même sur throw". Conservé pour un futur handler qui
+    //    a besoin de propager l'erreur au call site — plus consommé depuis
+    //    la suppression de saveSessionOrder (D5).
     //
     // Fusion possible mais anti-lazy : 6 handlers dupliqueraient le try/catch +
     // mutationCount + lastSaveError. Duplication supérieure au coût de 2
@@ -354,25 +346,9 @@ final class ProgrammeViewModel: ObservableObject {
         }
     }
 
-    /// Push l'ordre des séances au serveur. Throws — la vue attrape et set
-    /// lastSaveError. Sans ça un drag échoué laisserait apiSessionOrder mentir
-    /// jusqu'au prochain loadData (écrasement optimiste jamais rollback).
-    func saveSessionOrder(_ order: [String]) async throws {
-        let previous = apiSessionOrder
-        mutationCount += 1
-        lastSaveError = false
-        apiSessionOrder = order
-        defer { mutationCount = max(0, mutationCount - 1) }
-        do {
-            try await postProgrammeThrowing([
-                "action": "reorder_sessions",
-                "order": order,
-            ])
-        } catch {
-            apiSessionOrder = previous
-            throw error
-        }
-    }
+    // saveSessionOrder supprimé D5 — l'ordre des séances dérive du planning
+    // (cf. orderedSeances). Le backend reorder_sessions reste orphelin (dead
+    // code documenté) pour une passe hygiène future.
 
     // MARK: - Mutations programme
 

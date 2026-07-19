@@ -15,6 +15,8 @@ final class ProgrammeViewModelTests: XCTestCase {
             "inventory_patterns": ["Bench": "Push"],
             "inventory_1rm": ["Bench": 100.0],
             "exercise_order": ["Push A": ["Bench"]],
+            // session_order encore envoyé par le backend mais ignoré depuis D5
+            // (orderedSeances dérive du schedule, pas de miroir apiSessionOrder).
             "session_order": ["Push A", "Legs"],
             "programs": [["id": "p1", "name": "Prog A"]],
             "current_program_id": "p1",
@@ -31,7 +33,6 @@ final class ProgrammeViewModelTests: XCTestCase {
         XCTAssertEqual(vm.inventoryPatterns["Bench"], "Push")
         XCTAssertEqual(vm.inventoryOneRM["Bench"], 100.0)
         XCTAssertEqual(vm.exerciseOrder["Push A"], ["Bench"])
-        XCTAssertEqual(vm.apiSessionOrder, ["Push A", "Legs"])
         XCTAssertEqual(vm.programs.first?.id, "p1")
         XCTAssertEqual(vm.selectedProgramId, "p1")
         XCTAssertEqual(vm.activeProgramId, "p1")
@@ -63,51 +64,55 @@ final class ProgrammeViewModelTests: XCTestCase {
         XCTAssertEqual(vm.activeProgramId, "p1")
     }
 
-    func test_orderedSeances_canonicalWhenNoServerOrder() {
+    // MARK: - Doctrine dérivée : orderedSeances (D5, planning = source unique)
+
+    /// Contrat D5 : les séances s'ordonnent selon l'apparition dans schedule
+    /// (Lun → Dim). Deux occurrences de la même séance = ancrée au 1er jour.
+    func test_orderedSeances_derivesFromSchedule() {
         let vm = ProgrammeViewModel()
-        vm.fullProgram = [
-            "Custom Yoga": [:],
-            "Push A": [:],
-            "Aardvark": [:],
-            "Legs": [:],
-        ]
-        // apiSessionOrder vide (premier launch / jamais dragé) → fallback doctrine :
-        // canonical d'abord (Push A avant Legs dans TrainingDoctrine),
-        // puis les custom triées alpha (Aardvark avant Custom Yoga).
-        XCTAssertEqual(vm.orderedSeances, ["Push A", "Legs", "Aardvark", "Custom Yoga"])
+        vm.fullProgram = ["Push A": [:], "Pull B": [:], "Legs": [:]]
+        vm.schedule = ["Lun": "Push A", "Mar": "Legs", "Jeu": "Push A", "Sam": "Pull B"]
+        // Push A ancré Lun (1re occurrence), Legs Mar, Pull B Sam.
+        XCTAssertEqual(vm.orderedSeances, ["Push A", "Legs", "Pull B"])
     }
 
-    /// Régression commit 1 : orderedSeances ignorait apiSessionOrder, donc un drag
-    /// persisté serveur était perdu à la prochaine hydratation. Fix : apiSessionOrder
-    /// non-vide prime, avec filtrage des séances disparues et append des nouvelles.
-    func test_orderedSeances_respectsApiSessionOrder() {
+    /// Les séances non planifiées sont ajoutées après, triées alpha —
+    /// ordre déterministe sans donner l'illusion d'un choix implicite.
+    func test_orderedSeances_appendsUnscheduledAlpha() {
         let vm = ProgrammeViewModel()
-        // Scénario : Vince a drag "Legs" en 1er, puis a ajouté "Custom Nouvelle"
-        // après le dernier reorder serveur, et "Push B" a été supprimé.
-        vm.fullProgram = [
-            "Legs": [:],
-            "Push A": [:],
-            "Custom Nouvelle": [:],  // pas dans apiSessionOrder (créée après)
-        ]
-        vm.apiSessionOrder = ["Legs", "Push A", "Push B"]  // Push B n'existe plus
-
-        let ordered = vm.orderedSeances
-
-        // Base = ordre serveur, filtré des disparus (Push B out).
-        // Missing = nouvelles (Custom Nouvelle) en fin, canonique+alpha.
-        XCTAssertEqual(ordered, ["Legs", "Push A", "Custom Nouvelle"])
+        vm.fullProgram = ["Push A": [:], "Custom Yoga": [:], "Legs": [:]]
+        vm.schedule = ["Lun": "Push A"]
+        XCTAssertEqual(vm.orderedSeances, ["Push A", "Custom Yoga", "Legs"])
     }
 
-    /// Une nouvelle séance ajoutée à fullProgram (via createSeance) doit apparaître
-    /// à la fin de orderedSeances (custom, non-canonique) sans casser l'existant.
-    /// Vérifie la réactivité du computed sur mutation.
-    func test_orderedSeances_appendsNewCustomSession() {
+    /// Robustesse : Repos et références à des séances absentes de fullProgram
+    /// (schedule qui pointe une séance supprimée) sont ignorées, pas d'erreur.
+    func test_orderedSeances_ignoresReposAndMissingSessions() {
+        let vm = ProgrammeViewModel()
+        vm.fullProgram = ["Push A": [:]]
+        vm.schedule = ["Lun": "Repos", "Mar": "Push A", "Mer": "Legs"]  // Legs absent
+        XCTAssertEqual(vm.orderedSeances, ["Push A"])
+    }
+
+    /// Fallback sans schedule : tri alpha pur, aucun choix canonique injecté.
+    /// C'est le nouveau contrat vs Lot 2 (canonique + custom alpha) —
+    /// sans planning il n'y a plus de source pour privilégier "Push A avant Legs".
+    func test_orderedSeances_noScheduleFallsBackToAlpha() {
+        let vm = ProgrammeViewModel()
+        vm.fullProgram = ["Push A": [:], "Aardvark": [:], "Legs": [:]]
+        XCTAssertEqual(vm.orderedSeances, ["Aardvark", "Legs", "Push A"])
+    }
+
+    /// Réactivité : createSeance ajoute une clé à fullProgram — sans schedule,
+    /// elle apparaît en fin (alpha) sans casser l'existant.
+    func test_orderedSeances_reactsToFullProgramMutation() {
         let vm = ProgrammeViewModel()
         vm.fullProgram = ["Push A": [:], "Legs": [:]]
+        vm.schedule = ["Lun": "Push A", "Mar": "Legs"]
         XCTAssertEqual(vm.orderedSeances, ["Push A", "Legs"])
 
-        vm.fullProgram["Custom Nouvelle"] = [:]
-        XCTAssertEqual(vm.orderedSeances, ["Push A", "Legs", "Custom Nouvelle"])
+        vm.fullProgram["Zzz Test"] = [:]
+        XCTAssertEqual(vm.orderedSeances, ["Push A", "Legs", "Zzz Test"])
     }
 
     // MARK: - Doctrine dérivée : weeklyVolumeByMuscle

@@ -193,38 +193,10 @@ struct ProgrammeView: View {
         }
     }
 
-    // Session reorder — drag transitoire UI-local. Miroir jetable de
-    // vm.orderedSeances (source de vérité), sync via .onChange dans le body.
-    // Le drop commit vers vm.saveSessionOrder ; sur échec la vue set
-    // vm.lastSaveError = true (chip toolbar). Repris au Lot 5 (DragReorderState).
-    @State private var sessionOrder: [String] = []
-    @State private var draggingSession: String? = nil
-    @State private var sessionDragY: CGFloat = 0
-    @State private var sessionCardHeights: [String: CGFloat] = [:]
-
-    private var proposedSessionDrop: Int {
-        guard let name = draggingSession,
-              let from = sessionOrder.firstIndex(of: name) else { return 0 }
-        let h = sessionCardHeights[name] ?? 80
-        let steps = Int((sessionDragY / h).rounded())
-        return max(0, min(sessionOrder.count - 1, from + steps))
-    }
-
-    private func sessionShiftFor(_ name: String) -> CGFloat {
-        guard let dr = draggingSession, dr != name,
-              let from = sessionOrder.firstIndex(of: dr),
-              let idx  = sessionOrder.firstIndex(of: name) else { return 0 }
-        let to = proposedSessionDrop
-        let h  = sessionCardHeights[dr] ?? 80
-        if from < to, idx > from, idx <= to { return -h }
-        if from > to, idx >= to,  idx < from { return  h }
-        return 0
-    }
-
-    // refreshSessionOrder() supprimé — orderedSeances est maintenant computed dans
-    // le VM. La vue s'y resynchronise via .onChange(of: vm.orderedSeances).
-    // saveSessionOrder() migré dans vm (throws) — la vue attrape dans le
-    // onSessionDragEnded et set vm.lastSaveError sur échec (chip toolbar).
+    // Accordion Structure : une seule séance dépliée à la fois. nil = tout replié
+    // (défaut). Rempli par tap header, ou auto après createSeance pour amener
+    // Vince direct sur la nouvelle carte + AddExerciseSheet.
+    @State private var expandedSeance: String? = nil
 
     struct UndoDeleteItem {
         let seance: String
@@ -376,7 +348,13 @@ struct ProgrammeView: View {
             }
             .sheet(isPresented: $showCreateSeance) {
                 CreateSeanceSheet { name in
-                    Task { await vm.createSeance(name: name) }
+                    Task {
+                        await vm.createSeance(name: name)
+                        // Focus auto : accordion sur la nouvelle carte + sheet
+                        // ajout exercice direct (elle vient d'être créée vide).
+                        expandedSeance = name
+                        addTarget = SeanceName(id: name)
+                    }
                 }
             }
             // Doctrine SeanceSoirView : toujours .sheet, jamais push
@@ -461,14 +439,6 @@ struct ProgrammeView: View {
             guard !newId.isEmpty else { return }
             Task { await vm.loadData(programId: newId); await vm.loadSuggestions() }
         }
-        // Sync VM → vue : le VM est source de vérité pour l'ordre des séances
-        // (vm.orderedSeances = canoniques présentes + custom alpha). Toute
-        // hydratation (loadData) ou mutation qui change la liste écrase le drag
-        // local. Le drag est terminé au drop (saveSessionOrder → vm.apiSessionOrder
-        // mis à jour), donc pas de conflit avec le miroir.
-        .onChange(of: vm.orderedSeances) { _, newOrder in
-            sessionOrder = newOrder
-        }
         // Rafraîchit inventory/inventorySchemes à l'ouverture d'AddExerciseSheet.
         // Résout le cas "exo fraîchement créé au catalogue absent du mapping local"
         // (racine du prefill scheme=nil et du muscle affiché par déduction).
@@ -500,7 +470,6 @@ struct ProgrammeView: View {
 
     @ViewBuilder
     private func sessionCard(for seance: String) -> some View {
-        let isSessionDragging: Bool = draggingSession == seance
         // Binding proxy vers vm.fullProgram[seance] : la sous-vue reçoit un slice
         // du dict racine, écrit via setter. Publish sur mutation logique (add/delete/
         // edit) uniquement — pas de perte de focus car les sous-vues (Add/EditSheet)
@@ -519,13 +488,21 @@ struct ProgrammeView: View {
         let pasteAction: Optional<() -> Void> = clipboard.isEmpty
             ? Optional<() -> Void>.none
             : Optional<() -> Void>.some({ self.pasteSeance(into: seance) })
-        let shift: CGFloat = isSessionDragging ? sessionDragY : sessionShiftFor(seance)
-        let scale: CGFloat = isSessionDragging ? 1.02 : 1.0
-        let zIdx: Double   = isSessionDragging ? 1 : 0
+        // Accordion single-open : ce binding traduit le tap header en toggle
+        // dans expandedSeance (nil ↔ seance). Une seule carte dépliée à la fois.
+        let expandedBinding = Binding<Bool>(
+            get: { self.expandedSeance == seance },
+            set: { open in
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    self.expandedSeance = open ? seance : nil
+                }
+            }
+        )
         EditableSeanceProgramCard(
             seance:       seance,
             exercises:    exercisesBinding,
             orderedNames: orderedNamesBinding,
+            isExpanded:   expandedBinding,
             onAdd:        { addTarget = SeanceName(id: seance) },
             onEdit:       { ex, scheme in
                 let w = vm.exerciseWeights[ex]
@@ -541,53 +518,15 @@ struct ProgrammeView: View {
             onPaste: pasteAction,
             isToday: seance == todaySessionName,
             seance2ExosToday: seance == todaySessionName ? seance2ExosToday : [],
-            onSessionDragChanged: { dy in
-                if draggingSession == nil { triggerImpact(style: .light) }
-                draggingSession = seance
-                sessionDragY = dy
-            },
-            onSessionDragEnded: {
-                let to = proposedSessionDrop
-                if let from = sessionOrder.firstIndex(of: seance), from != to {
-                    withAnimation(.spring(response: 0.25)) {
-                        sessionOrder.move(fromOffsets: IndexSet(integer: from),
-                                          toOffset: to > from ? to + 1 : to)
-                    }
-                    // Le drag est terminé — commit unique au serveur. Throws (contrairement
-                    // aux autres mutations) : échec → vm.lastSaveError = true (chip toolbar).
-                    // Sans ça, un drag échoué laisserait le miroir mentir jusqu'au prochain
-                    // loadData ; ici le rollback apiSessionOrder est fait par le VM.
-                    let orderToSave = sessionOrder
-                    Task {
-                        do { try await vm.saveSessionOrder(orderToSave) }
-                        catch { vm.lastSaveError = true }
-                    }
-                }
-                withAnimation(.spring(response: 0.25)) {
-                    draggingSession = nil
-                    sessionDragY = 0
-                }
-            },
             supersets:        vm.exerciseSupersets[seance] ?? [:],
             exerciseWeights:  vm.exerciseWeights,
             suggestions:      vm.programSuggestions[seance] ?? [:],
             inventoryPatterns: vm.inventoryPatterns,
+            inventoryMuscleGroups: vm.inventoryMuscleGroups,
             inventoryOneRM:    vm.inventoryOneRM
         )
         .padding(.horizontal, .appPagePadding)
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(
-                    key: SessionCardHeightKey.self,
-                    value: [seance: geo.size.height]
-                )
-            }
-        )
-        .offset(y: shift)
-        .scaleEffect(scale, anchor: .center)
-        .zIndex(zIdx)
         .opacity(isScheduledThisWeek(seance) ? 1.0 : 0.55)
-        .animation(.spring(response: 0.25, dampingFraction: 0.85), value: sessionShiftFor(seance))
     }
 
     // MARK: – Undo delete (UI)
@@ -1291,7 +1230,7 @@ struct ProgrammeView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     AppSectionHeader("SÉANCES")
                         .padding(.horizontal, .appPagePadding)
-                    if sessionOrder.isEmpty {
+                    if vm.orderedSeances.isEmpty {
                         VStack(spacing: 20) {
                             VStack(spacing: 8) {
                                 Image(systemName: "list.bullet.clipboard")
@@ -1335,10 +1274,9 @@ struct ProgrammeView: View {
                         }
                         .padding(.vertical, 40)
                     } else {
-                        ForEach(sessionOrder, id: \.self) { seance in
+                        ForEach(vm.orderedSeances, id: \.self) { seance in
                             sessionCard(for: seance)
                         }
-                        .onPreferenceChange(SessionCardHeightKey.self) { sessionCardHeights.merge($0) { $1 } }
                         PrimaryButton(title: "Nouvelle séance", icon: "plus",
                                       style: .outlined, size: .medium) {
                             showCreateSeance = true
@@ -1469,17 +1407,11 @@ private struct ProgramRowHeightKey: PreferenceKey {
     }
 }
 
-private struct SessionCardHeightKey: PreferenceKey {
-    static var defaultValue: [String: CGFloat] = [:]
-    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
-        value.merge(nextValue()) { $1 }
-    }
-}
-
 struct EditableSeanceProgramCard: View {
     let seance: String
     @Binding var exercises: [String: String]
     @Binding var orderedNames: [String]
+    @Binding var isExpanded: Bool
     let onAdd:          () -> Void
     let onEdit:         (String, String) -> Void
     let onDelete:       (String) -> Void
@@ -1489,18 +1421,31 @@ struct EditableSeanceProgramCard: View {
     var onPaste:              (() -> Void)? = nil
     var isToday:              Bool = false
     var seance2ExosToday:     Set<String> = []
-    var onSessionDragChanged: ((CGFloat) -> Void)? = nil
-    var onSessionDragEnded:   (() -> Void)? = nil
     var supersets: [String: SupersetEntry] = [:]
     var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
     var suggestions: [String: ProgressionSuggestion] = [:]
     var inventoryPatterns: [String: String] = [:]
+    var inventoryMuscleGroups: [String: String] = [:]
     var inventoryOneRM: [String: Double] = [:]
 
-    @State private var expanded    = true
     @State private var dragging:   String? = nil
     @State private var dragY:      CGFloat = 0
     @State private var rowHeights: [String: CGFloat] = [:]
+
+    /// Résumé muscles pour le header replié : 3 groupes doctrinaux max,
+    /// « +N » si plus. Dérivé de inventoryMuscleGroups filtré sur les exos
+    /// de la séance, ordonnancement d'apparition dans orderedPairs.
+    private var muscleSummary: String {
+        var seen: [String] = []
+        for (name, _) in orderedPairs {
+            guard let db = inventoryMuscleGroups[name],
+                  let doctrinal = TrainingDoctrine.doctrinalMuscleGroup(for: db) else { continue }
+            if !seen.contains(doctrinal) { seen.append(doctrinal) }
+        }
+        if seen.isEmpty { return "" }
+        if seen.count <= 3 { return seen.joined(separator: " · ") }
+        return seen.prefix(2).joined(separator: " · ") + " +\(seen.count - 2)"
+    }
 
     var color: Color { SessionType(seance).color }
 
@@ -1577,18 +1522,6 @@ struct EditableSeanceProgramCard: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(spacing: 10) {
-                if onSessionDragChanged != nil {
-                    Image(systemName: "line.3.horizontal")
-                        .font(.appLabel.weight(.regular))
-                        .foregroundColor(.gray.opacity(0.4))
-                        .frame(width: 24)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 6)
-                                .onChanged { val in onSessionDragChanged?(val.translation.height) }
-                                .onEnded { _ in onSessionDragEnded?() }
-                        )
-                }
                 Circle()
                     .fill(color.opacity(0.15))
                     .frame(width: 32, height: 32)
@@ -1597,9 +1530,17 @@ struct EditableSeanceProgramCard: View {
                             .font(.appLabel.weight(.black))
                             .foregroundColor(color)
                     )
-                Text(seance)
-                    .font(.appBody.weight(.bold))
-                    .foregroundColor(color)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(seance)
+                        .font(.appBody.weight(.bold))
+                        .foregroundColor(color)
+                    if !muscleSummary.isEmpty {
+                        Text(muscleSummary)
+                            .font(.appCaption)
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
+                }
                 if isToday {
                     Text("AUJOURD'HUI")
                         .font(.appMicro.weight(.black)).tracking(1)
@@ -1665,16 +1606,16 @@ struct EditableSeanceProgramCard: View {
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
                 }
-                Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.appCaption)
                     .foregroundColor(.gray)
                     .padding(.leading, 2)
             }
             .padding(.horizontal, .appPagePadding).padding(.vertical, 12)
             .contentShape(Rectangle())
-            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
+            .onTapGesture { isExpanded.toggle() }
 
-            if expanded {
+            if isExpanded {
                 Divider().background(Color.appSeparator)
 
                 if orderedPairs.isEmpty {
