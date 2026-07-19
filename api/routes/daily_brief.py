@@ -55,17 +55,20 @@ def get_daily_brief():
 
     today = _today_mtl()
 
-    # Check DB cache first
+    # Check DB cache first. .limit(1) + list handling — pas .maybe_single() :
+    # sur postgrest-py récent, un 406 (zéro row + Accept: pgrst.object) fait
+    # retourner None par .execute(), qui explose sur .data. Cf. bug prod 18/07.
     try:
         import db as _db
         if _db._client:
             cached = _db._client.table("daily_brief") \
                 .select("use_quote,mot,lecture,recommandation,generated_at,date") \
                 .eq("date", today) \
-                .maybe_single() \
+                .limit(1) \
                 .execute()
-            if cached.data:
-                row = cached.data
+            rows = cached.data or []
+            if rows:
+                row = rows[0]
                 return jsonify({
                     "date":           row["date"],
                     "use_quote":      row["use_quote"],
@@ -91,6 +94,10 @@ def get_daily_brief():
         if not isinstance(recommandation, list):
             recommandation = [str(recommandation)]
 
+        # Un seul generated_at partagé entre l'upsert et la réponse : sinon le
+        # miss retourne un timestamp qui diverge du hit d'après (drift microsec).
+        generated_at = datetime.now(timezone.utc).isoformat()
+
         # Store in DB
         try:
             import db as _db
@@ -101,7 +108,7 @@ def get_daily_brief():
                     "mot":            mot,
                     "lecture":        lecture,
                     "recommandation": recommandation,
-                    "generated_at":   datetime.now(timezone.utc).isoformat(),
+                    "generated_at":   generated_at,
                 }, on_conflict="date").execute()
         except Exception as e:
             logger.warning("daily_brief cache write failed: %s", e)
@@ -112,7 +119,7 @@ def get_daily_brief():
             "mot":            mot,
             "lecture":        lecture,
             "recommandation": recommandation,
-            "generated_at":   datetime.now(timezone.utc).isoformat(),
+            "generated_at":   generated_at,
             "cached":         False,
         })
 
