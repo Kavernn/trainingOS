@@ -31,7 +31,7 @@ private enum SessionType {
 // MARK: - Périodisation (source unique 5 phases)
 // Une seule définition : cases, semaines, verbe, spec chiffrée, repos, pourquoi,
 // short scheme, rôle badge. Tout consommateur (mesocycleCard, mesocycleRow,
-// ActiveProgrammeBanner, PeriodisationCard segments) dérive d'ici.
+// mesocycleActions) dérive d'ici.
 fileprivate enum Phase: String, CaseIterable {
     case accumulation    = "Accumulation"
     case intensification = "Intensification"
@@ -1071,9 +1071,8 @@ struct ProgrammeView: View {
         }
     }
 
-    // Mésocycle — lecture pure. Actions (démarrer, reset, appliquer scheme) restent
-    // dans Structure jusqu'à D4. D4 : Structure = actions pures, la lecture mésocycle
-    // vivra dans Semaine seule (PeriodisationCard perdra sa partie lecture).
+    // Mésocycle — lecture pure. Les actions (démarrer, reset, appliquer scheme)
+    // vivent dans le tab Structure (mesocycleActions).
 
     private var mesocycleSection: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1145,12 +1144,41 @@ struct ProgrammeView: View {
         }
     }
 
-    // MARK: - Tab Structure (édition — contenu actuel intact)
+    // MARK: - Tab Structure (édition pure — clôture Direction B)
+
+    private var totalExoCount: Int {
+        vm.fullProgram.values.reduce(0) { $0 + $1.count }
+    }
+
+    private var deletableProgram: ProgramInfo? {
+        vm.programs.first { $0.id == vm.activeProgramId } ?? vm.programs.first
+    }
+
+    @ViewBuilder
+    private var mesocycleActions: some View {
+        if periodisationStart.isEmpty {
+            PrimaryButton(title: "Démarrer un mésocycle", icon: "play.fill") {
+                periodisationStart = DateFormatter.isoDate.string(from: Date())
+            }
+            .padding(.horizontal, .appPagePadding)
+        } else {
+            PrimaryButton(title: "Appliquer \(currentPhase.shortScheme) aux \(totalExoCount) exercices",
+                          icon: "arrow.triangle.2.circlepath") {
+                showApplyPhaseConfirm = true
+            }
+            .padding(.horizontal, .appPagePadding)
+            PrimaryButton(title: "Réinitialiser le mésocycle",
+                          style: .ghost, size: .medium) {
+                showResetMesocycle = true
+            }
+            .padding(.horizontal, .appPagePadding)
+        }
+    }
 
     private var structureContent: some View {
         ScrollView {
             VStack(spacing: .appSectionSpacing) {
-                // ── Onglets programmes ────────────────────────
+                // ── Onglets programmes (multi-progs seulement) ────
                 if vm.programs.count > 1 {
                     ProgramTabsView(
                         programs: vm.programs,
@@ -1196,51 +1224,7 @@ struct ProgrammeView: View {
                     }
                 }
 
-                if !activeProgrammeName.isEmpty || !periodisationStart.isEmpty {
-                    ActiveProgrammeBanner(
-                        programmeName:  activeProgrammeName,
-                        phase:          currentPhase.rawValue,
-                        phaseColor:     currentPhase.color,
-                        week:           mesocycleWeek,
-                        totalWeeks:     11,
-                        started:        !periodisationStart.isEmpty,
-                        todaySession:   todaySessionName
-                    )
-                    .padding(.horizontal, .appPagePadding)
-                }
-
-                EditableWeekScheduleCard(
-                    schedule: $vm.schedule,
-                    dayNames: TrainingDoctrine.dayNames,
-                    sessions: sessionsList,
-                    onSave: { Task { await vm.saveSchedule() } }
-                )
-                .padding(.horizontal, .appPagePadding)
-
-                EveningScheduleCard(
-                    eveningSchedule: $vm.eveningSchedule,
-                    dayNames: TrainingDoctrine.dayNames,
-                    sessions: sessionsList,
-                    onSave: { Task { await vm.saveEveningSchedule() } }
-                )
-                .padding(.horizontal, .appPagePadding)
-
-                let applyAction: (() -> Void)? = periodisationStart.isEmpty ? nil : { showApplyPhaseConfirm = true }
-                PeriodisationCard(
-                    week: mesocycleWeek,
-                    phase: currentPhase.rawValue,
-                    scheme: currentPhase.scheme,
-                    next: currentPhase.next.rawValue,
-                    color: currentPhase.color,
-                    started: !periodisationStart.isEmpty,
-                    onStart: {
-                        periodisationStart = DateFormatter.isoDate.string(from: Date())
-                    },
-                    onReset: { showResetMesocycle = true },
-                    onApply: applyAction
-                )
-                .padding(.horizontal, .appPagePadding)
-
+                // ── Clipboard (si non-vide) ───────────────────────
                 if !clipboard.isEmpty {
                     let clipboardLabel: String = clipboardName.isEmpty
                         ? "\(clipboard.count) exos"
@@ -1277,60 +1261,112 @@ struct ProgrammeView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
-                // VolumeCard expulsée de Structure au Lot D3 — la lecture volume vit
-                // désormais dans le tab Semaine (volumeSection, 11 barres MEV/MAV pleine
-                // largeur). La struct VolumeCard reste physiquement dans le fichier jusqu'à
-                // D4 (suppression avec le nettoyage Structure).
+                // ── PLANNING MATIN ────────────────────────────────
+                VStack(alignment: .leading, spacing: 0) {
+                    AppSectionHeader("PLANNING MATIN")
+                        .padding(.horizontal, .appPagePadding)
+                    EditableWeekScheduleCard(
+                        schedule: $vm.schedule,
+                        dayNames: TrainingDoctrine.dayNames,
+                        sessions: sessionsList,
+                        onSave: { Task { await vm.saveSchedule() } }
+                    )
+                    .padding(.horizontal, .appPagePadding)
+                }
 
-                if sessionOrder.isEmpty {
-                    VStack(spacing: 20) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "list.bullet.clipboard")
-                                .font(.system(size: 40))
-                                .foregroundColor(.gray.opacity(0.4))
-                            Text("Aucun programme actif.")
-                                .font(.appBody.weight(.semibold))
-                                .foregroundColor(Color.appOnBackground.opacity(0.75))
-                            Text("Importe ton programme ou démarre une séance libre.")
-                                .font(.appLabel.weight(.regular))
-                                .foregroundColor(.gray)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, .appPagePadding)
-                        }
-                        VStack(spacing: 12) {
-                            Button { showCreateProgram = true } label: {
-                                Text("Importer un programme")
+                // ── PLANNING SOIR ─────────────────────────────────
+                VStack(alignment: .leading, spacing: 0) {
+                    AppSectionHeader("PLANNING SOIR")
+                        .padding(.horizontal, .appPagePadding)
+                    EveningScheduleCard(
+                        eveningSchedule: $vm.eveningSchedule,
+                        dayNames: TrainingDoctrine.dayNames,
+                        sessions: sessionsList,
+                        onSave: { Task { await vm.saveEveningSchedule() } }
+                    )
+                    .padding(.horizontal, .appPagePadding)
+                }
+
+                // ── SÉANCES ───────────────────────────────────────
+                VStack(alignment: .leading, spacing: 12) {
+                    AppSectionHeader("SÉANCES")
+                        .padding(.horizontal, .appPagePadding)
+                    if sessionOrder.isEmpty {
+                        VStack(spacing: 20) {
+                            VStack(spacing: 8) {
+                                Image(systemName: "list.bullet.clipboard")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.gray.opacity(0.4))
+                                Text("Aucun programme actif.")
                                     .font(.appBody.weight(.semibold))
-                                    .foregroundColor(Color.onAccent)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(Color.forge)
-                                    .cornerRadius(.appCardRadius)
+                                    .foregroundColor(Color.appOnBackground.opacity(0.75))
+                                Text("Importe ton programme ou démarre une séance libre.")
+                                    .font(.appLabel.weight(.regular))
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, .appPagePadding)
                             }
-                            .buttonStyle(.plain)
-                            Button {
-                                AppState.shared.pendingDeepLink = "seance"
-                            } label: {
-                                Text("Séance libre")
-                                    .font(.appBody.weight(.medium))
-                                    .foregroundColor(Color.forge)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
-                                    .background(Color.forge.opacity(0.10))
-                                    .cornerRadius(.appCardRadius)
-                                    .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.25), lineWidth: 1))
+                            VStack(spacing: 12) {
+                                Button { showCreateProgram = true } label: {
+                                    Text("Importer un programme")
+                                        .font(.appBody.weight(.semibold))
+                                        .foregroundColor(Color.onAccent)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(Color.forge)
+                                        .cornerRadius(.appCardRadius)
+                                }
+                                .buttonStyle(.plain)
+                                Button {
+                                    AppState.shared.pendingDeepLink = "seance"
+                                } label: {
+                                    Text("Séance libre")
+                                        .font(.appBody.weight(.medium))
+                                        .foregroundColor(Color.forge)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(Color.forge.opacity(0.10))
+                                        .cornerRadius(.appCardRadius)
+                                        .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.forge.opacity(0.25), lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, 24)
                         }
-                        .padding(.horizontal, 24)
+                        .padding(.vertical, 40)
+                    } else {
+                        ForEach(sessionOrder, id: \.self) { seance in
+                            sessionCard(for: seance)
+                        }
+                        .onPreferenceChange(SessionCardHeightKey.self) { sessionCardHeights.merge($0) { $1 } }
+                        PrimaryButton(title: "Nouvelle séance", icon: "plus",
+                                      style: .outlined, size: .medium) {
+                            showCreateSeance = true
+                        }
+                        .padding(.horizontal, .appPagePadding)
                     }
-                    .padding(.vertical, 40)
                 }
 
-                ForEach(sessionOrder, id: \.self) { seance in
-                    sessionCard(for: seance)
+                // ── MÉSOCYCLE — actions pures ─────────────────────
+                VStack(alignment: .leading, spacing: 12) {
+                    AppSectionHeader("MÉSOCYCLE")
+                        .padding(.horizontal, .appPagePadding)
+                    mesocycleActions
                 }
-                .onPreferenceChange(SessionCardHeightKey.self) { sessionCardHeights.merge($0) { $1 } }
+
+                // ── DANGER ────────────────────────────────────────
+                if let target = deletableProgram {
+                    VStack(alignment: .leading, spacing: 12) {
+                        AppSectionHeader("DANGER")
+                            .padding(.horizontal, .appPagePadding)
+                        PrimaryButton(title: "Supprimer \(target.name)", icon: "trash.fill",
+                                      style: .destructive, size: .medium) {
+                            deleteProgramTarget = target
+                            confirmDeleteProgram = true
+                        }
+                        .padding(.horizontal, .appPagePadding)
+                    }
+                }
             }
             .padding(.vertical, 16)
         }
@@ -1342,199 +1378,6 @@ struct ProgrammeView: View {
         }
     }
 
-}
-
-// MARK: - PeriodisationCard
-
-struct PeriodisationCard: View {
-    let week: Int
-    let phase: String
-    let scheme: String
-    let next: String
-    let color: Color
-    let started: Bool
-    let onStart: () -> Void
-    let onReset: () -> Void
-    var onApply: (() -> Void)? = nil
-
-    @State private var showTimeline = false
-
-    private let totalWeeks = 11
-
-    private struct PhaseSegment {
-        let name: String
-        let shortScheme: String
-        let color: Color
-        let weeks: ClosedRange<Int>
-    }
-
-    // Dérivé de l'enum Phase (source unique) — un seul jeu de phases dans l'app.
-    private let segments: [PhaseSegment] = Phase.allCases.map {
-        PhaseSegment(name: $0.rawValue, shortScheme: $0.shortScheme, color: $0.color, weeks: $0.weeks)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .foregroundColor(color)
-                    .font(.appLabel.weight(.bold))
-                Text("Périodisation")
-                    .font(.appLabel.weight(.bold))
-                    .foregroundColor(Color.appOnSurface.opacity(0.8))
-                Spacer()
-                if started {
-                    Button(action: onReset) {
-                        Text("Nouveau mésocycle")
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundColor(color)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            if started {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(phase)
-                        .font(.appTitle.weight(.black))
-                        .foregroundColor(color)
-                    Text("— Semaine \(week)/\(totalWeeks)")
-                        .font(.appLabel.weight(.regular))
-                        .foregroundColor(.gray)
-                }
-
-                // Progress bar
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.appSeparatorSubtle)
-                            .frame(height: 6)
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(color)
-                            .frame(width: geo.size.width * CGFloat(min(week, totalWeeks)) / CGFloat(totalWeeks), height: 6)
-                    }
-                }
-                .frame(height: 6)
-
-                HStack {
-                    Label(scheme, systemImage: "dumbbell")
-                        .font(.appCaption)
-                        .foregroundColor(Color.appOnSurface.opacity(0.65))
-                    Spacer()
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { showTimeline.toggle() }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text(showTimeline ? "Masquer" : "Plan complet")
-                                .font(.appCaption.weight(.semibold))
-                                .foregroundColor(.gray)
-                            Image(systemName: showTimeline ? "chevron.up" : "chevron.down")
-                                .font(.appMicro.weight(.semibold))
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                // Timeline expandable
-                if showTimeline {
-                    VStack(spacing: 8) {
-                        // Barre segmentée
-                        GeometryReader { geo in
-                            HStack(spacing: 2) {
-                                ForEach(segments, id: \.name) { seg in
-                                    let segCount = CGFloat(seg.weeks.count)
-                                    let totalCount = CGFloat(totalWeeks)
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(seg.color.opacity(0.18))
-                                            .frame(width: geo.size.width * segCount / totalCount - 2)
-                                        HStack(spacing: 0) {
-                                            ForEach(seg.weeks, id: \.self) { w in
-                                                let isCurrentWeek = w == week
-                                                ZStack {
-                                                    if isCurrentWeek {
-                                                        RoundedRectangle(cornerRadius: 3)
-                                                            .fill(seg.color.opacity(0.5))
-                                                    }
-                                                    Text("\(w)")
-                                                        .font(.appMicro.weight(isCurrentWeek ? .black : .regular))
-                                                        .foregroundColor(isCurrentWeek ? .white : seg.color.opacity(0.7))
-                                                }
-                                                .frame(maxWidth: .infinity)
-                                            }
-                                        }
-                                        .frame(width: geo.size.width * segCount / totalCount - 2)
-                                    }
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .stroke(seg.weeks.contains(week) ? seg.color.opacity(0.7) : Color.clear, lineWidth: 1.5)
-                                    )
-                                }
-                            }
-                        }
-                        .frame(height: 28)
-
-                        // Légende
-                        HStack(spacing: 0) {
-                            ForEach(segments, id: \.name) { seg in
-                                VStack(alignment: .center, spacing: 2) {
-                                    Text(seg.name)
-                                        .font(.appMicro.weight(.bold))
-                                        .foregroundColor(seg.color.opacity(0.85))
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
-                                    Text(seg.shortScheme)
-                                        .font(.appMicro)
-                                        .foregroundColor(.gray)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-                        }
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-
-                if let apply = onApply {
-                    Button(action: apply) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.appCaption.weight(.bold))
-                            Text("Appliquer à tout le programme")
-                                .font(.appCaption.weight(.semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(color.opacity(0.12))
-                        .foregroundColor(color)
-                        .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.25), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                }
-            } else {
-                Button(action: onStart) {
-                    HStack {
-                        Image(systemName: "play.fill")
-                        Text("Démarrer un mésocycle")
-                    }
-                    .font(.appLabel.weight(.semibold))
-                    .foregroundColor(color)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(color.opacity(0.1))
-                    .cornerRadius(10)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(16)
-        .background(Color.appCard)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
-        .cornerRadius(.appCardRadius)
-    }
 }
 
 // MARK: - ProgramTabsView
@@ -2579,145 +2422,6 @@ struct EveningScheduleCard: View {
     private func sessionColor(_ s: String) -> Color { SessionType(s).color }
 }
 
-/// MARK: - Volume Card
-
-private struct VolumeCard: View {
-    let volumeByMuscle: [String: Int]
-    let mev: [String: Int]
-    let mav: [String: Int]
-    let alerts: [String]
-
-    @State private var expanded = false
-
-    private let muscleOrder = TrainingDoctrine.canonicalMuscleOrder
-
-    private var sortedMuscles: [(String, Int)] {
-        muscleOrder.compactMap { m in
-            guard let v = volumeByMuscle[m] else { return nil }
-            return (m, v)
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "chart.bar.fill")
-                        .font(.appCaption.weight(.bold))
-                        .foregroundColor(Color.statusPurple)
-                    Text("VOLUME HEBDO")
-                        .font(.appCaption.weight(.black))
-                        .tracking(1.5)
-                        .foregroundColor(Color.statusPurple)
-                }
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.statusPurple.opacity(0.1))
-                .cornerRadius(6)
-
-                Spacer()
-
-                if !alerts.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.appCaption)
-                            .foregroundColor(Color.forge)
-                        Text("\(alerts.count) sous MEV")
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundColor(Color.forge)
-                    }
-                }
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
-                } label: {
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.appCaption)
-                        .foregroundColor(.gray)
-                        .padding(.leading, 6)
-                }
-                .buttonStyle(.plain)
-            }
-
-            if expanded {
-                let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 2)
-                LazyVGrid(columns: columns, spacing: 6) {
-                    ForEach(sortedMuscles, id: \.0) { muscle, sets in
-                        let mevVal = mev[muscle] ?? 0
-                        let mavVal = mav[muscle] ?? 12
-                        let fraction = CGFloat(min(sets, mavVal)) / CGFloat(mavVal)
-                        let barColor: Color = sets < mevVal ? .appDanger : sets <= mavVal ? .appSuccess : .appWarning
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(muscle)
-                                    .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(Color.appOnSurface.opacity(0.85))
-                                Spacer()
-                                Text("\(sets) sets")
-                                    .font(.appCaption.weight(.bold))
-                                    .foregroundColor(barColor)
-                            }
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .fill(Color.appSeparatorSubtle)
-                                        .frame(height: 5)
-                                    RoundedRectangle(cornerRadius: 3)
-                                        .fill(barColor)
-                                        .frame(width: geo.size.width * fraction, height: 5)
-                                    // MEV marker
-                                    let mevX = geo.size.width * CGFloat(mevVal) / CGFloat(mavVal)
-                                    Rectangle()
-                                        .fill(Color.appOnSurface.opacity(0.3))
-                                        .frame(width: 1, height: 7)
-                                        .offset(x: min(mevX, geo.size.width - 1), y: -1)
-                                }
-                            }
-                            .frame(height: 5)
-                            HStack {
-                                Text("MEV \(mevVal)")
-                                    .font(.appMicro)
-                                    .foregroundColor(.gray.opacity(0.5))
-                                Spacer()
-                                Text("MAV \(mavVal)")
-                                    .font(.appMicro)
-                                    .foregroundColor(.gray.opacity(0.5))
-                            }
-                        }
-                        .padding(8)
-                        .background(barColor.opacity(0.06))
-                        .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(barColor.opacity(0.2), lineWidth: 1))
-                    }
-                }
-
-                if !alerts.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(alerts, id: \.self) { alert in
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.appCaption)
-                                    .foregroundColor(Color.forge)
-                                Text(alert)
-                                    .font(.appCaption)
-                                    .foregroundColor(Color.forge.opacity(0.85))
-                            }
-                        }
-                    }
-                    .padding(10)
-                    .background(Color.forge.opacity(0.07))
-                    .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.2), lineWidth: 1))
-                }
-            }
-        }
-        .padding(14)
-        .background(Color.appCard)
-        .cornerRadius(.appCardRadius)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusPurple.opacity(0.2), lineWidth: 1))
-    }
-}
-
 // MARK: - Create Seance Sheet
 
 struct CreateSeanceSheet: View {
@@ -2800,88 +2504,5 @@ struct CreateSeanceSheet: View {
                 Text("Les valeurs saisies seront perdues.")
             }
         }
-    }
-}
-
-// MARK: - Active Programme Banner
-
-private struct ActiveProgrammeBanner: View {
-    let programmeName: String
-    let phase: String
-    let phaseColor: Color
-    let week: Int
-    let totalWeeks: Int
-    let started: Bool
-    let todaySession: String?
-
-    private var progress: Double {
-        guard started, totalWeeks > 0 else { return 0 }
-        return min(Double(week) / Double(totalWeeks), 1.0)
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    if !programmeName.isEmpty {
-                        Text(programmeName.uppercased())
-                            .font(.appMicro.weight(.black)).tracking(1.5)
-                            .foregroundColor(.gray.opacity(0.6))
-                    }
-                    HStack(spacing: 8) {
-                        Text(phase)
-                            .font(.appLabel.weight(.bold))
-                            .foregroundColor(phaseColor)
-                        if started {
-                            Text("·")
-                                .foregroundColor(.gray.opacity(0.4))
-                                .font(.appLabel)
-                            Text("Semaine \(week)")
-                                .font(.appLabel.weight(.regular))
-                                .foregroundColor(Color.appOnSurface.opacity(0.7))
-                        }
-                    }
-                    if let session = todaySession {
-                        HStack(spacing: 5) {
-                            Image(systemName: "flame.fill")
-                                .font(.appMicro)
-                                .foregroundColor(Color.forge)
-                            Text(session)
-                                .font(.appCaption.weight(.semibold))
-                                .foregroundColor(Color.forge.opacity(0.9))
-                        }
-                    }
-                }
-                Spacer()
-                if started {
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text("\(Int(progress * 100))%")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(phaseColor)
-                        Text("du cycle")
-                            .font(.appCaption)
-                            .foregroundColor(.gray)
-                    }
-                }
-            }
-            .padding(.horizontal, .appCardInsetH).padding(.top, 12).padding(.bottom, started ? 10 : 14)
-
-            if started {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.appSeparatorSubtle).frame(height: 3)
-                        Capsule()
-                            .fill(LinearGradient(colors: [phaseColor.opacity(0.6), phaseColor],
-                                                 startPoint: .leading, endPoint: .trailing))
-                            .frame(width: geo.size.width * progress, height: 3)
-                    }
-                }
-                .frame(height: 3)
-                .padding(.horizontal, .appCardInsetH).padding(.bottom, 12)
-            }
-        }
-        .background(Color.appCard)
-        .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(phaseColor.opacity(0.15), lineWidth: 1))
-        .cornerRadius(.appCardRadius)
     }
 }

@@ -57,8 +57,8 @@ enum TrainingDoctrine {
         "Core":            12,
     ]
 
-    /// Ordre visuel canonique pour l'affichage groupé (VolumeCard, futurs
-    /// consommateurs). Cohérent avec les clés de muscleMEV/MAV — la symétrie
+    /// Ordre visuel canonique pour l'affichage groupé (tab Semaine
+    /// volumeSection). Cohérent avec les clés de muscleMEV/MAV — la symétrie
     /// est verrouillée par les tests (TrainingDoctrineTests).
     /// Ordre : haut du corps antérieur → haut du corps postérieur → bras →
     /// bas du corps antérieur → bas du corps postérieur → tronc.

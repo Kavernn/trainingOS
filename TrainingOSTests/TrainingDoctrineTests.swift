@@ -115,10 +115,9 @@ final class TrainingDoctrineTests: XCTestCase {
     // MARK: - Symétrie canonicalMuscleOrder ↔ muscleMEV/MAV
 
     func testEveryMEVKeyIsInCanonicalOrder() {
-        // Régression 97ce9cb : un consommateur avec sa propre liste hardcodée
-        // (VolumeCard.muscleOrder) ratait les nouvelles clés doctrinales et
-        // n'affichait rien pour Pectoraux/Quadriceps/etc. La symétrie attrape
-        // l'oubli côté ordre.
+        // Un consommateur qui itère sur canonicalMuscleOrder doit voir chaque
+        // clé de muscleMEV. Sans cette symétrie, ajouter une clé au dict
+        // laisse le muscle invisible dans les vues qui parcourent l'ordre.
         for key in TrainingDoctrine.muscleMEV.keys {
             XCTAssertTrue(TrainingDoctrine.canonicalMuscleOrder.contains(key),
                           "muscleMEV['\(key)'] existe mais absent de canonicalMuscleOrder → invisible dans les vues qui itèrent sur l'ordre")
