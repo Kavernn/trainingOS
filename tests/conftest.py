@@ -127,8 +127,11 @@ PROFILE = {
 }
 
 HIIT_LOG = [
-    {"date": "2026-03-11", "session_type": "Tabata", "rounds_planifies": 8,
-     "rounds_completes": 8, "rpe": 8, "feeling": "good", "comment": ""},
+    # Noms de champs = schema.sql relational (rounds_planned/rounds_completed).
+    # Les anciens noms KV legacy (rounds_planifies/rounds_completes) étaient
+    # traduits par scripts/migrate_to_relational.py:415-416 lors de la bascule.
+    {"date": "2026-03-11", "session_type": "Tabata", "rounds_planned": 8,
+     "rounds_completed": 8, "rpe": 8, "feeling": "good", "comment": ""},
 ]
 
 
@@ -300,13 +303,73 @@ def make_store():
             return True
         return False
 
-    def get_all_exercise_history():
+    def get_all_exercise_history(cutoff_days=180):
+        # Signature miroir db (cutoff_days ajouté après refonte weights).
+        # Le fake ignore le filtre — les tests n'ont pas assez de fixtures pour
+        # que le cutoff impacte, retourne tout.
         weights = store.get("weights", {})
         result = {}
         for name, ex_data in weights.items():
             history = ex_data.get("history", [])
             if history:
                 result[name] = [{"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps")} for e in history]
+        return result
+
+    def bulk_apply_session_exercise_patches(date, session_type, patches):
+        # Contrat db_sessions : applique un lot de patches (add/update/delete)
+        # sur les exercise_logs d'une session. Retourne (updated_count, error_list).
+        # Fake fonctionnel : mute store["weights"][ex_name]["history"] pour que
+        # les tests qui vérifient les mutations post-update passent.
+        weights = store.get("weights", {})
+        applied = 0
+        for p in (patches or []):
+            action = p.get("action") or "update"
+            ex_name = p.get("exercise") or p.get("exercise_name")
+            if not ex_name:
+                continue
+            ex_data = weights.setdefault(ex_name, {"history": []})
+            history = ex_data.setdefault("history", [])
+            if action == "delete":
+                ex_data["history"] = [e for e in history if e.get("date") != date]
+                applied += 1
+            elif action == "add":
+                history.insert(0, {
+                    "date":   date,
+                    "weight": p.get("weight"),
+                    "reps":   p.get("reps"),
+                })
+                applied += 1
+            else:  # update
+                for e in history:
+                    if e.get("date") == date:
+                        if p.get("weight") is not None:
+                            e["weight"] = p.get("weight")
+                        if p.get("reps") is not None:
+                            e["reps"] = p.get("reps")
+                        applied += 1
+                        break
+                else:
+                    # Pas de row date → treat as add
+                    history.insert(0, {
+                        "date":   date,
+                        "weight": p.get("weight"),
+                        "reps":   p.get("reps"),
+                    })
+                    applied += 1
+        store["weights"] = weights
+        return applied, []
+
+    def get_exercise_history_bulk(exercise_names, limit_per=20):
+        # Signature miroir db (bulk fetch pour load_weights). Alias filtré.
+        result = {}
+        weights = store.get("weights", {})
+        for name in exercise_names:
+            history = weights.get(name, {}).get("history", [])
+            if history:
+                result[name] = [
+                    {"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps")}
+                    for e in history[:limit_per]
+                ]
         return result
 
     def get_or_create_workout_session(date):
@@ -882,6 +945,8 @@ def make_store():
         get_meal_templates=get_meal_templates,
         get_exercise_history_grouped_by_session=get_exercise_history_grouped_by_session,
         delete_program_session=delete_program_session,
+        get_exercise_history_bulk=get_exercise_history_bulk,
+        bulk_apply_session_exercise_patches=bulk_apply_session_exercise_patches,
     )
     # Wrap dans le spec-guard : setattr d'un attribut hors spec du vrai module
     # db lève AttributeError. Attrape les typos type mesocycle (get_active_program

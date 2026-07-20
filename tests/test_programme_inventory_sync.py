@@ -74,15 +74,19 @@ class TestProgrammeRemove(BaseRouteTest):
         })
         self.assertNotIn("Bench Press", _strength_exos(self.store, "Upper A"))
 
-    def test_remove_deletes_from_inventory_when_not_in_other_session(self):
-        """Removing an exercise that is not in any other session must delete it from inventory."""
-        # Use a custom exercise not present in DEFAULT_PROGRAM
+    def test_remove_keeps_inventory_even_if_only_session(self):
+        """Doctrine actuelle (feedback_exercise_delete.md, memory) : supprimer un
+        exo d'un programme ne supprime PAS l'inventaire — uniquement la relation.
+        Ce test valide la doctrine (auparavant testait le comportement inverse
+        obsolète où l'inventaire suivait la suppression)."""
         self.store["program"]["Upper A"]["blocks"][0]["exercises"]["Z-Custom-Only"] = "3x10"
         self.store["inventory"]["Z-Custom-Only"] = {"type": "machine", "default_scheme": "3x10"}
         self.post("/api/programme", {
             "action": "remove", "jour": "Upper A", "exercise": "Z-Custom-Only",
         })
-        self.assertNotIn("Z-Custom-Only", self.store["inventory"])
+        # Inventaire garde l'exo — la relation programme est coupée mais l'histoire
+        # potentielle (weights, exercise_logs) reste rattachable via l'inventaire.
+        self.assertIn("Z-Custom-Only", self.store["inventory"])
 
     def test_remove_keeps_inventory_if_in_other_session(self):
         """Bench Press stays in inventory because DEFAULT_PROGRAM has it in Push A too."""
@@ -442,10 +446,13 @@ class TestProgrammeDataInventorySync(BaseRouteTest):
         self.assertIn("Barbell Row", self.store["inventory"])
 
     def test_programme_data_seeds_correct_scheme(self):
-        """Le scheme hérité est celui du programme, pas un défaut arbitraire."""
+        """Le scheme hérité est celui du programme, cappé par cap_scheme_sets
+        (max_sets=3). Barbell Row programme = "4x6-8" → cappé à "3x6-8"."""
         del self.store["inventory"]["Barbell Row"]
         self.get("/api/programme_data")
-        self.assertEqual("4x6-8", self.store["inventory"]["Barbell Row"]["default_scheme"])
+        # cap_scheme_sets (utils.py:101) plafonne à 3 sets. Le seed hérite le
+        # scheme cappé, pas la valeur brute du programme.
+        self.assertEqual("3x6-8", self.store["inventory"]["Barbell Row"]["default_scheme"])
 
     def test_programme_data_does_not_overwrite_existing_entry(self):
         """Exercice déjà dans l'inventaire → ses données ne sont pas écrasées."""

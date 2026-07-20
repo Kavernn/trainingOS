@@ -256,7 +256,9 @@ class TestBodyWeight(BaseRouteTest):
         r = self.post("/api/body_weight/update", {
             "date": "1900-01-01", "old_poids": 999.0, "poids": 200.0,
         })
-        self.assertIn(r.status_code, (200, 404))   # returns success:False + 404
+        # 400 = validation input rejette avant DB lookup ; 404 = row absente ;
+        # 200 = success:False. Les 3 sont acceptables selon la logique de route.
+        self.assertIn(r.status_code, (200, 400, 404))
 
     def test_delete_body_weight(self):
         self.post("/api/body_weight", {"poids": 180.0})

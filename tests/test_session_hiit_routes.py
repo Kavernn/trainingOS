@@ -156,12 +156,16 @@ class TestLogSession(BaseRouteTest):
         self.post("/api/log_session", {"date": TODAY, "rpe": 8})
         self.assertIn(TODAY, self.store["sessions"])
 
-    def test_log_session_duplicate_returns_409(self):
-        """Second call for same date without second_session flag must be rejected."""
+    def test_log_session_duplicate_is_idempotent(self):
+        """Second call for same date is idempotent (workout_logging.py:455-461).
+        Doctrine actuelle : session déjà completed → 200 + success:True, pas 409.
+        Les exercise_logs sont déjà écrits par /api/log ; pour éditer utiliser
+        /api/session/edit ou /api/update_session. Test ancien attendait 409
+        (comportement pré-idempotence)."""
         self.post("/api/log_session", {"date": TODAY, "rpe": 7})
         r = self.post("/api/log_session", {"date": TODAY, "rpe": 7})
-        self.assertEqual(409, r.status_code)
-        self.assertEqual("already_logged", self.json(r).get("error"))
+        self.assertEqual(200, r.status_code)
+        self.assertTrue(self.json(r).get("success"))
 
     def test_log_session_second_session_allowed(self):
         self.post("/api/log_session", {"date": TODAY, "rpe": 7})
@@ -330,9 +334,11 @@ class TestHiitEdit(BaseRouteTest):
         self.post("/api/hiit/edit", {**self._PAYLOAD_BASE, "feeling": "great"})
         self.assertEqual("great", self.store["hiit_log"][0]["feeling"])
 
-    def test_edit_rounds_completes(self):
+    def test_edit_rounds_completed(self):
+        """Le field DB relational est 'rounds_completed' (schema.sql:192).
+        Ancien nom KV 'rounds_completes' migré par scripts/migrate_to_relational.py."""
         self.post("/api/hiit/edit", {**self._PAYLOAD_BASE, "rounds": 6})
-        self.assertEqual(6, self.store["hiit_log"][0]["rounds_completes"])
+        self.assertEqual(6, self.store["hiit_log"][0]["rounds_completed"])
 
     def test_edit_invalid_index_returns_400(self):
         r = self.post("/api/hiit/edit", {"date": "1999-01-01", "session_type": "Inexistant", "rpe": 8})

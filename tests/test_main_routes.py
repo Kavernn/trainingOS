@@ -181,14 +181,15 @@ class TestDeloadStatus(BaseRouteTest):
     def test_bench_press_stagnation_detected(self):
         """Bench Press 3 entries à 185 lbs → stagnation. La conftest WEIGHTS a
         2 entries (185, 180) qui ne triggent pas stagnation — override local
-        pour rendre le test autonome."""
+        pour rendre le test autonome. stagnants = liste de dicts OU strings
+        selon shape backend (a évolué) — supporte les deux via extraction."""
         self.store["weights"]["Bench Press"]["history"] = [
             {"date": "2026-03-10", "weight": 185.0, "reps": "6,6,5,5"},
             {"date": "2026-03-03", "weight": 185.0, "reps": "6,6,5,5"},
             {"date": "2026-02-24", "weight": 185.0, "reps": "7,6,5,5"},
         ]
         data = json.loads(self.get("/api/deload_status").data)
-        stagnant_names = [s["exercise"] for s in data["stagnants"]]
+        stagnant_names = [s["exercise"] if isinstance(s, dict) else s for s in data["stagnants"]]
         self.assertIn("Bench Press", stagnant_names)
 
     def test_recommande_true_when_stagnation(self):

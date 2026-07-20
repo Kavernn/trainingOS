@@ -157,8 +157,8 @@ class TestDailyIsolation(unittest.TestCase):
     def test_add_entry_creates_day_key(self):
         """add_entry crée la clé YYYY-MM-DD si elle n'existe pas."""
         nut, store = self._module()
-        with patch("nutrition.datetime") as mock_dt:
-            mock_dt.now.return_value = fake_now("2026-03-07")
+        with patch("nutrition._today_mtl", return_value="2026-03-07"):
+            pass  # patch cible _today_mtl (nutrition.py:162)
             nut.add_entry("Banane", 100, proteines=1.5)
 
         self.assertIn("2026-03-07", store["nutrition_log"])
@@ -172,9 +172,8 @@ class TestDailyIsolation(unittest.TestCase):
             ("2026-03-06", "Beurre", 150),
             ("2026-03-07", "Café",    10),
         ]:
-            with patch("nutrition.datetime") as mock_dt:
-                dt = fake_now(date_str)
-                mock_dt.now.return_value = dt
+            with patch("nutrition._today_mtl", return_value=date_str):
+                pass  # patch cible _today_mtl (nutrition.py:162)
                 nut.add_entry(food, cal)
 
         log = store["nutrition_log"]
@@ -192,8 +191,8 @@ class TestDailyIsolation(unittest.TestCase):
         nut, store = self._module()
 
         for food, cal in [("Riz", 350), ("Poulet", 300), ("Légumes", 80)]:
-            with patch("nutrition.datetime") as mock_dt:
-                mock_dt.now.return_value = fake_now("2026-03-07")
+            with patch("nutrition._today_mtl", return_value="2026-03-07"):
+                pass  # patch cible _today_mtl (nutrition.py:162)
                 nut.add_entry(food, cal)
 
         entries = store["nutrition_log"]["2026-03-07"]["entries"]
@@ -207,8 +206,8 @@ class TestDailyIsolation(unittest.TestCase):
         """get_today_entries() ne renvoie QUE les entrées du jour courant."""
         nut, _ = self._module(copy.deepcopy(LOG_MULTI_DAY))
 
-        with patch("nutrition.datetime") as mock_dt:
-            mock_dt.now.return_value = fake_now("2026-03-07")
+        with patch("nutrition._today_mtl", return_value="2026-03-07"):
+            pass  # patch cible _today_mtl (nutrition.py:162)
             entries = nut.get_today_entries()
 
         self.assertEqual(len(entries), 1)
@@ -218,8 +217,8 @@ class TestDailyIsolation(unittest.TestCase):
         """get_today_entries() renvoie [] si aucune entrée n'existe pour ce jour."""
         nut, _ = self._module(copy.deepcopy(LOG_MULTI_DAY))
 
-        with patch("nutrition.datetime") as mock_dt:
-            mock_dt.now.return_value = fake_now("2026-03-10")
+        with patch("nutrition._today_mtl", return_value="2026-03-10"):
+            pass  # patch cible _today_mtl (nutrition.py:162)
             entries = nut.get_today_entries()
 
         self.assertEqual(entries, [])
@@ -229,8 +228,8 @@ class TestDailyIsolation(unittest.TestCase):
         nut, _ = self._module(copy.deepcopy(LOG_MULTI_DAY))
 
         # Le 2026-03-03 : oeufs(220) + fromage(180) + pâtes(500) = 900 kcal
-        with patch("nutrition.datetime") as mock_dt:
-            mock_dt.now.return_value = fake_now("2026-03-03")
+        with patch("nutrition._today_mtl", return_value="2026-03-03"):
+            pass  # patch cible _today_mtl (nutrition.py:162)
             totals = nut.get_today_totals()
 
         self.assertEqual(totals["calories"], 900)
@@ -248,8 +247,8 @@ class TestDailyIsolation(unittest.TestCase):
             if day != "2026-03-07"
         }
 
-        with patch("nutrition.datetime") as mock_dt:
-            mock_dt.now.return_value = fake_now("2026-03-07")
+        with patch("nutrition._today_mtl", return_value="2026-03-07"):
+            pass  # patch cible _today_mtl (nutrition.py:162)
             result = nut.delete_entry("ggg00001")
 
         self.assertTrue(result)
@@ -276,8 +275,8 @@ class TestDailyIsolation(unittest.TestCase):
         """Deux entrées ajoutées le même jour ont des IDs distincts."""
         nut, store = self._module()
 
-        with patch("nutrition.datetime") as mock_dt:
-            mock_dt.now.return_value = fake_now("2026-03-07")
+        with patch("nutrition._today_mtl", return_value="2026-03-07"):
+            pass  # patch cible _today_mtl (nutrition.py:162)
             nut.add_entry("Repas A", 400)
             nut.add_entry("Repas B", 300)
 
