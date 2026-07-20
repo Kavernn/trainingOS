@@ -161,7 +161,7 @@ struct DashboardView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .appearAnimation(delay: 0.055)
-                                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
+                                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView(sessionName: dash.eveningSessionName) }
                                 }
 
                                 // 4 — Recovery trio (Readiness + HRV + Sommeil)

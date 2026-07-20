@@ -498,7 +498,7 @@ struct AlreadyLoggedSeanceView: View {
             }
         }
         .sheet(isPresented: $showSeanceSoir) {
-            SeanceSoirView()
+            SeanceSoirView(sessionName: data.eveningSessionName)
         }
         .onChange(of: showSeanceSoir) { isPresented in
             if !isPresented {

@@ -17,6 +17,11 @@ struct WorkoutSeanceView: View {
     @ObservedObject var vm: SeanceViewModel
     var isSecondSession: Bool = false
     var isBonusSession: Bool = false
+    /// true = séance soir override manuel (Yoga, séance dédiée). Bypass le filtre
+    /// split (assignments) : montre TOUS les exos de la séance, pas seulement
+    /// ceux envoyés depuis le matin. Défaut false = comportement historique
+    /// (héritage matin filtré par SeanceSplitStore).
+    var isOverride: Bool = false
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var showFinish = false
@@ -183,6 +188,10 @@ struct WorkoutSeanceView: View {
         return (ordered + extra).compactMap { name -> (String, String)? in
             guard let scheme = localProgram[name] else { return nil }
             if loggedToday.contains(name) { return nil }
+            // Override manuel soir (Yoga, séance dédiée) : afficher TOUS les exos
+            // de la séance sans filtrer par split assignments (invariant "matin OU
+            // soir" ne s'applique pas — c'est une séance native soir).
+            if isSecondSession && isOverride { return (name, scheme) }
             let inAssignments = assignments.contains(name)
             if isSecondSession {
                 return inAssignments ? (name, scheme) : nil

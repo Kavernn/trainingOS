@@ -3,16 +3,25 @@ import SwiftUI
 // MARK: - ViewModel
 
 class SeanceSoirViewModel: SeanceViewModel {
-    override init(draftSessionType: String = "evening") {
-        super.init(draftSessionType: draftSessionType)
+    /// Nom soir override manuel — passé par les call sites qui affichent
+    /// eveningSessionName (Dashboard, hero SOIR ProgrammeView). nil = héritage
+    /// matin (comportement historique : charge la séance matin, filtrée par
+    /// SeanceSplitStore). Non-nil = vrai override, charge cette séance-là et
+    /// bypass le filtre split côté WorkoutSeanceView.
+    let overrideSessionName: String?
+
+    init(sessionName: String? = nil) {
+        self.overrideSessionName = sessionName
+        super.init(draftSessionType: "evening")
     }
 
     override func load() async {
-        // Séance 2 consomme le MÊME endpoint que la matin (/api/seance_data).
-        // today_str hérité = nom du programme matin ("Upper A", etc.).
-        // L'isolation matin/soir est gérée par draftSessionType="evening"
-        // (brouillon UserDefaults séparé) et logExercise(isSecond: true) au finish().
-        if seanceData == nil,
+        // Sans override : consomme le MÊME endpoint que la matin (/api/seance_data),
+        // hérite today_str du matin. Avec override : fetchSeanceData(sessionName:)
+        // route le backend vers session_name_override (workout_schedule.py:26-33).
+        // Le cache "seance_data" contient le matin — skip en mode override sinon
+        // affichage matin brièvement avant fetch soir.
+        if seanceData == nil, overrideSessionName == nil,
            let cached = cacheService.load(for: "seance_data"),
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
             seanceData = decoded
@@ -23,7 +32,12 @@ class SeanceSoirViewModel: SeanceViewModel {
         if seanceData == nil { isLoading = true }
         error = nil
         do {
-            let fresh = try await APIService.shared.fetchSeanceData()
+            let fresh: SeanceData
+            if let name = overrideSessionName {
+                fresh = try await APIService.shared.fetchSeanceData(sessionName: name)
+            } else {
+                fresh = try await APIService.shared.fetchSeanceData()
+            }
             seanceData = fresh
             restoreLogResults(from: fresh)
             SeanceSplitStore.reconcile(date: fresh.todayDate, loggedNames: fresh.loggedTodayNames)
@@ -102,15 +116,22 @@ class SeanceSoirViewModel: SeanceViewModel {
 /// WorkoutActiveView.swift:1315 (sheet), SeanceView.swift:502 (sheet),
 /// DashboardTodayCards.swift (sheet), DashboardView.swift (sheet).
 struct SeanceSoirView: View {
-    @StateObject private var vm = SeanceSoirViewModel()
+    @StateObject private var vm: SeanceSoirViewModel
     @State private var showPRCelebration = false
+    private let hasOverride: Bool
 
-    // Titre dynamique : hérite du nom matin ("Upper A — suite") si dispo.
+    init(sessionName: String? = nil) {
+        self.hasOverride = sessionName != nil
+        _vm = StateObject(wrappedValue: SeanceSoirViewModel(sessionName: sessionName))
+    }
+
+    // Titre dynamique : override → nom seul ("Yoga") ; héritage matin →
+    // "{nom} — suite" pour signaler la continuation.
     private var seanceTitle: String {
         guard let name = vm.seanceData?.today, !name.isEmpty, name != "Repos" else {
             return "Séance du Soir"
         }
-        return "\(name) — suite"
+        return hasOverride ? name : "\(name) — suite"
     }
 
     var body: some View {
@@ -158,7 +179,10 @@ struct SeanceSoirView: View {
         if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
             SpecialSeanceView(sessionType: data.today, vm: vm)
         } else {
-            WorkoutSeanceView(data: data, vm: vm, isSecondSession: true)
+            // isOverride bypass le filtre split (assignments) côté WorkoutSeanceView :
+            // un override manuel (Yoga, séance dédiée) montre TOUS ses exos, pas
+            // seulement ceux envoyés depuis le matin.
+            WorkoutSeanceView(data: data, vm: vm, isSecondSession: true, isOverride: hasOverride)
         }
     }
 }

@@ -9,7 +9,7 @@ workout_schedule_bp = Blueprint("workout_schedule", __name__)
 def api_seance_data():
     from weights import load_weights
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
-                         get_suggested_weights_for_today)
+                         get_suggested_weights_for_today, get_today_evening)
     from inventory import load_inventory
     from blocks import get_strength_exercises
     from progression import prescribe_volume
@@ -122,6 +122,10 @@ def api_seance_data():
         "prescriptions": prescriptions,
         "exercise_suggestions": exercise_suggestions,
         "logged_today_names": sorted(logged_today_names),
+        # Nom soir résolu (override manuel > héritage matin > None). Exposé pour
+        # que les call sites iOS de SeanceSoirView passent le vrai nom soir sans
+        # deviner ni faire un fetch séparé. Cf. commit héritage soir.
+        "evening_session_name": get_today_evening(),
     })
 
 

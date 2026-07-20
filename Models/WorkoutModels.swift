@@ -240,6 +240,10 @@ struct SeanceData: Codable {
     let prescriptions: [String: ExercisePrescription]?
     let exerciseSuggestions: [String: ProgressionSuggestion]?
     let loggedTodayNames: Set<String>
+    /// Nom soir résolu (override manuel > héritage matin > nil). Backend calcule
+    /// via get_today_evening(). Utilisé par les callers de SeanceSoirView pour
+    /// passer le vrai nom soir au sheet sans deviner (cf. fix override).
+    let eveningSessionName: String?
 
     enum CodingKeys: String, CodingKey {
         case today
@@ -258,6 +262,7 @@ struct SeanceData: Codable {
         case exerciseSupersets    = "exercise_supersets"
         case exerciseSuggestions  = "exercise_suggestions"
         case loggedTodayNames     = "logged_today_names"
+        case eveningSessionName   = "evening_session_name"
     }
 
     init(from decoder: Decoder) throws {
@@ -281,6 +286,7 @@ struct SeanceData: Codable {
         prescriptions      = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
         loggedTodayNames   = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
+        eveningSessionName = try? c.decode(String.self, forKey: .eveningSessionName)
     }
 
     init(today: String, todayDate: String, alreadyLogged: Bool,
@@ -293,7 +299,8 @@ struct SeanceData: Codable {
          exerciseOrder: [String: [String]], exerciseSupersets: [String: [String: SupersetEntry]] = [:],
          prescriptions: [String: ExercisePrescription]? = nil,
          exerciseSuggestions: [String: ProgressionSuggestion]? = nil,
-         loggedTodayNames: Set<String> = []) {
+         loggedTodayNames: Set<String> = [],
+         eveningSessionName: String? = nil) {
         self.today               = today
         self.todayDate           = todayDate
         self.alreadyLogged       = alreadyLogged
@@ -313,6 +320,7 @@ struct SeanceData: Codable {
         self.prescriptions       = prescriptions
         self.exerciseSuggestions = exerciseSuggestions
         self.loggedTodayNames    = loggedTodayNames
+        self.eveningSessionName  = eveningSessionName
     }
 }
 

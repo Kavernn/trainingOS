@@ -360,7 +360,7 @@ struct ProgrammeView: View {
             // Doctrine SeanceSoirView : toujours .sheet, jamais push
             // (SeanceSoirView.swift:97-102).
             .sheet(isPresented: $showSeanceSoirSheet) {
-                SeanceSoirView()
+                SeanceSoirView(sessionName: manualEveningSessionName)
             }
             .sheet(item: $addTarget) { sn in
                 AddExerciseSheet(seance: sn.id, inventory: vm.inventory, inventorySchemes: vm.inventorySchemes, inventoryMuscleGroups: vm.inventoryMuscleGroups) { ex, scheme in
@@ -594,6 +594,14 @@ struct ProgrammeView: View {
     }
 
     private var todayEveningSessionName: String? { todayEveningResolved?.name }
+
+    // Nom soir à passer au sheet SeanceSoirView : uniquement si override manuel
+    // (evening_schedule set explicitement). Héritage matin = nil → SeanceSoirView
+    // charge le matin et affiche « — suite ». Cf. fix override.
+    private var manualEveningSessionName: String? {
+        guard let r = todayEveningResolved, !r.isInherited else { return nil }
+        return r.name
+    }
 
     @ViewBuilder
     private var segmentedControl: some View {

@@ -142,7 +142,7 @@ struct TodayCardView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                     .padding(.bottom, 16)
-                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
+                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView(sessionName: dash.eveningSessionName) }
                 } else {
                     NavigationLink(destination: BonusSeanceView(isRestDay: false)) {
                         HStack(spacing: 6) {
