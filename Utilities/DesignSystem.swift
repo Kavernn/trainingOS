@@ -70,49 +70,9 @@ struct GlassCard: ViewModifier {
     }
 }
 
-struct GlassCardAccent: ViewModifier {
-    var accent: Color
-    var cornerRadius: CGFloat? = nil  // nil = use AppTheme.cardCornerRadius
-
-    private var resolvedRadius: CGFloat {
-        cornerRadius ?? AppTheme.shared.cardCornerRadius
-    }
-
-    func body(content: Content) -> some View {
-        let theme       = AppTheme.shared
-        let style       = theme.cardStyle
-        let borderW     = style == .outlined ? theme.cardBorderWidth * 2.0 : theme.cardBorderWidth
-        let isSurgical  = theme.colors.accentDistribution == .surgical
-        let glowColor   = style == .floating && !isSurgical ? accent.opacity(0.10) : Color.clear
-        let shadowColor = (style == .floating || style == .raised) && !isSurgical ? accent.opacity(0.08) : Color.clear
-        let fillColor   = isSurgical ? Color.clear : accent.opacity(theme.cardAccentFillOpacity)
-        let strokeColor = isSurgical ? Color.white.opacity(0.08) : accent.opacity(theme.colors.cardAccentStrokeOpacity)
-        return content
-            .background(
-                RoundedRectangle(cornerRadius: resolvedRadius)
-                    .fill(Color.appCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: resolvedRadius)
-                            .fill(fillColor)
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: resolvedRadius)
-                    .stroke(strokeColor, lineWidth: borderW)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: resolvedRadius))
-            .shadow(color: glowColor, radius: 12, x: 0, y: 0)
-            .shadow(color: shadowColor, radius: 8, x: 0, y: 4)
-    }
-}
-
 extension View {
     func glassCard(color: Color = .white, intensity: Double = 0.06, cornerRadius: CGFloat? = nil) -> some View {
         modifier(GlassCard(color: color, intensity: intensity, cornerRadius: cornerRadius))
-    }
-
-    func glassCardAccent(_ accent: Color, cornerRadius: CGFloat? = nil) -> some View {
-        modifier(GlassCardAccent(accent: accent, cornerRadius: cornerRadius))
     }
 }
 

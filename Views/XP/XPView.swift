@@ -245,7 +245,7 @@ struct XPView: View {
             }
         }
         .padding(20)
-        .glassCardAccent(Color.accentOnSurface)
+        .glassCard()
         .cornerRadius(20)
         .padding(.horizontal, 16)
     }

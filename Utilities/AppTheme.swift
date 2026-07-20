@@ -698,8 +698,6 @@ extension AppThemeColors {
     // accentDistribution: .pervasive — obligatoire pour que cardBorderColor white@0.90 ne soit pas
     // écrasé par l'override surgical (white@0.08) dans GlassCard.
     // cardStyle: .raised — active l'ombre dure (cardShadowRadius: 0 + offset 4/4), désactive le glow.
-    // Déviation acceptée (Option A) : les ~22 cards .glassCardAccent gardent leur shadow hardcodée
-    // (radius 8, offset 0/4) au lieu de la dure 4/4 — non corrigeable sans toucher au partagé.
     static let brutalist = AppThemeColors(
         accent:          Color(hex: "FF4D00"),       // orange brûlé plat
         accentLight:     Color(hex: "FF7A40"),

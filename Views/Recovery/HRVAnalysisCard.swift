@@ -268,7 +268,7 @@ struct HRVContextualTipView: View {
                 }
             }
             .padding(10)
-            .glassCardAccent(accentColor, cornerRadius: 10)
+            .glassCard(cornerRadius: 10)
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }

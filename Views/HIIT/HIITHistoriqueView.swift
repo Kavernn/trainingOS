@@ -114,7 +114,7 @@ struct HIITEntryCard: View {
             }
         }
         .padding(14)
-        .glassCardAccent(.statusRed)
+        .glassCard()
         .cornerRadius(12)
         .contextMenu {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
