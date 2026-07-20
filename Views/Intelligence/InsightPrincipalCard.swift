@@ -67,7 +67,7 @@ struct InsightPrincipalCard: View {
                 }
             }
             .padding(14)
-            .glassCardAccent(accent, cornerRadius: 14)
+            .glassCard(cornerRadius: 14)
         }
         .buttonStyle(.plain)
     }

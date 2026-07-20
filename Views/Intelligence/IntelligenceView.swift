@@ -834,7 +834,7 @@ struct IntelligenceView: View {
             }
         }
         .padding(12)
-        .glassCardAccent(accent, cornerRadius: 12)
+        .glassCard(cornerRadius: 12)
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
     }

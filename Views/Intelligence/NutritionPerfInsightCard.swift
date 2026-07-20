@@ -89,6 +89,6 @@ struct NutritionPerfInsightCard: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .glassCardAccent(insight.accentColor, cornerRadius: 12)
+        .glassCard(cornerRadius: 12)
     }
 }
