@@ -131,10 +131,10 @@ struct AppThemeColors {
     let titleFontDesign: Font.Design
     let displayWeight:   Font.Weight
 
-    // Opacité du fond accentué sur les cards primaires (GlassCardAccent)
+    // ORPHAN depuis 8825fdf (suppression du modifier .glassCardAccent) —
+    // conservé pour limiter le diff sur les 14 thèmes. À supprimer si aucun
+    // usage n'émerge, ou à re-consommer sous un modifier au contrat de contraste explicite.
     let cardAccentFillOpacity: Double
-
-    // Opacité du stroke accent sur les cards primaires (GlassCardAccent) — 0.25 standard, réduit pour les thèmes discrets
     let cardAccentStrokeOpacity: Double
 
     // Style structurel des cards — levier visuel principal de différenciation entre thèmes
