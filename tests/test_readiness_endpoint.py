@@ -121,11 +121,12 @@ class TestVerdictGuards(_ReadinessBaseTest):
 
     def test_moderate_and_rest_untouched_by_guards(self):
         import readiness as _r
-        # Moderate raw : les garde-fous n'agissent que sur "go" → reason None
-        v, _, r = _r._verdict(55, baseline={"mean": 65, "sd": 5.0}, hrv_score=20, rhr_score=20)
+        # Moderate raw : score dans [mean-1.5σ, mean-0.5σ[ = [57.5, 62.5[ → moderate.
+        # Les garde-fous n'agissent que sur "go" → reason None même avec HRV/RHR bas.
+        v, _, r = _r._verdict(60, baseline={"mean": 65, "sd": 5.0}, hrv_score=20, rhr_score=20)
         self.assertEqual("moderate", v)
         self.assertIsNone(r)
-        # Rest raw : idem
+        # Rest raw : score < mean-1.5σ → rest. Idem.
         v, _, r = _r._verdict(30, baseline={"mean": 65, "sd": 5.0})
         self.assertEqual("rest", v)
         self.assertIsNone(r)
