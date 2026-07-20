@@ -369,16 +369,21 @@ def api_mesocycle_status():
             if last_deload_date is None or d > last_deload_date:
                 last_deload_date = d
 
-    # Source primaire : active_program.cycle_start_date
+    # Source primaire : programs.cycle_start_date via get_cycle_start_date().
+    # get_active_program() n'existait pas — l'appel throw AttributeError capturé
+    # par le try/except → tous les prod runs tombaient sur reason:"error". Les
+    # tests mockaient dynamiquement db.get_active_program via MagicMock, ce qui
+    # masquait le bug. get_cycle_start_date() est la vraie API (db_programs.py:193),
+    # utilisée aussi par utils.get_mesocycle_info et plateau.py.
     weeks_since       = None
     active_prog_error = False
     try:
-        active_prog = _db.get_active_program()
-        if active_prog and active_prog.get("cycle_start_date"):
-            cycle_start = date_cls.fromisoformat(str(active_prog["cycle_start_date"])[:10])
+        cycle_start_str = _db.get_cycle_start_date()
+        if cycle_start_str:
+            cycle_start = date_cls.fromisoformat(str(cycle_start_str)[:10])
             weeks_since = max(0, (today - cycle_start).days // 7)
     except Exception as e:
-        logger.warning("mesocycle_status active_program lookup failed: %s", e)
+        logger.warning("mesocycle_status cycle_start_date lookup failed: %s", e)
         active_prog_error = True
 
     # Fallback : dernière séance deload

@@ -32,6 +32,19 @@ class _MtlBaseTest(BaseRouteTest):
         super().tearDown()
 
 
+# ── Garde anti-régression : la vraie API existe dans db ─────────────────────
+# Sans cette garde, MagicMock accepte silencieusement N'IMPORTE quel attribut,
+# masquant les typos comme get_active_program (n'existait pas, prod throw
+# AttributeError capturé par try/except → phase:null en permanence).
+
+class TestDbCycleStartDateExists(BaseRouteTest):
+    def test_get_cycle_start_date_is_real_attribute(self):
+        db_mod = sys.modules["db"]
+        self.assertTrue(hasattr(db_mod, "get_cycle_start_date"),
+                        "db.get_cycle_start_date manquant — mesocycle_status ne peut pas lire le cycle")
+        self.assertTrue(callable(getattr(db_mod, "get_cycle_start_date")))
+
+
 # ── /api/mesocycle_status ────────────────────────────────────────────────────
 
 class TestMesocycleStatusNoCycle(_MtlBaseTest):
@@ -39,7 +52,7 @@ class TestMesocycleStatusNoCycle(_MtlBaseTest):
 
     def test_no_deload_no_active_program_returns_phase_null(self):
         db_mod = sys.modules["db"]
-        db_mod.get_active_program = MagicMock(return_value=None)
+        db_mod.get_cycle_start_date = MagicMock(return_value=None)
 
         r = self.get("/api/mesocycle_status")
         self.assertEqual(200, r.status_code)
@@ -58,9 +71,7 @@ class TestMesocycleStatusActiveProgram(_MtlBaseTest):
     def test_active_program_cycle_start_returns_valid_phase(self):
         db_mod = sys.modules["db"]
         # Cycle démarré il y a 3 semaines → week_in_cycle=3 → phase "intensification"
-        db_mod.get_active_program = MagicMock(return_value={
-            "cycle_start_date": "2026-02-21",  # ~3 semaines avant TODAY=2026-03-14
-        })
+        db_mod.get_cycle_start_date = MagicMock(return_value="2026-02-21")  # ~3 semaines avant TODAY=2026-03-14
 
         r = self.get("/api/mesocycle_status")
         self.assertEqual(200, r.status_code)
@@ -77,7 +88,7 @@ class TestMesocycleStatusDeloadFallback(_MtlBaseTest):
 
     def test_deload_session_fallback(self):
         db_mod = sys.modules["db"]
-        db_mod.get_active_program = MagicMock(return_value=None)
+        db_mod.get_cycle_start_date = MagicMock(return_value=None)
         # Ajouter une séance deload il y a 2 semaines
         self.store["sessions"]["2026-02-28"] = {
             "rpe": 5, "comment": "", "session_name": "Deload semaine récup",
@@ -96,7 +107,7 @@ class TestMesocycleStatusActiveProgramError(_MtlBaseTest):
 
     def test_active_program_exception_fails_loud(self):
         db_mod = sys.modules["db"]
-        db_mod.get_active_program = MagicMock(side_effect=RuntimeError("db timeout"))
+        db_mod.get_cycle_start_date = MagicMock(side_effect=RuntimeError("db timeout"))
 
         r = self.get("/api/mesocycle_status")
         self.assertEqual(200, r.status_code)
