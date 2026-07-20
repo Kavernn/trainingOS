@@ -237,9 +237,9 @@ def make_store():
 
     def get_workout_sessions(limit=100, offset=0, since=None):
         # Signature miroir db_sessions.py:9 — offset (pagination), since (filtre
-        # date iso). Le fake ignore since/offset (comportement paginate simple)
-        # mais accepte les kwargs pour ne pas exploser 500 sur les endpoints
-        # qui les passent.
+        # date iso). Le fake ignore since/offset au filtre mais accepte les kwargs.
+        # id = date (convention fake), permet aux endpoints qui font
+        # get_exercise_history_grouped_by_session(session_ids=...) de matcher.
         sessions = store.get("sessions", {})
         dates = sorted(sessions.keys(), reverse=True)
         if since:
@@ -249,6 +249,7 @@ def make_store():
         for date in dates:
             entry = copy.deepcopy(sessions[date])
             entry["date"] = date
+            entry.setdefault("id", date)
             result.append(entry)
         return result
 
@@ -748,6 +749,35 @@ def make_store():
     get_food_catalog = _empty_list
     get_meal_templates = _empty_list
 
+    def get_exercise_history_grouped_by_session(session_ids=None):
+        # Groupe les exos loggés par session_id. Contrat db_sessions : dict
+        # {session_id: [{"exercise": ..., "weight": ..., "reps": ...}]}.
+        # Le fake dérive depuis store["weights"][name]["history"] → maps par date
+        # (session_id = date dans nos fakes) au niveau exercice.
+        result = {}
+        weights = store.get("weights", {})
+        for name, data in weights.items():
+            for entry in data.get("history", []):
+                d = entry.get("date")
+                if not d:
+                    continue
+                if session_ids is not None and d not in session_ids:
+                    continue
+                result.setdefault(d, []).append({
+                    "exercise": name,
+                    "weight":   entry.get("weight"),
+                    "reps":     entry.get("reps"),
+                })
+        return result
+
+    def delete_program_session(seance):
+        program = store.get("program", {})
+        if seance in program:
+            del program[seance]
+            store["program"] = program
+            return True
+        return False
+
     db_mock = MagicMock(
         get_json=get_json,
         set_json=set_json,
@@ -850,6 +880,8 @@ def make_store():
         get_rir_by_exercise=get_rir_by_exercise,
         get_food_catalog=get_food_catalog,
         get_meal_templates=get_meal_templates,
+        get_exercise_history_grouped_by_session=get_exercise_history_grouped_by_session,
+        delete_program_session=delete_program_session,
     )
     # Wrap dans le spec-guard : setattr d'un attribut hors spec du vrai module
     # db lève AttributeError. Attrape les typos type mesocycle (get_active_program
