@@ -194,6 +194,24 @@ def api_evening_schedule():
     return jsonify(_db.get_evening_week_schedule())
 
 
+@workout_schedule_bp.route("/api/cycle_start_date", methods=["GET", "POST"])
+def api_cycle_start_date():
+    """Source serveur unique du mésocycle (programs.cycle_start_date).
+    GET  → {"date": "YYYY-MM-DD" | null}
+    POST → {"date": "YYYY-MM-DD"} définit la date, retourne {"success": bool}.
+    Remplace le @AppStorage iOS qui divergeait au reset/réinstall.
+    """
+    import db as _db
+    if request.method == "POST":
+        payload = request.get_json() or {}
+        date_str = (payload.get("date") or "").strip()
+        if not date_str:
+            return jsonify({"success": False, "error": "date_required"}), 400
+        success = _db.set_cycle_start_date(date_str)
+        return jsonify({"success": success})
+    return jsonify({"date": _db.get_cycle_start_date()})
+
+
 @workout_schedule_bp.route("/api/morning_schedule", methods=["POST"])
 def api_morning_schedule():
     """Save morning weekly schedule: {"schedule": {"Lun": "Push A", "Mar": "Repos", ...}}"""

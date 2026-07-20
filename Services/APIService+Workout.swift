@@ -73,6 +73,19 @@ extension APIService {
         return try APIService.decoder.decode(SeanceSoirData.self, from: data)
     }
 
+    /// POST programs.cycle_start_date. Structure = throw, jamais offlinePost
+    /// (pas de replay silencieux d'une date fantôme au réseau).
+    func saveCycleStartDate(_ date: String) async throws {
+        let url = try buildURL(path: "/api/cycle_start_date")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["date": date])
+        _ = try await URLSession.authed.data(for: req)
+        CacheService.shared.clear(for: "programme_data")
+        CacheService.shared.clear(for: "dashboard")
+    }
+
     func deleteSession(date: String, sessionType: String = "morning") async throws {
         if try await offlinePost(endpoint: "/api/session/delete",
                                  payload: ["date": date, "session_type": sessionType]) != nil {

@@ -28,6 +28,10 @@ final class ProgrammeViewModel: ObservableObject {
     @Published var exerciseOrder: [String: [String]] = [:]
     @Published var schedule: [String: String] = [:]
     @Published var eveningSchedule: [String: String] = [:]
+    /// Date début mésocycle (YYYY-MM-DD) — source serveur (programs.cycle_start_date).
+    /// Hydratée par applyJSON depuis /api/programme_data. Écrite via
+    /// saveCycleStartDate() qui POST /api/cycle_start_date.
+    @Published var cycleStartDate: String? = nil
     @Published var inventory: [String] = []
     @Published var inventorySchemes: [String: String] = [:]
     @Published var inventoryMuscleGroups: [String: String] = [:]
@@ -176,6 +180,9 @@ final class ProgrammeViewModel: ObservableObject {
         if let sessions = json["all_sessions"] as? [String] {
             allSessions = sessions
         }
+        // Cycle mésocycle serveur — nil-safe : null explicite ou clé absente = pas
+        // de cycle démarré. iOS reader (mesocycleCard) affichera "Non démarré".
+        cycleStartDate = json["cycle_start_date"] as? String
         // Plus de refreshSessionOrder() : orderedSeances est computed. La vue s'y
         // resynchronise via .onChange (sync explicite VM ↔ vue, commit 1).
     }
@@ -199,6 +206,7 @@ final class ProgrammeViewModel: ObservableObject {
         } else {
             isLoading = false
         }
+        await migrateLegacyCycleStartDateIfNeeded()
         if let eURL = URL(string: "\(APIConfig.base)/api/evening_schedule"),
            let (eData, _) = try? await URLSession.authed.data(from: eURL),
            let eJson = try? JSONSerialization.jsonObject(with: eData) as? [String: String] {
@@ -324,6 +332,38 @@ final class ProgrammeViewModel: ObservableObject {
         } catch {
             lastSaveError = true
         }
+    }
+
+    /// Écrit programs.cycle_start_date serveur puis met à jour l'état local.
+    /// Optimiste + rollback sur throw — cohérent avec les autres save*.
+    func saveCycleStartDate(_ date: String) async {
+        let previous = cycleStartDate
+        cycleStartDate = date
+        do {
+            try await APIService.shared.saveCycleStartDate(date)
+        } catch {
+            cycleStartDate = previous
+            lastSaveError = true
+        }
+    }
+
+    /// Migration one-shot du @AppStorage local "periodisation_start" vers le
+    /// serveur (programs.cycle_start_date). Le local gagne sur le serveur SI il
+    /// existe et diverge — préserve la date que Vince avait fixée sur son
+    /// iPhone avant le passage à la source serveur. Après POST succès, la clé
+    /// legacy est supprimée. En cas d'échec réseau, retente au prochain load.
+    /// À retirer une fois la migration confirmée (~mi-2027).
+    private func migrateLegacyCycleStartDateIfNeeded() async {
+        let defaults = UserDefaults.standard
+        guard let localCache = defaults.string(forKey: "periodisation_start"),
+              !localCache.isEmpty,
+              localCache != cycleStartDate else { return }
+        let priorErr = lastSaveError
+        await saveCycleStartDate(localCache)
+        if !lastSaveError {
+            defaults.removeObject(forKey: "periodisation_start")
+        }
+        lastSaveError = priorErr  // ne pas polluer le chip toolbar avec la migration
     }
 
     // MARK: - Mutations séance

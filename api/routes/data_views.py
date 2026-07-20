@@ -158,6 +158,9 @@ def api_dashboard():
         "has_evening_session":     _evening_session_name is not None,
         "evening_session_name":    _evening_session_name,
         "second_session_completed": _second_session_completed,
+        # Cycle mésocycle — source serveur unique (programs.cycle_start_date).
+        # Remplace le @AppStorage local iOS qui divergeait au reset/réinstall.
+        "cycle_start_date":        _db.get_cycle_start_date(),
     })
 
 
@@ -261,6 +264,9 @@ def api_programme_data():
         "programs":            programs,
         "current_program_id":  program_id,
         "all_sessions":        all_sessions,
+        # Miroir du champ dashboard — ProgrammeVM charge programme_data et lit ici,
+        # évite un fetch dashboard séparé pour la card Mésocycle.
+        "cycle_start_date":    _db.get_cycle_start_date(),
     })
 
 

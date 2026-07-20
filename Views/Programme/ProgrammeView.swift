@@ -146,7 +146,11 @@ struct ProgrammeView: View {
     @State private var confirmDeleteSeance = false
     @AppStorage("programme_clipboard")      private var clipboardData: String = "{}"
     @AppStorage("programme_clipboard_name") private var clipboardName: String = ""
-    @AppStorage("periodisation_start") private var periodisationStart: String = ""
+    // Source unique : vm.cycleStartDate (@Published, hydraté depuis /api/programme_data).
+    // Le @AppStorage("periodisation_start") legacy est migré au premier load via
+    // ProgrammeViewModel.migrateLegacyCycleStartDateIfNeeded — cette computed
+    // laisse les 4 readers inchangés (ils lisent .isEmpty comme avant).
+    private var periodisationStart: String { vm.cycleStartDate ?? "" }
     @State private var showResetMesocycle = false
     @State private var showApplyPhaseConfirm = false
 
@@ -392,7 +396,7 @@ struct ProgrammeView: View {
             }
             .alert("Nouveau mésocycle ?", isPresented: $showResetMesocycle) {
                 Button("Recommencer", role: .destructive) {
-                    periodisationStart = DateFormatter.isoDate.string(from: Date())
+                    Task { await vm.saveCycleStartDate(DateFormatter.isoDate.string(from: Date())) }
                 }
                 Button("Annuler", role: .cancel) {}
             } message: {
@@ -1162,7 +1166,7 @@ struct ProgrammeView: View {
     private var mesocycleActions: some View {
         if periodisationStart.isEmpty {
             PrimaryButton(title: "Démarrer un mésocycle", icon: "play.fill") {
-                periodisationStart = DateFormatter.isoDate.string(from: Date())
+                Task { await vm.saveCycleStartDate(DateFormatter.isoDate.string(from: Date())) }
             }
             .padding(.horizontal, .appPagePadding)
         } else {

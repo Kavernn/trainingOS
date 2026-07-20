@@ -40,6 +40,9 @@ struct DashboardData: Codable {
     let hasEveningSession: Bool
     let eveningSessionName: String?
     let secondSessionCompleted: Bool
+    /// Date de début du mésocycle (YYYY-MM-DD) — source serveur unique
+    /// (programs.cycle_start_date). Remplace le @AppStorage local iOS.
+    let cycleStartDate: String?
 
     enum CodingKeys: String, CodingKey {
         case today, week
@@ -57,6 +60,7 @@ struct DashboardData: Codable {
         case hasEveningSession = "has_evening_session"
         case eveningSessionName = "evening_session_name"
         case secondSessionCompleted = "second_session_completed"
+        case cycleStartDate = "cycle_start_date"
     }
 
     init(from decoder: Decoder) throws {
@@ -80,6 +84,7 @@ struct DashboardData: Codable {
         hasEveningSession      = (try? c.decode(Bool.self, forKey: .hasEveningSession)) ?? false
         eveningSessionName     = try? c.decode(String.self, forKey: .eveningSessionName)
         secondSessionCompleted = (try? c.decode(Bool.self, forKey: .secondSessionCompleted)) ?? false
+        cycleStartDate         = try? c.decode(String.self, forKey: .cycleStartDate)
     }
 }
 
