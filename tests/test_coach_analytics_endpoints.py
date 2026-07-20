@@ -116,6 +116,72 @@ class TestMesocycleStatusActiveProgramError(_MtlBaseTest):
         self.assertEqual("error", payload["reason"])
 
 
+class TestMesocycleStatusCycleComplete(_MtlBaseTest):
+    """Fin de cycle explicite : au-delà de S11 (doctrine 11 sem), phase=null +
+    reason='cycle_complete'. Pas d'auto-wrap % 11 — le prochain cycle démarre
+    par geste utilisateur (bouton POST /api/cycle_start_date). Même doctrine
+    anti-fantôme que le fix mesocycle_status calendaire éradiqué 714848e."""
+
+    def test_beyond_week_11_returns_cycle_complete(self):
+        db_mod = sys.modules["db"]
+        # Cycle démarré il y a 12 semaines → week_in_cycle=13 > 11 → cycle_complete
+        db_mod.get_cycle_start_date = MagicMock(return_value="2025-12-20")  # ~12 sem avant TODAY=2026-03-14
+
+        r = self.get("/api/mesocycle_status")
+        self.assertEqual(200, r.status_code)
+        payload = self.json(r)
+        self.assertIsNone(payload["phase"])
+        self.assertEqual("cycle_complete", payload["reason"])
+        self.assertEqual(12, payload["weeks_since_start"])
+        # Aucun champ fantôme — même contrat que no_cycle_start
+        for ghost_key in ("phase_label", "description", "icon", "rpe_target", "vol_guidance"):
+            self.assertNotIn(ghost_key, payload)
+
+
+class TestMesocycleStatusFivePhases(_MtlBaseTest):
+    """Doctrine 5 phases sur 11 semaines (accumulation/intensification/force/peak/deload).
+    Aligne backend sur l'enum iOS Phase (card parlante 9c4f966).
+    TODAY = 2026-03-14 (conftest)."""
+
+    def _phase_for(self, cycle_start: str) -> str:
+        db_mod = sys.modules["db"]
+        db_mod.get_cycle_start_date = MagicMock(return_value=cycle_start)
+        r = self.get("/api/mesocycle_status")
+        return self.json(r)["phase"]
+
+    def test_s1_maps_to_accumulation(self):
+        # S1 = weeks_since 0 → cycle démarré cette semaine
+        self.assertEqual("accumulation", self._phase_for("2026-03-14"))
+
+    def test_s2_maps_to_accumulation(self):
+        # S2 = weeks_since 1 → 1 sem avant TODAY
+        self.assertEqual("accumulation", self._phase_for("2026-03-07"))
+
+    def test_s3_maps_to_intensification(self):
+        # S3 = weeks_since 2
+        self.assertEqual("intensification", self._phase_for("2026-02-28"))
+
+    def test_s5_maps_to_force(self):
+        # S5 = weeks_since 4
+        self.assertEqual("force", self._phase_for("2026-02-14"))
+
+    def test_s8_maps_to_force(self):
+        # S8 = weeks_since 7 (fin de la fenêtre force)
+        self.assertEqual("force", self._phase_for("2026-01-24"))
+
+    def test_s9_maps_to_peak(self):
+        # S9 = weeks_since 8
+        self.assertEqual("peak", self._phase_for("2026-01-17"))
+
+    def test_s10_maps_to_peak(self):
+        # S10 = weeks_since 9
+        self.assertEqual("peak", self._phase_for("2026-01-10"))
+
+    def test_s11_maps_to_deload(self):
+        # S11 = weeks_since 10 (dernière semaine du cycle)
+        self.assertEqual("deload", self._phase_for("2026-01-03"))
+
+
 # ── /api/overtraining_risk ───────────────────────────────────────────────────
 
 class TestOvertrainingRiskInsufficient(_MtlBaseTest):

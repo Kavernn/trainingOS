@@ -72,12 +72,13 @@ def _round_lbs(w: float, step: float = 5.0) -> float:
 # ── Data gathering ────────────────────────────────────────────────────────────
 
 def _deload_dates_in_window(window_start: date, window_end: date) -> set[str]:
-    """Return ISO date strings that fall within deload weeks (week 7 of any 8-week cycle).
+    """Return ISO date strings that fall within deload weeks (S11 of any 11-week cycle).
 
-    Uses the same cycle_start_date source as get_mesocycle_info() and the same
-    week formula: week = (delta % 56) // 7 + 1, where delta = (d - cycle_start).days.
-    Python's % operator is always non-negative, so negative deltas (dates before
-    cycle_start) are handled correctly via modular arithmetic over 56-day cycles.
+    Doctrine unifiée 11 semaines : cycle de 77 jours, semaine 11 = deload
+    (miroir utils.MESOCYCLE_WEEKS + enum iOS Phase.deload = 11...11).
+    Python's % opérateur est toujours non-négatif, donc les dates avant
+    cycle_start sont gérées correctement via arithmétique modulaire 77 jours.
+    Fenêtre historique : les cycles antérieurs restent bien détectés.
     """
     try:
         start_str    = db.get_cycle_start_date() or "2026-04-25"
@@ -89,8 +90,8 @@ def _deload_dates_in_window(window_start: date, window_end: date) -> set[str]:
     result = set()
     d = window_start
     while d <= window_end:
-        week_in_cycle = ((d - cycle_start).days % 56) // 7 + 1
-        if week_in_cycle == 7:
+        week_in_cycle = ((d - cycle_start).days % 77) // 7 + 1
+        if week_in_cycle == 11:
             result.add(d.isoformat())
         d += timedelta(days=1)
     return result

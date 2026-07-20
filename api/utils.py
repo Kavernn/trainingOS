@@ -135,8 +135,25 @@ def get_current_week() -> int:
     return max(1, (delta.days // 7) + 1)
 
 
+# Durée du cycle mésocycle. Miroir iOS : TrainingDoctrine.mesocycleWeeks.
+# Toute modification doit être répercutée dans les 2 sources en même temps.
+MESOCYCLE_WEEKS = 11
+
+
 def get_mesocycle_info() -> dict:
     """Return mesocycle week + phase derived from programs.cycle_start_date.
+
+    Doctrine 11 semaines / 5 phases alignée sur l'enum iOS Phase
+    (ProgrammeView.swift:35-50, card parlante validée commit 9c4f966) :
+      accumulation    S1-S2   Empile le volume         (base, préparer tissus)
+      intensification S3-S4   Monte la charge          (adaptation SNC)
+      force           S5-S8   Pousse tes charges       (recrutement, gain kilo)
+      peak            S9-S10  Vise le PR               (test max)
+      deload          S11     Récupère                 (vider fatigue)
+
+    Après S11 : phase="completed", reason="cycle_complete" — pas d'auto-wrap
+    (fantôme calendaire éradiqué commit 714848e). Nouveau cycle = geste
+    utilisateur explicite via bouton POST /api/cycle_start_date.
 
     Falls back to 2026-04-25 (UL/PPL v1 start) if unset.
     """
@@ -149,21 +166,30 @@ def get_mesocycle_info() -> dict:
 
     week = max(1, ((date.fromisoformat(_today_mtl()) - start).days // 7) + 1)
 
+    if week > MESOCYCLE_WEEKS:
+        return {
+            "week": week,
+            "phase": "completed",
+            "phase_label": "Terminé",
+            "rpe_target": "—",
+            "note": "Cycle terminé — démarre le prochain.",
+        }
+
     if week <= 2:
-        phase, phase_label, rpe_target = "Mise en place", "S1–S2", "7"
-        note = "Apprends les mouvements. Tempo contrôlé. Ne cherche pas l'échec."
+        phase, phase_label, rpe_target = "accumulation", "S1-S2", "7"
+        note = "Poser la base — préparer les tissus."
     elif week <= 4:
-        phase, phase_label, rpe_target = "Accumulation", "S3–S4", "8"
-        note = "Pousse les reps vers le haut de la fourchette. Charge stable."
-    elif week <= 6:
-        phase, phase_label, rpe_target = "Surcharge", "S5–S6", "8–9"
-        note = "Plafond atteint sur TOUTES les séries → +2.5 kg composés / +1.25 kg isolation."
-    elif week == 7:
-        phase, phase_label, rpe_target = "Deload", "S7", "5–6"
-        note = "−1 série par superset. 70% de la charge S6. Obligatoire."
-    else:
-        phase, phase_label, rpe_target = "Nouveau cycle", "S8+", "7"
-        note = "Charges de S5 + 5%. Nouvelle base, nouveau plafond."
+        phase, phase_label, rpe_target = "intensification", "S3-S4", "8"
+        note = "Adapter le système nerveux."
+    elif week <= 8:
+        phase, phase_label, rpe_target = "force", "S5-S8", "8-9"
+        note = "Recruter les fibres, gagner du kilo."
+    elif week <= 10:
+        phase, phase_label, rpe_target = "peak", "S9-S10", "9"
+        note = "Test max, expression de la force."
+    else:  # week == 11
+        phase, phase_label, rpe_target = "deload", "S11", "5-6"
+        note = "Vider la fatigue, préparer le prochain cycle."
 
     return {
         "week": week,
@@ -175,50 +201,42 @@ def get_mesocycle_info() -> dict:
 
 
 # ── Périodisation par phase (opt-in) ────────────────────────────────────────
-# Seuils de hit rate et volume max ajustés selon la phase du mésocycle.
-# Utilisés par smart_progression.py quand phase != None.
-# Défaut (phase=None) → comportement actuel inchangé (compound 90%, isolation 100%).
+# Seuils de hit rate ajustés selon la phase. Utilisés par smart_progression.py
+# via get_phase_params(). Défaut (phase=None) → 0.90 compound / 1.00 isolation.
 #
-# Source : Israetel et al. (RP Hypertrophy), NSCA Essentials of Strength Training.
+# Purge commit unif 11 sem : max_sets et rpe_deload_trigger étaient définis
+# mais lus nulle part — dead code. Doctrine projet : delete not fix. Un futur
+# cap de sets par phase se construira consciemment depuis la doctrine vivante
+# (enum iOS Phase + schemes), pas depuis un vestige.
+#
+# Source : Israetel et al. (RP Hypertrophy).
 
 _PHASE_PARAMS: dict[str, dict] = {
-    "Mise en place": {
-        "hit_rate_compound":  0.85,   # Tolérant — apprentissage des patterns moteurs
+    "accumulation": {
+        "hit_rate_compound":  0.85,   # Tolérant — reprise, apprentissage
         "hit_rate_isolation": 0.90,
-        "max_sets":           3,
-        "rpe_deload_trigger": 9.0,    # Moins sensible en début de cycle
     },
-    "Accumulation": {
-        "hit_rate_compound":  0.90,   # Standard
+    "intensification": {
+        "hit_rate_compound":  0.90,   # Standard, pic volume
         "hit_rate_isolation": 1.00,
-        "max_sets":           5,      # Volume maximal du mésocycle
-        "rpe_deload_trigger": 8.5,
     },
-    "Surcharge": {
+    "force": {
         "hit_rate_compound":  0.95,   # Strict — charges lourdes, chaque rep compte
         "hit_rate_isolation": 1.00,
-        "max_sets":           3,      # Volume réduit, intensité haute
-        "rpe_deload_trigger": 8.0,    # Sensible — on approche du max
     },
-    "Deload": {
-        "hit_rate_compound":  0.80,
-        "hit_rate_isolation": 0.80,
-        "max_sets":           2,
-        "rpe_deload_trigger": 10.0,   # Jamais de trigger pendant un deload actif
-    },
-    "Nouveau cycle": {
-        "hit_rate_compound":  0.90,
+    "peak": {
+        "hit_rate_compound":  0.95,   # Strict, expression max
         "hit_rate_isolation": 1.00,
-        "max_sets":           4,
-        "rpe_deload_trigger": 8.5,
+    },
+    "deload": {
+        "hit_rate_compound":  0.80,   # On ne progresse pas — vider la fatigue
+        "hit_rate_isolation": 0.80,
     },
 }
 
 _PHASE_PARAMS_DEFAULT: dict = {
     "hit_rate_compound":  0.90,
     "hit_rate_isolation": 1.00,
-    "max_sets":           4,
-    "rpe_deload_trigger": 8.5,
 }
 
 

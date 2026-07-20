@@ -398,35 +398,56 @@ def api_mesocycle_status():
             "reason":       "error" if active_prog_error else "no_cycle_start",
         })
 
-    week_in_cycle = weeks_since % 8
+    # Fin de cycle explicite : après S11, l'utilisateur DOIT décider le prochain
+    # démarrage (bouton POST /api/cycle_start_date). Pas d'auto-wrap % 11 —
+    # même doctrine que le fantôme calendaire éradiqué 714848e.
+    from utils import MESOCYCLE_WEEKS
+    week_in_cycle = weeks_since + 1  # S1 = weeks_since 0
+    if week_in_cycle > MESOCYCLE_WEEKS:
+        return jsonify({
+            "current_week":     current_week,
+            "phase":            None,
+            "reason":           "cycle_complete",
+            "weeks_since_start": weeks_since,
+            "last_deload_date": last_deload_date,
+        })
+
+    # Doctrine iOS 5 phases sur 11 semaines (source card parlante commit 9c4f966).
     if week_in_cycle <= 2:
-        phase       = "accumulation"
-        phase_label = "Accumulation"
-        description = "Volume élevé, intensité modérée. Construis la base."
-        icon        = "📈"
-        rpe_target  = "7-8"
-        vol_guidance = "Vise le MAV (volume maximum adaptable)."
-    elif week_in_cycle <= 5:
-        phase       = "intensification"
-        phase_label = "Intensification"
-        description = "Volume modéré, intensité élevée. Pousse les charges."
-        icon        = "💪"
-        rpe_target  = "8-9"
-        vol_guidance = "Réduis les séries, augmente les charges."
-    elif week_in_cycle == 6:
-        phase       = "realization"
-        phase_label = "Réalisation"
-        description = "Volume bas, intensité maximale. Teste tes PRs."
-        icon        = "🏆"
-        rpe_target  = "9-10"
-        vol_guidance = "Volume minimal, poids maximaux."
-    else:
-        phase       = "deload"
-        phase_label = "Décharge"
-        description = "Récupération active. Réduis volume et intensité de 40-50%."
-        icon        = "😴"
-        rpe_target  = "5-6"
-        vol_guidance = "50% du volume habituel, charges légères."
+        phase        = "accumulation"
+        phase_label  = "S1-S2"
+        description  = "Empile le volume"
+        icon         = "📈"
+        rpe_target   = "7"
+        vol_guidance = "MAV progressif"
+    elif week_in_cycle <= 4:
+        phase        = "intensification"
+        phase_label  = "S3-S4"
+        description  = "Monte la charge"
+        icon         = "💪"
+        rpe_target   = "8"
+        vol_guidance = "MAV"
+    elif week_in_cycle <= 8:
+        phase        = "force"
+        phase_label  = "S5-S8"
+        description  = "Pousse tes charges"
+        icon         = "🔥"
+        rpe_target   = "8-9"
+        vol_guidance = "MEV-MAV, intensité prime"
+    elif week_in_cycle <= 10:
+        phase        = "peak"
+        phase_label  = "S9-S10"
+        description  = "Vise le PR"
+        icon         = "🎯"
+        rpe_target   = "9"
+        vol_guidance = "MEV strict, PR focus"
+    else:  # week_in_cycle == 11
+        phase        = "deload"
+        phase_label  = "S11"
+        description  = "Récupère"
+        icon         = "🧘"
+        rpe_target   = "5-6"
+        vol_guidance = "<60% baseline"
 
     return jsonify({
         "current_week":         current_week,
@@ -439,7 +460,7 @@ def api_mesocycle_status():
         "rpe_target":           rpe_target,
         "vol_guidance":         vol_guidance,
         "last_deload_date":     last_deload_date,
-        "next_deload_in_weeks": max(0, 8 - weeks_since),
+        "next_deload_in_weeks": max(0, MESOCYCLE_WEEKS - week_in_cycle),
     })
 
 
