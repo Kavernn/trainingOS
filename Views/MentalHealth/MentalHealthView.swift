@@ -283,7 +283,7 @@ private struct MesuresTab: View {
                         Image(systemName: "chevron.right").foregroundColor(Color.appOnSurface.opacity(0.4))
                     }
                     .padding(14)
-                    .glassCardAccent(Color.appInfo)
+                    .glassCard()
                     .padding(.horizontal)
                 }
                 .appearAnimation(delay: 0.06)
@@ -583,6 +583,6 @@ struct MHMenuCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .glassCardAccent(color)
+        .glassCard()
     }
 }
