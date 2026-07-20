@@ -11,6 +11,43 @@
 import XCTest
 @testable import TrainingOS
 
+// MARK: - Dashboard Verdict Arbiter (Commit 2)
+//
+// Doctrine d'affichage : jamais "Go hard" sous un CriticalSignal actif.
+// L'arbitre COMPARE deux flux déjà présents côté client, il ne recalcule pas.
+
+final class DashboardVerdictArbiterTests: XCTestCase {
+
+    private func signal(_ dest: DashboardAlertDestination) -> CriticalSignal {
+        CriticalSignal(message: "test", actionLabel: "ok", destination: dest, icon: "circle")
+    }
+
+    func testNoSignalReturnsNoCap() {
+        XCTAssertEqual(DashboardVerdictArbiter.cap(signal: nil), .none)
+    }
+
+    func testDeloadSignalCapsToRest() {
+        // fatigue accumulée détectée → repos, jamais "Go hard"
+        XCTAssertEqual(DashboardVerdictArbiter.cap(signal: signal(.deload)), .rest)
+    }
+
+    func testRecoverySignalCapsToRest() {
+        // readiness < 40 → destination.recovery → rest
+        XCTAssertEqual(DashboardVerdictArbiter.cap(signal: signal(.recovery)), .rest)
+    }
+
+    func testHrvSignalCapsToModerate() {
+        // Cas 19/07 : bandeau HRV rouge → moderate, jamais "Go hard"
+        XCTAssertEqual(DashboardVerdictArbiter.cap(signal: signal(.hrv)), .moderate)
+    }
+
+    func testWorkoutSignalDoesNotCap() {
+        // Rappel séance (streak) = signal d'engagement, aucun risque physiologique
+        XCTAssertEqual(DashboardVerdictArbiter.cap(signal: signal(.workout)), .none)
+    }
+}
+
+
 final class TrainingDoctrineTests: XCTestCase {
 
     // MARK: - 14 valeurs DB → toutes atteignent un seuil (ou une exclusion)

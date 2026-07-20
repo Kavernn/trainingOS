@@ -4,16 +4,17 @@ import SwiftUI
 
 struct ReadinessBadge: View {
     let readiness: ReadinessResponse?
+    var cap: EffortCap = .none
 
     var body: some View {
         if let r = readiness {
             HStack(spacing: 6) {
                 Circle()
-                    .fill(verdictColor(r.verdict))
+                    .fill(color(r))
                     .frame(width: 7, height: 7)
-                Text("\(r.verdictLabel) · \(r.score)")
+                Text("\(label(r)) · \(r.score)")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(verdictColor(r.verdict))
+                    .foregroundColor(color(r))
                 Text("—")
                     .font(.appCaption)
                     .foregroundColor(.gray)
@@ -25,19 +26,37 @@ struct ReadinessBadge: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .background(verdictColor(r.verdict).opacity(0.08))
+            .background(color(r).opacity(0.08))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(verdictColor(r.verdict).opacity(0.20), lineWidth: 1)
+                    .stroke(color(r).opacity(0.20), lineWidth: 1)
             )
             .cornerRadius(8)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Readiness : \(r.verdictLabel), score \(r.score). \(r.why)")
+            .accessibilityLabel("Readiness : \(label(r)), score \(r.score). \(r.why)")
         }
     }
 
-    private func verdictColor(_ v: String) -> Color {
-        switch v {
+    // Verdict effectif = verdict backend plafonné par le cap (jamais "go" sous cap).
+    private func effective(_ r: ReadinessResponse) -> String {
+        switch cap {
+        case .rest:     return "rest"
+        case .moderate: return r.verdict == "go" ? "moderate" : r.verdict
+        case .none:     return r.verdict
+        }
+    }
+
+    // Label affiché = mention explicite du cap quand il downgrade.
+    private func label(_ r: ReadinessResponse) -> String {
+        switch cap {
+        case .rest:                             return "Repos actif"
+        case .moderate where r.verdict == "go": return "Modère (signal repos)"
+        default:                                return r.verdictLabel
+        }
+    }
+
+    private func color(_ r: ReadinessResponse) -> Color {
+        switch effective(r) {
         case "go":       return .statusGreen
         case "moderate": return Color(red: 0.98, green: 0.76, blue: 0.15)
         default:         return .statusRed

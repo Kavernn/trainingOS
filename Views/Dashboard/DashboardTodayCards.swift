@@ -6,6 +6,7 @@ struct TodayCardView: View {
     var showGreatDayBadge: Bool = false
     var onOpenSession: (() -> Void)? = nil
     var readiness: ReadinessResponse? = nil
+    var effortCap: EffortCap = .none
     @State private var showReadinessSheet = false
     // Volet G : SeanceSoirView en .sheet obligatoirement (voir commentaire au head
     // de SeanceSoirView.swift). NavigationLink push cassait les .alert internes.
@@ -196,7 +197,7 @@ struct TodayCardView: View {
 
                 // ── Readiness badge ──────────────────────────────────
                 if readiness != nil {
-                    ReadinessBadge(readiness: readiness)
+                    ReadinessBadge(readiness: readiness, cap: effortCap)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
                 }

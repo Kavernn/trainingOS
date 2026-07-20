@@ -144,7 +144,8 @@ struct DashboardView: View {
                                     dash: dash,
                                     showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
                                     onOpenSession: onOpenSession,
-                                    readiness: vm.readinessData
+                                    readiness: vm.readinessData,
+                                    effortCap: DashboardVerdictArbiter.cap(signal: vm.criticalSignal(dash: dash))
                                 )
                                 .appearAnimation(delay: 0.05)
                                 .padding(.vertical, 8)

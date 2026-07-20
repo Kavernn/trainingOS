@@ -404,3 +404,29 @@ final class DashboardViewModel: ObservableObject {
         DashboardSignalEngine().computeMacroHint(dailyPattern: dailyPattern, yesterdayNutrition: yesterdayNutrition)
     }
 }
+
+// MARK: - Verdict Arbiter (Commit 2)
+//
+// Plafonne l'affichage du verdict effort quand un CriticalSignal s'affiche.
+// L'arbitre COMPARE deux flux déjà présents côté client (readiness backend
+// + criticalSignal iOS), il ne recalcule rien. Le verdict backend reste
+// intact dans les logs/API — seul l'affichage est plafonné.
+// Règle absolue : jamais "Go hard" sous un CriticalSignal actif.
+
+enum EffortCap: String {
+    case none, moderate, rest
+}
+
+struct DashboardVerdictArbiter {
+    /// Deload / readiness<40 = rest. HRV signal = moderate. Rappel séance
+    /// (streak, destination .workout) ne plafonne pas — aucune contradiction
+    /// physiologique, c'est un signal d'engagement, pas de risque.
+    static func cap(signal: CriticalSignal?) -> EffortCap {
+        guard let signal = signal else { return .none }
+        switch signal.destination {
+        case .deload, .recovery: return .rest
+        case .hrv:               return .moderate
+        case .workout:           return .none
+        }
+    }
+}
