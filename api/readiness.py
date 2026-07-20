@@ -61,6 +61,10 @@ _WEIGHTS = {
 # Un module sous ce seuil = critique. Aligné messaging + veto : un seuil, une signification.
 _MODULE_CRITICAL_THRESHOLD = 40
 
+# Plancher absolu du verdict "go" : le mode relatif ne peut jamais valider un score
+# sous ce plancher (Plews suppose une baseline saine — on ajoute le garde-fou qu'elle présuppose).
+_FLOOR_ABSOLUTE = 60
+
 # Muscle recovery — courbe exponentielle (MacDougall 1995, Zatsiorsky & Kraemer 2006)
 _RECOVERY_K              = 3.0
 _VOL_THRESHOLD_HIGH      = 6
@@ -560,29 +564,61 @@ def _get_personal_baseline() -> dict:
     return {"mean": round(mean, 1), "sd": round(sd, 1), "n": len(scores)}
 
 
-def _verdict(score: float, baseline: dict | None = None) -> tuple[str, bool]:
-    """Retourne (verdict, is_relative).
+def _verdict(
+    score: float,
+    baseline: dict | None = None,
+    hrv_score: float | None = None,
+    rhr_score: float | None = None,
+) -> tuple[str, bool, str | None]:
+    """Retourne (verdict, is_relative, downgrade_reason).
 
-    Relatif (Plews et al. 2013 — zone method) si baseline ≥14 jours :
-      go       : score ≥ mean - 0.5×SD
-      moderate : mean - 1.5×SD ≤ score < mean - 0.5×SD
-      rest     : score < mean - 1.5×SD
+    Verdict brut :
+      Relatif (Plews et al. 2013 — zone method) si baseline ≥14 jours :
+        go       : score ≥ mean - 0.5×SD
+        moderate : mean - 1.5×SD ≤ score < mean - 0.5×SD
+        rest     : score < mean - 1.5×SD
+      Absolu en cold start (<14 jours de données) :
+        go ≥75 · moderate 50-74 · rest <50
 
-    Absolu en cold start (<14 jours de données) :
-      go ≥75 · moderate 50-74 · rest <50
+    Garde-fous — jamais "go" si un seuil absolu est franchi. Le relatif module
+    (calibre sur toi), l'absolu protège (Plews suppose une baseline saine — on
+    ajoute le garde-fou qu'elle présuppose). Défaut structurel démontré : le
+    composite pondéré ne peut pas tomber sous rest sur un seul module effondré
+    (moyenne pondérée amortit) → veto par module nécessaire.
+      - score < _FLOOR_ABSOLUTE                → moderate
+      - hrv_score < _MODULE_CRITICAL_THRESHOLD → moderate (système nerveux)
+      - rhr_score < _MODULE_CRITICAL_THRESHOLD → moderate (cardio-vasculaire)
+
+    downgrade_reason exposé au payload pour transparence + calibration seuils.
+    None quand aucun garde-fou ne s'applique.
     """
     if baseline and baseline.get("mean") is not None:
         mean = baseline["mean"]
         sd   = baseline["sd"] or 5.0
         if score >= mean - 0.5 * sd:
-            return "go", True
-        if score >= mean - 1.5 * sd:
-            return "moderate", True
-        return "rest", True
+            raw = "go"
+        elif score >= mean - 1.5 * sd:
+            raw = "moderate"
+        else:
+            raw = "rest"
+        is_relative = True
+    else:
+        if   score >= 75: raw = "go"
+        elif score >= 50: raw = "moderate"
+        else:             raw = "rest"
+        is_relative = False
 
-    if score >= 75: return "go", False
-    if score >= 50: return "moderate", False
-    return "rest", False
+    if raw != "go":
+        return raw, is_relative, None
+
+    if score < _FLOOR_ABSOLUTE:
+        return "moderate", is_relative, f"score {score:.0f} < plancher absolu {_FLOOR_ABSOLUTE}"
+    if hrv_score is not None and hrv_score < _MODULE_CRITICAL_THRESHOLD:
+        return "moderate", is_relative, f"HRV module {hrv_score:.0f} < veto {_MODULE_CRITICAL_THRESHOLD}"
+    if rhr_score is not None and rhr_score < _MODULE_CRITICAL_THRESHOLD:
+        return "moderate", is_relative, f"RHR module {rhr_score:.0f} < veto {_MODULE_CRITICAL_THRESHOLD}"
+
+    return raw, is_relative, None
 
 
 # ── Messaging ─────────────────────────────────────────────────────────────────
@@ -787,7 +823,9 @@ def compute() -> dict:
         ae_mult, ae_applied = _active_energy_modifier(rec_logs)
         score    = round(max(0.0, min(100.0, composite * ae_mult)))
         baseline = _get_personal_baseline()
-        verdict, is_relative = _verdict(float(score), baseline)
+        verdict, is_relative, downgrade_reason = _verdict(
+            float(score), baseline, hrv_score=hrv_score, rhr_score=rhr_score
+        )
 
         def _mod_score(s: float | None) -> int | None:
             return round(s) if s is not None else None
@@ -830,6 +868,7 @@ def compute() -> dict:
             "verdict":               verdict,
             "verdict_method":        "relative" if is_relative else "absolute_cold_start",
             "baseline":              baseline if is_relative else None,
+            "downgrade_reason":      downgrade_reason,
             "why":                   why,
             "adjustment":            adjustment,
             "progression_modifier":  prog_mod,

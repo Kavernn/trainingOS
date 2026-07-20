@@ -78,6 +78,67 @@ class TestReadinessRouteContract(_ReadinessBaseTest):
         self.assertEqual("go", self.json(r)["verdict"])
 
 
+class TestVerdictGuards(_ReadinessBaseTest):
+    """Commit 3 — plancher absolu + veto HRV/RHR au mode relatif.
+    Le relatif module, l'absolu protège. Défaut structurel démontré :
+    la moyenne pondérée du composite ne peut pas tomber sous rest sur
+    un seul module effondré → veto par module nécessaire."""
+
+    def test_relative_go_downgraded_below_absolute_floor(self):
+        import readiness as _r
+        # Baseline glissée à 55 (fatigue chronique) : 58 ≥ 55-0.5×5 = 52.5 → raw="go"
+        # Mais 58 < _FLOOR_ABSOLUTE (60) → downgrade moderate
+        verdict, is_rel, reason = _r._verdict(58, baseline={"mean": 55, "sd": 5.0})
+        self.assertEqual("moderate", verdict)
+        self.assertTrue(is_rel)
+        self.assertIn("plancher", reason)
+
+    def test_relative_go_downgraded_when_hrv_module_critical(self):
+        import readiness as _r
+        # Cas type 19/07 : composite 74 (baseline compatible go) + HRV 30 → veto
+        verdict, is_rel, reason = _r._verdict(
+            74, baseline={"mean": 72, "sd": 5.0}, hrv_score=30, rhr_score=80
+        )
+        self.assertEqual("moderate", verdict)
+        self.assertIn("HRV", reason)
+
+    def test_relative_go_downgraded_when_rhr_module_critical(self):
+        import readiness as _r
+        # Même logique, canal cardiovasculaire
+        verdict, is_rel, reason = _r._verdict(
+            74, baseline={"mean": 72, "sd": 5.0}, hrv_score=80, rhr_score=30
+        )
+        self.assertEqual("moderate", verdict)
+        self.assertIn("RHR", reason)
+
+    def test_go_kept_when_all_guards_pass(self):
+        import readiness as _r
+        verdict, is_rel, reason = _r._verdict(
+            85, baseline={"mean": 80, "sd": 5.0}, hrv_score=75, rhr_score=85
+        )
+        self.assertEqual("go", verdict)
+        self.assertIsNone(reason)
+
+    def test_moderate_and_rest_untouched_by_guards(self):
+        import readiness as _r
+        # Moderate raw : les garde-fous n'agissent que sur "go" → reason None
+        v, _, r = _r._verdict(55, baseline={"mean": 65, "sd": 5.0}, hrv_score=20, rhr_score=20)
+        self.assertEqual("moderate", v)
+        self.assertIsNone(r)
+        # Rest raw : idem
+        v, _, r = _r._verdict(30, baseline={"mean": 65, "sd": 5.0})
+        self.assertEqual("rest", v)
+        self.assertIsNone(r)
+
+    def test_absolute_cold_start_go_downgraded_by_hrv_veto(self):
+        import readiness as _r
+        # Cold start (baseline None) : score 80 = go absolu, mais HRV 25 → veto
+        verdict, is_rel, reason = _r._verdict(80, baseline=None, hrv_score=25, rhr_score=90)
+        self.assertEqual("moderate", verdict)
+        self.assertFalse(is_rel)
+        self.assertIn("HRV", reason)
+
+
 class TestMessagingHonest(_ReadinessBaseTest):
     """Commit 1 — la branche verdict==go du messaging ne peut plus affirmer
     'toutes tes métriques au vert' quand un module est critique.
