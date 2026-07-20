@@ -100,6 +100,19 @@ struct ReadinessSheet: View {
                             .font(.appLabel.weight(.regular))
                             .foregroundColor(Color.appOnSurface.opacity(0.80))
                             .fixedSize(horizontal: false, vertical: true)
+
+                        // Commit 5 — transparence du calcul verdict.
+                        if let reason = readiness.downgradeReason {
+                            Text("⚠ Verdict downgradé : \(reason)")
+                                .font(.caption2)
+                                .foregroundColor(Color.appOnSurface.opacity(0.60))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if readiness.verdictMethod == "relative" {
+                            Text("Calibré sur tes 30 derniers jours")
+                                .font(.caption2)
+                                .foregroundColor(Color.appOnSurface.opacity(0.45))
+                        }
                     }
                     .padding(16)
                     .background(verdictColor.opacity(0.07))

@@ -11,6 +11,9 @@ struct ReadinessResponse: Codable {
     let todaySession: String?
     // Commit 4 — baseline HRV unifiée : source unique = backend.
     let hrvStatus: HRVStatus?
+    // Commit 5 — transparence du calcul verdict.
+    let verdictMethod: String?      // "relative" (baseline personnelle) | "absolute_cold_start"
+    let downgradeReason: String?    // raison du garde-fou (plancher / veto HRV / veto RHR)
 
     enum CodingKeys: String, CodingKey {
         case score, verdict, why, adjustment, modules
@@ -18,6 +21,8 @@ struct ReadinessResponse: Codable {
         case muscleRecovery      = "muscle_recovery"
         case todaySession        = "today_session"
         case hrvStatus           = "hrv_status"
+        case verdictMethod       = "verdict_method"
+        case downgradeReason     = "downgrade_reason"
     }
 }
 

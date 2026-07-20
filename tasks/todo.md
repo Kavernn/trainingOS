@@ -559,6 +559,30 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 
 ---
 
+## 🎯 Unification des verdicts effort (chantier ouvert 2026-07-20)
+
+Contexte : audit cohérence verdicts readiness/effort — cas 19/07 (bandeau HRV
+rouge + « Go hard · 74 » sur même écran). Commits 1-5 traitent le cœur
+(messaging honnête, ancrage absolu, veto HRV/RHR, arbitre iOS, baseline HRV
+unifiée, transparence). Reste :
+
+### Producteurs éparpillés à unifier autour de `hrv_status` / `readiness.verdict`
+
+- [ ] `api/phoenix_engine.py:280` — message HRV baseline dupliqué. Migrer vers consommation `readiness.hrv_status.zone`.
+- [ ] `api/routes/proactive_insights.py:189` — « Tous les indicateurs au vert » parallèle au messaging readiness. Aligner ou supprimer.
+- [ ] `Views/Recovery/RecoveryPerformanceBanner.swift:43` — bannière HRV recovery, seuil local. Migrer vers `readiness.hrvStatus`.
+- [ ] `Views/Recovery/RecoveryView.swift:1185` — message `consecutiveLowDays`. Cohabite avec bandeau critique — décider si redondant ou complémentaire.
+
+### LSS ↔ readiness — chantier majeur P0 potentiel
+
+- [ ] **Deux composites parallèles sans arbitre** : `/api/readiness` (score composite pondéré, 9 modules) vs `api/morning_brief.py:_evaluate` L109 (LSS = Life Stress Score, seuils `<25/<40/<65` → verdict `defer/reduce/go`). Consommé par daily_brief. Peut contredire /api/readiness. **Choisir la canonique** (ou fusionner formules), déprécier l'autre. Effort : cartographie LSS complète (composants, seuils, consommateurs) puis convergence.
+
+### Reste doctrinal
+
+- [ ] Ajouter une note dans `docs/CONVENTIONS.md` §Sources de vérité : `/api/readiness` = source unique du verdict effort iOS. Toute nouvelle carte affichant une intensité recommandée consomme `readiness.verdict` (post-cap `DashboardVerdictArbiter` sur Dashboard).
+
+---
+
 ## 🧹 Carnet de ménage
 
 - [ ] **BudgetView.swift ~600 lignes** — extraire `BudgetCelebrationView`, `BudgetCard` et `BudgetFormat` dans leurs fichiers en Tranche 4, avec ajout au target Xcode fait proprement une fois (2026-07-11)
