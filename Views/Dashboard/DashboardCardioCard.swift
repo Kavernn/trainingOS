@@ -116,7 +116,7 @@ struct DashboardCardioCard: View {
                 .padding(.bottom, 14)
             }
         }
-        .glassCardAccent(accentColor)
+        .glassCard()
     }
 }
 

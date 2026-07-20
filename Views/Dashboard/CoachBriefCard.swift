@@ -65,7 +65,7 @@ struct CoachInsightCard: View {
             .buttonStyle(.plain)
         }
         .padding(14)
-        .glassCardAccent(accentColor, cornerRadius: 14)
+        .glassCard(cornerRadius: 14)
     }
 
     @ViewBuilder
