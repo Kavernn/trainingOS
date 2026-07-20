@@ -168,7 +168,7 @@ struct BodyCompView: View {
             }
         }
         .padding(16)
-        .glassCardAccent(.statusGreen)
+        .glassCard()
         .cornerRadius(16)
         .padding(.horizontal, 16)
         .appearAnimation(delay: 0.05)

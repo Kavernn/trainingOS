@@ -105,7 +105,7 @@ struct NavyCalculatorView: View {
             }
         }
         .padding(14)
-        .glassCardAccent(.statusYellow)
+        .glassCard()
         .cornerRadius(14)
         .padding(.horizontal, 16)
     }
@@ -144,7 +144,7 @@ struct NavyCalculatorView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .glassCardAccent(Color.accentOnSurface)
+        .glassCard()
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -183,7 +183,7 @@ struct NavyCalculatorView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCardAccent(Color.accentOnSurface)
+        .glassCard()
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -236,7 +236,7 @@ struct NavyCalculatorView: View {
             }
         }
         .padding(16)
-        .glassCardAccent(.statusGreen)
+        .glassCard()
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
@@ -302,7 +302,7 @@ struct NavyCalculatorView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCardAccent(color)
+        .glassCard()
         .cornerRadius(14)
     }
 
@@ -363,7 +363,7 @@ struct NavyCalculatorView: View {
                 .foregroundColor(color)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
-        .glassCardAccent(color)
+        .glassCard()
         .cornerRadius(14)
         .padding(.horizontal, 16)
     }

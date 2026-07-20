@@ -111,7 +111,7 @@ struct BodyCompHistoryView: View {
             .frame(height: 160)
         }
         .padding(16)
-        .glassCardAccent(.statusGreen)
+        .glassCard()
         .cornerRadius(16)
         .padding(.horizontal, 16)
     }
