@@ -1,6 +1,13 @@
 """
 Shared fixtures for TrainingOS route tests.
 Provides make_store() and a BaseRouteTest class reused by all test modules.
+
+Spec-guarded db mock (2026-07 hardening) : le db_mock retourné par make_store
+lève AttributeError sur setattr d'un attribut absent du vrai module db. Attrape
+les bugs mesocycle-style où un test injecte dynamiquement une méthode fantôme
+(ex: `db_mod.get_active_program = MagicMock(...)` alors que la vraie API est
+`get_active_program_id`) — MagicMock permissif masquait ces typos pendant des
+semaines, laissant le code prod throw AttributeError capturé silencieusement.
 """
 import copy
 import json
@@ -9,6 +16,53 @@ import sys
 from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
+
+# Capture les noms exposés par le vrai module db (243 fonctions/constantes en
+# 2026-07). Utilisé par _SpecGuardedMock pour filtrer les setattr des tests.
+# Fallback laissez-faire si import échoue (env incomplet) — le guard est
+# désactivé mais les tests continuent à tourner.
+try:
+    import db as _real_db_for_spec
+    _DB_SPEC_NAMES = frozenset(n for n in dir(_real_db_for_spec) if not n.startswith("__"))
+except Exception:
+    _DB_SPEC_NAMES = None
+
+
+class _SpecGuardedMock:
+    """Wrapper autour d'un MagicMock qui refuse setattr d'un attribut hors spec.
+
+    Zéro impact sur la lecture (délègue à inner). Filtre uniquement les
+    injections dynamiques `db_mod.foo = MagicMock(...)` des tests. Un attribut
+    déjà configuré à l'instanciation reste accessible.
+    """
+
+    def __init__(self, inner, allowed_names):
+        object.__setattr__(self, "_inner", inner)
+        object.__setattr__(self, "_allowed", allowed_names)
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+        if self._allowed is not None and name not in self._allowed:
+            raise AttributeError(
+                f"'{name}' n'est pas dans le spec du module db — typo? "
+                f"(pattern mesocycle : test injecte un attribut fantôme, "
+                f"MagicMock accepterait silencieusement. Vérifie le vrai nom "
+                f"dans api/db_programs.py ou équivalent.)"
+            )
+        setattr(self._inner, name, value)
+
+    def __delattr__(self, name):
+        # Requis pour patch.object(_db, "foo") qui fait delattr au teardown
+        # quand l'attribut n'était pas set en amont sur l'instance wrapper.
+        delattr(self._inner, name)
+
+    def __repr__(self):
+        return f"<_SpecGuardedMock db, {len(self._allowed or [])} allowed names>"
 
 # ── Common fixture data ───────────────────────────────────────────────────────
 
@@ -627,7 +681,10 @@ def make_store():
         get_evening_week_schedule=get_evening_week_schedule,
         set_evening_week_schedule=set_evening_week_schedule,
     )
-    return store, db_mock
+    # Wrap dans le spec-guard : setattr d'un attribut hors spec du vrai module
+    # db lève AttributeError. Attrape les typos type mesocycle (get_active_program
+    # vs get_active_program_id) que MagicMock nu masquait silencieusement.
+    return store, _SpecGuardedMock(db_mock, _DB_SPEC_NAMES)
 
 
 import unittest
