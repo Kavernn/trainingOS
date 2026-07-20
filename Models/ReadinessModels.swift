@@ -9,12 +9,32 @@ struct ReadinessResponse: Codable {
     let modules: ReadinessModules
     let muscleRecovery: [String: MuscleGroupRecovery]
     let todaySession: String?
+    // Commit 4 — baseline HRV unifiée : source unique = backend.
+    let hrvStatus: HRVStatus?
 
     enum CodingKeys: String, CodingKey {
         case score, verdict, why, adjustment, modules
         case progressionModifier = "progression_modifier"
         case muscleRecovery      = "muscle_recovery"
         case todaySession        = "today_session"
+        case hrvStatus           = "hrv_status"
+    }
+}
+
+/// Statut HRV calculé par hrv_engine.compute_hrv_analysis (backend, baseline
+/// 7j, sensitivity user_profile). Consommé par DashboardSignalEngine pour
+/// le bandeau critique — plus de seuil local. Futurs consommateurs à migrer
+/// (commit 5 backlog) : RecoveryPerformanceBanner, RecoveryView.
+struct HRVStatus: Codable {
+    let score:      Double?      // today/baseline_7d × 100 (0-150+)
+    let zone:       String?      // "green" | "orange" | "red"
+    let todayRmssd: Double?
+    let baseline7d: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case score, zone
+        case todayRmssd = "today_rmssd"
+        case baseline7d = "baseline_7d"
     }
 }
 

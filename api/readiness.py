@@ -863,12 +863,23 @@ def compute() -> dict:
         except Exception:
             pass
 
+        # Commit 4 — baseline HRV unifiée : le backend est source unique du
+        # verdict HRV. Le bandeau iOS consomme "zone" au lieu de recalculer
+        # sur HRVAnalysis local (seuils, sensitivity user_profile — vivent ici).
+        hrv_status = None if hrv_det.get("data_insufficient") else {
+            "score":       hrv_det.get("hrv_score"),
+            "zone":        hrv_det.get("zone"),        # "green" | "orange" | "red"
+            "today_rmssd": hrv_det.get("today_hrv"),
+            "baseline_7d": hrv_det.get("baseline"),
+        }
+
         data = {
             "score":                 score,
             "verdict":               verdict,
             "verdict_method":        "relative" if is_relative else "absolute_cold_start",
             "baseline":              baseline if is_relative else None,
             "downgrade_reason":      downgrade_reason,
+            "hrv_status":            hrv_status,
             "why":                   why,
             "adjustment":            adjustment,
             "progression_modifier":  prog_mod,

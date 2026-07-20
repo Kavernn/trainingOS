@@ -34,8 +34,7 @@ struct DashboardSignalEngine {
     func criticalSignal(
         dash: DashboardData,
         deload: DeloadReport?,
-        readinessScore: Int?,
-        hrvAnalysis: HRVAnalysis?,
+        readiness: ReadinessResponse?,
         streakData: StreakResponse?
     ) -> CriticalSignal? {
         if let report = deload, report.fatigueLevel == 2 {
@@ -46,7 +45,7 @@ struct DashboardSignalEngine {
                 icon: "bolt.fill"
             )
         }
-        if let score = readinessScore, score < 40 {
+        if let score = readiness?.score, score < 40 {
             return CriticalSignal(
                 message: "Récupération à \(score)/100 — réduis le volume de ta séance aujourd'hui.",
                 actionLabel: "Voir récupération",
@@ -54,11 +53,14 @@ struct DashboardSignalEngine {
                 icon: "heart.fill"
             )
         }
-        if let analysis = hrvAnalysis,
-           let rmssd = analysis.todayRmssd,
-           let baseline = analysis.hrv30dAvg,
-           baseline > 0, rmssd < baseline * 0.80 {
-            let pct = Int(((baseline - rmssd) / baseline) * 100)
+        // Baseline HRV unifiée (Commit 4) : zone rouge backend = signal critique.
+        // Plus de recalcul iOS — seuils + sensitivity user_profile vivent côté
+        // hrv_engine.py. Futurs consommateurs à migrer (backlog commit 5) :
+        // RecoveryPerformanceBanner.swift:43, RecoveryView.swift:1185.
+        if let hrv = readiness?.hrvStatus,
+           hrv.zone == "red",
+           let today = hrv.todayRmssd, let baseline = hrv.baseline7d, baseline > 0 {
+            let pct = Int(((baseline - today) / baseline) * 100)
             return CriticalSignal(
                 message: "HRV \(pct)% sous ta baseline — priorise la récupération aujourd'hui.",
                 actionLabel: "Voir HRV",
@@ -389,14 +391,11 @@ final class DashboardViewModel: ObservableObject {
         }
     }
 
-    var readinessScore: Int? { readinessData?.score }
-
     // MARK: - Critical Alert System
 
     func criticalSignal(dash: DashboardData) -> CriticalSignal? {
         DashboardSignalEngine().criticalSignal(
-            dash: dash, deload: deload, readinessScore: readinessScore,
-            hrvAnalysis: hrvAnalysis, streakData: streakData
+            dash: dash, deload: deload, readiness: readinessData, streakData: streakData
         )
     }
 
