@@ -142,10 +142,15 @@ def make_db_store():
                 result[name] = [{"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps")} for e in history]
         return result
 
-    def get_workout_sessions(limit=100):
+    def get_workout_sessions(limit=100, offset=0, since=None):
+        # Signature miroir db_sessions.py:9
         sessions = store.get("sessions", {})
+        dates = sorted(sessions.keys(), reverse=True)
+        if since:
+            dates = [d for d in dates if d >= since]
+        dates = dates[offset:offset + limit]
         result = []
-        for date in sorted(sessions.keys(), reverse=True)[:limit]:
+        for date in dates:
             entry = copy.deepcopy(sessions[date])
             entry["date"] = date
             entry.setdefault("id", date)

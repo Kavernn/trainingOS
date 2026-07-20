@@ -235,10 +235,18 @@ def make_store():
         store["program"] = current
         return True
 
-    def get_workout_sessions(limit=100):
+    def get_workout_sessions(limit=100, offset=0, since=None):
+        # Signature miroir db_sessions.py:9 — offset (pagination), since (filtre
+        # date iso). Le fake ignore since/offset (comportement paginate simple)
+        # mais accepte les kwargs pour ne pas exploser 500 sur les endpoints
+        # qui les passent.
         sessions = store.get("sessions", {})
+        dates = sorted(sessions.keys(), reverse=True)
+        if since:
+            dates = [d for d in dates if d >= since]
+        dates = dates[offset:offset + limit]
         result = []
-        for date in sorted(sessions.keys(), reverse=True)[:limit]:
+        for date in dates:
             entry = copy.deepcopy(sessions[date])
             entry["date"] = date
             result.append(entry)
@@ -390,12 +398,16 @@ def make_store():
         return copy.deepcopy(store.get("body_weight", []))[:limit]
 
     def upsert_body_weight(date, weight, note="", body_fat=None, waist_cm=None,
-                           arms_cm=None, chest_cm=None, thighs_cm=None, hips_cm=None):
+                           neck_cm=None, arms_cm=None, chest_cm=None,
+                           thighs_cm=None, hips_cm=None):
+        # Signature miroir db_body.py:40 — neck_cm ajouté après refonte mesures
+        # corporelles. Le fake stockait déjà les autres cm mais neck manquait.
         bw = store.get("body_weight", [])
         entry_data = {"date": date, "poids": weight, "note": note}
         for field, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
-                           ("arms_cm", arms_cm), ("chest_cm", chest_cm),
-                           ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
+                           ("neck_cm", neck_cm), ("arms_cm", arms_cm),
+                           ("chest_cm", chest_cm), ("thighs_cm", thighs_cm),
+                           ("hips_cm", hips_cm)]:
             if val is not None:
                 entry_data[field] = val
         for entry in bw:
@@ -566,15 +578,20 @@ def make_store():
         program = store.get("program", {})
         return sorted(program.keys())
 
-    def complete_workout_session(date):
+    def complete_workout_session(date, patch=None):
+        # Signature miroir db_sessions.py:380 — patch (dict) permet de merger
+        # des champs (rpe, comment, duration_min, energy_pre, etc.) au moment
+        # de la complétion. Le fake applique le patch au dict de la session.
         sessions = store.get("sessions", {})
         if date in sessions:
             sessions[date]["completed"] = True
+            if patch:
+                sessions[date].update(patch)
             store["sessions"] = sessions
             return True
         return False
 
-    def complete_workout_session_bonus(date):
+    def complete_workout_session_bonus(date, patch=None):
         return True
 
     def get_workout_session_bonus(date):
@@ -612,6 +629,124 @@ def make_store():
     def set_evening_week_schedule(schedule):
         store["evening_schedule"] = copy.deepcopy(schedule)
         return True
+
+    # ── Fakes ajoutés commit sync 2026-07 (fields exposés par endpoints récents
+    # qui renvoyaient MagicMock non-JSON — cycle_start_date, current_program_id,
+    # macros_by_day_type, session_supersets).
+
+    def get_active_program_id():
+        # Retour str stable pour que les endpoints qui piggyback ce champ dans
+        # leur JSON ne pètent pas. Le fake n'a pas de vraie table programs — la
+        # majorité des tests n'a pas besoin d'un ID particulier.
+        return store.get("active_program_id", "test-program-id")
+
+    def set_active_program_id(program_id):
+        store["active_program_id"] = program_id
+        return True
+
+    def get_cycle_start_date():
+        # None par défaut (cycle non démarré) — les tests qui veulent une valeur
+        # override via db_mod.get_cycle_start_date = MagicMock(return_value=...).
+        return store.get("cycle_start_date")
+
+    def set_cycle_start_date(date_str):
+        store["cycle_start_date"] = date_str
+        return True
+
+    def get_macros_by_day_type(days=60, nutr_days=None, sessions_raw=None):
+        # Retour dict plausible vide — les tests stats ne vérifient pas le contenu
+        # de ce champ, juste sa présence dans le payload sans exception JSON.
+        return {"session_days": {}, "rest_days": {}}
+
+    def get_session_supersets(program_id=None):
+        # Retour dict vide — pas de supersets configurés dans les fixtures.
+        return {}
+
+    def get_session_override():
+        # None par défaut — pas d'override. Sans ce fake, planner.get_today()
+        # tombe sur MagicMock permissif qui pollue tout le pipeline session.
+        return store.get("session_override")
+
+    def set_session_override(payload):
+        store["session_override"] = payload
+        return True
+
+    def get_workout_session_by_type(date, session_type="morning"):
+        # Contrat db_sessions : dict session ou None. Utilisé par nutrition
+        # _get_day_intensity pour distinguer session actual vs schedulée.
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            entry = copy.deepcopy(sessions[date])
+            entry["date"] = date
+            entry["session_type"] = session_type
+            return entry
+        return None
+
+    def get_workout_session_second(date):
+        # Séance soir. None par défaut (pas de soir loggée).
+        return None
+
+    def get_today_sessions_all(date):
+        # Toutes les slots (matin+soir+bonus) du jour. Retourne [] si aucun.
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            entry = copy.deepcopy(sessions[date])
+            entry["id"] = date
+            return [entry]
+        return []
+
+    def get_exercises_info_bulk(exercise_names):
+        # Retour dict par nom d'exercice avec les infos inventaire. Utilisé
+        # par smart_progression pour bulk-lookup.
+        inv = store.get("inventory", {})
+        return {n: copy.deepcopy(inv.get(n, {})) for n in exercise_names}
+
+    def get_exercise_log_sets_json(date, session_type, exercise):
+        # Retourne les sets structurés d'un exo loggé (workout_logging garde
+        # anti-fantôme). None si pas loggé.
+        return None
+
+    def get_nutrition_daily_full(days=180):
+        # Contrat db_stats : liste [{"date": "YYYY-MM-DD", "calories": ..., ...}]
+        # sur les N derniers jours. Vide par défaut — les tests stats ne vérifient
+        # pas le contenu, juste que le champ est JSON-serializable.
+        return []
+
+    def get_current_1rm_estimates():
+        # Contrat db_stats : liste [{"name": ..., "estimated_1rm": ...}].
+        # Vide par défaut. Utilisé par /api/programme_data L246.
+        return []
+
+    def get_full_program_by_id(program_id):
+        # Multi-programmes : lookup par ID. Fallback sur le programme unique
+        # du fake — la majorité des tests n'a qu'un programme.
+        return copy.deepcopy(store.get("program", {}))
+
+    def get_exercises_bulk(exercise_names):
+        # Alias de get_exercises_info_bulk (nom historique). Certains chemins
+        # backend l'appellent sous ce nom.
+        inv = store.get("inventory", {})
+        return [{"name": n, **copy.deepcopy(inv.get(n, {}))} for n in exercise_names]
+
+    # ── Stats/analytics fakes (retours JSON-safe vides) — les tests stats
+    # vérifient présence des clés dans le payload, pas leur contenu.
+    def _empty_list(*a, **kw): return []
+    def _empty_dict(*a, **kw): return {}
+    get_weekly_tonnage = _empty_list
+    get_pattern_volume = _empty_dict
+    get_programme_compliance = _empty_dict
+    get_one_rm_trend = _empty_dict
+    get_protein_weight_ratio = _empty_dict
+    get_mood_trend = _empty_list
+    get_pss_records = _empty_list
+    get_self_care_streaks_computed = _empty_dict
+    get_self_care_compliance = _empty_dict
+    get_soreness_volume_scatter = _empty_list
+    get_sleep_volume_scatter = _empty_list
+    get_rpe_progression = _empty_list
+    get_rir_by_exercise = _empty_dict
+    get_food_catalog = _empty_list
+    get_meal_templates = _empty_list
 
     db_mock = MagicMock(
         get_json=get_json,
@@ -680,6 +815,41 @@ def make_store():
         set_relational_week_schedule=set_relational_week_schedule,
         get_evening_week_schedule=get_evening_week_schedule,
         set_evening_week_schedule=set_evening_week_schedule,
+        # Ajouts commit sync : méthodes exposées par endpoints récents (mésocycle,
+        # multi-programmes, macros stats) qui retournaient MagicMock non-JSON.
+        get_active_program_id=get_active_program_id,
+        set_active_program_id=set_active_program_id,
+        get_cycle_start_date=get_cycle_start_date,
+        set_cycle_start_date=set_cycle_start_date,
+        get_macros_by_day_type=get_macros_by_day_type,
+        get_session_supersets=get_session_supersets,
+        get_session_override=get_session_override,
+        set_session_override=set_session_override,
+        get_workout_session_by_type=get_workout_session_by_type,
+        get_workout_session_second=get_workout_session_second,
+        get_today_sessions_all=get_today_sessions_all,
+        get_exercises_info_bulk=get_exercises_info_bulk,
+        get_exercise_log_sets_json=get_exercise_log_sets_json,
+        get_nutrition_daily_full=get_nutrition_daily_full,
+        get_current_1rm_estimates=get_current_1rm_estimates,
+        get_full_program_by_id=get_full_program_by_id,
+        get_exercises_bulk=get_exercises_bulk,
+        # Stats fakes — retours JSON-safe vides
+        get_weekly_tonnage=get_weekly_tonnage,
+        get_pattern_volume=get_pattern_volume,
+        get_programme_compliance=get_programme_compliance,
+        get_one_rm_trend=get_one_rm_trend,
+        get_protein_weight_ratio=get_protein_weight_ratio,
+        get_mood_trend=get_mood_trend,
+        get_pss_records=get_pss_records,
+        get_self_care_streaks_computed=get_self_care_streaks_computed,
+        get_self_care_compliance=get_self_care_compliance,
+        get_soreness_volume_scatter=get_soreness_volume_scatter,
+        get_sleep_volume_scatter=get_sleep_volume_scatter,
+        get_rpe_progression=get_rpe_progression,
+        get_rir_by_exercise=get_rir_by_exercise,
+        get_food_catalog=get_food_catalog,
+        get_meal_templates=get_meal_templates,
     )
     # Wrap dans le spec-guard : setattr d'un attribut hors spec du vrai module
     # db lève AttributeError. Attrape les typos type mesocycle (get_active_program
