@@ -105,6 +105,14 @@ struct SeanceSoirView: View {
     @StateObject private var vm = SeanceSoirViewModel()
     @State private var showPRCelebration = false
 
+    // Titre dynamique : hérite du nom matin ("Upper A — suite") si dispo.
+    private var seanceTitle: String {
+        guard let name = vm.seanceData?.today, !name.isEmpty, name != "Repos" else {
+            return "Séance du Soir"
+        }
+        return "\(name) — suite"
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -125,7 +133,7 @@ struct SeanceSoirView: View {
                     }
                 }
             }
-            .navigationTitle("Séance du Soir")
+            .navigationTitle(seanceTitle)
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await vm.load() }

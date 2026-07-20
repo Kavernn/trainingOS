@@ -619,13 +619,25 @@ struct WorkoutSeanceView: View {
                             assignments = SeanceSplitStore.load(date: data.todayDate)
                         }
                     } label: {
-                        Image(systemName: isSecondSession ? "arrow.left.circle.fill" : "arrow.right.circle.fill")
-                            .font(.appBody)
-                            .foregroundColor(Color.forge)
-                            .padding(6)
-                            .background(Color.appCard)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.forge.opacity(0.3), lineWidth: 0.5))
+                        // Label textuel court : "→ Soir" (matin → envoyer) ou
+                        // "← Matin" (soir → ramener). Restaure la découvrabilité
+                        // (l'icône seule était opaque au premier usage).
+                        HStack(spacing: 3) {
+                            if isSecondSession {
+                                Image(systemName: "arrow.left")
+                                Text("Matin")
+                            } else {
+                                Text("Soir")
+                                Image(systemName: "arrow.right")
+                            }
+                        }
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(Color.forge)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color.appCard)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.forge.opacity(0.3), lineWidth: 0.5))
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 8)

@@ -576,13 +576,24 @@ struct ProgrammeView: View {
     }
     // MARK: - Direction B — tab helpers
 
-    private var todayEveningSessionName: String? {
+    // Résolution du soir : override manuel > héritage du matin > rien.
+    // isInherited=true si le nom vient du planning matin (soir non peuplé sauf via
+    // SeanceSplitStore). Miroir iOS du fallback backend get_today_evening().
+    private var todayEveningResolved: (name: String, isInherited: Bool)? {
         let weekday = Calendar.current.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7
         guard idx < TrainingDoctrine.dayNames.count else { return nil }
         let day = TrainingDoctrine.dayNames[idx]
-        return vm.eveningSchedule[day].flatMap { $0 == "Repos" ? nil : $0 }
+        if let manual = vm.eveningSchedule[day], !manual.isEmpty, manual != "Repos" {
+            return (manual, false)
+        }
+        if let morning = vm.schedule[day], !morning.isEmpty, morning != "Repos" {
+            return (morning, true)
+        }
+        return nil
     }
+
+    private var todayEveningSessionName: String? { todayEveningResolved?.name }
 
     @ViewBuilder
     private var segmentedControl: some View {
@@ -649,18 +660,52 @@ struct ProgrammeView: View {
 
     @ViewBuilder
     private var heroSoir: some View {
-        if let name = todayEveningSessionName {
-            heroCard(sessionName: name, badge: "SOIR", role: .evening) {
-                Button {
-                    showSeanceSoirSheet = true
-                } label: {
-                    heroCTA
+        if let resolved = todayEveningResolved {
+            if resolved.isInherited {
+                inheritedHeroSoir(morningName: resolved.name)
+            } else {
+                heroCard(sessionName: resolved.name, badge: "SOIR", role: .evening) {
+                    Button {
+                        showSeanceSoirSheet = true
+                    } label: {
+                        heroCTA
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         } else {
             restCard(text: "Repos ce soir")
         }
+    }
+
+    // Hero SOIR hérité — non peuplé par défaut. Le sous-titre reflète les exos
+    // que Vince a envoyés depuis la séance matin via SeanceSplitStore (flèche →
+    // dans WorkoutActiveView). "Rien d'envoyé pour l'instant" = état vide sobre.
+    // On n'affiche pas la liste des exos matin ici : l'invariant est "un exo
+    // matin OU soir, jamais les deux" — le soir hérite du NOM, pas du CONTENU.
+    @ViewBuilder
+    private func inheritedHeroSoir(morningName: String) -> some View {
+        let n = seance2ExosToday.count
+        let subtitle = n > 0
+            ? "\(n) exercice\(n > 1 ? "s" : "") envoyé\(n > 1 ? "s" : "") ce matin"
+            : "Rien d'envoyé pour l'instant"
+        VStack(alignment: .leading, spacing: 16) {
+            AppBadge("SOIR", role: .evening)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(morningName) (suite)").font(.appHero).foregroundColor(.appTextPrimary)
+                Text(subtitle).font(.appLabel).foregroundColor(.appTextSecondary)
+            }
+            Button {
+                showSeanceSoirSheet = true
+            } label: {
+                heroCTA
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
+        .background(Color.appCard)
+        .cornerRadius(.appCardRadius)
+        .padding(.horizontal, .appPagePadding)
     }
 
     private var heroCTA: some View {
@@ -869,15 +914,19 @@ struct ProgrammeView: View {
     private var planningSoirSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             AppSectionHeader("PLANNING SOIR")
-            planningCard(schedule: vm.eveningSchedule)
+            planningCard(schedule: vm.eveningSchedule, inheritFrom: vm.schedule)
         }
     }
 
-    private func planningCard(schedule: [String: String]) -> some View {
+    private func planningCard(schedule: [String: String], inheritFrom: [String: String]? = nil) -> some View {
         let days = TrainingDoctrine.dayNames
         return VStack(spacing: 0) {
             ForEach(Array(days.enumerated()), id: \.offset) { pair in
-                planningRow(day: pair.element, session: schedule[pair.element])
+                planningRow(
+                    day: pair.element,
+                    session: schedule[pair.element],
+                    inheritedFrom: inheritFrom?[pair.element]
+                )
                 if pair.offset < days.count - 1 {
                     Rectangle()
                         .fill(Color.appTextSecondary.opacity(0.10))
@@ -890,10 +939,17 @@ struct ProgrammeView: View {
         .cornerRadius(.appCardRadius)
     }
 
-    private func planningRow(day: String, session: String?) -> some View {
+    // Distinction visuelle : hérité (matin bat le soir vide) = italique + gris,
+    // manuel (override soir défini) = plein, Repos = gris (inchangé).
+    private func planningRow(day: String, session: String?, inheritedFrom: String? = nil) -> some View {
         let isToday = day == todayDayName
-        let displaySession = session ?? "Repos"
-        let isRepos = displaySession == "Repos" || displaySession.isEmpty
+        let manual = session.flatMap { ($0.isEmpty || $0 == "Repos") ? nil : $0 }
+        let inherited = manual == nil
+            ? inheritedFrom.flatMap { ($0.isEmpty || $0 == "Repos") ? nil : $0 }
+            : nil
+        let isInherited = inherited != nil
+        let displaySession = manual ?? inherited ?? "Repos"
+        let isRepos = displaySession == "Repos"
         return HStack {
             Text(day)
                 .frame(width: 44, alignment: .leading)
@@ -901,7 +957,8 @@ struct ProgrammeView: View {
                 .foregroundColor(isToday ? .forge : .appTextPrimary)
             Text(displaySession)
                 .font(.appLabel.weight(isToday ? .semibold : .regular))
-                .foregroundColor(isRepos ? .appTextSecondary : .appTextPrimary)
+                .italic(isInherited)
+                .foregroundColor((isRepos || isInherited) ? .appTextSecondary : .appTextPrimary)
             Spacer()
         }
         .frame(height: 44)
@@ -1782,12 +1839,13 @@ struct ExerciseRow: View {
         trend == "↑" ? "↑ \(scheme)" : scheme
     }
 
-    /// Sous-titre méta ligne 2 (SS · Séance 2 · e1rm), un seul point-median.
+    /// Sous-titre méta ligne 2 (SS · e1rm), un seul point-median.
     /// Vide → ligne 2 non rendue, row à 46pt. Peuplée → ~60pt (hauteur assumée).
+    /// Séance 2 sortie de metaLine — rendue en badge capsule inline (voir body)
+    /// pour restaurer la saillance perdue en D6 (sous-titre gris peu visible).
     private var metaLine: String {
         var parts: [String] = []
         if isSupersetted { parts.append("SS") }
-        if isSeance2     { parts.append("Séance 2") }
         if let e = e1rm  { parts.append("~\(units.format(e, decimals: 0)) max") }
         return parts.joined(separator: " · ")
     }
@@ -1796,11 +1854,22 @@ struct ExerciseRow: View {
         Button(action: onTap) {
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(name)
-                        .font(isCompound ? .appBody.weight(.semibold) : .appLabel.weight(.medium))
-                        .foregroundColor(.appTextPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    HStack(spacing: 6) {
+                        Text(name)
+                            .font(isCompound ? .appBody.weight(.semibold) : .appLabel.weight(.medium))
+                            .foregroundColor(.appTextPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        if isSeance2 {
+                            Text("Séance 2")
+                                .font(.appMicro.weight(.semibold))
+                                .foregroundColor(.onAccent)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.forge)
+                                .cornerRadius(4)
+                        }
+                    }
                     if !metaLine.isEmpty {
                         Text(metaLine)
                             .font(.appMicro)

@@ -123,10 +123,21 @@ def get_evening_schedule() -> Dict[str, str]:
 
 
 def get_today_evening() -> str | None:
-    """Return the evening session type for today, or None if no session configured."""
-    schedule = get_evening_schedule()
+    """Return the evening session name for today.
+
+    Fallback héritage : si le planning soir est vide/Repos ce jour, retombe sur
+    le nom de la séance matin ("Upper A" matin → "Upper A" hérité le soir,
+    affiché « (suite) » côté UI, non peuplé par défaut). Retourne None seulement
+    si matin ET soir sont Repos (vrai repos). Un override manuel du planning
+    soir gagne toujours sur l'héritage.
+    """
     days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-    return schedule.get(days[_montreal_now().weekday()])
+    day_key = days[_montreal_now().weekday()]
+    evening = get_evening_schedule().get(day_key)
+    if evening and evening != "Repos":
+        return evening
+    morning = get_today()
+    return morning if morning and morning != "Repos" else None
 
 
 # ---------------------------------------------------------------------------
