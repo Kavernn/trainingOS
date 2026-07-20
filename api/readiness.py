@@ -58,6 +58,9 @@ _WEIGHTS = {
     "pattern":        0.03,  # Zatsiorsky & Kraemer 2006
 }
 
+# Un module sous ce seuil = critique. Aligné messaging + veto : un seuil, une signification.
+_MODULE_CRITICAL_THRESHOLD = 40
+
 # Muscle recovery — courbe exponentielle (MacDougall 1995, Zatsiorsky & Kraemer 2006)
 _RECOVERY_K              = 3.0
 _VOL_THRESHOLD_HIGH      = 6
@@ -599,6 +602,14 @@ def _build_messaging(
     worst_k = min(scored, key=scored.__getitem__)
 
     if verdict == "go":
+        worst_score = scored[worst_k]
+        if worst_score < _MODULE_CRITICAL_THRESHOLD:
+            label = modules[worst_k]["label"]
+            return (
+                f"Verdict go mais ton {label} est bas ({worst_score}/100) — surveille tes sensations.",
+                None,
+                1.0,
+            )
         return "Toutes tes métriques sont au vert — c'est le bon moment pour pousser.", None, 1.0
 
     prog_mod = 0.65 if verdict == "rest" else 0.90

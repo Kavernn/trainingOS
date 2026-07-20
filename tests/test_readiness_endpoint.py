@@ -78,6 +78,34 @@ class TestReadinessRouteContract(_ReadinessBaseTest):
         self.assertEqual("go", self.json(r)["verdict"])
 
 
+class TestMessagingHonest(_ReadinessBaseTest):
+    """Commit 1 — la branche verdict==go du messaging ne peut plus affirmer
+    'toutes tes métriques au vert' quand un module est critique.
+    Un texte qui contredit ses propres composants = mensonge d'écran."""
+
+    def test_go_with_critical_module_names_it(self):
+        import readiness as _r
+        modules = {
+            "hrv":  {"score": 30, "label": "HRV",      "detail": ""},
+            "rhr":  {"score": 80, "label": "FC repos", "detail": ""},
+            "acwr": {"score": 95, "label": "Charge",   "detail": ""},
+        }
+        why, adj, prog = _r._build_messaging("go", modules, {}, {})
+        self.assertIn("HRV", why)
+        self.assertIn("30", why)
+        self.assertNotIn("au vert", why)
+        self.assertEqual(1.0, prog)  # progression modifier inchangé — l'honnêteté est cosmétique
+
+    def test_go_with_all_modules_healthy_keeps_optimistic_message(self):
+        import readiness as _r
+        modules = {
+            "hrv": {"score": 80, "label": "HRV",      "detail": ""},
+            "rhr": {"score": 85, "label": "FC repos", "detail": ""},
+        }
+        why, adj, prog = _r._build_messaging("go", modules, {}, {})
+        self.assertIn("au vert", why)
+
+
 if __name__ == "__main__":
     import unittest
     unittest.main(verbosity=2)
