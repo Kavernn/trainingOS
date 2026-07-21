@@ -502,18 +502,24 @@ def api_historique_data():
                     "exercise": ex_name,
                     "weight": entry.get("weight", 0),
                     "reps": entry.get("reps", ""),
+                    "sets": entry.get("sets") or [],
                 })
+        # Le supplément COMPLÈTE par-exo, jamais ne REMPLACE : un exo déjà présent
+        # dans row["exos"] (venu de exercise_logs, source riche avec sets_json) garde
+        # sa version. Un exo absent est ajouté depuis weights.history qui porte aussi
+        # les sets (db_sessions.get_all_exercise_history L906-907). L'ancienne branche
+        # `if not existing: row["exos"] = date_exos` écrasait une row exos=[] par
+        # date_exos dépourvu de sets → format condensé côté iOS (bug 2026-07-20).
         for row in session_list:
             d = row.get("date")
             date_exos = ex_by_date.get(d, [])
+            if not date_exos:
+                continue
             existing = row.get("exos") or []
-            if not existing:
-                row["exos"] = date_exos
-            elif date_exos:
-                existing_names = {e.get("exercise") for e in existing}
-                extra = [e for e in date_exos if e.get("exercise") not in existing_names]
-                if extra:
-                    row["exos"] = list(existing) + extra
+            existing_names = {e.get("exercise") for e in existing}
+            extra = [e for e in date_exos if e.get("exercise") not in existing_names]
+            if extra:
+                row["exos"] = list(existing) + extra
     except Exception:
         pass
 

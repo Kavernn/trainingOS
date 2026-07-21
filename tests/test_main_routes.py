@@ -92,6 +92,19 @@ class TestHistoriqueData(BaseRouteTest):
         exo_names = [e["exercise"] for e in march10["exos"]]
         self.assertIn("Bench Press", exo_names)
 
+    def test_supplement_propagates_sets(self):
+        """Régression bug 2026-07-20 : le supplément weights.history doit propager
+        sets_json quand il ajoute un exo, sinon iOS tombe sur la branche legacy
+        (format condensé) au lieu du détail S1/S2/S3.
+        Fixture conftest : Bench Press 2026-03-10 a 4 sets détaillés."""
+        data = json.loads(self.get("/api/historique_data").data)
+        march10 = next(s for s in data["session_list"] if s["date"] == "2026-03-10")
+        bench = next(e for e in march10["exos"] if e["exercise"] == "Bench Press")
+        self.assertIsInstance(bench.get("sets"), list)
+        self.assertEqual(4, len(bench["sets"]))
+        self.assertEqual(185, bench["sets"][0]["weight"])
+        self.assertEqual("6", bench["sets"][0]["reps"])
+
 
 # ── /api/log ─────────────────────────────────────────────────────────────────
 

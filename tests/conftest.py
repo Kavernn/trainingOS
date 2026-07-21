@@ -94,7 +94,15 @@ WEIGHTS = {
         "current_weight": 185.0,
         "last_reps": "6,6,5,5",
         "history": [
-            {"date": "2026-03-10", "weight": 185.0, "reps": "6,6,5,5", "1rm": 210.0},
+            # sets présents : régression bug 2026-07-20 (supplément historique_data
+            # doit propager sets_json quand il ajoute un exo depuis weights.history).
+            {"date": "2026-03-10", "weight": 185.0, "reps": "6,6,5,5", "1rm": 210.0,
+             "sets": [
+                 {"weight": 185, "reps": "6", "rir": 3, "rpe": 7.0},
+                 {"weight": 185, "reps": "6", "rir": 3, "rpe": 7.5},
+                 {"weight": 185, "reps": "5", "rir": 2, "rpe": 8.0},
+                 {"weight": 185, "reps": "5", "rir": 2, "rpe": 8.5},
+             ]},
             {"date": "2026-03-03", "weight": 180.0, "reps": "7,6,5,5"},
         ],
     },
@@ -307,12 +315,21 @@ def make_store():
         # Signature miroir db (cutoff_days ajouté après refonte weights).
         # Le fake ignore le filtre — les tests n'ont pas assez de fixtures pour
         # que le cutoff impacte, retourne tout.
+        # Propage "sets" si présent dans le fixture : miroir de db_sessions.py:906-907
+        # (le vrai db ajoute entry["sets"] uniquement pour les listes non-vides).
         weights = store.get("weights", {})
         result = {}
         for name, ex_data in weights.items():
             history = ex_data.get("history", [])
-            if history:
-                result[name] = [{"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps")} for e in history]
+            if not history:
+                continue
+            entries = []
+            for e in history:
+                entry = {"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps")}
+                if e.get("sets"):
+                    entry["sets"] = e["sets"]
+                entries.append(entry)
+            result[name] = entries
         return result
 
     def bulk_apply_session_exercise_patches(date, session_type, patches):
@@ -813,10 +830,11 @@ def make_store():
     get_meal_templates = _empty_list
 
     def get_exercise_history_grouped_by_session(session_ids=None):
-        # Groupe les exos loggés par session_id. Contrat db_sessions : dict
-        # {session_id: [{"exercise": ..., "weight": ..., "reps": ...}]}.
-        # Le fake dérive depuis store["weights"][name]["history"] → maps par date
-        # (session_id = date dans nos fakes) au niveau exercice.
+        # Groupe les exos loggés par session_id. Contrat db_sessions.py:651-656 : dict
+        # {session_id: [{"exercise", "weight", "reps", "sets"}]} — sets vient de
+        # sets_json de la row exercise_logs. Le fake dérive depuis
+        # store["weights"][name]["history"] → maps par date (session_id = date
+        # dans nos fakes) au niveau exercice.
         result = {}
         weights = store.get("weights", {})
         for name, data in weights.items():
@@ -830,6 +848,7 @@ def make_store():
                     "exercise": name,
                     "weight":   entry.get("weight"),
                     "reps":     entry.get("reps"),
+                    "sets":     entry.get("sets") or [],
                 })
         return result
 
