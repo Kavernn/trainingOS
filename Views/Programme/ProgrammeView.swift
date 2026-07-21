@@ -301,9 +301,7 @@ struct ProgrammeView: View {
                                 .foregroundColor(Color.forge)
                         }
                         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
-                        .background(Color.appCard)
-                        .cornerRadius(.appCardRadius)
-                        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+                        .glassCard()
                         .padding(.horizontal, .appPagePadding)
                         .padding(.bottom, fabBottomPadding)
                     }
@@ -323,9 +321,7 @@ struct ProgrammeView: View {
                                 .foregroundColor(.appTextPrimary)
                         }
                         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
-                        .background(Color.appCard)
-                        .cornerRadius(.appCardRadius)
-                        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+                        .glassCard()
                         .padding(.horizontal, .appPagePadding)
                         .padding(.bottom, fabBottomPadding)
                     }
@@ -733,8 +729,7 @@ struct ProgrammeView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
-        .background(Color.appCard)
-        .cornerRadius(.appCardRadius)
+        .glassCard()
         .padding(.horizontal, .appPagePadding)
     }
 
@@ -798,8 +793,7 @@ struct ProgrammeView: View {
             }
         }
         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
-        .background(Color.appCard)
-        .cornerRadius(.appCardRadius)
+        .glassCard()
         .padding(.horizontal, .appPagePadding)
     }
 
@@ -810,8 +804,7 @@ struct ProgrammeView: View {
             Spacer()
         }
         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
-        .background(Color.appCard)
-        .cornerRadius(.appCardRadius)
+        .glassCard()
         .padding(.horizontal, .appPagePadding)
     }
 
@@ -967,8 +960,7 @@ struct ProgrammeView: View {
                 }
             }
         }
-        .background(Color.appCard)
-        .cornerRadius(.appCardRadius)
+        .glassCard()
     }
 
     // Distinction visuelle : hérité (matin bat le soir vide) = italique + gris,
@@ -1060,8 +1052,7 @@ struct ProgrammeView: View {
         }
         .padding(.horizontal, .appCardInsetH)
         .padding(.vertical, .appCardInsetV)
-        .background(Color.appCard)
-        .cornerRadius(.appCardRadius)
+        .glassCard()
     }
 
     private func volumeBar(muscle: String, sets: Int, mev: Int?, mav: Int?) -> some View {
@@ -1131,8 +1122,7 @@ struct ProgrammeView: View {
             }
             .padding(.horizontal, .appCardInsetH)
             .padding(.vertical, .appCardInsetV)
-            .background(Color.appCard)
-            .cornerRadius(.appCardRadius)
+            .glassCard()
         } else if isCycleComplete {
             let phase = Phase.completed
             VStack(alignment: .leading, spacing: 10) {
@@ -1148,8 +1138,7 @@ struct ProgrammeView: View {
             }
             .padding(.horizontal, .appCardInsetH)
             .padding(.vertical, .appCardInsetV)
-            .background(Color.appCard)
-            .cornerRadius(.appCardRadius)
+            .glassCard()
         } else {
             let phase = currentPhase
             VStack(alignment: .leading, spacing: 10) {
@@ -1185,8 +1174,7 @@ struct ProgrammeView: View {
             }
             .padding(.horizontal, .appCardInsetH)
             .padding(.vertical, .appCardInsetV)
-            .background(Color.appCard)
-            .cornerRadius(.appCardRadius)
+            .glassCard()
         }
     }
 
@@ -2437,9 +2425,7 @@ struct EditableWeekScheduleCard: View {
             }
         }
         .padding(16)
-        .background(Color.appCard)
-        .cornerRadius(.appCardRadius)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.2), lineWidth: 1))
+        .glassCard()
     }
 
     private func seanceShort(_ s: String) -> String {
@@ -2531,9 +2517,7 @@ struct EveningScheduleCard: View {
             }
         }
         .padding(16)
-        .background(Color.appCard)
-        .cornerRadius(.appCardRadius)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusBlue.opacity(0.25), lineWidth: 1))
+        .glassCard()
     }
 
     private func shortLabel(_ s: String) -> String {
