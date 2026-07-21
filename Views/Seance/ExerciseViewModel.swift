@@ -694,7 +694,12 @@ class SeanceViewModel: ObservableObject {
 
     var cacheService: CacheService = .shared
 
-    init(draftSessionType: String = "morning") {
+    // Init obligatoire (2026-07-20) : retirer le default "morning" élimine le
+    // piège permanent d'un futur écran qui ferait `SeanceViewModel()` en pensant
+    // « peu importe le type » depuis un contexte soir. Les sous-classes (bonus,
+    // evening) gardent leur propre override avec le bon default — le default
+    // parent n'était utilisé qu'en instanciation directe.
+    init(draftSessionType: String) {
         self.draftSessionType = draftSessionType
     }
 

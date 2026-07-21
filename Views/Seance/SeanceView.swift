@@ -3,7 +3,7 @@ import SwiftUI
 
 
 struct SeanceView: View {
-    @StateObject private var vm = SeanceViewModel()
+    @StateObject private var vm = SeanceViewModel(draftSessionType: "morning")
     @State private var showPRCelebration = false
 
     var body: some View {

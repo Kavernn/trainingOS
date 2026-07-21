@@ -19,7 +19,7 @@ final class SeanceViewModelTests: XCTestCase {
         if let data = cacheData {
             cache.save(data, for: cacheKey)
         }
-        let vm = SeanceViewModel()
+        let vm = SeanceViewModel(draftSessionType: "morning")
         vm.cacheService = cache
         return vm
     }
