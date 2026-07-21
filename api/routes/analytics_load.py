@@ -288,6 +288,7 @@ def api_overtraining_risk():
 def api_one_rm_programming():
     """Return estimated 1RM and % programming table for main compound lifts."""
     from weights import load_weights
+    from progression import estimate_1rm
     import db as _db
 
     weights  = load_weights()
@@ -315,14 +316,9 @@ def api_one_rm_programming():
         for entry in hist[:10]:
             w = entry.get("weight", 0)
             reps_str = entry.get("reps", "") or ""
-            reps_list = [int(p.strip()) for p in reps_str.split(",") if p.strip().isdigit()]
-            r = (sum(reps_list) / len(reps_list)) if reps_list else 0.0
-            if r < 1 or r > 15:
-                estimated = 0.0
-            elif r <= 10:
-                estimated = w * (1 + r / 30)
-            else:
-                estimated = w * (36.0 / (37.0 - r))
+            if not w or not reps_str:
+                continue
+            estimated = estimate_1rm(float(w), reps_str) or 0.0
             if estimated > best_1rm:
                 best_1rm = estimated
 
