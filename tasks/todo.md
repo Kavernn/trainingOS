@@ -104,6 +104,8 @@ possède déjà — sur-engineering.
 - [x] **`create_workout_session` smallint error** : `round(float(rpe), 1)` = float Python rejeté par PostgreSQL `smallint`. Fix : `int(round(float(rpe)))` dans `db.py` (2026-04-04).
 - [x] **`SpecialSeanceView.alreadyLoggedToday` stale** : `@AppStorage` local pris comme source de vérité même si le serveur n'a pas reçu la séance. Fix : cross-check `vm.seanceData?.alreadyLogged` (code iOS prêt, rebuild Xcode requis).
 - [x] **Tendance body_weight ↓ -72 kg** : 3 entrées en livres (180/176/188.6) mélangées avec des kg. Converties en DB + `get_tendance()` filtre >150 (2026-04-04).
+- [x] **Fantômes de duplication pré-fix (avant 2026-07-20) — CONSERVÉS** : ~8 rows evening/bonus à poids fractionnaire (moyennes recalculées : 141.67, 116.67, 91.67, 76.67, 66.67, 106.33, 45.83) dupliquant un log matin du même jour — 02/07, 10/06, 29/04, 16/04. Cause : restore fantôme via `weights.history` sans discriminant `session_type` (corrigé `0fb94d8` + `d4b4167`). NON SUPPRIMÉS par décision de Vince (doctrine zéro modification aux données historiques ; le discriminant n'est fiable que sur le poids fractionnaire, les rows bonus à poids rond sont de vraies séances). Impact : volume/tonnage légèrement gonflés sur ces 4 dates. À rouvrir seulement si un PR fantôme ou une courbe faussée apparaît. *(2026-07-20)*
+- [x] **`sets_json` intermittent même en morning — pas un discriminant fiable** : 159/435 rows sans `sets_json` depuis 2026-03-24. L'absence de `sets_json` N'EST PAS un discriminant fiable pour distinguer un fantôme ; seul le **poids fractionnaire** l'est. À retenir pour tout audit futur touchant à `exercise_logs`. *(2026-07-21)*
 
 ---
 
