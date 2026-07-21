@@ -87,7 +87,7 @@ struct IntelligenceView: View {
 
     // Bilan hero stats (last 7 days)
     private var bilanRecentSessions: [SessionEntry] {
-        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 7 * 86400))
+        let cutoff = DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -7, to: Date()) ?? Date())
         return sessionsData.filter { $0.key >= cutoff }.map { $0.value }
     }
     private var bilanSessionCount: Int { bilanRecentSessions.count }
@@ -1010,7 +1010,7 @@ struct IntelligenceView: View {
     // MARK: - Nutrition × Performance Insight
 
     private var iso14DaysAgo: String {
-        DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 14 * 86400))
+        DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -14, to: Date()) ?? Date())
     }
 
     private var nutritionPerfInsight: NutritionPerfInsight? {

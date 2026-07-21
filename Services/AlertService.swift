@@ -58,7 +58,7 @@ final class AlertService: ObservableObject {
 
         // Prune keys older than 3 days to avoid unbounded growth
         let cutoff = DateFormatter.isoDate.string(
-            from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 3 * 86400)
+            from: Calendar.mtl.date(byAdding: .day, value: -3, to: Date()) ?? Date()
         )
         current = current.filter { key in
             guard let datePart = key.split(separator: "_").last.map(String.init) else { return true }

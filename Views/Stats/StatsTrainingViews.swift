@@ -1209,7 +1209,7 @@ struct Top5FrequencyView: View {
     let weights: [String: WeightData]
 
     private var top5: [(String, Int)] {
-        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
+        let cutoff = DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) ?? Date())
         var counts: [String: Int] = [:]
         for (name, data) in weights {
             let n = (data.history ?? []).filter { ($0.date ?? "") >= cutoff }.count

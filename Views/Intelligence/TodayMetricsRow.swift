@@ -5,10 +5,6 @@ struct TodayMetricsRow: View {
     let recovery: RecoveryEntry?
     let cardioData: [CardioEntry]
 
-    private static let isoFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
-    }()
-
     private var calories: Double { dash.nutritionTotals.calories ?? 0 }
     private var calGoal: Double { dash.nutritionSettings?.calories ?? 2000 }
     private var protein: Double { dash.nutritionTotals.proteines ?? 0 }
@@ -16,8 +12,8 @@ struct TodayMetricsRow: View {
 
     private var weeklyCardioKm: Double {
         guard !cardioData.isEmpty else { return 0 }
-        guard let todayMid = Self.isoFmt.date(from: dash.todayDate) else { return 0 }
-        let cutoff = Self.isoFmt.string(from: Date(timeIntervalSince1970: todayMid.timeIntervalSince1970 - 6 * 86400))
+        guard let todayMid = DateFormatter.isoDate.date(from: dash.todayDate) else { return 0 }
+        let cutoff = DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -6, to: todayMid) ?? todayMid)
         return cardioData.filter { ($0.date ?? "") >= cutoff }.compactMap { $0.distanceKm }.reduce(0, +)
     }
 

@@ -201,7 +201,7 @@ final class DashboardViewModel: ObservableObject {
         let today = APIService.shared.dashboard?.todayDate ?? DateFormatter.isoDate.string(from: Date())
         let yesterdayStr: String = {
             let base = DateFormatter.isoDate.date(from: today) ?? Date()
-            return DateFormatter.isoDate.string(from: Calendar.current.date(byAdding: .day, value: -1, to: base) ?? base)
+            return DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -1, to: base) ?? base)
         }()
 
         // Phase 2: accumulate into P2State (no @Published → no re-renders while tasks run).

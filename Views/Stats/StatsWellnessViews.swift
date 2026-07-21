@@ -801,7 +801,7 @@ struct BestDayOfWeekView: View {
 
     // volume/RPE ratio per day of week — avoids session-type bias toward heavy days
     private var efficiencyByDow: [Int: Double] {
-        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 90 * 86400))
+        let cutoff = DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -90, to: Date()) ?? Date())
         var totals: [Int: Double] = [:]
         var counts: [Int: Int] = [:]
         for (dateStr, session) in sessions {

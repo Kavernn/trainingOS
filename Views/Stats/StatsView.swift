@@ -42,7 +42,7 @@ enum StatsPeriod: String, CaseIterable {
     case all    = "Tout"
 
     var cutoff: String? {
-        let cal = Calendar.current
+        let cal = Calendar.mtl
         let months: Int
         switch self {
         case .month1: months = -1
@@ -121,7 +121,7 @@ struct StatsView: View {
     }
 
     var avgRPE30: Double {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        let cutoff = Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) ?? Date()
         let cutStr = DateFormatter.isoDate.string(from: cutoff)
         let rpes = sessions.compactMap { date, e -> Double? in
             date >= cutStr ? e.rpe : nil
@@ -334,7 +334,7 @@ struct StatsView: View {
     // ── Smart Insights ────────────────────────────────────────────────
     var smartInsights: [(icon: String, text: String, color: Color)] {
         var insights: [(String, String, Color)] = []
-        let cal   = Calendar.current
+        let cal   = Calendar.mtl
         let w4ago = cal.date(byAdding: .weekOfYear, value: -4, to: Date()) ?? Date()
         let w8ago = cal.date(byAdding: .weekOfYear, value: -8, to: Date()) ?? Date()
         let last4 = sessions.filter {

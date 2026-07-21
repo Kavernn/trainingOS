@@ -1568,10 +1568,8 @@ struct WorkoutSeanceView: View {
                 await loadReadiness()
                 let weights = data.weights
                 let programExercises = Set(data.fullProgram.values.flatMap { $0.keys })
-                if let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) {
-                    let fmt = DateFormatter()
-                    fmt.dateFormat = "yyyy-MM-dd"
-                    let cutoffStr = fmt.string(from: cutoff)
+                if let cutoff = Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) {
+                    let cutoffStr = DateFormatter.isoDate.string(from: cutoff)
                     recentAdHocExercises = await Task.detached(priority: .utility) {
                         weights
                             .filter { name, wd in !programExercises.contains(name) && (wd.lastLogged ?? "") >= cutoffStr }

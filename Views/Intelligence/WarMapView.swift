@@ -99,13 +99,11 @@ struct WarMapView: View {
     }
 
     private func daysInMonth(_ ym: String) -> [String] {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        let cal = Calendar.current
-        guard let base = f.date(from: "\(ym)-01") else { return [] }
+        let cal = Calendar.mtl
+        guard let base = DateFormatter.isoDate.date(from: "\(ym)-01") else { return [] }
         guard let range = cal.range(of: .day, in: .month, for: base) else { return [] }
         return range.compactMap { day in
-            cal.date(bySetting: .day, value: day, of: base).map { f.string(from: $0) }
+            cal.date(bySetting: .day, value: day, of: base).map { DateFormatter.isoDate.string(from: $0) }
         }
     }
 

@@ -80,6 +80,24 @@ Les tests unitaires (pytest) passent ≠ le bug est corrigé en production.
 
 **Règle :** Toujours utiliser `data.today` (fourni par le serveur en heure MTL). Supprimer tout recalcul de date côté iOS sauf pour la UI pure (ex: afficher "Aujourd'hui").
 
+**Corollaire (2026-07-21) — Frontières de dates : trois catégories, un remède différent.**
+
+Les `DateFormatter.isoDate` et `isoYearMonth` (`Utilities/Extensions.swift:167-181`) sont déjà configurés en `TimeZone(identifier: "America/Montreal")` — les *strings* qu'ils produisent sont bonnes (piège découvert lors de l'audit Stats 2026-07-21 : `sessionsThisMonth` et `AppState.todayStr` ont l'air fautifs mais ne le sont pas — c'est le seul `DateFormatter` utilisé qui les sauve). Le vrai crime porte sur les `Calendar.*` et les cutoffs UTC bruts. Trois catégories pour trier chaque site :
+
+**A — Frontières de données côté serveur.** Cutoffs data (`-Nj`/mois), matching de clés MTL (yesterday/today), weekday servant à indexer un plan quotidien, `isDate inSameDayAs` pour un flag "aujourd'hui", ordinality du jour de l'année comparée à un cycle serveur.
+→ **`Calendar.mtl` obligatoire** (`Utilities/Extensions.swift:255-260`). Backend équivalent : `_today_mtl()` (`api/utils.py`).
+
+**B — Cosmétique.** Deltas affichés à l'utilisateur ("il y a 30 jours", "3 mois écoulés"), salutation "bonjour/bonsoir" selon l'heure, labels calendaires de widgets.
+→ `Calendar.mtl` souhaitable mais tolérable — impact nul en device MTL, dérive de 4-24h uniquement en voyage. Backlog, pas urgence.
+
+**C — Manipulation d'heure locale utilisateur.** Pickers d'alarme, `UNCalendarNotificationTrigger` à "9h", notifs du soir à 20h, capsule qui s'ouvre à 9h "chez toi".
+→ **`Calendar.current` VOLONTAIRE** : l'utilisateur veut son 7h30 *là où il est*, pas à Montréal. Ne PAS migrer vers `Calendar.mtl`. **Commenter au code** sur les sites principaux (`SmartAlarmService`, `NotificationService`, `TimeCapsuleViews` notif) pour préserver contre un futur audit "MTL partout" qui viendrait casser en croyant bien faire.
+
+Interdits (uniquement catégorie A) :
+- `Calendar.current` — dépend du device time (voyage, sim en UTC, etc.).
+- Cutoffs UTC bruts type `Date().timeIntervalSince1970 - N * 86400` — produisent une frontière ~4h avant minuit MTL et cassent aux passages DST (jour de 23h/25h). Remède : `Calendar.mtl.date(byAdding: .day, value: -N, to: base)`.
+- `Calendar.date(byAdding:)` sur iOS 26 peut crasher 0x8BADF00D (voir entrée dédiée). Si le calcul doit rester purement arithmétique, appliquer `TimeZone.secondsFromGMT(for:)` comme offset avant division.
+
 ---
 
 ## iOS — Invalider le cache après chaque mutation

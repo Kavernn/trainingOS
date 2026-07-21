@@ -19,7 +19,7 @@ struct ProgressionCard: View {
 
     private var topLifts: [LiftRow] {
         let iso30dAgo = DateFormatter.isoDate.string(
-            from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
+            from: Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) ?? Date())
         let rows: [LiftRow] = weightsData.compactMap { name, data in
             guard let cw = data.currentWeight else { return nil }
             var delta: Double? = nil

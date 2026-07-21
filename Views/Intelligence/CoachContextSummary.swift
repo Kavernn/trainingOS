@@ -1,10 +1,8 @@
 import SwiftUI
 
 private func yesterdayEntry(from history: [NutritionDayHistory]) -> NutritionDayHistory? {
-    guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) else { return nil }
-    let fmt = DateFormatter()
-    fmt.dateFormat = "yyyy-MM-dd"
-    let yStr = fmt.string(from: yesterday)
+    guard let yesterday = Calendar.mtl.date(byAdding: .day, value: -1, to: Date()) else { return nil }
+    let yStr = DateFormatter.isoDate.string(from: yesterday)
     return history.first { $0.date == yStr }
 }
 

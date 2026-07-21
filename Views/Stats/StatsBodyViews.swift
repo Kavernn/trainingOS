@@ -227,7 +227,7 @@ struct BodyRecompView: View {
 
     private var deltaSpan: (lean: Double, fat: Double, label: String)? {
         guard points.count >= 2 else { return nil }
-        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
+        let cutoff = DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) ?? Date())
         let recent = points.filter { $0.date >= cutoff }
         let first: RecompPoint
         let last: RecompPoint

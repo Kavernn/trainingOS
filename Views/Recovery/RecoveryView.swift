@@ -548,7 +548,7 @@ struct RecoveryView: View {
     }
 
     private var entriesMissingHK: [RecoveryEntry] {
-        let cutoff = Calendar.current.safeDateByAdding(.day, value: -7, to: Date())
+        let cutoff = Calendar.mtl.safeDateByAdding(.day, value: -7, to: Date())
         return log.filter {
             guard let d = $0.date, let date = Self.isoFmt.date(from: d) else { return false }
             return date >= cutoff && ($0.restingHr == nil || $0.hrv == nil)

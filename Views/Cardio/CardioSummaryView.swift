@@ -669,13 +669,11 @@ enum CardioCoachService {
     }
 
     private static func maxDistance30Days(from sessions: [CardioEntry], types: [String]) -> Double {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        let todayStr = df.string(from: Date())
+        let cutoff = Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        let todayStr = DateFormatter.isoDate.string(from: Date())
         return sessions
             .filter { s in
-                guard let d = s.date, let date = df.date(from: d) else { return false }
+                guard let d = s.date, let date = DateFormatter.isoDate.date(from: d) else { return false }
                 return d != todayStr && date >= cutoff && types.contains(s.type ?? "")
             }
             .compactMap { $0.distanceKm }
@@ -683,12 +681,10 @@ enum CardioCoachService {
     }
 
     private static func avgSpeed7Days(from sessions: [CardioEntry]) -> Double {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
+        let cutoff = Calendar.mtl.date(byAdding: .day, value: -7, to: Date()) ?? Date()
         let speeds = sessions
             .filter { s in
-                guard let d = s.date, let date = df.date(from: d) else { return false }
+                guard let d = s.date, let date = DateFormatter.isoDate.date(from: d) else { return false }
                 let isVelo = s.type == "velo" || s.type == "vélo"
                 return date >= cutoff && isVelo
             }

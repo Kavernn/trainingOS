@@ -65,7 +65,7 @@ struct ProfileView: View {
     private var weightDelta30d: Double? {
         let sorted = bodyComp.history.sorted { $0.date < $1.date }
         guard let latest = sorted.last else { return nil }
-        let cutoff = Calendar.current.date(byAdding: .day, value: -28, to: Date()) ?? Date()
+        let cutoff = Calendar.mtl.date(byAdding: .day, value: -28, to: Date()) ?? Date()
         guard let ref = sorted.last(where: {
             guard let d = DateFormatter.isoDate.date(from: $0.date) else { return false }
             return d <= cutoff && $0.date != latest.date
