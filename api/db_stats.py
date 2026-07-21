@@ -2,8 +2,8 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Optional
 import db_core
-from db_body import get_recovery_logs, get_body_weight_logs
-from db_sessions import get_workout_sessions
+from db_body import get_recovery_logs, get_body_weight_logs, get_hiit_logs
+from db_sessions import get_workout_sessions, get_exercise_logs_since
 from utils import _today_mtl
 from db_wellness import (
     get_mood_logs, get_pss_records,
@@ -267,16 +267,34 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
         return []
 
 
-def get_macros_by_day_type(days: int = 60, nutr_days: list | None = None, sessions_raw: list | None = None) -> dict:
-    """Return average macros on training days vs rest days for the last N days."""
+def get_macros_by_day_type(days: int = 60, nutr_days: list | None = None) -> dict:
+    """Return average macros on training days vs rest days for the last N days.
+
+    Training day = date has EITHER a completed workout session (rpe or completed=true),
+    OR any exercise_log row, OR any hiit_log entry. Union des 3 sources — capture
+    les muscu-loguées-sans-marquer, les sessions yoga marquées, le HIIT-only, et
+    tout ce qui est entre les deux. Un critère plus étroit (session.completed seul)
+    classait "rest" des jours d'entraînement réels dont la session n'était pas
+    marquée completed/rpe (bug corrigé ici).
+    """
     try:
-        nutr_days    = nutr_days    if nutr_days    is not None else get_nutrition_daily_full(days)
-        sessions_raw = sessions_raw if sessions_raw is not None else get_workout_sessions(limit=days + 10)
-        workout_dates = {
-            str(s.get("date", ""))[:10]
-            for s in sessions_raw
-            if s.get("completed") or s.get("rpe") is not None
-        }
+        from datetime import date as _date, timedelta
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
+        nutr_days = nutr_days if nutr_days is not None else get_nutrition_daily_full(days)
+
+        sessions  = get_workout_sessions(limit=days + 10, since=cutoff)
+        ex_logs   = get_exercise_logs_since(cutoff)
+        hiit_logs = get_hiit_logs(limit=days + 10)
+
+        workout_dates: set[str] = (
+            {str(s.get("date", ""))[:10] for s in sessions
+             if s.get("completed") or s.get("rpe") is not None}
+            | {str(r.get("date", ""))[:10] for r in ex_logs if r.get("date")}
+            | {str(h.get("date", ""))[:10] for h in hiit_logs
+               if str(h.get("date", ""))[:10] >= cutoff}
+        )
+        workout_dates.discard("")
+
         training: list[dict] = []
         rest: list[dict] = []
         for d in nutr_days:
