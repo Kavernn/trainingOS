@@ -1233,9 +1233,12 @@ struct IntelligenceView: View {
     }
 
     private var currentWeekKey: String {
-        // Weeks since first Monday after Unix epoch (Jan 5, 1970 = second 345600)
-        // Avoids Calendar.current.component which recurses on iOS 26
-        let weekIndex = Int((Date().timeIntervalSince1970 - 345_600) / 604_800)
+        // ponytail: index arithmétique — évite Calendar.component qui recurse sur iOS 26
+        // (cf. lessons.md "Calendar.date(byAdding:) cause un crash 0x8BADF00D").
+        // Offset MTL appliqué avant division pour que le bucket bascule au lundi 00:00
+        // MTL (pas UTC — sinon la clé change 4h trop tôt le dimanche soir).
+        let mtlOffset = TimeZone(identifier: "America/Montreal")?.secondsFromGMT(for: Date()) ?? 0
+        let weekIndex = Int((Date().timeIntervalSince1970 + Double(mtlOffset) - 345_600) / 604_800)
         return "W\(weekIndex)"
     }
 

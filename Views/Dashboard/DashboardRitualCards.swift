@@ -284,7 +284,7 @@ struct EveningSleepCard: View {
 
     // Rotation stable : 1 conseil par jour calendaire (aperçu sur la carte)
     private var todayTip: (title: String, body: String) {
-        let day = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
+        let day = Calendar.mtl.ordinality(of: .day, in: .year, for: Date()) ?? 1
         return Self.sleepTips[(day - 1) % Self.sleepTips.count]
     }
 

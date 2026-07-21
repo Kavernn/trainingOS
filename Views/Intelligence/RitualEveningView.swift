@@ -208,7 +208,7 @@ struct EngagementCreationView: View {
     // MARK: - Helpers
 
     private var tomorrowDateLabel: String {
-        let tmrw = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+        let tmrw = Calendar.mtl.date(byAdding: .day, value: 1, to: Date()) ?? Date()
         let fmt  = DateFormatter()
         fmt.locale = Locale(identifier: "fr_CA")
         fmt.dateFormat = "EEEE d MMMM"
@@ -216,7 +216,7 @@ struct EngagementCreationView: View {
     }
 
     private var tomorrowDateShort: String {
-        let tmrw = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+        let tmrw = Calendar.mtl.date(byAdding: .day, value: 1, to: Date()) ?? Date()
         let fmt  = DateFormatter()
         fmt.locale = Locale(identifier: "fr_CA")
         fmt.dateFormat = "d MMMM"

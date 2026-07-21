@@ -808,7 +808,7 @@ struct BestDayOfWeekView: View {
             guard dateStr >= cutoff,
                   let date = DateFormatter.isoDate.date(from: dateStr),
                   let rpe = session.rpe, rpe > 0 else { continue }
-            let dow = (Calendar.current.component(.weekday, from: date) + 5) % 7 // 0=Mon
+            let dow = (Calendar.mtl.component(.weekday, from: date) + 5) % 7 // 0=Mon
             let vol: Double
             if let sv = session.sessionVolume, sv > 0 {
                 vol = sv

@@ -672,9 +672,9 @@ struct PSSQuestionnaireSheet: View {
 
     // P-D1: check for today's draft
     private func checkForDraft() {
-        let today = Calendar.current.startOfDay(for: Date())
+        let today = Calendar.mtl.startOfDay(for: Date())
         guard let savedDate = UserDefaults.standard.object(forKey: draftDateKey) as? Date,
-              Calendar.current.isDate(savedDate, inSameDayAs: today),
+              Calendar.mtl.isDate(savedDate, inSameDayAs: today),
               let data = UserDefaults.standard.data(forKey: draftResponsesKey),
               let decoded = try? JSONDecoder().decode([Int: Int].self, from: data),
               !decoded.isEmpty else {
@@ -687,7 +687,7 @@ struct PSSQuestionnaireSheet: View {
     // P-D1: save current responses to UserDefaults
     private func saveDraft() {
         guard let data = try? JSONEncoder().encode(responses) else { return }
-        let today = Calendar.current.startOfDay(for: Date())
+        let today = Calendar.mtl.startOfDay(for: Date())
         UserDefaults.standard.set(data, forKey: draftResponsesKey)
         UserDefaults.standard.set(today, forKey: draftDateKey)
     }

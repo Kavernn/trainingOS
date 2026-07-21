@@ -248,7 +248,7 @@ struct ProgrammeView: View {
     }
 
     private var todaySessionName: String? {
-        let weekday = Calendar.current.component(.weekday, from: Date())
+        let weekday = Calendar.mtl.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7  // 1=Sun → idx=6, 2=Mon → idx=0, …, 7=Sat → idx=5
         guard idx < TrainingDoctrine.dayNames.count else { return nil }
         let day = TrainingDoctrine.dayNames[idx]
@@ -598,7 +598,7 @@ struct ProgrammeView: View {
     // isInherited=true si le nom vient du planning matin (soir non peuplé sauf via
     // SeanceSplitStore). Miroir iOS du fallback backend get_today_evening().
     private var todayEveningResolved: (name: String, isInherited: Bool)? {
-        let weekday = Calendar.current.component(.weekday, from: Date())
+        let weekday = Calendar.mtl.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7
         guard idx < TrainingDoctrine.dayNames.count else { return nil }
         let day = TrainingDoctrine.dayNames[idx]
@@ -921,7 +921,7 @@ struct ProgrammeView: View {
     }
 
     private var todayDayName: String {
-        let weekday = Calendar.current.component(.weekday, from: Date())
+        let weekday = Calendar.mtl.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7
         guard idx < TrainingDoctrine.dayNames.count else { return "" }
         return TrainingDoctrine.dayNames[idx]
@@ -2348,7 +2348,7 @@ struct EditableWeekScheduleCard: View {
     private let none = "Repos"
 
     private var todayDayName: String {
-        let idx = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
+        let idx = (Calendar.mtl.component(.weekday, from: Date()) + 5) % 7
         return dayNames[idx]
     }
 

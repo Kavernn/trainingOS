@@ -12,10 +12,6 @@ struct HRVChart: View {
 
     private let kL: CGFloat = 28  // leading space for Y labels
 
-    private static let dateFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
-    }()
-
     private var pts: [(idx: Int, val: Double)] {
         entries.enumerated().compactMap { i, e in
             guard let v = e.hrv, v > 0 else { return nil }
@@ -67,8 +63,8 @@ struct HRVChart: View {
     }
 
     private func dayAbbrev(_ e: RecoveryEntry) -> String {
-        guard let d = e.date, let date = Self.dateFmt.date(from: d) else { return "" }
-        return ["D","L","M","M","J","V","S"][Calendar.current.component(.weekday, from: date) - 1]
+        guard let d = e.date, let date = DateFormatter.isoDate.date(from: d) else { return "" }
+        return ["D","L","M","M","J","V","S"][Calendar.mtl.component(.weekday, from: date) - 1]
     }
 
     var body: some View {
@@ -191,10 +187,6 @@ struct RHRChart: View {
     @State private var selectedPt: Int? = nil
 
     private let kL: CGFloat = 28
-    private static let dateFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
-    }()
-
     private var pts: [(idx: Int, val: Double)] {
         entries.enumerated().compactMap { i, e in
             guard let v = e.restingHr, v > 0 else { return nil }
@@ -251,8 +243,8 @@ struct RHRChart: View {
     }
 
     private func dayAbbrev(_ e: RecoveryEntry) -> String {
-        guard let d = e.date, let date = Self.dateFmt.date(from: d) else { return "" }
-        return ["D","L","M","M","J","V","S"][Calendar.current.component(.weekday, from: date) - 1]
+        guard let d = e.date, let date = DateFormatter.isoDate.date(from: d) else { return "" }
+        return ["D","L","M","M","J","V","S"][Calendar.mtl.component(.weekday, from: date) - 1]
     }
 
     var body: some View {
@@ -440,10 +432,6 @@ struct SleepChart: View {
 
     private let kL: CGFloat = 28
 
-    private static let dateFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
-    }()
-
     private var yMax: Double { max(entries.compactMap(\.sleepHours).max() ?? 8, 9) }
 
     private func barColor(_ h: Double) -> Color { h >= 7 ? .statusGreen : (h >= 6 ? .statusOrange : .statusRed) }
@@ -462,8 +450,8 @@ struct SleepChart: View {
     }
 
     private func dayAbbrev(_ e: RecoveryEntry) -> String {
-        guard let d = e.date, let date = Self.dateFmt.date(from: d) else { return "" }
-        return ["D","L","M","M","J","V","S"][Calendar.current.component(.weekday, from: date) - 1]
+        guard let d = e.date, let date = DateFormatter.isoDate.date(from: d) else { return "" }
+        return ["D","L","M","M","J","V","S"][Calendar.mtl.component(.weekday, from: date) - 1]
     }
 
     private func barDelay(_ i: Int) -> Double { Double(i) * 0.04 }
@@ -596,10 +584,6 @@ struct StepsChart: View {
 
     private let kL: CGFloat = 30  // slightly wider — "10.5k" Y labels need a bit more room
 
-    private static let dateFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
-    }()
-
     private var yMax: Double {
         let m = entries.compactMap(\.steps).map(Double.init).max() ?? 0
         return max(m * 1.1, Double(stepGoal) * 1.15)
@@ -625,8 +609,8 @@ struct StepsChart: View {
     }
 
     private func dayAbbrev(_ e: RecoveryEntry) -> String {
-        guard let d = e.date, let date = Self.dateFmt.date(from: d) else { return "" }
-        return ["D","L","M","M","J","V","S"][Calendar.current.component(.weekday, from: date) - 1]
+        guard let d = e.date, let date = DateFormatter.isoDate.date(from: d) else { return "" }
+        return ["D","L","M","M","J","V","S"][Calendar.mtl.component(.weekday, from: date) - 1]
     }
 
     private func barDelay(_ i: Int) -> Double { Double(i) * 0.04 }
