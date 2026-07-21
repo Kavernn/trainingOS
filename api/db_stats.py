@@ -245,7 +245,14 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
             seen[d]["proteines"] += float(row.get("proteines") or 0)
             seen[d]["glucides"]  += float(row.get("glucides") or 0)
             seen[d]["lipides"]   += float(row.get("lipides") or 0)
-        return sorted(seen.values(), key=lambda x: x["date"])
+        # Filtre jours 100 % vides à la source : trou de saisie ≠ zéro calorique.
+        # Un jour à calories=0 ET proteines=0 est un jour où l'user n'a rien loggé,
+        # pas un jour à zéro nutrition. Jours partiels (calories>0 OR proteines>0)
+        # sont conservés — un fruit loggé et rien d'autre reste légitime.
+        return sorted(
+            [d for d in seen.values() if d["calories"] > 0 or d["proteines"] > 0],
+            key=lambda x: x["date"],
+        )
 
     try:
         return _do()
@@ -273,8 +280,6 @@ def get_macros_by_day_type(days: int = 60, nutr_days: list | None = None, sessio
         training: list[dict] = []
         rest: list[dict] = []
         for d in nutr_days:
-            if d["calories"] == 0 and d["proteines"] == 0:
-                continue
             bucket = training if d["date"] in workout_dates else rest
             bucket.append(d)
 
