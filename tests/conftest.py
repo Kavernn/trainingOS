@@ -96,21 +96,26 @@ WEIGHTS = {
         "history": [
             # sets présents : régression bug 2026-07-20 (supplément historique_data
             # doit propager sets_json quand il ajoute un exo depuis weights.history).
+            # session_type ajouté racine 2026-07-20 : indispensable pour la garde
+            # restoreLogResults matin (filtre les logs soir plus riches du même jour).
             {"date": "2026-03-10", "weight": 185.0, "reps": "6,6,5,5", "1rm": 210.0,
+             "session_type": "morning",
              "sets": [
                  {"weight": 185, "reps": "6", "rir": 3, "rpe": 7.0},
                  {"weight": 185, "reps": "6", "rir": 3, "rpe": 7.5},
                  {"weight": 185, "reps": "5", "rir": 2, "rpe": 8.0},
                  {"weight": 185, "reps": "5", "rir": 2, "rpe": 8.5},
              ]},
-            {"date": "2026-03-03", "weight": 180.0, "reps": "7,6,5,5"},
+            {"date": "2026-03-03", "weight": 180.0, "reps": "7,6,5,5",
+             "session_type": "morning"},
         ],
     },
     "Back Squat": {
         "current_weight": 225.0,
         "last_reps": "5,5,5,5",
         "history": [
-            {"date": "2026-03-07", "weight": 225.0, "reps": "5,5,5,5"},
+            {"date": "2026-03-07", "weight": 225.0, "reps": "5,5,5,5",
+             "session_type": "morning"},
         ],
     },
 }
@@ -315,8 +320,8 @@ def make_store():
         # Signature miroir db (cutoff_days ajouté après refonte weights).
         # Le fake ignore le filtre — les tests n'ont pas assez de fixtures pour
         # que le cutoff impacte, retourne tout.
-        # Propage "sets" si présent dans le fixture : miroir de db_sessions.py:906-907
-        # (le vrai db ajoute entry["sets"] uniquement pour les listes non-vides).
+        # Propage "sets" et "session_type" si présents : miroir de db_sessions.py
+        # L906-907 (sets non-vides) et L897-899 (session_type porté par workout_sessions).
         weights = store.get("weights", {})
         result = {}
         for name, ex_data in weights.items():
@@ -328,6 +333,8 @@ def make_store():
                 entry = {"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps")}
                 if e.get("sets"):
                     entry["sets"] = e["sets"]
+                if e.get("session_type"):
+                    entry["session_type"] = e["session_type"]
                 entries.append(entry)
             result[name] = entries
         return result
@@ -844,12 +851,17 @@ def make_store():
                     continue
                 if session_ids is not None and d not in session_ids:
                     continue
-                result.setdefault(d, []).append({
+                row = {
                     "exercise": name,
                     "weight":   entry.get("weight"),
                     "reps":     entry.get("reps"),
                     "sets":     entry.get("sets") or [],
-                })
+                }
+                # Miroir vrai db_sessions.py:651-656 — session_type porté par
+                # workout_sessions, remonté au consommateur pour les gardes matin/soir.
+                if entry.get("session_type"):
+                    row["session_type"] = entry["session_type"]
+                result.setdefault(d, []).append(row)
         return result
 
     def delete_program_session(seance):

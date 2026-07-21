@@ -730,10 +730,18 @@ class SeanceViewModel: ObservableObject {
         // 16+ dates polluées prouvées au SQL Vince 2026-07-13). Le draft local
         // ci-dessous reste actif pour toutes les sous-classes (scoped par
         // sessionType via Volet C).
+        //
+        // Contamination inverse (2026-07-20) : le tri backend history est
+        // (date DESC, len(sets) DESC) — indistinct matin/soir. Si un exo est
+        // loggué matin ET soir le même jour, .first peut être la row soir plus
+        // riche. En restore matin, on restituerait alors un log soir sous la clé
+        // matin. Le filtre `sessionType == "morning"` bloque ça — les vieux logs
+        // sans session_type (backward-compat) matchent aussi car défaut morning.
         if draftSessionType == "morning" {
             for exerciseName in program.keys {
-                if let first = data.weights[exerciseName]?.history?.first,
-                   first.date == data.todayDate,
+                if let first = data.weights[exerciseName]?.history?.first(where: {
+                        $0.date == data.todayDate && ($0.sessionType ?? "morning") == "morning"
+                   }),
                    let w = first.weight, let r = first.reps {
                     restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
                 }

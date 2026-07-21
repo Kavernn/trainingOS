@@ -413,6 +413,12 @@ struct WeightHistoryEntry: Codable {
     let oneRM: Double?
     let sets: [SetEntry]?       // raw per-set data
     let exerciseVolume: Double? // total volume for this exercise entry
+    /// Session d'origine de ce log ("morning" | "evening" | "bonus").
+    /// Ajouté 2026-07-20 pour permettre à restoreLogResults matin de filtrer
+    /// contre un log soir plus riche du même jour (le tri backend privilégie
+    /// la row avec le plus de sets, indistinctement matin/soir). Optionnel :
+    /// backward-compat avec caches anciens et anciens builds serveur.
+    let sessionType: String?
 
     struct SetEntry: Codable {
         let weight: Double
@@ -455,6 +461,7 @@ struct WeightHistoryEntry: Codable {
         case oneRM          = "1rm"
         case exerciseVolume = "exercise_volume"
         case sessionNotes   = "notes"
+        case sessionType    = "session_type"
     }
 }
 

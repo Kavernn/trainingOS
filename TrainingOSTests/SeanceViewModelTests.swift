@@ -86,4 +86,51 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertNil(vm.error, "error should remain nil when cached data is available")
         XCTAssertNotNil(vm.seanceData, "seanceData should be populated from cache")
     }
+
+    func testRestoreMatinIgnoresEveningLogSameDay() async throws {
+        // Racine 2026-07-20 : Bench loggué matin ET soir même jour. Backend trie
+        // history par (date DESC, len(sets) DESC) — la row soir (plus riche) remonte
+        // en tête. Sans le filtre session_type, restoreLogResults matin ramènerait
+        // le log soir sous la clé matin, puis finish() le ré-posterait (crime 4).
+        let todayDate = "2026-03-15"
+        let json = """
+        {
+            "today": "Push A",
+            "today_date": "\(todayDate)",
+            "already_logged": false,
+            "schedule": {"Lun": "Push A"},
+            "full_program": {"Push A": {"Bench Press": "4x5-7"}},
+            "weights": {
+                "Bench Press": {
+                    "current_weight": 195.0,
+                    "last_reps": "6,5,3,3",
+                    "history": [
+                        {"date": "\(todayDate)", "weight": 195.0, "reps": "6,5,3,3",
+                         "session_type": "evening",
+                         "sets": [
+                            {"weight": 195, "reps": "6"},
+                            {"weight": 195, "reps": "5"},
+                            {"weight": 195, "reps": "3"},
+                            {"weight": 195, "reps": "3"}
+                         ]},
+                        {"date": "\(todayDate)", "weight": 185.0, "reps": "5,5,5",
+                         "session_type": "morning"}
+                    ]
+                }
+            },
+            "week": 1,
+            "inventory_types": {},
+            "exercise_order": {}
+        }
+        """
+        let vm = makeViewModel(cacheData: Data(json.utf8))
+        await vm.load()
+
+        let result = vm.logResults["Bench Press"]
+        XCTAssertNotNil(result,
+            "logResults doit contenir Bench Press (entry matin même jour existe)")
+        XCTAssertEqual(result?.weight, 185.0,
+            "restore matin doit prendre la row session_type=morning (185lbs), pas la row evening (195lbs) même si elle est en tête via tri (date DESC, len(sets) DESC)")
+        XCTAssertEqual(result?.reps, "5,5,5")
+    }
 }

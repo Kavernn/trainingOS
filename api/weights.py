@@ -70,6 +70,10 @@ def load_weights(exercise_names: list[str] | None = None, limit_per: int = 20) -
                     entry["1rm"] = _calc_1rm(entry["weight"], entry["reps"])
                 if row.get("sets"):
                     entry["sets"] = row["sets"]
+                # session_type porté depuis db_sessions.get_all_exercise_history —
+                # consommé par restoreLogResults iOS pour filtrer par contexte de séance.
+                if row.get("session_type"):
+                    entry["session_type"] = row["session_type"]
                 # Volume dérivé à la lecture : source unique côté client pour la
                 # cible progressive-overload. Jamais persisté en DB (le schéma
                 # exercise_logs n'a pas de colonne dédiée ; set_volume vit dans

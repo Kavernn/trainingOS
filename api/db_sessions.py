@@ -876,7 +876,7 @@ def get_all_exercise_history(cutoff_days: int = 180, full_history: bool = False)
         while True:
             q = (
                 db_core._client.table("exercise_logs")
-                .select("weight, reps, sets_json, exercises(name), workout_sessions(date)")
+                .select("weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)")
             )
             if cutoff:
                 q = q.gte("workout_sessions.date", cutoff)
@@ -884,12 +884,21 @@ def get_all_exercise_history(cutoff_days: int = 180, full_history: bool = False)
             rows = resp.data or []
             for r in rows:
                 name = (r.get("exercises") or {}).get("name")
-                date = (r.get("workout_sessions") or {}).get("date")
+                ws = r.get("workout_sessions") or {}
+                date = ws.get("date")
                 if not name or not date:
                     continue
                 if cutoff and date < cutoff:  # safety net
                     continue
                 entry = {"date": date, "weight": r.get("weight"), "reps": r.get("reps")}
+                # session_type porté par la row workout_sessions — indispensable pour
+                # que restoreLogResults matin ignore un log soir plus riche du même
+                # jour (contamination inverse du crime 2026-07-20 : tri par sets DESC
+                # ferait remonter la row soir en tête de history alors qu'on restaure
+                # une séance matin).
+                st = ws.get("session_type")
+                if st:
+                    entry["session_type"] = st
                 sets_json = r.get("sets_json")
                 if sets_json:
                     if isinstance(sets_json, str):

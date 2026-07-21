@@ -5,6 +5,30 @@
 
 ---
 
+## 🛡️ Backlog structurel — gardes différées
+
+### Option 2 : garde data-driven `SeanceData.sessionType` (différée 2026-07-20)
+
+**Raison d'être** : la garde `restoreLogResults` matin s'appuie aujourd'hui sur
+`draftSessionType` (état INTERNE du VM, set à l'init). Si un futur écran instancie
+mal le VM (ex : `SeanceViewModel(draftSessionType: "morning")` en dur alors que le
+contexte est soir), la garde interne ne détecte pas. Option 2 déplacerait la vérité
+vers le PAYLOAD `SeanceData.sessionType` renvoyé par le backend — le VM ne peut
+plus mentir sur son type.
+
+**Coût** : backend query param `session_type=X` sur `/api/seance_data`, échoyé
+dans le payload + `SeanceData.sessionType: String` Codable + swap de la condition
+`restoreLogResults` (`seanceData.sessionType` au lieu de `draftSessionType`).
+
+**Déclencheur** : si un pré-remplissage fantôme réapparaît en séance soir malgré
+Option 1 (init obligatoire, commit `fix(seance): SeanceViewModel.init exige
+draftSessionType explicite`) et Option 3 (session_type dans weights.history, commit
+`fix(seance): weights.history conscient de session_type`), Option 2 devient le
+remède prioritaire. Sans ce déclencheur, elle dupliquerait une vérité que le VM
+possède déjà — sur-engineering.
+
+---
+
 ## ⌚ Watch App — Phase 1 (en cours, 2026-06-03)
 
 ### ✅ Fait

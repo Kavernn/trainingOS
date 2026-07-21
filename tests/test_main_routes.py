@@ -55,6 +55,18 @@ class TestSeanceData(BaseRouteTest):
         self.assertIn("Bench Press", inv)
         self.assertEqual("barbell", inv["Bench Press"])
 
+    def test_weights_history_carries_session_type(self):
+        """Racine du fix pré-remplissage soir (2026-07-20) : weights.history doit
+        porter session_type pour que restoreLogResults matin puisse filtrer un log
+        soir plus riche du même jour. Chaîne : workout_sessions.session_type →
+        db_sessions.get_all_exercise_history → weights.load_weights → payload.
+        """
+        data = json.loads(self.get("/api/seance_data").data)
+        bench_history = data["weights"]["Bench Press"]["history"]
+        self.assertTrue(bench_history, "Bench Press doit avoir un history dans la fixture")
+        self.assertEqual("morning", bench_history[0].get("session_type"),
+                         "session_type doit remonter dans le payload servi à iOS")
+
     def test_not_already_logged_for_fresh_day(self):
         """Le jour de test n'est pas dans les sessions fictives."""
         data = json.loads(self.get("/api/seance_data").data)
