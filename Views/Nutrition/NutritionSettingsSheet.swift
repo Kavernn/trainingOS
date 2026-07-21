@@ -39,6 +39,8 @@ struct NutritionSettingsSheet: View {
         _endTime      = State(initialValue: {
             guard let t = settings?.nutritionEndTime,
                   let d = NutritionSettingsSheet.hmmFormatter.date(from: t) else {
+                // Calendar.current VOLONTAIRE — l'heure de rappel nutrition suit le device.
+                // Ne pas migrer vers Calendar.mtl.
                 return Calendar.current.safeDate(bySettingHour: 21, minute: 0, second: 0, of: Date())
             }
             return d

@@ -516,6 +516,10 @@ struct TimeCapsuleCreateView: View {
         isSealing = false
     }
 
+    // Calendar.current VOLONTAIRE — la capsule est un rendez-vous avec soi-même,
+    // pas avec un fuseau. L'heure d'ouverture (9h) et la date cible suivent le
+    // device : si l'user voyage, la capsule s'ouvre à 9h là où il est.
+    // Ne pas migrer vers Calendar.mtl (les 5 sites Calendar.current de ce fichier).
     private func scheduleUnlockNotifications(capsuleId: String, durationMonths: Int) {
         guard let unlockDate = Calendar.current.date(byAdding: .month, value: durationMonths, to: Date()) else { return }
         let center = UNUserNotificationCenter.current()

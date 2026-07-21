@@ -38,6 +38,9 @@ struct NotificationCenterView: View {
 
     // MARK: - Time pickers
 
+    // Calendar.current VOLONTAIRE (pickers d'heure de notif) — les heures suivent
+    // le device, pas MTL. L'utilisateur veut ses rappels à l'heure locale.
+    // Ne pas migrer vers Calendar.mtl.
     private var morningDate: Binding<Date> {
         Binding(
             get: { Calendar.current.date(bySettingHour: morningHour, minute: 0, second: 0, of: Date()) ?? Date() },

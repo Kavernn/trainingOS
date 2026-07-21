@@ -3,6 +3,8 @@ import SwiftUI
 struct SmartAlarmSettingsView: View {
     @ObservedObject private var service = SmartAlarmService.shared
 
+    // Calendar.current VOLONTAIRE (pickers d'heure d'alarme) — l'heure suit le device,
+    // pas MTL. L'utilisateur veut son 6h30 là où il est. Ne pas migrer vers Calendar.mtl.
     @State private var windowStartDate: Date = Calendar.current.date(bySettingHour: 6, minute: 30, second: 0, of: Date()) ?? Date()
     @State private var windowEndDate: Date   = Calendar.current.date(bySettingHour: 7, minute: 0,  second: 0, of: Date()) ?? Date()
 

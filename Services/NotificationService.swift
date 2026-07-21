@@ -226,6 +226,8 @@ enum NotificationService {
         let id = "deload.ending"
         center.removePendingNotificationRequests(withIdentifiers: [id])
 
+        // Calendar.current VOLONTAIRE — notif "à 8h locale" suit le device, pas MTL.
+        // Ne pas migrer vers Calendar.mtl (l'alarme doit sonner à 8h là où l'user est).
         guard let endDate = Calendar.current.date(byAdding: .day, value: durationDays, to: Date()) else { return }
         var dc = Calendar.current.dateComponents([.year, .month, .day], from: endDate)
         dc.hour = 8; dc.minute = 0
@@ -593,6 +595,9 @@ enum NotificationService {
 
     /// Schedules a one-shot notification for each capsule unlocking within 7 days.
     static func scheduleTimeCapsuleSoon(capsules: [TimeCapsule]) {
+        // Calendar.current + parsing device VOLONTAIRE — la capsule est un rendez-vous
+        // avec soi-même, pas avec un fuseau. L'heure d'ouverture suit le device.
+        // Ne pas migrer vers Calendar.mtl (cf. TimeCapsuleViews.scheduleUnlockNotifications).
         guard !globalDisabled, isEnabled("notif_on_capsule") else { return }
         let center = UNUserNotificationCenter.current()
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"

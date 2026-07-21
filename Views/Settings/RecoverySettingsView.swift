@@ -6,6 +6,8 @@ struct RecoverySettingsView: View {
     @AppStorage("bedtime_target")   private var bedtimeTarget: String  = "23:00"
     @AppStorage("hrv_sensitivity")  private var hrvSensitivity: String = "standard"
 
+    // Calendar.current VOLONTAIRE (pickers wake/bed) — les cibles horaires suivent le
+    // device, pas MTL. Ne pas migrer vers Calendar.mtl.
     @State private var wakeDate: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date()
     @State private var bedDate:  Date = Calendar.current.date(from: DateComponents(hour: 23, minute: 0)) ?? Date()
     @State private var saveError: String? = nil

@@ -191,6 +191,8 @@ final class SmartAlarmService: ObservableObject {
     // Evening bedtime (hour 12–23) → alarm next calendar day
     // Post-midnight bedtime (hour 0–11) → alarm same calendar day
     private func windowDates(relativeTo bedtimeDate: Date) -> (Date, Date) {
+        // Calendar.current VOLONTAIRE — l'heure d'alarme suit le device, pas MTL.
+        // L'utilisateur veut son 7h30 là où il est. Ne pas migrer vers Calendar.mtl.
         let calendar = Calendar.current
         let bedtimeHour = calendar.component(.hour, from: bedtimeDate)
         let dayOffset = bedtimeHour >= 12 ? 1 : 0
