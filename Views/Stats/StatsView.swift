@@ -14,27 +14,6 @@ func totalReps(_ reps: String) -> Double {
     return Double(s) ?? 0
 }
 
-func avgReps(_ reps: String) -> Double {
-    let s = reps.trimmingCharacters(in: .whitespaces).lowercased()
-    guard let first = s.first, first.isNumber || first == "." else { return 0 }
-    if s.contains(",") {
-        let nums = s.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
-        return nums.isEmpty ? 0 : nums.reduce(0, +) / Double(nums.count)
-    }
-    if let r = s.range(of: "x") {
-        if let _ = Double(s[s.startIndex..<r.lowerBound]),
-           let rps = Double(s[r.upperBound...]) { return rps }
-    }
-    return Double(s) ?? 0
-}
-
-func estimateOneRM(weight: Double, reps: Double) -> Double? {
-    guard weight > 0, reps >= 1, reps <= 15 else { return nil }
-    return reps <= 10
-        ? weight * (1 + reps / 30.0)
-        : weight * (36.0 / (37.0 - reps))
-}
-
 func isoWeekKey(_ dateStr: String) -> String {
     DateFormatter.isoDate.date(from: dateStr)?.isoWeekKey ?? ""
 }
@@ -582,17 +561,8 @@ struct StatsView: View {
         }.reduce(0, +)
 
         cachedPersonalRecords = weights.compactMap { name, data -> (String, Double)? in
-            let isBodyweight = inventoryTypes[name] == "bodyweight"
             let best = data.history?.compactMap { e -> Double? in
-                if isBodyweight { return (e.oneRM ?? 0) > 0 ? e.oneRM : nil }
-                if let stored = e.oneRM, stored > 0 { return stored }
-                if let sets = e.sets, !sets.isEmpty {
-                    return sets.compactMap { s -> Double? in
-                        estimateOneRM(weight: s.weight, reps: avgReps(s.reps))
-                    }.max()
-                }
-                guard let w = e.weight, w > 0, let r = e.reps else { return nil }
-                return estimateOneRM(weight: w, reps: avgReps(r))
+                (e.oneRM ?? 0) > 0 ? e.oneRM : nil
             }.max()
             return best.map { (name, $0) }
         }

@@ -657,11 +657,8 @@ struct StrengthCurveChart: View {
             let value: Double
             switch metric {
             case .oneRM:
-                if let stored = e.oneRM, stored > 0 { value = stored }
-                else if let w = e.weight, w > 0, let r = e.reps,
-                        let orm = estimateOneRM(weight: w, reps: avgReps(r)) {
-                    value = orm
-                } else { return nil }
+                guard let stored = e.oneRM, stored > 0 else { return nil }
+                value = stored
             case .weight:
                 guard let w = e.weight, w > 0 else { return nil }
                 value = w
