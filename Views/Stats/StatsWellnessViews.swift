@@ -526,68 +526,86 @@ struct HRVBaselineCard: View {
                 }
             }
 
-            // ── Métriques ─────────────────────────────────────────────────────
-            HStack(spacing: 16) {
+            if !data.baselineAvailable {
+                // Cold start — aucune moyenne trompeuse. Doctrine anti-fantôme.
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 12)).foregroundColor(.gray)
+                    Text("Baseline en construction — \(data.dataPoints7d)/3 jours minimum")
+                        .font(.system(size: 12)).foregroundColor(.gray)
+                }
                 if let today = data.todayRmssd {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("AUJOURD'HUI").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                        HStack(spacing: 3) {
-                            Text(String(format: "%.0f ms", today))
-                                .font(.system(size: 18, weight: .black)).foregroundColor(accentColor)
-                            Text(data.trendArrow).font(.appLabel.weight(.bold)).foregroundColor(data.trendColor)
+                    HStack(spacing: 6) {
+                        Text(String(format: "Aujourd'hui : %.0f ms", today))
+                            .font(.appLabel.weight(.semibold)).foregroundColor(Color.statusCyan)
+                        Text("· mesure isolée, pas encore de tendance")
+                            .font(.appCaption).foregroundColor(.gray)
+                    }
+                }
+            } else {
+                // ── Métriques ─────────────────────────────────────────────────
+                HStack(spacing: 16) {
+                    if let today = data.todayRmssd {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("AUJOURD'HUI").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                            HStack(spacing: 3) {
+                                Text(String(format: "%.0f ms", today))
+                                    .font(.system(size: 18, weight: .black)).foregroundColor(accentColor)
+                                Text(data.trendArrow).font(.appLabel.weight(.bold)).foregroundColor(data.trendColor)
+                            }
                         }
                     }
-                }
-                if let avg7 = data.hrv7dAvg {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("MOY. 7J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                        Text(String(format: "%.0f ms", avg7))
-                            .font(.system(size: 18, weight: .black)).foregroundColor(Color.appOnSurface.opacity(0.8))
+                    if let avg7 = data.hrv7dAvg {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("MOY. 7J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                            Text(String(format: "%.0f ms", avg7))
+                                .font(.system(size: 18, weight: .black)).foregroundColor(Color.appOnSurface.opacity(0.8))
+                        }
                     }
-                }
-                if let baseline = data.hrv30dAvg {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("BASELINE 30J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                        Text(String(format: "%.0f ms", baseline))
-                            .font(.system(size: 18, weight: .black)).foregroundColor(Color.statusCyan)
+                    if let baseline = data.hrv30dAvg {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("BASELINE 30J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                            Text(String(format: "%.0f ms", baseline))
+                                .font(.system(size: 18, weight: .black)).foregroundColor(Color.statusCyan)
+                        }
                     }
-                }
-                if let cv = data.hrvCv {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("CV 30J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                        Text(String(format: "%.0f%%", cv))
-                            .font(.system(size: 18, weight: .black))
-                            .foregroundColor(cv < 10 ? Color.appSuccess : cv < 20 ? Color.appWarning : Color.appDanger)
+                    if let cv = data.hrvCv {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("CV 30J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                            Text(String(format: "%.0f%%", cv))
+                                .font(.system(size: 18, weight: .black))
+                                .foregroundColor(cv < 10 ? Color.appSuccess : cv < 20 ? Color.appWarning : Color.appDanger)
+                        }
+                    } else if let sd = data.sd30d {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("±SD").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                            Text(String(format: "%.0f ms", sd))
+                                .font(.system(size: 18, weight: .black)).foregroundColor(.gray)
+                        }
                     }
-                } else if let sd = data.sd30d {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("±SD").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                        Text(String(format: "%.0f ms", sd))
-                            .font(.system(size: 18, weight: .black)).foregroundColor(.gray)
-                    }
+                    Spacer()
                 }
-                Spacer()
-            }
 
-            // ── Score normalisé ───────────────────────────────────────────────
-            if let score = data.hrvScore, data.baselineAvailable {
-                HStack(spacing: 6) {
-                    Text(String(format: "%.0f%%", score))
-                        .font(.system(size: 22, weight: .black)).foregroundColor(accentColor)
-                    Text("vs baseline 7j")
-                        .font(.appCaption).foregroundColor(.gray)
+                // ── Score normalisé ───────────────────────────────────────────
+                if let score = data.hrvScore {
+                    HStack(spacing: 6) {
+                        Text(String(format: "%.0f%%", score))
+                            .font(.system(size: 22, weight: .black)).foregroundColor(accentColor)
+                        Text("vs baseline 7j")
+                            .font(.appCaption).foregroundColor(.gray)
+                    }
                 }
-            }
 
-            // ── Message contextuel ────────────────────────────────────────────
-            if let msg = data.contextualMessage {
-                Text(msg)
-                    .font(.system(size: 12))
-                    .foregroundColor(data.hrvZone == "red" ? Color.appDanger.opacity(0.9) : .gray)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if let dev = data.deviationFrom30d {
-                Text(dev >= 0 ? String(format: "+%.0f ms vs baseline 30j", dev) : String(format: "%.0f ms vs baseline 30j", dev))
-                    .font(.appCaption).foregroundColor(dev >= 0 ? Color.appSuccess : Color.appWarning)
+                // ── Message contextuel ────────────────────────────────────────
+                if let msg = data.contextualMessage {
+                    Text(msg)
+                        .font(.system(size: 12))
+                        .foregroundColor(data.hrvZone == "red" ? Color.appDanger.opacity(0.9) : .gray)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if let dev = data.deviationFrom30d {
+                    Text(dev >= 0 ? String(format: "+%.0f ms vs baseline 30j", dev) : String(format: "%.0f ms vs baseline 30j", dev))
+                        .font(.appCaption).foregroundColor(dev >= 0 ? Color.appSuccess : Color.appWarning)
+                }
             }
 
             Text("\(data.dataPoints30d) jours de données (30j)")
