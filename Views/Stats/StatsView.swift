@@ -242,11 +242,6 @@ struct StatsView: View {
         return nutritionDays.filter { ($0.date ?? "") >= cutoff }
     }
 
-    var avgRPEPeriod: Double {
-        let rpes = filteredSessions.compactMap { _, e -> Double? in e.rpe }
-        return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
-    }
-
     // ── Week comparison ───────────────────────────────────────────────
     func weekBounds(weeksAgo: Int) -> (String, String) { Date().isoWeekBounds(weeksAgo: weeksAgo) }
 
@@ -447,7 +442,7 @@ struct StatsView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 4)
 
-                        if selectedTab < 5 {
+                        if [2, 3, 4].contains(selectedTab) {
                             PeriodPicker(selected: $period)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 6)

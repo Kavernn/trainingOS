@@ -148,10 +148,9 @@ extension StatsView {
         )
         .padding(.horizontal, 16)
 
-        // 4. KPI Grid
+        // 4. KPI Grid — fenêtres fixes étiquetées (sélecteur absent de cet onglet)
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            KPICard(value: "\(filteredSessions.values.reduce(0) { $0 + ($1.sessionCount ?? 1) })", label: "Séances (\(period.rawValue))", color: Color.forge)
-            KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel", color: .statusBlue)
+            KPICard(value: "\(sessionsThisMonth)", label: "Séances — ce mois-ci", color: Color.forge)
             KPICard(
                 value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",
                 label: "Streak",
@@ -159,8 +158,8 @@ extension StatsView {
                 subtitle: "jours cons."
             )
             KPICard(
-                value: avgRPEPeriod > 0 ? String(format: "%.1f", avgRPEPeriod) : "—",
-                label: "RPE moy.",
+                value: avgRPE30 > 0 ? String(format: "%.1f", avgRPE30) : "—",
+                label: "RPE moy. — 30 j",
                 color: .statusPurple
             )
             KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .statusGreen)
