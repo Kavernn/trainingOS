@@ -244,9 +244,8 @@ extension APIService {
         ]
         if !sessionName.isEmpty { items.append(URLQueryItem(name: "session_name", value: sessionName)) }
         let url = try buildURL(path: "/api/progression_suggestions", queryItems: items)
-        var req = URLRequest(url: url)
-        req.timeoutInterval = 15
-        let (data, _) = try await URLSession.authed.data(for: req)
+        let key = "progression_suggestions_\(date)_\(sessionType)_\(sessionName)"
+        let data = try await fetchWithCache(url: url, key: key)
         return try APIService.decoder.decode(ProgressionSuggestionsResponse.self, from: data).suggestions
     }
 

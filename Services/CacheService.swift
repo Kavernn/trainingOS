@@ -85,6 +85,9 @@ final class CacheService {
         "educational":          24 * 3600,      // contenu éditorial statique (préfixe match: educational_all / educational_<cat>)
         "daily_insight":        30 * 60,        // dérivé readiness/sessions sans invalidation, TTL = seul filet
         "proactive_insights":   30 * 60,        // recalculé selon état du jour, famille readiness
+        // Progression suggestions — clef par date+sessionType+sessionName (préfixe match).
+        // Invalidé par sessionLogged (nouveaux logs = nouvelles suggestions) et programmeMutated.
+        "progression_suggestions": 30 * 60,
     ]
 
     init(directory: URL? = nil) {

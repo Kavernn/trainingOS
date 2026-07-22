@@ -191,6 +191,9 @@ final class ProgrammeViewModel: ObservableObject {
     /// /api/evening_schedule et /api/seance_data. Séquentiel : async let LIFO crash
     /// sur iOS 26 beta (lessons.md).
     func loadData(programId: String? = nil) async {
+        // Switch explicite de programme → suggestions du programme précédent
+        // sont stale (autres séances). Reset le guard de loadSuggestions.
+        if programId != nil { programSuggestions = [:] }
         var urlStr = "\(APIConfig.base)/api/programme_data"
         let pid = programId ?? (selectedProgramId.isEmpty ? nil : selectedProgramId)
         if let pid = pid { urlStr += "?program_id=\(pid)" }
@@ -226,17 +229,21 @@ final class ProgrammeViewModel: ObservableObject {
     }
 
     func loadSuggestions() async {
+        // Guard anti-rafale : .task + onChange peuvent firer quasi-simultanément
+        // à l'ouverture. Le remplissage progressif ci-dessous fait office de
+        // sémaphore — dès la 1ère séance écrite, un loadSuggestions concurrent
+        // trouve programSuggestions non vide et retourne. Reset : loadData(programId:)
+        // sur switch de programme + invalidation cache (sessionLogged/programmeMutated).
+        guard programSuggestions.isEmpty else { return }
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
         let dateStr = fmt.string(from: Date())
-        var result: [String: [String: ProgressionSuggestion]] = [:]
         for seance in orderedSeances {
             if let list = try? await APIService.shared.fetchProgressionSuggestions(
                 date: dateStr, sessionType: "morning", sessionName: seance
             ) {
-                result[seance] = Dictionary(uniqueKeysWithValues: list.map { ($0.exerciseName, $0) })
+                programSuggestions[seance] = Dictionary(uniqueKeysWithValues: list.map { ($0.exerciseName, $0) })
             }
         }
-        programSuggestions = result
     }
 
     // MARK: - Mutations — wrapper
