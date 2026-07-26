@@ -257,17 +257,11 @@ def get_or_create_workout_session_bonus(date: str) -> dict:
     return create_workout_session(date, session_type="bonus")
 
 
-_SESSION_TYPE_ORDER = {"morning": 0, "evening": 1, "bonus": 2}
-
-
 def get_today_sessions_all(date: str) -> list[dict]:
     """Return all workout sessions for a date (morning, evening, bonus), sorted by session_type.
 
     Centralise la lecture de toutes les sessions d'un même jour pour les calculs
     agrégés (durée, volume, logged_names). Ne filtre PAS par slot.
-
-    Ordre canonique morning → evening → bonus (SOURCE unique — tous les consommateurs
-    en aval héritent, ne pas re-sort ailleurs).
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
@@ -277,11 +271,10 @@ def get_today_sessions_all(date: str) -> list[dict]:
             db_core._client.table("workout_sessions")
             .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
             .eq("date", date)
+            .order("session_type")
             .execute()
         )
-        rows = list(resp.data or [])
-        rows.sort(key=lambda r: _SESSION_TYPE_ORDER.get(r.get("session_type") or "", 99))
-        return rows
+        return list(resp.data or [])
 
     try:
         return _do()

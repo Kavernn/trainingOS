@@ -555,7 +555,7 @@ def generate_suggestions(
         "fatigue_warning": bool,
       }
     """
-    if session_type not in ("morning", "evening", "bonus"):
+    if session_type not in ("morning", "evening"):
         return []
 
     exercises = session_exercises or []

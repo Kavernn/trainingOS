@@ -40,9 +40,6 @@ struct DashboardData: Codable {
     let hasEveningSession: Bool
     let eveningSessionName: String?
     let secondSessionCompleted: Bool
-    let hasBonusSession: Bool
-    let bonusSessionName: String?
-    let bonusSessionCompleted: Bool
     /// Date de début du mésocycle (YYYY-MM-DD) — source serveur unique
     /// (programs.cycle_start_date). Remplace le @AppStorage local iOS.
     let cycleStartDate: String?
@@ -63,9 +60,6 @@ struct DashboardData: Codable {
         case hasEveningSession = "has_evening_session"
         case eveningSessionName = "evening_session_name"
         case secondSessionCompleted = "second_session_completed"
-        case hasBonusSession = "has_bonus_session"
-        case bonusSessionName = "bonus_session_name"
-        case bonusSessionCompleted = "bonus_session_completed"
         case cycleStartDate = "cycle_start_date"
     }
 
@@ -90,10 +84,6 @@ struct DashboardData: Codable {
         hasEveningSession      = (try? c.decode(Bool.self, forKey: .hasEveningSession)) ?? false
         eveningSessionName     = try? c.decode(String.self, forKey: .eveningSessionName)
         secondSessionCompleted = (try? c.decode(Bool.self, forKey: .secondSessionCompleted)) ?? false
-        // Bonus session (décision D1 — citoyen de première classe). Rétrocompat cache pré-bonus.
-        hasBonusSession        = (try? c.decode(Bool.self, forKey: .hasBonusSession)) ?? false
-        bonusSessionName       = try? c.decode(String.self, forKey: .bonusSessionName)
-        bonusSessionCompleted  = (try? c.decode(Bool.self, forKey: .bonusSessionCompleted)) ?? false
         cycleStartDate         = try? c.decode(String.self, forKey: .cycleStartDate)
     }
 }
