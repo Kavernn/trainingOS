@@ -139,6 +139,11 @@ def api_dashboard():
         (_db.get_workout_session_second(today_date) or {}).get("completed")
     )
 
+    # Bonus session (citoyen de première classe, décision D1).
+    _bonus_session = _db.get_workout_session_bonus(today_date)
+    _bonus_session_name = (_bonus_session or {}).get("session_name")
+    _bonus_session_completed = bool((_bonus_session or {}).get("completed"))
+
     return jsonify({
         "today":               today_str,
         "week":                get_current_week(),
@@ -158,6 +163,9 @@ def api_dashboard():
         "has_evening_session":     _evening_session_name is not None,
         "evening_session_name":    _evening_session_name,
         "second_session_completed": _second_session_completed,
+        "has_bonus_session":        _bonus_session is not None,
+        "bonus_session_name":       _bonus_session_name,
+        "bonus_session_completed":  _bonus_session_completed,
         # Cycle mésocycle — source serveur unique (programs.cycle_start_date).
         # Remplace le @AppStorage local iOS qui divergeait au reset/réinstall.
         "cycle_start_date":        _db.get_cycle_start_date(),
@@ -450,35 +458,10 @@ def api_historique_data():
         if candidate_score > current_score:
             best_by_key[key] = candidate
 
-    # Merge bonus sessions into their morning counterpart.
-    # A bonus session is a complement (RPE/comment added after the fact),
-    # not a separate workout — display them as one unified entry.
-    for d_stype in list(best_by_key.keys()):
-        d, stype = d_stype
-        if stype != "bonus":
-            continue
-        bonus = best_by_key[d_stype]
-        morning_key = (d, "morning")
-        if morning_key in best_by_key:
-            morning = best_by_key[morning_key]
-            # Inherit RPE/comment from bonus if morning is missing them
-            if morning.get("rpe") is None and bonus.get("rpe") is not None:
-                morning["rpe"] = bonus["rpe"]
-            if not morning.get("comment") and bonus.get("comment"):
-                morning["comment"] = bonus["comment"]
-            # Always merge bonus exercises into morning (supplement, don't replace)
-            if bonus.get("exos"):
-                if not morning.get("exos"):
-                    morning["exos"] = bonus["exos"]
-                else:
-                    existing_names = {e.get("exercise") for e in morning["exos"]}
-                    extra = [e for e in bonus["exos"] if e.get("exercise") not in existing_names]
-                    if extra:
-                        morning["exos"] = list(morning["exos"]) + extra
-            del best_by_key[d_stype]
-        else:
-            # No morning session — keep bonus as the sole entry for that day
-            pass
+    # Bonus is a first-class session (décision D1) — no merge into morning.
+    # Each session_id resolves its own exos, cf. commit 6285197 (récap hors-plan).
+    # Cas historique : les jours avec morning + bonus étaient affichés fusionnés,
+    # maintenant 2 cartes distinctes (chaque exo sous sa vraie séance).
 
     session_list = sorted(
         best_by_key.values(),
