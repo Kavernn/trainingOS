@@ -942,18 +942,22 @@ struct PatternVolumeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("VOLUME PAR PATTERN (4 SEM.)")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                Spacer()
-                if let r = pushPullRatio {
-                    Text(r)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(pushPullBalance)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text("VOLUME PAR PATTERN")
+                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Spacer()
+                    if let r = pushPullRatio {
+                        Text(r)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(pushPullBalance)
+                    }
                 }
+                Text("28 j glissants")
+                    .font(.appCaption).foregroundColor(.gray.opacity(0.7))
             }
             if entries.isEmpty {
-                Text("Aucun mouvement logué sur les 4 dernières semaines")
+                Text("Aucun mouvement logué sur les 28 derniers jours")
                     .font(.appCaption).foregroundColor(.gray).italic()
             } else {
                 GeometryReader { outer in
