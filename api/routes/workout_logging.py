@@ -510,3 +510,36 @@ def api_log_session():
         return jsonify({"success": True})
     except Exception:
         raise
+
+
+@workout_bp.route("/api/create_bonus_session", methods=["POST"])
+def api_create_bonus_session():
+    """Créer (ou retourner l'existante) une séance bonus pour une date.
+
+    Idempotent : rappel N fois safe. UNIQUE(date, session_type='bonus') est la
+    garantie DB. session_name = "Bonus" (constante lisible, évite NULL qui
+    casse des joins/affichages downstream).
+
+    Body   : {"date": "YYYY-MM-DD"}  # optionnel, défaut = today MTL
+    Retour : {"session": {...}, "created": bool}
+
+    Limitation connue v1 (fallback smart_progression) : la 1re bonus jamais
+    créée n'aura pas de suggestions à la 1re log — get_previous_session_by_*
+    est scopé par session_type et il n'y a pas de bonus précédente à matcher.
+    À partir de la 2e bonus, suggestions OK.
+    """
+    import db as _db
+    from utils import _today_mtl
+
+    data = request.get_json(silent=True) or {}
+    date = data.get("date") or _today_mtl()
+
+    existing = _db.get_workout_session_bonus(date)
+    if existing:
+        return jsonify({"session": existing, "created": False})
+
+    session = _db.create_workout_session(
+        date, session_type="bonus", session_name="Bonus"
+    )
+    _invalidate_brief()
+    return jsonify({"session": session, "created": True})
