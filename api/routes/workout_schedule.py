@@ -58,6 +58,16 @@ def api_seance_data():
 
     today_exercises = list((flat_program.get(today_str) or {}).keys())
     weights = load_weights(today_exercises, limit_per=20)
+    # Diagnostic temporaire (récap D'AUJOURD'HUI : Face Pull/Neck Curl hors-plan
+    # sortent nom-only). Hypothèse : weights filtré par flat_program[today] exclut
+    # les hors-plan → data.weights[exo] nil côté iOS → poids/reps invisibles.
+    # Retirer une fois la cause confirmée dans les logs.
+    logger.info(
+        f"[SEANCE_DATA] weights has 'Face Pull': {'Face Pull' in weights}, "
+        f"'Neck Curl': {'Neck Curl' in weights}, "
+        f"total weights keys: {len(weights)}, "
+        f"logged_today_names ({len(logged_today_names)}): {sorted(logged_today_names)}"
+    )
     suggestions = get_suggested_weights_for_today(weights, full_program)
 
     inv = inventory if isinstance(inventory, dict) else {}
