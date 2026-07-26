@@ -487,20 +487,36 @@ def api_historique_data():
     # Always merge — not just when empty — so exercises logged after session
     # completion (e.g. "Finir la séance") appear even if exercise_logs query
     # returned a partial result.
+    #
+    # Routage par (date, session_type), PAS par date seule (fix 2026-07-26) :
+    # avant ce fix, l'enrichissement dumpait tous les exos d'une date sur TOUTES
+    # les cartes du jour → morning et bonus contaminés mutuellement dès qu'ils
+    # devenaient des cartes autonomes (retrait fusion bonus→morning). session_type
+    # est fourni par get_all_exercise_history via le join workout_sessions.
+    # Vérifié 2026-07-26 : 591/591 entries ont session_type peuplé.
+    # Filtre ghost (_is_ghost_exo) appliqué ici AUSSI — sans lui, les fantômes
+    # filtrés du path primaire ex_by_session étaient réinjectés par cette source.
     try:
         weights = load_weights()
-        ex_by_date: dict[str, list[dict]] = {}
+        ex_by_key: dict[tuple[str, str], list[dict]] = {}
         for ex_name, ex_data in (weights or {}).items():
             for entry in ex_data.get("history", []):
                 d = entry.get("date")
-                if not d:
+                st = entry.get("session_type")
+                if not d or not st:
+                    # Legacy row sans session_type : ignorée pour éviter la
+                    # cross-contamination inter-sessions. Volume négligeable
+                    # (0/591 en 2026-07-26).
                     continue
-                ex_by_date.setdefault(d, []).append({
+                candidate = {
                     "exercise": ex_name,
                     "weight": entry.get("weight", 0),
                     "reps": entry.get("reps", ""),
                     "sets": entry.get("sets") or [],
-                })
+                }
+                if _is_ghost_exo(candidate):
+                    continue
+                ex_by_key.setdefault((d, st), []).append(candidate)
         # Le supplément COMPLÈTE par-exo, jamais ne REMPLACE : un exo déjà présent
         # dans row["exos"] (venu de exercise_logs, source riche avec sets_json) garde
         # sa version. Un exo absent est ajouté depuis weights.history qui porte aussi
@@ -508,8 +524,8 @@ def api_historique_data():
         # `if not existing: row["exos"] = date_exos` écrasait une row exos=[] par
         # date_exos dépourvu de sets → format condensé côté iOS (bug 2026-07-20).
         for row in session_list:
-            d = row.get("date")
-            date_exos = ex_by_date.get(d, [])
+            key = (row.get("date"), row.get("session_type"))
+            date_exos = ex_by_key.get(key, [])
             if not date_exos:
                 continue
             existing = row.get("exos") or []
