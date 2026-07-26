@@ -418,6 +418,20 @@ def api_historique_data():
     # Keep the richest row so exercises are not hidden by an empty duplicate.
     best_by_key = {}
 
+    # Filtre fantômes de duplication (calibré 2026-07-26 sur 55 rows / 591 exercise_logs).
+    # Un exo est fantôme SSI weight non-multiple de 0.25 (moyenne recalculée, non-plaque)
+    # ET sets_json vide/null. Ni poids-plaque ni per-set détaillé = aucune source valide.
+    # Masqué à l'affichage historique UNIQUEMENT — JAMAIS supprimé (doctrine zéro-modif-
+    # historique). Stats ACWR/volume restent polluées (Q6=90), à corriger par recalcul
+    # depuis sets_json — ticket séparé.
+    def _is_ghost_exo(e: dict) -> bool:
+        w = e.get("weight")
+        if w is None:
+            return False
+        if abs(w * 4 - round(w * 4)) <= 0.01:
+            return False  # poids-plaque (multiple de 0.25) → réel
+        return not (e.get("sets") or [])  # non-plate + sets vides = fantôme
+
     for s in sessions:
         d   = s.get("date")
         sid = s.get("id")
@@ -426,7 +440,7 @@ def api_historique_data():
             continue
         if month and not d.startswith(month):
             continue
-        exos = ex_by_session.get(sid, [])
+        exos = [e for e in ex_by_session.get(sid, []) if not _is_ghost_exo(e)]
         has_exos = bool(exos)
         if not s.get("completed") and s.get("rpe") is None and not has_exos:
             continue
