@@ -103,6 +103,16 @@ struct SmartInsightsBanner: View {
 struct AdherenceRingsCard: View {
     let data: AdherenceData
 
+    private var daysInMonth: Int {
+        let parts = data.period.split(separator: "-")
+        guard parts.count == 2,
+              let y = Int(parts[0]), let m = Int(parts[1]),
+              let d = Calendar.mtl.date(from: DateComponents(year: y, month: m, day: 1)),
+              let range = Calendar.mtl.range(of: .day, in: .month, for: d)
+        else { return 30 } // ponytail: fallback si period malformé
+        return range.count
+    }
+
     private struct Pillar {
         let label:   String
         let pct:     Int
@@ -123,12 +133,11 @@ struct AdherenceRingsCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("CONSTANCE CE MOIS")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                Spacer()
-                Text("\(data.daysElapsed) jours écoulés")
-                    .font(.appCaption).foregroundColor(.gray)
+                Text("\(data.daysElapsed) / \(daysInMonth) j écoulés")
+                    .font(.appCaption).foregroundColor(.gray.opacity(0.7))
             }
 
             HStack(spacing: 24) {
