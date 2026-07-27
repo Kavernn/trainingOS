@@ -274,6 +274,14 @@ struct TodayCardView: View {
                     .padding(.top, 12)
                 }
             }
+            // Étape 2b — CTA bonus autonome, 3 états gérés dans le composant.
+            // Coexistence avec les 2 anciens CTAs (L148 « Faire une séance 2 »
+            // fallback et L206 « Faire une séance libre » rest day) — nettoyage
+            // opportuniste dans un commit séparé.
+            Seance3BonusStrip(
+                hasBonus: dash.hasBonusSession,
+                bonusCompleted: dash.bonusSessionCompleted
+            )
         }
         // Fond neutre : brutalist (cardAccentFillOpacity 1.0) + electric (0.80)
         // rendaient la carte hero illisible (fond plein saturé sur textes .gray).
@@ -520,5 +528,76 @@ struct Seance2ReminderStrip: View {
         .background(accent.opacity(0.15))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.35), lineWidth: 0.5))
         .cornerRadius(10)
+    }
+}
+
+// MARK: - Seance3BonusStrip (étape 2b)
+// CTA bonus autonome, 3 états :
+//   - !hasBonus                        → « ＋ Séance bonus » (crée via POST + sheet)
+//   - hasBonus && !bonusCompleted      → « → Reprendre la bonus » (sheet direct)
+//   - hasBonus && bonusCompleted       → rien (déjà terminée, visible dans historique)
+//
+// POST direct + throw (doctrine STRUCTURE) via APIService.createBonusSession —
+// idempotent côté backend (UNIQUE(date, session_type='bonus')). Bouton désactivé
+// pendant l'appel réseau (spinner) pour éviter le double-tap.
+struct Seance3BonusStrip: View {
+    let hasBonus: Bool
+    let bonusCompleted: Bool
+    @State private var showSheet = false
+    @State private var isCreating = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        if hasBonus && bonusCompleted {
+            EmptyView()
+        } else {
+            Button {
+                if hasBonus {
+                    showSheet = true
+                } else {
+                    Task { await createAndOpen() }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    if isCreating {
+                        ProgressView().scaleEffect(0.7)
+                    } else {
+                        Image(systemName: hasBonus ? "arrow.right.circle" : "plus.circle")
+                    }
+                    Text(hasBonus ? "Reprendre la bonus" : "＋ Séance bonus")
+                        .font(.appLabel.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.gray.opacity(0.12))
+                .foregroundColor(.gray)
+                .cornerRadius(10)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+            }
+            .disabled(isCreating)
+            .buttonStyle(SpringButtonStyle())
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
+            .alert("Erreur", isPresented: .constant(errorMessage != nil), actions: {
+                Button("OK") { errorMessage = nil }
+            }, message: {
+                Text(errorMessage ?? "")
+            })
+            .sheet(isPresented: $showSheet) { BonusSeanceView() }
+        }
+    }
+
+    private func createAndOpen() async {
+        isCreating = true
+        defer { isCreating = false }
+        do {
+            _ = try await APIService.shared.createBonusSession()
+            CacheInvalidation.sessionMutated.invalidate()
+            await APIService.shared.fetchDashboard()
+            showSheet = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

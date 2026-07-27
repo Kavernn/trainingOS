@@ -1,5 +1,31 @@
 import Foundation
 
+// MARK: - Session Kind
+// Enum ciblé pour distinguer les 3 types de séance. Introduit à l'étape 2b
+// (CTA création bonus) — les ~100 littéraux "morning"/"evening" restants dans
+// le code sont laissés en String (migration opportuniste au fil des touches).
+enum SessionKind: String, Codable, CaseIterable {
+    case morning, evening, bonus
+
+    var displayName: String {
+        switch self {
+        case .morning: return "Matin"
+        case .evening: return "Soir"
+        case .bonus:   return "Bonus"
+        }
+    }
+
+    /// Ordre canonique morning → evening → bonus (aligné backend
+    /// _SESSION_TYPE_ORDER dans get_today_sessions_all).
+    var order: Int {
+        switch self {
+        case .morning: return 0
+        case .evening: return 1
+        case .bonus:   return 2
+        }
+    }
+}
+
 // MARK: - Log Exercise Response
 struct LogExerciseResponse: Codable {
     let success: Bool?

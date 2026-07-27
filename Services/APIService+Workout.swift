@@ -182,6 +182,33 @@ extension APIService {
         CacheInvalidation.programmeMutated.invalidate()
     }
 
+    // MARK: - Bonus session creation (étape 2b)
+    // POST direct + throw (doctrine STRUCTURE) — la création d'une séance est
+    // une mutation structurelle, pas un log de terrain. Idempotent côté backend
+    // via UNIQUE(date, session_type='bonus') + get_workout_session_bonus check.
+    struct CreateBonusSessionResponse: Codable {
+        let created: Bool
+        let session: WorkoutSessionRow
+        struct WorkoutSessionRow: Codable {
+            let id: String
+            let date: String
+            let sessionType: String
+            let sessionName: String?
+            enum CodingKeys: String, CodingKey {
+                case id, date
+                case sessionType = "session_type"
+                case sessionName = "session_name"
+            }
+        }
+    }
+
+    func createBonusSession(date: String? = nil) async throws -> CreateBonusSessionResponse {
+        var payload: [String: Any] = [:]
+        if let date = date { payload["date"] = date }
+        let data = try await postProgrammeDirect(endpoint: "/api/create_bonus_session", payload: payload)
+        return try JSONDecoder().decode(CreateBonusSessionResponse.self, from: data)
+    }
+
     func saveMorningSchedule(_ schedule: [String: String]) async throws {
         _ = try await postProgrammeDirect(endpoint: "/api/morning_schedule", payload: ["schedule": schedule])
         CacheInvalidation.programmeMutated.invalidate()
