@@ -72,6 +72,11 @@ struct DashboardData: Codable {
     /// Date de début du mésocycle (YYYY-MM-DD) — source serveur unique
     /// (programs.cycle_start_date). Remplace le @AppStorage local iOS.
     let cycleStartDate: String?
+    /// Exos poussés matin→soir today (étape 3b, source unique backend).
+    /// Remplace SeanceSplitStore.load(date: today) — même type/sémantique.
+    let pushedToEvening: Set<String>
+    /// {name: exercise_id} union des sessions du programme (cf. SeanceData.exerciseIds).
+    let exerciseIds: [String: String]
 
     enum CodingKeys: String, CodingKey {
         case today, week
@@ -93,6 +98,8 @@ struct DashboardData: Codable {
         case bonusSessionName = "bonus_session_name"
         case bonusSessionCompleted = "bonus_session_completed"
         case cycleStartDate = "cycle_start_date"
+        case pushedToEvening = "pushed_to_evening"
+        case exerciseIds = "exercise_ids"
     }
 
     init(from decoder: Decoder) throws {
@@ -121,6 +128,9 @@ struct DashboardData: Codable {
         bonusSessionName       = try? c.decode(String.self, forKey: .bonusSessionName)
         bonusSessionCompleted  = (try? c.decode(Bool.self, forKey: .bonusSessionCompleted)) ?? false
         cycleStartDate         = try? c.decode(String.self, forKey: .cycleStartDate)
+        // Étape 3b — rétrocompat cache pré-3b.
+        pushedToEvening        = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
+        exerciseIds            = (try? c.decode([String: String].self, forKey: .exerciseIds)) ?? [:]
     }
 }
 
@@ -285,6 +295,15 @@ struct SeanceData: Codable {
     /// via get_today_evening(). Utilisé par les callers de SeanceSoirView pour
     /// passer le vrai nom soir au sheet sans deviner (cf. fix override).
     let eveningSessionName: String?
+    /// Exos poussés matin→soir today (étape 3b, source unique backend). Remplace
+    /// SeanceSplitStore.load(date: today). Décodé depuis le champ `pushed_to_evening`
+    /// du payload. Défaut = Set vide si champ absent (rétrocompat cache pré-3b).
+    let pushedToEvening: Set<String>
+    /// {name: exercise_id UUID} — union de toutes les sessions du programme.
+    /// SOURCE UNIQUE backend (même row exercises que le plan → clés identiques).
+    /// iOS lit exerciseIds[name] au tap déplacer, envoie l'id au backend.
+    /// Fail fast si nil au tap (doctrine — jamais de matching name→id à l'écrit).
+    let exerciseIds: [String: String]
 
     enum CodingKeys: String, CodingKey {
         case today
@@ -304,6 +323,8 @@ struct SeanceData: Codable {
         case exerciseSuggestions  = "exercise_suggestions"
         case loggedTodayNames     = "logged_today_names"
         case eveningSessionName   = "evening_session_name"
+        case pushedToEvening      = "pushed_to_evening"
+        case exerciseIds          = "exercise_ids"
     }
 
     init(from decoder: Decoder) throws {
@@ -327,6 +348,8 @@ struct SeanceData: Codable {
         prescriptions      = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
         loggedTodayNames   = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
+        pushedToEvening    = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
+        exerciseIds        = (try? c.decode([String: String].self, forKey: .exerciseIds)) ?? [:]
         eveningSessionName = try? c.decode(String.self, forKey: .eveningSessionName)
     }
 
@@ -341,7 +364,9 @@ struct SeanceData: Codable {
          prescriptions: [String: ExercisePrescription]? = nil,
          exerciseSuggestions: [String: ProgressionSuggestion]? = nil,
          loggedTodayNames: Set<String> = [],
-         eveningSessionName: String? = nil) {
+         eveningSessionName: String? = nil,
+         pushedToEvening: Set<String> = [],
+         exerciseIds: [String: String] = [:]) {
         self.today               = today
         self.todayDate           = todayDate
         self.alreadyLogged       = alreadyLogged
@@ -362,6 +387,8 @@ struct SeanceData: Codable {
         self.exerciseSuggestions = exerciseSuggestions
         self.loggedTodayNames    = loggedTodayNames
         self.eveningSessionName  = eveningSessionName
+        self.pushedToEvening     = pushedToEvening
+        self.exerciseIds         = exerciseIds
     }
 }
 
@@ -380,6 +407,10 @@ struct SeanceSoirData: Codable {
     let inventorySchemes: [String: String]
     let inventoryMuscleGroups: [String: String]
     let exerciseOrder: [String: [String]]
+    /// Étape 3b — cf. SeanceData.pushedToEvening. Même sémantique.
+    let pushedToEvening: Set<String>
+    /// Étape 3b — cf. SeanceData.exerciseIds.
+    let exerciseIds: [String: String]
 
     enum CodingKeys: String, CodingKey {
         case hasEveningSession = "has_evening_session"
@@ -395,6 +426,8 @@ struct SeanceSoirData: Codable {
         case inventorySchemes  = "inventory_schemes"
         case inventoryMuscleGroups = "inventory_muscle_groups"
         case exerciseOrder     = "exercise_order"
+        case pushedToEvening   = "pushed_to_evening"
+        case exerciseIds       = "exercise_ids"
     }
 
     init(from decoder: Decoder) throws {
@@ -413,6 +446,8 @@ struct SeanceSoirData: Codable {
         inventorySchemes  = (try? c.decode([String: String].self,   forKey: .inventorySchemes))  ?? [:]
         inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]
         exerciseOrder     = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))     ?? [:]
+        pushedToEvening   = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
+        exerciseIds       = (try? c.decode([String: String].self, forKey: .exerciseIds)) ?? [:]
     }
 
     func asSeanceData() -> SeanceData? {
@@ -422,7 +457,9 @@ struct SeanceSoirData: Codable {
                          week: week, inventoryTypes: inventoryTypes, inventoryTracking: inventoryTracking,
                          inventoryRest: inventoryRest, inventorySchemes: inventorySchemes,
                          inventoryMuscleGroups: inventoryMuscleGroups,
-                         exerciseOrder: exerciseOrder)
+                         exerciseOrder: exerciseOrder,
+                         pushedToEvening: pushedToEvening,
+                         exerciseIds: exerciseIds)
     }
 }
 

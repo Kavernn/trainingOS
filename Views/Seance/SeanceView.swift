@@ -502,14 +502,18 @@ struct AlreadyLoggedSeanceView: View {
         }
         .onChange(of: showSeanceSoir) { isPresented in
             if !isPresented {
-                seance2Count = SeanceSplitStore.load(date: data.todayDate).count
+                seance2Count = data.pushedToEvening.count
             }
         }
         .onAppear {
-            seance2Count = SeanceSplitStore.load(date: data.todayDate).count
+            seance2Count = data.pushedToEvening.count
         }
         .onReceive(NotificationCenter.default.publisher(for: .seanceSplitStoreDidChange)) { _ in
-            seance2Count = SeanceSplitStore.load(date: data.todayDate).count
+            // Étape 3b — refetch pour repopuler data.pushedToEvening depuis le backend.
+            Task {
+                await vm.load()
+                seance2Count = data.pushedToEvening.count
+            }
         }
         .sheet(isPresented: $showExtra) {
             ExtraSessionSheet(data: data)

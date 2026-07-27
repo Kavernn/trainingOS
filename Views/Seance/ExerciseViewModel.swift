@@ -709,7 +709,7 @@ class SeanceViewModel: ObservableObject {
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
             seanceData = decoded
             restoreLogResults(from: decoded)
-            SeanceSplitStore.reconcile(date: decoded.todayDate, loggedNames: decoded.loggedTodayNames)
+            // Étape 3b — reconcile moot : le backend est autoritative sur les overrides.
         }
 
         if seanceData == nil { isLoading = true }
@@ -718,7 +718,6 @@ class SeanceViewModel: ObservableObject {
             let fresh = try await APIService.shared.fetchSeanceData()
             seanceData = fresh
             restoreLogResults(from: fresh)
-            SeanceSplitStore.reconcile(date: fresh.todayDate, loggedNames: fresh.loggedTodayNames)
         } catch {
             if seanceData == nil { self.error = error.localizedDescription }
         }
@@ -824,11 +823,8 @@ class SeanceViewModel: ObservableObject {
                 if response.isPR == true {
                     prCelebrations.append((name: result.name, oneRM: response.oneRM ?? 0))
                 }
-                // Décrémente le Set d'assignments si l'exo y était (résout compteur dash + séance complétée).
-                if let dateStr = seanceData?.todayDate,
-                   SeanceSplitStore.load(date: dateStr).contains(result.name) {
-                    SeanceSplitStore.remove(date: dateStr, exercise: result.name)
-                }
+                // Étape 3b — remove-on-log moot : backend override survit au log,
+                // pas besoin de cleanup côté client (cf. SeanceSoirView.finish).
             } catch {
                 failedExercises.append(result.name)
             }

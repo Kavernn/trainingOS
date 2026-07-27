@@ -280,10 +280,14 @@ def get_full_program(program_id: str | None = None) -> dict | None:
         return None
 
     def _do() -> dict | None:
+        # Étape 3b — le join exercises(id, name) porte l'id DEPUIS LA MÊME ROW
+        # qui produit le name. Le map exercise_ids capturé ci-dessous a donc les
+        # mêmes strings-clés que exercises {name: scheme}, invariant garanti par
+        # construction. Aucune query séparée qui pourrait diverger.
         q = db_core._client.table("program_sessions").select(
             "id, name, order_index, "
             "program_blocks(id, type, order_index, hiit_config, "
-            "program_block_exercises(scheme, order_index, exercises(name)))"
+            "program_block_exercises(scheme, order_index, exercises(id, name)))"
         ).order("order_index")
         if program_id:
             q = q.eq("program_id", program_id)
@@ -306,11 +310,22 @@ def get_full_program(program_id: str | None = None) -> dict | None:
                         block.get("program_block_exercises") or [],
                         key=lambda e: e.get("order_index", 0),
                     )
-                    exercises = {
-                        (r.get("exercises") or {}).get("name"): r.get("scheme", "3x8-12")
-                        for r in ex_rows if (r.get("exercises") or {}).get("name")
-                    }
-                    built_blocks.append({"type": "strength", "order": border, "exercises": exercises})
+                    exercises = {}
+                    exercise_ids = {}
+                    for r in ex_rows:
+                        ex_join = r.get("exercises") or {}
+                        name = ex_join.get("name")
+                        ex_id = ex_join.get("id")
+                        if not name:
+                            continue
+                        exercises[name] = r.get("scheme", "3x8-12")
+                        if ex_id:
+                            exercise_ids[name] = ex_id
+                    built_blocks.append({
+                        "type": "strength", "order": border,
+                        "exercises": exercises,
+                        "exercise_ids": exercise_ids,
+                    })
                 else:
                     built_blocks.append({"type": btype, "order": border,
                                          "hiit_config": block.get("hiit_config") or {}})

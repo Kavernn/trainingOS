@@ -11,7 +11,7 @@ def api_seance_data():
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
                          get_suggested_weights_for_today, get_today_evening)
     from inventory import load_inventory
-    from blocks import get_strength_exercises
+    from blocks import get_strength_exercises, get_strength_exercise_ids
     from progression import prescribe_volume
     from deload import get_cached_fatigue_score
     from utils import _parse_scheme, get_current_week, get_mesocycle_info
@@ -139,6 +139,13 @@ def api_seance_data():
         # get_day_plan). Consommé par iOS SeanceData.pushedToEvening qui remplace
         # SeanceSplitStore local. Noms strings alignés au plan (même table exercises).
         "pushed_to_evening": _day_plan["pushed_to_evening"],
+        # Étape 3b — {name: exercise_id} pour TOUS les exos du programme (union
+        # des sessions), SOURCE UNIQUE (get_full_program → même JOIN
+        # exercises(id,name), même row que le plan). iOS lit exercise_ids[name]
+        # au tap → Soir / ← Matin pour envoyer l'id au backend — jamais de
+        # matching par nom à l'écriture (doctrine). Union pour couvrir les exos
+        # déplacés inter-sessions et le cas pseudo-séance soir orphelin.
+        "exercise_ids": {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
         # Nom soir résolu (override manuel > héritage matin > None). Exposé pour
         # que les call sites iOS de SeanceSoirView passent le vrai nom soir sans
         # deviner ni faire un fetch séparé. Cf. commit héritage soir.
@@ -153,7 +160,7 @@ def api_seance_soir_data():
                          get_suggested_weights_for_today, get_evening_schedule)
     from weights import load_weights
     from inventory import load_inventory
-    from blocks import get_strength_exercises
+    from blocks import get_strength_exercises, get_strength_exercise_ids
     from utils import get_current_week
 
     today_soir = get_today_evening()
@@ -219,6 +226,9 @@ def api_seance_soir_data():
         "exercise_order": exercise_order,
         # Étape 3b — même que seance_data : liste exposée pour SeanceData.pushedToEvening.
         "pushed_to_evening": _day_plan["pushed_to_evening"],
+        # Étape 3b — {name: id} union de TOUTES les sessions du programme.
+        # Couvre pseudo-séance soir + exos cross-session moved.
+        "exercise_ids": {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
     })
 
 

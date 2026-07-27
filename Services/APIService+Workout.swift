@@ -209,6 +209,30 @@ extension APIService {
         return try JSONDecoder().decode(CreateBonusSessionResponse.self, from: data)
     }
 
+    // MARK: - Plan overrides (étape 3b — déplacement d'exos planifiés)
+    // POST direct + throw (doctrine STRUCTURE). Le 409 exercise_already_logged
+    // remonte via APIError.serverError — le call site affiche l'alert. UNIQUE
+    // (date, exercise_id) côté backend → re-move idempotent.
+
+    func movePlannedExercise(date: String, exerciseId: String, to: SessionKind) async throws {
+        let payload: [String: Any] = [
+            "date": date,
+            "exercise_id": exerciseId,
+            "to_session_type": to.rawValue,
+        ]
+        _ = try await postProgrammeDirect(endpoint: "/api/move_planned_exercise", payload: payload)
+        CacheInvalidation.sessionMutated.invalidate()
+    }
+
+    func clearPlanOverrides(date: String? = nil) async throws -> Int {
+        var payload: [String: Any] = [:]
+        if let date = date { payload["date"] = date }
+        let data = try await postProgrammeDirect(endpoint: "/api/clear_plan_overrides", payload: payload)
+        CacheInvalidation.sessionMutated.invalidate()
+        struct ClearResponse: Codable { let deleted: Int }
+        return (try? JSONDecoder().decode(ClearResponse.self, from: data).deleted) ?? 0
+    }
+
     func saveMorningSchedule(_ schedule: [String: String]) async throws {
         _ = try await postProgrammeDirect(endpoint: "/api/morning_schedule", payload: ["schedule": schedule])
         CacheInvalidation.programmeMutated.invalidate()

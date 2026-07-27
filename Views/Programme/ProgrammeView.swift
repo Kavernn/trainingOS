@@ -452,7 +452,7 @@ struct ProgrammeView: View {
             }
         }
         .task { await vm.loadData(); await vm.loadSuggestions() }
-        .onAppear { seance2ExosToday = SeanceSplitStore.load(date: todayDateStr) }
+        .onAppear { seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? [] }
         .onChange(of: vm.selectedProgramId) { _, newId in
             guard !newId.isEmpty else { return }
             Task { await vm.loadData(programId: newId); await vm.loadSuggestions() }
@@ -665,7 +665,7 @@ struct ProgrammeView: View {
         .scrollDismissesKeyboard(.interactively)
         .refreshable {
             CacheService.shared.clear(for: "programme_data")
-            seance2ExosToday = SeanceSplitStore.load(date: todayDateStr)
+            seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? []
             await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
         }
     }
@@ -1411,7 +1411,7 @@ struct ProgrammeView: View {
         .scrollDismissesKeyboard(.interactively)
         .refreshable {
             CacheService.shared.clear(for: "programme_data")
-            seance2ExosToday = SeanceSplitStore.load(date: todayDateStr)
+            seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? []
             await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
         }
     }

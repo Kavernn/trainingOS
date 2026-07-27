@@ -88,7 +88,9 @@ enum CacheInvalidation {
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionMutated:
-            return ["historique_data", "dashboard", "morning_brief", "mesocycle_status"]
+            // Étape 3b — seance_data + seance_soir_data portent maintenant pushed_to_evening
+            // (source unique post-SeanceSplitStore), doivent invalider après move/clear override.
+            return ["historique_data", "dashboard", "seance_data", "seance_soir_data", "morning_brief", "mesocycle_status"]
         case .hiitLogged:
             return ["dashboard", "hiit_data"]
         case .programmeMutated:

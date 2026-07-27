@@ -51,6 +51,17 @@ def get_strength_exercises(session_def: dict) -> dict:
     return block.get("exercises", {}) if block else {}
 
 
+def get_strength_exercise_ids(session_def: dict) -> dict:
+    """Return {name: exercise_id} for the strength block. Symmetric à
+    get_strength_exercises — mêmes clés-nom (même row source, cf. db_programs
+    get_full_program). Étape 3b : consommé par les endpoints qui exposent
+    exercise_ids dans le payload pour que iOS puisse muter par id, jamais par nom."""
+    if "blocks" not in session_def:
+        return {}  # legacy format n'a pas d'id
+    block = get_block(session_def["blocks"], "strength")
+    return block.get("exercise_ids", {}) if block else {}
+
+
 def upsert_block(blocks: list, new_block: dict) -> list:
     """Insert or replace a block by type. Preserves all other blocks."""
     btype = new_block["type"]

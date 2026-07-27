@@ -15,7 +15,7 @@ def api_dashboard():
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
                          get_suggested_weights_for_today, get_today_evening)
     from nutrition import (load_settings as load_nutrition_settings)
-    from blocks import get_strength_exercises
+    from blocks import get_strength_exercises, get_strength_exercise_ids
     from utils import get_current_week, load_hiit_log
     import db as _db
 
@@ -177,6 +177,9 @@ def api_dashboard():
         # Étape 3b — exos poussés matin→soir today. Consommé par iOS
         # DashboardData.pushedToEvening (remplace SeanceSplitStore local).
         "pushed_to_evening":   _pushed_to_evening,
+        # Étape 3b — {name: id} union des sessions du programme. iOS lit
+        # exercise_ids[name] au tap déplacer pour envoyer l'id au backend.
+        "exercise_ids":        {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
         "nutrition_totals":    nutrition_totals,
         "nutrition_settings":  load_nutrition_settings(),
         "profile":             profile,

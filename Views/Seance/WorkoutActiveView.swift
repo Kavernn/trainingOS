@@ -619,13 +619,30 @@ struct WorkoutSeanceView: View {
                 // multiples du log d'exercice.
                 if canMove {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.28)) {
-                            if isSecondSession {
-                                SeanceSplitStore.remove(date: data.todayDate, exercise: name)
-                            } else {
-                                SeanceSplitStore.add(date: data.todayDate, exercise: name)
+                        // Étape 3b — recâblage backend. Lookup id AVANT le POST :
+                        // fail fast si nil (doctrine — jamais de matching name→id à
+                        // l'écrit). Notif seanceSplitStoreDidChange conservée : le
+                        // signal existe déjà, listeners refetchent le payload frais.
+                        guard let exoId = data.exerciseIds[name] else {
+                            toast = ToastMessage(message: "Impossible de résoudre '\(name)' — recharge la séance.", style: .error)
+                            return
+                        }
+                        let targetSlot: SessionKind = isSecondSession ? .morning : .evening
+                        Task {
+                            do {
+                                try await APIService.shared.movePlannedExercise(
+                                    date: data.todayDate, exerciseId: exoId, to: targetSlot
+                                )
+                                NotificationCenter.default.post(name: .seanceSplitStoreDidChange, object: nil)
+                            } catch let APIError.serverError(code, _) where code == 409 {
+                                await MainActor.run {
+                                    toast = ToastMessage(message: "Exo déjà loggé aujourd'hui — non déplaçable.", style: .error)
+                                }
+                            } catch {
+                                await MainActor.run {
+                                    toast = ToastMessage(message: "Déplacement échoué : \(error.localizedDescription)", style: .error)
+                                }
                             }
-                            assignments = SeanceSplitStore.load(date: data.todayDate)
                         }
                     } label: {
                         // Label textuel court : "→ Soir" (matin → envoyer) ou
@@ -1297,9 +1314,18 @@ struct WorkoutSeanceView: View {
                         titleVisibility: .visible
                     ) {
                         Button("Tout ramener", role: .destructive) {
-                            withAnimation(.easeInOut(duration: 0.28)) {
-                                SeanceSplitStore.clear(date: data.todayDate)
-                                assignments = []
+                            // Étape 3b — bulk clear via backend. Notif conservée pour
+                            // que les listeners existants (SeanceView, DashboardView)
+                            // refetchent leur payload.
+                            Task {
+                                do {
+                                    _ = try await APIService.shared.clearPlanOverrides(date: data.todayDate)
+                                    NotificationCenter.default.post(name: .seanceSplitStoreDidChange, object: nil)
+                                } catch {
+                                    await MainActor.run {
+                                        toast = ToastMessage(message: "Annulation échouée : \(error.localizedDescription)", style: .error)
+                                    }
+                                }
                             }
                         }
                         Button("Annuler", role: .cancel) {}
@@ -1331,16 +1357,16 @@ struct WorkoutSeanceView: View {
         .dismissKeyboardOnTap()
         .onAppear {
             scrollProxy = proxy
-            assignments = SeanceSplitStore.load(date: data.todayDate)
+            assignments = data.pushedToEvening
         }
         .sheet(isPresented: $showSeanceSoir) {
             SeanceSoirView()
         }
         .onChange(of: showSeanceSoir) { isPresented in
             if !isPresented {
-                // Au retour de la sheet, relire le store : un exo renvoyé
-                // depuis la séance 2 doit réapparaître côté matin.
-                assignments = SeanceSplitStore.load(date: data.todayDate)
+                // Au retour de la sheet, resynchroniser depuis le payload — le parent
+                // aura refetché via .seanceSplitStoreDidChange (posté par les mutations).
+                assignments = data.pushedToEvening
             }
         }
         .sheet(isPresented: $showUnloggedWarning) {

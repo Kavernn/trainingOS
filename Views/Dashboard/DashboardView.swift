@@ -314,13 +314,17 @@ struct DashboardView: View {
                             await loadEducationalIfNeeded()
                             lastRefresh = Date()
                             checkAndShowMorningReveal()
-                            seance2Count = SeanceSplitStore.load(date: todayStr).count
+                            seance2Count = api.dashboard?.pushedToEvening.count ?? 0
                         }
                         .onAppear {
-                            seance2Count = SeanceSplitStore.load(date: todayStr).count
+                            seance2Count = api.dashboard?.pushedToEvening.count ?? 0
                         }
                         .onReceive(NotificationCenter.default.publisher(for: .seanceSplitStoreDidChange)) { _ in
-                            seance2Count = SeanceSplitStore.load(date: todayStr).count
+                            // Étape 3b — pushed_to_evening vient du payload, refetch requis.
+                            Task {
+                                await api.fetchDashboard()
+                                seance2Count = api.dashboard?.pushedToEvening.count ?? 0
+                            }
                         }
                 } else if let err = loadingState.error {
                     VStack(spacing: 16) {
@@ -357,7 +361,7 @@ struct DashboardView: View {
                 if !loadingState.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
                     Task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
                 }
-                seance2Count = SeanceSplitStore.load(date: todayStr).count
+                seance2Count = api.dashboard?.pushedToEvening.count ?? 0
             }
         }
         .sheet(isPresented: $showMoodSheet, onDismiss: {

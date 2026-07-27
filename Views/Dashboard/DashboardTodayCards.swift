@@ -28,14 +28,13 @@ struct TodayCardView: View {
 
     var todayColor: Color { Color.sessionTypeColor(dash.today) }
 
-    /// Séance 2 = union planifiée-backend + exos poussés localement (SeanceSplitStore
-    /// UserDefaults). Le push local est INVISIBLE au backend (aucune trace serveur),
-    /// donc has_evening_session seul rate le cas standard de Vince.
+    /// Étape 3b — source unique backend (dash.pushedToEvening dérivée du payload).
+    /// Remplace SeanceSplitStore.load(date:) — même sémantique, même type.
     private var hasLocalPushedExercises: Bool {
-        !SeanceSplitStore.load(date: dash.todayDate).isEmpty
+        !dash.pushedToEvening.isEmpty
     }
     private var pushedCount: Int {
-        SeanceSplitStore.load(date: dash.todayDate).count
+        dash.pushedToEvening.count
     }
     private var seance2Label: String {
         if let name = dash.eveningSessionName { return "Commencer la séance 2 · \(name)" }
