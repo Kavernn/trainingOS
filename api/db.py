@@ -99,6 +99,9 @@ from db_sessions import (
     get_exercise_prs,
     get_today_sessions_all,
     get_daily_session_volumes,
+    get_session_plan_overrides,
+    upsert_session_plan_override,
+    exercise_has_log_on,
     INT_FIELDS,
     DECIMAL_FIELDS,
 )
