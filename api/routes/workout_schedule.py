@@ -153,14 +153,27 @@ def api_seance_soir_data():
     from utils import get_current_week
 
     today_soir = get_today_evening()
-    if not today_soir:
-        return jsonify({"has_evening_session": False})
-
     weights      = load_weights()
     full_program = load_program()
     inventory    = load_inventory()
     today_date   = get_today_date()
     schedule     = get_evening_schedule()
+
+    # Étape 3a-iii — pseudo-séance soir si un override matin→soir apporte des
+    # exos alors qu'aucun soir n'est planifié au schedule (§F.3). Sans ça, l'exo
+    # déplacé s'évaporait : ni matin (retiré), ni soir (early return).
+    # La row workout_session soir N'EST PAS créée ici (aucun log encore) —
+    # l'override est une intention au niveau plan, cohérent avec la doctrine.
+    from planner import get_day_plan
+    _day_plan = get_day_plan(today_date, full_program)
+    _virtual_soir = False
+    if not today_soir:
+        if not _day_plan.get("evening"):
+            return jsonify({"has_evening_session": False})
+        # Overrides ont apporté des exos evening sans schedule soir → pseudo-séance.
+        today_soir = "Séance soir"
+        _virtual_soir = True
+
     already_logged = _db.get_workout_session_second(today_date) is not None
 
     from utils import cap_scheme_sets
@@ -169,15 +182,10 @@ def api_seance_soir_data():
         for seance, session_def in full_program.items()
     }
 
-    # Étape 3 — appliquer les session_plan_overrides via get_day_plan (SOURCE
-    # UNIQUE). Un exo déplacé soir→matin disparaît d'ici, un exo matin→soir
-    # apparaît (même si aucune séance soir n'était planifiée dans le schedule).
-    if today_soir and today_soir in flat_program:
-        from planner import get_day_plan
-        _day_plan = get_day_plan(today_date, full_program)
-        flat_program[today_soir] = {
-            ex: cap_scheme_sets(s) for ex, s in _day_plan["evening"].items()
-        }
+    # Applique le plan evening post-overrides sur today_soir (réel OU pseudo).
+    flat_program[today_soir] = {
+        ex: cap_scheme_sets(s) for ex, s in _day_plan["evening"].items()
+    }
 
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
