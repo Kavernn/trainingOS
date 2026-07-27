@@ -153,11 +153,14 @@ def api_dashboard():
     # (SOURCE UNIQUE get_day_plan). iOS lit full_program[today] pour afficher les
     # exos prévus — sans cet override, il resterait sur la vue template.
     _full_program_payload = {s: get_strength_exercises(sd) for s, sd in full_program.items()}
-    if today_str and today_str in _full_program_payload:
-        try:
-            _full_program_payload[today_str] = _get_day_plan(today_date, full_program)["morning"]
-        except Exception:
-            pass  # fallback template si get_day_plan échoue
+    _pushed_to_evening: list = []
+    try:
+        _dp = _get_day_plan(today_date, full_program)
+        _pushed_to_evening = _dp.get("pushed_to_evening") or []
+        if today_str and today_str in _full_program_payload:
+            _full_program_payload[today_str] = _dp["morning"]
+    except Exception:
+        pass  # fallback template + liste vide si get_day_plan échoue
 
     return jsonify({
         "today":               today_str,
@@ -171,6 +174,9 @@ def api_dashboard():
         "goals":               goals_progress,
         "smart_goals_count":   smart_goals_count,
         "full_program":        _full_program_payload,
+        # Étape 3b — exos poussés matin→soir today. Consommé par iOS
+        # DashboardData.pushedToEvening (remplace SeanceSplitStore local).
+        "pushed_to_evening":   _pushed_to_evening,
         "nutrition_totals":    nutrition_totals,
         "nutrition_settings":  load_nutrition_settings(),
         "profile":             profile,

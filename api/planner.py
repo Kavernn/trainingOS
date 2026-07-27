@@ -220,11 +220,21 @@ def get_day_plan(date: str, full_program: dict) -> dict:
     evening_exos = dict(get_strength_exercises(full_program.get(evening_name, {}))) if evening_name else {}
 
     overrides = _db.get_session_plan_overrides(date)
+    pushed_to_evening: list[str] = []
+    pushed_to_morning: list[str] = []
+
     if not overrides:
-        return {"morning": morning_exos, "evening": evening_exos}
+        return {
+            "morning": morning_exos,
+            "evening": evening_exos,
+            "pushed_to_evening": [],
+            "pushed_to_morning": [],
+        }
 
     # Résolution exercise_id → name : les overrides stockent l'id, le plan
-    # est keyé par name. Batch lookup, une seule query.
+    # est keyé par name. Batch lookup, une seule query. Le nom capturé ici
+    # est la MÊME string que celle du plan (même table exercises, même colonne
+    # name) — garantit qu'un lecteur iOS comparant par nom (Set<String>) matche.
     ex_ids = list({o.get("exercise_id") for o in overrides if o.get("exercise_id")})
     id_to_name: dict = {}
     if ex_ids:
@@ -248,11 +258,18 @@ def get_day_plan(date: str, full_program: dict) -> dict:
             scheme = evening_exos.pop(name)
         if scheme is None:
             continue  # exo pas dans la source attendue — override obsolète, on l'ignore
-        # Ajoute à la destination
+        # Ajoute à la destination + capture pour les listes exposées
         if to_slot == "morning":
             morning_exos[name] = scheme
+            pushed_to_morning.append(name)
         elif to_slot == "evening":
             evening_exos[name] = scheme
+            pushed_to_evening.append(name)
         # to='bonus' hors périmètre étape 3 — étape 4
 
-    return {"morning": morning_exos, "evening": evening_exos}
+    return {
+        "morning": morning_exos,
+        "evening": evening_exos,
+        "pushed_to_evening": sorted(set(pushed_to_evening)),
+        "pushed_to_morning": sorted(set(pushed_to_morning)),
+    }

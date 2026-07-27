@@ -58,9 +58,9 @@ def api_seance_data():
 
     # Étape 3 — appliquer les session_plan_overrides via get_day_plan (SOURCE
     # UNIQUE, cf. planner.py). Un exo déplacé matin→soir disparaît d'ici.
+    from planner import get_day_plan
+    _day_plan = get_day_plan(today_date, full_program)
     if today_str and today_str in flat_program:
-        from planner import get_day_plan
-        _day_plan = get_day_plan(today_date, full_program)
         flat_program[today_str] = {
             ex: cap_scheme_sets(s) for ex, s in _day_plan["morning"].items()
         }
@@ -135,6 +135,10 @@ def api_seance_data():
         "prescriptions": prescriptions,
         "exercise_suggestions": exercise_suggestions,
         "logged_today_names": sorted(logged_today_names),
+        # Étape 3b — liste des exos poussés matin→soir aujourd'hui (SOURCE UNIQUE
+        # get_day_plan). Consommé par iOS SeanceData.pushedToEvening qui remplace
+        # SeanceSplitStore local. Noms strings alignés au plan (même table exercises).
+        "pushed_to_evening": _day_plan["pushed_to_evening"],
         # Nom soir résolu (override manuel > héritage matin > None). Exposé pour
         # que les call sites iOS de SeanceSoirView passent le vrai nom soir sans
         # deviner ni faire un fetch séparé. Cf. commit héritage soir.
@@ -213,6 +217,8 @@ def api_seance_soir_data():
         "inventory_schemes": inventory_schemes,
         "inventory_muscle_groups": inventory_muscle_groups,
         "exercise_order": exercise_order,
+        # Étape 3b — même que seance_data : liste exposée pour SeanceData.pushedToEvening.
+        "pushed_to_evening": _day_plan["pushed_to_evening"],
     })
 
 
@@ -418,3 +424,26 @@ def api_move_planned_exercise():
     if not row:
         return jsonify({"error": "upsert_failed"}), 500
     return jsonify({"override": row, "created": True})
+
+
+@workout_schedule_bp.route("/api/clear_plan_overrides", methods=["POST"])
+def api_clear_plan_overrides():
+    """Bulk DELETE tous les overrides pour une date.
+
+    Backend du bouton « Tout ramener » iOS (WorkoutActiveView L1301) — annule
+    tous les déplacements matin↔soir du jour d'un coup. AUCUN garde-fou de log
+    (contrairement à move) : la doctrine zéro-modif-historique concerne les
+    exercise_logs, pas les overrides — un override sur exo loggé n'a plus
+    d'effet fonctionnel (l'exo est fixé par son session_id), le supprimer
+    est safe.
+
+    Body   : {"date": "YYYY-MM-DD"}  (opt, défaut today MTL)
+    Retour : 200 {"deleted": N}
+    """
+    import db as _db
+    from utils import _today_mtl
+
+    data = request.get_json(silent=True) or {}
+    date = data.get("date") or _today_mtl()
+    n = _db.clear_session_plan_overrides(date)
+    return jsonify({"deleted": n})

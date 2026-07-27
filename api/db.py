@@ -101,6 +101,7 @@ from db_sessions import (
     get_daily_session_volumes,
     get_session_plan_overrides,
     upsert_session_plan_override,
+    clear_session_plan_overrides,
     exercise_has_log_on,
     INT_FIELDS,
     DECIMAL_FIELDS,

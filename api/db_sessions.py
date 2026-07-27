@@ -2113,6 +2113,34 @@ def upsert_session_plan_override(
         return {}
 
 
+def clear_session_plan_overrides(date: str) -> int:
+    """Bulk DELETE tous les overrides pour une date. Retourne le nombre supprimé.
+    Endpoint /api/clear_plan_overrides (bouton « Tout ramener » iOS)."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return 0
+
+    def _do() -> int:
+        resp = (
+            db_core._client.table("session_plan_overrides")
+            .delete()
+            .eq("date", date)
+            .execute()
+        )
+        return len(resp.data or [])
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("clear_session_plan_overrides retry error: %s", e2)
+                return 0
+        db_core.logger.error("clear_session_plan_overrides error: %s", e)
+        return 0
+
+
 def exercise_has_log_on(date: str, exercise_id: str) -> bool:
     """Garde-fou zéro-modif-historique : True si un exercise_log existe pour
     (date, exercise_id) sur n'importe quelle session_type du jour. Empêche
