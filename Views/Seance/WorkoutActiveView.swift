@@ -621,8 +621,8 @@ struct WorkoutSeanceView: View {
                     Button {
                         // Étape 3b — recâblage backend. Lookup id AVANT le POST :
                         // fail fast si nil (doctrine — jamais de matching name→id à
-                        // l'écrit). Notif seanceSplitStoreDidChange conservée : le
-                        // signal existe déjà, listeners refetchent le payload frais.
+                        // l'écrit). Notif .planOverridesDidChange déclenche le refetch
+                        // dashboard/seance côté listeners (source unique payload).
                         guard let exoId = data.exerciseIds[name] else {
                             toast = ToastMessage(message: "Impossible de résoudre '\(name)' — recharge la séance.", style: .error)
                             return
@@ -633,7 +633,7 @@ struct WorkoutSeanceView: View {
                                 try await APIService.shared.movePlannedExercise(
                                     date: data.todayDate, exerciseId: exoId, to: targetSlot
                                 )
-                                NotificationCenter.default.post(name: .seanceSplitStoreDidChange, object: nil)
+                                NotificationCenter.default.post(name: .planOverridesDidChange, object: nil)
                             } catch let APIError.serverError(code, _) where code == 409 {
                                 await MainActor.run {
                                     toast = ToastMessage(message: "Exo déjà loggé aujourd'hui — non déplaçable.", style: .error)
@@ -1320,7 +1320,7 @@ struct WorkoutSeanceView: View {
                             Task {
                                 do {
                                     _ = try await APIService.shared.clearPlanOverrides(date: data.todayDate)
-                                    NotificationCenter.default.post(name: .seanceSplitStoreDidChange, object: nil)
+                                    NotificationCenter.default.post(name: .planOverridesDidChange, object: nil)
                                 } catch {
                                     await MainActor.run {
                                         toast = ToastMessage(message: "Annulation échouée : \(error.localizedDescription)", style: .error)
@@ -1365,7 +1365,7 @@ struct WorkoutSeanceView: View {
         .onChange(of: showSeanceSoir) { isPresented in
             if !isPresented {
                 // Au retour de la sheet, resynchroniser depuis le payload — le parent
-                // aura refetché via .seanceSplitStoreDidChange (posté par les mutations).
+                // aura refetché via .planOverridesDidChange (posté par les mutations).
                 assignments = data.pushedToEvening
             }
         }

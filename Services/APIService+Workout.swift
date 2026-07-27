@@ -3,6 +3,13 @@ import OSLog
 
 private let workoutLogger = Logger(subsystem: "TrainingOS", category: "api+workout")
 
+// Étape 3 — signal posté par les writers d'overrides (move/clear). Les vues
+// listen pour refetch leur payload (source unique backend). Ancien nom
+// .seanceSplitStoreDidChange renommé au retrait de SeanceSplitStore (commit 3).
+extension Notification.Name {
+    static let planOverridesDidChange = Notification.Name("planOverridesDidChange")
+}
+
 extension APIService {
     // MARK: - Seance Data
     func fetchSeanceData() async throws -> SeanceData {

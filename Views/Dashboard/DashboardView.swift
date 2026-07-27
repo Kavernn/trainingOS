@@ -319,7 +319,7 @@ struct DashboardView: View {
                         .onAppear {
                             seance2Count = api.dashboard?.pushedToEvening.count ?? 0
                         }
-                        .onReceive(NotificationCenter.default.publisher(for: .seanceSplitStoreDidChange)) { _ in
+                        .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange)) { _ in
                             // Étape 3b — pushed_to_evening vient du payload, refetch requis.
                             Task {
                                 await api.fetchDashboard()

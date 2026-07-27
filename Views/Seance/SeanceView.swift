@@ -508,7 +508,7 @@ struct AlreadyLoggedSeanceView: View {
         .onAppear {
             seance2Count = data.pushedToEvening.count
         }
-        .onReceive(NotificationCenter.default.publisher(for: .seanceSplitStoreDidChange)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange)) { _ in
             // Étape 3b — refetch pour repopuler data.pushedToEvening depuis le backend.
             Task {
                 await vm.load()
