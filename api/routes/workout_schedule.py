@@ -56,6 +56,15 @@ def api_seance_data():
         for seance, session_def in full_program.items()
     }
 
+    # Étape 3 — appliquer les session_plan_overrides via get_day_plan (SOURCE
+    # UNIQUE, cf. planner.py). Un exo déplacé matin→soir disparaît d'ici.
+    if today_str and today_str in flat_program:
+        from planner import get_day_plan
+        _day_plan = get_day_plan(today_date, full_program)
+        flat_program[today_str] = {
+            ex: cap_scheme_sets(s) for ex, s in _day_plan["morning"].items()
+        }
+
     today_exercises = list((flat_program.get(today_str) or {}).keys())
     # Union planifiés ∪ loggés du jour (toutes séances : matin+soir+bonus via
     # logged_today_names L38-51). Sans quoi les exos hors-plan sortent
@@ -159,6 +168,17 @@ def api_seance_soir_data():
         seance: {ex: cap_scheme_sets(s) for ex, s in get_strength_exercises(session_def).items()}
         for seance, session_def in full_program.items()
     }
+
+    # Étape 3 — appliquer les session_plan_overrides via get_day_plan (SOURCE
+    # UNIQUE). Un exo déplacé soir→matin disparaît d'ici, un exo matin→soir
+    # apparaît (même si aucune séance soir n'était planifiée dans le schedule).
+    if today_soir and today_soir in flat_program:
+        from planner import get_day_plan
+        _day_plan = get_day_plan(today_date, full_program)
+        flat_program[today_soir] = {
+            ex: cap_scheme_sets(s) for ex, s in _day_plan["evening"].items()
+        }
+
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
@@ -262,7 +282,15 @@ def api_progression_suggestions():
 
     try:
         program   = load_program()
-        exercises = list(program.get(session_name, {}).keys()) if session_name else []
+        # Étape 3 — respect des overrides via get_day_plan (SOURCE UNIQUE).
+        # Pour morning/evening, les exos du slot (post-override) l'emportent sur
+        # le template session_name. Bonus garde le fallback session_name.
+        if session_type in ("morning", "evening"):
+            from planner import get_day_plan
+            _day_plan = get_day_plan(date, program)
+            exercises = list(_day_plan[session_type].keys())
+        else:
+            exercises = list(program.get(session_name, {}).keys()) if session_name else []
     except Exception:
         exercises = []
 

@@ -29,6 +29,9 @@ def api_dashboard():
     full_program = load_program()
     hiit_log     = load_hiit_log()
     today_str    = get_today()
+    # Étape 3 — plan du jour post-overrides (SOURCE UNIQUE, cf. planner.py).
+    # Un exo déplacé matin→soir n'apparaît plus dans le plan matin du dashboard.
+    from planner import get_day_plan as _get_day_plan
     _client_date = request.args.get("date", "").strip()
     try:
         datetime.strptime(_client_date, "%Y-%m-%d")
@@ -70,7 +73,9 @@ def api_dashboard():
     has_partial_logs = False
     if not already_logged_today:
         try:
-            program_names = set(get_strength_exercises(full_program.get(today_str, {})).keys())
+            # program_names respecte les overrides — un exo déplacé matin→soir
+            # n'est plus dans le plan matin, donc son log matin devient "hors-plan".
+            program_names = set(_get_day_plan(today_date, full_program)["morning"].keys())
             has_partial_logs = bool(_today_logged_names & program_names)
         except Exception:
             has_partial_logs = False
@@ -144,6 +149,16 @@ def api_dashboard():
     _bonus_session_name = (_bonus_session or {}).get("session_name")
     _bonus_session_completed = bool((_bonus_session or {}).get("completed"))
 
+    # Payload full_program : override la clé today_str avec le plan post-overrides
+    # (SOURCE UNIQUE get_day_plan). iOS lit full_program[today] pour afficher les
+    # exos prévus — sans cet override, il resterait sur la vue template.
+    _full_program_payload = {s: get_strength_exercises(sd) for s, sd in full_program.items()}
+    if today_str and today_str in _full_program_payload:
+        try:
+            _full_program_payload[today_str] = _get_day_plan(today_date, full_program)["morning"]
+        except Exception:
+            pass  # fallback template si get_day_plan échoue
+
     return jsonify({
         "today":               today_str,
         "week":                get_current_week(),
@@ -155,7 +170,7 @@ def api_dashboard():
         "suggestions":         suggestions,
         "goals":               goals_progress,
         "smart_goals_count":   smart_goals_count,
-        "full_program":        {s: get_strength_exercises(sd) for s, sd in full_program.items()},
+        "full_program":        _full_program_payload,
         "nutrition_totals":    nutrition_totals,
         "nutrition_settings":  load_nutrition_settings(),
         "profile":             profile,
