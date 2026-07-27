@@ -192,3 +192,67 @@ def get_suggested_weights_for_today(weights: dict, program: dict | None = None) 
             display = f"{suggested:.1f} lbs total"
         result.append({"exercise": exercise, "display": display})
     return result
+
+
+# ---------------------------------------------------------------------------
+# Day plan — étape 3 flow bonus (2026-07-26) — SOURCE UNIQUE
+# ---------------------------------------------------------------------------
+
+def get_day_plan(date: str, full_program: dict) -> dict:
+    """Retourne {'morning': {exo_name: scheme}, 'evening': {exo_name: scheme}}
+    pour la date donnée, avec session_plan_overrides appliqués.
+
+    SOURCE UNIQUE consommée par api_seance_data, api_seance_soir_data,
+    api_dashboard, _get_day_intensity, api_progression_suggestions. Un
+    consommateur qui contourne cette fonction recrée le trou d'incohérence
+    (récap dit A, dashboard dit B) — cf. décision centralisation étape 3.
+
+    Ne mute JAMAIS full_program ni le programme template. Un override est
+    strictement scopé à SA date (WHERE date = ...).
+    """
+    import db as _db
+    from blocks import get_strength_exercises
+
+    morning_name = get_today()
+    evening_name = get_today_evening()
+
+    morning_exos = dict(get_strength_exercises(full_program.get(morning_name, {}))) if morning_name else {}
+    evening_exos = dict(get_strength_exercises(full_program.get(evening_name, {}))) if evening_name else {}
+
+    overrides = _db.get_session_plan_overrides(date)
+    if not overrides:
+        return {"morning": morning_exos, "evening": evening_exos}
+
+    # Résolution exercise_id → name : les overrides stockent l'id, le plan
+    # est keyé par name. Batch lookup, une seule query.
+    ex_ids = list({o.get("exercise_id") for o in overrides if o.get("exercise_id")})
+    id_to_name: dict = {}
+    if ex_ids:
+        try:
+            resp = _db._client.table("exercises").select("id,name").in_("id", ex_ids).execute()
+            id_to_name = {r["id"]: r["name"] for r in (resp.data or []) if r.get("id") and r.get("name")}
+        except Exception as e:
+            logger.warning("get_day_plan: exercises lookup failed: %s", e)
+
+    for o in overrides:
+        name = id_to_name.get(o.get("exercise_id"))
+        if not name:
+            continue
+        from_slot = o.get("from_session_type")
+        to_slot = o.get("to_session_type")
+        # Retire l'exo de sa source, préserve son scheme
+        scheme = None
+        if from_slot == "morning" and name in morning_exos:
+            scheme = morning_exos.pop(name)
+        elif from_slot == "evening" and name in evening_exos:
+            scheme = evening_exos.pop(name)
+        if scheme is None:
+            continue  # exo pas dans la source attendue — override obsolète, on l'ignore
+        # Ajoute à la destination
+        if to_slot == "morning":
+            morning_exos[name] = scheme
+        elif to_slot == "evening":
+            evening_exos[name] = scheme
+        # to='bonus' hors périmètre étape 3 — étape 4
+
+    return {"morning": morning_exos, "evening": evening_exos}

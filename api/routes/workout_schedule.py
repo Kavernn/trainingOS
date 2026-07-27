@@ -278,3 +278,107 @@ def api_progression_suggestions():
         phase=phase,
     )
     return jsonify({"suggestions": suggestions})
+
+
+@workout_schedule_bp.route("/api/move_planned_exercise", methods=["POST"])
+def api_move_planned_exercise():
+    """Déplacer un exercice planifié entre séances matin/soir pour une date.
+
+    Garde-fou zéro-modif-historique : refuse (409) si un exercise_log existe
+    pour (date, exercise_id) — la ligne log garde toujours son session_id.
+
+    `from_session_type` est déterminé PAR LE BACKEND (schedule + override
+    actuel), l'iOS ne peut pas mentir sur l'origine.
+
+    Idempotent via UPSERT sur UNIQUE(date, exercise_id). Re-déplacer au même
+    endroit = 400 no_op. Bouger un exo déjà déplacé (matin→soir puis
+    soir→matin) = update in place, pas doublon.
+
+    Body   : {"date": "YYYY-MM-DD" (opt, défaut today MTL),
+              "exercise_id": "uuid",
+              "to_session_type": "morning" | "evening"}
+    Retour : 200 {"override": {...}, "created": bool}
+             400 {"error": "..."} params invalides / exo non planifié / no_op
+             409 {"error": "exercise_already_logged"} si un log existe
+
+    Limitation v1 : opère sur TODAY (get_today/get_today_evening = MTL
+    courant). Support date arbitraire = ticket futur (helper
+    get_schedule_for_date).
+    """
+    import db as _db
+    from planner import get_today, get_today_evening, load_program
+    from blocks import get_strength_exercises
+    from utils import _today_mtl
+
+    data = request.get_json(silent=True) or {}
+    date = data.get("date") or _today_mtl()
+    exercise_id = data.get("exercise_id")
+    to_slot = (data.get("to_session_type") or "").strip().lower()
+
+    if not exercise_id or to_slot not in ("morning", "evening"):
+        return jsonify({
+            "error": "bad_request",
+            "detail": "exercise_id + to_session_type in {morning,evening} required",
+        }), 400
+
+    # Garde-fou zéro-modif-historique (avant toute écriture).
+    if _db.exercise_has_log_on(date, exercise_id):
+        return jsonify({
+            "error": "exercise_already_logged",
+            "detail": "un exo loggé ne peut pas être déplacé",
+        }), 409
+
+    # Résolution nom de l'exo (les overrides et le schedule sont keyés par name côté plan).
+    try:
+        r = _db._client.table("exercises").select("name").eq("id", exercise_id).single().execute()
+        exo_name = (r.data or {}).get("name")
+    except Exception:
+        exo_name = None
+    if not exo_name:
+        return jsonify({"error": "exercise_not_found"}), 400
+
+    # Résolution du slot actuel (source de vérité pour from) : schedule modulé
+    # par les overrides existants — un exo déjà déplacé matin→soir a maintenant
+    # sa source effective = soir.
+    full_program = load_program()
+    morning_name = get_today()
+    evening_name = get_today_evening()
+    morning_exos = set(get_strength_exercises(full_program.get(morning_name, {})).keys()) if morning_name else set()
+    evening_exos = set(get_strength_exercises(full_program.get(evening_name, {})).keys()) if evening_name else set()
+
+    existing_overrides = _db.get_session_plan_overrides(date)
+    override_effective_slot_by_name: dict = {}
+    ov_ex_ids = [o["exercise_id"] for o in existing_overrides]
+    if ov_ex_ids:
+        try:
+            resp = _db._client.table("exercises").select("id,name").in_("id", ov_ex_ids).execute()
+            id_to_name_ov = {e["id"]: e["name"] for e in (resp.data or [])}
+            for o in existing_overrides:
+                nm = id_to_name_ov.get(o["exercise_id"])
+                if nm:
+                    override_effective_slot_by_name[nm] = o["to_session_type"]
+        except Exception:
+            pass
+
+    current_slot = override_effective_slot_by_name.get(exo_name)
+    if current_slot is None:
+        if exo_name in morning_exos:
+            current_slot = "morning"
+        elif exo_name in evening_exos:
+            current_slot = "evening"
+        else:
+            return jsonify({
+                "error": "exercise_not_planned",
+                "detail": f"'{exo_name}' n'est pas planifié le {date}",
+            }), 400
+
+    if current_slot == to_slot:
+        return jsonify({
+            "error": "no_op",
+            "detail": f"'{exo_name}' est déjà dans {to_slot}",
+        }), 400
+
+    row = _db.upsert_session_plan_override(date, exercise_id, current_slot, to_slot)
+    if not row:
+        return jsonify({"error": "upsert_failed"}), 500
+    return jsonify({"override": row, "created": True})

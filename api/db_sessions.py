@@ -2043,3 +2043,102 @@ def recompute_exercise_pr(exercise_name: str) -> bool:
                 return False
         db_core.logger.error("recompute_exercise_pr error: %s", e)
         return False
+
+
+# ---------------------------------------------------------------------------
+# Session plan overrides — étape 3 flow bonus (2026-07-26)
+# ---------------------------------------------------------------------------
+
+def get_session_plan_overrides(date: str) -> List[dict]:
+    """Return les overrides {exercise_id, from_session_type, to_session_type}
+    pour une date donnée. Consommée par planner.get_day_plan (SOURCE UNIQUE)."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            db_core._client.table("session_plan_overrides")
+            .select("exercise_id,from_session_type,to_session_type")
+            .eq("date", date)
+            .execute()
+        )
+        return list(resp.data or [])
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_session_plan_overrides retry error: %s", e2)
+                return []
+        db_core.logger.error("get_session_plan_overrides error: %s", e)
+        return []
+
+
+def upsert_session_plan_override(
+    date: str, exercise_id: str, from_session_type: str, to_session_type: str
+) -> dict:
+    """UPSERT sur (date, exercise_id) — un exo n'a qu'un seul override actif
+    par jour. Re-déplacement = update in place. Retourne la row.
+    Le garde-fou (exercise_has_log_on) est côté endpoint appelant."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return {}
+    payload = {
+        "date": date,
+        "exercise_id": exercise_id,
+        "from_session_type": from_session_type,
+        "to_session_type": to_session_type,
+    }
+
+    def _do() -> dict:
+        resp = (
+            db_core._client.table("session_plan_overrides")
+            .upsert(payload, on_conflict="date,exercise_id")
+            .execute()
+        )
+        return resp.data[0] if resp.data else {}
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("upsert_session_plan_override retry error: %s", e2)
+                return {}
+        db_core.logger.error("upsert_session_plan_override error: %s", e)
+        return {}
+
+
+def exercise_has_log_on(date: str, exercise_id: str) -> bool:
+    """Garde-fou zéro-modif-historique : True si un exercise_log existe pour
+    (date, exercise_id) sur n'importe quelle session_type du jour. Empêche
+    de déplacer un exo déjà loggé — la ligne log garde son session_id."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        resp = (
+            db_core._client.table("exercise_logs")
+            .select("id,workout_sessions!inner(date)")
+            .eq("exercise_id", exercise_id)
+            .eq("workout_sessions.date", date)
+            .limit(1)
+            .execute()
+        )
+        return bool(resp.data)
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("exercise_has_log_on retry error: %s", e2)
+                return False
+        db_core.logger.error("exercise_has_log_on error: %s", e)
+        return False
