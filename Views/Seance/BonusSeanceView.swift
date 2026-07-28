@@ -71,6 +71,13 @@ struct BonusSeanceView: View {
     @State private var sessionStarted = false
     @State private var expandedExercises: Set<String> = []
     @State private var lastScrollY: CGFloat? = nil
+    // Étape 4b-iii — exos poussés depuis matin/soir (SOURCE UNIQUE
+    // /api/seance_bonus_data.pushedToBonus). Distincts des exos ajoutés
+    // manuellement via AddExerciseSheet → contextMenu retour dispo seulement
+    // sur ce sous-ensemble.
+    @State private var pushedNames: Set<String> = []
+    @State private var exerciseIdsMap: [String: String] = [:]
+    @State private var todayDateStr: String = ""
 
     private var orderedExercises: [String] {
         exerciseOrder.filter { localExercises[$0] != nil }
@@ -79,6 +86,7 @@ struct BonusSeanceView: View {
     @ViewBuilder private func exerciseCard(for name: String) -> some View {
         let idx = orderedExercises.firstIndex(of: name)
         let next = idx.flatMap { $0 + 1 < orderedExercises.count ? orderedExercises[$0 + 1] : nil }
+        let isPushed = pushedNames.contains(name)
         ExerciseCard(
             name: name,
             scheme: localExercises[name] ?? "3x8-12",
@@ -100,9 +108,53 @@ struct BonusSeanceView: View {
                 }
             },
             nextExerciseName: next,
-            sessionDate: vm.seanceData?.todayDate ?? ""
+            sessionDate: vm.seanceData?.todayDate ?? todayDateStr
         )
         .padding(.horizontal, 16)
+        // Étape 4b-iii — retour bonus→matin/soir (bidir, décidé à froid).
+        // Uniquement sur les exos POUSSÉS (les manuels n'ont pas d'origine).
+        // Long-press natif SwiftUI, symétrique au geste 4b-ii sens aller.
+        .contextMenu {
+            if isPushed {
+                Button {
+                    performMove(name: name, to: .morning)
+                } label: {
+                    Label("Renvoyer au matin", systemImage: "arrow.left")
+                }
+                Button {
+                    performMove(name: name, to: .evening)
+                } label: {
+                    Label("Renvoyer au soir", systemImage: "arrow.left")
+                }
+            }
+        }
+    }
+
+    /// Étape 4b-iii — retour bonus→matin/soir. Lookup id AVANT le POST
+    /// (fail fast — doctrine). Notif planOverridesDidChange → refetch auto.
+    private func performMove(name: String, to slot: SessionKind) {
+        guard let exoId = exerciseIdsMap[name] else {
+            vm.submitError = "Impossible de résoudre '\(name)' — recharge la séance."
+            return
+        }
+        let date = vm.seanceData?.todayDate ?? todayDateStr
+        Task {
+            do {
+                try await APIService.shared.movePlannedExercise(
+                    date: date, exerciseId: exoId, to: slot
+                )
+                NotificationCenter.default.post(name: .planOverridesDidChange, object: nil)
+                await loadInventory()  // refetch propre sur la vue bonus
+            } catch let APIError.serverError(code, _) where code == 409 {
+                await MainActor.run {
+                    vm.submitError = "Exo déjà loggé aujourd'hui — non déplaçable."
+                }
+            } catch {
+                await MainActor.run {
+                    vm.submitError = "Déplacement échoué : \(error.localizedDescription)"
+                }
+            }
+        }
     }
 
     @ViewBuilder private var addExerciseButton: some View {
@@ -253,6 +305,11 @@ struct BonusSeanceView: View {
             }
         }
         .task { await loadInventory() }
+        // Étape 4b-iii — un move depuis matin/soir (ou vice-versa) doit rafraîchir
+        // la liste des pushed. Notif émise par WorkoutActiveView.performMove.
+        .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange)) { _ in
+            Task { await loadBonusPlan() }
+        }
         .sheet(isPresented: $showUnloggedWarning) {
             WorkoutSummarySheet(
                 exercises: orderedExercises,
@@ -331,6 +388,10 @@ struct BonusSeanceView: View {
     private func loadInventory() async {
         await vm.load()
 
+        // Étape 4b-iii — charger le plan bonus (exos poussés depuis matin/soir).
+        // Séquentiel (pas async let — cf. feedback iOS 26 async let crash).
+        await loadBonusPlan()
+
         guard let url = URL(string: "\(APIConfig.base)/api/programme_data"),
               let (data, _) = try? await URLSession.authed.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -348,6 +409,41 @@ struct BonusSeanceView: View {
             inventorySchemes  = schemes
             inventoryMuscleGroups = muscleGroups
             isLoading         = false
+        }
+    }
+
+    /// Étape 4b-iii — GET /api/seance_bonus_data → merge pushedToBonus dans
+    /// localExercises/exerciseOrder. Les ajouts MANUELS (via AddExerciseSheet)
+    /// sont préservés. Distingués via pushedNames Set (contextMenu retour dispo
+    /// seulement sur les pushed).
+    private func loadBonusPlan() async {
+        guard let url = URL(string: "\(APIConfig.base)/api/seance_bonus_data"),
+              let (data, _) = try? await URLSession.authed.data(from: url),
+              let bonus = try? JSONDecoder().decode(SeanceBonusData.self, from: data)
+        else { return }
+
+        let newPushed = bonus.pushedToBonus
+        // Scheme source : fullProgram["Bonus"] du payload (contient les exos poussés).
+        let bonusPlan = bonus.fullProgram["Bonus"] ?? [:]
+
+        await MainActor.run {
+            let oldPushed = pushedNames
+            // Retire les anciens pushed qui ne le sont plus (mais garde les manuels).
+            for name in oldPushed.subtracting(newPushed) {
+                localExercises.removeValue(forKey: name)
+                exerciseOrder.removeAll { $0 == name }
+            }
+            // Ajoute les nouveaux pushed (scheme depuis bonus payload, fallback 3x8-12).
+            for name in newPushed.subtracting(oldPushed) {
+                let scheme = bonusPlan[name]?.value ?? "3x8-12"
+                localExercises[name] = scheme
+                if !exerciseOrder.contains(name) {
+                    exerciseOrder.insert(name, at: 0)  // pushed en tête, manuels après
+                }
+            }
+            pushedNames = newPushed
+            exerciseIdsMap = bonus.exerciseIds
+            if !bonus.todayDate.isEmpty { todayDateStr = bonus.todayDate }
         }
     }
 }

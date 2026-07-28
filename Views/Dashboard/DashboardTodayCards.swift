@@ -279,7 +279,8 @@ struct TodayCardView: View {
             // opportuniste dans un commit séparé.
             Seance3BonusStrip(
                 hasBonus: dash.hasBonusSession,
-                bonusCompleted: dash.bonusSessionCompleted
+                bonusCompleted: dash.bonusSessionCompleted,
+                pushedCount: dash.pushedToBonus.count
             )
         }
         // Fond neutre : brutalist (cardAccentFillOpacity 1.0) + electric (0.80)
@@ -542,9 +543,20 @@ struct Seance2ReminderStrip: View {
 struct Seance3BonusStrip: View {
     let hasBonus: Bool
     let bonusCompleted: Bool
+    /// Étape 4b-iii — count des exos poussés vers bonus (dash.pushedToBonus.count).
+    /// Défaut 0 pour n'imposer aucun call-site à passer le param s'il ne le veut pas.
+    var pushedCount: Int = 0
     @State private var showSheet = false
     @State private var isCreating = false
     @State private var errorMessage: String?
+
+    private var buttonLabel: String {
+        if hasBonus { return "Reprendre la bonus" }
+        if pushedCount > 0 {
+            return "Bonus · \(pushedCount) exo\(pushedCount > 1 ? "s" : "") poussé\(pushedCount > 1 ? "s" : "")"
+        }
+        return "＋ Séance bonus"
+    }
 
     var body: some View {
         if hasBonus && bonusCompleted {
@@ -563,7 +575,7 @@ struct Seance3BonusStrip: View {
                     } else {
                         Image(systemName: hasBonus ? "arrow.right.circle" : "plus.circle")
                     }
-                    Text(hasBonus ? "Reprendre la bonus" : "＋ Séance bonus")
+                    Text(buttonLabel)
                         .font(.appLabel.weight(.semibold))
                 }
                 .frame(maxWidth: .infinity)
