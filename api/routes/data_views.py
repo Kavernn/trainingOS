@@ -154,9 +154,11 @@ def api_dashboard():
     # exos prévus — sans cet override, il resterait sur la vue template.
     _full_program_payload = {s: get_strength_exercises(sd) for s, sd in full_program.items()}
     _pushed_to_evening: list = []
+    _pushed_to_bonus: list = []
     try:
         _dp = _get_day_plan(today_date, full_program)
         _pushed_to_evening = _dp.get("pushed_to_evening") or []
+        _pushed_to_bonus = _dp.get("pushed_to_bonus") or []
         if today_str and today_str in _full_program_payload:
             _full_program_payload[today_str] = _dp["morning"]
     except Exception:
@@ -177,6 +179,8 @@ def api_dashboard():
         # Étape 3b — exos poussés matin→soir today. Consommé par iOS
         # DashboardData.pushedToEvening (remplace SeanceSplitStore local).
         "pushed_to_evening":   _pushed_to_evening,
+        # Étape 4 — symétrique : exos poussés vers bonus. Badges iOS dashboard.
+        "pushed_to_bonus":     _pushed_to_bonus,
         # Étape 3b — {name: id} union des sessions du programme. iOS lit
         # exercise_ids[name] au tap déplacer pour envoyer l'id au backend.
         "exercise_ids":        {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
