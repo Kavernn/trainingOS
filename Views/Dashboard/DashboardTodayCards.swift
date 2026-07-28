@@ -114,10 +114,8 @@ struct TodayCardView: View {
                 if let session = todaySession {
                     TodaySessionRecap(session: session, color: todayColor, totalWorkoutMin: dash.totalWorkoutMinToday)
                 }
-                // Pivot Volet F v2 : séance 2 non complétée ET (planifiée backend OU exos
-                // poussés localement) → CTA principal vers SeanceSoirView (le vrai flow
-                // evening, is_second=true), pas BonusSeanceView (session_type=bonus).
-                // Sinon fallback bonus (comportement historique).
+                // Séance 2 non complétée ET (planifiée backend OU exos poussés localement)
+                // → CTA vers SeanceSoirView (flow evening, is_second=true).
                 if (dash.hasEveningSession || hasLocalPushedExercises) && !dash.secondSessionCompleted {
                     // Sheet obligatoire (Volet G) — voir SeanceSoirView.swift head.
                     Button { showSeance2Sheet = true } label: {
@@ -143,25 +141,8 @@ struct TodayCardView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 16)
                     .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView(sessionName: dash.eveningSessionName) }
-                } else {
-                    NavigationLink(destination: BonusSeanceView(isRestDay: false)) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "plus.circle")
-                            Text("Faire une séance 2")
-                                .font(.appLabel.weight(.semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.gray.opacity(0.12))
-                        .foregroundColor(.gray)
-                        .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2), lineWidth: 1))
-                    }
-                    .buttonStyle(SpringButtonStyle())
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
                 }
+                // Loggé sans séance 2 planifiée → Seance3BonusStrip (fin de VStack) fournit l'accès bonus.
             } else {
                 // ── Programme prévu (pas encore loggé) ───────────────────
                 if !exercises.isEmpty {
@@ -201,29 +182,8 @@ struct TodayCardView: View {
                         .padding(.bottom, 8)
                 }
 
-                if dash.today == "Repos" {
-                    NavigationLink(destination: BonusSeanceView(isRestDay: true)) {
-                        HStack(spacing: 8) {
-                            Image(systemName: hasPartialLogs ? "play.fill" : "plus.circle.fill")
-                            Text(hasPartialLogs ? "Continuer la séance" : "Faire une séance libre")
-                                .font(.appBody.weight(.bold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.gray, Color.gray.opacity(0.75)],
-                                startPoint: .leading, endPoint: .trailing
-                            )
-                        )
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                        .shadow(color: Color.gray.opacity(0.3), radius: 10, y: 4)
-                    }
-                    .buttonStyle(SpringButtonStyle())
-                    .padding([.horizontal, .bottom], 16)
-                    .padding(.top, 12)
-                } else {
+                // Jour de repos → pas de CTA principal ici, Seance3BonusStrip (fin VStack) suffit.
+                if dash.today != "Repos" {
                     Group {
                         if let onOpenSession {
                             Button(action: {
@@ -273,10 +233,7 @@ struct TodayCardView: View {
                     .padding(.top, 12)
                 }
             }
-            // Étape 2b — CTA bonus autonome, 3 états gérés dans le composant.
-            // Coexistence avec les 2 anciens CTAs (L148 « Faire une séance 2 »
-            // fallback et L206 « Faire une séance libre » rest day) — nettoyage
-            // opportuniste dans un commit séparé.
+            // Point d'accès unique bonus — 3 états gérés dans le composant.
             Seance3BonusStrip(
                 hasBonus: dash.hasBonusSession,
                 bonusCompleted: dash.bonusSessionCompleted,
@@ -481,53 +438,6 @@ struct CriticalAlertCard: View {
                     }
                 }
         )
-    }
-}
-
-// MARK: - Séance 2 reminder strip (P2.B.4)
-// Strip 44px léger, n'apparaît que les jours splittés. Tap → tab Séance.
-// Vue passive : la navigation est portée par le NavigationLink parent (le seul
-// call site est DashboardView). Un Button interne intercepterait le tap et
-// empêcherait le NavigationLink de fire.
-struct Seance2ReminderStrip: View {
-    let programName: String
-    let count: Int
-    let accent: Color
-
-    var body: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "2.circle.fill")
-                    .font(.appCaption).fontWeight(.bold)
-                    .foregroundColor(accent.opacity(0.85))
-                Text("\(programName) — Séance 2")
-                    .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(Color.appOnSurface.opacity(0.90))
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            HStack(spacing: 4) {
-                Text("\(count) exo\(count > 1 ? "s" : "") à faire")
-                    .font(.appCaption).fontWeight(.medium)
-                    .foregroundColor(Color.appOnSurface.opacity(0.75))
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 10)).fontWeight(.bold)
-                    .foregroundColor(accent.opacity(0.7))
-            }
-            .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(
-                Capsule()
-                    .fill(Color.appSurfaceInset)
-                    .overlay(Capsule().stroke(accent.opacity(0.4), lineWidth: 0.5))
-            )
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 44)
-        .background(accent.opacity(0.15))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.35), lineWidth: 0.5))
-        .cornerRadius(10)
     }
 }
 
