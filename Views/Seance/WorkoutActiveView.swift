@@ -619,31 +619,10 @@ struct WorkoutSeanceView: View {
                 // multiples du log d'exercice.
                 if canMove {
                     Button {
-                        // Étape 3b — recâblage backend. Lookup id AVANT le POST :
-                        // fail fast si nil (doctrine — jamais de matching name→id à
-                        // l'écrit). Notif .planOverridesDidChange déclenche le refetch
-                        // dashboard/seance côté listeners (source unique payload).
-                        guard let exoId = data.exerciseIds[name] else {
-                            toast = ToastMessage(message: "Impossible de résoudre '\(name)' — recharge la séance.", style: .error)
-                            return
-                        }
+                        // Étape 3b — recâblage backend. Notif .planOverridesDidChange
+                        // déclenche le refetch dashboard/seance côté listeners.
                         let targetSlot: SessionKind = isSecondSession ? .morning : .evening
-                        Task {
-                            do {
-                                try await APIService.shared.movePlannedExercise(
-                                    date: data.todayDate, exerciseId: exoId, to: targetSlot
-                                )
-                                NotificationCenter.default.post(name: .planOverridesDidChange, object: nil)
-                            } catch let APIError.serverError(code, _) where code == 409 {
-                                await MainActor.run {
-                                    toast = ToastMessage(message: "Exo déjà loggé aujourd'hui — non déplaçable.", style: .error)
-                                }
-                            } catch {
-                                await MainActor.run {
-                                    toast = ToastMessage(message: "Déplacement échoué : \(error.localizedDescription)", style: .error)
-                                }
-                            }
-                        }
+                        performMove(name: name, to: targetSlot)
                     } label: {
                         // Label textuel court : "→ Soir" (matin → envoyer) ou
                         // "← Matin" (soir → ramener). Restaure la découvrabilité
@@ -668,6 +647,16 @@ struct WorkoutSeanceView: View {
                     .buttonStyle(.plain)
                     .padding(.top, 8)
                     .padding(.trailing, 24)
+                    // Étape 4 — long-press sur le bouton (pas la carte, évite conflit
+                    // avec les taps du log — cf. comm L618). Menu ajoute la destination
+                    // bonus sans polluer le tap principal matin↔soir.
+                    .contextMenu {
+                        Button {
+                            performMove(name: name, to: .bonus)
+                        } label: {
+                            Label("Déplacer vers Bonus", systemImage: "sparkles")
+                        }
+                    }
                 }
             }
             .scaleEffect(isDragging ? 1.03 : 1.0, anchor: .center)
@@ -677,6 +666,33 @@ struct WorkoutSeanceView: View {
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: shift)
             .animation(.spring(response: 0.2, dampingFraction: 0.9), value: isDragging)
             .transition(.opacity.combined(with: .scale(scale: 0.92)))
+    }
+
+    /// Extrait du tap "→ Soir"/"← Matin" (étape 3b) — même logique réutilisée
+    /// par le contextMenu long-press "→ Bonus" (étape 4b-ii). Lookup id
+    /// AVANT le POST : fail fast si nil (doctrine — jamais de matching
+    /// name→id à l'écrit).
+    private func performMove(name: String, to slot: SessionKind) {
+        guard let exoId = data.exerciseIds[name] else {
+            toast = ToastMessage(message: "Impossible de résoudre '\(name)' — recharge la séance.", style: .error)
+            return
+        }
+        Task {
+            do {
+                try await APIService.shared.movePlannedExercise(
+                    date: data.todayDate, exerciseId: exoId, to: slot
+                )
+                NotificationCenter.default.post(name: .planOverridesDidChange, object: nil)
+            } catch let APIError.serverError(code, _) where code == 409 {
+                await MainActor.run {
+                    toast = ToastMessage(message: "Exo déjà loggé aujourd'hui — non déplaçable.", style: .error)
+                }
+            } catch {
+                await MainActor.run {
+                    toast = ToastMessage(message: "Déplacement échoué : \(error.localizedDescription)", style: .error)
+                }
+            }
+        }
     }
 
     private func dragGesture(for name: String) -> some Gesture {
