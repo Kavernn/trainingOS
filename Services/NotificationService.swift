@@ -774,11 +774,13 @@ final class RestTimerManager: ObservableObject {
     }
 
     private func runLoop() async {
-        guard let sd = startDate else { return }
         var lastSoundedRem = totalSeconds + 1   // anti-double-bip
         while !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 500_000_000)   // tick 0.5s
             guard !Task.isCancelled else { break }
+            // Relit startDate à CHAQUE tick — source unique. adjust() bouge startDate,
+            // une copie capturée diverge et fait remonter remaining (bug -Xs cumulatif).
+            guard let sd = startDate else { break }
             let rem = max(0, totalSeconds - Int(Date().timeIntervalSince(sd)))
             remaining = rem
             if rem <= 3 && rem > 0 && rem < lastSoundedRem {
