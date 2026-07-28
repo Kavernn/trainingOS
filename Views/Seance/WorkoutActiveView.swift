@@ -673,6 +673,15 @@ struct WorkoutSeanceView: View {
     /// AVANT le POST : fail fast si nil (doctrine — jamais de matching
     /// name→id à l'écrit).
     private func performMove(name: String, to slot: SessionKind) {
+        // Étape 5 — race guard : entre l'ouverture du contextMenu et le tap,
+        // l'exo peut être devenu loggé/draft (séance active, état bouge en
+        // temps réel). canMove au render ne couvre pas cette fenêtre — on
+        // re-check à l'exécution. Abort silencieux si périmé.
+        let nowLogged = vm.logResults[name] != nil
+        let nowDraft  = SessionDraftStore.load(date: data.todayDate, sessionType: vm.draftSessionType)
+            .contains(where: { $0.name == name })
+        guard !nowLogged && !nowDraft else { return }
+
         guard let exoId = data.exerciseIds[name] else {
             toast = ToastMessage(message: "Impossible de résoudre '\(name)' — recharge la séance.", style: .error)
             return

@@ -133,11 +133,19 @@ struct BonusSeanceView: View {
     /// Étape 4b-iii — retour bonus→matin/soir. Lookup id AVANT le POST
     /// (fail fast — doctrine). Notif planOverridesDidChange → refetch auto.
     private func performMove(name: String, to slot: SessionKind) {
+        let date = vm.seanceData?.todayDate ?? todayDateStr
+        // Étape 5 — race guard : entre l'ouverture du contextMenu et le tap,
+        // l'exo peut être devenu loggé/draft dans la séance bonus active.
+        // Abort silencieux si périmé (ceinture ET bretelles côté iOS).
+        let nowLogged = vm.logResults[name] != nil
+        let nowDraft  = SessionDraftStore.load(date: date, sessionType: vm.draftSessionType)
+            .contains(where: { $0.name == name })
+        guard !nowLogged && !nowDraft else { return }
+
         guard let exoId = exerciseIdsMap[name] else {
             vm.submitError = "Impossible de résoudre '\(name)' — recharge la séance."
             return
         }
-        let date = vm.seanceData?.todayDate ?? todayDateStr
         Task {
             do {
                 try await APIService.shared.movePlannedExercise(
