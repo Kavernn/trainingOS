@@ -139,6 +139,8 @@ def api_seance_data():
         # get_day_plan). Consommé par iOS SeanceData.pushedToEvening qui remplace
         # SeanceSplitStore local. Noms strings alignés au plan (même table exercises).
         "pushed_to_evening": _day_plan["pushed_to_evening"],
+        # Étape 4 — symétrique : exos poussés vers bonus (depuis matin ou soir).
+        "pushed_to_bonus": _day_plan["pushed_to_bonus"],
         # Étape 3b — {name: exercise_id} pour TOUS les exos du programme (union
         # des sessions), SOURCE UNIQUE (get_full_program → même JOIN
         # exercises(id,name), même row que le plan). iOS lit exercise_ids[name]
@@ -226,8 +228,81 @@ def api_seance_soir_data():
         "exercise_order": exercise_order,
         # Étape 3b — même que seance_data : liste exposée pour SeanceData.pushedToEvening.
         "pushed_to_evening": _day_plan["pushed_to_evening"],
+        # Étape 4 — symétrique.
+        "pushed_to_bonus": _day_plan["pushed_to_bonus"],
         # Étape 3b — {name: id} union de TOUTES les sessions du programme.
         # Couvre pseudo-séance soir + exos cross-session moved.
+        "exercise_ids": {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
+    })
+
+
+@workout_schedule_bp.route("/api/seance_bonus_data")
+def api_seance_bonus_data():
+    """Étape 4 — plan bonus du jour (exos déplacés vers bonus).
+
+    Calquée sur api_seance_soir_data : modèle orphelin-compatible (une séance qui
+    n'est jamais au schedule — les exos y arrivent uniquement via override
+    to='bonus'). La row workout_sessions(type='bonus') N'EST PAS créée ici —
+    doctrine override=intention, session=matérialisation au 1er log ou via
+    /api/create_bonus_session (CTA étape 2).
+
+    has_bonus_session TRUE si : session DB existe OU day_plan.bonus non vide.
+    """
+    import db as _db
+    from planner import (load_program, get_today_date,
+                         get_suggested_weights_for_today)
+    from weights import load_weights
+    from inventory import load_inventory
+    from blocks import get_strength_exercises, get_strength_exercise_ids
+    from utils import get_current_week, cap_scheme_sets
+
+    weights      = load_weights()
+    full_program = load_program()
+    inventory    = load_inventory()
+    today_date   = get_today_date()
+
+    from planner import get_day_plan
+    _day_plan = get_day_plan(today_date, full_program)
+    _bonus_plan = _day_plan.get("bonus") or {}
+    _bonus_session = _db.get_workout_session_bonus(today_date)
+
+    if not _bonus_plan and not _bonus_session:
+        return jsonify({"has_bonus_session": False})
+
+    today_bonus = "Bonus"  # constante, cf. create_bonus_session (workout_logging.py)
+    already_logged = bool((_bonus_session or {}).get("completed"))
+
+    flat_program = {
+        seance: {ex: cap_scheme_sets(s) for ex, s in get_strength_exercises(session_def).items()}
+        for seance, session_def in full_program.items()
+    }
+    flat_program[today_bonus] = {ex: cap_scheme_sets(s) for ex, s in _bonus_plan.items()}
+
+    inv = inventory if isinstance(inventory, dict) else {}
+    inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
+    inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
+    inventory_rest     = {name: (info.get("rest_seconds") or 120) for name, info in inv.items()}
+    inventory_schemes  = {name: info["default_scheme"] for name, info in inv.items() if info.get("default_scheme")}
+    inventory_muscle_groups = {name: info["muscle_group"] for name, info in inv.items() if info.get("muscle_group")}
+    exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
+    suggestions     = get_suggested_weights_for_today(weights, full_program)
+
+    return jsonify({
+        "has_bonus_session": True,
+        "today_bonus": today_bonus,
+        "today_date": today_date,
+        "already_logged": already_logged,
+        "full_program": flat_program,
+        "suggestions": suggestions,
+        "weights": weights,
+        "week": get_current_week(),
+        "inventory_types": inventory_types,
+        "inventory_tracking": inventory_tracking,
+        "inventory_rest": inventory_rest,
+        "inventory_schemes": inventory_schemes,
+        "inventory_muscle_groups": inventory_muscle_groups,
+        "exercise_order": exercise_order,
+        "pushed_to_bonus": _day_plan["pushed_to_bonus"],
         "exercise_ids": {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
     })
 
@@ -306,10 +381,10 @@ def api_progression_suggestions():
 
     try:
         program   = load_program()
-        # Étape 3 — respect des overrides via get_day_plan (SOURCE UNIQUE).
-        # Pour morning/evening, les exos du slot (post-override) l'emportent sur
-        # le template session_name. Bonus garde le fallback session_name.
-        if session_type in ("morning", "evening"):
+        # Étape 3+4 — respect des overrides via get_day_plan (SOURCE UNIQUE).
+        # matin/soir/bonus consomment le slot post-override. Fallback session_name
+        # pour tout autre session_type inconnu.
+        if session_type in ("morning", "evening", "bonus"):
             from planner import get_day_plan
             _day_plan = get_day_plan(date, program)
             exercises = list(_day_plan[session_type].keys())
@@ -334,13 +409,19 @@ def api_progression_suggestions():
 
 @workout_schedule_bp.route("/api/move_planned_exercise", methods=["POST"])
 def api_move_planned_exercise():
-    """Déplacer un exercice planifié entre séances matin/soir pour une date.
+    """Déplacer un exercice planifié entre séances matin/soir/bonus pour une date.
 
     Garde-fou zéro-modif-historique : refuse (409) si un exercise_log existe
     pour (date, exercise_id) — la ligne log garde toujours son session_id.
 
     `from_session_type` est déterminé PAR LE BACKEND (schedule + override
-    actuel), l'iOS ne peut pas mentir sur l'origine.
+    actuel), l'iOS ne peut pas mentir sur l'origine. Bonus n'est jamais au
+    schedule — un exo n'y arrive que via override, current_slot le lit depuis
+    override_effective_slot_by_name (bidir matin↔soir↔bonus supporté).
+
+    Étape 4 : un override to='bonus' NE matérialise PAS la session bonus DB
+    (doctrine override=intention, session=matérialisation au 1er log ou via CTA
+    create_bonus_session). get_day_plan expose la clé 'bonus' même sans row DB.
 
     Idempotent via UPSERT sur UNIQUE(date, exercise_id). Re-déplacer au même
     endroit = 400 no_op. Bouger un exo déjà déplacé (matin→soir puis
@@ -348,7 +429,7 @@ def api_move_planned_exercise():
 
     Body   : {"date": "YYYY-MM-DD" (opt, défaut today MTL),
               "exercise_id": "uuid",
-              "to_session_type": "morning" | "evening"}
+              "to_session_type": "morning" | "evening" | "bonus"}
     Retour : 200 {"override": {...}, "created": bool}
              400 {"error": "..."} params invalides / exo non planifié / no_op
              409 {"error": "exercise_already_logged"} si un log existe
@@ -367,10 +448,10 @@ def api_move_planned_exercise():
     exercise_id = data.get("exercise_id")
     to_slot = (data.get("to_session_type") or "").strip().lower()
 
-    if not exercise_id or to_slot not in ("morning", "evening"):
+    if not exercise_id or to_slot not in ("morning", "evening", "bonus"):
         return jsonify({
             "error": "bad_request",
-            "detail": "exercise_id + to_session_type in {morning,evening} required",
+            "detail": "exercise_id + to_session_type in {morning,evening,bonus} required",
         }), 400
 
     # Garde-fou zéro-modif-historique (avant toute écriture).

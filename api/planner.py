@@ -199,13 +199,20 @@ def get_suggested_weights_for_today(weights: dict, program: dict | None = None) 
 # ---------------------------------------------------------------------------
 
 def get_day_plan(date: str, full_program: dict) -> dict:
-    """Retourne {'morning': {exo_name: scheme}, 'evening': {exo_name: scheme}}
-    pour la date donnée, avec session_plan_overrides appliqués.
+    """Retourne {'morning': {...}, 'evening': {...}, 'bonus': {...}} pour la date
+    donnée, avec session_plan_overrides appliqués.
 
     SOURCE UNIQUE consommée par api_seance_data, api_seance_soir_data,
-    api_dashboard, _get_day_intensity, api_progression_suggestions. Un
-    consommateur qui contourne cette fonction recrée le trou d'incohérence
-    (récap dit A, dashboard dit B) — cf. décision centralisation étape 3.
+    api_seance_bonus_data, api_dashboard, _get_day_intensity,
+    api_progression_suggestions. Un consommateur qui contourne cette fonction
+    recrée le trou d'incohérence (récap dit A, dashboard dit B) — cf. décision
+    centralisation étape 3.
+
+    Étape 4 : ajout clé 'bonus'. Bonus n'est JAMAIS au schedule — un exo y
+    arrive uniquement via override to='bonus'. Le cas from='bonus' (bidir
+    bonus→matin/soir) : l'exo n'est pas dans bonus_exos initial (schedule
+    ignore bonus), fallback sur morning_exos/evening_exos qui contient l'origine
+    schedule de l'exo.
 
     Ne mute JAMAIS full_program ni le programme template. Un override est
     strictement scopé à SA date (WHERE date = ...).
@@ -218,17 +225,21 @@ def get_day_plan(date: str, full_program: dict) -> dict:
 
     morning_exos = dict(get_strength_exercises(full_program.get(morning_name, {}))) if morning_name else {}
     evening_exos = dict(get_strength_exercises(full_program.get(evening_name, {}))) if evening_name else {}
+    bonus_exos: dict = {}
 
     overrides = _db.get_session_plan_overrides(date)
     pushed_to_evening: list[str] = []
     pushed_to_morning: list[str] = []
+    pushed_to_bonus: list[str] = []
 
     if not overrides:
         return {
             "morning": morning_exos,
             "evening": evening_exos,
+            "bonus": bonus_exos,
             "pushed_to_evening": [],
             "pushed_to_morning": [],
+            "pushed_to_bonus": [],
         }
 
     # Résolution exercise_id → name : les overrides stockent l'id, le plan
@@ -256,6 +267,13 @@ def get_day_plan(date: str, full_program: dict) -> dict:
             scheme = morning_exos.pop(name)
         elif from_slot == "evening" and name in evening_exos:
             scheme = evening_exos.pop(name)
+        elif from_slot == "bonus":
+            # Étape 4 — bonus n'est jamais au schedule ; fallback sur schedule matin/soir
+            # pour retrouver l'origine de l'exo qui était passé en bonus.
+            if name in morning_exos:
+                scheme = morning_exos.pop(name)
+            elif name in evening_exos:
+                scheme = evening_exos.pop(name)
         if scheme is None:
             continue  # exo pas dans la source attendue — override obsolète, on l'ignore
         # Ajoute à la destination + capture pour les listes exposées
@@ -265,11 +283,15 @@ def get_day_plan(date: str, full_program: dict) -> dict:
         elif to_slot == "evening":
             evening_exos[name] = scheme
             pushed_to_evening.append(name)
-        # to='bonus' hors périmètre étape 3 — étape 4
+        elif to_slot == "bonus":
+            bonus_exos[name] = scheme
+            pushed_to_bonus.append(name)
 
     return {
         "morning": morning_exos,
         "evening": evening_exos,
+        "bonus": bonus_exos,
         "pushed_to_evening": sorted(set(pushed_to_evening)),
         "pushed_to_morning": sorted(set(pushed_to_morning)),
+        "pushed_to_bonus": sorted(set(pushed_to_bonus)),
     }
