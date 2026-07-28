@@ -75,6 +75,8 @@ struct DashboardData: Codable {
     /// Exos poussés matin→soir today (étape 3b, source unique backend).
     /// Remplace SeanceSplitStore.load(date: today) — même type/sémantique.
     let pushedToEvening: Set<String>
+    /// Étape 4 — exos poussés vers bonus today. Même sémantique que pushedToEvening.
+    let pushedToBonus: Set<String>
     /// {name: exercise_id} union des sessions du programme (cf. SeanceData.exerciseIds).
     let exerciseIds: [String: String]
 
@@ -99,6 +101,7 @@ struct DashboardData: Codable {
         case bonusSessionCompleted = "bonus_session_completed"
         case cycleStartDate = "cycle_start_date"
         case pushedToEvening = "pushed_to_evening"
+        case pushedToBonus = "pushed_to_bonus"
         case exerciseIds = "exercise_ids"
     }
 
@@ -130,6 +133,8 @@ struct DashboardData: Codable {
         cycleStartDate         = try? c.decode(String.self, forKey: .cycleStartDate)
         // Étape 3b — rétrocompat cache pré-3b.
         pushedToEvening        = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
+        // Étape 4 — rétrocompat cache pré-4.
+        pushedToBonus          = Set((try? c.decode([String].self, forKey: .pushedToBonus)) ?? [])
         exerciseIds            = (try? c.decode([String: String].self, forKey: .exerciseIds)) ?? [:]
     }
 }
@@ -299,6 +304,8 @@ struct SeanceData: Codable {
     /// SeanceSplitStore.load(date: today). Décodé depuis le champ `pushed_to_evening`
     /// du payload. Défaut = Set vide si champ absent (rétrocompat cache pré-3b).
     let pushedToEvening: Set<String>
+    /// Étape 4 — exos poussés vers bonus today. Même sémantique que pushedToEvening.
+    let pushedToBonus: Set<String>
     /// {name: exercise_id UUID} — union de toutes les sessions du programme.
     /// SOURCE UNIQUE backend (même row exercises que le plan → clés identiques).
     /// iOS lit exerciseIds[name] au tap déplacer, envoie l'id au backend.
@@ -324,6 +331,7 @@ struct SeanceData: Codable {
         case loggedTodayNames     = "logged_today_names"
         case eveningSessionName   = "evening_session_name"
         case pushedToEvening      = "pushed_to_evening"
+        case pushedToBonus        = "pushed_to_bonus"
         case exerciseIds          = "exercise_ids"
     }
 
@@ -349,6 +357,7 @@ struct SeanceData: Codable {
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
         loggedTodayNames   = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
         pushedToEvening    = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
+        pushedToBonus      = Set((try? c.decode([String].self, forKey: .pushedToBonus)) ?? [])
         exerciseIds        = (try? c.decode([String: String].self, forKey: .exerciseIds)) ?? [:]
         eveningSessionName = try? c.decode(String.self, forKey: .eveningSessionName)
     }
@@ -366,6 +375,7 @@ struct SeanceData: Codable {
          loggedTodayNames: Set<String> = [],
          eveningSessionName: String? = nil,
          pushedToEvening: Set<String> = [],
+         pushedToBonus: Set<String> = [],
          exerciseIds: [String: String] = [:]) {
         self.today               = today
         self.todayDate           = todayDate
@@ -388,6 +398,7 @@ struct SeanceData: Codable {
         self.loggedTodayNames    = loggedTodayNames
         self.eveningSessionName  = eveningSessionName
         self.pushedToEvening     = pushedToEvening
+        self.pushedToBonus       = pushedToBonus
         self.exerciseIds         = exerciseIds
     }
 }
@@ -409,6 +420,8 @@ struct SeanceSoirData: Codable {
     let exerciseOrder: [String: [String]]
     /// Étape 3b — cf. SeanceData.pushedToEvening. Même sémantique.
     let pushedToEvening: Set<String>
+    /// Étape 4 — cf. SeanceData.pushedToBonus. Même sémantique.
+    let pushedToBonus: Set<String>
     /// Étape 3b — cf. SeanceData.exerciseIds.
     let exerciseIds: [String: String]
 
@@ -427,6 +440,7 @@ struct SeanceSoirData: Codable {
         case inventoryMuscleGroups = "inventory_muscle_groups"
         case exerciseOrder     = "exercise_order"
         case pushedToEvening   = "pushed_to_evening"
+        case pushedToBonus     = "pushed_to_bonus"
         case exerciseIds       = "exercise_ids"
     }
 
@@ -447,6 +461,7 @@ struct SeanceSoirData: Codable {
         inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]
         exerciseOrder     = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))     ?? [:]
         pushedToEvening   = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
+        pushedToBonus     = Set((try? c.decode([String].self, forKey: .pushedToBonus)) ?? [])
         exerciseIds       = (try? c.decode([String: String].self, forKey: .exerciseIds)) ?? [:]
     }
 
@@ -459,7 +474,65 @@ struct SeanceSoirData: Codable {
                          inventoryMuscleGroups: inventoryMuscleGroups,
                          exerciseOrder: exerciseOrder,
                          pushedToEvening: pushedToEvening,
+                         pushedToBonus: pushedToBonus,
                          exerciseIds: exerciseIds)
+    }
+}
+
+/// Étape 4 — payload de GET /api/seance_bonus_data (route dédiée, calquée sur
+/// api_seance_soir_data). Cas orphelin-compatible : hasBonusSession=false =
+/// aucun exo déplacé + aucune session bonus DB → tout le reste absent du payload.
+struct SeanceBonusData: Codable {
+    let hasBonusSession: Bool
+    let todayBonus: String?
+    let todayDate: String
+    let alreadyLogged: Bool
+    let fullProgram: [String: [String: SafeString]]
+    let weights: [String: WeightData]
+    let week: Int
+    let inventoryTypes: [String: String]
+    let inventoryTracking: [String: String]
+    let inventoryRest: [String: Int]
+    let inventorySchemes: [String: String]
+    let inventoryMuscleGroups: [String: String]
+    let exerciseOrder: [String: [String]]
+    let pushedToBonus: Set<String>
+    let exerciseIds: [String: String]
+
+    enum CodingKeys: String, CodingKey {
+        case hasBonusSession = "has_bonus_session"
+        case todayBonus      = "today_bonus"
+        case todayDate       = "today_date"
+        case alreadyLogged   = "already_logged"
+        case fullProgram     = "full_program"
+        case weights, week
+        case inventoryTypes  = "inventory_types"
+        case inventoryTracking = "inventory_tracking"
+        case inventoryRest   = "inventory_rest"
+        case inventorySchemes = "inventory_schemes"
+        case inventoryMuscleGroups = "inventory_muscle_groups"
+        case exerciseOrder   = "exercise_order"
+        case pushedToBonus   = "pushed_to_bonus"
+        case exerciseIds     = "exercise_ids"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        hasBonusSession = (try? c.decode(Bool.self,              forKey: .hasBonusSession)) ?? false
+        todayBonus      =  try? c.decode(String.self,            forKey: .todayBonus)
+        todayDate       = (try? c.decode(String.self,            forKey: .todayDate))       ?? ""
+        alreadyLogged   = (try? c.decode(Bool.self,              forKey: .alreadyLogged))   ?? false
+        fullProgram     = (try? c.decode([String: [String: SafeString]].self, forKey: .fullProgram)) ?? [:]
+        weights         = (try? c.decode([String: WeightData].self, forKey: .weights))      ?? [:]
+        week            = (try? c.decode(Int.self,               forKey: .week))            ?? 0
+        inventoryTypes  = (try? c.decode([String: String].self,  forKey: .inventoryTypes))  ?? [:]
+        inventoryTracking = (try? c.decode([String: String].self, forKey: .inventoryTracking)) ?? [:]
+        inventoryRest   = (try? c.decode([String: Int].self,     forKey: .inventoryRest))   ?? [:]
+        inventorySchemes = (try? c.decode([String: String].self, forKey: .inventorySchemes)) ?? [:]
+        inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]
+        exerciseOrder   = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))  ?? [:]
+        pushedToBonus   = Set((try? c.decode([String].self, forKey: .pushedToBonus)) ?? [])
+        exerciseIds     = (try? c.decode([String: String].self, forKey: .exerciseIds))     ?? [:]
     }
 }
 
