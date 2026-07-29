@@ -129,23 +129,31 @@ def print_divergences(sample: list[dict]) -> None:
 
 
 def cross_check_view_vs_simulation(view_sample: list[dict], sim_sample: list[dict]) -> int:
-    """Compare la vue réelle à la simulation (variante A). Retourne nb divergences."""
-    sim_by_date = {r.get("date"): r for r in sim_sample}
+    """Compare la vue réelle à la simulation (variante A). Appariement par session_id
+    (pas par date : plusieurs séances peuvent partager le même jour). Retourne nb divergences."""
+    sim_by_sid = {r.get("session_id"): r for r in sim_sample if r.get("session_id")}
     mismatches = []
+    compared = 0
     for v in view_sample:
-        d = v.get("date")
-        s = sim_by_date.get(d)
+        sid = v.get("session_id")
+        if not sid:
+            continue
+        s = sim_by_sid.get(sid)
         if not s:
             continue
+        compared += 1
         view_cat = v.get("session_category")
         sim_cat  = (s.get("variant_A") or {}).get("category")
         if view_cat != sim_cat:
-            mismatches.append((d, v.get("session_name"), view_cat, sim_cat))
-    print("\n── COHÉRENCE VUE ↔ SIMULATION (variante A) ────────────────────────────")
+            mismatches.append((v.get("date"), v.get("session_name"), view_cat, sim_cat))
+    print("\n── COHÉRENCE VUE ↔ SIMULATION (variante A, apparié par session_id) ────")
+    if compared == 0:
+        print("(aucune paire session_id partagée entre vue et simulation)")
+        return 0
     if not mismatches:
-        print(f"✓ Vue base et simulation identiques sur {len(view_sample)} séance(s).")
+        print(f"✓ Vue base et simulation identiques sur {compared} séance(s).")
     else:
-        print(f"✗ {len(mismatches)} divergence(s) — la vue en base ne matche pas la simulation :")
+        print(f"✗ {len(mismatches)} divergence(s) sur {compared} comparaison(s) :")
         for d, name, view_cat, sim_cat in mismatches:
             print(f"   {d}  {name}  vue={view_cat}  ≠  sim={sim_cat}")
     return len(mismatches)

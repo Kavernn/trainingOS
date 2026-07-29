@@ -548,6 +548,7 @@ def simulate_category_classification(limit: int = 20) -> dict:
             force_A = sum(1 for c in cats if c in FORCE_A)
             force_B = sum(1 for c in cats if c in FORCE_B)
             sample.append({
+                "session_id":   sid,
                 "date":         str(s.get("date", ""))[:10],
                 "session_name": names.get(sid, "?"),
                 "n_exos":       len(cats),
@@ -603,6 +604,7 @@ def get_session_category_sample(limit: int = 20) -> list[dict]:
         names = {r["id"]: (r.get("session_name") or "?") for r in (sess_resp.data or [])}
         return [
             {
+                "session_id":       r["session_id"],
                 "date":             str(r.get("date", ""))[:10],
                 "session_name":     names.get(r["session_id"], "?"),
                 "session_category": r.get("session_category"),
