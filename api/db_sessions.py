@@ -933,6 +933,38 @@ def get_all_exercise_history(cutoff_days: int = 180, full_history: bool = False)
                 key=lambda x: (x.get("date", ""), len(x.get("sets") or [])),
                 reverse=True,
             )
+        # Compaction (name, date) : après le tri newest+richest-first, retirer
+        # les doublons Crime 4 (row clone matin↔soir/bonus, sets_json vide côté
+        # clone). Exception défensive : si TOUTES les rows d'un groupe (name,
+        # date) sont non-vides ET distinctes → vraies séances distinctes
+        # (matin+bonus réels), on garde toutes. 0 cas mesuré sur 90j au
+        # 2026-07-28 (audit chantier stats), protection future. Les 11 callers
+        # de get_all_exercise_history sont tous agrégatoires (Stats, PRs,
+        # readiness, plateau, patterns, phoenix, season, workout_dna,
+        # time_capsule, backfill_prs) — aucun ne veut l'historique brut.
+        import json as _json_cmp
+        for name in result:
+            entries = result[name]
+            if len(entries) < 2:
+                continue
+            compacted = []
+            i = 0
+            while i < len(entries):
+                j = i + 1
+                while j < len(entries) and entries[j].get("date") == entries[i].get("date"):
+                    j += 1
+                group = entries[i:j]
+                if len(group) == 1:
+                    compacted.append(group[0])
+                else:
+                    all_rich = all(g.get("sets") for g in group)
+                    distinct = len({_json_cmp.dumps(g.get("sets"), sort_keys=True) for g in group})
+                    if all_rich and distinct == len(group):
+                        compacted.extend(group)
+                    else:
+                        compacted.append(group[0])
+                i = j
+            result[name] = compacted
         return result
 
     try:
