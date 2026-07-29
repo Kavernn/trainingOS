@@ -391,6 +391,129 @@ def get_session_volume_map(days: int = 200) -> dict[str, float]:
     return _get_session_volume_map(days)
 
 
+def _aggregate_force_vs_accessory_timeline(rows: list[dict]) -> list[dict]:
+    """Pure : groupe rows par (iso_week, category), moyenne total_volume.
+
+    avg_tonnage = MOYENNE par séance dans (semaine, catégorie) — pas la somme.
+    Neutralise le nombre de séances : compare la charge PAR SÉANCE (qualité),
+    pas la charge totale hebdo (quantité). Exposée en top-level pour test unitaire.
+    """
+    from datetime import date as _date, timedelta
+    buckets: dict[tuple[str, str], list[float]] = {}
+    for r in rows:
+        d = str(r.get("date", ""))[:10]
+        cat = r.get("session_category")
+        vol = r.get("total_volume")
+        if not d or cat not in ("force", "accessory") or vol is None:
+            continue
+        try:
+            dt = _date.fromisoformat(d)
+        except ValueError:
+            continue
+        monday = (dt - timedelta(days=dt.weekday())).isoformat()
+        buckets.setdefault((monday, cat), []).append(float(vol))
+    result = [
+        {
+            "iso_week":         monday,
+            "session_category": cat,
+            "avg_tonnage":      round(sum(vols) / len(vols), 2),
+            "n_sessions":       len(vols),
+        }
+        for (monday, cat), vols in buckets.items()
+    ]
+    result.sort(key=lambda x: (x["iso_week"], x["session_category"]))
+    return result
+
+
+def get_force_vs_accessory_timeline(weeks: int = 12) -> list[dict]:
+    """Return [{iso_week, session_category, avg_tonnage, n_sessions}] sur N semaines.
+
+    Source : vue v_session_category (migration 085) qui classe chaque séance
+    par ratio d'exos compound. Filtre 'unknown' côté agrégation.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> list[dict]:
+        from datetime import date as _date, timedelta
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(weeks=weeks)).isoformat()
+        resp = (
+            db_core._client.table("v_session_category")
+            .select("date, session_category, total_volume")
+            .gte("date", cutoff)
+            .in_("session_category", ("force", "accessory"))
+            .execute()
+        )
+        return _aggregate_force_vs_accessory_timeline(resp.data or [])
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_force_vs_accessory_timeline retry: %s", e2)
+                return []
+        db_core.logger.error("get_force_vs_accessory_timeline error: %s", e)
+        return []
+
+
+def get_session_category_sample(limit: int = 20) -> list[dict]:
+    """Renvoie les N dernières séances avec détail de classification pour vérif humaine.
+
+    Sortie : [{date, session_name, session_category, ratio_force, force_exos,
+    classified_exos, total_volume}]. Consommée par l'endpoint debug + script de vérif.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> list[dict]:
+        resp = (
+            db_core._client.table("v_session_category")
+            .select("session_id, date, session_category, ratio_force, "
+                    "force_exos, classified_exos, total_volume")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        rows = resp.data or []
+        if not rows:
+            return []
+        session_ids = [r["session_id"] for r in rows]
+        sess_resp = (
+            db_core._client.table("workout_sessions")
+            .select("id, session_name")
+            .in_("id", session_ids)
+            .execute()
+        )
+        names = {r["id"]: (r.get("session_name") or "?") for r in (sess_resp.data or [])}
+        return [
+            {
+                "date":             str(r.get("date", ""))[:10],
+                "session_name":     names.get(r["session_id"], "?"),
+                "session_category": r.get("session_category"),
+                "ratio_force":      float(r["ratio_force"]) if r.get("ratio_force") is not None else None,
+                "force_exos":       int(r.get("force_exos") or 0),
+                "classified_exos":  int(r.get("classified_exos") or 0),
+                "total_volume":     float(r.get("total_volume") or 0),
+            }
+            for r in rows
+        ]
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_session_category_sample retry: %s", e2)
+                return []
+        db_core.logger.error("get_session_category_sample error: %s", e)
+        return []
+
+
 def _get_session_volume_map(days: int = 200) -> dict[str, float]:
     """Return {date: total_volume} from v_session_volume view."""
     if db_core._client is None or db_core.MODE == "OFFLINE":

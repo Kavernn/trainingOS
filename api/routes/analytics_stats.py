@@ -392,3 +392,25 @@ def api_nutrition_timing():
             "Pas encore assez de données de timing pour analyser ta nutrition pré/post-workout."
         ),
     })
+
+
+@analytics_stats_bp.route("/api/stats/force-vs-accessory")
+def api_force_vs_accessory():
+    """Timeline tonnage moyen/séance par catégorie (force vs accessory).
+
+    Query params :
+      weeks   — fenêtre en semaines (défaut 12, borné [1, 52])
+      debug=1 — ajoute {sample: [...]} : 20 dernières séances avec ratio_force
+                et session_name, pour vérification humaine de la classification.
+
+    Payload : {timeline: [...], sample?: [...]}
+    """
+    from db_stats import get_force_vs_accessory_timeline, get_session_category_sample
+    try:
+        weeks = max(1, min(52, int(request.args.get("weeks", "12"))))
+    except (ValueError, TypeError):
+        weeks = 12
+    payload = {"timeline": get_force_vs_accessory_timeline(weeks=weeks)}
+    if request.args.get("debug") == "1":
+        payload["sample"] = get_session_category_sample(limit=20)
+    return jsonify(payload)
