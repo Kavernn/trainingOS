@@ -414,3 +414,16 @@ def api_force_vs_accessory():
     if request.args.get("debug") == "1":
         payload["sample"] = get_session_category_sample(limit=20)
     return jsonify(payload)
+
+
+# ponytail: endpoint temp — supprimer après validation de la règle de classification.
+@analytics_stats_bp.route("/api/stats/force-vs-accessory/simulate")
+def api_force_vs_accessory_simulate():
+    """Simule 2 variantes de classification par `exercises.category`.
+
+    Payload : {fill: {...}, sample: [{..., variant_A, variant_B}]}
+    variant_A : force = {push, pull, legs}         (strength+core = accessory)
+    variant_B : force = {push, pull, legs, strength} (core seul = accessory)
+    """
+    from db_stats import simulate_category_classification
+    return jsonify(simulate_category_classification(limit=20))

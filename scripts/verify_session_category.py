@@ -1,11 +1,11 @@
-"""Vérification post-migration 085 : classification force/accessory des 20 dernières séances.
+"""Vérification classification force/accessory : hit /api/stats/force-vs-accessory/simulate.
 
-Hit l'API déployée (pas la DB directe) avec TRAININGOS_API_KEY du .env.
-Signale les cas limites (ratio ∈ [0.35, 0.65]) — candidats à ajuster le seuil.
+Affiche :
+  1) Remplissage : combien d'exos ont category vs load_profile
+  2) 20 dernières séances avec breakdown catégories + 2 variantes de classification
+  3) Cas limites (ratio ∈ [0.35, 0.65]) et divergences entre les variantes
 
-Usage :
-    python3 scripts/verify_session_category.py
-    python3 scripts/verify_session_category.py --api-base http://localhost:5000
+Usage : python3 scripts/verify_session_category.py
 """
 from __future__ import annotations
 
@@ -30,43 +30,93 @@ def load_env_key(env_path: str) -> str | None:
     return None
 
 
-def fetch_debug(api_base: str, token: str) -> dict:
-    url = f"{api_base.rstrip('/')}/api/stats/force-vs-accessory?weeks=12&debug=1"
+def fetch_simulate(api_base: str, token: str) -> dict:
+    url = f"{api_base.rstrip('/')}/api/stats/force-vs-accessory/simulate"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def print_table(sample: list[dict]) -> None:
+def print_fill(fill: dict) -> None:
+    total = fill.get("total_exercises", 0)
+    wcat  = fill.get("with_category", 0)
+    wlp   = fill.get("with_load_profile", 0)
+    print("── REMPLISSAGE ────────────────────────────────────────────────────────")
+    print(f"total exos : {total}")
+    print(f"  category     : {wcat:4d} ({100*wcat/total if total else 0:.0f}%)")
+    print(f"  load_profile : {wlp:4d} ({100*wlp/total if total else 0:.0f}%)")
+    by_cat = fill.get("by_category") or {}
+    if by_cat:
+        print("  par category :")
+        for k in sorted(by_cat, key=lambda x: -by_cat[x]):
+            print(f"    {k:<12} {by_cat[k]}")
+    print()
+
+
+def _fmt_breakdown(b: dict) -> str:
+    # Ordre canonique + compact : "push:3 pull:2 legs:1 core:1"
+    order = ["push", "pull", "legs", "strength", "core", "(null)"]
+    parts = []
+    for k in order:
+        if k in b:
+            parts.append(f"{k[:4]}:{b[k]}")
+    for k in b:
+        if k not in order:
+            parts.append(f"{k[:4]}:{b[k]}")
+    return " ".join(parts) or "-"
+
+
+def print_sample(sample: list[dict]) -> None:
     if not sample:
-        print("Aucune séance dans v_session_category (migration appliquée ? séances loggées ?).")
+        print("Aucune séance trouvée.")
         return
-    print(f"{'date':<12} {'session_name':<28} {'category':<10} "
-          f"{'ratio':<7} {'force/tot':<10} {'volume':>10}")
-    print("-" * 82)
+    print("── 20 DERNIÈRES SÉANCES ───────────────────────────────────────────────")
+    print(f"{'date':<12} {'session_name':<24} {'breakdown':<32} "
+          f"{'A ratio→cat':<15} {'B ratio→cat':<15}")
+    print("-" * 100)
     for r in sample:
-        ratio = r.get("ratio_force")
-        ratio_str = f"{ratio:.2f}" if ratio is not None else "n/a"
-        force_tot = f"{r.get('force_exos', 0)}/{r.get('classified_exos', 0)}"
-        name = (r.get("session_name") or "?")[:27]
-        print(f"{str(r.get('date', ''))[:10]:<12} {name:<28} "
-              f"{r.get('session_category', '?'):<10} {ratio_str:<7} "
-              f"{force_tot:<10} {float(r.get('total_volume') or 0):>10.0f}")
+        vA = r.get("variant_A") or {}
+        vB = r.get("variant_B") or {}
+        rA = vA.get("ratio")
+        rB = vB.get("ratio")
+        sA = f"{rA:.2f}→{vA.get('category', '?')}" if rA is not None else f"n/a→{vA.get('category', '?')}"
+        sB = f"{rB:.2f}→{vB.get('category', '?')}" if rB is not None else f"n/a→{vB.get('category', '?')}"
+        name = (r.get("session_name") or "?")[:23]
+        bd = _fmt_breakdown(r.get("breakdown") or {})[:31]
+        print(f"{r.get('date', '')[:10]:<12} {name:<24} {bd:<32} {sA:<15} {sB:<15}")
+    print()
 
 
 def print_borderline(sample: list[dict]) -> None:
-    borderline = [
+    for label, key in [("A", "variant_A"), ("B", "variant_B")]:
+        borderline = [
+            r for r in sample
+            if (r.get(key) or {}).get("ratio") is not None
+            and 0.35 <= (r[key]["ratio"]) <= 0.65
+        ]
+        if borderline:
+            print(f"⚠️  Variante {label} — {len(borderline)} cas limite(s) (ratio ∈ [0.35, 0.65]) :")
+            for r in borderline:
+                v = r[key]
+                print(f"   {r.get('date', '')}  {r.get('session_name', '?')}  "
+                      f"ratio={v['ratio']:.2f}  → {v['category']}")
+        else:
+            print(f"✓ Variante {label} — aucun cas limite (classification franche).")
+
+
+def print_divergences(sample: list[dict]) -> None:
+    diverge = [
         r for r in sample
-        if r.get("ratio_force") is not None and 0.35 <= float(r["ratio_force"]) <= 0.65
+        if (r.get("variant_A") or {}).get("category") != (r.get("variant_B") or {}).get("category")
     ]
-    if borderline:
-        print(f"\n⚠️  {len(borderline)} séance(s) proche(s) du seuil 0.5 :")
-        for r in borderline:
-            print(f"   {str(r.get('date', ''))[:10]}  "
-                  f"{(r.get('session_name') or '?')}  "
-                  f"ratio={float(r['ratio_force']):.2f}  → {r.get('session_category')}")
+    if diverge:
+        print(f"\n⚡ {len(diverge)} séance(s) où A et B DIVERGENT (arbitre : strength = force ou accessory ?) :")
+        for r in diverge:
+            print(f"   {r.get('date', '')}  {r.get('session_name', '?'):<20}  "
+                  f"A→{r['variant_A']['category']}  B→{r['variant_B']['category']}  "
+                  f"| breakdown : {_fmt_breakdown(r.get('breakdown') or {})}")
     else:
-        print("\n✓ Aucun cas limite (ratio ∈ [0.35, 0.65]) — classification franche.")
+        print("\n✓ A et B classent tout de la même façon (le sort de 'strength' ne change rien).")
 
 
 def main() -> int:
@@ -81,7 +131,7 @@ def main() -> int:
         return 1
 
     try:
-        payload = fetch_debug(args.api_base, token)
+        payload = fetch_simulate(args.api_base, token)
     except urllib.error.HTTPError as e:
         print(f"ERROR HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}")
         return 1
@@ -89,15 +139,11 @@ def main() -> int:
         print(f"ERROR réseau: {e}")
         return 1
 
+    print_fill(payload.get("fill") or {})
     sample = payload.get("sample") or []
-    print_table(sample)
+    print_sample(sample)
     print_borderline(sample)
-
-    tl = payload.get("timeline") or []
-    if tl:
-        weeks = sorted({r["iso_week"] for r in tl})
-        print(f"\nTimeline agrégée : {len(tl)} points sur {len(weeks)} semaine(s) "
-              f"({weeks[0]} → {weeks[-1]}).")
+    print_divergences(sample)
     return 0
 
 

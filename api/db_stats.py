@@ -459,6 +459,119 @@ def get_force_vs_accessory_timeline(weeks: int = 12) -> list[dict]:
         return []
 
 
+# ponytail: endpoint temp — simule 2 variantes de classification par `category`.
+# Supprimer avec l'endpoint /simulate après validation de la règle définitive.
+def simulate_category_classification(limit: int = 20) -> dict:
+    """Simule la classification par `exercises.category` SANS toucher à la vue 085.
+
+    Renvoie :
+      fill   — remplissage colonnes category vs load_profile (histogramme by_category)
+      sample — 20 dernières séances : breakdown des exos par category + 2 variantes
+               de classification (A = {push,pull,legs}, B = A ∪ {strength})
+
+    Consommé par scripts/verify_session_category.py pour choisir la règle exacte.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return {"fill": {}, "sample": []}
+
+    def _do() -> dict:
+        # Fill counts sur exercises
+        fill_resp = db_core._client.table("exercises").select("id, category, load_profile").execute()
+        exos = fill_resp.data or []
+        by_category: dict[str, int] = {}
+        for e in exos:
+            k = e.get("category") or "(null)"
+            by_category[k] = by_category.get(k, 0) + 1
+        fill = {
+            "total_exercises":    len(exos),
+            "with_category":      sum(1 for e in exos if e.get("category")),
+            "with_load_profile":  sum(1 for e in exos if e.get("load_profile")),
+            "by_category":        by_category,
+        }
+
+        # 20 dernières séances
+        vol_resp = (
+            db_core._client.table("v_session_volume")
+            .select("session_id, date, total_volume")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        sessions = vol_resp.data or []
+        if not sessions:
+            return {"fill": fill, "sample": []}
+
+        session_ids = [s["session_id"] for s in sessions]
+
+        sess_resp = (
+            db_core._client.table("workout_sessions")
+            .select("id, session_name")
+            .in_("id", session_ids)
+            .execute()
+        )
+        names = {r["id"]: (r.get("session_name") or "?") for r in (sess_resp.data or [])}
+
+        logs_resp = (
+            db_core._client.table("exercise_logs")
+            .select("session_id, exercise_id, exercises(category)")
+            .in_("session_id", session_ids)
+            .execute()
+        )
+        by_session: dict[str, list[str | None]] = {}
+        for log in (logs_resp.data or []):
+            sid = log.get("session_id")
+            ex_data = log.get("exercises") or {}
+            by_session.setdefault(sid, []).append(ex_data.get("category"))
+
+        FORCE_A = {"push", "pull", "legs"}
+        FORCE_B = {"push", "pull", "legs", "strength"}
+
+        def _classify(force_count: int, classified_count: int) -> dict:
+            if classified_count == 0:
+                return {"force_exos": 0, "ratio": None, "category": "unknown"}
+            ratio = force_count / classified_count
+            return {
+                "force_exos": force_count,
+                "ratio":      round(ratio, 3),
+                "category":   "force" if ratio >= 0.5 else "accessory",
+            }
+
+        sample = []
+        for s in sessions:
+            sid = s["session_id"]
+            cats = by_session.get(sid, [])
+            breakdown: dict[str, int] = {}
+            for c in cats:
+                k = c or "(null)"
+                breakdown[k] = breakdown.get(k, 0) + 1
+            classified = sum(1 for c in cats if c)
+            force_A = sum(1 for c in cats if c in FORCE_A)
+            force_B = sum(1 for c in cats if c in FORCE_B)
+            sample.append({
+                "date":         str(s.get("date", ""))[:10],
+                "session_name": names.get(sid, "?"),
+                "n_exos":       len(cats),
+                "classified":   classified,
+                "breakdown":    breakdown,
+                "total_volume": float(s.get("total_volume") or 0),
+                "variant_A":    _classify(force_A, classified),
+                "variant_B":    _classify(force_B, classified),
+            })
+        return {"fill": fill, "sample": sample}
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("simulate_category_classification retry: %s", e2)
+                return {"fill": {}, "sample": []}
+        db_core.logger.error("simulate_category_classification error: %s", e)
+        return {"fill": {}, "sample": []}
+
+
 def get_session_category_sample(limit: int = 20) -> list[dict]:
     """Renvoie les N dernières séances avec détail de classification pour vérif humaine.
 
