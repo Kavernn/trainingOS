@@ -30,11 +30,20 @@ def load_env_key(env_path: str) -> str | None:
     return None
 
 
-def fetch_simulate(api_base: str, token: str) -> dict:
-    url = f"{api_base.rstrip('/')}/api/stats/force-vs-accessory/simulate"
+def _fetch(url: str, token: str) -> dict:
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
+
+def fetch_simulate(api_base: str, token: str) -> dict:
+    return _fetch(f"{api_base.rstrip('/')}/api/stats/force-vs-accessory/simulate", token)
+
+
+def fetch_view_sample(api_base: str, token: str) -> list[dict]:
+    """Hit la vue réelle v_session_category via l'endpoint ?debug=1."""
+    payload = _fetch(f"{api_base.rstrip('/')}/api/stats/force-vs-accessory?debug=1", token)
+    return payload.get("sample") or []
 
 
 def print_fill(fill: dict) -> None:
@@ -119,6 +128,50 @@ def print_divergences(sample: list[dict]) -> None:
         print("\n✓ A et B classent tout de la même façon (le sort de 'strength' ne change rien).")
 
 
+def cross_check_view_vs_simulation(view_sample: list[dict], sim_sample: list[dict]) -> int:
+    """Compare la vue réelle à la simulation (variante A). Retourne nb divergences."""
+    sim_by_date = {r.get("date"): r for r in sim_sample}
+    mismatches = []
+    for v in view_sample:
+        d = v.get("date")
+        s = sim_by_date.get(d)
+        if not s:
+            continue
+        view_cat = v.get("session_category")
+        sim_cat  = (s.get("variant_A") or {}).get("category")
+        if view_cat != sim_cat:
+            mismatches.append((d, v.get("session_name"), view_cat, sim_cat))
+    print("\n── COHÉRENCE VUE ↔ SIMULATION (variante A) ────────────────────────────")
+    if not mismatches:
+        print(f"✓ Vue base et simulation identiques sur {len(view_sample)} séance(s).")
+    else:
+        print(f"✗ {len(mismatches)} divergence(s) — la vue en base ne matche pas la simulation :")
+        for d, name, view_cat, sim_cat in mismatches:
+            print(f"   {d}  {name}  vue={view_cat}  ≠  sim={sim_cat}")
+    return len(mismatches)
+
+
+def assert_core_mobility_is_accessory(view_sample: list[dict]) -> int:
+    """Garde-fou : toute séance nommée 'Core & Mobilité' doit être 'accessory'."""
+    hits = [
+        r for r in view_sample
+        if "core" in (r.get("session_name") or "").lower()
+        and "mob" in (r.get("session_name") or "").lower()
+    ]
+    print("\n── ASSERTION : Core & Mobilité DOIT être 'accessory' ─────────────────")
+    if not hits:
+        print("(aucune séance 'Core & Mobilité' dans le sample — assertion non exercée)")
+        return 0
+    fails = [r for r in hits if r.get("session_category") != "accessory"]
+    if not fails:
+        print(f"✓ {len(hits)} séance(s) Core & Mobilité — toutes classées 'accessory'.")
+    else:
+        print(f"✗ {len(fails)} séance(s) Core & Mobilité MAL classée(s) :")
+        for r in fails:
+            print(f"   {r.get('date')}  ratio={r.get('ratio_force')}  → {r.get('session_category')}")
+    return len(fails)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--api-base", default=DEFAULT_API_BASE)
@@ -131,7 +184,8 @@ def main() -> int:
         return 1
 
     try:
-        payload = fetch_simulate(args.api_base, token)
+        sim_payload = fetch_simulate(args.api_base, token)
+        view_sample = fetch_view_sample(args.api_base, token)
     except urllib.error.HTTPError as e:
         print(f"ERROR HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}")
         return 1
@@ -139,12 +193,15 @@ def main() -> int:
         print(f"ERROR réseau: {e}")
         return 1
 
-    print_fill(payload.get("fill") or {})
-    sample = payload.get("sample") or []
-    print_sample(sample)
-    print_borderline(sample)
-    print_divergences(sample)
-    return 0
+    print_fill(sim_payload.get("fill") or {})
+    sim_sample = sim_payload.get("sample") or []
+    print_sample(sim_sample)
+    print_borderline(sim_sample)
+    print_divergences(sim_sample)
+
+    divergences = cross_check_view_vs_simulation(view_sample, sim_sample)
+    core_fails  = assert_core_mobility_is_accessory(view_sample)
+    return 0 if (divergences == 0 and core_fails == 0) else 2
 
 
 if __name__ == "__main__":
