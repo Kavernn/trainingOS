@@ -540,6 +540,44 @@ struct WorkoutSeanceView: View {
         let shift = shiftY(for: name)
         let originalName = swappedExercises[name]
         let effectiveWeightData = swapWeightData[name] ?? data.weights[name]
+        let logged   = vm.logResults[name] != nil
+        let hasDraft = SessionDraftStore.load(date: data.todayDate, sessionType: vm.draftSessionType)
+            .contains(where: { $0.name == name })
+        let canMove  = !logged && !hasDraft
+        let moveAccessory: AnyView? = canMove ? AnyView(
+            // Étape 3b/4 — bouton flèche visible (tap direct) + contextMenu long-press
+            // pour destination bonus. Intégré via topAccessory pour rester dans le flux
+            // de la carte (auparavant overlay topTrailing → chevauchait headerTrailing).
+            Button {
+                let targetSlot: SessionKind = isSecondSession ? .morning : .evening
+                performMove(name: name, to: targetSlot)
+            } label: {
+                HStack(spacing: 3) {
+                    if isSecondSession {
+                        Image(systemName: "arrow.left")
+                        Text("Matin")
+                    } else {
+                        Text("Soir")
+                        Image(systemName: "arrow.right")
+                    }
+                }
+                .font(.appMicro.weight(.semibold))
+                .foregroundColor(Color.forge)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.appCard)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Color.forge.opacity(0.3), lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+                Button {
+                    performMove(name: name, to: .bonus)
+                } label: {
+                    Label("Déplacer vers Bonus", systemImage: "sparkles")
+                }
+            }
+        ) : nil
         let card = ExerciseCard(
             name: name,
             scheme: scheme,
@@ -592,12 +630,9 @@ struct WorkoutSeanceView: View {
                 showSwapSheet = true
             },
             movementPattern: inventoryPatterns[name] ?? "",
+            topAccessory: moveAccessory,
             sessionDate: data.todayDate
         )
-        let logged   = vm.logResults[name] != nil
-        let hasDraft = SessionDraftStore.load(date: data.todayDate, sessionType: vm.draftSessionType)
-            .contains(where: { $0.name == name })
-        let canMove  = !logged && !hasDraft
 
         card
             .id(name)
@@ -613,52 +648,6 @@ struct WorkoutSeanceView: View {
                     .padding(.leading, 16)
                     .gesture(dragGesture(for: name))
             }
-            .overlay(alignment: .topTrailing) {
-                // P2.B.3 v2 : bouton flèche visible (tap direct, pas de long-press).
-                // Remplace l'ancien .contextMenu qui entrait en conflit avec les taps
-                // multiples du log d'exercice.
-                if canMove {
-                    Button {
-                        // Étape 3b — recâblage backend. Notif .planOverridesDidChange
-                        // déclenche le refetch dashboard/seance côté listeners.
-                        let targetSlot: SessionKind = isSecondSession ? .morning : .evening
-                        performMove(name: name, to: targetSlot)
-                    } label: {
-                        // Label textuel court : "→ Soir" (matin → envoyer) ou
-                        // "← Matin" (soir → ramener). Restaure la découvrabilité
-                        // (l'icône seule était opaque au premier usage).
-                        HStack(spacing: 3) {
-                            if isSecondSession {
-                                Image(systemName: "arrow.left")
-                                Text("Matin")
-                            } else {
-                                Text("Soir")
-                                Image(systemName: "arrow.right")
-                            }
-                        }
-                        .font(.appMicro.weight(.semibold))
-                        .foregroundColor(Color.forge)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color.appCard)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.forge.opacity(0.3), lineWidth: 0.5))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 8)
-                    .padding(.trailing, 24)
-                    // Étape 4 — long-press sur le bouton (pas la carte, évite conflit
-                    // avec les taps du log — cf. comm L618). Menu ajoute la destination
-                    // bonus sans polluer le tap principal matin↔soir.
-                    .contextMenu {
-                        Button {
-                            performMove(name: name, to: .bonus)
-                        } label: {
-                            Label("Déplacer vers Bonus", systemImage: "sparkles")
-                        }
-                    }
-                }
-            }
             .scaleEffect(isDragging ? 1.03 : 1.0, anchor: .center)
             .shadow(color: isDragging ? .black.opacity(0.45) : .clear, radius: isDragging ? 18 : 0)
             .offset(y: isDragging ? dragOffset : shift)
@@ -666,6 +655,35 @@ struct WorkoutSeanceView: View {
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: shift)
             .animation(.spring(response: 0.2, dampingFraction: 0.9), value: isDragging)
             .transition(.opacity.combined(with: .scale(scale: 0.92)))
+    }
+
+    /// Étape 5 — aligné sur SeanceView L511 / BonusSeanceView L318 : écouter
+    /// l'événement (pas l'action) pour rafraîchir le plan local (localProgram
+    /// + exerciseOrder + inventoryXxx). Sans ça, un move pendant séance active
+    /// retire l'exo côté backend mais la vue reste sur son snapshot @State —
+    /// l'exo ne disparaît pas.
+    ///
+    /// vm.load() D'ABORD : refetch /api/seance_data qui applique les overrides
+    /// via _day_plan["morning"] (workout_schedule.py:63-66). loadInventory
+    /// seul tape sur /api/programme_data qui ignore les overrides
+    /// (data_views.py:254-257) → l'exo pushed to soir réapparaîtrait dans le
+    /// plan brut. Puis reseed manuellement depuis vm.seanceData car `data`
+    /// (let du struct) reste stale dans cette Task — SwiftUI re-render le
+    /// struct avec le nouveau data mais notre closure garde l'ancien.
+    /// loadInventory ensuite pour rafraîchir le catalogue (types/schemes/muscles).
+    private func handlePlanOverridesChanged(_ note: Notification) {
+        Task {
+            await vm.load()
+            await MainActor.run {
+                guard let sd = vm.seanceData else { return }
+                let fresh = sd.fullProgram[sd.today]?.mapValues { $0.value } ?? [:]
+                let order = sd.exerciseOrder[sd.today] ?? fresh.keys.sorted()
+                self.localProgram     = fresh
+                self.exerciseOrder    = order
+                self.sessionSupersets = sd.exerciseSupersets[sd.today] ?? [:]
+            }
+            await loadInventory()
+        }
     }
 
     /// Extrait du tap "→ Soir"/"← Matin" (étape 3b) — même logique réutilisée
@@ -691,6 +709,15 @@ struct WorkoutSeanceView: View {
                 try await APIService.shared.movePlannedExercise(
                     date: data.todayDate, exerciseId: exoId, to: slot
                 )
+                let dest: String
+                switch slot {
+                case .morning: dest = "Matin"
+                case .evening: dest = "Soir"
+                case .bonus:   dest = "Bonus"
+                }
+                await MainActor.run {
+                    toast = ToastMessage(message: "Déplacé vers \(dest)", style: .success)
+                }
                 NotificationCenter.default.post(name: .planOverridesDidChange, object: nil)
             } catch let APIError.serverError(code, _) where code == 409 {
                 await MainActor.run {
@@ -1384,6 +1411,8 @@ struct WorkoutSeanceView: View {
             scrollProxy = proxy
             assignments = data.pushedToEvening
         }
+        .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange),
+                   perform: handlePlanOverridesChanged)
         .sheet(isPresented: $showSeanceSoir) {
             SeanceSoirView()
         }
@@ -1726,9 +1755,7 @@ struct WorkoutSeanceView: View {
               let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any]
         else { return }
 
-        let inv         = (json["inventory"] as? [String]) ?? []
-        let fromNetwork = (json["full_program"] as? [String: [String: String]])?[data.today]
-        let orderNet    = (json["exercise_order"] as? [String: [String]])?[data.today]
+        let inv      = (json["inventory"] as? [String]) ?? []
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
         let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
         let rest     = (json["inventory_rest"] as? [String: Int]) ?? [:]
@@ -1736,6 +1763,15 @@ struct WorkoutSeanceView: View {
         let patterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
         let schemes  = (json["inventory_schemes"] as? [String: String]) ?? [:]
         let muscleGroups = (json["inventory_muscle_groups"] as? [String: String]) ?? [:]
+        // full_program / exercise_order NE sont PAS lus ici : /api/programme_data
+        // renvoie le programme brut sans overrides (data_views.py:254-257, ne
+        // passe jamais par _day_plan). Le plan du jour est autoritatif via
+        // /api/seance_data (seed L1718-1730 depuis `data` au premier onAppear,
+        // ou via handlePlanOverridesChanged L665-680 qui fait vm.load() + reseed
+        // manuel depuis vm.seanceData après un move). Vestige retiré :
+        // écrasement fromNetwork/orderNet réintroduisait les exos pushed to
+        // soir → régression "carte ne disparaît pas" au move pendant séance
+        // active.
 
         await MainActor.run {
             self.inventory = inv
@@ -1746,10 +1782,6 @@ struct WorkoutSeanceView: View {
             if !patterns.isEmpty { self.inventoryPatterns = patterns }
             if !schemes.isEmpty  { self.inventorySchemes  = schemes }
             if !muscleGroups.isEmpty { self.inventoryMuscleGroups = muscleGroups }
-            if let fresh = fromNetwork {
-                self.localProgram  = fresh
-                self.exerciseOrder = orderNet ?? self.exerciseOrder
-            }
         }
     }
 
