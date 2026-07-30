@@ -66,11 +66,23 @@ def api_seance_data():
         }
 
     today_exercises = list((flat_program.get(today_str) or {}).keys())
-    # Union planifiés ∪ loggés du jour (toutes séances : matin+soir+bonus via
-    # logged_today_names L38-51). Sans quoi les exos hors-plan sortent
-    # nom-only dans "RÉCAP D'AUJOURD'HUI" (data.weights[exo] nil côté iOS,
-    # SeanceView.swift:214 lookup échoue).
-    weights = load_weights(sorted(set(today_exercises) | logged_today_names), limit_per=20)
+    # Union planifiés matin ∪ soir ∪ bonus ∪ loggés du jour. Sans quoi les
+    # exos hors-plan sortent nom-only dans "RÉCAP D'AUJOURD'HUI" (data.weights[exo]
+    # nil côté iOS, SeanceView.swift:214 lookup échoue). Et surtout : SeanceSoirView
+    # consomme cet endpoint (SeanceSoirView.swift:38-40, choix stable étape 3) —
+    # sans les exos soir/bonus dans le set, weights[exo_soir] absent → history
+    # absente → "dernière fois : X kg × Y reps" muet, progressive overload cassé.
+    # Défensif sur les clés .get() (_day_plan expose morning/evening/bonus mais on
+    # protège au cas où une variante future change la structure).
+    weights_names = (
+        set(today_exercises)
+        | logged_today_names
+        | set((_day_plan.get("evening") or {}).keys())
+        | set((_day_plan.get("bonus") or {}).keys())
+        | set(_day_plan.get("pushed_to_evening") or [])
+        | set(_day_plan.get("pushed_to_bonus") or [])
+    )
+    weights = load_weights(sorted(weights_names), limit_per=20)
     suggestions = get_suggested_weights_for_today(weights, full_program)
 
     inv = inventory if isinstance(inventory, dict) else {}
