@@ -1284,3 +1284,277 @@ struct Top5FrequencyView: View {
     .environmentObject(AppTheme.shared)
     .onAppear { AppTheme.shared.applyTheme(.sinCity) }
 }
+
+// MARK: - Stats Hero Card
+// Hero graphe en tête du Tab 0 Vue Globale. Structure figée par Vince :
+//   1. Gros chiffre : tonnage moyen/séance FORCE (dernière semaine)
+//   2. Delta "+X% vs il y a 6 mois" (première vs dernière semaine force sur 26 sem)
+//   3. Courbe 2 séries : force pleine, accessory pointillée, 12 dernières semaines
+//   4. Grid 2 accents (optionnels, cachés si data absente) : dernier PR + volume velocity
+//
+// La donnée vient de /api/stats/force-vs-accessory?weeks=26 — un point par
+// (iso_week, session_category). Semaine sans catégorie = point absent (pas 0).
+
+struct StatsHeroCard: View {
+    let timeline:        [ForceAccessoryPoint]   // brut : 26 semaines, 2 catégories
+    let thisWeekVolume:  Double
+    let lastWeekVolume:  Double
+    // Accents optionnels — si nil ou vide, la carte cache l'élément.
+    let latestPRName:    String?
+    let latestPROneRM:   Double?
+    let latestPRDelta:   Double?                 // gain de 1RM vs précédent
+
+    // MARK: dérivés
+
+    private var forceSeries: [ForceAccessoryPoint] {
+        timeline.filter { $0.sessionCategory == "force" }
+                .sorted { $0.isoWeek < $1.isoWeek }
+    }
+    private var accessorySeries: [ForceAccessoryPoint] {
+        timeline.filter { $0.sessionCategory == "accessory" }
+                .sorted { $0.isoWeek < $1.isoWeek }
+    }
+    private var currentForce: Double? { forceSeries.last?.avgTonnage }
+
+    private var deltaPct: Double? {
+        // Delta = première semaine (avec force) vs dernière semaine (avec force) sur
+        // toute la fenêtre 26 sem. Pas d'interpolation : si Vince n'a pas fait de
+        // force pendant plusieurs semaines, on prend ce qu'il y a.
+        guard let first = forceSeries.first?.avgTonnage, first > 0,
+              let last  = forceSeries.last?.avgTonnage else { return nil }
+        return (last - first) / first * 100
+    }
+
+    private var chartWeeks: Set<String> {
+        // 12 dernières semaines ISO présentes dans le timeline
+        let uniques = Array(Set(timeline.map(\.isoWeek))).sorted()
+        return Set(uniques.suffix(12))
+    }
+    private var chartPoints: [ForceAccessoryPoint] {
+        timeline.filter { chartWeeks.contains($0.isoWeek) }
+    }
+    private var yMax: Double {
+        let m = chartPoints.map(\.avgTonnage).max() ?? 1
+        return max(m * 1.1, 1)
+    }
+
+    private var volumeVelocityPct: Double? {
+        guard lastWeekVolume > 0 else { return nil }
+        return (thisWeekVolume - lastWeekVolume) / lastWeekVolume * 100
+    }
+
+    // MARK: - Body
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            heroNumber
+            if !forceSeries.isEmpty || !accessorySeries.isEmpty {
+                chartView
+            }
+            accentsRow
+        }
+        .padding(16)
+        .background(Color.appCard)
+        .cornerRadius(16)
+    }
+
+    // MARK: - Sub-views
+
+    @ViewBuilder private var heroNumber: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("TONNAGE MOYEN — SÉANCE FORCE")
+                .font(.appCaption.weight(.bold))
+                .foregroundColor(.forge)
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                if let v = currentForce {
+                    Text(formatK(v))
+                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .foregroundColor(.appTextPrimary)
+                } else {
+                    Text("—")
+                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .foregroundColor(.gray)
+                }
+                if let d = deltaPct {
+                    let sign = d >= 0 ? "+" : ""
+                    Text("\(sign)\(Int(d.rounded()))% vs 6 mois")
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(d >= 0 ? .statusGreen : .statusRed)
+                }
+                Spacer()
+            }
+            if currentForce == nil {
+                Text("Pas encore assez de séances de force loggées.")
+                    .font(.appCaption)
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+
+    @ViewBuilder private var chartView: some View {
+        Chart {
+            ForEach(chartPoints.filter { $0.sessionCategory == "force" }) { p in
+                LineMark(
+                    x: .value("Semaine", p.isoWeek),
+                    y: .value("Tonnage", p.avgTonnage),
+                    series: .value("Série", "Force")
+                )
+                .foregroundStyle(Color.forge)
+                .interpolationMethod(.monotone)
+                .lineStyle(StrokeStyle(lineWidth: 2.5))
+
+                PointMark(
+                    x: .value("Semaine", p.isoWeek),
+                    y: .value("Tonnage", p.avgTonnage)
+                )
+                .foregroundStyle(Color.forge)
+                .symbolSize(28)
+            }
+            ForEach(chartPoints.filter { $0.sessionCategory == "accessory" }) { p in
+                LineMark(
+                    x: .value("Semaine", p.isoWeek),
+                    y: .value("Tonnage", p.avgTonnage),
+                    series: .value("Série", "Accessoire")
+                )
+                .foregroundStyle(Color.gray)
+                .interpolationMethod(.monotone)
+                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            }
+        }
+        .chartYScale(domain: 0 ... yMax)
+        .chartYAxis {
+            AxisMarks(position: .leading) { _ in
+                AxisGridLine().foregroundStyle(Color.appSurfaceInset)
+                AxisValueLabel().foregroundStyle(Color.gray)
+            }
+        }
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                AxisGridLine().foregroundStyle(Color.appSurfaceInset)
+                AxisValueLabel().foregroundStyle(Color.gray)
+            }
+        }
+        .chartLegend(.hidden)
+        .frame(height: 140)
+        // Légende manuelle sous le chart — plus contrôlable que .chartLegend natif.
+        HStack(spacing: 16) {
+            legendDot(color: .forge, label: "Force", style: .solid)
+            legendDot(color: .gray,  label: "Accessoire", style: .dashed)
+            Spacer()
+        }
+        .font(.appCaption)
+        .foregroundColor(.gray)
+    }
+
+    private enum LegendStyle { case solid, dashed }
+    private func legendDot(color: Color, label: String, style: LegendStyle) -> some View {
+        HStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(color)
+                .frame(width: 14, height: 2)
+                .overlay(
+                    Group {
+                        if style == .dashed {
+                            Rectangle()
+                                .fill(Color.appCard)
+                                .frame(width: 3, height: 2)
+                                .offset(x: -3)
+                            Rectangle()
+                                .fill(Color.appCard)
+                                .frame(width: 3, height: 2)
+                                .offset(x: 3)
+                        }
+                    }
+                )
+            Text(label)
+        }
+    }
+
+    @ViewBuilder private var accentsRow: some View {
+        // Grid 2 colonnes uniquement si au moins un accent a de la data.
+        let hasPR       = latestPRName != nil && (latestPROneRM ?? 0) > 0
+        let hasVelocity = volumeVelocityPct != nil
+        if hasPR || hasVelocity {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                if hasPR {
+                    prAccent
+                }
+                if hasVelocity {
+                    velocityAccent
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var prAccent: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(.statusOrange)
+                Text("NOUVEAU PR")
+                    .font(.appCaption.weight(.bold))
+                    .foregroundColor(.statusOrange)
+            }
+            Text(latestPRName ?? "—")
+                .font(.appLabel.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+                .lineLimit(1)
+            HStack(spacing: 6) {
+                if let orm = latestPROneRM {
+                    Text("\(Int(orm.rounded())) lbs")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.appTextPrimary)
+                }
+                if let d = latestPRDelta, d > 0 {
+                    Text("+\(Int(d.rounded()))")
+                        .font(.appCaption)
+                        .foregroundColor(.statusGreen)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.appSurfaceInset)
+        .cornerRadius(10)
+    }
+
+    @ViewBuilder private var velocityAccent: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("VOLUME VELOCITY")
+                .font(.appCaption.weight(.bold))
+                .foregroundColor(.statusGreen)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                if let v = volumeVelocityPct {
+                    let sign = v >= 0 ? "+" : ""
+                    Text("\(sign)\(Int(v.rounded()))%")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(v >= 0 ? .statusGreen : .statusRed)
+                }
+                Text("vs sem. préc.")
+                    .font(.appCaption)
+                    .foregroundColor(.gray)
+            }
+            // Mini jauge : normalise sur ±30% pour visualisation stable.
+            if let v = volumeVelocityPct {
+                GeometryReader { geo in
+                    let clamped = max(-30, min(30, v))
+                    let ratio   = (clamped + 30) / 60
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.appSurfaceInset)
+                            .frame(height: 4)
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(v >= 0 ? Color.statusGreen : Color.statusRed)
+                            .frame(width: max(2, geo.size.width * ratio), height: 4)
+                    }
+                }
+                .frame(height: 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.appSurfaceInset)
+        .cornerRadius(10)
+    }
+}

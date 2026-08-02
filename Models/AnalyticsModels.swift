@@ -842,3 +842,26 @@ struct WeeklyReportPushPull: Codable {
         case legsVolume = "legs_volume"
     }
 }
+
+// MARK: - Force vs Accessory timeline (hero graphe Stats)
+// Source : /api/stats/force-vs-accessory (get_force_vs_accessory_timeline).
+// Point par (semaine ISO, catégorie). Semaine sans catégorie → point absent.
+struct ForceAccessoryPoint: Codable, Identifiable, Equatable {
+    let isoWeek:         String
+    let sessionCategory: String   // "force" | "accessory"
+    let avgTonnage:      Double
+    let nSessions:       Int
+
+    var id: String { "\(isoWeek)_\(sessionCategory)" }
+
+    enum CodingKeys: String, CodingKey {
+        case isoWeek         = "iso_week"
+        case sessionCategory = "session_category"
+        case avgTonnage      = "avg_tonnage"
+        case nSessions       = "n_sessions"
+    }
+}
+
+struct ForceAccessoryTimeline: Codable {
+    let timeline: [ForceAccessoryPoint]
+}

@@ -95,6 +95,7 @@ struct StatsView: View {
     @State var rirByExercise:      [RIREntry]                  = []
     @State var sorenessThreshold:  SorenessThreshold?          = nil
     @State var hrvAnalysis:        HRVAnalysis?                = nil
+    @State var forceAccessoryTimeline: [ForceAccessoryPoint]  = []
 
     // ── New stats data ────────────────────────────────────────────────────
     @State var adherenceData:    AdherenceData?         = nil
@@ -690,6 +691,12 @@ struct StatsView: View {
                let d = try? await APIService.shared.fetchWithCache(url: url, key: "seasons_comparison"),
                let r = try? APIService.decoder.decode(SeasonComparisonData.self, from: d) {
                 await MainActor.run { seasonComparison = r }
+            }
+        }
+        Task {
+            // 26 semaines : courbe hero affiche les 12 dernières, delta W1 vs W26.
+            if let r = try? await APIService.shared.fetchForceVsAccessory(weeks: 26) {
+                await MainActor.run { forceAccessoryTimeline = r.timeline }
             }
         }
         Task {

@@ -113,6 +113,25 @@ extension StatsView {
     // MARK: - Vue Globale Tab
     @ViewBuilder var vueGlobaleTab: some View {
 
+        // 0. Hero Stats — tonnage/séance FORCE + delta 6 mois + courbe force/accessoire
+        //    + accents (PR récent, volume velocity). Structure figée par Vince.
+        //    Latest PR = premier tuple (name, oneRM) de personalRecords (ordre serveur).
+        //    Delta 1RM non exposé côté payload actuellement → passé à nil (l'accent
+        //    affiche juste name + oneRM). À enrichir si pr_tracker_engine expose le
+        //    delta un jour.
+        if !forceAccessoryTimeline.isEmpty || thisWeekVolume > 0 {
+            StatsHeroCard(
+                timeline:        forceAccessoryTimeline,
+                thisWeekVolume:  thisWeekVolume,
+                lastWeekVolume:  lastWeekVolume,
+                latestPRName:    personalRecords.first?.0,
+                latestPROneRM:   personalRecords.first?.1,
+                latestPRDelta:   nil
+            )
+            .padding(.horizontal, 16)
+            .appearAnimation(delay: 0.0)
+        }
+
         // 1. Smart Insights (moved inside tab)
         if !smartInsights.isEmpty {
             SmartInsightsBanner(insights: smartInsights)
