@@ -865,3 +865,39 @@ struct ForceAccessoryPoint: Codable, Identifiable, Equatable {
 struct ForceAccessoryTimeline: Codable {
     let timeline: [ForceAccessoryPoint]
 }
+
+// MARK: - PR Tracker (source unique serveur — filtre baseline_count ≥ 2, récence 30j)
+// Backend pr_tracker_engine.py + /api/pr-tracker. Consommé par le hero Stats
+// à la place du calcul iOS naïf (StatsView.swift:559-566) qui attrapait des
+// 1RM aberrants (Epley/Brzycki s'emballe sur >10 reps sur exos isolation).
+struct RecentPR: Codable, Identifiable, Equatable {
+    let name:     String
+    let est1RM:   Double
+    let date:     String
+    let prevBest: Double
+
+    var id: String { "\(date)_\(name)" }
+    var delta: Double { est1RM - prevBest }
+
+    enum CodingKeys: String, CodingKey {
+        case name, date
+        case est1RM   = "est_1rm"
+        case prevBest = "prev_best"
+    }
+}
+
+struct PRTrackerData: Codable {
+    let hasData:          Bool
+    let recentPRs:        [RecentPR]
+    let totalPRs:         Int
+    let exercisesTracked: Int
+    let message:          String?
+
+    enum CodingKeys: String, CodingKey {
+        case hasData          = "has_data"
+        case recentPRs        = "recent_prs"
+        case totalPRs         = "total_prs"
+        case exercisesTracked = "exercises_tracked"
+        case message
+    }
+}

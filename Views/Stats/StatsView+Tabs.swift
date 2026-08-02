@@ -115,18 +115,20 @@ extension StatsView {
 
         // 0. Hero Stats — tonnage/séance FORCE + delta 6 mois + courbe force/accessoire
         //    + accents (PR récent, volume velocity). Structure figée par Vince.
-        //    Latest PR = premier tuple (name, oneRM) de personalRecords (ordre serveur).
-        //    Delta 1RM non exposé côté payload actuellement → passé à nil (l'accent
-        //    affiche juste name + oneRM). À enrichir si pr_tracker_engine expose le
-        //    delta un jour.
+        //    PR source = /api/pr-tracker (backend filtre baseline_count ≥ 2, récence
+        //    30j). recentPRs sont triés date DESC serveur → .first = plus récent PR
+        //    validé. Remplace le calcul iOS naïf (StatsView.swift:559-566) qui
+        //    remontait des 1RM Epley aberrants (calf raise 736 lbs).
+        //    NB : StatsView.exercicesTab affiche encore personalRecords via le même
+        //    calcul naïf — bug latent, à basculer sur /api/pr-tracker séparément.
         if !forceAccessoryTimeline.isEmpty || thisWeekVolume > 0 {
             StatsHeroCard(
                 timeline:        forceAccessoryTimeline,
                 thisWeekVolume:  thisWeekVolume,
                 lastWeekVolume:  lastWeekVolume,
-                latestPRName:    personalRecords.first?.0,
-                latestPROneRM:   personalRecords.first?.1,
-                latestPRDelta:   nil
+                latestPRName:    recentPRs.first?.name,
+                latestPROneRM:   recentPRs.first?.est1RM,
+                latestPRDelta:   recentPRs.first?.delta
             )
             .padding(.horizontal, 16)
             .appearAnimation(delay: 0.0)

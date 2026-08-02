@@ -1397,34 +1397,45 @@ struct StatsHeroCard: View {
         }
     }
 
+    // ISO week "YYYY-MM-DD" (lundi) → Date pour que Swift Charts groupe/tick par
+    // mois proprement (sinon `.value(String)` produit un tick par valeur unique
+    // → labels chevauchés sur 12 semaines).
+    private func weekDate(_ isoWeek: String) -> Date? {
+        DateFormatter.isoDate.date(from: isoWeek)
+    }
+
     @ViewBuilder private var chartView: some View {
         Chart {
             ForEach(chartPoints.filter { $0.sessionCategory == "force" }) { p in
-                LineMark(
-                    x: .value("Semaine", p.isoWeek),
-                    y: .value("Tonnage", p.avgTonnage),
-                    series: .value("Série", "Force")
-                )
-                .foregroundStyle(Color.forge)
-                .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: 2.5))
+                if let d = weekDate(p.isoWeek) {
+                    LineMark(
+                        x: .value("Semaine", d),
+                        y: .value("Tonnage", p.avgTonnage),
+                        series: .value("Série", "Force")
+                    )
+                    .foregroundStyle(Color.forge)
+                    .interpolationMethod(.monotone)
+                    .lineStyle(StrokeStyle(lineWidth: 2.5))
 
-                PointMark(
-                    x: .value("Semaine", p.isoWeek),
-                    y: .value("Tonnage", p.avgTonnage)
-                )
-                .foregroundStyle(Color.forge)
-                .symbolSize(28)
+                    PointMark(
+                        x: .value("Semaine", d),
+                        y: .value("Tonnage", p.avgTonnage)
+                    )
+                    .foregroundStyle(Color.forge)
+                    .symbolSize(28)
+                }
             }
             ForEach(chartPoints.filter { $0.sessionCategory == "accessory" }) { p in
-                LineMark(
-                    x: .value("Semaine", p.isoWeek),
-                    y: .value("Tonnage", p.avgTonnage),
-                    series: .value("Série", "Accessoire")
-                )
-                .foregroundStyle(Color.gray)
-                .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                if let d = weekDate(p.isoWeek) {
+                    LineMark(
+                        x: .value("Semaine", d),
+                        y: .value("Tonnage", p.avgTonnage),
+                        series: .value("Série", "Accessoire")
+                    )
+                    .foregroundStyle(Color.gray)
+                    .interpolationMethod(.monotone)
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                }
             }
         }
         .chartYScale(domain: 0 ... yMax)
@@ -1435,9 +1446,12 @@ struct StatsHeroCard: View {
             }
         }
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+            // Stride mensuel — pattern StatsBodyViews.swift:724-729 qui marche.
+            // Labels courts (mai, juin...) pas de chevauchement sur 12 sem.
+            AxisMarks(values: .stride(by: .month)) { _ in
                 AxisGridLine().foregroundStyle(Color.appSurfaceInset)
-                AxisValueLabel().foregroundStyle(Color.gray)
+                AxisValueLabel(format: .dateTime.month(.abbreviated), centered: true)
+                    .foregroundStyle(Color.gray)
             }
         }
         .chartLegend(.hidden)

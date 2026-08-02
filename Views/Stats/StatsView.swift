@@ -96,6 +96,7 @@ struct StatsView: View {
     @State var sorenessThreshold:  SorenessThreshold?          = nil
     @State var hrvAnalysis:        HRVAnalysis?                = nil
     @State var forceAccessoryTimeline: [ForceAccessoryPoint]  = []
+    @State var recentPRs:              [RecentPR]              = []
 
     // ── New stats data ────────────────────────────────────────────────────
     @State var adherenceData:    AdherenceData?         = nil
@@ -697,6 +698,14 @@ struct StatsView: View {
             // 26 semaines : courbe hero affiche les 12 dernières, delta W1 vs W26.
             if let r = try? await APIService.shared.fetchForceVsAccessory(weeks: 26) {
                 await MainActor.run { forceAccessoryTimeline = r.timeline }
+            }
+        }
+        Task {
+            // PRs récents backend (filtre baseline_count ≥ 2, 30j). Utilisé par
+            // l'accent PR du hero, à la place du calcul iOS naïf sur weights.history
+            // qui remontait des 1RM Epley aberrants (calf raise 736 lbs).
+            if let r = try? await APIService.shared.fetchPRTracker() {
+                await MainActor.run { recentPRs = r.recentPRs }
             }
         }
         Task {

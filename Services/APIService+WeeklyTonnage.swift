@@ -20,4 +20,13 @@ extension APIService {
         let data = try await fetchWithCache(url: url, key: "force_vs_accessory_\(weeks)")
         return try APIService.decoder.decode(ForceAccessoryTimeline.self, from: data)
     }
+
+    /// PRs récents (30 derniers jours, filtrés baseline_count ≥ 2).
+    /// Source unique pour l'accent PR du hero — remplace le calcul iOS naïf qui
+    /// gobait des 1RM Epley/Brzycki aberrants (Standing Calf Raise 736 lbs).
+    func fetchPRTracker() async throws -> PRTrackerData {
+        let url  = try buildURL(path: "/api/pr-tracker")
+        let data = try await fetchWithCache(url: url, key: "pr_tracker")
+        return try APIService.decoder.decode(PRTrackerData.self, from: data)
+    }
 }
