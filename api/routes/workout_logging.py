@@ -147,21 +147,53 @@ def api_log():
         _baseline_count = int((_pr_row or {}).get("baseline_count") or 0)
         is_pr = bool(onerm > 0 and (_all_time_1rm <= 0 or onerm >= _all_time_1rm * 0.999))
 
-        if equipment_type == "bodyweight" and weight == 0:
-            bw_logs = _db.get_body_weight_logs(limit=1)
-            volume_weight = float(bw_logs[0]["weight"]) if bw_logs and bw_logs[0].get("weight") else 0.0
-        else:
-            volume_weight = weight
+        # Lookup tracking_type de l'exo — source unique DB (le payload iOS ne
+        # l'envoie pas). Les exos time (planks, Copenhagen, Deadhang, 90/90,
+        # Wall Sit...) ont "reps" qui contient des secondes, pas des reps.
+        # Sans ce check, l'injection bodyweight L150 fait 181.5 × 30s = 5445
+        # par set → volume core gonflé (bug diagnostiqué 2026-08-02, audit
+        # 227K → attendu ~13K après fix + backfill).
+        _tracking_type = "reps"
+        try:
+            _exo_row = _db.get_exercise_by_name(exercise) or {}
+            # get_exercise_by_name (db_exercises.py:49) n'inclut pas tracking_type
+            # dans son SELECT — lookup direct pour l'obtenir. Fallback "reps"
+            # préservé si absent (comportement historique).
+            if _db._client is not None:
+                _tt = (_db._client.table("exercises").select("tracking_type")
+                       .eq("name", exercise).is_("deleted_at", "null")
+                       .maybe_single().execute())
+                _tracking_type = ((_tt.data if _tt else None) or {}).get("tracking_type") or "reps"
+        except Exception:
+            pass
+        _is_time_exo = (_tracking_type == "time")
 
-        if sets_data:
-            for s in sets_data:
-                sw = float(s.get("weight", 0) or 0)
-                sv_weight = volume_weight if (equipment_type == "bodyweight" and sw == 0) else sw
-                s["total_weight"] = sw
-                s["set_volume"] = calc_set_volume(sv_weight, s.get("reps", 0))
-            exercise_volume = round(sum(s.get("set_volume", 0.0) for s in sets_data), 2)
+        if _is_time_exo:
+            # Exos time : pas de volume tonnage. Le temps loggé (reps="30,30,30")
+            # servira à la métrique TUT (Time Under Tension) agrégée séparément.
+            # set_volume = 0 même si une charge externe est ajoutée sur un plank
+            # (weight × secondes n'a pas de sens biomécanique).
+            if sets_data:
+                for s in sets_data:
+                    s["total_weight"] = float(s.get("weight", 0) or 0)
+                    s["set_volume"] = 0.0
+            exercise_volume = 0.0
         else:
-            exercise_volume = calc_exercise_volume(volume_weight, reps)
+            if equipment_type == "bodyweight" and weight == 0:
+                bw_logs = _db.get_body_weight_logs(limit=1)
+                volume_weight = float(bw_logs[0]["weight"]) if bw_logs and bw_logs[0].get("weight") else 0.0
+            else:
+                volume_weight = weight
+
+            if sets_data:
+                for s in sets_data:
+                    sw = float(s.get("weight", 0) or 0)
+                    sv_weight = volume_weight if (equipment_type == "bodyweight" and sw == 0) else sw
+                    s["total_weight"] = sw
+                    s["set_volume"] = calc_set_volume(sv_weight, s.get("reps", 0))
+                exercise_volume = round(sum(s.get("set_volume", 0.0) for s in sets_data), 2)
+            else:
+                exercise_volume = calc_exercise_volume(volume_weight, reps)
 
         action_notes = {"increase": f"+{new_w - weight:.1f}", "maintain": "stagné", "decrease": f"{new_w - weight:.1f}"}
         history_entry = {

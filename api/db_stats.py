@@ -126,6 +126,103 @@ def get_pattern_volume(days: int = 28, weights: dict | None = None) -> dict:
         return {}
 
 
+# ponytail: fonction backfill — zéro-ise set_volume dans sets_json pour les rows
+# exercise_logs dont l'exo lié a tracking_type='time'. Idempotent (skip si déjà 0).
+# Ne touche AUCUNE autre donnée (weight, reps, sets_json[].weight/reps préservés).
+# Supprimable après exécution.
+def backfill_tut_volumes(dry_run: bool = True) -> dict:
+    """Corrige les set_volume gonflés historiquement pour les exos time.
+
+    Cause : workout_logging.py L150-164 injectait le bodyweight comme
+    volume_weight puis calculait set_volume = 181.5 × secondes. Le fix ferme
+    le robinet pour les futurs logs, ce backfill éponge les anciens.
+
+    dry_run=True (défaut) : liste ce qui serait modifié sans écrire.
+    """
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return {"error": "no_client"}
+
+    import json as _json
+
+    # 1. Liste exhaustive des exos time
+    exo_resp = (
+        db_core._client.table("exercises")
+        .select("id, name")
+        .eq("tracking_type", "time")
+        .is_("deleted_at", "null")
+        .execute()
+    )
+    time_exos = exo_resp.data or []
+    if not time_exos:
+        return {"dry_run": dry_run, "time_exercises": [], "affected_rows": 0}
+
+    time_ids   = [e["id"] for e in time_exos]
+    time_names = sorted(e["name"] for e in time_exos)
+
+    # 2. Rows exercise_logs pour ces exos avec sets_json non-null
+    logs_resp = (
+        db_core._client.table("exercise_logs")
+        .select("id, exercise_id, sets_json")
+        .in_("exercise_id", time_ids)
+        .not_.is_("sets_json", "null")
+        .execute()
+    )
+    logs = logs_resp.data or []
+
+    total_volume_before = 0.0
+    to_update: list[dict] = []
+    per_exo: dict[str, dict] = {}
+    id_to_name = {e["id"]: e["name"] for e in time_exos}
+
+    for log in logs:
+        sets = log.get("sets_json") or []
+        if isinstance(sets, str):
+            try:
+                sets = _json.loads(sets)
+            except Exception:
+                continue
+        if not isinstance(sets, list) or not sets:
+            continue
+        vol_before = sum(
+            float(s.get("set_volume") or 0)
+            for s in sets if isinstance(s, dict)
+        )
+        if vol_before <= 0:
+            continue  # idempotence
+        new_sets = [
+            {**s, "set_volume": 0.0} if isinstance(s, dict) else s
+            for s in sets
+        ]
+        total_volume_before += vol_before
+        to_update.append({
+            "id":         log["id"],
+            "sets_json":  new_sets,
+            "vol_before": vol_before,
+        })
+        ex_name = id_to_name.get(log["exercise_id"], "?")
+        bucket = per_exo.setdefault(ex_name, {"rows": 0, "volume": 0.0})
+        bucket["rows"]   += 1
+        bucket["volume"] += vol_before
+
+    if not dry_run and to_update:
+        for u in to_update:
+            db_core._client.table("exercise_logs").update(
+                {"sets_json": u["sets_json"]}
+            ).eq("id", u["id"]).execute()
+
+    return {
+        "dry_run":         dry_run,
+        "time_exercises":  time_names,
+        "affected_rows":   len(to_update),
+        "volume_before":   round(total_volume_before, 2),
+        "volume_after":    0.0,
+        "per_exercise":    {
+            name: {"rows": v["rows"], "volume_before": round(v["volume"], 2)}
+            for name, v in sorted(per_exo.items(), key=lambda x: -x[1]["volume"])
+        },
+    }
+
+
 # ponytail: fonction diag — décompose le volume d'un pattern par exo (top
 # contributors). Sert à identifier les exos TIME qui gonflent le volume core.
 # Supprimable après validation / fix de la formule calc_exercise_volume.

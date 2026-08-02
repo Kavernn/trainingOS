@@ -416,6 +416,21 @@ def api_force_vs_accessory():
     return jsonify(payload)
 
 
+# ponytail: endpoint temp — backfill TUT (set_volume=0 pour exos time
+# historiques). dry_run par défaut, safe. Supprimer après exécution validée.
+@analytics_stats_bp.route("/api/stats/tut-backfill", methods=["POST"])
+def api_tut_backfill():
+    """Backfill : zéro-ise set_volume dans sets_json pour les rows exercise_logs
+    dont l'exo lié a tracking_type='time'.
+
+    Query param ?dry_run=1 (défaut, safe) → liste ce qui serait modifié.
+    ?dry_run=0 → EXÉCUTE l'UPDATE (irréversible sans autre backfill).
+    """
+    from db_stats import backfill_tut_volumes
+    dry_run = str(request.args.get("dry_run", "1")).lower() in ("1", "true", "yes")
+    return jsonify(backfill_tut_volumes(dry_run=dry_run))
+
+
 # ponytail: endpoint temp — diagnostic core volume gonflé (exos TIME comptés
 # w×r sans regarder tracking_type). Supprimer après fix de calc_exercise_volume.
 @analytics_stats_bp.route("/api/stats/pattern-volume-breakdown")
