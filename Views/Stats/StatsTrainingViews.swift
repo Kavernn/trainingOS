@@ -1333,8 +1333,11 @@ struct StatsHeroCard: View {
     private var chartPoints: [ForceAccessoryPoint] {
         timeline.filter { chartWeeks.contains($0.isoWeek) }
     }
-    private var yMax: Double {
-        let m = chartPoints.map(\.avgTonnage).max() ?? 1
+    // Échelle du graphe principal — force seule (l'accessoire a son propre
+    // sparkline). Sans quoi 20K force écraserait 2K accessoire sur un axe partagé.
+    private var forceYMax: Double {
+        let m = chartPoints.filter { $0.sessionCategory == "force" }
+                           .map(\.avgTonnage).max() ?? 1
         return max(m * 1.1, 1)
     }
 
@@ -1348,8 +1351,11 @@ struct StatsHeroCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             heroNumber
-            if !forceSeries.isEmpty || !accessorySeries.isEmpty {
+            if !forceSeries.isEmpty {
                 chartView
+            }
+            if !accessorySeries.isEmpty {
+                accessoryStrip
             }
             accentsRow
         }
@@ -1404,14 +1410,29 @@ struct StatsHeroCard: View {
         DateFormatter.isoDate.date(from: isoWeek)
     }
 
+    // Graphe principal = série FORCE seule. La série accessoire est écrasée
+    // (20K vs 2K lbs) sur un axe partagé → séparée dans accessoryStrip ci-dessous.
     @ViewBuilder private var chartView: some View {
         Chart {
             ForEach(chartPoints.filter { $0.sessionCategory == "force" }) { p in
                 if let d = weekDate(p.isoWeek) {
+                    // Remplissage léger sous la courbe force — donne du poids visuel
+                    // sans écraser la ligne. Gradient forge → transparent.
+                    AreaMark(
+                        x: .value("Semaine", d),
+                        y: .value("Tonnage", p.avgTonnage)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.forge.opacity(0.28), Color.forge.opacity(0.0)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .interpolationMethod(.monotone)
+
                     LineMark(
                         x: .value("Semaine", d),
-                        y: .value("Tonnage", p.avgTonnage),
-                        series: .value("Série", "Force")
+                        y: .value("Tonnage", p.avgTonnage)
                     )
                     .foregroundStyle(Color.forge)
                     .interpolationMethod(.monotone)
@@ -1425,20 +1446,8 @@ struct StatsHeroCard: View {
                     .symbolSize(28)
                 }
             }
-            ForEach(chartPoints.filter { $0.sessionCategory == "accessory" }) { p in
-                if let d = weekDate(p.isoWeek) {
-                    LineMark(
-                        x: .value("Semaine", d),
-                        y: .value("Tonnage", p.avgTonnage),
-                        series: .value("Série", "Accessoire")
-                    )
-                    .foregroundStyle(Color.gray)
-                    .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                }
-            }
         }
-        .chartYScale(domain: 0 ... yMax)
+        .chartYScale(domain: 0 ... forceYMax)
         .chartYAxis {
             AxisMarks(position: .leading) { _ in
                 AxisGridLine().foregroundStyle(Color.appSurfaceInset)
@@ -1447,7 +1456,7 @@ struct StatsHeroCard: View {
         }
         .chartXAxis {
             // Stride mensuel — pattern StatsBodyViews.swift:724-729 qui marche.
-            // Labels courts (mai, juin...) pas de chevauchement sur 12 sem.
+            // Labels courts (fév, mar, avr, mai, jun, juil) sans chevauchement.
             AxisMarks(values: .stride(by: .month)) { _ in
                 AxisGridLine().foregroundStyle(Color.appSurfaceInset)
                 AxisValueLabel(format: .dateTime.month(.abbreviated), centered: true)
@@ -1455,39 +1464,53 @@ struct StatsHeroCard: View {
             }
         }
         .chartLegend(.hidden)
-        .frame(height: 140)
-        // Légende manuelle sous le chart — plus contrôlable que .chartLegend natif.
-        HStack(spacing: 16) {
-            legendDot(color: .forge, label: "Force", style: .solid)
-            legendDot(color: .gray,  label: "Accessoire", style: .dashed)
-            Spacer()
-        }
-        .font(.appCaption)
-        .foregroundColor(.gray)
+        .frame(height: 160)
     }
 
-    private enum LegendStyle { case solid, dashed }
-    private func legendDot(color: Color, label: String, style: LegendStyle) -> some View {
-        HStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: 1)
-                .fill(color)
-                .frame(width: 14, height: 2)
-                .overlay(
-                    Group {
-                        if style == .dashed {
-                            Rectangle()
-                                .fill(Color.appCard)
-                                .frame(width: 3, height: 2)
-                                .offset(x: -3)
-                            Rectangle()
-                                .fill(Color.appCard)
-                                .frame(width: 3, height: 2)
-                                .offset(x: 3)
+    // Bloc compact accessoire — label + valeur courante + sparkline gris. Échelle
+    // propre (indépendante de la force). Caché si accessorySeries est vide.
+    @ViewBuilder private var accessoryStrip: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Accessoire — mobilité / core")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                if let last = accessorySeries.last {
+                    Text("\(formatK(last.avgTonnage)) lbs")
+                        .font(.appCaption)
+                        .foregroundColor(.gray)
+                }
+            }
+            Spacer()
+            // Sparkline : ≥2 points → mini courbe ; 1 point → petit dot pour éviter
+            // un rendu moche (Core & Mobilité vient d'arriver, peu d'historique).
+            if accessorySeries.count >= 2 {
+                Chart {
+                    ForEach(accessorySeries) { p in
+                        if let d = weekDate(p.isoWeek) {
+                            LineMark(
+                                x: .value("W", d),
+                                y: .value("V", p.avgTonnage)
+                            )
+                            .foregroundStyle(Color.gray)
+                            .interpolationMethod(.monotone)
+                            .lineStyle(StrokeStyle(lineWidth: 1.2))
                         }
                     }
-                )
-            Text(label)
+                }
+                .chartXAxis(.hidden)
+                .chartYAxis(.hidden)
+                .chartLegend(.hidden)
+                .frame(width: 110, height: 36)
+            } else {
+                Circle()
+                    .fill(Color.gray.opacity(0.6))
+                    .frame(width: 5, height: 5)
+            }
         }
+        .padding(10)
+        .background(Color.appSurfaceInset)
+        .cornerRadius(10)
     }
 
     @ViewBuilder private var accentsRow: some View {
