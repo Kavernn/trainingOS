@@ -416,6 +416,26 @@ def api_force_vs_accessory():
     return jsonify(payload)
 
 
+# ponytail: endpoint temp — diagnostic core volume gonflé (exos TIME comptés
+# w×r sans regarder tracking_type). Supprimer après fix de calc_exercise_volume.
+@analytics_stats_bp.route("/api/stats/pattern-volume-breakdown")
+def api_pattern_volume_breakdown():
+    """Décompose le volume d'un pattern par exo (top contributors).
+    Params : pattern (défaut "core"), days (défaut 28).
+    """
+    from db_stats import get_pattern_volume_breakdown
+    pattern = request.args.get("pattern", "core")
+    try:
+        days = max(1, min(365, int(request.args.get("days", "28"))))
+    except (ValueError, TypeError):
+        days = 28
+    return jsonify({
+        "pattern":   pattern,
+        "days":      days,
+        "breakdown": get_pattern_volume_breakdown(pattern, days),
+    })
+
+
 # ponytail: endpoint temp — supprimer après validation de la règle de classification.
 @analytics_stats_bp.route("/api/stats/force-vs-accessory/simulate")
 def api_force_vs_accessory_simulate():

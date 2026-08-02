@@ -126,6 +126,63 @@ def get_pattern_volume(days: int = 28, weights: dict | None = None) -> dict:
         return {}
 
 
+# ponytail: fonction diag — décompose le volume d'un pattern par exo (top
+# contributors). Sert à identifier les exos TIME qui gonflent le volume core.
+# Supprimable après validation / fix de la formule calc_exercise_volume.
+def get_pattern_volume_breakdown(pattern: str, days: int = 28) -> list[dict]:
+    """Retourne [{name, movement_pattern_raw, movement_pattern_norm, tracking_type,
+    n_entries, total_volume, sample_entries}] pour les exos qui contribuent au
+    pattern demandé (après _norm_pattern + _merge), tri volume DESC."""
+    try:
+        from weights import load_weights
+        from inventory import load_inventory
+        from datetime import date as _date, timedelta
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
+        weights = load_weights()
+        inventory = load_inventory() or {}
+
+        _merge = {
+            "push_horizontal": "push",  "push_vertical":   "push",
+            "pull_horizontal": "pull",  "pull_vertical":   "pull",
+            "unilateral_leg":  "squat", "press_machine":   "squat",
+        }
+
+        result = []
+        for name, data in weights.items():
+            info = inventory.get(name) or {}
+            raw = info.get("movement_pattern") or ""
+            pat = _norm_pattern(raw)
+            merged = _merge.get(pat, pat)
+            if merged != pattern:
+                continue
+
+            entries_in_window = [
+                e for e in (data.get("history") or [])
+                if str(e.get("date", "")) >= cutoff
+            ]
+            total = sum(_entry_volume(e) for e in entries_in_window)
+            sample = [
+                {"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps"),
+                 "volume": round(_entry_volume(e), 1)}
+                for e in entries_in_window[:3]
+            ]
+
+            result.append({
+                "name":                    name,
+                "movement_pattern_raw":    raw,
+                "movement_pattern_norm":   pat,
+                "tracking_type":           info.get("tracking_type", "reps"),
+                "n_entries":               len(entries_in_window),
+                "total_volume":            round(total),
+                "sample_entries":          sample,
+            })
+        result.sort(key=lambda x: x["total_volume"], reverse=True)
+        return result
+    except Exception as e:
+        db_core.logger.error("get_pattern_volume_breakdown error: %s", e)
+        return []
+
+
 def get_programme_compliance(weeks: int = 8) -> list[dict]:
     """Return planned vs completed sessions per ISO week for the last N weeks."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
