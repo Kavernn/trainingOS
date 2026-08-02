@@ -1360,6 +1360,12 @@ struct StatsHeroCard: View {
 
     // MARK: - Sub-views
 
+    private func formatK(_ v: Double) -> String {
+        if v >= 1_000_000 { return String(format: "%.1fM", v/1_000_000) }
+        if v >= 1_000     { return String(format: "%.0fK", v/1_000) }
+        return String(format: "%.0f", v)
+    }
+
     @ViewBuilder private var heroNumber: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("TONNAGE MOYEN — SÉANCE FORCE")
