@@ -29,6 +29,7 @@ struct ExerciseCard: View {
     var originalName: String? = nil
     var onSwap: (() -> Void)? = nil
     var movementPattern: String = ""
+    var topAccessory: AnyView? = nil
 
     @StateObject private var evm: ExerciseViewModel
     @ObservedObject private var units = UnitSettings.shared
@@ -66,6 +67,7 @@ struct ExerciseCard: View {
          isReplaced: Bool = false, originalName: String? = nil,
          onSwap: (() -> Void)? = nil,
          movementPattern: String = "",
+         topAccessory: AnyView? = nil,
          sessionDate: String = "") {
         self.name            = name
         self.scheme          = scheme
@@ -89,6 +91,7 @@ struct ExerciseCard: View {
         self.originalName    = originalName
         self.onSwap          = onSwap
         self.movementPattern = movementPattern
+        self.topAccessory    = topAccessory
         _evm = StateObject(wrappedValue: ExerciseViewModel(
             name: name, scheme: scheme, weightData: weightData,
             equipmentType: equipmentType, trackingType: trackingType,
@@ -101,6 +104,12 @@ struct ExerciseCard: View {
     // MARK: - View-layer computed
 
     private var isTimeBased: Bool { trackingType == "time" }
+
+    // carry inclus : un log reps sur un carry écrirait un tonnage faux (poids × mètres).
+    // time (Deadhang/planks/Copenhagen) et reps ne sont PAS ici → restent loggables.
+    private var isNonLoggable: Bool {
+        ["protocol", "cardio", "interval", "carry"].contains(trackingType)
+    }
 
     private var canLogHint: String {
         if isTimeBased { return "Entre la durée pour logger" }
@@ -640,6 +649,17 @@ struct ExerciseCard: View {
         }
     }
 
+    @ViewBuilder private func stubNotLoggableView() -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: "clock.badge.exclamationmark")
+            Text("Saisie bientôt disponible")
+                .font(.appCaption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+    }
+
     @ViewBuilder private var avgTotalRow: some View {
         switch evm.equipmentType {
         case "barbell", "dumbbell", "cable_double":
@@ -675,6 +695,14 @@ struct ExerciseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+
+            // Bandeau accessoire (bouton déplacement matin↔soir/bonus, étape 4).
+            // Intégré au flux pour ne pas chevaucher headerTrailing (poids/reps).
+            if let topAccessory {
+                HStack { Spacer(); topAccessory }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+            }
 
             // MARK: Header — always visible, tap to expand/collapse
             headerButton
@@ -1152,7 +1180,9 @@ struct ExerciseCard: View {
                 .padding(8).background(Color.statusYellow.opacity(0.05)).cornerRadius(8)
             }
         }
-        if isTimeBased {
+        if isNonLoggable {
+            stubNotLoggableView()
+        } else if isTimeBased {
             EnduranceTimerSection(
                 sets: evm.sets,
                 exerciseName: name,
@@ -1433,7 +1463,7 @@ struct ExerciseCard: View {
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            } else {
+            } else if !isNonLoggable {
                 VStack(spacing: 4) {
                     holdToLogButton
                     if !evm.canLog {
