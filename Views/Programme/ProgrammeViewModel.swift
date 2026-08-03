@@ -210,10 +210,15 @@ final class ProgrammeViewModel: ObservableObject {
             isLoading = false
         }
         await migrateLegacyCycleStartDateIfNeeded()
-        if let eURL = URL(string: "\(APIConfig.base)/api/evening_schedule"),
-           let (eData, _) = try? await URLSession.authed.data(from: eURL),
-           let eJson = try? JSONSerialization.jsonObject(with: eData) as? [String: String] {
-            eveningSchedule = eJson
+        if let eURL = URL(string: "\(APIConfig.base)/api/evening_schedule") {
+            do {
+                let (eData, _) = try await URLSession.authed.data(from: eURL)
+                eveningSchedule = try JSONDecoder().decode([String: String].self, from: eData)
+            } catch {
+                // Ne pas avaler en silence — c'est ce qui a masqué le bug
+                // (7 tuiles vides sans trace). eveningSchedule reste [:] si erreur.
+                print("⚠️ evening_schedule decode failed: \(error)")
+            }
         }
         if let wURL = URL(string: "\(APIConfig.base)/api/seance_data"),
            let (wData, _) = try? await URLSession.authed.data(from: wURL),
