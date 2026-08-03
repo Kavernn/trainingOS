@@ -405,6 +405,7 @@ struct SeanceData: Codable {
 
 struct SeanceSoirData: Codable {
     let hasEveningSession: Bool
+    let today: String                 // alias backend de today_soir — évite rename côté WorkoutSeanceView (.today)
     let todaySoir: String?
     let todayDate: String
     let alreadyLogged: Bool
@@ -412,12 +413,18 @@ struct SeanceSoirData: Codable {
     let fullProgram: [String: [String: SafeString]]
     let weights: [String: WeightData]
     let week: Int
+    let mesocycle: MesocycleInfo?
     let inventoryTypes: [String: String]
     let inventoryTracking: [String: String]
     let inventoryRest: [String: Int]
+    let inventoryHints: [String: String]
     let inventorySchemes: [String: String]
     let inventoryMuscleGroups: [String: String]
     let exerciseOrder: [String: [String]]
+    let exerciseSupersets: [String: [String: SupersetEntry]]
+    let prescriptions: [String: ExercisePrescription]?
+    let exerciseSuggestions: [String: ProgressionSuggestion]?
+    let loggedTodayNames: Set<String>
     /// Étape 3b — cf. SeanceData.pushedToEvening. Même sémantique.
     let pushedToEvening: Set<String>
     /// Étape 4 — cf. SeanceData.pushedToBonus. Même sémantique.
@@ -427,18 +434,23 @@ struct SeanceSoirData: Codable {
 
     enum CodingKeys: String, CodingKey {
         case hasEveningSession = "has_evening_session"
+        case today
         case todaySoir         = "today_soir"
         case todayDate         = "today_date"
         case alreadyLogged     = "already_logged"
         case schedule
         case fullProgram       = "full_program"
-        case weights, week
+        case weights, week, mesocycle, prescriptions
         case inventoryTypes    = "inventory_types"
         case inventoryTracking = "inventory_tracking"
         case inventoryRest     = "inventory_rest"
+        case inventoryHints    = "inventory_hints"
         case inventorySchemes  = "inventory_schemes"
         case inventoryMuscleGroups = "inventory_muscle_groups"
         case exerciseOrder     = "exercise_order"
+        case exerciseSupersets = "exercise_supersets"
+        case exerciseSuggestions = "exercise_suggestions"
+        case loggedTodayNames  = "logged_today_names"
         case pushedToEvening   = "pushed_to_evening"
         case pushedToBonus     = "pushed_to_bonus"
         case exerciseIds       = "exercise_ids"
@@ -447,6 +459,7 @@ struct SeanceSoirData: Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         hasEveningSession = (try? c.decode(Bool.self,               forKey: .hasEveningSession)) ?? false
+        today             = (try? c.decode(String.self,             forKey: .today))             ?? ""
         todaySoir         =  try? c.decode(String.self,             forKey: .todaySoir)
         todayDate         = (try? c.decode(String.self,             forKey: .todayDate))         ?? ""
         alreadyLogged     = (try? c.decode(Bool.self,               forKey: .alreadyLogged))     ?? false
@@ -454,25 +467,41 @@ struct SeanceSoirData: Codable {
         fullProgram       = (try? c.decode([String: [String: SafeString]].self, forKey: .fullProgram)) ?? [:]
         weights           = (try? c.decode([String: WeightData].self, forKey: .weights))         ?? [:]
         week              = (try? c.decode(Int.self,                forKey: .week))              ?? 0
+        mesocycle         = try? c.decode(MesocycleInfo.self, forKey: .mesocycle)
         inventoryTypes    = (try? c.decode([String: String].self,   forKey: .inventoryTypes))    ?? [:]
         inventoryTracking = (try? c.decode([String: String].self,   forKey: .inventoryTracking)) ?? [:]
         inventoryRest     = (try? c.decode([String: Int].self,      forKey: .inventoryRest))     ?? [:]
+        inventoryHints    = (try? c.decode([String: String].self,   forKey: .inventoryHints))    ?? [:]
         inventorySchemes  = (try? c.decode([String: String].self,   forKey: .inventorySchemes))  ?? [:]
         inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]
         exerciseOrder     = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))     ?? [:]
+        exerciseSupersets = (try? c.decode([String: [String: SupersetEntry]].self, forKey: .exerciseSupersets)) ?? [:]
+        prescriptions     = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
+        exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
+        loggedTodayNames  = Set((try? c.decode([String].self, forKey: .loggedTodayNames)) ?? [])
         pushedToEvening   = Set((try? c.decode([String].self, forKey: .pushedToEvening)) ?? [])
         pushedToBonus     = Set((try? c.decode([String].self, forKey: .pushedToBonus)) ?? [])
         exerciseIds       = (try? c.decode([String: String].self, forKey: .exerciseIds)) ?? [:]
     }
 
+    /// Bridge L2 : recompose un SeanceData depuis le payload soir. eveningSessionName=nil
+    /// (c'est le soir, pas de "soir d'après"). Retourne nil si early return backend
+    /// (has_evening_session=false → today="") pour que la vue affiche l'état "Pas de séance".
     func asSeanceData() -> SeanceData? {
-        guard let soir = todaySoir else { return nil }
-        return SeanceData(today: soir, todayDate: todayDate, alreadyLogged: alreadyLogged,
+        guard hasEveningSession, !today.isEmpty else { return nil }
+        return SeanceData(today: today, todayDate: todayDate, alreadyLogged: alreadyLogged,
                          schedule: schedule, fullProgram: fullProgram, weights: weights,
-                         week: week, inventoryTypes: inventoryTypes, inventoryTracking: inventoryTracking,
-                         inventoryRest: inventoryRest, inventorySchemes: inventorySchemes,
+                         week: week, mesocycle: mesocycle,
+                         inventoryTypes: inventoryTypes, inventoryTracking: inventoryTracking,
+                         inventoryRest: inventoryRest, inventoryHints: inventoryHints,
+                         inventorySchemes: inventorySchemes,
                          inventoryMuscleGroups: inventoryMuscleGroups,
                          exerciseOrder: exerciseOrder,
+                         exerciseSupersets: exerciseSupersets,
+                         prescriptions: prescriptions,
+                         exerciseSuggestions: exerciseSuggestions,
+                         loggedTodayNames: loggedTodayNames,
+                         eveningSessionName: nil,
                          pushedToEvening: pushedToEvening,
                          pushedToBonus: pushedToBonus,
                          exerciseIds: exerciseIds)

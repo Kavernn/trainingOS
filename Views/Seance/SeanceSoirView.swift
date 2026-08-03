@@ -16,18 +16,15 @@ class SeanceSoirViewModel: SeanceViewModel {
     }
 
     override func load() async {
-        // Sans override : consomme le MÊME endpoint que la matin (/api/seance_data),
-        // hérite today_str du matin. Avec override : fetchSeanceData(sessionName:)
-        // route le backend vers session_name_override (workout_schedule.py:26-33).
-        // Le cache "seance_data" contient le matin — skip en mode override sinon
-        // affichage matin brièvement avant fetch soir.
-        if seanceData == nil, overrideSessionName == nil,
+        // Cache "seance_data" (matin) ne s'applique QUE si override matin (chemin
+        // fetchSeanceData conservé — backend soir n'accepte pas encore session_name,
+        // report carnet voie A v2). Sans override : /api/seance_soir_data sert le vrai
+        // plan evening (slot='evening' seedé), pas de cache soir dédié pour l'instant.
+        if seanceData == nil, overrideSessionName != nil,
            let cached = cacheService.load(for: "seance_data"),
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
             seanceData = decoded
             restoreLogResults(from: decoded)
-            // Étape 3b — reconcile moot : le backend est autoritative sur les overrides,
-            // le self-healing local n'a plus de sens.
         }
 
         if seanceData == nil { isLoading = true }
@@ -37,7 +34,12 @@ class SeanceSoirViewModel: SeanceViewModel {
             if let name = overrideSessionName {
                 fresh = try await APIService.shared.fetchSeanceData(sessionName: name)
             } else {
-                fresh = try await APIService.shared.fetchSeanceData()
+                let soir = try await APIService.shared.fetchSeanceSoirData()
+                guard let bridged = soir.asSeanceData() else {
+                    isLoading = false
+                    return  // seanceData reste nil → vue affiche "Pas de séance du soir"
+                }
+                fresh = bridged
             }
             seanceData = fresh
             restoreLogResults(from: fresh)

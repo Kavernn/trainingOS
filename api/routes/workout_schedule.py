@@ -175,7 +175,10 @@ def api_seance_soir_data():
     from weights import load_weights
     from inventory import load_inventory
     from blocks import get_strength_exercises, get_strength_exercise_ids
-    from utils import get_current_week
+    from utils import get_current_week, _parse_scheme, get_mesocycle_info
+    from progression import prescribe_volume
+    from deload import get_cached_fatigue_score
+    import smart_progression as _sp
 
     today_soir = get_today_evening()
     weights      = load_weights()
@@ -216,14 +219,62 @@ def api_seance_soir_data():
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_rest     = {name: (info.get("rest_seconds") or 120) for name, info in inv.items()}
+    inventory_hints    = {name: info["tips"] for name, info in inv.items() if info.get("tips")}
     # Ne mappe QUE les schemes réellement présents en DB (voir /api/seance_data).
     inventory_schemes  = {name: info["default_scheme"] for name, info in inv.items() if info.get("default_scheme")}
     inventory_muscle_groups = {name: info["muscle_group"] for name, info in inv.items() if info.get("muscle_group")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
+    exercise_supersets = _db.get_session_supersets(_db.get_active_program_id())
     suggestions     = get_suggested_weights_for_today(weights, full_program)
+
+    # logged_today_names : union tous slots (symétrie matin L38-51).
+    logged_today_names: set[str] = set()
+    try:
+        _today_all = _db.get_today_sessions_all(today_date)
+        for s in _today_all:
+            sid = s.get("id")
+            if not sid:
+                continue
+            resp = _db._client.table("exercise_logs").select("exercises(name)").eq("session_id", sid).execute()
+            for r in (resp.data or []):
+                n = (r.get("exercises") or {}).get("name")
+                if n:
+                    logged_today_names.add(n)
+    except Exception:
+        pass
+
+    # Prescriptions : scope au plan du SOIR uniquement (exos affichés côté iOS).
+    # Divergence assumée avec le matin (L103-115) qui itère tout flat_program —
+    # le matin garde son comportement historique, le soir n'a pas besoin de ce sur-calcul.
+    fatigue_score = get_cached_fatigue_score()
+    prescriptions = {}
+    today_soir_plan = flat_program.get(today_soir) or {}
+    for ex_name, scheme in today_soir_plan.items():
+        base_sets, rmin, rmax = _parse_scheme(str(scheme))
+        ex_history = weights.get(ex_name, {}).get("history", [])
+        prescriptions[ex_name] = prescribe_volume(
+            exercise=ex_name, base_sets=base_sets, rep_min=rmin, rep_max=rmax,
+            fatigue_score=fatigue_score, history=ex_history,
+        )
+
+    # Exercise suggestions : sur les exos du SOIR (mêmes que prescriptions).
+    today_soir_exercises = list(today_soir_plan.keys())
+    exercise_suggestions: dict = {}
+    if not already_logged and today_soir_exercises:
+        ex_info_bulk = _db.get_exercises_info_bulk(today_soir_exercises)
+        exercise_suggestions = _sp.generate_exercise_suggestions_bulk(
+            today_soir_exercises, weights, ex_info_bulk
+        )
+        for ex_name, sug in exercise_suggestions.items():
+            if sug.get("suggestion_type") == "increase_weight" and sug.get("suggested_weight"):
+                if ex_name in weights:
+                    weights[ex_name] = {**weights[ex_name], "current_weight": sug["suggested_weight"]}
 
     return jsonify({
         "has_evening_session": True,
+        # Alias `today` = today_soir : permet à iOS de lire .today via le bridge
+        # SeanceSoirData.asSeanceData() sans rename dans WorkoutSeanceView.
+        "today": today_soir,
         "today_soir": today_soir,
         "today_date": today_date,
         "already_logged": already_logged,
@@ -232,12 +283,18 @@ def api_seance_soir_data():
         "suggestions": suggestions,
         "weights": weights,
         "week": get_current_week(),
+        "mesocycle": get_mesocycle_info(),
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
         "inventory_rest": inventory_rest,
+        "inventory_hints": inventory_hints,
         "inventory_schemes": inventory_schemes,
         "inventory_muscle_groups": inventory_muscle_groups,
         "exercise_order": exercise_order,
+        "exercise_supersets": exercise_supersets,
+        "prescriptions": prescriptions,
+        "exercise_suggestions": exercise_suggestions,
+        "logged_today_names": sorted(logged_today_names),
         # Étape 3b — même que seance_data : liste exposée pour SeanceData.pushedToEvening.
         "pushed_to_evening": _day_plan["pushed_to_evening"],
         # Étape 4 — symétrique.
