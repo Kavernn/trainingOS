@@ -68,3 +68,6 @@ xcschememanagement.plist
 
 # Graphify knowledge graph (regeneratable)
 graphify-out/
+
+# Backups runtime (snapshots weekly_schedule, etc.)
+scripts/backups/
