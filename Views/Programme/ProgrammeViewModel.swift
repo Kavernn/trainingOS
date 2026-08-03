@@ -215,8 +215,6 @@ final class ProgrammeViewModel: ObservableObject {
                 let (eData, _) = try await URLSession.authed.data(from: eURL)
                 eveningSchedule = try JSONDecoder().decode([String: String].self, from: eData)
             } catch {
-                // Ne pas avaler en silence — c'est ce qui a masqué le bug
-                // (7 tuiles vides sans trace). eveningSchedule reste [:] si erreur.
                 print("⚠️ evening_schedule decode failed: \(error)")
             }
         }

@@ -2529,7 +2529,8 @@ struct EveningScheduleCard: View {
         case "Pull B + Full Body": return "PLL B"
         case "Yoga / Tai Chi":     return "YOGA"
         case "Recovery":           return "REC"
-        default:                   return "—"
+        default:
+            return s.count > 4 ? String(s.prefix(4)).uppercased() : s.uppercased()
         }
     }
 
