@@ -140,7 +140,7 @@ struct TodayCardView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                     .padding(.bottom, 16)
-                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView(sessionName: dash.eveningSessionName) }
+                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
                 }
                 // Loggé sans séance 2 planifiée → Seance3BonusStrip (fin de VStack) fournit l'accès bonus.
             } else {
