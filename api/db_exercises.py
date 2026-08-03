@@ -46,7 +46,7 @@ def get_exercise_by_name(name: str) -> Optional[dict]:
         return None
 
     def _do() -> Optional[dict]:
-        resp = db_core._client.table("exercises").select("id, name, type, category, default_scheme, load_profile, muscles, increment, tips, level, pattern").eq("name", name).is_("deleted_at", "null").single().execute()
+        resp = db_core._client.table("exercises").select("id, name, type, category, default_scheme, load_profile, muscles, increment, tips, level, pattern, tracking_type").eq("name", name).is_("deleted_at", "null").single().execute()
         return resp.data
 
     try:

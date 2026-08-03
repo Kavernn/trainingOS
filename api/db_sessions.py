@@ -593,6 +593,7 @@ def upsert_exercise_log_direct(
         payload = {
             "session_id": session_id,
             "exercise_id": exercise_id,
+            "side": "both",
             "weight": weight,
             "reps": reps,
         }
@@ -606,7 +607,7 @@ def upsert_exercise_log_direct(
             payload["notes"] = notes
         resp = (
             db_core._client.table("exercise_logs")
-            .upsert(payload, on_conflict="session_id,exercise_id")
+            .upsert(payload, on_conflict="session_id,exercise_id,side")
             .execute()
         )
         return bool(resp.data)
@@ -1499,6 +1500,7 @@ def upsert_exercise_log(
         payload = {
             "session_id": session_id,
             "exercise_id": exercise_id,
+            "side": "both",
             "weight": weight,
             "reps": reps,
         }
@@ -1506,7 +1508,7 @@ def upsert_exercise_log(
             payload["sets_json"] = sets_json
         resp = (
             db_core._client.table("exercise_logs")
-            .upsert(payload, on_conflict="session_id,exercise_id")
+            .upsert(payload, on_conflict="session_id,exercise_id,side")
             .execute()
         )
         return bool(resp.data)
@@ -1585,6 +1587,7 @@ def upsert_exercise_log_by_type(
         payload = {
             "session_id": session["id"],
             "exercise_id": exercise_id,
+            "side": "both",
             "weight": weight,
             "reps": reps,
         }
@@ -1592,7 +1595,7 @@ def upsert_exercise_log_by_type(
             payload["sets_json"] = sets_json
         resp = (
             db_core._client.table("exercise_logs")
-            .upsert(payload, on_conflict="session_id,exercise_id")
+            .upsert(payload, on_conflict="session_id,exercise_id,side")
             .execute()
         )
         return bool(resp.data)
@@ -1719,6 +1722,7 @@ def bulk_upsert_exercise_logs(entries: list[dict]) -> bool:
             row = {
                 "session_id": session_id,
                 "exercise_id": exercise_id,
+                "side": "both",
                 "weight": entry.get("weight"),
                 "reps": entry.get("reps"),
             }
@@ -1731,7 +1735,7 @@ def bulk_upsert_exercise_logs(entries: list[dict]) -> bool:
 
         resp = (
             db_core._client.table("exercise_logs")
-            .upsert(payloads, on_conflict="session_id,exercise_id")
+            .upsert(payloads, on_conflict="session_id,exercise_id,side")
             .execute()
         )
         return bool(resp.data)
@@ -1800,6 +1804,7 @@ def bulk_apply_session_exercise_patches(
                 row = {
                     "session_id": session_id,
                     "exercise_id": exercise_id,
+                    "side": "both",
                     "weight": float(patch.get("weight") or 0),
                     "reps": str(patch.get("reps") or ""),
                 }
@@ -1817,7 +1822,7 @@ def bulk_apply_session_exercise_patches(
         if upsert_rows:
             resp = (
                 db_core._client.table("exercise_logs")
-                .upsert(upsert_rows, on_conflict="session_id,exercise_id")
+                .upsert(upsert_rows, on_conflict="session_id,exercise_id,side")
                 .execute()
             )
             if not resp.data:

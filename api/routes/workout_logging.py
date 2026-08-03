@@ -153,26 +153,19 @@ def api_log():
         # Sans ce check, l'injection bodyweight L150 fait 181.5 × 30s = 5445
         # par set → volume core gonflé (bug diagnostiqué 2026-08-02, audit
         # 227K → attendu ~13K après fix + backfill).
-        _tracking_type = "reps"
-        try:
-            _exo_row = _db.get_exercise_by_name(exercise) or {}
-            # get_exercise_by_name (db_exercises.py:49) n'inclut pas tracking_type
-            # dans son SELECT — lookup direct pour l'obtenir. Fallback "reps"
-            # préservé si absent (comportement historique).
-            if _db._client is not None:
-                _tt = (_db._client.table("exercises").select("tracking_type")
-                       .eq("name", exercise).is_("deleted_at", "null")
-                       .maybe_single().execute())
-                _tracking_type = ((_tt.data if _tt else None) or {}).get("tracking_type") or "reps"
-        except Exception:
-            pass
-        _is_time_exo = (_tracking_type == "time")
+        _exo_row = _db.get_exercise_by_name(exercise) or {}
+        _tracking_type = _exo_row.get("tracking_type") or "reps"
+        # Seule 'reps' calcule un volume tonnage (charge × reps). Les 6 autres modalités
+        # (time/carry/plyo/cardio/interval/protocol) SKIPPENT le tonnage — set_volume=0.
+        # Chaque modalité aura SA métrique au chantier 4 ; aucune métrique commune ici.
+        # COUPLAGE : ce '!= reps' est sûr grâce au CHECK exercises_tracking_type_check (087a)
+        # qui garantit tracking_type ∈ {7 valeurs}. Si le CHECK saute, un exo mal typé
+        # cesserait silencieusement de compter son volume. Ne pas découpler.
+        _skip_tonnage = (_tracking_type != "reps")
 
-        if _is_time_exo:
-            # Exos time : pas de volume tonnage. Le temps loggé (reps="30,30,30")
-            # servira à la métrique TUT (Time Under Tension) agrégée séparément.
-            # set_volume = 0 même si une charge externe est ajoutée sur un plank
-            # (weight × secondes n'a pas de sens biomécanique).
+        if _skip_tonnage:
+            # Skip du tonnage : set_volume forcé à 0 pour toute modalité non-reps.
+            # Aucune métrique de substitution ici (chantier 4).
             if sets_data:
                 for s in sets_data:
                     s["total_weight"] = float(s.get("weight", 0) or 0)
