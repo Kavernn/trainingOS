@@ -51,7 +51,9 @@ CREATE TABLE IF NOT EXISTS exercises (
     movement_pattern TEXT,                             -- pattern fonctionnel détaillé : push_horizontal | push_vertical | pull_horizontal | pull_vertical | squat | hinge | unilateral_leg | press_machine | isolation_arm | isolation_shoulder | isolation_leg | core | rotation | carry | cardio | accessory_wrist | other
     weight_type      TEXT,                             -- type de calcul du poids : barbell | dumbbell | cable_single | cable_double | press | fixed_weight | bodyweight | endurance | machine
     equipment        TEXT[],                           -- équipements multiples : barre | haltères | machine | câble | bandes | poids_du_corps | smith | trx | autre
-    alternate_name   TEXT                              -- alias / surnom (ex: "Bench Press" pour "Développé couché")
+    alternate_name   TEXT,                             -- alias / surnom (ex: "Bench Press" pour "Développé couché")
+    -- migration 087c — flag catalogue orthogonal au tracking_type (côté LOGS = exercise_logs.side)
+    is_unilateral    BOOLEAN     NOT NULL DEFAULT FALSE
 );
 
 CREATE INDEX IF NOT EXISTS idx_exercises_name ON exercises (name);
