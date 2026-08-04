@@ -2,6 +2,9 @@ import SwiftUI
 import Combine
 import UIKit
 import UserNotifications
+import os.log
+
+private let exerciseLogger = Logger(subsystem: "TrainingOS", category: "exercise_viewmodel")
 
 extension Notification.Name {
     static let sessionCompleted = Notification.Name("trainingos.sessionCompleted")
@@ -197,15 +200,26 @@ enum ExerciseCalculator {
         return s > 0 ? "\(m)m\(s)s" : "\(m)m"
     }
 
-    static func repsStr(sets: [SetInput], isTimeBased: Bool, trackingType: String = "reps") -> String {
-        // ponytail: protocol = fait par définition. "1" est un placeholder canLog + NOT NULL,
-        // PAS 1 rep. _skip_tonnage backend ignore le volume. Source vérité = protocol_completed.
-        if trackingType == "protocol" { return "1" }
-        if trackingType == "carry" {
+    static func repsStr(sets: [SetInput], trackingType: String = "reps") -> String {
+        // Switch exhaustif — une branche par tracking_type (7 valeurs CHECK DB 087a).
+        // Default = fatal (assert dev + logger prod) : un type inconnu n'est jamais silencieux.
+        switch trackingType {
+        case "reps", "plyo":
+            // plyo (sauts par set) = même sémantique CSV que reps.
+            return sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
+        case "time":
+            return sets.map { String($0.duration) }.joined(separator: ",")
+        case "carry":
             return sets.compactMap { $0.distance.isEmpty ? nil : $0.distance }.joined(separator: ",")
+        case "protocol", "interval", "cardio":
+            // Placeholder canLog + backend reps_str NOT NULL (workout_logging.py:83).
+            // Vraie donnée = duration/intensity/distance (colonnes top-level 087a).
+            return "1"
+        default:
+            assertionFailure("repsStr: trackingType inconnu \(trackingType)")
+            exerciseLogger.error("repsStr: trackingType inconnu \(trackingType, privacy: .public)")
+            return "1"
         }
-        if isTimeBased { return sets.map { String($0.duration) }.joined(separator: ",") }
-        return sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
     }
 }
 
@@ -295,30 +309,9 @@ final class ExerciseViewModel: ObservableObject {
         return count > 0 ? sum / Double(count) : nil
     }
 
-    var canLog: Bool {
-        if trackingType == "protocol" { return sets.first?.protocolCompleted == true }
-        if trackingType == "carry" { return sets.contains { (Int($0.distance) ?? 0) > 0 } }
-        if isTimeBased { return sets.contains { $0.duration > 0 } }
-        if equipmentType == "bodyweight" {
-            return sets.contains { (Int($0.reps) ?? 0) > 0 }
-        }
-        if equipmentType == "fixed_weight" {
-            return sets.contains { s in
-                guard let w = Double(s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")),
-                      w > 0 else { return false }
-                let repsStr = s.reps.trimmingCharacters(in: .whitespaces)
-                return repsStr.isEmpty || (Int(repsStr) ?? 0) > 0
-            }
-        }
-        // Standard : weight >= 0 (0 OK pour exos assistés à contrepoids), reps > 0
-        return sets.contains { s in
-            guard let w = Double(s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")),
-                  w >= 0 else { return false }
-            return (Int(s.reps) ?? 0) > 0
-        }
-    }
+    var canLog: Bool { logBlockedReason() == nil }
 
-    var repsStr: String { ExerciseCalculator.repsStr(sets: sets, isTimeBased: isTimeBased, trackingType: trackingType) }
+    var repsStr: String { ExerciseCalculator.repsStr(sets: sets, trackingType: trackingType) }
 
     var lastRepsParts: [String] { lastReps.split(separator: ",").map(String.init) }
 
@@ -483,9 +476,9 @@ final class ExerciseViewModel: ObservableObject {
         clearDraft()
     }
 
-    /// Vrai si le set est jugé "complet" selon equipmentType. Règle unique partagée
-    /// entre la validation au log (invalidSetMessage) et la dérivation de currentSetIndex
-    /// à la restauration (firstIncompleteSetIndex).
+    /// Vrai si le set est jugé "complet" selon equipmentType. USAGE INTERNE
+    /// setBySetMode uniquement (via firstIncompleteSetIndex → initializeSets).
+    /// HORS chemin du log : la validation au log passe par logBlockedReason().
     private func isSetComplete(_ s: SetInput) -> Bool {
         if isTimeBased { return s.duration > 0 }
         let weightStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
@@ -505,26 +498,60 @@ final class ExerciseViewModel: ObservableObject {
         sets.firstIndex(where: { !isSetComplete($0) })
     }
 
-    /// Bloque le log si un set est incomplet (miroir des règles du compactMap, exposées
-    /// avec un message clair au lieu d'un drop silencieux). Retourne nil si tout est OK.
-    /// Pour time-based, exige durée > 0 par set (corrige le path qui ne drappait pas).
-    private func invalidSetMessage() -> String? {
+    /// Source unique de vérité "cet exo est-il loggable dans son état actuel ?"
+    /// Retourne nil si loggable, sinon message d'erreur à afficher.
+    /// UNE branche par tracking_type (7 valeurs CHECK DB 087a), exhaustive.
+    /// Default = fatal (assert dev + logger prod + message visible) : un nouveau
+    /// type non géré casse en dev, jamais silencieux en prod. Le CHECK DB est
+    /// la ceinture, ce switch est la bretelle.
+    func logBlockedReason() -> String? {
+        switch trackingType {
+        case "reps":
+            return firstIncompleteRepsSet()
+        case "time":
+            return sets.contains { $0.duration > 0 } ? nil : "Durée requise"
+        case "carry":
+            return sets.contains { (Int($0.distance) ?? 0) > 0 } ? nil : "Distance requise"
+        case "plyo":
+            // plyo (sauts par set) = même sémantique que reps (int par série).
+            return sets.contains { (Int($0.reps) ?? 0) > 0 } ? nil : "Nombre de sauts requis"
+        case "cardio":
+            return (sets.first?.duration ?? 0) > 0 ? nil : "Durée requise"
+        case "interval":
+            return sets.first?.protocolCompleted == true ? nil : "Marquer comme fait"
+        case "protocol":
+            return sets.first?.protocolCompleted == true ? nil : "Marquer comme fait"
+        default:
+            assertionFailure("logBlockedReason: trackingType inconnu \(trackingType)")
+            exerciseLogger.error("logBlockedReason: trackingType inconnu \(trackingType, privacy: .public)")
+            return "Type non pris en charge : \(trackingType)"
+        }
+    }
+
+    /// Reps standard : itère les sets, retourne "Set N : …" au premier partiellement
+    /// rempli selon equipmentType. Un set ENTIÈREMENT vide (weight="" ET reps="") est
+    /// SKIPPÉ — permet une séance écourtée (3/4 sets faits, 4e non tenté). Aligné
+    /// avec le compactMap de logExercise :~600 qui drop déjà silencieusement les sets
+    /// vides du payload. Si aucun set n'est commencé, retourne un hint générique.
+    private func firstIncompleteRepsSet() -> String? {
+        var anyStarted = false
         for (i, s) in sets.enumerated() {
-            if isSetComplete(s) { continue }
-            let n = i + 1
-            if isTimeBased { return "Set \(n) : durée requise" }
             let weightStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+            let repsTrimmed = s.reps.trimmingCharacters(in: .whitespaces)
+            if weightStr.isEmpty && repsTrimmed.isEmpty { continue }
+            anyStarted = true
+            let n = i + 1
             switch equipmentType {
             case "bodyweight":
-                return "Set \(n) : reps requises"
+                if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
             case "fixed_weight":
-                return "Set \(n) : poids requis"
+                if (Double(weightStr) ?? 0) <= 0 { return "Set \(n) : poids requis" }
             default:
                 if (Double(weightStr) ?? 0) <= 0 { return "Set \(n) : poids requis" }
-                return "Set \(n) : reps requises"
+                if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
             }
         }
-        return nil
+        return anyStarted ? nil : "Entre poids et reps pour logger"
     }
 
     // Returns ExerciseLogResult to assign to the binding, or nil if can't log.
@@ -532,11 +559,10 @@ final class ExerciseViewModel: ObservableObject {
     @discardableResult
     func logExercise(alreadyLoggedViaBinding: Bool) -> ExerciseLogResult? {
         let alreadyLogged = isLogged || alreadyLoggedViaBinding || isSkipped
-        let repsOk = !repsStr.isEmpty || equipmentType == "fixed_weight"
-        guard !alreadyLogged || isEditing, canLog, repsOk else { return nil }
+        guard !alreadyLogged || isEditing else { return nil }
 
-        if let msg = invalidSetMessage() {
-            logError = msg
+        if let reason = logBlockedReason() {
+            logError = reason
             return nil
         }
 

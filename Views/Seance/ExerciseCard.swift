@@ -111,16 +111,6 @@ struct ExerciseCard: View {
         ["cardio", "interval"].contains(trackingType)
     }
 
-    private var canLogHint: String {
-        if isTimeBased { return "Entre la durée pour logger" }
-        if evm.equipmentType == "bodyweight" { return "Entre les reps pour logger" }
-        let hasWeight = evm.sets.contains { !$0.weight.trimmingCharacters(in: .whitespaces).isEmpty }
-        let hasReps   = evm.sets.contains { !$0.reps.isEmpty }
-        if !hasWeight && !hasReps { return "Entre poids et reps pour logger" }
-        if !hasWeight { return "Entre le poids pour logger" }
-        return "Entre les reps pour logger"
-    }
-
     private var weightIncrement: Double {
         let isLower = ["squat", "hinge"].contains(movementPattern.lowercased())
         if units.isKg { return isLower ? incrementLowerKg : incrementUpperKg }
@@ -1541,8 +1531,8 @@ struct ExerciseCard: View {
             } else if !isNonLoggable {
                 VStack(spacing: 4) {
                     holdToLogButton
-                    if !evm.canLog {
-                        Text(canLogHint)
+                    if let reason = evm.logBlockedReason() {
+                        Text(reason)
                             .font(.appCaption)
                             .foregroundColor(.gray.opacity(0.45))
                             .frame(maxWidth: .infinity, alignment: .center)
