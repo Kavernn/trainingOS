@@ -581,6 +581,7 @@ def upsert_exercise_log_direct(
     pain_zone: str | None = None,
     notes: str | None = None,
     distance_m: float | None = None,
+    protocol_completed: bool | None = None,
 ) -> bool:
     """Insert/update an exercise_log row using session_id directly (bypasses date lookup)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
@@ -608,6 +609,8 @@ def upsert_exercise_log_direct(
             payload["notes"] = notes
         if distance_m is not None:
             payload["distance_m"] = distance_m
+        if protocol_completed is not None:
+            payload["protocol_completed"] = protocol_completed
         resp = (
             db_core._client.table("exercise_logs")
             .upsert(payload, on_conflict="session_id,exercise_id,side")
@@ -1574,6 +1577,7 @@ def upsert_exercise_log_by_type(
     reps: str,
     sets_json: list | None = None,
     distance_m: float | None = None,
+    protocol_completed: bool | None = None,
 ) -> bool:
     """Insert/update an exercise log entry by date + session_type."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
@@ -1599,6 +1603,8 @@ def upsert_exercise_log_by_type(
             payload["sets_json"] = sets_json
         if distance_m is not None:
             payload["distance_m"] = distance_m
+        if protocol_completed is not None:
+            payload["protocol_completed"] = protocol_completed
         resp = (
             db_core._client.table("exercise_logs")
             .upsert(payload, on_conflict="session_id,exercise_id,side")
@@ -1825,6 +1831,10 @@ def bulk_apply_session_exercise_patches(
                         _dm = sum(int(s.get("distance_m") or 0) for s in patch["sets_json"])
                     if _dm is not None:
                         row["distance_m"] = _dm
+                # Protocol : log = fait par définition → True constant. Gate action="delete"
+                # fourni par la structure if/else L1808-1810 (exclusive). Annuler = action="delete".
+                if tt_by_name.get(ex_name) == "protocol":
+                    row["protocol_completed"] = True
                 upsert_rows.append(row)
 
         if delete_ids:

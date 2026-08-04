@@ -202,6 +202,9 @@ def api_log():
             sum(int(s.get("distance_m") or 0) for s in sets_data)
             if (_tracking_type == "carry" and sets_data) else None
         )
+        # Protocol : log = fait par définition → colonne top-level True. Source vérité unique
+        # (aucune redondance sets_json — jamais lu). Annuler = supprimer la ligne (chantier delete).
+        _protocol_completed = True if _tracking_type == "protocol" else None
 
         action_notes = {"increase": f"+{new_w - weight:.1f}", "maintain": "stagné", "decrease": f"{new_w - weight:.1f}"}
         history_entry = {
@@ -248,6 +251,7 @@ def api_log():
                 pain_zone=pain_zone or None,
                 notes=notes or None,
                 distance_m=_total_distance_m,
+                protocol_completed=_protocol_completed,
             )
             if not ok:
                 return jsonify({"error": "Échec de l'enregistrement en base"}), 500
@@ -354,11 +358,14 @@ def api_session_edit():
                             sum(int(s.get("distance_m") or 0) for s in final_sets)
                             if (_tt == "carry" and final_sets) else None
                         )
+                        # Protocol : log = fait par définition → True constant à l'edit aussi.
+                        _edit_protocol_completed = True if _tt == "protocol" else None
                         _db.upsert_exercise_log_by_type(
                             date, session_type, ex,
                             entry_weight, entry_reps,
                             sets_json=final_sets,
                             distance_m=_edit_distance_m,
+                            protocol_completed=_edit_protocol_completed,
                         )
                         try:
                             _db.recompute_exercise_pr(ex)
@@ -450,6 +457,7 @@ def api_update_session():
                     "reps": ex_patch.get("reps"),
                     "sets_json": ex_patch.get("sets"),
                     "distance_m": ex_patch.get("distance_m"),   # None hors carry (gate côté bulk_apply)
+                    "protocol_completed": ex_patch.get("protocol_completed"),  # gate protocol côté bulk_apply
                 })
 
             if patches:

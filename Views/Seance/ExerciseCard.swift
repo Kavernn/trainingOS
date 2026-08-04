@@ -105,9 +105,10 @@ struct ExerciseCard: View {
 
     private var isTimeBased: Bool { trackingType == "time" }
 
-    // time (Deadhang/planks/Copenhagen), reps et carry (Farmer's) ne sont PAS ici → loggables.
+    // time (Deadhang/planks/Copenhagen), reps, carry (Farmer's) et protocol (Bloc pelvien) ne
+    // sont PAS ici → loggables.
     private var isNonLoggable: Bool {
-        ["protocol", "cardio", "interval"].contains(trackingType)
+        ["cardio", "interval"].contains(trackingType)
     }
 
     private var canLogHint: String {
@@ -695,6 +696,32 @@ struct ExerciseCard: View {
         }
     }
 
+    @ViewBuilder private func protocolCard() -> some View {
+        // ponytail: bouton Fait binaire. Toggle local ; le POST /api/log part via .doLog()
+        // (bouton Logger global). Backend dérive protocol_completed=True via tracking_type.
+        Button {
+            triggerImpact(style: .medium)
+            if evm.sets.isEmpty { evm.sets = [SetInput()] }
+            evm.sets[0].protocolCompleted.toggle()
+        } label: {
+            let done = evm.sets.first?.protocolCompleted == true
+            HStack(spacing: 10) {
+                Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                Text(done ? "Fait" : "Marquer comme fait")
+                    .font(.appBody).fontWeight(.semibold)
+                Spacer()
+            }
+            .padding(.vertical, 14).padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .background((done ? Color.appSuccess : Color.forge).opacity(0.12))
+            .foregroundColor(done ? Color.appSuccess : Color.forge)
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
     @ViewBuilder private var avgTotalRow: some View {
         switch evm.equipmentType {
         case "barbell", "dumbbell", "cable_double":
@@ -1215,7 +1242,9 @@ struct ExerciseCard: View {
                 .padding(8).background(Color.statusYellow.opacity(0.05)).cornerRadius(8)
             }
         }
-        if trackingType == "carry" {
+        if trackingType == "protocol" {
+            protocolCard()
+        } else if trackingType == "carry" {
             carrySetRows()
         } else if isNonLoggable {
             stubNotLoggableView()

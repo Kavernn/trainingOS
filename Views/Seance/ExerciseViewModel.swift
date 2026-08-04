@@ -17,6 +17,9 @@ struct SetInput: Identifiable {
     var distance: String = "" // meters, used when tracking_type == "carry"
     var rir: Int = 3         // Reps In Reserve
     var rpe: Double? = nil   // Per-set RPE (optionnel)
+    // ponytail: tracking_type == "protocol" — bouton Fait binaire. Un log protocol = fait par
+    // définition ; annuler = supprimer la ligne (chantier delete transverse, hors ici).
+    var protocolCompleted: Bool = false
 }
 
 enum LogStatus { case success(Double), stagné, loading, error(String) }
@@ -195,6 +198,9 @@ enum ExerciseCalculator {
     }
 
     static func repsStr(sets: [SetInput], isTimeBased: Bool, trackingType: String = "reps") -> String {
+        // ponytail: protocol = fait par définition. "1" est un placeholder canLog + NOT NULL,
+        // PAS 1 rep. _skip_tonnage backend ignore le volume. Source vérité = protocol_completed.
+        if trackingType == "protocol" { return "1" }
         if trackingType == "carry" {
             return sets.compactMap { $0.distance.isEmpty ? nil : $0.distance }.joined(separator: ",")
         }
@@ -290,6 +296,7 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     var canLog: Bool {
+        if trackingType == "protocol" { return sets.first?.protocolCompleted == true }
         if trackingType == "carry" { return sets.contains { (Int($0.distance) ?? 0) > 0 } }
         if isTimeBased { return sets.contains { $0.duration > 0 } }
         if equipmentType == "bodyweight" {
@@ -538,6 +545,19 @@ final class ExerciseViewModel: ObservableObject {
         isEditing = false
         logError  = nil   // W-B2 — clear any prior error on successful log
         clearDraft()
+
+        if trackingType == "protocol" {
+            // ponytail: log protocol = fait par définition. reps="1" placeholder canLog + NOT NULL,
+            // PAS 1 rep. _skip_tonnage backend ignore le volume. Source vérité = colonne top-level
+            // protocol_completed (dérivée backend via P9 sur base du tracking_type). setsPayload
+            // volontairement minimal — pas de protocol_completed dans sets_json (jamais lu).
+            let setsPayload: [[String: Any]] = [["weight": 0]]
+            let result = ExerciseLogResult(name: name, weight: 0, reps: "1", rpe: exerciseRPE,
+                sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
+                equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
+            logStatus = .success(0)
+            return result
+        }
 
         if trackingType == "carry" {
             // ponytail: repsStr = distances jointes en CSV pour satisfaire canLog/repsOk.
