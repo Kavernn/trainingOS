@@ -165,16 +165,22 @@ CREATE POLICY "anon_all" ON public.workout_sessions FOR ALL TO anon USING (true)
 -- === 8. exercise_logs ===
 -- Logs par exercice par séance, avec RPE et zone de douleur (migration 024)
 -- 1RM calculé à la volée : Epley ≤10 reps, Brzycki 11-20 reps, NULL >20 reps
+-- side (087a) : 'left' | 'right' | 'both' — clé d'unicité 3-col pour supporter le per-side
 CREATE TABLE IF NOT EXISTS exercise_logs (
-    id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id  UUID    NOT NULL REFERENCES workout_sessions(id) ON DELETE CASCADE,
-    exercise_id UUID    NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
-    weight      NUMERIC,            -- NULL = poids de corps ; unité selon UnitSettings
-    reps        TEXT,               -- reps par set séparés par virgule : "7,6,6,5"
-    sets_json   JSONB   DEFAULT '[]'::jsonb,  -- [{weight, reps, total_weight, set_volume}]
-    rpe         NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),  -- migration 024
-    pain_zone   TEXT,                                        -- migration 024
-    UNIQUE (session_id, exercise_id)
+    id                 UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id         UUID    NOT NULL REFERENCES workout_sessions(id) ON DELETE CASCADE,
+    exercise_id        UUID    NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    weight             NUMERIC,            -- NULL = poids de corps ; unité selon UnitSettings
+    reps               TEXT,               -- reps par set séparés par virgule : "7,6,6,5"
+    sets_json          JSONB   DEFAULT '[]'::jsonb,  -- [{weight, reps, total_weight, set_volume}]
+    rpe                NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),  -- migration 024
+    pain_zone          TEXT,                                        -- migration 024
+    distance_m         NUMERIC,                                     -- migration 087a
+    intensity          NUMERIC,                                     -- migration 087a — unité résolue par l'exo (%1RM, cm, m/s)
+    protocol_completed BOOLEAN,                                     -- migration 087a
+    side               TEXT    NOT NULL DEFAULT 'both'              -- migration 087a
+                       CHECK (side IN ('left','right','both')),
+    UNIQUE (session_id, exercise_id, side)                          -- migration 087b (087a add, 087b drop ancienne 2-col)
 );
 
 CREATE INDEX IF NOT EXISTS idx_exercise_logs_session  ON exercise_logs (session_id);
