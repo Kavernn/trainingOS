@@ -523,7 +523,7 @@ final class ExerciseViewModel: ObservableObject {
             return sets.first?.protocolCompleted == true ? nil : "Marquer comme fait"
         default:
             assertionFailure("logBlockedReason: trackingType inconnu \(trackingType)")
-            exerciseLogger.error("logBlockedReason: trackingType inconnu \(trackingType, privacy: .public)")
+            exerciseLogger.error("logBlockedReason: trackingType inconnu \(self.trackingType, privacy: .public)")
             return "Type non pris en charge : \(trackingType)"
         }
     }
