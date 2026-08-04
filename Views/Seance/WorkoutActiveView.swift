@@ -188,16 +188,13 @@ struct WorkoutSeanceView: View {
         return (ordered + extra).compactMap { name -> (String, String)? in
             guard let scheme = localProgram[name] else { return nil }
             if loggedToday.contains(name) { return nil }
-            // Override manuel soir (Yoga, séance dédiée) : afficher TOUS les exos
-            // de la séance sans filtrer par split assignments (invariant "matin OU
-            // soir" ne s'applique pas — c'est une séance native soir).
-            if isSecondSession && isOverride { return (name, scheme) }
-            let inAssignments = assignments.contains(name)
-            if isSecondSession {
-                return inAssignments ? (name, scheme) : nil
-            } else {
-                return inAssignments ? nil : (name, scheme)
-            }
+            // Soir : localProgram = _day_plan["evening"] (union plan PM seedé + poussés
+            // matin→soir, planner.py:227+284). Aucun filtre vue — override manuel OU
+            // héritage, on affiche tout. Absorbe l'ancien cas isSecondSession && isOverride.
+            if isSecondSession { return (name, scheme) }
+            // Matin : cache les exos poussés vers le soir (backend les retire déjà via
+            // morning_exos.pop planner.py:267 — filtre défensif iOS).
+            return assignments.contains(name) ? nil : (name, scheme)
         }
     }
     private var currentVolume: Double {
