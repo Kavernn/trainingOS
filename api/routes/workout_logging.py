@@ -20,9 +20,12 @@ def _pr_confidence(baseline_count: int) -> str:
     return "high"
 
 
-def _rebuild_sets_json(old_sets: list | None, new_weight: float, new_reps_str: str) -> list | None:
+def _rebuild_sets_json(old_sets: list | None, new_weight: float, new_reps_str: str,
+                       tracking_type: str = "reps") -> list | None:
     """Reconstruit sets_json depuis (weight, reps CSV). new_weight appliqué à tous les sets;
     reps depuis parse_reps; rir/rpe préservés depuis old_sets à l'index correspondant.
+    Pour tracking_type='carry': reps = distances en mètres (hack CSV) → dérive distance_m
+    depuis reps_list[i] (source vérité à l'edit, pas préservation aveugle de old).
     Retourne None si reps_str vide/invalide (le caller décide du fallback)."""
     from progression import parse_reps
     try:
@@ -35,6 +38,11 @@ def _rebuild_sets_json(old_sets: list | None, new_weight: float, new_reps_str: s
     rebuilt = []
     for i, r in enumerate(reps_list):
         entry = {"weight": float(new_weight), "reps": r}
+        if tracking_type == "carry":
+            try:
+                entry["distance_m"] = int(r)
+            except (TypeError, ValueError):
+                pass
         if i < len(old) and isinstance(old[i], dict):
             for k in ("rir", "rpe"):
                 if old[i].get(k) is not None:
@@ -188,6 +196,13 @@ def api_log():
             else:
                 exercise_volume = calc_exercise_volume(volume_weight, reps)
 
+        # Carry : somme des distances par-série → colonne top-level exercise_logs.distance_m
+        # (agrégat stats chantier 4). Détail par-série reste dans sets_json.
+        _total_distance_m = (
+            sum(int(s.get("distance_m") or 0) for s in sets_data)
+            if (_tracking_type == "carry" and sets_data) else None
+        )
+
         action_notes = {"increase": f"+{new_w - weight:.1f}", "maintain": "stagné", "decrease": f"{new_w - weight:.1f}"}
         history_entry = {
             "date":            _today_mtl(),
@@ -232,6 +247,7 @@ def api_log():
                 rpe=rpe,
                 pain_zone=pain_zone or None,
                 notes=notes or None,
+                distance_m=_total_distance_m,
             )
             if not ok:
                 return jsonify({"error": "Échec de l'enregistrement en base"}), 500
@@ -327,13 +343,22 @@ def api_session_edit():
                     if entry.get("date") == date:
                         entry_weight = entry.get("weight")
                         entry_reps   = str(entry.get("reps", ""))
+                        _exo_row = _db.get_exercise_by_name(ex) or {}
+                        _tt = _exo_row.get("tracking_type") or "reps"
                         old_sets = _db.get_exercise_log_sets_json(date, session_type, ex)
-                        rebuilt  = _rebuild_sets_json(old_sets, entry_weight, entry_reps)
+                        rebuilt  = _rebuild_sets_json(old_sets, entry_weight, entry_reps, tracking_type=_tt)
                         final_sets = rebuilt if rebuilt is not None else (old_sets if old_sets is not None else [])
+                        # Carry : re-somme depuis final_sets (distance_m dérivé du reps CSV édité
+                        # via _rebuild_sets_json). Cohérence sets_json ↔ colonne top-level.
+                        _edit_distance_m = (
+                            sum(int(s.get("distance_m") or 0) for s in final_sets)
+                            if (_tt == "carry" and final_sets) else None
+                        )
                         _db.upsert_exercise_log_by_type(
                             date, session_type, ex,
                             entry_weight, entry_reps,
                             sets_json=final_sets,
+                            distance_m=_edit_distance_m,
                         )
                         try:
                             _db.recompute_exercise_pr(ex)
@@ -424,6 +449,7 @@ def api_update_session():
                     "weight": ex_patch.get("weight"),
                     "reps": ex_patch.get("reps"),
                     "sets_json": ex_patch.get("sets"),
+                    "distance_m": ex_patch.get("distance_m"),   # None hors carry (gate côté bulk_apply)
                 })
 
             if patches:

@@ -105,10 +105,9 @@ struct ExerciseCard: View {
 
     private var isTimeBased: Bool { trackingType == "time" }
 
-    // carry inclus : un log reps sur un carry écrirait un tonnage faux (poids × mètres).
-    // time (Deadhang/planks/Copenhagen) et reps ne sont PAS ici → restent loggables.
+    // time (Deadhang/planks/Copenhagen), reps et carry (Farmer's) ne sont PAS ici → loggables.
     private var isNonLoggable: Bool {
-        ["protocol", "cardio", "interval", "carry"].contains(trackingType)
+        ["protocol", "cardio", "interval"].contains(trackingType)
     }
 
     private var canLogHint: String {
@@ -558,6 +557,22 @@ struct ExerciseCard: View {
         }
     }
 
+    @ViewBuilder private func setRowDistanceSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
+        HStack(spacing: 4) {
+            StepperInput(
+                valueStr: $evm.sets[i].distance,
+                increment: 5,
+                minimum: 0,
+                placeholder: Double(ExerciseCalculator.distanceTarget(scheme: scheme) ?? 0),
+                isInteger: true,
+                isDisabled: evm.setBySetMode && !isActive && !isDone,
+                isCompact: evm.setBySetMode
+            )
+            .frame(width: 100)
+            Text("m").font(.appCaption).foregroundColor(.gray)
+        }
+    }
+
     @ViewBuilder private func setRowPrescriptionIcon(i: Int) -> some View {
         if let p = prescription, !evm.sets[i].reps.isEmpty, let entered = Int(evm.sets[i].reps) {
             Image(systemName: entered >= p.repMin ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
@@ -658,6 +673,26 @@ struct ExerciseCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
+    }
+
+    @ViewBuilder private func carrySetRows() -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                setHeaderWeightLabels()
+                Text("Distance").font(.appCaption).foregroundColor(.gray)
+                Spacer()
+            }
+            ForEach(evm.sets.indices, id: \.self) { i in
+                let isActive = evm.setBySetMode && i == evm.currentSetIndex
+                let isDone   = evm.setBySetMode && i < evm.currentSetIndex
+                HStack(spacing: 4) {
+                    setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
+                    setRowDistanceSide(i: i, isActive: isActive, isDone: isDone)
+                    Spacer()
+                    setRowActionButton(i: i, isActive: isActive, isDone: isDone)
+                }
+            }
+        }
     }
 
     @ViewBuilder private var avgTotalRow: some View {
@@ -1180,7 +1215,9 @@ struct ExerciseCard: View {
                 .padding(8).background(Color.statusYellow.opacity(0.05)).cornerRadius(8)
             }
         }
-        if isNonLoggable {
+        if trackingType == "carry" {
+            carrySetRows()
+        } else if isNonLoggable {
             stubNotLoggableView()
         } else if isTimeBased {
             EnduranceTimerSection(

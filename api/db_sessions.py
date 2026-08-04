@@ -580,6 +580,7 @@ def upsert_exercise_log_direct(
     rpe: float | None = None,
     pain_zone: str | None = None,
     notes: str | None = None,
+    distance_m: float | None = None,
 ) -> bool:
     """Insert/update an exercise_log row using session_id directly (bypasses date lookup)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
@@ -605,6 +606,8 @@ def upsert_exercise_log_direct(
             payload["pain_zone"] = pain_zone
         if notes:
             payload["notes"] = notes
+        if distance_m is not None:
+            payload["distance_m"] = distance_m
         resp = (
             db_core._client.table("exercise_logs")
             .upsert(payload, on_conflict="session_id,exercise_id,side")
@@ -1570,6 +1573,7 @@ def upsert_exercise_log_by_type(
     weight: float,
     reps: str,
     sets_json: list | None = None,
+    distance_m: float | None = None,
 ) -> bool:
     """Insert/update an exercise log entry by date + session_type."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
@@ -1593,6 +1597,8 @@ def upsert_exercise_log_by_type(
         }
         if sets_json is not None:
             payload["sets_json"] = sets_json
+        if distance_m is not None:
+            payload["distance_m"] = distance_m
         resp = (
             db_core._client.table("exercise_logs")
             .upsert(payload, on_conflict="session_id,exercise_id,side")
@@ -1780,12 +1786,13 @@ def bulk_apply_session_exercise_patches(
         names = list({p["exercise_name"] for p in patches})
         ex_resp = (
             db_core._client.table("exercises")
-            .select("id, name")
+            .select("id, name, tracking_type")
             .in_("name", names)
             .is_("deleted_at", "null")
             .execute()
         )
         id_by_name = {e["name"]: e["id"] for e in (ex_resp.data or [])}
+        tt_by_name = {e["name"]: (e.get("tracking_type") or "reps") for e in (ex_resp.data or [])}
 
         errors: list[str] = []
         delete_ids: list[str] = []
@@ -1810,6 +1817,14 @@ def bulk_apply_session_exercise_patches(
                 }
                 if patch.get("sets_json") is not None:
                     row["sets_json"] = patch["sets_json"]
+                # Distance : gate explicite sur tracking_type (aligné E9/E11).
+                # Sans ce gate, un sets_json non-carry avec distance_m résiduel polluerait.
+                if tt_by_name.get(ex_name) == "carry":
+                    _dm = patch.get("distance_m")
+                    if _dm is None and patch.get("sets_json"):
+                        _dm = sum(int(s.get("distance_m") or 0) for s in patch["sets_json"])
+                    if _dm is not None:
+                        row["distance_m"] = _dm
                 upsert_rows.append(row)
 
         if delete_ids:

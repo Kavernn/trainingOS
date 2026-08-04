@@ -14,6 +14,7 @@ struct SetInput: Identifiable {
     var weight: String = ""
     var reps: String = ""
     var duration: Int = 30   // seconds, used when isTimeBased
+    var distance: String = "" // meters, used when tracking_type == "carry"
     var rir: Int = 3         // Reps In Reserve
     var rpe: Double? = nil   // Per-set RPE (optionnel)
 }
@@ -105,6 +106,17 @@ enum ExerciseCalculator {
         return 3
     }
 
+    // "4x40m" → 40. Nil sinon. Placeholder du champ Distance (carry).
+    static func distanceTarget(scheme: String) -> Int? {
+        let s = scheme.lowercased()
+        guard let x = s.firstIndex(of: "x") else { return nil }
+        let after = s[s.index(after: x)...]
+        let digits = after.prefix { $0.isNumber }
+        guard let n = Int(digits), n > 0,
+              after.dropFirst(digits.count).hasPrefix("m") else { return nil }
+        return n
+    }
+
     static func exerciseRPE(sets: [SetInput]) -> Double {
         guard !sets.isEmpty else { return 7.0 }
         let avgRIR = Int((Double(sets.map(\.rir).reduce(0, +)) / Double(sets.count)).rounded())
@@ -182,7 +194,10 @@ enum ExerciseCalculator {
         return s > 0 ? "\(m)m\(s)s" : "\(m)m"
     }
 
-    static func repsStr(sets: [SetInput], isTimeBased: Bool) -> String {
+    static func repsStr(sets: [SetInput], isTimeBased: Bool, trackingType: String = "reps") -> String {
+        if trackingType == "carry" {
+            return sets.compactMap { $0.distance.isEmpty ? nil : $0.distance }.joined(separator: ",")
+        }
         if isTimeBased { return sets.map { String($0.duration) }.joined(separator: ",") }
         return sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
     }
@@ -275,6 +290,7 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     var canLog: Bool {
+        if trackingType == "carry" { return sets.contains { (Int($0.distance) ?? 0) > 0 } }
         if isTimeBased { return sets.contains { $0.duration > 0 } }
         if equipmentType == "bodyweight" {
             return sets.contains { (Int($0.reps) ?? 0) > 0 }
@@ -295,7 +311,7 @@ final class ExerciseViewModel: ObservableObject {
         }
     }
 
-    var repsStr: String { ExerciseCalculator.repsStr(sets: sets, isTimeBased: isTimeBased) }
+    var repsStr: String { ExerciseCalculator.repsStr(sets: sets, isTimeBased: isTimeBased, trackingType: trackingType) }
 
     var lastRepsParts: [String] { lastReps.split(separator: ",").map(String.init) }
 
@@ -522,6 +538,27 @@ final class ExerciseViewModel: ObservableObject {
         isEditing = false
         logError  = nil   // W-B2 — clear any prior error on successful log
         clearDraft()
+
+        if trackingType == "carry" {
+            // ponytail: repsStr = distances jointes en CSV pour satisfaire canLog/repsOk.
+            // Ce ne SONT PAS des reps — _skip_tonnage backend skip le volume. Source vérité
+            // distance = sets_json.distance_m + colonne exercise_logs.distance_m (top-level).
+            let units = UnitSettings.shared
+            let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
+                guard let d = Int(s.distance), d > 0 else { return nil }
+                let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
+                let setTotal = totalWeight(for: units.toStorage(sw))
+                return ["weight": setTotal, "distance_m": d]
+            }
+            let repsCSV = sets.map(\.distance).filter { !$0.isEmpty }.joined(separator: ",")
+            // Aligné backend workout_logging.py:111-115 (1re série non-nulle).
+            let firstW = setsPayload.compactMap { $0["weight"] as? Double }.first(where: { $0 > 0 }) ?? 0
+            let result = ExerciseLogResult(name: name, weight: firstW, reps: repsCSV, rpe: exerciseRPE,
+                sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
+                equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
+            logStatus = .success(firstW)
+            return result
+        }
 
         if isTimeBased {
             let setsPayload: [[String: Any]] = sets.map { ["weight": 0, "reps": String($0.duration)] }
