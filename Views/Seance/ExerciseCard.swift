@@ -697,29 +697,38 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func protocolCard() -> some View {
-        // ponytail: bouton Fait binaire. Toggle local ; le POST /api/log part via .doLog()
-        // (bouton Logger global). Backend dérive protocol_completed=True via tracking_type.
-        Button {
-            triggerImpact(style: .medium)
-            if evm.sets.isEmpty { evm.sets = [SetInput()] }
-            evm.sets[0].protocolCompleted.toggle()
-        } label: {
-            let done = evm.sets.first?.protocolCompleted == true
-            HStack(spacing: 10) {
-                Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                Text(done ? "Fait" : "Marquer comme fait")
-                    .font(.appBody).fontWeight(.semibold)
-                Spacer()
+        VStack(alignment: .leading, spacing: 12) {
+            if let h = hint, !h.isEmpty {
+                Text(h)
+                    .font(.appCaption)
+                    .foregroundColor(Color.appOnSurface.opacity(0.42))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.vertical, 14).padding(.horizontal, 16)
+            // ponytail: bouton Fait binaire. Toggle local ; le POST /api/log part via .doLog()
+            // (bouton Logger global). Backend dérive protocol_completed=True via tracking_type.
+            Button {
+                triggerImpact(style: .medium)
+                if evm.sets.isEmpty { evm.sets = [SetInput()] }
+                evm.sets[0].protocolCompleted.toggle()
+            } label: {
+                let done = evm.sets.first?.protocolCompleted == true
+                HStack(spacing: 10) {
+                    Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                    Text(done ? "Fait" : "Marquer comme fait")
+                        .font(.appBody).fontWeight(.semibold)
+                    Spacer()
+                }
+                .padding(.vertical, 14).padding(.horizontal, 16)
+                .frame(maxWidth: .infinity)
+                .background((done ? Color.appSuccess : Color.forge).opacity(0.12))
+                .foregroundColor(done ? Color.appSuccess : Color.forge)
+                .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
-            .background((done ? Color.appSuccess : Color.forge).opacity(0.12))
-            .foregroundColor(done ? Color.appSuccess : Color.forge)
-            .cornerRadius(10)
         }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder private var avgTotalRow: some View {
