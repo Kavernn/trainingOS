@@ -129,6 +129,41 @@ def api_dashboard():
             n for n in sorted(_today_logged_names) if n not in existing_set
         ]
 
+    # Multi-slot aggregation (AM + PM + bonus le même jour).
+    # Sinon (mono-slot) : le row existant dans merged_sessions[today_date] reste intact.
+    # Doctrine : le RPE scalaire est déprécié pour affichage multi-slot (utiliser `slots`),
+    # conservé = main.rpe pour compat CoachMemoryStore.energyPreRpePattern (Services/CoachMemoryStore.swift:453)
+    # et NotesView.avgRPE (Views/Notes/NotesView.swift:22) — statistiques globales qui veulent 1 rpe/date.
+    _SLOT_LABELS = {"morning": "AM", "evening": "PM", "bonus": "Bonus"}
+    if today_date in merged_sessions and len(_today_all) > 1:
+        _main = max(_today_all, key=lambda s: s.get("duration_min") or 0)
+        _existing = merged_sessions[today_date]
+        merged_sessions[today_date] = {
+            "rpe":            _main.get("rpe"),
+            "slots": [
+                {
+                    "type":         s.get("session_type"),
+                    "label":        _SLOT_LABELS.get(s.get("session_type"), s.get("session_type")),
+                    "rpe":          s.get("rpe"),
+                    "duration_min": s.get("duration_min"),
+                }
+                for s in _today_all  # déjà trié morning→evening→bonus (db_sessions.py:283)
+            ],
+            "duration_min":   sum((s.get("duration_min") or 0) for s in _today_all),
+            "session_volume": _existing.get("session_volume"),  # déjà sommé v_session_volume
+            "exos":           _existing.get("exos"),            # déjà unifié via _today_logged_names
+            "energy_pre":     next((s.get("energy_pre") for s in _today_all
+                                    if s.get("session_type") == "morning"), None),
+            "comment": (" | ".join(
+                f"{_SLOT_LABELS.get(s.get('session_type'), '?')}: {s['comment']}"
+                for s in _today_all if s.get("comment")
+            ) or None),
+            "session_count":  len(_today_all),
+            "session_name":   _main.get("session_name"),
+            "completed":      all(s.get("completed") for s in _today_all),
+            "logged_at":      _main.get("logged_at"),
+        }
+
     smart_goals_count = 0
     try:
         smart_goals_count = len(_db.get_smart_goals())
