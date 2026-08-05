@@ -229,6 +229,15 @@ struct ProgrammeView: View {
     @State private var undoDeleteItem: UndoDeleteItem? = nil
     @State private var undoDeleteTask: Task<Void, Never>? = nil
 
+    // Structure tab : jour sélectionné dans la barre 7-pills. Init au jour courant
+    // MTL. Aucun guard — un jour vide (Sam en repos, par ex.) est sélectionnable
+    // et affiche ses 2 DaySessionCard en état "Aucune séance / + Assigner".
+    @State private var selectedDay: String = {
+        let names = TrainingDoctrine.dayNames
+        let idx = (Calendar.mtl.component(.weekday, from: Date()) + 5) % 7
+        return idx < names.count ? names[idx] : (names.first ?? "Lun")
+    }()
+
     // Multi-programmes : programs, selectedProgramId, activeProgramId, allSessions,
     // isSettingActive migrés dans vm.
     @State private var showCreateProgram = false
@@ -261,6 +270,39 @@ struct ProgrammeView: View {
 
     private var activeProgrammeName: String {
         vm.programs.first { $0.id == vm.activeProgramId }?.name ?? ""
+    }
+
+    // MARK: - Planning UI helpers (structure tab)
+
+    private var todayDayName: String {
+        let idx = (Calendar.mtl.component(.weekday, from: Date()) + 5) % 7
+        return TrainingDoctrine.dayNames[idx]
+    }
+
+    // "Repos" ou nil → nil (état "aucune séance"). Autre → nom séance.
+    private var amSeanceForSelectedDay: String? {
+        let s = vm.schedule[selectedDay] ?? "Repos"
+        return s == "Repos" ? nil : s
+    }
+    private var pmSeanceForSelectedDay: String? { vm.eveningSchedule[selectedDay] }
+
+    private var amExercisesForSelectedDay: [String: String] {
+        amSeanceForSelectedDay.flatMap { vm.fullProgram[$0] } ?? [:]
+    }
+    private var pmExercisesForSelectedDay: [String: String] {
+        pmSeanceForSelectedDay.flatMap { vm.fullProgram[$0] } ?? [:]
+    }
+
+    // Assignation AM/PM depuis DaySessionCard. nil = vider le créneau.
+    // AM : "Repos" est la convention "pas de séance" côté schedule ; PM : suppression clé.
+    private func assignAM(seance: String?) {
+        vm.schedule[selectedDay] = seance ?? "Repos"
+        Task { await vm.saveSchedule() }
+    }
+    private func assignPM(seance: String?) {
+        if let s = seance { vm.eveningSchedule[selectedDay] = s }
+        else { vm.eveningSchedule.removeValue(forKey: selectedDay) }
+        Task { await vm.saveEveningSchedule() }
     }
 
     // orderedSeances migré dans vm — computed sur vm.fullProgram + TrainingDoctrine.
@@ -1300,28 +1342,38 @@ struct ProgrammeView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
-                // ── PLANNING MATIN ────────────────────────────────
-                VStack(alignment: .leading, spacing: 0) {
-                    AppSectionHeader("PLANNING MATIN")
+                // ── PLANNING (barre semaine + 2 cartes du jour sélectionné) ──
+                VStack(alignment: .leading, spacing: 12) {
+                    AppSectionHeader("PLANNING")
                         .padding(.horizontal, .appPagePadding)
-                    EditableWeekScheduleCard(
-                        schedule: $vm.schedule,
+                    WeekPillsCard(
+                        schedule: vm.schedule,
+                        eveningSchedule: vm.eveningSchedule,
                         dayNames: TrainingDoctrine.dayNames,
-                        sessions: sessionsList,
-                        onSave: { Task { await vm.saveSchedule() } }
+                        todayDayName: todayDayName,
+                        selectedDay: $selectedDay
                     )
                     .padding(.horizontal, .appPagePadding)
-                }
 
-                // ── PLANNING SOIR ─────────────────────────────────
-                VStack(alignment: .leading, spacing: 0) {
-                    AppSectionHeader("PLANNING SOIR")
-                        .padding(.horizontal, .appPagePadding)
-                    EveningScheduleCard(
-                        eveningSchedule: $vm.eveningSchedule,
-                        dayNames: TrainingDoctrine.dayNames,
-                        sessions: sessionsList,
-                        onSave: { Task { await vm.saveEveningSchedule() } }
+                    DaySessionCard(
+                        moment: .am,
+                        day: selectedDay,
+                        isToday: selectedDay == todayDayName,
+                        seance: amSeanceForSelectedDay,
+                        exercises: amExercisesForSelectedDay,
+                        sessionsList: sessionsList,
+                        onPick: { assignAM(seance: $0) }
+                    )
+                    .padding(.horizontal, .appPagePadding)
+
+                    DaySessionCard(
+                        moment: .pm,
+                        day: selectedDay,
+                        isToday: selectedDay == todayDayName,
+                        seance: pmSeanceForSelectedDay,
+                        exercises: pmExercisesForSelectedDay,
+                        sessionsList: sessionsList,
+                        onPick: { assignPM(seance: $0) }
                     )
                     .padding(.horizontal, .appPagePadding)
                 }
@@ -2337,204 +2389,255 @@ struct EditSchemeSheet: View {
     }
 }
 
-// MARK: - Editable Week Schedule Card
+// MARK: - Planning (Week Pills + Day Session Cards)
 
-struct EditableWeekScheduleCard: View {
-    @Binding var schedule: [String: String]
-    let dayNames: [String]
-    let sessions: [String]
-    let onSave: () -> Void
-
-    private let none = "Repos"
-
-    private var todayDayName: String {
-        let idx = (Calendar.mtl.component(.weekday, from: Date()) + 5) % 7
-        return dayNames[idx]
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "sun.max.fill")
-                        .font(.appLabel.weight(.regular))
-                        .foregroundColor(Color.forge)
-                    Text("MATIN")
-                        .font(.appCaption.weight(.black))
-                        .tracking(2)
-                        .foregroundColor(Color.forge)
-                }
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.forge.opacity(0.1))
-                .cornerRadius(6)
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Semaine type")
-                        .font(.appLabel.weight(.bold))
-                        .foregroundColor(Color.appOnSurface.opacity(0.85))
-                    Text("Appuie sur un jour pour changer la séance")
-                        .font(.appCaption)
-                        .foregroundColor(.gray.opacity(0.6))
-                }
-                Spacer()
-            }
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
-                ForEach(dayNames, id: \.self) { day in
-                    let current = schedule[day] ?? none
-                    let isToday = day == todayDayName
-                    Menu {
-                        Button(none) {
-                            schedule[day] = none
-                            onSave()
-                        }
-                        ForEach(sessions, id: \.self) { s in
-                            Button(s) {
-                                schedule[day] = s
-                                onSave()
-                            }
-                        }
-                    } label: {
-                        VStack(spacing: 4) {
-                            HStack(spacing: 3) {
-                                Text(day)
-                                    .font(.appCaption.weight(isToday ? .bold : .medium))
-                                    .foregroundColor(isToday ? Color.forge : .gray)
-                                if isToday {
-                                    Circle()
-                                        .fill(Color.forge)
-                                        .frame(width: 4, height: 4)
-                                }
-                            }
-                            Text(seanceShort(current))
-                                .font(.appCaption.weight(.bold))
-                                .foregroundColor(current == none ? Color.gray.opacity(0.4) : seanceColor(current))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background((current == none ? Color.gray : seanceColor(current)).opacity(isToday ? 0.18 : 0.1))
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(isToday ? Color.forge.opacity(0.6) : Color.clear, lineWidth: 1.5)
-                        )
-                    }
-                }
-            }
-        }
-        .padding(16)
-        .glassCard()
-    }
-
-    private func seanceShort(_ s: String) -> String {
-        switch s {
-        case "Push A":             return "PSH A"
-        case "Pull A":             return "PLL A"
-        case "Legs":               return "LEGS"
-        case "Push B":             return "PSH B"
-        case "Pull B + Full Body": return "PLL B"
-        case "Yoga / Tai Chi":     return "YOGA"
-        case "Recovery":           return "REC"
-        default:
-            // First 4 chars for custom seances
-            return s.count > 4 ? String(s.prefix(4)).uppercased() : s.uppercased()
-        }
-    }
-
-    private func seanceColor(_ s: String) -> Color { SessionType(s).color }
+private enum DayMoment {
+    case am, pm
+    var color: Color { self == .am ? .forge : .statusBlue }
+    var label: String { self == .am ? "AM" : "PM" }
+    var icon: String  { self == .am ? "sun.max.fill" : "moon.stars.fill" }
 }
 
-// MARK: - Evening Schedule Card
-
-struct EveningScheduleCard: View {
-    @Binding var eveningSchedule: [String: String]
+/// Barre semaine unifiée : 7 pills en une seule rangée, 2 indicateurs
+/// AM (forge) + PM (statusBlue) par pill, un point discret sous les
+/// indicateurs pour aujourd'hui. Jour actif = anneau forge + fond teinté.
+/// Aucun texte pivoté, aucun blob marron. Tap = sélection uniquement.
+private struct WeekPillsCard: View {
+    let schedule: [String: String]
+    let eveningSchedule: [String: String]
     let dayNames: [String]
-    let sessions: [String]
-    let onSave: () -> Void
-
-    private let none = "—"
+    let todayDayName: String
+    @Binding var selectedDay: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "moon.stars.fill")
-                        .font(.appCaption)
-                        .foregroundColor(Color.statusBlue)
-                    Text("SOIR")
-                        .font(.appCaption.weight(.black))
-                        .tracking(2)
-                        .foregroundColor(Color.statusBlue)
-                }
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.statusBlue.opacity(0.12))
-                .cornerRadius(6)
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Séance du soir")
-                        .font(.appLabel.weight(.bold))
-                        .foregroundColor(Color.appOnSurface.opacity(0.85))
-                    Text("Optionnel — apparaît sur le dashboard le soir")
-                        .font(.appCaption)
-                        .foregroundColor(.gray.opacity(0.6))
-                }
-                Spacer()
-            }
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
-                ForEach(dayNames, id: \.self) { day in
-                    let current = eveningSchedule[day] ?? none
-                    Menu {
-                        Button(none) {
-                            eveningSchedule.removeValue(forKey: day)
-                            onSave()
-                        }
-                        ForEach(sessions, id: \.self) { s in
-                            Button(s) {
-                                eveningSchedule[day] = s
-                                onSave()
-                            }
-                        }
-                    } label: {
-                        VStack(spacing: 4) {
-                            Text(day)
-                                .font(.appCaption.weight(.medium))
-                                .foregroundColor(.gray)
-                            Text(shortLabel(current))
-                                .font(.appCaption.weight(.bold))
-                                .foregroundColor(current == none ? Color.gray.opacity(0.4) : sessionColor(current))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background((current == none ? Color.gray : sessionColor(current)).opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                }
+        HStack(spacing: 6) {
+            ForEach(dayNames, id: \.self) { day in
+                pill(for: day)
             }
         }
-        .padding(16)
+        .padding(12)
         .glassCard()
     }
 
-    private func shortLabel(_ s: String) -> String {
-        switch s {
-        case "Push A":             return "PSH A"
-        case "Pull A":             return "PLL A"
-        case "Legs":               return "LEGS"
-        case "Push B":             return "PSH B"
-        case "Pull B + Full Body": return "PLL B"
-        case "Yoga / Tai Chi":     return "YOGA"
-        case "Recovery":           return "REC"
-        default:
-            return s.count > 4 ? String(s.prefix(4)).uppercased() : s.uppercased()
+    @ViewBuilder
+    private func pill(for day: String) -> some View {
+        let isSelected = day == selectedDay
+        let isToday    = day == todayDayName
+        let hasAM      = (schedule[day] ?? "Repos") != "Repos"
+        let hasPM      = eveningSchedule[day] != nil
+
+        Button {
+            selectedDay = day
+        } label: {
+            VStack(spacing: 6) {
+                Text(day.uppercased())
+                    .font(.appMicro.weight(.bold))
+                    .tracking(0.5)
+                    .foregroundColor(isSelected ? .appOnSurface : Color.appOnSurface.opacity(0.55))
+                HStack(spacing: 4) {
+                    Circle().fill(Color.forge).frame(width: 5, height: 5)
+                        .opacity(hasAM ? 1 : 0.15)
+                    Circle().fill(Color.statusBlue).frame(width: 5, height: 5)
+                        .opacity(hasPM ? 1 : 0.15)
+                }
+                // Signal aujourd'hui = point discret (le mot "AUJOURD'HUI"
+                // vit sur le header de DaySessionCard, où il y a la place).
+                Circle().fill(Color.forge).frame(width: 3, height: 3)
+                    .opacity(isToday ? 1 : 0)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(isSelected ? Color.forge.opacity(0.12) : Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isSelected ? Color.forge : Color.clear, lineWidth: 1.5)
+            )
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Carte AM ou PM du jour sélectionné. Rail latéral coloré (forge / statusBlue),
+/// chip AM|PM, header "JOUR · AUJOURD'HUI" (si aujourd'hui, chip horizontale),
+/// menu ⋯ (assigner/vider), preview des exos avec chip scheme (repli/dépli).
+/// `seance == nil` = état vide propre (bouton "+ Assigner"), aucun accès à
+/// fullProgram[nil]. Samedi sans planning affiche 2 cartes vides.
+private struct DaySessionCard: View {
+    let moment: DayMoment
+    let day: String
+    let isToday: Bool
+    let seance: String?
+    let exercises: [String: String]
+    let sessionsList: [String]
+    let onPick: (String?) -> Void
+
+    @State private var isExpanded = false
+
+    private static let fullDayNames: [String: String] = [
+        "Lun": "LUNDI", "Mar": "MARDI", "Mer": "MERCREDI", "Jeu": "JEUDI",
+        "Ven": "VENDREDI", "Sam": "SAMEDI", "Dim": "DIMANCHE"
+    ]
+    private var fullDayName: String {
+        Self.fullDayNames[day] ?? day.uppercased()
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            Rectangle()
+                .fill(moment.color.opacity(seance == nil ? 0.35 : 0.9))
+                .frame(width: 3)
+            VStack(alignment: .leading, spacing: 10) {
+                header
+                if let s = seance {
+                    filledBody(seance: s)
+                } else {
+                    emptyBody
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color.appCard)
+        .cornerRadius(.appCardRadius)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(moment.color.opacity(seance == nil ? 0.12 : 0.28), lineWidth: 1)
+        )
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: moment.icon)
+                    .font(.appMicro.weight(.regular))
+                Text(moment.label)
+                    .font(.appMicro.weight(.black))
+                    .tracking(1)
+            }
+            .foregroundColor(moment.color)
+            .padding(.horizontal, 6).padding(.vertical, 3)
+            .background(moment.color.opacity(0.12))
+            .cornerRadius(4)
+
+            Text(isToday ? "\(fullDayName) · AUJOURD'HUI" : fullDayName)
+                .font(.appMicro.weight(.bold))
+                .tracking(1)
+                .foregroundColor(isToday ? Color.forge : Color.appOnSurface.opacity(0.6))
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer()
+
+            menu
         }
     }
 
-    private func sessionColor(_ s: String) -> Color { SessionType(s).color }
+    private var menu: some View {
+        Menu {
+            if seance != nil {
+                Button(role: .destructive) {
+                    isExpanded = false
+                    onPick(nil)
+                } label: {
+                    Label("Vider ce créneau", systemImage: "xmark.circle")
+                }
+                Divider()
+            }
+            Section("Assigner") {
+                ForEach(sessionsList, id: \.self) { s in
+                    Button(s) { onPick(s) }
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.appBody)
+                .foregroundColor(.gray)
+                .padding(6)
+                .contentShape(Rectangle())
+        }
+    }
+
+    @ViewBuilder
+    private func filledBody(seance: String) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(seance)
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(.appTextPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text("\(exercises.count) exercice\(exercises.count > 1 ? "s" : "")")
+                        .font(.appCaption)
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.appCaption)
+                    .foregroundColor(.gray.opacity(0.6))
+            }
+        }
+        .buttonStyle(.plain)
+
+        if isExpanded && !exercises.isEmpty {
+            VStack(spacing: 6) {
+                ForEach(Array(exercises.sorted(by: { $0.key < $1.key }).prefix(6)), id: \.key) { ex, scheme in
+                    HStack(spacing: 8) {
+                        Text(ex)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer()
+                        Text(scheme)
+                            .font(.appMicro.weight(.semibold))
+                            .foregroundColor(moment.color)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(moment.color.opacity(0.1))
+                            .cornerRadius(4)
+                    }
+                }
+                if exercises.count > 6 {
+                    Text("+ \(exercises.count - 6) autres")
+                        .font(.appMicro)
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private var emptyBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("— Aucune séance —")
+                .font(.appCaption)
+                .foregroundColor(.gray)
+            Menu {
+                ForEach(sessionsList, id: \.self) { s in
+                    Button(s) { onPick(s) }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                        .font(.appCaption.weight(.bold))
+                    Text("Assigner")
+                        .font(.appLabel.weight(.semibold))
+                }
+                .foregroundColor(moment.color)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(moment.color.opacity(0.12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(moment.color.opacity(0.3), lineWidth: 1)
+                )
+                .cornerRadius(8)
+            }
+        }
+    }
 }
 
 // MARK: - Create Seance Sheet
