@@ -508,9 +508,19 @@ struct ProgrammeView: View {
     // MARK: – Body helpers (extracted to keep type-checker happy)
 
     private var sessionsList: [String] {
-        let list = vm.allSessions.isEmpty ? vm.orderedSeances : vm.allSessions
+        // Source unique = orderedSeances (dérivé du programme actif via
+        // fullProgram.keys + planning). vm.allSessions retirée du picker :
+        // c'était un dump cross-programmes qui polluait avec des séances legacy
+        // (Legs / Legs B / Lower A) d'anciens programmes archivés.
+        // vm.allSessions reste peuplée (VM L47/181) mais sans consommateur
+        // runtime — dead-code candidat pour lot de nettoyage futur :
+        //   - VM L47 (@Published) + L181 (assignation dans applyJSON)
+        //   - backend api/db_programs.py:248 get_all_session_names
+        //   - test TrainingOSTests/ProgrammeViewModelTests.swift:39
+        //     (vert aujourd'hui mais protège plus rien — à retirer AVEC allSessions,
+        //     pas à « réparer » machinalement).
         var seen = Set<String>()
-        return list.filter { seen.insert($0).inserted }
+        return vm.orderedSeances.filter { seen.insert($0).inserted }
     }
 
     private var renameAlertBinding: Binding<Bool> {
