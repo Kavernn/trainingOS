@@ -273,11 +273,7 @@ struct ProgrammeView: View {
     }
 
     // MARK: - Planning UI helpers (structure tab)
-
-    private var todayDayName: String {
-        let idx = (Calendar.mtl.component(.weekday, from: Date()) + 5) % 7
-        return TrainingDoctrine.dayNames[idx]
-    }
+    // Note : `todayDayName` déjà défini plus bas (utilisé aussi par weekContent).
 
     // "Repos" ou nil → nil (état "aucune séance"). Autre → nom séance.
     private var amSeanceForSelectedDay: String? {
@@ -1599,6 +1595,14 @@ struct EditableSeanceProgramCard: View {
         return seen.prefix(2).joined(separator: " · ") + " +\(seen.count - 2)"
     }
 
+    /// Split "Mardi PM — Puissance + bras + pelvien" en préfixe contextuel
+    /// (jour+moment, gris caption) + focus (bold pleine largeur). Nom sans " — "
+    /// (ex héritages "Push A") → prefix nil, focus = seance.
+    private var titleParts: (prefix: String?, focus: String) {
+        guard let r = seance.range(of: " — ") else { return (nil, seance) }
+        return (String(seance[..<r.lowerBound]), String(seance[r.upperBound...]))
+    }
+
     var color: Color { SessionType(seance).color }
 
     /// CTA pied de carte dépliée + empty state (même expression, deux emplois).
@@ -1703,9 +1707,17 @@ struct EditableSeanceProgramCard: View {
                             .foregroundColor(color)
                     )
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(seance)
+                    if let prefix = titleParts.prefix {
+                        Text(prefix)
+                            .font(.appCaption)
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
+                    Text(titleParts.focus)
                         .font(.appBody.weight(.bold))
                         .foregroundColor(color)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                     if !muscleSummary.isEmpty {
                         Text(muscleSummary)
                             .font(.appCaption)
@@ -1713,6 +1725,7 @@ struct EditableSeanceProgramCard: View {
                             .lineLimit(1)
                     }
                 }
+                .layoutPriority(1)
                 if isToday {
                     Text("AUJOURD'HUI")
                         .font(.appMicro.weight(.black)).tracking(1)
@@ -1720,6 +1733,8 @@ struct EditableSeanceProgramCard: View {
                         .padding(.horizontal, 7).padding(.vertical, 3)
                         .background(Color.forge.opacity(0.12))
                         .cornerRadius(5)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
                 Spacer()
                 Text("\(exercises.count)")
@@ -1728,44 +1743,33 @@ struct EditableSeanceProgramCard: View {
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(color.opacity(0.12))
                     .cornerRadius(8)
-                if let copy = onCopy {
-                    Button(action: copy) {
-                        Image(systemName: "doc.on.doc")
+                if onCopy != nil || onPaste != nil || onDeleteSeance != nil {
+                    Menu {
+                        if let copy = onCopy {
+                            Button { copy() } label: {
+                                Label("Copier", systemImage: "doc.on.doc")
+                            }
+                        }
+                        if let paste = onPaste {
+                            Button { paste() } label: {
+                                Label("Coller", systemImage: "doc.on.clipboard")
+                            }
+                        }
+                        if let del = onDeleteSeance {
+                            Button(role: .destructive) { del() } label: {
+                                Label("Supprimer", systemImage: "trash")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
                             .font(.appLabel.weight(.regular))
                             .foregroundColor(Color.forge.opacity(0.7))
                             .padding(7)
                             .background(Color.forge.opacity(0.08))
                             .cornerRadius(8)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                if let paste = onPaste {
-                    Button(action: paste) {
-                        Image(systemName: "doc.on.clipboard")
-                            .font(.appLabel.weight(.regular))
-                            .foregroundColor(Color.statusCyan.opacity(0.7))
-                            .padding(7)
-                            .background(Color.statusCyan.opacity(0.08))
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                if let del = onDeleteSeance {
-                    Button(action: del) {
-                        Image(systemName: "trash")
-                            .font(.appLabel.weight(.regular))
-                            .foregroundColor(Color.appDanger.opacity(0.6))
-                            .padding(7)
-                            .background(Color.appDanger.opacity(0.08))
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
                 }
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.appCaption)
