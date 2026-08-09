@@ -6,6 +6,14 @@ from db_profile import get_profile, update_profile
 from utils import _today_mtl
 
 
+# Blocs qui portent des program_block_exercises avec scheme reps.
+# hiit/cardio EXCLUS : ils utilisent hiit_config (colonne dédiée).
+REPS_BLOCKS = frozenset({
+    "strength", "force", "isolation", "core",
+    "mobility", "explosive", "finisher",
+})
+
+
 def get_all_programs() -> list:
     """Return [{id, name, created_at}, ...] ordered by created_at ASC."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
@@ -305,7 +313,7 @@ def get_full_program(program_id: str | None = None) -> dict | None:
             for block in blocks_data:
                 btype  = block.get("type", "strength")
                 border = block.get("order_index", 0)
-                if btype == "strength":
+                if btype in REPS_BLOCKS:
                     ex_rows = sorted(
                         block.get("program_block_exercises") or [],
                         key=lambda e: e.get("order_index", 0),
@@ -322,7 +330,7 @@ def get_full_program(program_id: str | None = None) -> dict | None:
                         if ex_id:
                             exercise_ids[name] = ex_id
                     built_blocks.append({
-                        "type": "strength", "order": border,
+                        "type": btype, "order": border,
                         "exercises": exercises,
                         "exercise_ids": exercise_ids,
                     })
@@ -364,7 +372,7 @@ def get_session_supersets(program_id: str | None = None) -> dict:
         for session in sessions:
             sid, sname = session["id"], session["name"]
             blocks = (db_core._client.table("program_blocks")
-                      .select("id").eq("session_id", sid).eq("type", "strength")
+                      .select("id").eq("session_id", sid).in_("type", list(REPS_BLOCKS))
                       .execute().data) or []
             ss_map: dict = {}
             for block in blocks:
@@ -492,7 +500,7 @@ def save_full_program(program: dict, program_id: str | None = None) -> bool:
                     )
                     block_id = block_resp.data[0]["id"] if block_resp.data else None
 
-                if not block_id or btype != "strength":
+                if not block_id or btype not in REPS_BLOCKS:
                     continue
 
                 exercises = block.get("exercises", {})
