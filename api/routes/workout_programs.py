@@ -4,6 +4,15 @@ import logging
 logger = logging.getLogger("trainingos")
 workout_programs_bp = Blueprint("workout_programs", __name__)
 
+# Actions mutantes de POST /api/programme. Un payload ciblant un program_id !=
+# actif est refusé 409 par le garde en tête d'api_programme — évite qu'un client
+# cache-stale corrompe silencieusement le mauvais programme.
+MUTATING_ACTIONS = frozenset({
+    "create_seance", "delete_seance", "rename", "reorder_sessions",
+    "add", "remove", "scheme", "replace", "reorder",
+    "add_block", "remove_block", "reorder_blocks",
+})
+
 
 @workout_programs_bp.route("/api/programs", methods=["GET", "POST"])
 def api_programs():
@@ -63,6 +72,22 @@ def api_programme():
     action     = data.get("action")
     jour       = data.get("jour")
     program_id = data.get("program_id") or None
+
+    # Garde fail-fast unique : toute mutation cible le programme actif, ou 409.
+    # Sortie garantie : program_id == active_pid (validé ou défaut). Aucun
+    # fallback get_default_program_id silencieux atteint depuis les branches
+    # mutantes en aval.
+    if action in MUTATING_ACTIONS:
+        active_pid = _db.get_active_program_id()
+        if program_id is not None and program_id != active_pid:
+            return jsonify({
+                "error": "program_inactive",
+                "detail": "Mutation refusée : le programme ciblé n'est pas le programme actif.",
+                "active_program_id": active_pid,
+                "requested_program_id": program_id,
+            }), 409
+        if program_id is None:
+            program_id = active_pid
 
     if action == "create_seance":
         seance_name = (jour or "").strip()
@@ -224,5 +249,4 @@ def api_programme():
         session_def["blocks"] = reorder_blocks(blks, data.get("order", []))
 
     _db.save_full_program({jour: session_def}, program_id)
-    _db.set_active_program_id(program_id)
     return jsonify({"success": True})
