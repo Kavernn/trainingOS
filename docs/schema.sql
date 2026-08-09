@@ -81,11 +81,11 @@ CREATE POLICY "anon_all" ON public.program_sessions FOR ALL TO anon USING (true)
 
 
 -- === 4. program_blocks ===
--- Blocs dans une session (force | hiit | cardio)
+-- Blocs dans une session (strength | hiit | cardio | mobility | explosive | force | isolation | core | finisher)
 CREATE TABLE IF NOT EXISTS program_blocks (
     id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id  UUID    NOT NULL REFERENCES program_sessions(id) ON DELETE CASCADE,
-    type        TEXT    NOT NULL CHECK (type IN ('strength', 'hiit', 'cardio')),
+    type        TEXT    NOT NULL CHECK (type IN ('strength', 'hiit', 'cardio', 'mobility', 'explosive', 'force', 'isolation', 'core', 'finisher')),
     order_index INT     DEFAULT 0,
     hiit_config JSONB   DEFAULT '{}'
 );
