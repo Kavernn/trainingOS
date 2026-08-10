@@ -44,7 +44,7 @@ def _rebuild_sets_json(old_sets: list | None, new_weight: float, new_reps_str: s
             except (TypeError, ValueError):
                 pass
         if i < len(old) and isinstance(old[i], dict):
-            for k in ("rir", "rpe"):
+            for k in ("rir", "rpe", "intensity"):
                 if old[i].get(k) is not None:
                     entry[k] = old[i][k]
         rebuilt.append(entry)
