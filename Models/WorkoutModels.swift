@@ -139,6 +139,32 @@ struct DashboardData: Codable {
     }
 }
 
+struct SessionSlot: Codable {
+    let type: String       // "morning"|"evening"|"bonus"
+    let label: String      // "AM"|"PM"|"Bonus"
+    let rpe: Double?
+    let durationMin: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case type, label, rpe
+        case durationMin = "duration_min"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type  = (try? c.decode(String.self, forKey: .type))  ?? ""
+        label = (try? c.decode(String.self, forKey: .label)) ?? type
+
+        func decodeDouble(_ key: CodingKeys) -> Double? {
+            if let v = try? c.decode(Double.self, forKey: key) { return v }
+            if let v = try? c.decode(Int.self, forKey: key) { return Double(v) }
+            return nil
+        }
+        rpe         = decodeDouble(.rpe)
+        durationMin = decodeDouble(.durationMin)
+    }
+}
+
 struct SessionEntry: Codable {
     let exos: [String]?
     let rpe: Double?
@@ -150,9 +176,10 @@ struct SessionEntry: Codable {
     let totalReps: Int?
     let totalSets: Int?
     let sessionCount: Int?
+    let slots: [SessionSlot]?
 
     enum CodingKeys: String, CodingKey {
-        case exos, rpe, comment
+        case exos, rpe, comment, slots
         case loggedAt      = "logged_at"
         case durationMin   = "duration_min"
         case energyPre     = "energy_pre"
@@ -167,6 +194,7 @@ struct SessionEntry: Codable {
         exos = try? c.decode([String].self, forKey: .exos)
         comment = try? c.decode(String.self, forKey: .comment)
         loggedAt = try? c.decode(String.self, forKey: .loggedAt)
+        slots = try? c.decode([SessionSlot].self, forKey: .slots)
 
         func decodeDouble(_ key: CodingKeys) -> Double? {
             if let v = try? c.decode(Double.self, forKey: key) { return v }

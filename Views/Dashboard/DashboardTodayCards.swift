@@ -239,6 +239,8 @@ struct TodayCardView: View {
                 bonusCompleted: dash.bonusSessionCompleted,
                 pushedCount: dash.pushedToBonus.count
             )
+
+            TomorrowPreviewStrip(dash: dash)
         }
         // Fond neutre : brutalist (cardAccentFillOpacity 1.0) + electric (0.80)
         // rendaient la carte hero illisible (fond plein saturé sur textes .gray).
@@ -263,7 +265,18 @@ struct TodaySessionRecap: View {
         VStack(alignment: .leading, spacing: 10) {
             // Métriques clés
             HStack(spacing: 0) {
-                if let rpe = session.rpe {
+                // Multi-slot (AM + PM + bonus) : une pill RPE par slot, remplace le scalaire.
+                // Source de vérité : session.slots (backend). Mono-slot ou payload legacy
+                // sans `slots` → fallback pill RPE unique (session.rpe scalaire).
+                if let slots = session.slots, slots.count > 1 {
+                    ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
+                        RecapMetric(
+                            value: slot.rpe.map { String(format: "%.1f", $0) } ?? "—",
+                            label: slot.label,
+                            color: slot.rpe.map(rpeColor) ?? Color.gray
+                        )
+                    }
+                } else if let rpe = session.rpe {
                     RecapMetric(value: String(format: "%.1f", rpe), label: "RPE", color: rpeColor(rpe))
                 }
                 if let total = totalWorkoutMin, total > 0 {
@@ -519,6 +532,94 @@ struct Seance3BonusStrip: View {
             showSheet = true
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Tomorrow Preview Strip
+// Ligne discrète en bas de la carte : « Demain : <nom> · N exos » (repli/dépli).
+// Weekday MTL — pattern SeanceView:98-104 (Date().weekday brut décale au fuseau).
+struct TomorrowPreviewStrip: View {
+    let dash: DashboardData
+    @State private var isExpanded = false
+
+    private var tomorrowName: String {
+        let localSecs = Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()
+        let weekday = ((localSecs / 86400 + 4) % 7) + 1  // Jan 1 1970 = Thu = weekday 5
+        let todayIdx = (weekday + 5) % 7                 // 0=Lun … 6=Dim
+        let tomorrowIdx = (todayIdx + 1) % 7
+        return dash.schedule[TrainingDoctrine.dayNames[tomorrowIdx]] ?? "Repos"
+    }
+
+    private var tomorrowExos: [(String, String)] {
+        guard let program = dash.fullProgram[tomorrowName] else { return [] }
+        return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
+    }
+
+    private var isRest: Bool {
+        tomorrowName == "Repos" || tomorrowExos.isEmpty
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Divider().background(Color.appSeparator).padding(.horizontal, 16)
+
+            Button {
+                if !isRest {
+                    withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text("DEMAIN")
+                        .font(.appMicro.weight(.bold)).tracking(1.5)
+                        .foregroundColor(.gray)
+                    Text(isRest ? "Repos" : "\(tomorrowName) · \(tomorrowExos.count) exo\(tomorrowExos.count > 1 ? "s" : "")")
+                        .font(.appCaption)
+                        .foregroundColor(Color.appOnSurface.opacity(0.75))
+                        .lineLimit(1)
+                    Spacer()
+                    if !isRest {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.appMicro.weight(.semibold))
+                            .foregroundColor(.gray.opacity(0.6))
+                    }
+                }
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isRest)
+
+            if isExpanded && !isRest {
+                VStack(spacing: 0) {
+                    ForEach(Array(tomorrowExos.prefix(5).enumerated()), id: \.offset) { idx, item in
+                        HStack(spacing: 10) {
+                            Text("\(idx + 1)")
+                                .font(.appCaption.weight(.black))
+                                .foregroundColor(.gray.opacity(0.5))
+                                .frame(width: 16)
+                            Text(item.0)
+                                .font(.appLabel).foregroundColor(.appTextPrimary)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(item.1)
+                                .font(.appCaption).foregroundColor(.gray)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 6)
+                        if idx < tomorrowExos.prefix(5).count - 1 {
+                            Divider()
+                                .background(Color.appSurfaceInset)
+                                .padding(.horizontal, 16)
+                        }
+                    }
+                    if tomorrowExos.count > 5 {
+                        Text("+ \(tomorrowExos.count - 5) exercices")
+                            .font(.appCaption).foregroundColor(.gray)
+                            .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 4)
+                    }
+                }
+                .padding(.bottom, 8)
+            }
         }
     }
 }
