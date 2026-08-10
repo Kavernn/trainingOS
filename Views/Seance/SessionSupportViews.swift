@@ -995,7 +995,7 @@ struct RestTimerBadge: View {
 
                 HStack(spacing: 4) {
                     Image(systemName: "timer")
-                        .font(.appLabel).fontWeight(.semibold)
+                        .font(.appCaption).fontWeight(.semibold)
                     Group {
                         if timer.isRunning {
                             Text(formatTime(remaining))
@@ -1009,9 +1009,9 @@ struct RestTimerBadge: View {
                     }
                 }
                 .foregroundColor(timer.isRunning ? timerColor : .statusCyan)
-                .padding(.horizontal, 8).padding(.vertical, 5)
+                .padding(.horizontal, 6).padding(.vertical, 4)
                 .background((timer.isRunning ? timerColor : Color.statusCyan).opacity(0.12))
-                .cornerRadius(8)
+                .cornerRadius(6)
                 .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
             }
         }
