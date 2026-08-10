@@ -311,8 +311,8 @@ struct ExerciseCard: View {
             overloadHintLine()
             if evm.repCountMode {
                 RepCounterSection(evm: evm, doLog: doLog)
-            } else if evm.setBySetMode {
-                logRoundButton
+            } else {
+                setBySetLogButton
             }
         }
     }
@@ -607,6 +607,13 @@ struct ExerciseCard: View {
         .padding(.top, 8)
     }
 
+    // ponytail: exposition partagée du bouton set-à-set. setRows a une mutex
+    // avec repCountMode (RepCounterSection prioritaire) ; carry/plyo n'ont
+    // pas de RepCounterSection utile — juste ce bouton en mode set-à-set.
+    @ViewBuilder private var setBySetLogButton: some View {
+        if evm.setBySetMode { logRoundButton }
+    }
+
     @ViewBuilder private func timeSetRows() -> some View {
         VStack(spacing: 10) {
             HStack(spacing: 6) {
@@ -683,32 +690,64 @@ struct ExerciseCard: View {
                     setRowActionButton(i: i, isActive: isActive, isDone: isDone)
                 }
             }
+            setBySetLogButton
         }
     }
 
     // ponytail: parallèle à carrySetRows. 3 colonnes de saisie (poids, reps,
-    // hauteur/distance). Label 3e colonne résolu par exo via plyoUnitLabel.
+    // hauteur/distance). Label 3e colonne résolu par exo via plyoMetricLabel.
     // Poids optionnel comme carry (Vince peut laisser vide en BW pur).
+    // ViewThatFits header+row copié de setRows (L243-282) : 3 steppers débordent
+    // sur écran étroit → repli 2 lignes (poids en haut, reps+hauteur en bas
+    // décalés sous le stepper weight).
     @ViewBuilder private func plyoSetRows() -> some View {
         VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                setHeaderWeightLabels()
-                setHeaderRepsLabels()
-                Text(ExerciseCalculator.plyoMetricLabel(for: name))
-                    .font(.appCaption).foregroundColor(.gray)
-                Spacer()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) {
+                    setHeaderWeightLabels()
+                    setHeaderRepsLabels()
+                    Text(ExerciseCalculator.plyoMetricLabel(for: name))
+                        .font(.appCaption).foregroundColor(.gray)
+                    Spacer()
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) { setHeaderWeightLabels(); Spacer() }
+                    HStack(spacing: 4) {
+                        Color.clear.frame(width: 28, height: 1)
+                        setHeaderRepsLabels()
+                        Text(ExerciseCalculator.plyoMetricLabel(for: name))
+                            .font(.appCaption).foregroundColor(.gray)
+                        Spacer()
+                    }
+                }
             }
             ForEach(evm.sets.indices, id: \.self) { i in
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
-                HStack(spacing: 4) {
-                    setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
-                    setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
-                    setRowIntensitySide(i: i, isActive: isActive, isDone: isDone)
-                    Spacer()
-                    setRowActionButton(i: i, isActive: isActive, isDone: isDone)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 4) {
+                        setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
+                        setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
+                        setRowIntensitySide(i: i, isActive: isActive, isDone: isDone)
+                        Spacer()
+                        setRowActionButton(i: i, isActive: isActive, isDone: isDone)
+                    }
+                    VStack(spacing: 4) {
+                        HStack(spacing: 4) {
+                            setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
+                            Spacer()
+                        }
+                        HStack(spacing: 4) {
+                            Color.clear.frame(width: isActive ? 44 : 28, height: 1)
+                            setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
+                            setRowIntensitySide(i: i, isActive: isActive, isDone: isDone)
+                            Spacer()
+                            setRowActionButton(i: i, isActive: isActive, isDone: isDone)
+                        }
+                    }
                 }
             }
+            setBySetLogButton
         }
     }
 
@@ -1059,7 +1098,11 @@ struct ExerciseCard: View {
                 }
                 .buttonStyle(.plain)
             }
-            if !isTimeBased {
+            // ponytail: toggle Set à set + Compteur visibles UNIQUEMENT pour les
+            // tracking_types qui font du multi-set set-à-set (reps, carry, plyo).
+            // Masqué pour protocol (bouton Fait binaire), time (chrono), et
+            // nonLoggable (stub). Compteur a son propre inner guard reps-only.
+            if trackingType == "reps" || trackingType == "carry" || trackingType == "plyo" {
                 Button {
                     withAnimation {
                         evm.setBySetMode.toggle()
@@ -1078,28 +1121,33 @@ struct ExerciseCard: View {
                     .background(Color.appSurfaceInset).clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                Button {
-                    withAnimation {
-                        if evm.repCountMode {
-                            evm.repCountMode = false
-                        } else {
-                            evm.repCountMode = true
-                            evm.setBySetMode = true
-                            evm.currentSetIndex = 0
+                // ponytail: Compteur = RepCounterSection tactile, câblé pour reps seulement.
+                // Masqué pour carry (distance en m) et plyo (sauts saisis au clavier) — le
+                // compteur tactile n'a pas de sens quand la saisie n'est pas un nb de reps.
+                if trackingType == "reps" {
+                    Button {
+                        withAnimation {
+                            if evm.repCountMode {
+                                evm.repCountMode = false
+                            } else {
+                                evm.repCountMode = true
+                                evm.setBySetMode = true
+                                evm.currentSetIndex = 0
+                            }
                         }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "hand.tap.fill")
+                                .font(.appCaption)
+                            Text("Compteur")
+                                .font(.appMicro).fontWeight(.semibold)
+                        }
+                        .foregroundColor(evm.repCountMode ? Color.statusPurple : .gray.opacity(0.6))
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Color.appSurfaceInset).clipShape(Capsule())
                     }
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: "hand.tap.fill")
-                            .font(.appCaption)
-                        Text("Compteur")
-                            .font(.appMicro).fontWeight(.semibold)
-                    }
-                    .foregroundColor(evm.repCountMode ? Color.statusPurple : .gray.opacity(0.6))
-                    .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(Color.appSurfaceInset).clipShape(Capsule())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
             Menu {
