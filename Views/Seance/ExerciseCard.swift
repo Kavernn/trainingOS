@@ -263,6 +263,7 @@ struct ExerciseCard: View {
                         setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
                         setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
                         setRowPrescriptionIcon(i: i)
+                        Spacer()
                         setRowActionButton(i: i, isActive: isActive, isDone: isDone)
                     }
                     VStack(spacing: 4) {
