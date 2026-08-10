@@ -489,8 +489,20 @@ struct ProgrammeView: View {
                 Text("Toutes les séances de ce programme seront supprimées. Cette action est irréversible.")
             }
         }
-        .task { await vm.loadData(); await vm.loadSuggestions() }
-        .onAppear { seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? [] }
+        .onAppear {
+            seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? []
+            // Reset synchrone AVANT le Task → applyJSON du refresh lira false.
+            // Consolidé avec le loadData ici (au lieu de .task séparé) car
+            // .task ne re-fire pas au retour d'onglet en TabView ; .onAppear si.
+            // loadData(programId: nil) : à chaque réouverture, charge l'actif
+            // serveur (cohérent avec reset). Une consultation en cours ne
+            // survit pas à un aller-retour d'onglet — comportement voulu.
+            vm.userDidSelect = false
+            Task {
+                await vm.loadData(programId: nil)
+                await vm.loadSuggestions()
+            }
+        }
         .onChange(of: vm.selectedProgramId) { _, newId in
             guard !newId.isEmpty else { return }
             Task { await vm.loadData(programId: newId); await vm.loadSuggestions() }
@@ -1271,6 +1283,7 @@ struct ProgrammeView: View {
                         programs: vm.programs,
                         selectedId: $vm.selectedProgramId,
                         activeId: vm.activeProgramId,
+                        onSelect: { vm.userDidSelect = true },
                         onAdd: { showCreateProgram = true },
                         onRename: { p in
                             renameProgramTarget = p
@@ -1482,6 +1495,7 @@ private struct ProgramTabsView: View {
     let programs: [ProgramInfo]
     @Binding var selectedId: String
     let activeId: String
+    let onSelect: () -> Void
     let onAdd: () -> Void
     let onRename: (ProgramInfo) -> Void
     let onDelete: (ProgramInfo) -> Void
@@ -1517,7 +1531,7 @@ private struct ProgramTabsView: View {
                         RoundedRectangle(cornerRadius: 20)
                             .fill(isSelected ? Color.forge : Color.appSurfaceInset)
                     )
-                    .onTapGesture { selectedId = prog.id }
+                    .onTapGesture { onSelect(); selectedId = prog.id }
                     .contextMenu {
                         Button("Renommer") { onRename(prog) }
                         Button("Supprimer", role: .destructive) { onDelete(prog) }

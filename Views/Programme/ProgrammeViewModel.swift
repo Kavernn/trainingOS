@@ -45,6 +45,12 @@ final class ProgrammeViewModel: ObservableObject {
     @Published var selectedProgramId: String = ""
     @Published var activeProgramId: String = ""
     @Published var allSessions: [String] = []
+    /// Vrai quand l'utilisateur a exprimé une préférence explicite sur la
+    /// sélection (tap picker ou createProgram). Bloque le rattrapage
+    /// applyJSON tant qu'il est vrai. Reset à false par
+    /// ProgrammeView.onAppear (chaque apparition de la vue) — la sélection
+    /// de consultation ne survit pas à une réouverture de l'onglet.
+    var userDidSelect: Bool = false
 
     // MARK: - Runtime chargement
 
@@ -174,7 +180,7 @@ final class ProgrammeViewModel: ObservableObject {
             }
         }
         if let pid = json["current_program_id"] as? String, !pid.isEmpty {
-            if selectedProgramId.isEmpty { selectedProgramId = pid }
+            if !userDidSelect { selectedProgramId = pid }
             activeProgramId = pid
         }
         if let sessions = json["all_sessions"] as? [String] {
@@ -408,6 +414,7 @@ final class ProgrammeViewModel: ObservableObject {
             let p = ProgramInfo(id: pid, name: name)
             programs.append(p)
             selectedProgramId = pid
+            userDidSelect = true
             fullProgram = [:]
             exerciseOrder = [:]
         } catch {
