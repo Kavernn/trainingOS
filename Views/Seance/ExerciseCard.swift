@@ -686,6 +686,50 @@ struct ExerciseCard: View {
         }
     }
 
+    // ponytail: parallèle à carrySetRows. 3 colonnes de saisie (poids, reps,
+    // hauteur/distance). Label 3e colonne résolu par exo via plyoUnitLabel.
+    // Poids optionnel comme carry (Vince peut laisser vide en BW pur).
+    @ViewBuilder private func plyoSetRows() -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                setHeaderWeightLabels()
+                setHeaderRepsLabels()
+                Text(ExerciseCalculator.plyoMetricLabel(for: name))
+                    .font(.appCaption).foregroundColor(.gray)
+                Spacer()
+            }
+            ForEach(evm.sets.indices, id: \.self) { i in
+                let isActive = evm.setBySetMode && i == evm.currentSetIndex
+                let isDone   = evm.setBySetMode && i < evm.currentSetIndex
+                HStack(spacing: 4) {
+                    setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
+                    setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
+                    setRowIntensitySide(i: i, isActive: isActive, isDone: isDone)
+                    Spacer()
+                    setRowActionButton(i: i, isActive: isActive, isDone: isDone)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func setRowIntensitySide(i: Int, isActive: Bool, isDone: Bool) -> some View {
+        let isHorizontal = ExerciseCalculator.plyoUnitLabel(for: name) == "m"
+        HStack(spacing: 4) {
+            StepperInput(
+                valueStr: $evm.sets[i].intensity,
+                increment: isHorizontal ? 1 : 5,
+                minimum: 0,
+                placeholder: 0,
+                isInteger: !isHorizontal,
+                isDisabled: evm.setBySetMode && !isActive && !isDone,
+                isCompact: evm.setBySetMode
+            )
+            .frame(width: 100)
+            Text(ExerciseCalculator.plyoUnitLabel(for: name))
+                .font(.appCaption).foregroundColor(.gray)
+        }
+    }
+
     @ViewBuilder private func protocolCard() -> some View {
         VStack(alignment: .leading, spacing: 12) {
             if let h = hint, !h.isEmpty {
@@ -1245,6 +1289,8 @@ struct ExerciseCard: View {
             protocolCard()
         } else if trackingType == "carry" {
             carrySetRows()
+        } else if trackingType == "plyo" {
+            plyoSetRows()
         } else if isNonLoggable {
             stubNotLoggableView()
         } else if isTimeBased {

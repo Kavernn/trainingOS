@@ -18,6 +18,7 @@ struct SetInput: Identifiable {
     var reps: String = ""
     var duration: Int = 30   // seconds, used when isTimeBased
     var distance: String = "" // meters, used when tracking_type == "carry"
+    var intensity: String = "" // hauteur (cm) ou distance (m), used when tracking_type == "plyo"
     var rir: Int = 3         // Reps In Reserve
     var rpe: Double? = nil   // Per-set RPE (optionnel)
     // ponytail: tracking_type == "protocol" — bouton Fait binaire. Un log protocol = fait par
@@ -198,6 +199,16 @@ enum ExerciseCalculator {
         guard secs >= 60 else { return "\(secs)s" }
         let m = secs / 60; let s = secs % 60
         return s > 0 ? "\(m)m\(s)s" : "\(m)m"
+    }
+
+    // ponytail: liste plyo horizontale — 2 entrées. Migrer vers colonne
+    // catalogue si >~10 exos ou classification dynamique côté Vince.
+    private static let plyoHorizontal: Set<String> = ["Broad Jump", "Lateral Bound"]
+    static func plyoUnitLabel(for name: String) -> String {
+        plyoHorizontal.contains(name) ? "m" : "cm"   // default cm (vertical)
+    }
+    static func plyoMetricLabel(for name: String) -> String {
+        plyoHorizontal.contains(name) ? "Distance (m)" : "Hauteur (cm)"
     }
 
     static func repsStr(sets: [SetInput], trackingType: String = "reps") -> String {
@@ -513,8 +524,13 @@ final class ExerciseViewModel: ObservableObject {
         case "carry":
             return sets.contains { (Int($0.distance) ?? 0) > 0 } ? nil : "Distance requise"
         case "plyo":
-            // plyo (sauts par set) = même sémantique que reps (int par série).
-            return sets.contains { (Int($0.reps) ?? 0) > 0 } ? nil : "Nombre de sauts requis"
+            // plyo = sauts par set (reps int) + hauteur/distance (intensity double,
+            // unité résolue par l'exo côté vue). Les deux dimensions requises.
+            let repsOK = sets.contains { (Int($0.reps) ?? 0) > 0 }
+            let intOK  = sets.contains { (Double($0.intensity.replacingOccurrences(of: ",", with: ".")) ?? 0) > 0 }
+            if !repsOK { return "Nombre de sauts requis" }
+            if !intOK  { return "Hauteur/distance requise" }
+            return nil
         case "cardio":
             return (sets.first?.duration ?? 0) > 0 ? nil : "Durée requise"
         case "interval":
@@ -600,6 +616,29 @@ final class ExerciseViewModel: ObservableObject {
             // Aligné backend workout_logging.py:111-115 (1re série non-nulle).
             let firstW = setsPayload.compactMap { $0["weight"] as? Double }.first(where: { $0 > 0 }) ?? 0
             let result = ExerciseLogResult(name: name, weight: firstW, reps: repsCSV, rpe: exerciseRPE,
+                sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
+                equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
+            logStatus = .success(firstW)
+            return result
+        }
+
+        if trackingType == "plyo" {
+            // ponytail: sauts + hauteur/distance. repsStr = vrais reps CSV (case
+            // "reps","plyo" groupé L207). intensity per-set dans sets_json —
+            // unité native de l'exo (cm/m), pas de conversion. Pas d'agrégation
+            // top-level (v1 b') ; colonne exercise_logs.intensity reste NULL
+            // jusqu'à ce qu'une analytics la peuple depuis sets_json.
+            let units = UnitSettings.shared
+            let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
+                guard (Int(s.reps) ?? 0) > 0 else { return nil }
+                let intVal = Double(s.intensity.replacingOccurrences(of: ",", with: ".")) ?? 0
+                guard intVal > 0 else { return nil }
+                let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
+                let setTotal = totalWeight(for: units.toStorage(sw))
+                return ["weight": setTotal, "reps": s.reps, "intensity": intVal]
+            }
+            let firstW = setsPayload.compactMap { $0["weight"] as? Double }.first(where: { $0 > 0 }) ?? 0
+            let result = ExerciseLogResult(name: name, weight: firstW, reps: repsStr, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
             logStatus = .success(firstW)
