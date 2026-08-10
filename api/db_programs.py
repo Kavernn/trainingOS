@@ -4,14 +4,7 @@ from typing import Optional
 import db_core
 from db_profile import get_profile, update_profile
 from utils import _today_mtl
-
-
-# Blocs qui portent des program_block_exercises avec scheme reps.
-# hiit/cardio EXCLUS : ils utilisent hiit_config (colonne dédiée).
-REPS_BLOCKS = frozenset({
-    "strength", "force", "isolation", "core",
-    "mobility", "explosive", "finisher",
-})
+from blocks import REPS_BLOCKS  # source unique — définie dans blocks.py
 
 
 def get_all_programs() -> list:

@@ -12,6 +12,14 @@ from __future__ import annotations
 
 BLOCK_TYPES = ("strength", "hiit", "cardio")
 
+# Blocs qui portent des program_block_exercises avec scheme reps.
+# hiit/cardio EXCLUS : ils utilisent hiit_config (colonne dédiée).
+# Source unique — importée par db_programs (get_full_program, save_full_program).
+REPS_BLOCKS = frozenset({
+    "strength", "force", "isolation", "core",
+    "mobility", "explosive", "finisher",
+})
+
 
 def make_strength_block(exercises: dict, order: int = 0) -> dict:
     """Create a strength training block with {exercise: scheme} exercises."""
@@ -39,27 +47,39 @@ def get_block(blocks: list, block_type: str) -> dict | None:
 
 
 def get_strength_exercises(session_def: dict) -> dict:
-    """Return the exercises dict from the strength block of a session definition.
+    """Return exercises of ALL reps-blocks (REPS_BLOCKS) merged in block order.
 
-    Works with both the new block format {"blocks": [...]} and the legacy flat
-    format {"ExerciseName": "scheme"} for backward compatibility.
+    Blocs itérés par order_index croissant, dict.update() fusion : sur collision
+    de nom inter-blocs, le dernier bloc (par order) gagne (déterministe).
+    Python 3.7+ préserve l'ordre d'insertion → l'ordre d'affichage suit celui
+    des blocs (mobility d'abord, core/finisher en dernier selon order_index).
+
+    Legacy flat format {"ExerciseName": "scheme"} retourné tel quel.
     """
     if "blocks" not in session_def:
-        # Legacy flat format: the session_def IS the exercises dict
         return session_def
-    block = get_block(session_def["blocks"], "strength")
-    return block.get("exercises", {}) if block else {}
+    merged: dict = {}
+    for block in sorted(session_def["blocks"], key=lambda b: b.get("order", 0)):
+        if block.get("type") in REPS_BLOCKS:
+            merged.update(block.get("exercises", {}))
+    return merged
 
 
 def get_strength_exercise_ids(session_def: dict) -> dict:
-    """Return {name: exercise_id} for the strength block. Symmetric à
-    get_strength_exercises — mêmes clés-nom (même row source, cf. db_programs
-    get_full_program). Étape 3b : consommé par les endpoints qui exposent
-    exercise_ids dans le payload pour que iOS puisse muter par id, jamais par nom."""
+    """Return {name: exercise_id} for ALL reps-blocks merged in block order.
+
+    Symétrique de get_strength_exercises — même boucle, même ordre → clés
+    identiques (invariant : même row exercises via join get_full_program).
+    Consommé par les endpoints qui exposent exercise_ids pour que iOS mute
+    par id, jamais par nom (doctrine étape 3b).
+    """
     if "blocks" not in session_def:
-        return {}  # legacy format n'a pas d'id
-    block = get_block(session_def["blocks"], "strength")
-    return block.get("exercise_ids", {}) if block else {}
+        return {}
+    merged: dict = {}
+    for block in sorted(session_def["blocks"], key=lambda b: b.get("order", 0)):
+        if block.get("type") in REPS_BLOCKS:
+            merged.update(block.get("exercise_ids", {}))
+    return merged
 
 
 def upsert_block(blocks: list, new_block: dict) -> list:
