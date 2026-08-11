@@ -68,6 +68,7 @@ struct WorkoutSeanceView: View {
     @State private var isEditMode = false
     @State private var orderSaveError = false
     @State private var expandedExercises: Set<String> = []
+    @State private var collapsedCompleted = false   // D1 — section Complétés (repli manuel)
     @State private var lastOpenedExercise: String? = nil
     @State private var scrollProxy: ScrollViewProxy? = nil
     @ObservedObject private var timer = RestTimerManager.shared
@@ -310,15 +311,21 @@ struct WorkoutSeanceView: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.2), lineWidth: 1))
             .padding(.horizontal, 16)
         } else {
-            let sepIdx = firstUnloggedItemIndex
             VStack(spacing: 8) {
-                ForEach(Array(exerciseRenderItems.enumerated()), id: \.element.id) { idx, item in
-                    if let s = sepIdx, idx == s {
-                        remainingSectionHeader
+                ForEach(Array(partitionedItems.enumerated()), id: \.element.id) { idx, item in
+                    if idx == loggedStartIndex && loggedCount > 0 {
+                        completedHeader
                     }
+                    let isInCompleted = idx >= loggedStartIndex
+                    let hidden = collapsedCompleted && isInCompleted
                     renderExerciseItem(item)
+                        .frame(height: hidden ? 0 : nil)
+                        .clipped()
+                        .opacity(hidden ? 0 : 1)
                 }
             }
+            .animation(.spring(response: 0.42, dampingFraction: 0.82), value: vm.logResults.count)
+            .animation(.spring(response: 0.42, dampingFraction: 0.82), value: collapsedCompleted)
             .onPreferenceChange(CardHeightKey.self) { cardHeights.merge($0) { $1 } }
 
             if orderSaveError {
@@ -398,10 +405,20 @@ struct WorkoutSeanceView: View {
         }
     }
 
-    private var firstUnloggedItemIndex: Int? {
-        let logged = vm.logResults.count
-        guard logged > 0, logged < exercises.count else { return nil }
-        return exerciseRenderItems.firstIndex(where: { !isItemLogged($0) })
+    // MARK: - Partition Complétés (D1)
+
+    private var partitionedItems: [ExerciseRenderItem] {
+        let notLogged = exerciseRenderItems.filter { !isItemLogged($0) }
+        let logged    = exerciseRenderItems.filter {  isItemLogged($0) }
+        return notLogged + logged
+    }
+
+    private var loggedStartIndex: Int {
+        exerciseRenderItems.filter { !isItemLogged($0) }.count
+    }
+
+    private var loggedCount: Int {
+        exerciseRenderItems.filter { isItemLogged($0) }.count
     }
 
     // MARK: - Sticky header (D2)
@@ -447,17 +464,28 @@ struct WorkoutSeanceView: View {
         }
     }
 
-    @ViewBuilder private var remainingSectionHeader: some View {
-        HStack(spacing: 8) {
-            Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
-            Text("À FAIRE")
-                .font(.appMicro).fontWeight(.bold)
-                .tracking(2)
+    @ViewBuilder private var completedHeader: some View {
+        Button {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                collapsedCompleted.toggle()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
+                HStack(spacing: 6) {
+                    Image(systemName: collapsedCompleted ? "chevron.down" : "chevron.up")
+                        .font(.appMicro).fontWeight(.bold)
+                    Text("COMPLÉTÉS (\(loggedCount))")
+                        .font(.appMicro).fontWeight(.bold).tracking(2)
+                }
                 .foregroundColor(Color.appTextMuted)
                 .fixedSize()
-            Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
+                Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
+            }
+            .padding(.horizontal, 16)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 16)
+        .buttonStyle(.plain)
         .transition(.opacity)
     }
 
