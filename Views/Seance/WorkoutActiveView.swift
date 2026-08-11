@@ -404,6 +404,49 @@ struct WorkoutSeanceView: View {
         return exerciseRenderItems.firstIndex(where: { !isItemLogged($0) })
     }
 
+    // MARK: - Sticky header (D2)
+
+    private var firstUnloggedName: String? {
+        guard let item = exerciseRenderItems.first(where: { !isItemLogged($0) }) else { return nil }
+        switch item {
+        case .solo(let name, _, _): return name
+        case .superset(_, _, let entry, _, _, _): return entry.a
+        }
+    }
+
+    private var currentExerciseName: String {
+        lastOpenedExercise ?? firstUnloggedName ?? data.today
+    }
+
+    private var showStickyHeader: Bool {
+        !isEditMode && !showSummary && !exerciseRenderItems.isEmpty
+            && currentExerciseName != data.today
+    }
+
+    @ViewBuilder private var stickyHeader: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if progressComplete {
+                Text("SÉANCE TERMINÉE")
+                    .font(.appMicro).fontWeight(.bold).tracking(2)
+                    .foregroundColor(Color.appTextMuted)
+            } else {
+                Text("EXO COURANT · \(progressDone)/\(progressTotal)")
+                    .font(.appMicro).fontWeight(.bold).tracking(2)
+                    .foregroundColor(Color.appTextMuted)
+            }
+            Text(currentExerciseName)
+                .font(.appHeadline).fontWeight(.bold)
+                .foregroundColor(Color.appTextPrimary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
+        }
+    }
+
     @ViewBuilder private var remainingSectionHeader: some View {
         HStack(spacing: 8) {
             Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
@@ -1690,6 +1733,15 @@ struct WorkoutSeanceView: View {
         }
         .toast($toast)
         .scrollDismissesKeyboard(.immediately)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if showStickyHeader {
+                stickyHeader
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation { proxy.scrollTo(currentExerciseName, anchor: .top) }
+                    }
+            }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if timer.isVisible {
                 FloatingRestTimerCard()
