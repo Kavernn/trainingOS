@@ -45,6 +45,7 @@ struct ExerciseCard: View {
     @State private var confirmSwapAfterLog = false
     @State private var showAdvanced = false
     @State private var showPlateCalculator = false
+    @State private var noteExpanded = false
     // Hold-to-log
     @State private var logFlash = false
     // Undo window
@@ -1383,21 +1384,34 @@ struct ExerciseCard: View {
         }
         .padding(.top, 2)
         if !isTimeBased, evm.avgWeight != nil { avgTotalRow }
-        // Note de séance — toujours visible, sauvegardée au log
-        HStack(alignment: .top, spacing: 6) {
-            Image(systemName: "note").font(.appCaption)
-                .foregroundColor(evm.sessionNote.isEmpty ? .gray.opacity(0.35) : Color.forge.opacity(0.7))
-                .padding(.top, 1)
-            TextField("Note de séance…", text: $evm.sessionNote, axis: .vertical)
-                .font(.appCaption)
-                .foregroundColor(evm.sessionNote.isEmpty ? .gray : Color.forge)
-                .lineLimit(1...3)
+        // Note de séance — repliable, auto-dépliée si non vide, sauvegardée au log
+        if noteExpanded || !evm.sessionNote.isEmpty {
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "note").font(.appCaption)
+                    .foregroundColor(evm.sessionNote.isEmpty ? .gray.opacity(0.35) : Color.forge.opacity(0.7))
+                    .padding(.top, 1)
+                TextField("Note de séance…", text: $evm.sessionNote, axis: .vertical)
+                    .font(.appCaption)
+                    .foregroundColor(evm.sessionNote.isEmpty ? .gray : Color.forge)
+                    .lineLimit(1...3)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(evm.sessionNote.isEmpty ? Color.clear : Color.forge.opacity(0.06))
+            .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                evm.sessionNote.isEmpty ? Color.appSurfaceInset : Color.forge.opacity(0.15), lineWidth: 1))
+        } else {
+            Button {
+                withAnimation { noteExpanded = true }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "note").font(.appMicro)
+                    Text("Ajouter une note").font(.appMicro)
+                }
+                .foregroundColor(.gray.opacity(0.5))
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 10).padding(.vertical, 7)
-        .background(evm.sessionNote.isEmpty ? Color.clear : Color.forge.opacity(0.06))
-        .cornerRadius(8)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-            evm.sessionNote.isEmpty ? Color.appSurfaceInset : Color.forge.opacity(0.15), lineWidth: 1))
         if showAdvanced {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { showAdvanced = false }
