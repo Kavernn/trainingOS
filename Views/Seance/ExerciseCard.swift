@@ -596,16 +596,16 @@ struct ExerciseCard: View {
             ZStack {
                 Circle()
                     .fill(Color.forge)
-                    .frame(width: 72, height: 72)
-                    .shadow(color: Color.forge.opacity(0.35), radius: 8, x: 0, y: 2)
+                    .frame(width: 48, height: 48)
+                    .shadow(color: Color.forge.opacity(0.35), radius: 3, x: 0, y: 1)
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 44, weight: .bold))
+                    .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.white)
             }
         }
         .buttonStyle(SpringButtonStyle(scale: 0.88))
         .frame(maxWidth: .infinity)
-        .padding(.top, 8)
+        .padding(.top, 4)
     }
 
     // ponytail: exposition partagée du bouton set-à-set. setRows a une mutex
@@ -1383,7 +1383,6 @@ struct ExerciseCard: View {
         }
         .padding(.top, 2)
         if !isTimeBased, evm.avgWeight != nil { avgTotalRow }
-        effortRow
         // Note de séance — toujours visible, sauvegardée au log
         HStack(alignment: .top, spacing: 6) {
             Image(systemName: "note").font(.appCaption)
@@ -1685,33 +1684,6 @@ struct ExerciseCard: View {
             }
         )
         .presentationDetents([.medium, .large])
-    }
-
-    @ViewBuilder private var effortRow: some View {
-        let rpe = evm.exerciseRPE
-        let rir = RPEHelper.rirFromRPE(rpe)
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 6) {
-                Text("EFFORT ESTIMÉ")
-                    .font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
-                Spacer()
-                Text("RIR \(rir == 4 ? "4+" : "\(rir)")  ·  RPE \(String(format: "%.0f", rpe))")
-                    .font(.appMicro).fontWeight(.bold)
-                    .foregroundColor(RPEHelper.color(for: rpe))
-            }
-            Text(RPEHelper.feedback(for: rpe))
-                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
-                .fixedSize(horizontal: false, vertical: true)
-            if let hint = RPEHelper.progressionHint(for: rpe) {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.forward.circle")
-                        .font(.appMicro).foregroundColor(Color.statusCyan.opacity(0.65))
-                    Text(hint)
-                        .font(.appMicro).foregroundColor(Color.statusCyan.opacity(0.65))
-                }
-            }
-        }
-        .padding(.top, 4)
     }
 
     /// Total weight in display units, computed from current set entries or fallback to last known weight.
