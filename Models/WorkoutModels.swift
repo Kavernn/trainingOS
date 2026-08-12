@@ -315,6 +315,7 @@ struct SeanceData: Codable {
     let mesocycle: MesocycleInfo?
     let inventoryTypes: [String: String]
     let inventoryTracking: [String: String]
+    let inventoryUnilateral: [String: Bool]
     let inventoryRest: [String: Int]
     let inventoryHints: [String: String]
     let inventorySchemes: [String: String]
@@ -349,6 +350,7 @@ struct SeanceData: Codable {
         case weights, week, mesocycle, prescriptions
         case inventoryTypes       = "inventory_types"
         case inventoryTracking    = "inventory_tracking"
+        case inventoryUnilateral  = "inventory_unilateral"
         case inventoryRest        = "inventory_rest"
         case inventoryHints       = "inventory_hints"
         case inventorySchemes     = "inventory_schemes"
@@ -375,6 +377,7 @@ struct SeanceData: Codable {
         mesocycle          = try? c.decode(MesocycleInfo.self, forKey: .mesocycle)
         inventoryTypes     = (try? c.decode([String: String].self, forKey: .inventoryTypes))    ?? [:]
         inventoryTracking  = (try? c.decode([String: String].self, forKey: .inventoryTracking)) ?? [:]
+        inventoryUnilateral = (try? c.decode([String: Bool].self,  forKey: .inventoryUnilateral)) ?? [:]
         inventoryRest      = (try? c.decode([String: Int].self,    forKey: .inventoryRest))     ?? [:]
         inventoryHints     = (try? c.decode([String: String].self, forKey: .inventoryHints))    ?? [:]
         inventorySchemes   = (try? c.decode([String: String].self, forKey: .inventorySchemes))  ?? [:]
@@ -394,6 +397,7 @@ struct SeanceData: Codable {
          schedule: [String: String], fullProgram: [String: [String: SafeString]],
          weights: [String: WeightData], week: Int, mesocycle: MesocycleInfo? = nil,
          inventoryTypes: [String: String], inventoryTracking: [String: String] = [:],
+         inventoryUnilateral: [String: Bool] = [:],
          inventoryRest: [String: Int] = [:], inventoryHints: [String: String] = [:],
          inventorySchemes: [String: String] = [:],
          inventoryMuscleGroups: [String: String] = [:],
@@ -415,6 +419,7 @@ struct SeanceData: Codable {
         self.mesocycle           = mesocycle
         self.inventoryTypes      = inventoryTypes
         self.inventoryTracking   = inventoryTracking
+        self.inventoryUnilateral = inventoryUnilateral
         self.inventoryRest       = inventoryRest
         self.inventoryHints      = inventoryHints
         self.inventorySchemes    = inventorySchemes
@@ -444,6 +449,7 @@ struct SeanceSoirData: Codable {
     let mesocycle: MesocycleInfo?
     let inventoryTypes: [String: String]
     let inventoryTracking: [String: String]
+    let inventoryUnilateral: [String: Bool]
     let inventoryRest: [String: Int]
     let inventoryHints: [String: String]
     let inventorySchemes: [String: String]
@@ -471,6 +477,7 @@ struct SeanceSoirData: Codable {
         case weights, week, mesocycle, prescriptions
         case inventoryTypes    = "inventory_types"
         case inventoryTracking = "inventory_tracking"
+        case inventoryUnilateral = "inventory_unilateral"
         case inventoryRest     = "inventory_rest"
         case inventoryHints    = "inventory_hints"
         case inventorySchemes  = "inventory_schemes"
@@ -498,6 +505,7 @@ struct SeanceSoirData: Codable {
         mesocycle         = try? c.decode(MesocycleInfo.self, forKey: .mesocycle)
         inventoryTypes    = (try? c.decode([String: String].self,   forKey: .inventoryTypes))    ?? [:]
         inventoryTracking = (try? c.decode([String: String].self,   forKey: .inventoryTracking)) ?? [:]
+        inventoryUnilateral = (try? c.decode([String: Bool].self,   forKey: .inventoryUnilateral)) ?? [:]
         inventoryRest     = (try? c.decode([String: Int].self,      forKey: .inventoryRest))     ?? [:]
         inventoryHints    = (try? c.decode([String: String].self,   forKey: .inventoryHints))    ?? [:]
         inventorySchemes  = (try? c.decode([String: String].self,   forKey: .inventorySchemes))  ?? [:]
@@ -521,6 +529,7 @@ struct SeanceSoirData: Codable {
                          schedule: schedule, fullProgram: fullProgram, weights: weights,
                          week: week, mesocycle: mesocycle,
                          inventoryTypes: inventoryTypes, inventoryTracking: inventoryTracking,
+                         inventoryUnilateral: inventoryUnilateral,
                          inventoryRest: inventoryRest, inventoryHints: inventoryHints,
                          inventorySchemes: inventorySchemes,
                          inventoryMuscleGroups: inventoryMuscleGroups,
@@ -549,6 +558,7 @@ struct SeanceBonusData: Codable {
     let week: Int
     let inventoryTypes: [String: String]
     let inventoryTracking: [String: String]
+    let inventoryUnilateral: [String: Bool]
     let inventoryRest: [String: Int]
     let inventorySchemes: [String: String]
     let inventoryMuscleGroups: [String: String]
@@ -565,6 +575,7 @@ struct SeanceBonusData: Codable {
         case weights, week
         case inventoryTypes  = "inventory_types"
         case inventoryTracking = "inventory_tracking"
+        case inventoryUnilateral = "inventory_unilateral"
         case inventoryRest   = "inventory_rest"
         case inventorySchemes = "inventory_schemes"
         case inventoryMuscleGroups = "inventory_muscle_groups"
@@ -584,6 +595,7 @@ struct SeanceBonusData: Codable {
         week            = (try? c.decode(Int.self,               forKey: .week))            ?? 0
         inventoryTypes  = (try? c.decode([String: String].self,  forKey: .inventoryTypes))  ?? [:]
         inventoryTracking = (try? c.decode([String: String].self, forKey: .inventoryTracking)) ?? [:]
+        inventoryUnilateral = (try? c.decode([String: Bool].self, forKey: .inventoryUnilateral)) ?? [:]
         inventoryRest   = (try? c.decode([String: Int].self,     forKey: .inventoryRest))   ?? [:]
         inventorySchemes = (try? c.decode([String: String].self, forKey: .inventorySchemes)) ?? [:]
         inventoryMuscleGroups = (try? c.decode([String: String].self, forKey: .inventoryMuscleGroups)) ?? [:]

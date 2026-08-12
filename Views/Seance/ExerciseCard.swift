@@ -11,6 +11,7 @@ struct ExerciseCard: View {
     let weightData: WeightData?
     var equipmentType: String = "machine"
     var trackingType: String = "reps"
+    var isUnilateral: Bool = false
     var bodyWeight: Double = 0
     var isSecondSession: Bool = false
     var isBonusSession: Bool = false
@@ -59,6 +60,7 @@ struct ExerciseCard: View {
 
     init(name: String, scheme: String, weightData: WeightData?,
          equipmentType: String = "machine", trackingType: String = "reps",
+         isUnilateral: Bool = false,
          bodyWeight: Double = 0, isSecondSession: Bool = false, isBonusSession: Bool = false,
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
          suggestion: ProgressionSuggestion? = nil, hint: String? = nil,
@@ -75,6 +77,7 @@ struct ExerciseCard: View {
         self.weightData      = weightData
         self.equipmentType   = equipmentType
         self.trackingType    = trackingType
+        self.isUnilateral    = isUnilateral
         self.bodyWeight      = bodyWeight
         self.isSecondSession = isSecondSession
         self.isBonusSession  = isBonusSession

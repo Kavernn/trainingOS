@@ -1018,6 +1018,7 @@ struct FinishRemainingSheet: View {
             schedule: data.schedule, fullProgram: filteredProgram,
             weights: data.weights, week: data.week, mesocycle: data.mesocycle,
             inventoryTypes: data.inventoryTypes, inventoryTracking: data.inventoryTracking,
+            inventoryUnilateral: data.inventoryUnilateral,
             inventoryRest: data.inventoryRest, inventoryHints: data.inventoryHints,
             exerciseOrder: filteredOrder, exerciseSupersets: patchedSupersets,
             prescriptions: data.prescriptions, exerciseSuggestions: data.exerciseSuggestions

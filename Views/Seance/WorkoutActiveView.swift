@@ -42,6 +42,7 @@ struct WorkoutSeanceView: View {
     @State private var exerciseOrder: [String] = []
     @State private var inventoryTypes: [String: String] = [:]
     @State private var inventoryTracking: [String: String] = [:]
+    @State private var inventoryUnilateral: [String: Bool] = [:]
     @State private var inventoryRest: [String: Int] = [:]
     @State private var inventoryHints: [String: String] = [:]
     @State private var inventorySchemes: [String: String] = [:]
@@ -652,6 +653,7 @@ struct WorkoutSeanceView: View {
             weightData: effectiveWeightData,
             equipmentType: equipmentType(for: name),
             trackingType: trackingType(for: name),
+            isUnilateral: isUnilateral(for: name),
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: isSecondSession,
             isBonusSession: isBonusSession,
@@ -1743,6 +1745,9 @@ struct WorkoutSeanceView: View {
         .onChange(of: data.inventoryTracking) { fresh in
             if !fresh.isEmpty { inventoryTracking = fresh }
         }
+        .onChange(of: data.inventoryUnilateral) { fresh in
+            if !fresh.isEmpty { inventoryUnilateral = fresh }
+        }
         .onChange(of: data.inventoryRest) { fresh in
             inventoryRest = fresh
         }
@@ -1794,6 +1799,11 @@ struct WorkoutSeanceView: View {
         return tracking[name] ?? "reps"
     }
 
+    private func isUnilateral(for name: String) -> Bool {
+        let m = inventoryUnilateral.isEmpty ? data.inventoryUnilateral : inventoryUnilateral
+        return m[name] ?? false
+    }
+
     private func restSeconds(for name: String) -> Int? {
         let rest = inventoryRest.isEmpty ? data.inventoryRest : inventoryRest
         return rest[name]
@@ -1819,6 +1829,7 @@ struct WorkoutSeanceView: View {
             self.exerciseOrder  = orderCache
             self.inventoryTypes    = data.inventoryTypes
             self.inventoryTracking = data.inventoryTracking
+            self.inventoryUnilateral = data.inventoryUnilateral
             self.inventoryRest     = data.inventoryRest
             self.inventoryHints    = data.inventoryHints
             self.inventorySchemes  = data.inventorySchemes
@@ -1835,6 +1846,7 @@ struct WorkoutSeanceView: View {
         let inv      = (json["inventory"] as? [String]) ?? []
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
         let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
+        let unilateral = (json["inventory_unilateral"] as? [String: Bool]) ?? [:]
         let rest     = (json["inventory_rest"] as? [String: Int]) ?? [:]
         let muscles  = (json["inventory_muscles"] as? [String: [String]]) ?? [:]
         let patterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
@@ -1854,6 +1866,7 @@ struct WorkoutSeanceView: View {
             self.inventory = inv
             if !types.isEmpty    { self.inventoryTypes    = types }
             if !tracking.isEmpty { self.inventoryTracking = tracking }
+            if !unilateral.isEmpty { self.inventoryUnilateral = unilateral }
             self.inventoryRest = rest
             if !muscles.isEmpty  { self.inventoryMuscles  = muscles }
             if !patterns.isEmpty { self.inventoryPatterns = patterns }

@@ -53,6 +53,7 @@ struct BonusSeanceView: View {
     @State private var exerciseOrder: [String] = []
     @State private var inventoryTypes: [String: String] = [:]
     @State private var inventoryTracking: [String: String] = [:]
+    @State private var inventoryUnilateral: [String: Bool] = [:]
     @State private var inventorySchemes: [String: String] = [:]
     @State private var inventoryMuscleGroups: [String: String] = [:]
     @State private var inventory: [String] = []
@@ -93,6 +94,7 @@ struct BonusSeanceView: View {
             weightData: vm.seanceData?.weights[name],
             equipmentType: inventoryTypes[name] ?? "machine",
             trackingType: inventoryTracking[name] ?? "reps",
+            isUnilateral: inventoryUnilateral[name] ?? false,
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: false,
             isBonusSession: true,
@@ -408,12 +410,14 @@ struct BonusSeanceView: View {
         let inv      = (json["inventory"] as? [String]) ?? []
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
         let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
+        let unilateral = (json["inventory_unilateral"] as? [String: Bool]) ?? [:]
         let schemes  = (json["inventory_schemes"] as? [String: String]) ?? [:]
         let muscleGroups = (json["inventory_muscle_groups"] as? [String: String]) ?? [:]
         await MainActor.run {
             inventory         = inv
             inventoryTypes    = types
             inventoryTracking = tracking
+            inventoryUnilateral = unilateral
             inventorySchemes  = schemes
             inventoryMuscleGroups = muscleGroups
             isLoading         = false
