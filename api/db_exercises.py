@@ -19,7 +19,7 @@ def get_exercises() -> Dict[str, dict] | None:
         page_size = 1000
         start = 0
         while True:
-            resp = db_core._client.table("exercises").select("id, name, type, category, pattern, level, default_scheme, load_profile, muscles, increment, bar_weight, tracking_type, rest_seconds, tips, muscle_group, muscle_specific, secondary_muscles, movement_pattern, weight_type, equipment, alternate_name").is_("deleted_at", "null").order("name").range(start, start + page_size - 1).execute()
+            resp = db_core._client.table("exercises").select("id, name, type, category, pattern, level, default_scheme, load_profile, muscles, increment, bar_weight, tracking_type, rest_seconds, tips, muscle_group, muscle_specific, secondary_muscles, movement_pattern, weight_type, equipment, alternate_name, is_unilateral").is_("deleted_at", "null").order("name").range(start, start + page_size - 1).execute()
             batch = resp.data or []
             rows.extend(batch)
             if len(batch) < page_size:

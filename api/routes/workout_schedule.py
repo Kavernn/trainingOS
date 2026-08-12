@@ -88,6 +88,7 @@ def api_seance_data():
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
+    inventory_unilateral = {name: bool(info.get("is_unilateral")) for name, info in inv.items()}
     inventory_rest     = {name: (info.get("rest_seconds") or 120) for name, info in inv.items()}
     inventory_hints    = {name: info["tips"] for name, info in inv.items() if info.get("tips")}
     # Ne mappe QUE les schemes réellement présents en DB (jamais de "3x8-12"
@@ -138,6 +139,7 @@ def api_seance_data():
         "mesocycle": get_mesocycle_info(),
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
+        "inventory_unilateral": inventory_unilateral,
         "inventory_rest": inventory_rest,
         "inventory_hints": inventory_hints,
         "inventory_schemes": inventory_schemes,
@@ -218,6 +220,7 @@ def api_seance_soir_data():
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
+    inventory_unilateral = {name: bool(info.get("is_unilateral")) for name, info in inv.items()}
     inventory_rest     = {name: (info.get("rest_seconds") or 120) for name, info in inv.items()}
     inventory_hints    = {name: info["tips"] for name, info in inv.items() if info.get("tips")}
     # Ne mappe QUE les schemes réellement présents en DB (voir /api/seance_data).
@@ -286,6 +289,7 @@ def api_seance_soir_data():
         "mesocycle": get_mesocycle_info(),
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
+        "inventory_unilateral": inventory_unilateral,
         "inventory_rest": inventory_rest,
         "inventory_hints": inventory_hints,
         "inventory_schemes": inventory_schemes,
@@ -350,6 +354,7 @@ def api_seance_bonus_data():
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
+    inventory_unilateral = {name: bool(info.get("is_unilateral")) for name, info in inv.items()}
     inventory_rest     = {name: (info.get("rest_seconds") or 120) for name, info in inv.items()}
     inventory_schemes  = {name: info["default_scheme"] for name, info in inv.items() if info.get("default_scheme")}
     inventory_muscle_groups = {name: info["muscle_group"] for name, info in inv.items() if info.get("muscle_group")}
@@ -367,6 +372,7 @@ def api_seance_bonus_data():
         "week": get_current_week(),
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
+        "inventory_unilateral": inventory_unilateral,
         "inventory_rest": inventory_rest,
         "inventory_schemes": inventory_schemes,
         "inventory_muscle_groups": inventory_muscle_groups,

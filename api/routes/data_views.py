@@ -304,6 +304,7 @@ def api_programme_data():
                     inv[ex_name] = entry
     inventory_types    = {name: info.get("type") or "machine"          for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps")   for name, info in inv.items()}
+    inventory_unilateral = {name: bool(info.get("is_unilateral"))   for name, info in inv.items()}
     inventory_rest     = {name: 120 for name in inv}
     # N'expose QUE les schemes réellement présents en DB. Un exo sans default_scheme
     # → absent du mapping → champ vide côté iOS → hint "Précisez un scheme" → Vince
@@ -325,6 +326,7 @@ def api_programme_data():
         "inventory":           list(inv.keys()),
         "inventory_types":     inventory_types,
         "inventory_tracking":  inventory_tracking,
+        "inventory_unilateral": inventory_unilateral,
         "inventory_rest":      inventory_rest,
         "inventory_schemes":   inventory_schemes,
         "inventory_muscle_groups": inventory_muscle_groups,
