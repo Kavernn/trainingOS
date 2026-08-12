@@ -1744,9 +1744,10 @@ struct WorkoutSeanceView: View {
         }
         .onChange(of: data.inventoryTracking) { fresh in
             if !fresh.isEmpty { inventoryTracking = fresh }
-        }
-        .onChange(of: data.inventoryUnilateral) { fresh in
-            if !fresh.isEmpty { inventoryUnilateral = fresh }
+            // ponytail: piggyback — inventoryUnilateral arrive toujours dans la même
+            // payload que inventoryTracking (backend Lot 3a). Éviter un 9e .onChange
+            // qui pousse le view builder au-delà du seuil type-check SwiftUI.
+            if !data.inventoryUnilateral.isEmpty { inventoryUnilateral = data.inventoryUnilateral }
         }
         .onChange(of: data.inventoryRest) { fresh in
             inventoryRest = fresh
