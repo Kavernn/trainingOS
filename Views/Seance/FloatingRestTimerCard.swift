@@ -102,20 +102,26 @@ struct FloatingRestTimerCard: View {
                             .clipShape(Circle())
                     }
                 }
+                // ponytail: override .tint(theme.accent) racine (ContentView L80)
+                // qui projetait un halo orange sur chaque bouton via le style auto iOS 26.
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .frame(maxWidth: .infinity)
+            // ponytail: containerRelativeFrame lit la largeur du container ambiant
+            // (ScrollView bornée à l'écran) au lieu de proposer ∞ au safeAreaInset,
+            // ce qui étirait la ScrollView (cf. régression chantier B).
+            .containerRelativeFrame(.horizontal) { length, _ in length - 32 }
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.appBg.opacity(0.85))
+                    .fill(Color.appBg)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
                             .stroke(ringColor.opacity(0.3), lineWidth: 1)
                     )
             )
             .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: -4)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
     }
