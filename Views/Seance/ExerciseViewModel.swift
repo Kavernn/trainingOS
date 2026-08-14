@@ -499,7 +499,11 @@ final class ExerciseViewModel: ObservableObject {
     /// setBySetMode uniquement (via firstIncompleteSetIndex → initializeSets).
     /// HORS chemin du log : la validation au log passe par logBlockedReason().
     private func isSetComplete(_ s: SetInput) -> Bool {
-        if isTimeBased { return s.duration > 0 }
+        if isTimeBased {
+            return isUnilateral
+                ? ((s.durationLeft ?? 0) > 0 && (s.durationRight ?? 0) > 0)
+                : (s.duration > 0)
+        }
         let weightStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
         let repsTrimmed = s.reps.trimmingCharacters(in: .whitespaces)
         switch equipmentType {
@@ -528,6 +532,12 @@ final class ExerciseViewModel: ObservableObject {
         case "reps":
             return firstIncompleteRepsSet()
         case "time":
+            if isUnilateral {
+                let anyComplete = sets.contains {
+                    ($0.durationLeft ?? 0) > 0 && ($0.durationRight ?? 0) > 0
+                }
+                return anyComplete ? nil : "Durée requise (gauche et droite)"
+            }
             return sets.contains { $0.duration > 0 } ? nil : "Durée requise"
         case "carry":
             return sets.contains { (Int($0.distance) ?? 0) > 0 } ? nil : "Distance requise"
