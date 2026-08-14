@@ -99,6 +99,7 @@ struct ExerciseCard: View {
         _evm = StateObject(wrappedValue: ExerciseViewModel(
             name: name, scheme: scheme, weightData: weightData,
             equipmentType: equipmentType, trackingType: trackingType,
+            isUnilateral: isUnilateral,
             bodyWeight: bodyWeight, isSecondSession: isSecondSession,
             isBonusSession: isBonusSession, restSeconds: restSeconds,
             prescription: prescription, suggestion: suggestion,

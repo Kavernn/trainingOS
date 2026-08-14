@@ -17,6 +17,8 @@ struct SetInput: Identifiable {
     var weight: String = ""
     var reps: String = ""
     var duration: Int = 30   // seconds, used when isTimeBased
+    var durationLeft: Int? = nil    // seconds, left side (unilateral)
+    var durationRight: Int? = nil   // seconds, right side (unilateral)
     var distance: String = "" // meters, used when tracking_type == "carry"
     var intensity: String = "" // hauteur (cm) ou distance (m), used when tracking_type == "plyo"
     var rir: Int = 3         // Reps In Reserve
@@ -245,6 +247,7 @@ final class ExerciseViewModel: ObservableObject {
     let weightData: WeightData?
     @Published var equipmentType: String
     let trackingType: String
+    let isUnilateral: Bool
     let bodyWeight: Double
     let isSecondSession: Bool
     let isBonusSession: Bool
@@ -275,7 +278,7 @@ final class ExerciseViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init(name: String, scheme: String, weightData: WeightData?, equipmentType: String = "machine",
-         trackingType: String = "reps", bodyWeight: Double = 0,
+         trackingType: String = "reps", isUnilateral: Bool = false, bodyWeight: Double = 0,
          isSecondSession: Bool = false, isBonusSession: Bool = false,
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
          suggestion: ProgressionSuggestion? = nil,
@@ -285,6 +288,7 @@ final class ExerciseViewModel: ObservableObject {
         self.weightData      = weightData
         self.equipmentType   = equipmentType
         self.trackingType    = trackingType
+        self.isUnilateral    = isUnilateral
         self.bodyWeight      = bodyWeight
         self.isSecondSession = isSecondSession
         self.isBonusSession  = isBonusSession
