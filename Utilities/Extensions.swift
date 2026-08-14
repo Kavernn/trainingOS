@@ -4,10 +4,13 @@ import AVFoundation
 // MARK: - Button Styles
 
 struct ScaleButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.95 : 1.0)
+            .opacity(isEnabled ? 1.0 : 0.4)
+            .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 
