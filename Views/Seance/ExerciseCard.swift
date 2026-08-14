@@ -1351,9 +1351,17 @@ struct ExerciseCard: View {
             EnduranceTimerSection(
                 sets: evm.sets,
                 exerciseName: name,
-                onSetCompleted: { idx, dur in
+                isUnilateral: isUnilateral,
+                onSetCompleted: { idx, side, dur in
                     guard idx < evm.sets.count else { return }
-                    evm.sets[idx].duration = dur
+                    if isUnilateral {
+                        switch side {
+                        case .left:  evm.sets[idx].durationLeft  = dur
+                        case .right: evm.sets[idx].durationRight = dur
+                        }
+                    } else {
+                        evm.sets[idx].duration = dur
+                    }
                 }
             )
         } else { setRows() }
@@ -1814,13 +1822,17 @@ private enum EnduranceTimerState {
     case idle, countdown(Int), running, warning(Int), finished, paused
 }
 
+enum Side: String { case left, right }
+
 struct EnduranceTimerSection: View {
     let sets: [SetInput]
     let exerciseName: String
-    let onSetCompleted: (Int, Int) -> Void   // (setIndex, durationSec)
+    let isUnilateral: Bool
+    let onSetCompleted: (Int, Side, Int) -> Void   // (setIndex, side, durationSec)
 
     @State private var timerState: EnduranceTimerState = .idle
     @State private var currentSetIdx: Int = 0
+    @State private var currentSide: Side = .left
     @State private var targetDur: Int = 60
     @State private var remaining: Int = 60
     @State private var timerTask: Task<Void, Never>? = nil
@@ -2104,7 +2116,7 @@ struct EnduranceTimerSection: View {
             // Finished while in background — notification already fired
             remaining = 0
             clearTimerState()
-            onSetCompleted(currentSetIdx, savedTarget)
+            onSetCompleted(currentSetIdx, currentSide, savedTarget)
             timerState = .finished
             withAnimation { flashGreen = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { withAnimation { flashGreen = false } }
@@ -2161,7 +2173,7 @@ struct EnduranceTimerSection: View {
         clearTimerState()
         cancelNotification()
         UserDefaults.standard.set(targetDur, forKey: udLastDur)
-        onSetCompleted(currentSetIdx, targetDur)
+        onSetCompleted(currentSetIdx, currentSide, targetDur)
         timerState = .finished
     }
 
