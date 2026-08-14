@@ -1430,8 +1430,8 @@ struct ExerciseCard: View {
             .padding(.top, 2)
         }
         if showAdvanced { advancedFields }
-        RestTimerBadge(restSeconds: 120, onTap: {
-            RestTimerManager.shared.start(seconds: 120, exerciseName: name)
+        RestTimerBadge(restSeconds: restSeconds ?? 120, onTap: {
+            RestTimerManager.shared.start(seconds: restSeconds ?? 120, exerciseName: name)
         })
         .padding(.top, 4)
         logSection
