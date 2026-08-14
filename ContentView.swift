@@ -78,6 +78,7 @@ private struct iOSContentView: View {
         .overlay(alignment: .top) { offlineBanner }
         .overlay(alignment: .bottom) { offlineToast }
         .tint(theme.accent)
+        .buttonStyle(ScaleButtonStyle())
         .task { await appState.checkDNAEvolution() }
         .task { await appState.checkYesterdayNutrition() }
         .fullScreenCover(item: $appState.pendingDNAEvolution) { event in
