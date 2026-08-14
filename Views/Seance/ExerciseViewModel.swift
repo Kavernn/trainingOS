@@ -213,7 +213,7 @@ enum ExerciseCalculator {
         plyoHorizontal.contains(name) ? "Distance (m)" : "Hauteur (cm)"
     }
 
-    static func repsStr(sets: [SetInput], trackingType: String = "reps") -> String {
+    static func repsStr(sets: [SetInput], trackingType: String = "reps", isUnilateral: Bool = false) -> String {
         // Switch exhaustif — une branche par tracking_type (7 valeurs CHECK DB 087a).
         // Default = fatal (assert dev + logger prod) : un type inconnu n'est jamais silencieux.
         switch trackingType {
@@ -221,7 +221,11 @@ enum ExerciseCalculator {
             // plyo (sauts par set) = même sémantique CSV que reps.
             return sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
         case "time":
-            return sets.map { String($0.duration) }.joined(separator: ",")
+            return sets.map { s in
+                isUnilateral
+                    ? String((s.durationLeft ?? 0) + (s.durationRight ?? 0))
+                    : String(s.duration)
+            }.joined(separator: ",")
         case "carry":
             return sets.compactMap { $0.distance.isEmpty ? nil : $0.distance }.joined(separator: ",")
         case "protocol", "interval", "cardio":
@@ -326,7 +330,7 @@ final class ExerciseViewModel: ObservableObject {
 
     var canLog: Bool { logBlockedReason() == nil }
 
-    var repsStr: String { ExerciseCalculator.repsStr(sets: sets, trackingType: trackingType) }
+    var repsStr: String { ExerciseCalculator.repsStr(sets: sets, trackingType: trackingType, isUnilateral: isUnilateral) }
 
     var lastRepsParts: [String] { lastReps.split(separator: ",").map(String.init) }
 
@@ -650,7 +654,16 @@ final class ExerciseViewModel: ObservableObject {
         }
 
         if isTimeBased {
-            let setsPayload: [[String: Any]] = sets.map { ["weight": 0, "reps": String($0.duration)] }
+            let setsPayload: [[String: Any]] = sets.map { s -> [String: Any] in
+                if isUnilateral {
+                    let l = s.durationLeft ?? 0
+                    let r = s.durationRight ?? 0
+                    return ["weight": 0, "reps": String(l + r),
+                            "left": ["time": l], "right": ["time": r]]
+                } else {
+                    return ["weight": 0, "reps": String(s.duration)]
+                }
+            }
             let result = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: "bodyweight", painZone: painZone, notes: sessionNote)
