@@ -1841,7 +1841,9 @@ struct EnduranceTimerSection: View {
 
     private let presets = [20, 30, 45, 60, 90, 120, 180]
     private var totalSets: Int { max(1, sets.count) }
-    private var isLastSet: Bool { currentSetIdx >= totalSets - 1 }
+    private var isLastSet: Bool {
+        currentSetIdx >= totalSets - 1 && (!isUnilateral || currentSide == .right)
+    }
     private var filledDots: Int {
         if case .finished = timerState { return currentSetIdx + 1 }
         return currentSetIdx
@@ -2209,10 +2211,18 @@ struct EnduranceTimerSection: View {
     }
 
     private func nextSet() {
-        currentSetIdx += 1
-        syncTarget()
-        timerState = .idle
-        triggerImpact(style: .light)
+        if isUnilateral && currentSide == .left {
+            currentSide = .right
+            syncTarget()
+            timerState = .idle
+            triggerImpact(style: .light)
+        } else {
+            currentSetIdx += 1
+            currentSide = .left
+            syncTarget()
+            timerState = .idle
+            triggerImpact(style: .light)
+        }
     }
 
     private func fmt(_ secs: Int) -> String {
