@@ -533,6 +533,16 @@ final class ExerciseViewModel: ObservableObject {
             return firstIncompleteRepsSet()
         case "time":
             if isUnilateral {
+                // Option B : un set entamé doit avoir ses 2 côtés. Bloquer au 1er demi-set.
+                let halfIdx = sets.firstIndex {
+                    let l = ($0.durationLeft ?? 0) > 0
+                    let r = ($0.durationRight ?? 0) > 0
+                    return l != r
+                }
+                if let i = halfIdx {
+                    let missing = (sets[i].durationLeft ?? 0) == 0 ? "gauche" : "droite"
+                    return "Set \(i + 1) : côté \(missing) manquant"
+                }
                 let anyComplete = sets.contains {
                     ($0.durationLeft ?? 0) > 0 && ($0.durationRight ?? 0) > 0
                 }
