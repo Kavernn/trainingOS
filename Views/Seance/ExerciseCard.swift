@@ -1845,7 +1845,10 @@ struct EnduranceTimerSection: View {
         currentSetIdx >= totalSets - 1 && (!isUnilateral || currentSide == .right)
     }
     private var filledDots: Int {
-        if case .finished = timerState { return currentSetIdx + 1 }
+        if case .finished = timerState {
+            if isUnilateral && currentSide == .left { return currentSetIdx }
+            return currentSetIdx + 1
+        }
         return currentSetIdx
     }
 
@@ -1886,9 +1889,13 @@ struct EnduranceTimerSection: View {
     }
 
     private var setHeader: some View {
-        HStack {
-            Text("SET \(currentSetIdx + 1) / \(totalSets)")
+        let sideSuffix = isUnilateral ? " · \(currentSide == .left ? "GAUCHE" : "DROITE")" : ""
+        return HStack {
+            Text("SET \(currentSetIdx + 1) / \(totalSets)\(sideSuffix)")
                 .font(.appMicro).fontWeight(.bold).tracking(1.5).foregroundColor(.gray)
+            if isUnilateral {
+                HStack(spacing: 4) { sideChip(.left); sideChip(.right) }
+            }
             Spacer()
             HStack(spacing: 4) {
                 ForEach(0..<totalSets, id: \.self) { i in
@@ -1898,6 +1905,33 @@ struct EnduranceTimerSection: View {
                 }
             }
         }
+    }
+
+    private func sideChip(_ s: Side) -> some View {
+        let isFinished: Bool = {
+            if case .finished = timerState { return true }
+            return false
+        }()
+        let leftDone  = currentSide == .right || (currentSide == .left && isFinished)
+        let rightDone = currentSide == .right && isFinished
+        let isDone = (s == .left ? leftDone : rightDone)
+        let isCurrent = (s == currentSide && !isDone)
+        let bg: Color = isDone
+            ? Color.appSuccess.opacity(0.28)
+            : (isCurrent ? Color.statusCyan.opacity(0.28) : Color.appOnSurface.opacity(0.08))
+        let fg: Color = isDone
+            ? Color.appSuccess
+            : (isCurrent ? Color.statusCyan : Color.gray.opacity(0.5))
+        let letter = s == .left ? "G" : "D"
+        return ZStack {
+            RoundedRectangle(cornerRadius: 5).fill(bg)
+            if isDone {
+                Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(fg)
+            } else {
+                Text(letter).font(.system(size: 11, weight: .black)).foregroundColor(fg)
+            }
+        }
+        .frame(width: 20, height: 20)
     }
 
     @ViewBuilder private var mainDisplay: some View {
