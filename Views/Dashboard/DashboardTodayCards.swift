@@ -140,7 +140,6 @@ struct TodayCardView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                     .padding(.bottom, 16)
-                    .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
                 }
                 // Loggé sans séance 2 planifiée → Seance3BonusStrip (fin de VStack) fournit l'accès bonus.
             } else {
@@ -251,6 +250,9 @@ struct TodayCardView: View {
                 ReadinessSheet(readiness: r) { onOpenSession?() }
             }
         }
+        // Ancre stable (hors du if secondSessionCompleted L119) : sinon fetchDashboard
+        // post-log soir démonte le sheet host avant que le récap ne se présente.
+        .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
     }
 }
 
