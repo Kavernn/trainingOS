@@ -2035,6 +2035,7 @@ struct EnduranceTimerSection: View {
     private var udStart:           String { "et_start_\(exerciseName)" }
     private var udTarget:          String { "et_target_\(exerciseName)" }
     private var udSetIdx:          String { "et_setIdx_\(exerciseName)" }
+    private var udSide:            String { "et_side_\(exerciseName)" }
     private var udPausedRemaining: String { "et_paused_\(exerciseName)" }
     private var udLastDur:         String { "et_lastdur_\(exerciseName)" }
     private var notifId:           String { "et_notif_\(exerciseName)" }
@@ -2057,6 +2058,7 @@ struct EnduranceTimerSection: View {
         ud.set(Date(), forKey: udStart)
         ud.set(targetDur, forKey: udTarget)
         ud.set(currentSetIdx, forKey: udSetIdx)
+        ud.set(currentSide.rawValue, forKey: udSide)
         ud.removeObject(forKey: udPausedRemaining)
     }
 
@@ -2065,12 +2067,13 @@ struct EnduranceTimerSection: View {
         ud.set(remaining, forKey: udPausedRemaining)
         ud.set(targetDur, forKey: udTarget)
         ud.set(currentSetIdx, forKey: udSetIdx)
+        ud.set(currentSide.rawValue, forKey: udSide)
         ud.removeObject(forKey: udStart)
     }
 
     private func clearTimerState() {
         let ud = UserDefaults.standard
-        [udStart, udTarget, udSetIdx, udPausedRemaining].forEach { ud.removeObject(forKey: $0) }
+        [udStart, udTarget, udSetIdx, udSide, udPausedRemaining].forEach { ud.removeObject(forKey: $0) }
     }
 
     private func scheduleNotification(in seconds: Int) {
@@ -2089,6 +2092,9 @@ struct EnduranceTimerSection: View {
 
     private func restoreOrSync() {
         let ud = UserDefaults.standard
+        if let raw = ud.string(forKey: udSide), let s = Side(rawValue: raw) {
+            currentSide = s
+        }
         // Paused state takes priority (remaining is explicit)
         let pausedRem = ud.integer(forKey: udPausedRemaining)
         if pausedRem > 0 {
