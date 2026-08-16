@@ -1851,6 +1851,17 @@ struct EnduranceTimerSection: View {
         }
         return currentSetIdx
     }
+    private var nextSetLabel: String {
+        if !isUnilateral { return "Set \(currentSetIdx + 2)" }
+        if currentSide == .left { return "Set \(currentSetIdx + 1) · Droite" }
+        return "Set \(currentSetIdx + 2) · Gauche"
+    }
+    private var finishedSubText: String {
+        if isLastSet { return "Tous les sets complétés ✓" }
+        if !isUnilateral { return "Set \(currentSetIdx + 1) complété" }
+        if currentSide == .left { return "Côté gauche fait" }
+        return "Set \(currentSetIdx + 1) terminé ✓"
+    }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -1969,7 +1980,7 @@ struct EnduranceTimerSection: View {
                     .font(.system(size: 44)).foregroundColor(Color.appSuccess)
                 Text(fmt(targetDur))
                     .font(.appHeadline).fontWeight(.black).foregroundColor(.appTextPrimary)
-                Text(isLastSet ? "Tous les sets complétés ✓" : "Set \(currentSetIdx + 1) complété")
+                Text(finishedSubText)
                     .font(.appCaption).foregroundColor(.gray)
             }
             .frame(height: 110)
@@ -2041,7 +2052,7 @@ struct EnduranceTimerSection: View {
         case .finished:
             if !isLastSet {
                 Button { nextSet() } label: {
-                    Label("Set \(currentSetIdx + 2)", systemImage: "arrow.right.circle.fill")
+                    Label(nextSetLabel, systemImage: "arrow.right.circle.fill")
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
                         .background(Color.appSuccess).cornerRadius(12)
