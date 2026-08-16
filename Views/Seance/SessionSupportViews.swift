@@ -496,7 +496,7 @@ struct SessionRecapSheet: View {
 
                         // Stats row
                         HStack(spacing: 10) {
-                            statPill("(Int(snapshot.durationMin)) min", label: "DURÉE", color: .statusCyan)
+                            statPill("\(Int(snapshot.durationMin)) min", label: "DURÉE", color: .statusCyan)
                             statPill("\(snapshot.logResults.count)", label: "EXERCICES", color: Color.forge)
                             statPill("\(totalSets)", label: "SÉRIES", color: .statusGreen)
                         }
