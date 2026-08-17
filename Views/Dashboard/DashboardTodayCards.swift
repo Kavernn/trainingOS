@@ -11,6 +11,10 @@ struct TodayCardView: View {
     // Volet G : SeanceSoirView en .sheet obligatoirement (voir commentaire au head
     // de SeanceSoirView.swift). NavigationLink push cassait les .alert internes.
     @State private var showSeance2Sheet = false
+    // Ancré ici (parent stable) et pas dans Seance3BonusStrip : le body du strip
+    // bascule sur EmptyView quand bonusCompleted flippe post-log → démonterait le
+    // sheet host avant le récap. Même chaîne que le bug soir (fix b9ae7c0).
+    @State private var showBonusSheet = false
     @ObservedObject private var api = APIService.shared
 
     /// Source de vérité : flag serveur OU session dans le dict OU flag optimiste local.
@@ -236,7 +240,8 @@ struct TodayCardView: View {
             Seance3BonusStrip(
                 hasBonus: dash.hasBonusSession,
                 bonusCompleted: dash.bonusSessionCompleted,
-                pushedCount: dash.pushedToBonus.count
+                pushedCount: dash.pushedToBonus.count,
+                showSheet: $showBonusSheet
             )
 
             TomorrowPreviewStrip(dash: dash)
@@ -253,6 +258,13 @@ struct TodayCardView: View {
         // Ancre stable (hors du if secondSessionCompleted L119) : sinon fetchDashboard
         // post-log soir démonte le sheet host avant que le récap ne se présente.
         .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
+        // Ancre stable symétrique au soir : Seance3BonusStrip.body prend EmptyView
+        // quand bonusCompleted flippe post-log → démonterait le sheet + son @State
+        // s'ils vivaient dans le strip. Le showBonusSheet est ici, passé en binding.
+        .sheet(isPresented: $showBonusSheet) { BonusSeanceView() }
+        .onAppear { print("[TODAY-CARD] onAppear") }
+        .onDisappear { print("[TODAY-CARD] onDisappear") }
+        .onChange(of: showBonusSheet) { newVal in print("[TODAY-CARD] showBonusSheet -> \(newVal)") }
     }
 }
 
@@ -471,7 +483,9 @@ struct Seance3BonusStrip: View {
     /// Étape 4b-iii — count des exos poussés vers bonus (dash.pushedToBonus.count).
     /// Défaut 0 pour n'imposer aucun call-site à passer le param s'il ne le veut pas.
     var pushedCount: Int = 0
-    @State private var showSheet = false
+    /// Ancré au parent stable (TodayCardView) — voir commentaire du @State là-bas.
+    /// Sinon le sheet host est démonté avec ce body au flip bonusCompleted post-log.
+    @Binding var showSheet: Bool
     @State private var isCreating = false
     @State private var errorMessage: String?
 
@@ -484,6 +498,7 @@ struct Seance3BonusStrip: View {
     }
 
     var body: some View {
+        let _ = print("[BONUS-STRIP] body eval, hasBonus=\(hasBonus) bonusCompleted=\(bonusCompleted) → branch=\(hasBonus && bonusCompleted ? "empty" : "button")")
         if hasBonus && bonusCompleted {
             EmptyView()
         } else {
@@ -520,7 +535,6 @@ struct Seance3BonusStrip: View {
             }, message: {
                 Text(errorMessage ?? "")
             })
-            .sheet(isPresented: $showSheet) { BonusSeanceView() }
         }
     }
 
