@@ -217,32 +217,29 @@ struct AlreadyLoggedSeanceView: View {
                             }
                         }
 
-                        // Exercise list
+                        // Exercise list — split AM/PM si double séance (Lot C)
                         if let exos = session.exos, !exos.isEmpty {
-                            VStack(spacing: 0) {
-                                ForEach(exos, id: \.self) { exo in
-                                    let entry = data.weights[exo]?.history?.first(where: { $0.date == data.todayDate })
-                                    HStack(spacing: 8) {
-                                        Circle()
-                                            .fill(sessionColor.opacity(0.3))
-                                            .frame(width: 5, height: 5)
-                                        Text(exo)
-                                            .font(.appLabel)
-                                            .foregroundColor(Color.appOnSurface.opacity(0.85))
-                                        Spacer()
-                                        if let w = entry?.weight, w > 0 {
-                                            Text(UnitSettings.shared.format(w))
-                                                .font(.system(size: 12, weight: .semibold))
-                                                .foregroundColor(sessionColor.opacity(0.8))
-                                        }
-                                        if let r = entry?.reps, !r.isEmpty {
-                                            Text(r)
-                                                .font(.appCaption)
-                                                .foregroundColor(.gray)
-                                        }
+                            let pmName = data.eveningSessionName ?? ""
+                            let pmKeys = Set((data.fullProgram[pmName] ?? [:]).keys)
+                            let pmExos = exos.filter { pmKeys.contains($0) }
+                            let amExos = exos.filter { !pmKeys.contains($0) }
+                            let showSplit = (session.sessionCount ?? 1) >= 2 && !pmExos.isEmpty
+
+                            if showSplit {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    slotPill(label: "AM", name: data.today, color: sessionColor)
+                                    VStack(spacing: 0) {
+                                        ForEach(amExos, id: \.self) { exoRow($0, color: sessionColor) }
                                     }
-                                    .padding(.vertical, 6)
-                                    Divider().background(Color.appSeparatorSubtle)
+                                    slotPill(label: "PM", name: pmName, color: eveningColor)
+                                        .padding(.top, 4)
+                                    VStack(spacing: 0) {
+                                        ForEach(pmExos, id: \.self) { exoRow($0, color: eveningColor) }
+                                    }
+                                }
+                            } else {
+                                VStack(spacing: 0) {
+                                    ForEach(exos, id: \.self) { exoRow($0, color: sessionColor) }
                                 }
                             }
                         }
@@ -606,6 +603,44 @@ struct AlreadyLoggedSeanceView: View {
     }
 
     private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
+
+    @ViewBuilder
+    private func exoRow(_ exo: String, color: Color) -> some View {
+        let entry = data.weights[exo]?.history?.first(where: { $0.date == data.todayDate })
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color.opacity(0.3))
+                .frame(width: 5, height: 5)
+            Text(exo)
+                .font(.appLabel)
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
+            Spacer()
+            if let w = entry?.weight, w > 0 {
+                Text(UnitSettings.shared.format(w))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(color.opacity(0.8))
+            }
+            if let r = entry?.reps, !r.isEmpty {
+                Text(r)
+                    .font(.appCaption)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(.vertical, 6)
+        Divider().background(Color.appSeparatorSubtle)
+    }
+
+    private func slotPill(label: String, name: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Text(name.isEmpty ? label : "\(label) · \(name)")
+                .font(.appLabel.weight(.bold))
+                .foregroundColor(color)
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                .background(color.opacity(0.12))
+                .clipShape(Capsule())
+            Spacer()
+        }
+    }
 }
 
 // MARK: - Post Session Edit Sheet
