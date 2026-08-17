@@ -13,6 +13,11 @@ struct SessionRecapSnapshot {
     let previousVolume: Double?
 }
 
+enum WeightTrend {
+    case up(Double)
+    case down(Double)
+}
+
 struct WorkoutSeanceView: View {
     let data: SeanceData
     @ObservedObject var vm: SeanceViewModel
@@ -232,6 +237,32 @@ struct WorkoutSeanceView: View {
             let delta: Double? = prev > 0 ? logged - prev : nil
             return (name: pr.name, deltaWeight: delta)
         }
+    }
+
+    // ponytail: hoisté du sheet builder pour dégager le type-checker (body déjà lourd).
+    @ViewBuilder
+    private var recapSheetContent: some View {
+        if let snap = recapSnapshot {
+            SessionRecapSheet(snapshot: snap, prs: prsForRecap(snap), trends: trendsForRecap(snap))
+        }
+    }
+
+    // Tendance par exo (▲/▼ à côté du nom dans le récap). Skip tracking non-poids
+    // (time/protocol/carry/plyo) pour éviter "▼ 0" sur Copenhagen/Deadhang.
+    // Nouvel exo (prev=0) et delta=0 → omis du dict = rien à afficher.
+    private func trendsForRecap(_ snap: SessionRecapSnapshot) -> [String: WeightTrend] {
+        var out: [String: WeightTrend] = [:]
+        let skipTracking: Set<String> = ["time", "protocol", "carry", "plyo"]
+        for name in snap.exercises {
+            let tracking = data.inventoryTracking[name] ?? "reps"
+            if skipTracking.contains(tracking) { continue }
+            guard let logged = snap.logResults[name]?.weight, logged > 0 else { continue }
+            guard let prev = data.weights[name]?.currentWeight, prev > 0 else { continue }
+            let delta = logged - prev
+            if delta > 0.01 { out[name] = .up(delta) }
+            else if delta < -0.01 { out[name] = .down(-delta) }
+        }
+        return out
     }
 
     private func computeGhost() {
@@ -1589,9 +1620,7 @@ struct WorkoutSeanceView: View {
                 onDidFinish?()
             }
         }) {
-            if let snap = recapSnapshot {
-                SessionRecapSheet(snapshot: snap, prs: prsForRecap(snap))
-            }
+            recapSheetContent
         }
         .sheet(isPresented: $showProgressionSheet) {
             ProgressionSuggestionsSheet(

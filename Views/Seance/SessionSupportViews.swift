@@ -434,6 +434,7 @@ struct FinishSessionSheet: View {
 struct SessionRecapSheet: View {
     let snapshot: SessionRecapSnapshot
     let prs: [(name: String, deltaWeight: Double?)]
+    let trends: [String: WeightTrend]
     @Environment(\.dismiss) private var dismiss
     @State private var animateHeader = false
     @State private var showConfetti = false
@@ -610,6 +611,7 @@ struct SessionRecapSheet: View {
     @ViewBuilder
     private func exerciseRow(name: String, result: ExerciseLogResult?) -> some View {
         let done = result != nil
+        let trend = done ? trends[name] : nil
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(name)
@@ -623,6 +625,9 @@ struct SessionRecapSheet: View {
                 }
             }
             Spacer(minLength: 8)
+            if let t = trend {
+                trendBadge(t)
+            }
             if done {
                 Image(systemName: "checkmark")
                     .font(.system(size: 11, weight: .bold))
@@ -635,6 +640,24 @@ struct SessionRecapSheet: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+    }
+
+    @ViewBuilder
+    private func trendBadge(_ trend: WeightTrend) -> some View {
+        let (icon, delta, color): (String, Double, Color) = {
+            switch trend {
+            case .up(let d):   return ("arrowtriangle.up.fill", d, Color.forge)
+            case .down(let d): return ("arrowtriangle.down.fill", d, Color.gray)
+            }
+        }()
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 8, weight: .bold))
+            Text(UnitSettings.shared.format(delta))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+        }
+        .foregroundColor(color)
     }
 
     // "3×5 · 80kg" — reprend le rendu compact du design.
