@@ -550,17 +550,12 @@ struct Seance3BonusStrip: View {
 
 // MARK: - Tomorrow Preview Strip
 // Ligne discrète en bas de la carte : « Demain : <nom> · N exos » (repli/dépli).
-// Weekday MTL — pattern SeanceView:98-104 (Date().weekday brut décale au fuseau).
 struct TomorrowPreviewStrip: View {
     let dash: DashboardData
     @State private var isExpanded = false
 
     private var tomorrowName: String {
-        let localSecs = Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()
-        let weekday = ((localSecs / 86400 + 4) % 7) + 1  // Jan 1 1970 = Thu = weekday 5
-        let todayIdx = (weekday + 5) % 7                 // 0=Lun … 6=Dim
-        let tomorrowIdx = (todayIdx + 1) % 7
-        return dash.schedule[TrainingDoctrine.dayNames[tomorrowIdx]] ?? "Repos"
+        TrainingDoctrine.tomorrowSessionName(from: dash.schedule)
     }
 
     private var tomorrowExos: [(String, String)] {

@@ -53,10 +53,6 @@ struct AlreadyLoggedSeanceView: View {
     @State private var showFinishRemaining = false
     @State private var showSeanceSoir = false
     @State private var seance2Count: Int = 0
-    @State private var todayWeekday: Int = {
-        let localSecs = Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()
-        return ((localSecs / 86400 + 4) % 7) + 1  // Jan 1 1970 = Thu = weekday 5
-    }()
 
     var todaySession: SessionEntry? {
         APIService.shared.dashboard?.sessions[data.todayDate]
@@ -84,11 +80,7 @@ struct AlreadyLoggedSeanceView: View {
     }
 
     var tomorrowType: String {
-        // Calendar.current (Gregorian): Sun=1, Mon=2, …, Sat=7
-        let weekday = todayWeekday
-        let todayIdx = (weekday + 5) % 7   // 0=Lun … 6=Dim
-        let tomorrowIdx = (todayIdx + 1) % 7
-        return data.schedule[TrainingDoctrine.dayNames[tomorrowIdx]] ?? "Repos"
+        TrainingDoctrine.tomorrowSessionName(from: data.schedule)
     }
 
     var tomorrowColor: Color {

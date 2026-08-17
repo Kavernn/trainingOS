@@ -12,6 +12,18 @@ enum TrainingDoctrine {
     /// Source unique pour toute grille hebdo (programme, stats, séance).
     static let dayNames: [String] = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 
+    /// Nom de la séance de demain d'après le schedule hebdo (clés "Lun"…"Dim").
+    /// Weekday en timezone MTL (Calendar.mtl) — cohérent avec _today_mtl backend.
+    /// "Repos" si la clé de demain est absente du schedule.
+    static func tomorrowSessionName(from schedule: [String: String],
+                                    now: Date = Date()) -> String {
+        // Calendar.mtl.component(.weekday, …) : Dim=1, Lun=2, …, Sam=7
+        let weekday = Calendar.mtl.component(.weekday, from: now)
+        let todayIdx = (weekday + 5) % 7        // 0=Lun … 6=Dim
+        let tomorrowIdx = (todayIdx + 1) % 7
+        return schedule[dayNames[tomorrowIdx]] ?? "Repos"
+    }
+
     /// Durée du cycle mésocycle en semaines. Miroir backend : utils.MESOCYCLE_WEEKS.
     /// Toute modification doit être répercutée dans les 2 sources en même temps.
     static let mesocycleWeeks: Int = 11
