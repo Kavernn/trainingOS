@@ -22,6 +22,10 @@ struct WorkoutSeanceView: View {
     /// ceux envoyés depuis le matin. Défaut false = comportement historique
     /// (héritage matin filtré par SeanceSplitStore).
     var isOverride: Bool = false
+    /// Appelé quand le flow visible est fini (récap fermé, ou PR path sans récap).
+    /// Nil pour AM/soir (parent stable). Set en bonus pour fermer ExtraSessionSheet
+    /// après le récap, pas pendant (fix race showSuccess vs showRecap).
+    var onDidFinish: (() -> Void)? = nil
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var showFinish = false
@@ -1556,6 +1560,10 @@ struct WorkoutSeanceView: View {
             }
             if vm.prCelebrations.isEmpty {
                 showRecap = true
+            } else {
+                // PR path : pas de récap ici. AM/soir → onDidFinish=nil, SeanceView/SeanceSoirView
+                // gère le fullScreenCover PR. Bonus → onDidFinish={dismiss()} ferme la sheet.
+                onDidFinish?()
             }
             // PR path handled by SeanceView — fullScreenCover must survive the view-swap
         }
@@ -1571,6 +1579,7 @@ struct WorkoutSeanceView: View {
                 } else {
                     await vm.load()
                 }
+                onDidFinish?()
             }
         }) {
             if let snap = recapSnapshot {

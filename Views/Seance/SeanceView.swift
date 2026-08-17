@@ -858,7 +858,7 @@ struct ExtraSessionSheet: View {
                         if session == "Yoga / Tai Chi" || session == "Recovery" {
                             SpecialSeanceView(sessionType: session, vm: extraVM)
                         } else {
-                            WorkoutSeanceView(data: bonus, vm: extraVM, isBonusSession: true)
+                            WorkoutSeanceView(data: bonus, vm: extraVM, isBonusSession: true, onDidFinish: { dismiss() })
                         }
                     }
                 } else if isLoading {
@@ -907,7 +907,8 @@ struct ExtraSessionSheet: View {
             .onChange(of: extraVM.showSuccess) { success in
                 guard success else { return }
                 showFinishFromExit = false
-                dismiss()
+                // Dismiss déferré : WorkoutSeanceView appelle onDidFinish après récap fermé
+                // (fix race parent-dismiss vs child-showRecap → "not in window hierarchy").
             }
         }
     }
