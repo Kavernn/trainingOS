@@ -437,10 +437,6 @@ struct SessionRecapSheet: View {
     @State private var animateHeader = false
     @State private var showConfetti = false
 
-    private var totalSets: Int {
-        snapshot.logResults.values.reduce(0) { $0 + $1.sets.count }
-    }
-
     private var totalVolume: Double {
         snapshot.logResults.values.reduce(0.0) { total, result in
             total + result.sets.reduce(0.0) { s, set in
@@ -451,226 +447,229 @@ struct SessionRecapSheet: View {
         }
     }
 
+    // Compact hero format: "4.2t" if ≥ 1000 in display unit, else "832".
+    // ponytail: divergence assumée avec UnitSettings.format() qui garde l'unité —
+    // ici on veut un chiffre hero très lisible, pas un affichage précis.
+    private var totalVolumeCompact: String {
+        let units = UnitSettings.shared
+        let display = units.isKg ? totalVolume * 0.453592 : totalVolume
+        if display >= 1000 {
+            return String(format: "%.1ft", display / 1000)
+        }
+        return "\(Int(display.rounded()))"
+    }
+
+    private var shareText: String {
+        let dur = Int(snapshot.durationMin)
+        let vol = UnitSettings.shared.format(totalVolume)
+        let rpe = String(format: "%.1f", snapshot.rpe)
+        return "Séance complétée — \(snapshot.sessionName)\nDurée \(dur) min · Volume \(vol) · RPE \(rpe)"
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 20) {
-
-                        // Header — spring-animated entry + celebration haptic
-                        VStack(spacing: 10) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.forge.opacity(0.12))
-                                    .frame(width: 96, height: 96)
-                                    .scaleEffect(animateHeader ? 1.0 : 0.4)
-                                Image(systemName: "trophy.fill")
-                                    .font(.system(size: 46))
-                                    .foregroundColor(Color.forge)
-                                    .scaleEffect(animateHeader ? 1.0 : 0.3)
-                                    .opacity(animateHeader ? 1.0 : 0.0)
-                            }
-                            Text("Séance complète !")
-                                .font(.appTitle).fontWeight(.black)
-                                .foregroundColor(.appTextPrimary)
-                                .opacity(animateHeader ? 1.0 : 0.0)
-                                .offset(y: animateHeader ? 0 : 10)
-                            Text(snapshot.sessionName)
-                                .font(.appLabel).fontWeight(.semibold)
-                                .foregroundColor(Color.forge)
-                                .padding(.horizontal, 14).padding(.vertical, 5)
-                                .background(Color.forge.opacity(0.1))
-                                .cornerRadius(20)
-                                .opacity(animateHeader ? 1.0 : 0.0)
-                        }
-                        .padding(.top, 24)
-                        .onAppear {
-                            withAnimation(.spring(response: 0.55, dampingFraction: 0.68)) {
-                                animateHeader = true
-                            }
-                            showConfetti = true
-                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                            triggerNotificationFeedback(.success)
-                        }
-
-                        // Stats row
-                        HStack(spacing: 10) {
-                            statPill("\(Int(snapshot.durationMin)) min", label: "DURÉE", color: .statusCyan)
-                            statPill("\(snapshot.logResults.count)", label: "EXERCICES", color: Color.forge)
-                            statPill("\(totalSets)", label: "SÉRIES", color: .statusGreen)
-                        }
-                        .padding(.horizontal, 20)
-
-                        // Volume total
-                        if totalVolume > 0 {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("VOLUME TOTAL")
-                                        .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-                                    Text(UnitSettings.shared.format(totalVolume))
-                                        .font(.system(size: 28, weight: .black)).foregroundColor(.appTextPrimary)
-                                        .contentTransition(.numericText())
-                                }
-                                Spacer()
-                                Image(systemName: "chart.bar.fill")
-                                    .font(.system(size: 28))
-                                    .foregroundColor(Color.statusPurple.opacity(0.5))
-                            }
-                            .padding(16)
-                            .background(Color.appCard).cornerRadius(14)
-                            .padding(.horizontal, 20)
-                        }
-
-                        // Exercise list
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("EXERCICES")
-                                .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-                                .padding(.horizontal, 16).padding(.bottom, 8)
-                            ForEach(Array(snapshot.exercises.enumerated()), id: \.0) { idx, name in
-                                let r = snapshot.logResults[name]
-                                HStack(alignment: .top, spacing: 10) {
-                                    Image(systemName: r != nil ? "checkmark.circle.fill" : "minus.circle")
-                                        .font(.appLabel)
-                                        .foregroundColor(r != nil ? .statusGreen : Color.statusOrange.opacity(0.5))
-                                        .padding(.top, 2)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(name)
-                                            .font(.appLabel).fontWeight(r != nil ? .semibold : .regular)
-                                            .foregroundColor(r != nil ? .white : .gray)
-                                        if let r, !r.sets.isEmpty {
-                                            setRows(sets: r.sets, fallbackWeight: r.weight)
-                                        } else if let r, !r.reps.isEmpty {
-                                            Text(r.reps)
-                                                .font(.appCaption)
-                                                .foregroundColor(.gray)
-                                        }
-                                    }
-                                    Spacer()
-                                    if let r {
-                                        if r.sets.isEmpty {
-                                            Text(UnitSettings.shared.format(r.weight))
-                                                .font(.appLabel).fontWeight(.bold)
-                                                .foregroundColor(Color.forge)
-                                        }
-                                    } else {
-                                        Text("Ignoré")
-                                            .font(.appCaption)
-                                            .foregroundColor(.gray.opacity(0.5))
-                                    }
-                                }
-                                .padding(.horizontal, 16).padding(.vertical, 10)
-                                if idx < snapshot.exercises.count - 1 {
-                                    Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
-                                }
-                            }
-                        }
-                        .background(Color.appCard).cornerRadius(14)
-                        .padding(.horizontal, 20)
-
-                        // RPE + Energy
-                        HStack(spacing: 10) {
-                            VStack(spacing: 6) {
-                                Text("RPE").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-                                Text(String(format: "%.1f", snapshot.rpe))
-                                    .font(.system(size: 26, weight: .black))
-                                    .foregroundColor(rpeColor(snapshot.rpe))
-                                Text("/10").font(.appCaption).foregroundColor(.gray)
-                            }
-                            .frame(maxWidth: .infinity).padding(16)
-                            .background(Color.appCard).cornerRadius(14)
-
-                            VStack(spacing: 6) {
-                                Text("ÉNERGIE AVANT").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-                                HStack(spacing: 3) {
-                                    ForEach(1...5, id: \.self) { i in
-                                        Image(systemName: i <= snapshot.energyPre ? "bolt.fill" : "bolt")
-                                            .font(.appLabel)
-                                            .foregroundColor(i <= snapshot.energyPre ? energyColor(snapshot.energyPre) : .gray.opacity(0.25))
-                                    }
-                                }
-                                Text(energyLabel(snapshot.energyPre))
-                                    .font(.appCaption).fontWeight(.semibold)
-                                    .foregroundColor(energyColor(snapshot.energyPre))
-                            }
-                            .frame(maxWidth: .infinity).padding(16)
-                            .background(Color.appCard).cornerRadius(14)
-                        }
-                        .padding(.horizontal, 20)
-
-                        // Notes
-                        if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty {
-                            HStack(alignment: .top, spacing: 10) {
-                                Image(systemName: "note.text")
-                                    .font(.appBody)
-                                    .foregroundColor(.gray)
-                                    .padding(.top, 1)
-                                Text(snapshot.comment)
-                                    .font(.appLabel)
-                                    .foregroundColor(Color.appOnSurface.opacity(0.85))
-                                    .multilineTextAlignment(.leading)
-                                Spacer()
-                            }
-                            .padding(14)
-                            .background(Color.appCard).cornerRadius(14)
-                            .padding(.horizontal, 20)
-                        }
-
-                        Button(action: { dismiss() }) {
-                            Text("Continuer")
-                                .font(.appBody).fontWeight(.bold)
-                                .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(Color.forge).foregroundColor(Color.onAccent).cornerRadius(14)
-                        }
-                        .buttonStyle(SpringButtonStyle())
-                        .padding(.horizontal, 20).padding(.bottom, 32)
+                        header
+                        statsRow
+                        exercisesList
+                        if snapshot.energyPre > 0 { energyRow }
+                        if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty { notesBlock }
+                        actions.padding(.top, 4).padding(.bottom, 32)
                     }
+                    .padding(.horizontal, 20)
                 }
-                // Confetti overlay
                 if showConfetti {
                     ConfettiView()
                         .allowsHitTesting(false)
                         .ignoresSafeArea()
                 }
             }
-            .navigationTitle("Récapitulatif")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 
-    @ViewBuilder
-    private func setRows(sets: [[String: Any]], fallbackWeight: Double) -> some View {
-        ForEach(Array(sets.enumerated()), id: \.offset) { j, s in
-            HStack(spacing: 4) {
-                Text("S\(j + 1)")
-                    .font(.appMicro).fontWeight(.bold)
-                    .foregroundColor(.gray.opacity(0.4))
-                    .frame(width: 16, alignment: .leading)
-                Text(UnitSettings.shared.format(s["weight"] as? Double ?? fallbackWeight))
-                    .font(.appMicro).foregroundColor(Color.appOnSurface.opacity(0.6))
-                Text("×").font(.appMicro).foregroundColor(.gray.opacity(0.35))
-                Text(s["reps"] as? String ?? "—")
-                    .font(.appMicro).foregroundColor(.gray)
+    // MARK: - Header (épuré : cercle ember + checkmark, un seul titre, pill compacte)
+    private var header: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.forge.opacity(0.14))
+                    .frame(width: 84, height: 84)
+                    .scaleEffect(animateHeader ? 1.0 : 0.4)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 38, weight: .bold))
+                    .foregroundColor(Color.forge)
+                    .scaleEffect(animateHeader ? 1.0 : 0.3)
+                    .opacity(animateHeader ? 1.0 : 0.0)
+            }
+            Text("Séance complétée")
+                .font(.appTitle).fontWeight(.bold)
+                .foregroundColor(.appTextPrimary)
+                .opacity(animateHeader ? 1.0 : 0.0)
+                .offset(y: animateHeader ? 0 : 8)
+            Text(snapshot.sessionName)
+                .font(.system(size: 12, weight: .semibold))
+                .tracking(0.4)
+                .foregroundColor(Color.forge)
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(Color.forge.opacity(0.10))
+                .clipShape(Capsule())
+                .opacity(animateHeader ? 1.0 : 0.0)
+        }
+        .padding(.top, 20)
+        .onAppear {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.68)) {
+                animateHeader = true
+            }
+            showConfetti = true
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            triggerNotificationFeedback(.success)
+        }
+    }
+
+    // MARK: - Stats 3-col (durée · vol · RPE) — StatCard partagé
+    private var statsRow: some View {
+        HStack(spacing: 10) {
+            StatCard(value: "\(Int(snapshot.durationMin))", label: "min", color: .appTextPrimary)
+            StatCard(value: totalVolumeCompact,             label: "vol", color: .appTextPrimary)
+            StatCard(value: String(format: "%.1f", snapshot.rpe), label: "rpe", color: rpeColor(snapshot.rpe))
+        }
+    }
+
+    // MARK: - Liste exos restylée (fond card, hairline separators, summary compact)
+    private var exercisesList: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(snapshot.exercises.enumerated()), id: \.0) { idx, name in
+                exerciseRow(name: name, result: snapshot.logResults[name])
+                if idx < snapshot.exercises.count - 1 {
+                    Divider()
+                        .background(Color.appSeparatorSubtle)
+                        .padding(.leading, 16)
+                }
             }
         }
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private func statPill(_ value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.appTitle).fontWeight(.black)
-                .foregroundColor(.appTextPrimary)
-                .contentTransition(.numericText())
-            Text(label)
-                .font(.appMicro).fontWeight(.bold).tracking(1.5)
-                .foregroundColor(.gray)
+    @ViewBuilder
+    private func exerciseRow(name: String, result: ExerciseLogResult?) -> some View {
+        let done = result != nil
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(name)
+                    .font(.appBody).fontWeight(done ? .semibold : .regular)
+                    .foregroundColor(done ? .appTextPrimary : .gray)
+                if let r = result {
+                    Text(setsSummary(r))
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundColor(.gray)
+                        .monospacedDigit()
+                }
+            }
+            Spacer(minLength: 8)
+            if done {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.statusGreen)
+            } else {
+                Text("ignoré")
+                    .font(.appCaption)
+                    .foregroundColor(.gray.opacity(0.5))
+            }
         }
-        .frame(maxWidth: .infinity).padding(.vertical, 14)
-        .background(color.opacity(0.08))
-        .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 
+    // "3×5 · 80kg" — reprend le rendu compact du design.
+    // ponytail: rendu time/unilatéral fin = Lot C ; ici on affiche "count×firstReps",
+    // ce qui donne "3×L+R" pour l'unilatéral — moche mais rien de perdu.
+    private func setsSummary(_ r: ExerciseLogResult) -> String {
+        guard !r.sets.isEmpty else {
+            return r.reps.isEmpty ? "—" : r.reps
+        }
+        let count = r.sets.count
+        let firstReps = (r.sets.first?["reps"] as? String) ?? "—"
+        if r.weight > 0 {
+            return "\(count)×\(firstReps) · \(UnitSettings.shared.format(r.weight))"
+        }
+        return "\(count)×\(firstReps)"
+    }
+
+    // MARK: - Énergie (ligne discrète, plus le gros card)
+    private var energyRow: some View {
+        HStack(spacing: 10) {
+            Text("Énergie avant")
+                .font(.appCaption).fontWeight(.semibold)
+                .foregroundColor(.gray)
+            Spacer()
+            HStack(spacing: 2) {
+                ForEach(1...5, id: \.self) { i in
+                    Image(systemName: i <= snapshot.energyPre ? "bolt.fill" : "bolt")
+                        .font(.system(size: 12))
+                        .foregroundColor(i <= snapshot.energyPre ? energyColor(snapshot.energyPre) : .gray.opacity(0.25))
+                }
+            }
+            Text(energyLabel(snapshot.energyPre))
+                .font(.appCaption).fontWeight(.semibold)
+                .foregroundColor(energyColor(snapshot.energyPre))
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Notes (inchangé structurellement, restylé card)
+    private var notesBlock: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "note.text")
+                .font(.appBody)
+                .foregroundColor(.gray)
+                .padding(.top, 2)
+            Text(snapshot.comment)
+                .font(.appBody)
+                .foregroundColor(Color.appOnSurface.opacity(0.85))
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - CTA principal + partage secondaire
+    private var actions: some View {
+        HStack(spacing: 10) {
+            Button(action: { dismiss() }) {
+                Text("Terminé")
+                    .font(.appBody).fontWeight(.bold)
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Color.forge)
+                    .foregroundColor(Color.onAccent)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(SpringButtonStyle())
+
+            ShareLink(item: shareText) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(Color.appTextPrimary.opacity(0.7))
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.appSeparatorSubtle, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(SpringButtonStyle())
+        }
+    }
+
+    // MARK: - Helpers couleurs / labels
     private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     private func energyColor(_ v: Int) -> Color {
