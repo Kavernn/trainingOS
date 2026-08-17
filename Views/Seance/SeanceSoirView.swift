@@ -117,7 +117,6 @@ class SeanceSoirViewModel: SeanceViewModel {
 /// DashboardTodayCards.swift (sheet), DashboardView.swift (sheet).
 struct SeanceSoirView: View {
     @StateObject private var vm: SeanceSoirViewModel
-    @State private var showPRCelebration = false
     private let hasOverride: Bool
 
     init(sessionName: String? = nil) {
@@ -158,17 +157,6 @@ struct SeanceSoirView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await vm.load() }
-        .onChange(of: vm.showSuccess) { success in
-            guard success, !vm.prCelebrations.isEmpty else { return }
-            showPRCelebration = true
-        }
-        .fullScreenCover(isPresented: $showPRCelebration) {
-            PRCelebrationView(prs: vm.prCelebrations) {
-                vm.prCelebrations = []
-                showPRCelebration = false
-                Task { await vm.load() }
-            }
-        }
     }
 
     @ViewBuilder

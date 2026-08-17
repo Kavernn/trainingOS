@@ -4,7 +4,6 @@ import SwiftUI
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel(draftSessionType: "morning")
-    @State private var showPRCelebration = false
 
     var body: some View {
         NavigationStack {
@@ -25,17 +24,6 @@ struct SeanceView: View {
         .task { await vm.load() }
         .onReceive(NotificationCenter.default.publisher(for: .sessionCompleted)) { _ in
             ActionFeedbackManager.shared.show(.sessionComplete(streak: nil))
-        }
-        .onChange(of: vm.showSuccess) { success in
-            guard success, !vm.prCelebrations.isEmpty else { return }
-            showPRCelebration = true
-        }
-        .fullScreenCover(isPresented: $showPRCelebration) {
-            PRCelebrationView(prs: vm.prCelebrations) {
-                vm.prCelebrations = []
-                showPRCelebration = false
-                Task { await vm.load() }
-            }
         }
     }
 

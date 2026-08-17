@@ -225,6 +225,15 @@ struct WorkoutSeanceView: View {
         let sessions: [String: SessionEntry]
     }
 
+    private func prsForRecap(_ snap: SessionRecapSnapshot) -> [(name: String, deltaWeight: Double?)] {
+        vm.prCelebrations.map { pr in
+            let logged = snap.logResults[pr.name]?.weight ?? 0
+            let prev = data.weights[pr.name]?.currentWeight ?? 0
+            let delta: Double? = prev > 0 ? logged - prev : nil
+            return (name: pr.name, deltaWeight: delta)
+        }
+    }
+
     private func computeGhost() {
         if CacheService.shared.load(for: "stats_data") == nil {
             Task { try? await APIService.shared.fetchStatsData(); computeGhost() }
@@ -1560,16 +1569,12 @@ struct WorkoutSeanceView: View {
                 vm.commitWarning = nil
                 vm.commitWarningStyle = .error
             }
-            if vm.prCelebrations.isEmpty {
-                showRecap = true
-            } else {
-                // PR path : pas de récap ici. AM/soir → onDidFinish=nil, SeanceView/SeanceSoirView
-                // gère le fullScreenCover PR. Bonus → onDidFinish={dismiss()} ferme la sheet.
-                onDidFinish?()
-            }
-            // PR path handled by SeanceView — fullScreenCover must survive the view-swap
+            // Lot F : plus de court-circuit — le récap s'affiche toujours, les PRs
+            // apparaissent dans le bandeau du récap (fullScreenCover PR supprimé).
+            showRecap = true
         }
         .sheet(isPresented: $showRecap, onDismiss: {
+            vm.prCelebrations = []
             Task {
                 let sType = isSecondSession ? "evening" : "morning"
                 let todayStr = data.todayDate
@@ -1585,7 +1590,7 @@ struct WorkoutSeanceView: View {
             }
         }) {
             if let snap = recapSnapshot {
-                SessionRecapSheet(snapshot: snap)
+                SessionRecapSheet(snapshot: snap, prs: prsForRecap(snap))
             }
         }
         .sheet(isPresented: $showProgressionSheet) {

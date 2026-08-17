@@ -262,9 +262,6 @@ struct TodayCardView: View {
         // quand bonusCompleted flippe post-log → démonterait le sheet + son @State
         // s'ils vivaient dans le strip. Le showBonusSheet est ici, passé en binding.
         .sheet(isPresented: $showBonusSheet) { BonusSeanceView() }
-        .onAppear { print("[TODAY-CARD] onAppear") }
-        .onDisappear { print("[TODAY-CARD] onDisappear") }
-        .onChange(of: showBonusSheet) { newVal in print("[TODAY-CARD] showBonusSheet -> \(newVal)") }
     }
 }
 
@@ -498,7 +495,6 @@ struct Seance3BonusStrip: View {
     }
 
     var body: some View {
-        let _ = print("[BONUS-STRIP] body eval, hasBonus=\(hasBonus) bonusCompleted=\(bonusCompleted) → branch=\(hasBonus && bonusCompleted ? "empty" : "button")")
         if hasBonus && bonusCompleted {
             EmptyView()
         } else {

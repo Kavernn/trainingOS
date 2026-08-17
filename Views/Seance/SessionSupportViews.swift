@@ -433,6 +433,7 @@ struct FinishSessionSheet: View {
 
 struct SessionRecapSheet: View {
     let snapshot: SessionRecapSnapshot
+    let prs: [(name: String, deltaWeight: Double?)]
     @Environment(\.dismiss) private var dismiss
     @State private var animateHeader = false
     @State private var showConfetti = false
@@ -474,6 +475,7 @@ struct SessionRecapSheet: View {
                     VStack(spacing: 20) {
                         header
                         statsRow
+                        prBanner
                         exercisesList
                         if snapshot.energyPre > 0 { energyRow }
                         if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty { notesBlock }
@@ -553,6 +555,40 @@ struct SessionRecapSheet: View {
             StatCard(value: totalVolumeCompact, label: "vol", color: .appTextPrimary, subtitle: vSub, delta: vDelta)
             StatCard(value: String(format: "%.1f", snapshot.rpe), label: "rpe", color: rpeColor(snapshot.rpe))
         }
+    }
+
+    // MARK: - Bandeau PR (fusionné dans le récap, ex-fullScreenCover)
+    @ViewBuilder
+    private var prBanner: some View {
+        if !prs.isEmpty {
+            HStack(spacing: 10) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Color.statusYellow)
+                Text(prBannerText)
+                    .font(.appLabel).fontWeight(.semibold)
+                    .foregroundColor(.appTextPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(Color.statusYellow.opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusYellow.opacity(0.3), lineWidth: 1))
+        }
+    }
+
+    private var prBannerText: String {
+        let cited = prs.prefix(2).map { pr -> String in
+            if let d = pr.deltaWeight, d > 0 {
+                return "\(pr.name) +\(UnitSettings.shared.format(d))"
+            }
+            return "\(pr.name) nouveau"
+        }.joined(separator: ", ")
+        let extras = prs.count - 2
+        let extrasStr = extras > 0 ? " et \(extras) autre\(extras > 1 ? "s" : "")" : ""
+        let headline = prs.count == 1 ? "Nouveau record" : "\(prs.count) records"
+        return "\(headline) · \(cited)\(extrasStr)"
     }
 
     // MARK: - Liste exos restylée (fond card, hairline separators, summary compact)
