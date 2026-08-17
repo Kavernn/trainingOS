@@ -52,7 +52,6 @@ struct AlreadyLoggedSeanceView: View {
     @State private var showConfetti = false
     @State private var showFinishRemaining = false
     @State private var showSeanceSoir = false
-    @State private var seance2Count: Int = 0
 
     var todaySession: SessionEntry? {
         APIService.shared.dashboard?.sessions[data.todayDate]
@@ -101,6 +100,37 @@ struct AlreadyLoggedSeanceView: View {
             guard let scheme = program[name] else { return nil }
             return (name, scheme.value)
         }
+    }
+
+    // MARK: - Séance PM (état 2 — AM loggée, soir prévu, pas fait)
+    var resolvedEveningName: String {
+        data.eveningSessionName ?? "Séance 2"
+    }
+
+    var eveningColor: Color {
+        switch resolvedEveningName {
+        case "Push A", "Push B":             return .statusOrange
+        case "Pull A", "Pull B + Full Body": return .statusCyan
+        case "Legs":                         return .statusYellow
+        case "Yoga / Tai Chi":               return .statusPurple
+        case "Recovery":                     return .statusGreen
+        default:                             return .forge
+        }
+    }
+
+    var eveningExercises: [(String, String)] {
+        guard let name = data.eveningSessionName,
+              let program = data.fullProgram[name] else { return [] }
+        let order = data.exerciseOrder[name] ?? program.keys.sorted()
+        return order.compactMap { n in program[n].map { (n, $0.value) } }
+    }
+
+    var showEveningBlock: Bool {
+        let dash = APIService.shared.dashboard
+        let backendPlanned = dash?.hasEveningSession ?? false
+        let pushed = !data.pushedToEvening.isEmpty
+        let done = dash?.secondSessionCompleted ?? false
+        return (backendPlanned || pushed) && !done
     }
     var body: some View {
         ZStack {
@@ -241,6 +271,79 @@ struct AlreadyLoggedSeanceView: View {
                 .cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.statusGreen.opacity(0.2), lineWidth: 1))
                 .padding(.horizontal, 16)
+
+                // ── Séance PM à faire (état 2) ───────────────────────────
+                if showEveningBlock {
+                    let pmExos = eveningExercises
+                    let pmColor = eveningColor
+                    let pmName = resolvedEveningName
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("SÉANCE PM")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(2)
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text(pmName)
+                                .font(.appLabel.weight(.bold))
+                                .foregroundColor(pmColor)
+                                .padding(.horizontal, 12).padding(.vertical, 5)
+                                .background(pmColor.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+
+                        if pmExos.isEmpty {
+                            Text("Aucun exercice défini")
+                                .font(.appLabel)
+                                .foregroundColor(.gray)
+                        } else {
+                            VStack(spacing: 0) {
+                                ForEach(pmExos.prefix(5), id: \.0) { name, scheme in
+                                    HStack {
+                                        Circle()
+                                            .fill(pmColor.opacity(0.25))
+                                            .frame(width: 5, height: 5)
+                                        Text(name)
+                                            .font(.appLabel)
+                                            .foregroundColor(Color.appOnSurface.opacity(0.75))
+                                        Spacer()
+                                        Text(scheme)
+                                            .font(.appCaption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding(.vertical, 6)
+                                    Divider().background(Color.appSeparatorSubtle)
+                                }
+                                if pmExos.count > 5 {
+                                    Text("+ \(pmExos.count - 5) exercices")
+                                        .font(.appCaption)
+                                        .foregroundColor(.gray)
+                                        .padding(.top, 4)
+                                }
+                            }
+                        }
+
+                        Button { showSeanceSoir = true } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 16))
+                                Text("Commencer la séance PM")
+                                    .font(.appBody.weight(.semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(pmColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(SpringButtonStyle())
+                    }
+                    .padding(16)
+                    .background(Color.appCard)
+                    .cornerRadius(16)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(pmColor.opacity(0.3), lineWidth: 1))
+                    .padding(.horizontal, 16)
+                }
 
                 // ── Aperçu demain ────────────────────────────────────────
                 VStack(alignment: .leading, spacing: 12) {
@@ -428,25 +531,6 @@ struct AlreadyLoggedSeanceView: View {
                     .padding(.horizontal, 16)
                 }
 
-                // ── CTA Séance 2 (P2.B.4) — visible si exos envoyés à la Séance 2 ──
-                if seance2Count > 0 {
-                    Button { showSeanceSoir = true } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "2.circle.fill")
-                                .font(.appLabel)
-                            Text("Séance 2 (\(seance2Count) exo\(seance2Count > 1 ? "s" : "")) →")
-                                .font(.appLabel).fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.forge.opacity(0.12))
-                        .foregroundColor(Color.forge)
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.3), lineWidth: 1))
-                    }
-                    .padding(.horizontal, 16)
-                }
-
                 // ── Séance supplémentaire ────────────────────────────────
                 Button(action: { showExtra = true }) {
                     HStack(spacing: 10) {
@@ -483,20 +567,9 @@ struct AlreadyLoggedSeanceView: View {
             // override utilisateur — le passer forçait le chemin matin (bug d26373c).
             SeanceSoirView()
         }
-        .onChange(of: showSeanceSoir) { isPresented in
-            if !isPresented {
-                seance2Count = data.pushedToEvening.count
-            }
-        }
-        .onAppear {
-            seance2Count = data.pushedToEvening.count
-        }
         .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange)) { _ in
             // Étape 3b — refetch pour repopuler data.pushedToEvening depuis le backend.
-            Task {
-                await vm.load()
-                seance2Count = data.pushedToEvening.count
-            }
+            Task { await vm.load() }
         }
         .sheet(isPresented: $showExtra) {
             ExtraSessionSheet(data: data)
