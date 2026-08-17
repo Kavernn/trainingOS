@@ -10,6 +10,7 @@ struct SessionRecapSnapshot {
     let rpe: Double
     let comment: String
     let energyPre: Int
+    let previousVolume: Double?
 }
 
 struct WorkoutSeanceView: View {
@@ -1528,7 +1529,8 @@ struct WorkoutSeanceView: View {
                         exercises: exercises.map(\.0),
                         rpe: rpe,
                         comment: comment,
-                        energyPre: energyPre
+                        energyPre: energyPre,
+                        previousVolume: ghostData?.volume
                     )
                     Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today, bonusSession: isBonusSession) }
                 }

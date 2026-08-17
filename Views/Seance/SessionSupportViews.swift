@@ -531,11 +531,26 @@ struct SessionRecapSheet: View {
         }
     }
 
+    // Best-match historique (GhostData). nil = 1ère séance de ce type, pas d'overlap.
+    private var volumeDelta: (String, Color)? {
+        guard let prev = snapshot.previousVolume, prev > 0 else { return nil }
+        let pct = (totalVolume - prev) / prev * 100
+        if pct >= 1 { return ("▲ +\(Int(pct.rounded()))%", Color.forge) }
+        if pct <= -1 { return ("▼ \(Int(abs(pct).rounded()))%", Color.gray) }
+        return nil
+    }
+
+    private var volumeSubtitle: String? {
+        volumeDelta != nil ? "vs record" : nil
+    }
+
     // MARK: - Stats 3-col (durée · vol · RPE) — StatCard partagé
     private var statsRow: some View {
-        HStack(spacing: 10) {
+        let vDelta = volumeDelta
+        let vSub = volumeSubtitle
+        return HStack(spacing: 10) {
             StatCard(value: "\(Int(snapshot.durationMin))", label: "min", color: .appTextPrimary)
-            StatCard(value: totalVolumeCompact,             label: "vol", color: .appTextPrimary)
+            StatCard(value: totalVolumeCompact, label: "vol", color: .appTextPrimary, subtitle: vSub, delta: vDelta)
             StatCard(value: String(format: "%.1f", snapshot.rpe), label: "rpe", color: rpeColor(snapshot.rpe))
         }
     }
