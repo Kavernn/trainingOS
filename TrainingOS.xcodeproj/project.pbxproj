@@ -119,7 +119,6 @@
 		CF49E6FEF95E455D9F84D443 /* CoachBriefCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */; };
 		CI0001CI0001CI0001CI0001 /* CacheInvalidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CI0002CI0002CI0002CI0002 /* CacheInvalidation.swift */; };
 		D60EC6EA2F76B1F2003A5209 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EC6E92F76B1F2003A5209 /* NotificationService.swift */; };
-		D618A6C12FA81E9E001AEADD /* CoachDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */; };
 		D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4332F5D98B8002AE470 /* ContentView.swift */; };
 		D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4422F5D98B8002AE470 /* SeanceView.swift */; };
 		D665E4492F5D98BA002AE470 /* HistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43E2F5D98B8002AE470 /* HistoriqueView.swift */; };
@@ -172,11 +171,8 @@
 		GF006001AA00300B2F5DEEEE /* GymFinderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */; };
 		GF007001AA00300B2F5DEEEE /* GymFinderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF007000AA00300B2F5DEEEE /* GymFinderService.swift */; };
 		IA0002IA0002IA0002IA0002 /* InsightsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0002IR0002IR0002IR0002 /* InsightsCard.swift */; };
-		IA0004IA0004IA0004IA0004 /* NutritionPerfInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */; };
 		IA0005IA0005IA0005IA0005 /* CoachGreetingHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */; };
 		IA0006IA0006IA0006IA0006 /* CoachMissionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0006IR0006IR0006IR0006 /* CoachMissionCard.swift */; };
-		IA0007IA0007IA0007IA0007 /* WeekMomentumStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0007IR0007IR0007IR0007 /* WeekMomentumStrip.swift */; };
-		IA0008IA0008IA0008IA0008 /* TodayMetricsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */; };
 		IA0009IA0009IA0009IA0009 /* SmartInsightsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0009IR0009IR0009IR0009 /* SmartInsightsSection.swift */; };
 		IA0011IA0011IA0011IA0011 /* RoundedCorner.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0011IR0011IR0011IR0011 /* RoundedCorner.swift */; };
 		IA0013IA0013IA0013IA0013 /* IntelligenceAnalyticsCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */; };
@@ -419,7 +415,6 @@
 		D0FE1CA8525F46319027AD6D /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
 		D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSessionManager.swift; sourceTree = "<group>"; };
 		D60EC6E92F76B1F2003A5209 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
-		D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachDashboardView.swift; sourceTree = "<group>"; };
 		D665E4252F5D9858002AE470 /* TrainingOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainingOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D665E4332F5D98B8002AE470 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D665E4342F5D98B8002AE470 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
@@ -483,11 +478,8 @@
 		GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderModels.swift; sourceTree = "<group>"; };
 		GF007000AA00300B2F5DEEEE /* GymFinderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderService.swift; sourceTree = "<group>"; };
 		IR0002IR0002IR0002IR0002 /* InsightsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsCard.swift; sourceTree = "<group>"; };
-		IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerfInsightCard.swift; sourceTree = "<group>"; };
 		IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachGreetingHeader.swift; sourceTree = "<group>"; };
 		IR0006IR0006IR0006IR0006 /* CoachMissionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMissionCard.swift; sourceTree = "<group>"; };
-		IR0007IR0007IR0007IR0007 /* WeekMomentumStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekMomentumStrip.swift; sourceTree = "<group>"; };
-		IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayMetricsRow.swift; sourceTree = "<group>"; };
 		IR0009IR0009IR0009IR0009 /* SmartInsightsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartInsightsSection.swift; sourceTree = "<group>"; };
 		IR0011IR0011IR0011IR0011 /* RoundedCorner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundedCorner.swift; sourceTree = "<group>"; };
 		IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceAnalyticsCards.swift; sourceTree = "<group>"; };
@@ -817,18 +809,14 @@
 		AA00300B2F5D98B8002AE470 /* Intelligence */ = {
 			isa = PBXGroup;
 			children = (
-				D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */,
 				AA00100B2F5D98B8002AE470 /* IntelligenceView.swift */,
 				IR0002IR0002IR0002IR0002 /* InsightsCard.swift */,
-				IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */,
 				IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */,
 				FCEBA1D5B9BA47DD98CD46E2 /* InsightPrincipalCard.swift */,
 				B4C5D6E7F8A9B0C1D2E3F4A6 /* PostSeanceCard.swift */,
 				D6E7F8A9B0C1D2E3F4A5B6C8 /* ProgressionCard.swift */,
 				IR0006IR0006IR0006IR0006 /* CoachMissionCard.swift */,
 				E1577CFB97E4454C939E2874 /* DailyBriefView.swift */,
-				IR0007IR0007IR0007IR0007 /* WeekMomentumStrip.swift */,
-				IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */,
 				IR0009IR0009IR0009IR0009 /* SmartInsightsSection.swift */,
 				IR0011IR0011IR0011IR0011 /* RoundedCorner.swift */,
 				IR0013IR0013IR0013IR0013 /* IntelligenceAnalyticsCards.swift */,
@@ -1559,14 +1547,11 @@
 				AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */,
 				IA0002IA0002IA0002IA0002 /* InsightsCard.swift in Sources */,
 				D68A5C8D2FD0D0B900B824DF /* WatchConnectivityManager.swift in Sources */,
-				IA0004IA0004IA0004IA0004 /* NutritionPerfInsightCard.swift in Sources */,
 				IA0005IA0005IA0005IA0005 /* CoachGreetingHeader.swift in Sources */,
 				98F2B4FCDA654951AFC6B525 /* InsightPrincipalCard.swift in Sources */,
 				A3B4C5D6E7F8A9B0C1D2E3F5 /* PostSeanceCard.swift in Sources */,
 				C5D6E7F8A9B0C1D2E3F4A5B7 /* ProgressionCard.swift in Sources */,
 				IA0006IA0006IA0006IA0006 /* CoachMissionCard.swift in Sources */,
-				IA0007IA0007IA0007IA0007 /* WeekMomentumStrip.swift in Sources */,
-				IA0008IA0008IA0008IA0008 /* TodayMetricsRow.swift in Sources */,
 				IA0009IA0009IA0009IA0009 /* SmartInsightsSection.swift in Sources */,
 				IA0011IA0011IA0011IA0011 /* RoundedCorner.swift in Sources */,
 				IA0013IA0013IA0013IA0013 /* IntelligenceAnalyticsCards.swift in Sources */,
@@ -1603,7 +1588,6 @@
 				DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */,
 				FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */,
 				PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */,
-				D618A6C12FA81E9E001AEADD /* CoachDashboardView.swift in Sources */,
 				8B707D5A8F7F449E97018D68 /* DailyBriefView.swift in Sources */,
 				ED93F64E254A447DBC2B6899 /* DailyBriefService.swift in Sources */,
 				PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */,
