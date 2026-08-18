@@ -260,6 +260,10 @@ struct ExerciseCard: View {
                     }
                 }
             }
+            Rectangle()
+                .fill(Color.appSeparatorSubtle)
+                .frame(height: 0.5)
+                .padding(.vertical, 2)
             ForEach(evm.sets.indices, id: \.self) { i in
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
@@ -416,11 +420,12 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func setHeaderWeightLabels() -> some View {
+        let headerColor = Color.appTextSecondary.opacity(0.7)
         Text("SET")
-            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
+            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
             .frame(width: 28, alignment: .leading)
         Text(weightColumnLabel)
-            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
+            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
         if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
             let activeIdx = evm.setBySetMode ? evm.currentSetIndex : 0
             if evm.sets.indices.contains(activeIdx) {
@@ -472,8 +477,10 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func setHeaderRepsLabels() -> some View {
-        Text(evm.equipmentType == "fixed_weight" ? "REPS (OPT.)" : "REPS")
-            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
+        let headerColor = Color.appTextSecondary.opacity(0.7)
+        let repsLabel = evm.equipmentType == "fixed_weight" ? "REPS (OPT.)" : "REPS"
+        Text(repsLabel)
+            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
             .frame(width: evm.setBySetMode ? 132 : 140, alignment: .center)
         // W-C2 — hide RIR column for time-based exercises
         if showRIRColumn && !isTimeBased {
