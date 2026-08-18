@@ -10,16 +10,22 @@ struct SessionTimerView: View {
     }
 
     var body: some View {
+        let isPaused = chrono.isPaused
+        let fgOpacity: Double = isPaused ? 0.6 : 0.95
+        let strokeOpacity: Double = isPaused ? 0.15 : 0.30
         HStack(spacing: 3) {
-            Image(systemName: chrono.isPaused ? "pause.fill" : "clock")
+            Image(systemName: isPaused ? "pause.fill" : "clock")
                 .font(.system(size: 10))
             Text(formattedTime)
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
         }
-        .foregroundColor(chrono.isPaused ? Color.forge.opacity(0.75) : Color.statusCyan.opacity(0.75))
+        .foregroundColor(Color.forge.opacity(fgOpacity))
         .padding(.horizontal, 8).padding(.vertical, 5)
-        .background(chrono.isPaused ? Color.forge.opacity(0.1) : Color.statusCyan.opacity(0.08))
-        .cornerRadius(8)
+        .glassCard(cornerRadius: 8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.forge.opacity(strokeOpacity), lineWidth: 1)
+        )
         .animation(.easeInOut(duration: 0.2), value: chrono.isPaused)
         .onTapGesture { chrono.togglePause() }
         .transition(.opacity)

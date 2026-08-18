@@ -34,9 +34,11 @@ struct MesocycleChip: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(color.opacity(0.1))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.25), lineWidth: 1))
-        .cornerRadius(6)
+        .glassCard(cornerRadius: 6)
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(color.opacity(0.25), lineWidth: 1)
+        )
     }
 }
 
@@ -74,9 +76,11 @@ struct ReadinessChip: View {
             Spacer()
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
-        .background(swiftColor.opacity(0.06))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(swiftColor.opacity(0.2), lineWidth: 1))
-        .cornerRadius(8)
+        .glassCard(cornerRadius: 8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(swiftColor.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 
@@ -115,10 +119,11 @@ struct StartSessionBanner: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color.forge.opacity(0.07))
-            .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.forge.opacity(0.25), lineWidth: 1))
+            .glassCard(cornerRadius: 12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.forge.opacity(0.25), lineWidth: 1)
+            )
         }
         .buttonStyle(SpringButtonStyle(scale: 0.97))
     }
