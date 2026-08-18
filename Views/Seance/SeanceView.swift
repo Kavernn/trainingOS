@@ -154,14 +154,20 @@ struct AlreadyLoggedSeanceView: View {
                         .foregroundColor(.appTextPrimary)
                         .opacity(animateHeader ? 1.0 : 0.0)
                         .offset(y: animateHeader ? 0 : 8)
-                    Text(data.today)
-                        .font(.system(size: 12, weight: .semibold))
-                        .tracking(0.4)
-                        .foregroundColor(Color.forge)
-                        .padding(.horizontal, 12).padding(.vertical, 5)
-                        .background(Color.forge.opacity(0.10))
-                        .clipShape(Capsule())
-                        .opacity(animateHeader ? 1.0 : 0.0)
+                    let sess = todaySession
+                    let pmName = data.eveningSessionName ?? ""
+                    let showSplitPills = (sess?.sessionCount ?? 1) >= 2 && !pmName.isEmpty
+                    Group {
+                        if showSplitPills {
+                            HStack(spacing: 8) {
+                                headerPill("AM · \(data.today)", color: sessionColor)
+                                headerPill("PM · \(pmName)", color: eveningColor)
+                            }
+                        } else {
+                            headerPill(data.today, color: Color.forge)
+                        }
+                    }
+                    .opacity(animateHeader ? 1.0 : 0.0)
                 }
                 .padding(.top, 20)
                 .onAppear {
@@ -616,6 +622,16 @@ struct AlreadyLoggedSeanceView: View {
         }
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func headerPill(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .semibold))
+            .tracking(0.4)
+            .foregroundColor(color)
+            .padding(.horizontal, 12).padding(.vertical, 5)
+            .background(color.opacity(0.12))
+            .clipShape(Capsule())
     }
 
     private func slotPill(label: String, name: String, color: Color) -> some View {
