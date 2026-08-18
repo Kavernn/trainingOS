@@ -9,12 +9,12 @@ struct WarmupGuidanceBanner: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "flame.fill")
                 .font(.appLabel)
-                .foregroundColor(Color.statusYellow.opacity(0.8))
+                .foregroundColor(Color.forge.opacity(0.85))
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Échauffement recommandé")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color.statusYellow.opacity(0.9))
+                    .foregroundColor(Color.forge)
                 Text(guidance)
                     .font(.appCaption)
                     .foregroundColor(.gray.opacity(0.85))
@@ -30,8 +30,6 @@ struct WarmupGuidanceBanner: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.statusYellow.opacity(0.05))
-        .cornerRadius(10)
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.statusYellow.opacity(0.15), lineWidth: 1))
+        .glassCard(cornerRadius: 10)
     }
 }

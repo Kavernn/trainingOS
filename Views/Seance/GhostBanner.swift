@@ -78,10 +78,10 @@ struct GhostBanner: View {
             }
         }
         .padding(12)
-        .background(Color.appBg)
-        .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(
-            beaten ? Color.forge.opacity(0.5) : Color.statusPurple.opacity(0.25), lineWidth: 1
-        ))
+        .glassCard(cornerRadius: 12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(beaten ? Color.forge.opacity(0.5) : Color.clear, lineWidth: 1)
+        )
     }
 }
