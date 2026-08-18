@@ -431,10 +431,20 @@ struct FinishSessionSheet: View {
 
 // MARK: - Session Recap Sheet
 
+/// Bloc "prochaine séance" du récap post-log.
+/// `label` = "Prochaine" (soir dispo) ou "Demain" (repos/AM demain).
+/// `name` = "Push A"…"Repos" ; `exoCount` = nil → nom seul.
+struct NextSessionInfo {
+    let label: String
+    let name: String
+    let exoCount: Int?
+}
+
 struct SessionRecapSheet: View {
     let snapshot: SessionRecapSnapshot
     let prs: [(name: String, deltaWeight: Double?)]
     let trends: [String: WeightTrend]
+    var nextSession: NextSessionInfo? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var animateHeader = false
     @State private var showConfetti = false
@@ -480,6 +490,7 @@ struct SessionRecapSheet: View {
                         exercisesList
                         if snapshot.energyPre > 0 { energyRow }
                         if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty { notesBlock }
+                        nextSessionBlock
                         actions.padding(.top, 4).padding(.bottom, 32)
                     }
                     .padding(.horizontal, 20)
@@ -555,6 +566,46 @@ struct SessionRecapSheet: View {
             StatCard(value: "\(Int(snapshot.durationMin))", label: "min", color: .appTextPrimary)
             StatCard(value: totalVolumeCompact, label: "vol", color: .appTextPrimary, subtitle: vSub, delta: vDelta)
             StatCard(value: String(format: "%.1f", snapshot.rpe), label: "rpe", color: rpeColor(snapshot.rpe))
+        }
+    }
+
+    // MARK: - Prochaine séance (Phase 3 — post-log, avant actions)
+    @ViewBuilder
+    private var nextSessionBlock: some View {
+        if let next = nextSession {
+            HStack(spacing: 8) {
+                if next.name == "Repos" {
+                    Image(systemName: "moon.zzz")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.gray)
+                    Text("Jour de repos")
+                        .font(.appLabel).fontWeight(.semibold)
+                        .foregroundColor(.appTextPrimary)
+                } else {
+                    Text(next.label.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(.gray)
+                    Text("·")
+                        .font(.appMicro)
+                        .foregroundColor(.gray)
+                    Text(next.name)
+                        .font(.appLabel).fontWeight(.semibold)
+                        .foregroundColor(.appTextPrimary)
+                    if let n = next.exoCount {
+                        Text("·")
+                            .font(.appMicro)
+                            .foregroundColor(.gray)
+                        Text("\(n) exo\(n > 1 ? "s" : "")")
+                            .font(.appLabel)
+                            .foregroundColor(.gray)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(Color.appCard)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 

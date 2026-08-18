@@ -243,8 +243,30 @@ struct WorkoutSeanceView: View {
     @ViewBuilder
     private var recapSheetContent: some View {
         if let snap = recapSnapshot {
-            SessionRecapSheet(snapshot: snap, prs: prsForRecap(snap), trends: trendsForRecap(snap))
+            SessionRecapSheet(
+                snapshot: snap,
+                prs: prsForRecap(snap),
+                trends: trendsForRecap(snap),
+                nextSession: nextSessionForRecap()
+            )
         }
+    }
+
+    // Phase 3 — "prochaine séance" bloc post-log.
+    // - Après AM : soir si prévu (eveningSessionName) et pas fait, sinon demain.
+    // - Après soir/bonus : demain AM.
+    // - fullProgram peut manquer → exoCount nil → nom seul (fallback).
+    private func nextSessionForRecap() -> NextSessionInfo? {
+        let secondDone = APIService.shared.dashboard?.secondSessionCompleted ?? false
+        if !isSecondSession, !isBonusSession,
+           let evName = data.eveningSessionName,
+           !secondDone {
+            let count = data.fullProgram[evName]?.count
+            return NextSessionInfo(label: "Prochaine", name: evName, exoCount: count)
+        }
+        let tomorrow = TrainingDoctrine.tomorrowSessionName(from: data.schedule)
+        let count = tomorrow == "Repos" ? nil : data.fullProgram[tomorrow]?.count
+        return NextSessionInfo(label: "Demain", name: tomorrow, exoCount: count)
     }
 
     // Tendance par exo (▲/▼ à côté du nom dans le récap). Skip tracking non-poids
