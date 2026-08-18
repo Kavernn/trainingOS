@@ -860,9 +860,11 @@ struct ExerciseCard: View {
             // MARK: Expanded content
             if isExpanded { expandedContent }
         }
-        .background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(borderColor, lineWidth: 1))
+        .glassCard(cornerRadius: 16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(borderColor, lineWidth: alreadyLogged || isFocused ? 1 : 0)
+        )
         .opacity(alreadyLogged && !isExpanded ? 0.72 : 1.0)
         .animation(.easeInOut(duration: 0.25), value: alreadyLogged)
         .onAppear {
@@ -919,7 +921,13 @@ struct ExerciseCard: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(name).font(isExpanded ? .appTitle : .appHeadline).fontWeight(.bold).foregroundColor(.appTextPrimary)
+                        let titleFont: Font = isExpanded ? .appTitle : .appHeadline
+                        let titleWeight: Font.Weight = isExpanded ? .heavy : .bold
+                        Text(name)
+                            .font(titleFont)
+                            .fontWeight(titleWeight)
+                            .tracking(isExpanded ? 0.3 : 0)
+                            .foregroundColor(.appTextPrimary)
                         if isReplaced {
                             Text("remplacé")
                                 .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)
