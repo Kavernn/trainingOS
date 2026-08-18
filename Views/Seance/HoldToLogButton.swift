@@ -17,7 +17,7 @@ struct HoldToLogButton: View {
         let holding = isHolding && isEnabled
         ZStack {
             RoundedRectangle(cornerRadius: 14)
-                .fill(logFlash ? Color.statusGreen : holding ? Color.statusOrange.opacity(0.18) : Color.statusOrange.opacity(0.07))
+                .fill(logFlash ? Color.statusGreen : holding ? Color.forge.opacity(0.22) : Color.forge.opacity(0.09))
             RoundedRectangle(cornerRadius: 14)
                 .stroke(
                     showHint ? Color.forge.opacity(hintPulse ? 0.7 : 0.2) : logFlash ? Color.clear : Color.forge.opacity(isEnabled ? 0.35 : 0.1),
