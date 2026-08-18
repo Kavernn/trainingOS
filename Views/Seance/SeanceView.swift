@@ -202,6 +202,20 @@ struct AlreadyLoggedSeanceView: View {
                     }
                     .padding(.horizontal, 16)
 
+                    // ── Breakdown AM/PM (si double séance + slots dispo) ─
+                    if (session.sessionCount ?? 1) >= 2,
+                       let slots = session.slots,
+                       let amSlot = slots.first(where: { $0.type == "morning" }),
+                       let pmSlot = slots.first(where: { $0.type == "evening" }) {
+                        HStack(spacing: 12) {
+                            slotBreakdown(amSlot, color: sessionColor)
+                            Spacer(minLength: 8)
+                            slotBreakdown(pmSlot, color: eveningColor)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 2)
+                    }
+
                     // ── Liste exos premium (compatible split Lot C) ──────
                     if let exos = session.exos, !exos.isEmpty {
                         let pmName = data.eveningSessionName ?? ""
@@ -632,6 +646,25 @@ struct AlreadyLoggedSeanceView: View {
             .padding(.horizontal, 12).padding(.vertical, 5)
             .background(color.opacity(0.12))
             .clipShape(Capsule())
+    }
+
+    @ViewBuilder
+    private func slotBreakdown(_ slot: SessionSlot, color: Color) -> some View {
+        let rpeStr: String? = slot.rpe.map { String(format: "RPE %.1f", $0) }
+        let durStr: String? = slot.durationMin.map { "\(Int($0))min" }
+        let parts = [rpeStr, durStr].compactMap { $0 }
+        HStack(spacing: 5) {
+            Text(slot.label.uppercased())
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1)
+                .foregroundColor(color)
+            if !parts.isEmpty {
+                Text("· " + parts.joined(separator: " · "))
+                    .font(.system(size: 11, weight: .regular, design: .rounded))
+                    .foregroundColor(.gray)
+                    .monospacedDigit()
+            }
+        }
     }
 
     private func slotPill(label: String, name: String, color: Color) -> some View {
