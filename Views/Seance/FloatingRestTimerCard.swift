@@ -112,13 +112,10 @@ struct FloatingRestTimerCard: View {
             // (ScrollView bornée à l'écran) au lieu de proposer ∞ au safeAreaInset,
             // ce qui étirait la ScrollView (cf. régression chantier B).
             .containerRelativeFrame(.horizontal) { length, _ in length - 32 }
-            .background(
+            .glassCard(cornerRadius: 20)
+            .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.appBg)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(ringColor.opacity(0.3), lineWidth: 1)
-                    )
+                    .stroke(Color.forge.opacity(0.28), lineWidth: 1)
             )
             .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: -4)
             .padding(.horizontal, 16)
