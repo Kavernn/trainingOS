@@ -49,7 +49,7 @@ class SeanceSoirViewModel: SeanceViewModel {
         isLoading = false
     }
 
-    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false) async {
+    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false, closeSession: Bool = true) async {
         precondition(!bonusSession, "SeanceSoirViewModel ne supporte pas bonus — path bonus via SeanceViewModel(draftSessionType: \"bonus\") + ExtraSessionSheet.")
         // Guard double-submit — symétrie avec SeanceViewModel.finish (L778-788, parent
         // matin). Sans ça, un tap répété sur "Terminer" pouvait lancer 2 tâches
@@ -81,6 +81,16 @@ class SeanceSoirViewModel: SeanceViewModel {
             } catch {
                 failedExercises.append(result.name)
             }
+        }
+
+        // Reprendre plus tard : persist les exos (loop ci-dessus déjà fait) et sort.
+        // On SKIP logSession → workout_sessions.completed reste false → showEveningBlock
+        // (SeanceView.swift:132) reste vrai → Vince peut rouvrir. On SKIP aussi le
+        // clear du draft (safety net local si logExercise a échoué offline). Restitution
+        // à la reprise = hide-done via loggedTodayNames (WorkoutActiveView L199-202).
+        if !closeSession {
+            await APIService.shared.fetchDashboard()
+            return
         }
 
         do {

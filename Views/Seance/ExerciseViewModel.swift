@@ -948,7 +948,10 @@ class SeanceViewModel: ObservableObject {
         }
     }
 
-    func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false) async {
+    // closeSession : knob PM-only honoré par SeanceSoirViewModel.finish
+    // (branche "Reprendre plus tard" = persist exos sans écrire completed=True).
+    // Ignoré ici : AM/bonus ferment toujours.
+    func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false, closeSession: Bool = true) async {
         guard !isFinishing else { return }
         isFinishing = true
 

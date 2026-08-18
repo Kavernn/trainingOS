@@ -32,12 +32,19 @@ struct WorkoutSeanceView: View {
     /// Nil pour AM/soir (parent stable). Set en bonus pour fermer ExtraSessionSheet
     /// après le récap, pas pendant (fix race showSuccess vs showRecap).
     var onDidFinish: (() -> Void)? = nil
+    @Environment(\.dismiss) private var dismiss
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var showFinish = false
     @State private var showFinishConfirm = false
     @State private var showUnloggedWarning = false
     @State private var confirmedFromWarning = false
+    // PM partielle : dialogue "Reprendre plus tard / Clore la séance" quand
+    // isSecondSession && exos loggés < plan total. Route dédiée, court-circuite
+    // WorkoutSummarySheet (AM/bonus conservent l'existant).
+    @State private var showPartialSecondDialog = false
+    @State private var partialDoneCount = 0
+    @State private var partialTotalCount = 0
     @State private var showSummary = false
     @State private var ghostData: GhostData? = nil
     // W-C3 — showGhost persists per session so the dismissed banner doesn't reappear
@@ -1444,7 +1451,16 @@ struct WorkoutSeanceView: View {
                     }
                     Button(action: {
                         let unlogged = exercises.filter { vm.logResults[$0.0] == nil }
-                        if unlogged.isEmpty { showFinishConfirm = true } else { showUnloggedWarning = true }
+                        if unlogged.isEmpty {
+                            showFinishConfirm = true
+                        } else if isSecondSession {
+                            let total = data.fullProgram[data.today]?.count ?? exercises.count
+                            partialTotalCount = total
+                            partialDoneCount = total - unlogged.count
+                            showPartialSecondDialog = true
+                        } else {
+                            showUnloggedWarning = true
+                        }
                     }) {
                         HStack(spacing: 8) {
                             if vm.isFinishing {
@@ -1467,7 +1483,7 @@ struct WorkoutSeanceView: View {
                         .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
                         .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
                     }
-                    .disabled(vm.logResults.isEmpty || vm.isFinishing || showFinishConfirm || showUnloggedWarning || showFinish)
+                    .disabled(vm.logResults.isEmpty || vm.isFinishing || showFinishConfirm || showUnloggedWarning || showFinish || showPartialSecondDialog)
                     .animation(.easeInOut(duration: 0.25), value: vm.logResults.isEmpty)
                     .animation(.spring(response: 0.4, dampingFraction: 0.7), value: completionGlow)
                 }
@@ -1677,6 +1693,27 @@ struct WorkoutSeanceView: View {
                 Text("Tous les exercices sont loggués.")
             }
         }
+        // PM partielle : "Reprendre plus tard" persiste les exos sans écrire completed=True
+        // (bloc PM reste visible dans SeanceView, cf. showEveningBlock L132). "Clore" bascule
+        // sur FinishSessionSheet (chemin existant : RPE + logSession completed=True).
+        .confirmationDialog(
+            "Séance partielle · \(partialDoneCount)/\(partialTotalCount) exercices",
+            isPresented: $showPartialSecondDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Reprendre plus tard") {
+                // Dismiss APRÈS await finish : vue reste montée pendant la boucle
+                // logExercise, vm retenu par @StateObject (pas seulement la capture Task),
+                // spinner isFinishing visible, submitError → alert avant dismiss. Aligné
+                // sur le pattern AM/bonus (WorkoutActiveView.swift:1597, BonusSeanceView.swift:360).
+                Task {
+                    await vm.finish(rpe: 0, comment: "", sessionName: data.today, closeSession: false)
+                    await MainActor.run { dismiss() }
+                }
+            }
+            Button("Clore la séance") { showFinish = true }
+            Button("Annuler", role: .cancel) {}
+        }
         // W-D11 — abandon session alert
         .alert("Quitter la séance ?", isPresented: $showAbandonAlert) {
             if vm.logResults.count > 0 {
@@ -1787,12 +1824,12 @@ struct WorkoutSeanceView: View {
                 let programExercises = Set(data.fullProgram.values.flatMap { $0.keys })
                 if let cutoff = Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) {
                     let cutoffStr = DateFormatter.isoDate.string(from: cutoff)
-                    recentAdHocExercises = await Task.detached(priority: .utility) {
-                        weights
-                            .filter { name, wd in !programExercises.contains(name) && (wd.lastLogged ?? "") >= cutoffStr }
-                            .sorted { a, b in (a.value.lastLogged ?? "") > (b.value.lastLogged ?? "") }
-                            .prefix(5)
-                            .map(\.key)
+                    recentAdHocExercises = await Task.detached(priority: .utility) { () -> [String] in
+                        let filtered = weights.filter { (name: String, wd: WeightData) -> Bool in
+                            !programExercises.contains(name) && (wd.lastLogged ?? "") >= cutoffStr
+                        }
+                        let sorted = filtered.sorted { a, b in (a.value.lastLogged ?? "") > (b.value.lastLogged ?? "") }
+                        return sorted.prefix(5).map(\.key)
                     }.value
                 }
                 await MainActor.run {
