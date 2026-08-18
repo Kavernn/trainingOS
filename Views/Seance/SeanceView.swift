@@ -137,34 +137,35 @@ struct AlreadyLoggedSeanceView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
 
-                // ── Header ──────────────────────────────────────────────
-                VStack(spacing: 8) {
+                // ── Header épuré (Lot D — aligné SessionRecapSheet) ──────
+                VStack(spacing: 12) {
                     ZStack {
-                        Circle().fill(Color.statusGreen.opacity(0.15))
-                            .frame(width: 72, height: 72)
-                            .scaleEffect(animateHeader ? 1.0 : 0.5)
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.statusGreen)
+                        Circle().fill(Color.forge.opacity(0.14))
+                            .frame(width: 84, height: 84)
+                            .scaleEffect(animateHeader ? 1.0 : 0.4)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 38, weight: .bold))
+                            .foregroundColor(Color.forge)
                             .scaleEffect(animateHeader ? 1.0 : 0.3)
                             .opacity(animateHeader ? 1.0 : 0.0)
                     }
                     Text("Séance complétée")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.appOnBackground)
+                        .font(.appTitle).fontWeight(.bold)
+                        .foregroundColor(.appTextPrimary)
                         .opacity(animateHeader ? 1.0 : 0.0)
-                        .offset(y: animateHeader ? 0 : 12)
+                        .offset(y: animateHeader ? 0 : 8)
                     Text(data.today)
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(sessionColor)
-                        .padding(.horizontal, 14).padding(.vertical, 5)
-                        .background(sessionColor.opacity(0.12))
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(0.4)
+                        .foregroundColor(Color.forge)
+                        .padding(.horizontal, 12).padding(.vertical, 5)
+                        .background(Color.forge.opacity(0.10))
                         .clipShape(Capsule())
                         .opacity(animateHeader ? 1.0 : 0.0)
                 }
-                .padding(.top, 24)
+                .padding(.top, 20)
                 .onAppear {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.65)) {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.68)) {
                         animateHeader = true
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -172,102 +173,72 @@ struct AlreadyLoggedSeanceView: View {
                     }
                 }
 
-                // ── Recap aujourd'hui ────────────────────────────────────
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("RÉCAP D'AUJOURD'HUI")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(2)
-                        .foregroundColor(.gray)
-
-                    if let session = todaySession {
-                        // RPE + stats row
-                        HStack(spacing: 12) {
-                            if let rpe = session.rpe {
-                                VStack(spacing: 3) {
-                                    Text(String(format: "%.1f", rpe))
-                                        .font(.system(size: 24, weight: .black))
-                                        .foregroundColor(rpeColor(rpe))
-                                    HStack(spacing: 3) {
-                                        Text("RPE")
-                                            .font(.appMicro.weight(.bold))
-                                            .tracking(1)
-                                            .foregroundColor(.gray)
-                                        CardInfoButton(title: "RPE & RIR", entries: InfoEntry.rpeRirEntries)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(rpeColor(rpe).opacity(0.08))
-                                .cornerRadius(10)
-                            }
-                            if let exos = session.exos {
-                                VStack(spacing: 3) {
-                                    Text("\(exos.count)")
-                                        .font(.system(size: 24, weight: .black))
-                                        .foregroundColor(sessionColor)
-                                    Text("EXOS")
-                                        .font(.appMicro.weight(.bold))
-                                        .tracking(1)
-                                        .foregroundColor(.gray)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(sessionColor.opacity(0.08))
-                                .cornerRadius(10)
-                            }
+                // ── Stats premium (Lot D — StatCard partagé) ─────────────
+                if let session = todaySession {
+                    let durStr: String = session.durationMin.map { "\(Int($0))" } ?? "—"
+                    let rpeVal = session.rpe
+                    let rpeStr: String = rpeVal.map { String(format: "%.1f", $0) } ?? "—"
+                    let rpeCol: Color = rpeVal.map { rpeColor($0) } ?? .appTextPrimary
+                    let volDisp: String? = {
+                        guard let v = session.sessionVolume, v > 0 else { return nil }
+                        let units = UnitSettings.shared
+                        let d = units.isKg ? v * 0.453592 : v
+                        return d >= 1000 ? String(format: "%.1ft", d / 1000) : "\(Int(d.rounded()))"
+                    }()
+                    HStack(spacing: 10) {
+                        StatCard(value: durStr, label: "min", color: .appTextPrimary)
+                        if let vol = volDisp {
+                            StatCard(value: vol, label: "vol", color: .appTextPrimary)
+                        } else {
+                            StatCard(value: "\(session.exos?.count ?? 0)", label: "exos", color: .appTextPrimary)
                         }
-
-                        // Exercise list — split AM/PM si double séance (Lot C)
-                        if let exos = session.exos, !exos.isEmpty {
-                            let pmName = data.eveningSessionName ?? ""
-                            let pmKeys = Set((data.fullProgram[pmName] ?? [:]).keys)
-                            let pmExos = exos.filter { pmKeys.contains($0) }
-                            let amExos = exos.filter { !pmKeys.contains($0) }
-                            let showSplit = (session.sessionCount ?? 1) >= 2 && !pmExos.isEmpty
-
-                            if showSplit {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    slotPill(label: "AM", name: data.today, color: sessionColor)
-                                    VStack(spacing: 0) {
-                                        ForEach(amExos, id: \.self) { exoRow($0, color: sessionColor) }
-                                    }
-                                    slotPill(label: "PM", name: pmName, color: eveningColor)
-                                        .padding(.top, 4)
-                                    VStack(spacing: 0) {
-                                        ForEach(pmExos, id: \.self) { exoRow($0, color: eveningColor) }
-                                    }
-                                }
-                            } else {
-                                VStack(spacing: 0) {
-                                    ForEach(exos, id: \.self) { exoRow($0, color: sessionColor) }
-                                }
-                            }
-                        }
-
-                        // Comment
-                        if let comment = session.comment, !comment.isEmpty {
-                            HStack(spacing: 8) {
-                                Image(systemName: "quote.bubble")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.statusBlue)
-                                Text(comment)
-                                    .font(.appLabel)
-                                    .foregroundColor(.gray)
-                                    .italic()
-                                Spacer()
-                            }
-                        }
-                    } else {
-                        Text("Données non disponibles")
-                            .font(.appLabel)
-                            .foregroundColor(.gray)
+                        StatCard(value: rpeStr, label: "rpe", color: rpeCol)
                     }
+                    .padding(.horizontal, 16)
+
+                    // ── Liste exos premium (compatible split Lot C) ──────
+                    if let exos = session.exos, !exos.isEmpty {
+                        let pmName = data.eveningSessionName ?? ""
+                        let pmKeys = Set((data.fullProgram[pmName] ?? [:]).keys)
+                        let pmExos = exos.filter { pmKeys.contains($0) }
+                        let amExos = exos.filter { !pmKeys.contains($0) }
+                        let showSplit = (session.sessionCount ?? 1) >= 2 && !pmExos.isEmpty
+
+                        if showSplit {
+                            VStack(alignment: .leading, spacing: 12) {
+                                slotPill(label: "AM", name: data.today, color: sessionColor)
+                                exoCard(amExos)
+                                slotPill(label: "PM", name: pmName, color: eveningColor)
+                                    .padding(.top, 4)
+                                exoCard(pmExos)
+                            }
+                            .padding(.horizontal, 16)
+                        } else {
+                            exoCard(exos)
+                                .padding(.horizontal, 16)
+                        }
+                    }
+
+                    // ── Commentaire ──────────────────────────────────────
+                    if let comment = session.comment, !comment.isEmpty {
+                        HStack(spacing: 8) {
+                            Image(systemName: "quote.bubble")
+                                .font(.system(size: 12))
+                                .foregroundColor(.statusBlue)
+                            Text(comment)
+                                .font(.appLabel)
+                                .foregroundColor(.gray)
+                                .italic()
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                } else {
+                    Text("Données non disponibles")
+                        .font(.appLabel)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 16)
                 }
-                .padding(16)
-                .background(Color.appCard)
-                .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.statusGreen.opacity(0.2), lineWidth: 1))
-                .padding(.horizontal, 16)
 
                 // ── Séance PM à faire (état 2) ───────────────────────────
                 if showEveningBlock {
@@ -605,29 +576,46 @@ struct AlreadyLoggedSeanceView: View {
     private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     @ViewBuilder
-    private func exoRow(_ exo: String, color: Color) -> some View {
+    private func exoRow(_ exo: String) -> some View {
         let entry = data.weights[exo]?.history?.first(where: { $0.date == data.todayDate })
-        HStack(spacing: 8) {
-            Circle()
-                .fill(color.opacity(0.3))
-                .frame(width: 5, height: 5)
-            Text(exo)
-                .font(.appLabel)
-                .foregroundColor(Color.appOnSurface.opacity(0.85))
-            Spacer()
-            if let w = entry?.weight, w > 0 {
-                Text(UnitSettings.shared.format(w))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(color.opacity(0.8))
+        let reps = entry?.reps ?? ""
+        let weightStr: String = (entry?.weight ?? 0) > 0
+            ? UnitSettings.shared.format(entry?.weight ?? 0)
+            : ""
+        let summary = [reps, weightStr].filter { !$0.isEmpty }.joined(separator: " · ")
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(exo)
+                    .font(.appBody).fontWeight(.semibold)
+                    .foregroundColor(.appTextPrimary)
+                if !summary.isEmpty {
+                    Text(summary)
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundColor(.gray)
+                        .monospacedDigit()
+                }
             }
-            if let r = entry?.reps, !r.isEmpty {
-                Text(r)
-                    .font(.appCaption)
-                    .foregroundColor(.gray)
+            Spacer(minLength: 8)
+            Image(systemName: "checkmark")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.statusGreen)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+
+    @ViewBuilder
+    private func exoCard(_ exos: [String]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(exos.enumerated()), id: \.1) { idx, exo in
+                exoRow(exo)
+                if idx < exos.count - 1 {
+                    Divider().background(Color.appSeparatorSubtle).padding(.leading, 16)
+                }
             }
         }
-        .padding(.vertical, 6)
-        Divider().background(Color.appSeparatorSubtle)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func slotPill(label: String, name: String, color: Color) -> some View {
