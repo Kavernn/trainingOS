@@ -745,30 +745,6 @@ struct PSSResultsContent: View {
 
                 insightsSection
 
-                // P-C1: Breathwork CTA kept only here (post-questionnaire context)
-                if record.category != "low" {
-                    NavigationLink { BreathworkView() } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "lungs.fill").font(.appBody).foregroundColor(.statusGreen)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Décompresser maintenant")
-                                    .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
-                                Text("Cohérence cardiaque · 5 min recommandées")
-                                    .font(.appCaption).foregroundColor(.gray)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
-                        }
-                        .padding(14)
-                        .background(Color.statusGreen.opacity(0.08))
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusGreen.opacity(0.15), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 16)
-                    .appearAnimation(delay: 0.13)
-                }
-
                 notesSection
 
                 Button("Terminer", action: onFinish)

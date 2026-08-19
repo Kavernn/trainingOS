@@ -996,15 +996,6 @@ private struct UnifiedRecoverySleepSection: View {
                 subtitle: hrvSubtitle, infoEntry: InfoEntry.hrvMetric
             )
             TappableMetricCell(
-                label: "FC Repos", value: entry?.restingHr.map { "\(Int($0)) bpm" } ?? "—",
-                icon: "heart.fill", color: .statusRed, infoEntry: InfoEntry.restingHrMetric
-            )
-            TappableMetricCell(
-                label: "Durée sommeil",
-                value: (sleepToday?.durationHours ?? entry?.sleepHours).map { String(format: "%.1fh", $0) } ?? "—",
-                icon: "moon.zzz.fill", color: .indigo, infoEntry: InfoEntry.sleepDurationMetric
-            )
-            TappableMetricCell(
                 label: "Qualité sommeil", value: qualVal,
                 icon: "star.fill", color: .statusPurple, infoEntry: InfoEntry.sleepQualityMetric
             )
@@ -1026,15 +1017,9 @@ private struct UnifiedRecoverySleepSection: View {
         if !readinessHistory.isEmpty {
             Recovery14dChart(history: readinessHistory)
         }
-        if sleepHistory.count >= 2 {
-            Sleep10dChart(history: sleepHistory)
-        }
-
     }
 
     private func secondaryMetricsGrid(entry: RecoveryEntry) -> some View {
-        let energyPre = entry.energyPre
-        let energyColor: Color = energyPre.map { $0 >= 7 ? .statusGreen : $0 >= 4 ? .statusOrange : .statusRed } ?? .gray
         let deltaFC: Double? = entry.hrMorning.flatMap { m in entry.hrPostWorkout.map { p in p - m } }
         let deltaColor: Color = deltaFC.map { d in d <= 10 ? .statusGreen : d <= 20 ? .statusOrange : .statusRed } ?? .gray
 
@@ -1042,15 +1027,6 @@ private struct UnifiedRecoverySleepSection: View {
             columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
             spacing: 8
         ) {
-            TappableMetricCell(label: "Pas", value: entry.steps.map { "\($0)" } ?? "—",
-                               icon: "figure.walk", color: .statusGreen, infoEntry: InfoEntry.stepsMetric)
-            TappableMetricCell(label: "Courbatures", value: entry.soreness.map { "\(Int($0))/10" } ?? "—",
-                               icon: "bolt.fill", color: Color.forge, infoEntry: InfoEntry.sorenessMetric)
-            TappableMetricCell(label: "Fatigue", value: entry.fatigue.map { "\(Int($0))/10" } ?? "—",
-                               icon: "gauge", color: .statusPurple, infoEntry: InfoEntry.fatigueMetric)
-            TappableMetricCell(label: "Énergie perçue", value: energyPre.map { "\(Int($0))/10" } ?? "—",
-                               icon: "bolt.fill", color: energyColor, valueColor: energyColor,
-                               infoEntry: InfoEntry.energyPreMetric)
             TappableMetricCell(label: "FC Matin", value: entry.hrMorning.map { "\(Int($0)) bpm" } ?? "—",
                                icon: "sun.max.fill", color: .statusYellow, infoEntry: InfoEntry.hrMorningMetric)
             TappableMetricCell(label: "FC Post-Séance", value: entry.hrPostWorkout.map { "\(Int($0)) bpm" } ?? "—",
@@ -1065,10 +1041,6 @@ private struct UnifiedRecoverySleepSection: View {
                     icon: "arrow.up.arrow.down", color: deltaColor, valueColor: deltaColor,
                     infoEntry: InfoEntry.deltaFcMetric
                 )
-            }
-            if let ae = entry.activeEnergy, ae > 0 {
-                TappableMetricCell(label: "Dépense active", value: "\(Int(ae)) kcal",
-                                   icon: "applewatch", color: .statusCyan, infoEntry: InfoEntry.activeEnergyMetric)
             }
         }
     }
@@ -1342,120 +1314,6 @@ private struct Recovery14dChart: View {
                 }
             }
             .frame(height: 130)
-        }
-    }
-}
-
-// MARK: - Graphique Sommeil 10j
-
-private struct Sleep10dChart: View {
-    let history: [SleepEntry]
-
-    private struct SleepPoint: Identifiable {
-        let id: String
-        let label: String
-        let duration: Double
-        let quality: Int
-        let durColor: Color
-    }
-
-    private func shortDate(_ d: String) -> String {
-        let parts = d.split(separator: "-")
-        guard parts.count == 3 else { return d }
-        return "\(parts[2])/\(parts[1])"
-    }
-
-    private var chartPoints: [SleepPoint] {
-        Array(history.prefix(10).reversed()).map { e in
-            let color: Color = e.durationHours >= 7 ? .statusGreen
-                             : e.durationHours >= 6 ? Color.forge : .statusRed
-            return SleepPoint(id: e.id, label: shortDate(e.date),
-                              duration: e.durationHours, quality: e.quality,
-                              durColor: color)
-        }
-    }
-
-    var body: some View {
-        let pts = chartPoints
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("DURÉE & QUALITÉ — 10J")
-                    .font(.appCaption.weight(.black))
-                    .tracking(2)
-                    .foregroundColor(.gray)
-                Spacer()
-                HStack(spacing: 12) {
-                    legendDot(color: .statusBlue,   label: "Durée")
-                    legendDot(color: .statusPurple, label: "Qualité ×2")
-                }
-            }
-
-            Chart {
-                RuleMark(y: .value("Optimal", 7.0))
-                    .lineStyle(StrokeStyle(lineWidth: 0.8, dash: [3]))
-                    .foregroundStyle(Color.statusGreen.opacity(0.35))
-                    .annotation(position: .trailing, alignment: .leading) {
-                        Text("7h")
-                            .font(.system(size: 8))
-                            .foregroundColor(Color.statusGreen.opacity(0.6))
-                    }
-
-                ForEach(pts) { p in
-                    BarMark(
-                        x: .value("Date", p.label),
-                        y: .value("Heures", p.duration)
-                    )
-                    .foregroundStyle(p.durColor.opacity(0.7))
-                    .cornerRadius(3)
-                }
-
-                ForEach(pts.filter { $0.quality > 0 }) { p in
-                    LineMark(
-                        x: .value("Date", p.label),
-                        y: .value("Qualité", Double(p.quality) * 2.0),
-                        series: .value("S", "Qualité")
-                    )
-                    .foregroundStyle(Color.statusPurple.opacity(0.85))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
-                    .interpolationMethod(.catmullRom)
-
-                    PointMark(
-                        x: .value("Date", p.label),
-                        y: .value("Qualité", Double(p.quality) * 2.0)
-                    )
-                    .foregroundStyle(Color.statusPurple)
-                    .symbolSize(18)
-                }
-            }
-            .chartYScale(domain: 0.0...12.0)
-            .chartYAxis {
-                AxisMarks(values: [0.0, 4.0, 6.0, 7.0, 8.0, 10.0]) { val in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.4))
-                        .foregroundStyle(Color.appSurfaceInset)
-                    AxisValueLabel {
-                        if let v = val.as(Double.self) {
-                            Text("\(Int(v))h")
-                                .font(.appMicro)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                }
-            }
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 5)) {
-                    AxisValueLabel()
-                        .font(.appMicro)
-                        .foregroundStyle(Color.gray)
-                }
-            }
-            .frame(height: 140)
-        }
-    }
-
-    private func legendDot(color: Color, label: String) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.appMicro).foregroundColor(.gray)
         }
     }
 }

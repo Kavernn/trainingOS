@@ -464,8 +464,7 @@ struct DashboardView: View {
     private func handleAlertAction(signal: CriticalSignal, dash: DashboardData) {
         switch signal.destination {
         case .recovery, .hrv:
-            AppState.shared.pendingDeepLink = "more"
-            AppState.shared.openRecoveryView = true
+            AppState.shared.pendingDeepLink = "recovery"
         case .workout:
             onOpenSession?()
         case .deload:

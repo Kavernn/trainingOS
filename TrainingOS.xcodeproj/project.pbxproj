@@ -133,9 +133,6 @@
 		DC73018555BF2F8EE84E78C2 /* APIService+Plateau.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955D6FDBE3CAB80990772A49 /* APIService+Plateau.swift */; };
 		DD4400012F5D98BA002AE473 /* MentalHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4400022F5D98BA002AE473 /* MentalHealthView.swift */; };
 		DD4400032F5D98BA002AE473 /* MoodTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4400042F5D98BA002AE473 /* MoodTrackerView.swift */; };
-		DD4400052F5D98BA002AE473 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4400062F5D98BA002AE473 /* JournalView.swift */; };
-		DD4400072F5D98BA002AE473 /* BreathworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4400082F5D98BA002AE473 /* BreathworkView.swift */; };
-		DD4400092F5D98BA002AE473 /* SelfCareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000A2F5D98BA002AE473 /* SelfCareView.swift */; };
 		DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */; };
 		DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */; };
 		E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */; };
@@ -205,12 +202,6 @@
 		SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */; };
 		SH000002SH000002SH000002 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH000001SH000001SH000001 /* SectionHeader.swift */; };
 		SM001001AA00300B2F5DFFFF /* StatsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SM001000AA00300B2F5DFFFF /* StatsModels.swift */; };
-		SP001001AA00300B2F5DBBBB /* SpiritModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP001000AA00300B2F5DBBBB /* SpiritModels.swift */; };
-		SP002001AA00300B2F5DBBBB /* APIService+Spirit.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */; };
-		SP003001AA00300B2F5DBBBB /* SpiritView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP003000AA00300B2F5DBBBB /* SpiritView.swift */; };
-		SP004001AA00300B2F5DBBBB /* SpiritBreathworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */; };
-		SP005001AA00300B2F5DBBBB /* SpiritMeditationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */; };
-		SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */; };
 		SPK0002SPK0002SPK0002SP2 /* SessionPreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */; };
 		SR000002SR000002SR000002 /* StatRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = SR000001SR000001SR000001 /* StatRow.swift */; };
 		SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */; };
@@ -424,9 +415,6 @@
 		DC8A59EA175A4A018DA8F7AC /* APIService+Coach.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Coach.swift"; sourceTree = "<group>"; };
 		DD4400022F5D98BA002AE473 /* MentalHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthView.swift; sourceTree = "<group>"; };
 		DD4400042F5D98BA002AE473 /* MoodTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodTrackerView.swift; sourceTree = "<group>"; };
-		DD4400062F5D98BA002AE473 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
-		DD4400082F5D98BA002AE473 /* BreathworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreathworkView.swift; sourceTree = "<group>"; };
-		DD44000A2F5D98BA002AE473 /* SelfCareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareView.swift; sourceTree = "<group>"; };
 		DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrisisResourcesView.swift; sourceTree = "<group>"; };
 		DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthDashboardView.swift; sourceTree = "<group>"; };
 		E163D5411790B6DA5108E310 /* PatternModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternModels.swift; sourceTree = "<group>"; };
@@ -499,12 +487,6 @@
 		SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonReportView.swift; sourceTree = "<group>"; };
 		SH000001SH000001SH000001 /* SectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		SM001000AA00300B2F5DFFFF /* StatsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatsModels.swift; sourceTree = "<group>"; };
-		SP001000AA00300B2F5DBBBB /* SpiritModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritModels.swift; sourceTree = "<group>"; };
-		SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Spirit.swift"; sourceTree = "<group>"; };
-		SP003000AA00300B2F5DBBBB /* SpiritView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritView.swift; sourceTree = "<group>"; };
-		SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritBreathworkView.swift; sourceTree = "<group>"; };
-		SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritMeditationView.swift; sourceTree = "<group>"; };
-		SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritJournalView.swift; sourceTree = "<group>"; };
 		SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPreferenceKeys.swift; sourceTree = "<group>"; };
 		SR000001SR000001SR000001 /* StatRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatRow.swift; sourceTree = "<group>"; };
 		SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupportViews.swift; sourceTree = "<group>"; };
@@ -556,29 +538,21 @@
 		};
 		D68A5C452FD0CE6600B824DF /* VinceSeven Watch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch App";
 			sourceTree = "<group>";
 		};
 		D68A5C532FD0CE6800B824DF /* VinceSeven Watch Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppTests";
 			sourceTree = "<group>";
 		};
 		D68A5C5D2FD0CE6800B824DF /* VinceSeven Watch Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppUITests";
 			sourceTree = "<group>";
 		};
 		D69FB9062F666F3F0091BDD2 /* TrainingOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TrainingOSTests;
 			sourceTree = "<group>";
 		};
@@ -882,7 +856,6 @@
 				6186E51D3E2986E22EC27AC3 /* PlateauModels.swift */,
 				3BF5B0FFF277946C524E44D3 /* RitualModels.swift */,
 				WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */,
-				SP001000AA00300B2F5DBBBB /* SpiritModels.swift */,
 				OA001000AA00300B2F5DCCCC /* OathModels.swift */,
 				SE001000AA00300B2F5DDDDD /* SeasonModels.swift */,
 				GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */,
@@ -933,7 +906,6 @@
 				32F1EC5F94087F4D7DE3F244 /* BodyCompService.swift */,
 				ED6AAE13530007B583B67B1D /* APIService+Ritual.swift */,
 				WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */,
-				SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */,
 				OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */,
 				SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */,
 				GF007000AA00300B2F5DEEEE /* GymFinderService.swift */,
@@ -1062,7 +1034,6 @@
 				OB000003OB000003OB000003 /* Onboarding */,
 				FF11000A2F5D98BA002AE470 /* SplashView.swift */,
 				7422762B7F37251A1E7B0E06 /* Components */,
-				SP000000AA00300B2F5DBBBB /* Spirit */,
 				OA000000AA00300B2F5DCCCC /* Oath */,
 				SE000000AA00300B2F5DDDDD /* Seasons */,
 				GF000000AA00300B2F5DEEEE /* GymFinder */,
@@ -1078,9 +1049,6 @@
 			children = (
 				DD4400022F5D98BA002AE473 /* MentalHealthView.swift */,
 				DD4400042F5D98BA002AE473 /* MoodTrackerView.swift */,
-				DD4400062F5D98BA002AE473 /* JournalView.swift */,
-				DD4400082F5D98BA002AE473 /* BreathworkView.swift */,
-				DD44000A2F5D98BA002AE473 /* SelfCareView.swift */,
 				DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */,
 				DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */,
 			);
@@ -1159,17 +1127,6 @@
 				SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */,
 			);
 			path = Seasons;
-			sourceTree = "<group>";
-		};
-		SP000000AA00300B2F5DBBBB /* Spirit */ = {
-			isa = PBXGroup;
-			children = (
-				SP003000AA00300B2F5DBBBB /* SpiritView.swift */,
-				SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */,
-				SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */,
-				SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */,
-			);
-			path = Spirit;
 			sourceTree = "<group>";
 		};
 		STNG0000STNG0000STNG0000 /* Settings */ = {
@@ -1532,9 +1489,6 @@
 				CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */,
 				DD4400012F5D98BA002AE473 /* MentalHealthView.swift in Sources */,
 				DD4400032F5D98BA002AE473 /* MoodTrackerView.swift in Sources */,
-				DD4400052F5D98BA002AE473 /* JournalView.swift in Sources */,
-				DD4400072F5D98BA002AE473 /* BreathworkView.swift in Sources */,
-				DD4400092F5D98BA002AE473 /* SelfCareView.swift in Sources */,
 				DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */,
 				DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */,
 				FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */,
@@ -1602,12 +1556,6 @@
 				WR008001AA00300B2F5DAAAA /* PatternReportView.swift in Sources */,
 				WR009001AA00300B2F5DAAAA /* WarMapView.swift in Sources */,
 				WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */,
-				SP001001AA00300B2F5DBBBB /* SpiritModels.swift in Sources */,
-				SP002001AA00300B2F5DBBBB /* APIService+Spirit.swift in Sources */,
-				SP003001AA00300B2F5DBBBB /* SpiritView.swift in Sources */,
-				SP004001AA00300B2F5DBBBB /* SpiritBreathworkView.swift in Sources */,
-				SP005001AA00300B2F5DBBBB /* SpiritMeditationView.swift in Sources */,
-				SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */,
 				OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */,
 				OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */,
 				OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */,

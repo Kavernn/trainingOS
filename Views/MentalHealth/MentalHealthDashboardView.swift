@@ -46,23 +46,13 @@ struct MentalHealthDashboardView: View {
     @ViewBuilder
     private func dashboardContent(_ s: MentalHealthSummary) -> some View {
 
-        // KPI row
-        HStack(spacing: 0) {
-            MHKPICell(label: "Humeur moy.", value: s.avgMood.map { String(format: "%.1f", $0) } ?? "–",
-                      unit: "/10", color: moodColor(s.avgMood))
-            Divider().background(Color.appSeparatorStrong)
-            MHKPICell(label: "Séances BW", value: "\(s.breathworkSessions)",
-                      unit: "sessions", color: .statusGreen)
-            Divider().background(Color.appSeparatorStrong)
-            MHKPICell(label: "Self-Care", value: "\(Int(s.selfCareRate * 100))",
-                      unit: "%", color: s.selfCareRate >= 0.7 ? .statusGreen : .statusOrange)
-            Divider().background(Color.appSeparatorStrong)
-            MHKPICell(label: "Journal", value: "\(s.journalEntries)",
-                      unit: "entrées", color: .statusBlue)
-        }
-        .frame(height: 72)
-        .glassCard()
-        .padding(.horizontal)
+        // KPI unique — Humeur moyenne
+        MHKPICell(label: "Humeur moyenne", value: s.avgMood.map { String(format: "%.1f", $0) } ?? "–",
+                  unit: "/10", color: moodColor(s.avgMood))
+            .frame(height: 72)
+            .frame(maxWidth: .infinity)
+            .glassCard()
+            .padding(.horizontal)
 
         // Mood chart
         if !s.moodHistory.isEmpty {
@@ -120,32 +110,6 @@ struct MentalHealthDashboardView: View {
                                 .font(.subheadline)
                         }
                     }
-                }
-            }
-        }
-
-        // Consistance
-        if !s.topStreaks.isEmpty {
-            MHSectionCard(title: "Consistance", icon: "calendar.badge.checkmark") {
-                VStack(spacing: 8) {
-                    ForEach(s.topStreaks) { streak in
-                        HStack {
-                            Image(systemName: streak.habitIcon)
-                                .foregroundColor(Color.forge)
-                                .frame(width: 20)
-                            Text(streak.habitName)
-                                .font(.subheadline)
-                            Spacer()
-                            Text("\(streak.currentStreak) / 14 derniers jours")
-                                .font(.caption.bold())
-                                .foregroundColor(Color.forge)
-                        }
-                    }
-                    Text("Un jour de pause ne remet pas à zéro ton progrès.")
-                        .font(.caption)
-                        .foregroundColor(Color.appOnSurface.opacity(0.45))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 4)
                 }
             }
         }

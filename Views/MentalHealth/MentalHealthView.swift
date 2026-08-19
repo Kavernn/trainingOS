@@ -4,8 +4,6 @@ import Charts
 // MARK: - Entry point
 
 struct MentalAmeView: View {
-    @StateObject private var spiritVM = SpiritViewModel()
-    @State private var tab: MentalAmeTab = .mesures
     @State private var moodDue:        MoodDueStatus?
     @State private var recentMoods:    [MoodEntry] = []
     @State private var summary:        MentalHealthSummary?
@@ -17,59 +15,27 @@ struct MentalAmeView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                // Background transite entre les deux tabs
-                Group {
-                    if tab == .pratique {
-                        Color.voidBg
-                    } else {
-                        AmbientBackground(color: .teal)
-                    }
-                }
-                .ignoresSafeArea()
-                .animation(.easeInOut(duration: 0.4), value: tab)
+                AmbientBackground(color: .teal)
+                    .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    SignalDuJourHeader(lss: lss, recentMoods: recentMoods, tab: tab)
+                    SignalDuJourHeader(lss: lss, recentMoods: recentMoods)
                         .padding(.horizontal)
                         .padding(.top, 8)
                         .padding(.bottom, 12)
 
-                    MentalAmePillBar(tab: $tab)
-                        .padding(.horizontal)
-                        .padding(.bottom, 4)
-
-                    ZStack {
-                        if tab == .mesures {
-                            MesuresTab(
-                                summary: summary,
-                                recentMoods: recentMoods,
-                                moodDue: moodDue,
-                                cachedEmotions: cachedEmotions,
-                                disclaimerDismissed: $disclaimerDismissed,
-                                showMoodSheet: $showMoodSheet
-                            )
-                            .transition(.opacity)
-                        } else {
-                            PratiqueTab(vm: spiritVM, lss: lss, recentMoods: recentMoods)
-                                .transition(.opacity)
-                        }
-                    }
-                    .animation(.easeInOut(duration: 0.3), value: tab)
+                    MesuresContent(
+                        summary: summary,
+                        recentMoods: recentMoods,
+                        moodDue: moodDue,
+                        cachedEmotions: cachedEmotions,
+                        disclaimerDismissed: $disclaimerDismissed,
+                        showMoodSheet: $showMoodSheet
+                    )
                 }
             }
             .navigationTitle("Mental & Âme")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if tab == .pratique {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        NavigationLink { SpiritSettingsView(vm: spiritVM) } label: {
-                            Image(systemName: "slider.horizontal.3")
-                                .foregroundStyle(Color.moonlight.opacity(0.4))
-                                .font(.system(size: 14))
-                        }
-                    }
-                }
-            }
             .sheet(isPresented: $showMoodSheet,
                    onDismiss: { Task { await loadData() } }) {
                 MoodLogSheet(emotions: cachedEmotions)
@@ -92,59 +58,14 @@ struct MentalAmeView: View {
             if let list  = e, !list.isEmpty { cachedEmotions = list }
             lss            = l
         }
-        await spiritVM.loadSummary()
     }
 }
 
-// MARK: - Tab enum
-
-enum MentalAmeTab { case mesures, pratique }
-
-// MARK: - Pill bar
-
-private struct MentalAmePillBar: View {
-    @Binding var tab: MentalAmeTab
-
-    var body: some View {
-        HStack(spacing: 2) {
-            pill("Mesures", icon: "chart.bar.fill", t: .mesures)
-            pill("Pratique", icon: "moon.fill",     t: .pratique)
-        }
-        .padding(3)
-        .background(Color.appSurfaceInset, in: RoundedRectangle(cornerRadius: 11))
-    }
-
-    private func pill(_ label: String, icon: String, t: MentalAmeTab) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.3)) { tab = t }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .medium))
-                Text(label)
-                    .font(.appLabel)
-            }
-            .foregroundStyle(tab == t
-                ? (t == .mesures ? Color.teal : Color.moonlight)
-                : Color.appOnSurface.opacity(0.35)
-            )
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(
-                tab == t ? Color.appSurfaceInset : .clear,
-                in: RoundedRectangle(cornerRadius: 9)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Signal du jour header (toujours visible)
+// MARK: - Signal du jour header
 
 private struct SignalDuJourHeader: View {
     let lss: LifeStressScore?
     let recentMoods: [MoodEntry]
-    let tab: MentalAmeTab
 
     private var todayMood: MoodEntry? {
         let today = String(Date().ISO8601Format().prefix(10))
@@ -166,14 +87,12 @@ private struct SignalDuJourHeader: View {
         return Color.moodColor(for: s)
     }
 
-    private var isVoid: Bool { tab == .pratique }
-
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("ÉQUILIBRE")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.appOnSurface.opacity(0.4))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     .tracking(2)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(lss.map { "\($0.score)" } ?? "—")
@@ -182,7 +101,7 @@ private struct SignalDuJourHeader: View {
                     if lss != nil {
                         Text("/ 100")
                             .font(.appMicro.weight(.light))
-                            .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.appOnSurface.opacity(0.4))
+                            .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     }
                 }
                 Text(lssLabel)
@@ -190,19 +109,19 @@ private struct SignalDuJourHeader: View {
                     .foregroundStyle(lssColor.opacity(0.8))
                 Text("Sommeil · HRV · Fatigue")
                     .font(.system(size: 8, weight: .light))
-                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.2) : Color.appOnSurface.opacity(0.25))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.25))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Rectangle()
-                .fill(isVoid ? Color.moonlight.opacity(0.08) : Color.appSurfaceInset)
+                .fill(Color.appSurfaceInset)
                 .frame(width: 0.5)
                 .padding(.vertical, 6)
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("HUMEUR")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.appOnSurface.opacity(0.4))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     .tracking(2)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(todayMood.map { "\($0.score)" } ?? "—")
@@ -211,7 +130,7 @@ private struct SignalDuJourHeader: View {
                     if todayMood != nil {
                         Text("/ 10")
                             .font(.appMicro.weight(.light))
-                            .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.appOnSurface.opacity(0.4))
+                            .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     }
                 }
                 Text(todayMood != nil ? "Aujourd'hui" : "Non loggé")
@@ -219,29 +138,25 @@ private struct SignalDuJourHeader: View {
                     .foregroundStyle(todayMood != nil ? moodColor.opacity(0.8) : Color.gray.opacity(0.5))
                 Text("Humeur subjective /10")
                     .font(.system(size: 8, weight: .light))
-                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.2) : Color.appOnSurface.opacity(0.25))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.25))
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(10)
         .background {
             RoundedRectangle(cornerRadius: 14)
-                .fill(isVoid ? Color.moonlight.opacity(0.04) : Color.appSurfaceInset)
+                .fill(Color.appSurfaceInset)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(
-                            isVoid ? Color.moonlight.opacity(0.08) : Color.appSurfaceInset,
-                            lineWidth: 0.5
-                        )
+                        .strokeBorder(Color.appSurfaceInset, lineWidth: 0.5)
                 }
         }
-        .animation(.easeInOut(duration: 0.4), value: tab)
     }
 }
 
-// MARK: - Mesures tab
+// MARK: - Mesures content
 
-private struct MesuresTab: View {
+private struct MesuresContent: View {
     let summary: MentalHealthSummary?
     let recentMoods: [MoodEntry]
     let moodDue: MoodDueStatus?
@@ -288,21 +203,23 @@ private struct MesuresTab: View {
                 }
                 .appearAnimation(delay: 0.06)
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                    NavigationLink { MoodTrackerView() } label: {
-                        MHMenuCard(icon: "face.smiling.fill", color: Color.forge,
-                                   title: "Humeur", subtitle: moodSubtitle)
+                NavigationLink { MoodTrackerView() } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "face.smiling.fill")
+                            .font(.title2).foregroundColor(Color.forge)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Humeur")
+                                .font(.headline).foregroundColor(.appTextPrimary)
+                            Text(moodSubtitle)
+                                .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundColor(Color.appOnSurface.opacity(0.4))
                     }
-                    NavigationLink { SelfCareView() } label: {
-                        MHMenuCard(icon: "heart.fill", color: Color.appSuccess,
-                                   title: "Self-Care", subtitle: selfCareSubtitle)
-                    }
-                    NavigationLink { JournalView() } label: {
-                        MHMenuCard(icon: "book.pages.fill", color: .teal,
-                                   title: "Journal", subtitle: "Réflexion guidée IA")
-                    }
+                    .padding(14)
+                    .glassCard()
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
                 .appearAnimation(delay: 0.07)
 
                 NavigationLink { MentalHealthDashboardView() } label: {
@@ -349,94 +266,6 @@ private struct MesuresTab: View {
     private var moodSubtitle: String {
         if let avg = summary?.avgMood { return String(format: "Moy. %.1f/10", avg) }
         return moodDue?.isDue == true ? "À loguer" : "À jour"
-    }
-
-    private var selfCareSubtitle: String {
-        if let rate = summary?.selfCareRate { return "\(Int(rate * 100))% complété" }
-        return "Habitudes"
-    }
-}
-
-// MARK: - Pratique tab (The Void intégré)
-
-private struct PratiqueTab: View {
-    @ObservedObject var vm: SpiritViewModel
-    let lss: LifeStressScore?
-    let recentMoods: [MoodEntry]
-    @State private var spiritTab: SpiritTab = .breath
-
-    private var hint: String? {
-        if let score = lss?.score, score < 40 {
-            return "Stress élevé — Calm Storm recommandé"
-        }
-        let recent = recentMoods.prefix(3).map(\.score)
-        if !recent.isEmpty {
-            let avg = Double(recent.reduce(0, +)) / Double(recent.count)
-            if avg < 5 { return "Humeur basse ces derniers jours — le journal peut aider" }
-        }
-        if !vm.journalStubs.isEmpty {
-            let today = String(Date().ISO8601Format().prefix(10))
-            if !vm.journalStubs.contains(where: { $0.date == today }) {
-                return "Journal non écrit aujourd'hui"
-            }
-        }
-        return nil
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if let h = hint {
-                HStack(spacing: 8) {
-                    Image(systemName: "sparkle")
-                        .font(.appCaption.weight(.light))
-                        .foregroundStyle(Color.moonlight.opacity(0.5))
-                    Text(h)
-                        .font(.system(size: 12, weight: .light))
-                        .foregroundStyle(Color.moonlight.opacity(0.5))
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-            }
-
-            // Tab bar Spirit (inchangé visuellement)
-            HStack(spacing: 0) {
-                ForEach(SpiritTab.allCases, id: \.self) { t in
-                    Button { spiritTab = t } label: {
-                        VStack(spacing: 2) {
-                            Image(systemName: t.icon)
-                                .font(.system(size: 14, weight: spiritTab == t ? .medium : .light))
-                            Text(t.label)
-                                .font(.system(size: 10, weight: spiritTab == t ? .medium : .light))
-                            Text(t.subtitle)
-                                .font(.system(size: 8, weight: .light))
-                                .opacity(0.6)
-                        }
-                        .foregroundStyle(spiritTab == t ? Color.moonlight : Color.moonlight.opacity(0.25))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .overlay(alignment: .bottom) {
-                            if spiritTab == t {
-                                Rectangle()
-                                    .fill(Color.moonlight.opacity(0.4))
-                                    .frame(height: 0.5)
-                            }
-                        }
-                    }
-                }
-            }
-            .background(Color.voidBg)
-
-            Group {
-                switch spiritTab {
-                case .breath:   SpiritBreathTabView(vm: vm)
-                case .meditate: SpiritMeditationTabView(vm: vm)
-                case .journal:  SpiritJournalGateView(vm: vm)
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: spiritTab)
-        }
     }
 }
 
@@ -564,25 +393,5 @@ private struct MoodSparklineCard: View {
         .padding(.vertical, 12)
         .glassCard(color: .teal, intensity: 0.05)
         .padding(.horizontal)
-    }
-}
-
-// MARK: - MHMenuCard (partagé avec Dashboard)
-
-struct MHMenuCard: View {
-    let icon: String
-    let color: Color
-    let title: String
-    let subtitle: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: icon).font(.title2).foregroundColor(color)
-            Text(title).font(.headline).foregroundColor(.appTextPrimary)
-            Text(subtitle).font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6)).lineLimit(2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .glassCard()
     }
 }

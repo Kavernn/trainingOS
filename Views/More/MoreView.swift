@@ -6,7 +6,6 @@ struct MoreView: View {
     @ObservedObject private var appState = AppState.shared
     @State private var showRitual = false
     @State private var showNutritionDirect = false
-    @State private var showRecoveryDirect = false
 
     var body: some View {
         NavigationStack {
@@ -56,7 +55,6 @@ struct MoreView: View {
                             RitualView()
                         }
                         MoreRow(icon: "fork.knife",      color: Color.forge, title: "Nutrition")    { NutritionView() }
-                        MoreRow(icon: "bolt.heart.fill", color: Color.forge, title: "Énergie & Récupération") { EnergyRecoveryView() }
                     }
                     .listRowBackground(glassRowBG(Color.appDanger))
                     .listRowSeparatorTint(Color.appSeparator)
@@ -102,11 +100,6 @@ struct MoreView: View {
             .navigationTitle("Plus")
             .navigationBarTitleDisplayMode(.large)
             .fullScreenCover(isPresented: $showNutritionDirect) { NutritionView() }
-            .fullScreenCover(isPresented: $showRecoveryDirect)  { EnergyRecoveryView() }
-            .onReceive(appState.$openRecoveryView.filter { $0 }) { _ in
-                showRecoveryDirect = true
-                appState.openRecoveryView = false
-            }
         }
     }
 

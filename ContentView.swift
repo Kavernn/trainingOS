@@ -68,8 +68,11 @@ private struct iOSContentView: View {
             ProgrammeView()
                 .tag(2)
                 .tabItem { Label("Programme", systemImage: "list.bullet.clipboard") }
-            MoreView()
+            EnergyRecoveryView()
                 .tag(3)
+                .tabItem { Label("Énergie", systemImage: "bolt.heart.fill") }
+            MoreView()
+                .tag(4)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
         }
         .overlay(alignment: .top) { offlineBanner }
@@ -88,10 +91,11 @@ private struct iOSContentView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
         .onReceive(appState.$pendingDeepLink.compactMap { $0 }) { link in
             switch link {
-            case "warroom":   selectedTab = 3
+            case "warroom":   selectedTab = 4
             case "dashboard": selectedTab = 0
             case "seance":    selectedTab = 1
-            case "more":      selectedTab = 3
+            case "recovery":  selectedTab = 3
+            case "more":      selectedTab = 4
             default: break
             }
             appState.pendingDeepLink = nil
@@ -247,7 +251,7 @@ private enum MacPage: String, Identifiable {
     // Entraînement
     case programme, stats, timer, hiit, historique, xp
     // Corps & Santé
-    case healthDashboard, bodyComp, cardio, recovery, pss, mentalHealth
+    case healthDashboard, bodyComp, cardio, recovery, energyRecovery, pss, mentalHealth
     // Divers
     case notes, inventaire, profil
 
@@ -268,6 +272,7 @@ private enum MacPage: String, Identifiable {
         case .nutrition:      return "Nutrition"
         case .cardio:         return "Cardio"
         case .recovery:       return "Récupération"
+        case .energyRecovery: return "Énergie"
         case .pss:            return "Stress (PSS)"
         case .mentalHealth:   return "Santé Mentale"
         case .notes:          return "Notes"
@@ -291,6 +296,7 @@ private enum MacPage: String, Identifiable {
         case .nutrition:      return "fork.knife"
         case .cardio:         return "figure.run"
         case .recovery:       return "moon.zzz.fill"
+        case .energyRecovery: return "bolt.heart.fill"
         case .pss:            return "brain.head.profile"
         case .mentalHealth:   return "face.smiling.fill"
         case .notes:          return "note.text"
@@ -314,6 +320,7 @@ private enum MacPage: String, Identifiable {
         case .nutrition:      return .orange
         case .cardio:         return .teal
         case .recovery:       return .indigo
+        case .energyRecovery: return .orange
         case .pss:            return .purple
         case .mentalHealth:   return .mint
         case .notes:          return .blue
@@ -331,7 +338,7 @@ private struct MacSidebarSection {
 private let macSections: [MacSidebarSection] = [
     MacSidebarSection(title: "Principal",      pages: [.dashboard, .seance, .nutrition]),
     MacSidebarSection(title: "Entraînement",   pages: [.programme, .stats, .timer, .hiit, .historique, .xp]),
-    MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .pss, .mentalHealth]),
+    MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .energyRecovery, .pss, .mentalHealth]),
     MacSidebarSection(title: "Divers",         pages: [.notes, .inventaire, .profil]),
 ]
 
@@ -411,6 +418,7 @@ private struct MacContentView: View {
         case .nutrition:       NutritionView()
         case .cardio:          CardioView()
         case .recovery:        RecoveryView()
+        case .energyRecovery:  EnergyRecoveryView()
         case .pss:             PSSView()
         case .mentalHealth:    MentalAmeView()
         case .notes:           NotesView()

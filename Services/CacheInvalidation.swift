@@ -47,12 +47,6 @@ enum CacheInvalidation {
     case warRoomTriggerLogged
     case warRoomArsenalMutated
 
-    // MARK: - Spirit
-    case spiritConfigUpdated
-    case spiritBreathworkLogged
-    case spiritMeditationLogged
-    case spiritJournalLogged
-
     // MARK: - Other domains
     case timeCapsuleCreated       // capsules + snapshot
     case timeCapsuleOpened        // capsules only
@@ -144,14 +138,6 @@ enum CacheInvalidation {
             return ["war_room_triggers", "war_room_today_status"]
         case .warRoomArsenalMutated:
             return ["war_room_arsenal"]
-        case .spiritConfigUpdated:
-            return ["spirit_config"]
-        case .spiritBreathworkLogged:
-            return ["spirit_breathwork"]
-        case .spiritMeditationLogged:
-            return ["spirit_meditation"]
-        case .spiritJournalLogged:
-            return ["spirit_journal_list"]
         case .timeCapsuleCreated:
             return ["time_capsules", "capsule_snapshot"]
         case .timeCapsuleOpened:
