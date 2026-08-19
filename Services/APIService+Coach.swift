@@ -54,8 +54,6 @@ extension APIService {
     }
 
     // MARK: - Coach analytics cards (bilan)
-    // Migration L1262-1294 IntelligenceView : appels directs URLSession supprimés
-    // au profit de l'architecture standard (cache + invalidation + throw).
 
     func fetchOvertrainingRisk() async throws -> OvertrainingRisk {
         let url  = try buildURL(path: "/api/overtraining_risk")

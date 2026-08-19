@@ -29,7 +29,7 @@ private func intensityColor(_ score: Int) -> Color {
     return Color(red: 0.98, green: 0.50, blue: 0.10)                       // orange – pump
 }
 
-// MARK: - Section (embedded in MoreView / IntelligenceView)
+// MARK: - Section (embedded in StatsView)
 
 struct WorkoutDNASection: View {
     @State private var dna: WorkoutDNAResponse? = nil

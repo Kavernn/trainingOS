@@ -597,7 +597,7 @@ enum NotificationService {
     static func scheduleTimeCapsuleSoon(capsules: [TimeCapsule]) {
         // Calendar.current + parsing device VOLONTAIRE — la capsule est un rendez-vous
         // avec soi-même, pas avec un fuseau. L'heure d'ouverture suit le device.
-        // Ne pas migrer vers Calendar.mtl (cf. TimeCapsuleViews.scheduleUnlockNotifications).
+        // Ne pas migrer vers Calendar.mtl.
         guard !globalDisabled, isEnabled("notif_on_capsule") else { return }
         let center = UNUserNotificationCenter.current()
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"

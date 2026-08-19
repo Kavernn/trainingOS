@@ -26,8 +26,7 @@ struct TimeCapsule: Codable, Identifiable {
     }
 
     // Comparaison d'instants absolus (Date UTC parsé ISO vs Date UTC) — aucun
-    // fuseau impliqué, aucun Calendar. Cohérent avec la doctrine "unlock suit le
-    // device" (cf. TimeCapsuleViews.scheduleUnlockNotifications).
+    // fuseau impliqué, aucun Calendar. Doctrine "unlock suit le device".
     var isUnlocked: Bool {
         guard let d = _parseISO(unlockAt) else { return false }
         return d <= Date()

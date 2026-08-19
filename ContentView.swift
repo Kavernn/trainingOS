@@ -6,7 +6,7 @@ struct ContentView: View {
     let themeToken: UUID
     @ObservedObject private var network = NetworkMonitor.shared
     @ObservedObject private var sync    = SyncManager.shared
-    @State private var selectedTab   = 1
+    @State private var selectedTab   = 0
 
     init(themeToken: UUID = UUID()) {
         self.themeToken = themeToken
@@ -57,22 +57,19 @@ private struct iOSContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            IntelligenceView(onOpenSession: { selectedTab = 2 })
+            DashboardView(onOpenSession: { selectedTab = 1 })
                 .tag(0)
-                .tabItem { Label("Coach", systemImage: "brain.head.profile") }
-            DashboardView(onOpenSession: { selectedTab = 2 })
-                .tag(1)
                 .tabItem { Label("Aujourd'hui", systemImage: "sun.horizon.fill") }
                 .badge(sync.pendingCount > 0 ? sync.pendingCount : 0)
             SeanceView()
-                .tag(2)
+                .tag(1)
                 .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
                 .badge(seanceBadge)
             ProgrammeView()
-                .tag(3)
+                .tag(2)
                 .tabItem { Label("Programme", systemImage: "list.bullet.clipboard") }
             MoreView()
-                .tag(4)
+                .tag(3)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
         }
         .overlay(alignment: .top) { offlineBanner }
@@ -91,11 +88,10 @@ private struct iOSContentView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
         .onReceive(appState.$pendingDeepLink.compactMap { $0 }) { link in
             switch link {
-            case "intelligence": selectedTab = 0
-            case "warroom":      selectedTab = 4
-            case "dashboard":    selectedTab = 1
-            case "seance":       selectedTab = 2
-            case "more":         selectedTab = 4
+            case "warroom":   selectedTab = 3
+            case "dashboard": selectedTab = 0
+            case "seance":    selectedTab = 1
+            case "more":      selectedTab = 3
             default: break
             }
             appState.pendingDeepLink = nil
@@ -248,8 +244,6 @@ private struct NutritionCatchupSheet: View {
 private enum MacPage: String, Identifiable {
     // Principal
     case dashboard, seance, nutrition
-    // IA
-    case intelligence
     // Entraînement
     case programme, stats, timer, hiit, historique, xp
     // Corps & Santé
@@ -265,7 +259,6 @@ private enum MacPage: String, Identifiable {
         case .seance:         return "Séance"
         case .programme:      return "Programme"
         case .timer:          return "Timer"
-        case .intelligence:   return "Intelligence"
         case .stats:          return "Stats"
         case .hiit:           return "HIIT"
         case .historique:     return "Historique"
@@ -289,7 +282,6 @@ private enum MacPage: String, Identifiable {
         case .seance:         return "dumbbell.fill"
         case .programme:      return "list.bullet.clipboard"
         case .timer:          return "timer"
-        case .intelligence:   return "brain.head.profile"
         case .stats:          return "chart.bar.fill"
         case .hiit:           return "figure.run"
         case .historique:     return "calendar"
@@ -313,7 +305,6 @@ private enum MacPage: String, Identifiable {
         case .seance:         return .orange
         case .programme:      return .orange
         case .timer:          return .orange
-        case .intelligence:   return .purple
         case .stats:          return .blue
         case .hiit:           return .red
         case .historique:     return .teal
@@ -338,7 +329,7 @@ private struct MacSidebarSection {
 }
 
 private let macSections: [MacSidebarSection] = [
-    MacSidebarSection(title: "Principal",      pages: [.intelligence, .dashboard, .seance, .nutrition]),
+    MacSidebarSection(title: "Principal",      pages: [.dashboard, .seance, .nutrition]),
     MacSidebarSection(title: "Entraînement",   pages: [.programme, .stats, .timer, .hiit, .historique, .xp]),
     MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .pss, .mentalHealth]),
     MacSidebarSection(title: "Divers",         pages: [.notes, .inventaire, .profil]),
@@ -411,7 +402,6 @@ private struct MacContentView: View {
         case .seance:          SeanceView()
         case .programme:       ProgrammeView()
         case .timer:           TimerView()
-        case .intelligence:    IntelligenceView()
         case .stats:           StatsView()
         case .hiit:            HIITHistoriqueView()
         case .historique:      HistoriqueView()
