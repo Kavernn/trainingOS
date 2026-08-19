@@ -85,7 +85,6 @@ struct MoreView: View {
 
                     Section("Esprit & Identité") {
                         MoreRow(icon: "lock.shield.fill",     color: Color.forge,                   title: "War Room",   subtitle: "Résistance aux habitudes difficiles") { WarRoomGateView() }
-                        MoreRow(icon: "staroflife.fill",      color: .statusPurple,                 title: "Workout DNA")   { WorkoutDNASection() }
                         MoreRow(icon: "star.fill",            color: .statusYellow,                 title: "XP & Niveau")   { XPView() }
                     }
                     .listRowBackground(glassRowBG(.statusPurple))

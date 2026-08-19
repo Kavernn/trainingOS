@@ -730,6 +730,7 @@
 				AA0014022F5D98B8002AE470 /* StatsNutritionViews.swift */,
 				AA0015022F5D98B8002AE470 /* StatsWellnessViews.swift */,
 				AA0016022F5D98B8002AE470 /* StatsComponents.swift */,
+				9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */,
 			);
 			path = Stats;
 			sourceTree = "<group>";
@@ -826,7 +827,6 @@
 				8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */,
 				8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */,
 				6F23DF3AC9E04EDBAF93E561 /* DNAEvolutionSheet.swift */,
-				9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */,
 				EC0642CC2F24923C52372E9A /* PlateauViews.swift */,
 				12186D7E0477FF4F0975C7DA /* RitualView.swift */,
 				BAC82E18346773B8F8591B8F /* RitualMorningView.swift */,

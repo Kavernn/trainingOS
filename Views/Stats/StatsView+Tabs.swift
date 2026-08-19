@@ -113,6 +113,34 @@ extension StatsView {
     // MARK: - Vue Globale Tab
     @ViewBuilder var vueGlobaleTab: some View {
 
+        // 0. Workout DNA — accès à la synthèse (archétype · patterns · intensité)
+        NavigationLink { WorkoutDNASection() } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "staroflife.fill")
+                    .font(.appHeadline)
+                    .foregroundColor(.statusPurple)
+                    .frame(width: 30)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Workout DNA")
+                        .font(.appHeadline)
+                        .foregroundColor(.appTextPrimary)
+                    Text("Archétype · patterns · intensité")
+                        .font(.appCaption)
+                        .foregroundColor(Color(white: 0.55))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.appCaption)
+                    .foregroundColor(Color(white: 0.45))
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.appCard)
+            .cornerRadius(14)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+
         // 0. Hero Stats — tonnage/séance FORCE + delta 6 mois + courbe force/accessoire
         //    + accents (PR récent, volume velocity). Structure figée par Vince.
         //    PR source = /api/pr-tracker (backend filtre baseline_count ≥ 2, récence
