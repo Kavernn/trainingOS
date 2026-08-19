@@ -12,6 +12,14 @@ extension APIService {
         return try APIService.decoder.decode(NutritionDataResponse.self, from: data).history
     }
 
+    /// Full nutrition payload — expose `todayType` (source unique serveur) en plus de l'historique.
+    /// Même cache key que `fetchNutritionHistory` → un seul roundtrip pour les deux consommateurs.
+    func fetchNutritionDetail() async throws -> NutritionDataResponse {
+        let url = try buildURL(path: "/api/nutrition_data")
+        let data = try await fetchWithCache(url: url, key: "nutrition_data")
+        return try APIService.decoder.decode(NutritionDataResponse.self, from: data)
+    }
+
     func fetchNutritionDay(date: String) async throws -> NutritionDaySummary {
         let url = try buildURL(path: "/api/nutrition",
                                queryItems: [URLQueryItem(name: "date", value: date)])

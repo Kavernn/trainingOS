@@ -12,6 +12,7 @@ private final class P2State: @unchecked Sendable {
     var todayRecovery: RecoveryEntry? = nil
     var hrvAnalysis: HRVAnalysis? = nil
     var yesterdayNutrition: NutritionDayHistory? = nil
+    var todayNutritionType: String? = nil
     var dailyPattern: PatternEntry? = nil
     var ritualToday: RitualToday? = nil
     var cardioToday: CardioEntry? = nil
@@ -136,6 +137,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var warRoomHasTemptation = false
     @Published var hrvAnalysis: HRVAnalysis? = nil
     @Published var yesterdayNutrition: NutritionDayHistory?
+    @Published var todayNutritionType: String?
     @Published var cardioToday: CardioEntry? = nil
     @Published var budgetStatus: BudgetStatus? = nil
     @Published var streakData: StreakResponse? = nil
@@ -250,8 +252,12 @@ final class DashboardViewModel: ObservableObject {
                 }
             }
             group.addTask { @MainActor [yesterdayStr] in
-                if let history = try? await APIService.shared.fetchNutritionHistory() {
-                    p2.yesterdayNutrition = history.first(where: { $0.date == yesterdayStr })
+                // Un seul fetch — même cache key que fetchNutritionHistory. Extrait :
+                // - todayType (source unique serveur, pas de mapping client)
+                // - yesterdayNutrition (existant)
+                if let detail = try? await APIService.shared.fetchNutritionDetail() {
+                    p2.todayNutritionType = detail.todayType
+                    p2.yesterdayNutrition = detail.history.first(where: { $0.date == yesterdayStr })
                 }
                 return 0
             }
@@ -299,6 +305,7 @@ final class DashboardViewModel: ObservableObject {
         todayRecovery      = p2.todayRecovery
         hrvAnalysis        = p2.hrvAnalysis
         yesterdayNutrition = p2.yesterdayNutrition
+        todayNutritionType = p2.todayNutritionType
         dailyPattern       = p2.dailyPattern
         ritualToday        = p2.ritualToday
         cardioToday        = p2.cardioToday

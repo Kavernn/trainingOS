@@ -117,7 +117,17 @@ struct DashboardView: View {
                                 DashboardStatusBar(dash: dash)
                                     .appearAnimation(delay: 0.03)
 
-                                // 1a — Momentum strip — semaine + streak, visible sans scroll
+                                // 1a — État du jour (3 mini-cards : entraînement / nutrition / récupération)
+                                DailyStatusStack(
+                                    dash: dash,
+                                    brief: vm.morningBrief,
+                                    recovery: vm.todayRecovery,
+                                    hrv: vm.hrvAnalysis,
+                                    todayNutritionType: vm.todayNutritionType
+                                )
+                                .appearAnimation(delay: 0.035)
+
+                                // 1b — Momentum strip — semaine + streak, visible sans scroll
                                 MomentumStripView(dash: dash, streakData: vm.streakData, weeklyTonnage: vm.weeklyTonnage)
                                     .appearAnimation(delay: 0.04)
 

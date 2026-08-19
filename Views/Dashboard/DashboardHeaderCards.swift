@@ -133,3 +133,176 @@ struct DashboardStatusBar: View {
         .padding(.top, 12)
     }
 }
+
+// MARK: - Daily Status Stack — 3 mini-cards "où j'en suis aujourd'hui"
+
+struct DailyStatusStack: View {
+    let dash: DashboardData
+    let brief: MorningBriefData?
+    let recovery: RecoveryEntry?
+    let hrv: HRVAnalysis?
+    let todayNutritionType: String?
+
+    var body: some View {
+        VStack(spacing: 8) {
+            trainingRow
+            nutritionRow
+            recoveryRow
+        }
+    }
+
+    // MARK: Entraînement
+
+    private var trainingRow: some View {
+        let low = dash.today.lowercased()
+        let isRest = low.contains("repos") || low.contains("rest") || low.contains("recovery")
+        let isLogged = dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
+        let accent = Color.sessionTypeColor(dash.today)
+
+        let statusText: String
+        let statusIcon: String?
+        let statusColor: Color
+        if isRest {
+            statusText = "Repos"; statusIcon = "moon.zzz.fill"; statusColor = .secondary
+        } else if isLogged {
+            statusText = "Fait"; statusIcon = "checkmark.circle.fill"; statusColor = .statusGreen
+        } else if dash.hasPartialLogs {
+            statusText = "En cours"; statusIcon = "hourglass"; statusColor = accent
+        } else {
+            statusText = "À faire"; statusIcon = "circle"; statusColor = accent
+        }
+
+        return DailyStatusRow(
+            icon: "dumbbell.fill",
+            iconColor: statusColor,
+            title: "Entraînement",
+            statusText: statusText,
+            statusIcon: statusIcon,
+            statusColor: statusColor,
+            subtext: dash.today.isEmpty ? "—" : dash.today
+        )
+    }
+
+    // MARK: Nutrition
+
+    private var nutritionRow: some View {
+        let totals = dash.nutritionTotals
+        let consumed = Int(totals.calories ?? 0)
+        let target = dash.nutritionSettings?.dayTypeTargets?.target(for: todayNutritionType)
+        let targetCal = target.map { Int($0.calories) }
+
+        // ponytail: jamais de cible inventée — tiret explicite si data absente.
+        let valueText = targetCal.map { "\(consumed)/\($0)" } ?? "\(consumed)/—"
+
+        let subtext: String
+        if consumed == 0 {
+            subtext = "Aucun repas loggé"
+        } else if let tc = targetCal {
+            let remaining = max(0, tc - consumed)
+            subtext = "\(remaining) kcal restants"
+        } else {
+            let prot = Int(totals.proteines ?? 0)
+            subtext = prot > 0 ? "\(prot)g protéines" : "Cible non configurée"
+        }
+
+        let color: Color = {
+            guard let tc = targetCal, tc > 0, consumed > 0 else { return .secondary }
+            let pct = Double(consumed) / Double(tc)
+            if pct >= 0.85 && pct <= 1.15 { return .statusGreen }
+            if pct > 1.15 { return Color.forge }
+            return Color.sessionTypeColor(dash.today)
+        }()
+
+        return DailyStatusRow(
+            icon: "fork.knife",
+            iconColor: color,
+            title: "Nutrition",
+            statusText: valueText,
+            statusIcon: nil,
+            statusColor: color,
+            subtext: subtext
+        )
+    }
+
+    // MARK: Récupération
+
+    private var recoveryRow: some View {
+        let (label, color): (String, Color) = {
+            switch brief?.recommendation {
+            case "go":         return ("Prêt", .statusGreen)
+            case "go_caution": return ("OK, prudence", .yellow)
+            case "reduce":     return ("Réduire", .orange)
+            case "defer":      return ("Repos requis", .red)
+            default:           return ("—", .secondary)
+            }
+        }()
+
+        var subParts: [String] = []
+        if let ms = hrv?.todayRmssd { subParts.append("HRV \(Int(ms))ms") }
+        if let h = recovery?.sleepHours { subParts.append(String(format: "%.1fh sommeil", h)) }
+        let subtext = subParts.isEmpty ? "Données indisponibles" : subParts.joined(separator: " · ")
+
+        return DailyStatusRow(
+            icon: "bolt.heart.fill",
+            iconColor: color,
+            title: "Récupération",
+            statusText: label,
+            statusIcon: nil,
+            statusColor: color,
+            subtext: subtext
+        )
+    }
+}
+
+// MARK: - Daily Status Row (mini-card réutilisable)
+
+private struct DailyStatusRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let statusText: String
+    let statusIcon: String?
+    let statusColor: Color
+    let subtext: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.appBody.weight(.semibold))
+                .foregroundColor(iconColor)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title.uppercased())
+                    .font(.appCaption.weight(.medium))
+                    .foregroundColor(Color.appOnSurface.opacity(0.55))
+                Text(subtext)
+                    .font(.appCaption)
+                    .foregroundColor(Color.appOnSurface.opacity(0.75))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 4) {
+                if let statusIcon {
+                    Image(systemName: statusIcon)
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(statusColor)
+                }
+                Text(statusText)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(statusColor)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.appCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.appSeparator, lineWidth: 0.5)
+        )
+        .cornerRadius(14)
+    }
+}
