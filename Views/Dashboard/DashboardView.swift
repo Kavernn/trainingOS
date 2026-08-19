@@ -152,6 +152,18 @@ struct DashboardView: View {
                                     RecoveryTrioCard(brief: vm.morningBrief, recovery: vm.todayRecovery, hrvAnalysis: vm.hrvAnalysis)
                                         .padding(.top, 8)
                                         .appearAnimation(delay: 0.06)
+                                    NavigationLink(destination: HealthDashboardView()) {
+                                        HStack(spacing: 4) {
+                                            Spacer()
+                                            Text("Voir tout")
+                                                .font(.appCaption.weight(.medium))
+                                                .foregroundColor(.gray)
+                                            Image(systemName: "chevron.right")
+                                                .font(.appCaption).foregroundColor(.gray)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                    .appearAnimation(delay: 0.07)
                                 }
 
                                 // 5 — Coach + alerte proactive (priorité : alerte > coach)
