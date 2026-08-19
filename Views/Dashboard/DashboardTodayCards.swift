@@ -77,6 +77,13 @@ struct TodayCardView: View {
                         .font(.appHeadline.weight(.bold))
                         .foregroundColor(isLoggedToday ? Color.statusGreen : todayColor)
                         .lineLimit(1)
+                    if let pm = dash.eveningSessionName, !pm.isEmpty {
+                        Text(pm)
+                            .font(.appCaption)
+                            .foregroundColor(Color.statusBlue)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                 }
                 Spacer()
                 if isLoggedToday {

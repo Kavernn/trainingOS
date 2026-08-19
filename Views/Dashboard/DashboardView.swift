@@ -277,6 +277,11 @@ struct DashboardView: View {
                                     }
                                 }
 
+                                // 13 — Pensée du jour (fermeture calme du scroll)
+                                QuoteCard()
+                                    .padding(.top, 8)
+                                    .appearAnimation(delay: 0.24)
+
 
 
 

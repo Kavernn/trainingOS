@@ -56,6 +56,39 @@ private struct ActionChip: View {
     }
 }
 
+// MARK: - Quote Card
+
+struct QuoteCard: View {
+    private let quote = QuoteData.today()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "quote.opening")
+                    .font(.appCaption)
+                    .foregroundColor(.statusPurple.opacity(0.8))
+                Text("PENSÉE DU JOUR")
+                    .font(.appCaption).fontWeight(.semibold)
+                    .foregroundColor(.statusPurple.opacity(0.8))
+                    .tracking(0.8)
+            }
+            Text(quote.text)
+                .font(.appBody)
+                .italic()
+                .foregroundColor(.appTextPrimary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("— \(quote.author) · \(quote.context)")
+                .font(.appCaption)
+                .foregroundColor(Color(white: 0.55))
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
+
 // MARK: - Quotes Data
 
 struct DailyQuote {
