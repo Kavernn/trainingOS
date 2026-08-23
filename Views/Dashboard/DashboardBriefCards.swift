@@ -97,6 +97,17 @@ struct MomentumStripView: View {
             }
 
             if let t = weeklyTonnage, t > 0 {
+                // Convertit lbs (source canonique) vers l'unité d'affichage. Seuil "t"
+                // uniquement en mode kg (isKg) : évite l'unité "klbs" sémantiquement
+                // absurde en mode lbs.
+                let displayed  = UnitSettings.shared.display(Double(t))
+                let showTonnes = UnitSettings.shared.isKg && displayed >= 1000
+                let rounded    = Int(displayed.rounded())
+                let valueStr   = showTonnes
+                    ? (rounded % 1000 == 0 ? "\(rounded / 1000)" : String(format: "%.1f", displayed / 1000))
+                    : "\(rounded)"
+                let unitStr    = showTonnes ? "t" : UnitSettings.shared.label
+
                 Rectangle()
                     .fill(Color.appSurfaceInset)
                     .frame(width: 1)
@@ -105,13 +116,13 @@ struct MomentumStripView: View {
                 // Colonne droite — volume
                 VStack(alignment: .center, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text(t >= 1000 ? (t % 1000 == 0 ? "\(t/1000)" : String(format: "%.1f", Double(t) / 1000.0)) : "\(t)")
+                        Text(valueStr)
                             .font(.system(size: 22, weight: .black, design: .rounded))
                             .foregroundColor(.statusCyan)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                             .contentTransition(.numericText())
-                        Text(t >= 1000 ? "t" : "kg")
+                        Text(unitStr)
                             .font(.appCaption.weight(.semibold))
                             .foregroundColor(.gray)
                     }
