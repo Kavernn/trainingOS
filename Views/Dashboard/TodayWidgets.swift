@@ -84,8 +84,7 @@ struct QuoteCard: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.appCard)
-        .cornerRadius(14)
+        .glassCard(cornerRadius: 14)
     }
 }
 

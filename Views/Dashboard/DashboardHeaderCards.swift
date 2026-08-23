@@ -298,11 +298,6 @@ private struct DailyStatusRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.appCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.appSeparator, lineWidth: 0.5)
-        )
-        .cornerRadius(14)
+        .glassCard(cornerRadius: 14)
     }
 }

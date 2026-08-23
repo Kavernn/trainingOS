@@ -316,13 +316,10 @@ struct EveningSleepCard: View {
             }
             .padding(13)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
+            .glassCard(cornerRadius: 14)
+            .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.appCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.statusPurple.opacity(0.18), lineWidth: 1)
-                    )
+                    .stroke(Color.statusPurple.opacity(0.18), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

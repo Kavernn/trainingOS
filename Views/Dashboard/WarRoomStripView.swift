@@ -38,9 +38,7 @@ struct WarRoomStripView: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 44)
-        .background(Color.appCard)
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSurfaceInset, lineWidth: 0.5))
-        .cornerRadius(10)
+        .glassCard(cornerRadius: 10)
     }
 
     private var resultButton: some View {

@@ -280,8 +280,7 @@ struct LessonOfDayCard: View {
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.appCard)
-                .cornerRadius(14)
+                .glassCard(cornerRadius: 14)
             }
             .buttonStyle(ScaleButtonStyle())
         } else if exhausted {
@@ -302,8 +301,8 @@ struct LessonOfDayCard: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.appCard.opacity(0.6))
-            .cornerRadius(14)
+            .glassCard(cornerRadius: 14)
+            .opacity(0.6)
         }
     }
 }
