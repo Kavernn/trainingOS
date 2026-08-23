@@ -187,7 +187,6 @@
 		PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */; };
 		RH000002RH000002RH000002 /* RPEHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = RH000001RH000001RH000001 /* RPEHelper.swift */; };
 		RV0001RV0001RV0001RV0001 /* RecoveryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0001RR0001RR0001RR0001 /* RecoveryRow.swift */; };
-		RV0002RV0002RV0002RV0002 /* ReadinessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0002RR0002RR0002RR0002 /* ReadinessCard.swift */; };
 		RV0003RV0003RV0003RV0003 /* RecoveryCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0003RR0003RR0003RR0003 /* RecoveryCharts.swift */; };
 		RV0004RV0004RV0004RV0004 /* RecoveryEmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0004RR0004RR0004RR0004 /* RecoveryEmptyState.swift */; };
 		RV0005RV0005RV0005RV0005 /* LogRecoverySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0005RR0005RR0005RR0005 /* LogRecoverySheet.swift */; };
@@ -473,7 +472,6 @@
 		PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestionsSheet.swift; sourceTree = "<group>"; };
 		RH000001RH000001RH000001 /* RPEHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPEHelper.swift; sourceTree = "<group>"; };
 		RR0001RR0001RR0001RR0001 /* RecoveryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRow.swift; sourceTree = "<group>"; };
-		RR0002RR0002RR0002RR0002 /* ReadinessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessCard.swift; sourceTree = "<group>"; };
 		RR0003RR0003RR0003RR0003 /* RecoveryCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCharts.swift; sourceTree = "<group>"; };
 		RR0004RR0004RR0004RR0004 /* RecoveryEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryEmptyState.swift; sourceTree = "<group>"; };
 		RR0005RR0005RR0005RR0005 /* LogRecoverySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogRecoverySheet.swift; sourceTree = "<group>"; };
@@ -1081,7 +1079,6 @@
 			children = (
 				0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */,
 				RR0001RR0001RR0001RR0001 /* RecoveryRow.swift */,
-				RR0002RR0002RR0002RR0002 /* ReadinessCard.swift */,
 				RR0003RR0003RR0003RR0003 /* RecoveryCharts.swift */,
 				RR0004RR0004RR0004RR0004 /* RecoveryEmptyState.swift */,
 				RR0005RR0005RR0005RR0005 /* LogRecoverySheet.swift */,
@@ -1480,7 +1477,6 @@
 				A8B9C0D1E2F3A4B5C6D7E8F9 /* CardioSummaryView.swift in Sources */,
 				7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */,
 				RV0001RV0001RV0001RV0001 /* RecoveryRow.swift in Sources */,
-				RV0002RV0002RV0002RV0002 /* ReadinessCard.swift in Sources */,
 				RV0003RV0003RV0003RV0003 /* RecoveryCharts.swift in Sources */,
 				RV0004RV0004RV0004RV0004 /* RecoveryEmptyState.swift in Sources */,
 				RV0005RV0005RV0005RV0005 /* LogRecoverySheet.swift in Sources */,
