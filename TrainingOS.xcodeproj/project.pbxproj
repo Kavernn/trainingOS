@@ -87,6 +87,7 @@
 		AB5A5BBA12AEB12AF0596F9C /* APIService+WorkoutDNA.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7692E44A985A89B88122708 /* APIService+WorkoutDNA.swift */; };
 		AC0001AC0001AC0001AC0001 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0002AC0002AC0002AC0002 /* APIConfig.swift */; };
 		ACS0002ACS0002ACS0002AC2 /* AddCardioSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACS0001ACS0001ACS0001AC1 /* AddCardioSheet.swift */; };
+		AE86F032A8E609F4F01794F7 /* DashboardReadinessHero.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6856209D1844532210AEBF7 /* DashboardReadinessHero.swift */; };
 		AHS0002AHS0002AHS0002AH2 /* AddHIITSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AHS0001AHS0001AHS0001AH1 /* AddHIITSheet.swift */; };
 		APICA002APICA002APICA002 /* APIService+Cardio.swift in Sources */ = {isa = PBXBuildFile; fileRef = APICA001APICA001APICA001 /* APIService+Cardio.swift */; };
 		APIEN002APIEN002APIEN002 /* APIService+Energy.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIEN001APIEN001APIEN001 /* APIService+Energy.swift */; };
@@ -420,6 +421,7 @@
 		E163D5411790B6DA5108E310 /* PatternModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternModels.swift; sourceTree = "<group>"; };
 		E28DFDE63827E1A91C5C5B5D /* RoundedCorner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoundedCorner.swift; sourceTree = "<group>"; };
 		E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsModels.swift; sourceTree = "<group>"; };
+		E6856209D1844532210AEBF7 /* DashboardReadinessHero.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DashboardReadinessHero.swift; sourceTree = "<group>"; };
 		EAD9AC36E56041C996317086 /* ProactiveAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveAlert.swift; sourceTree = "<group>"; };
 		ED6AAE13530007B583B67B1D /* APIService+Ritual.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Ritual.swift"; sourceTree = "<group>"; };
 		EDD35C9A164F89962D3E6E18 /* ProfileModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileModels.swift; sourceTree = "<group>"; };
@@ -538,21 +540,29 @@
 		};
 		D68A5C452FD0CE6600B824DF /* VinceSeven Watch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "VinceSeven Watch Watch App";
 			sourceTree = "<group>";
 		};
 		D68A5C532FD0CE6800B824DF /* VinceSeven Watch Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "VinceSeven Watch Watch AppTests";
 			sourceTree = "<group>";
 		};
 		D68A5C5D2FD0CE6800B824DF /* VinceSeven Watch Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "VinceSeven Watch Watch AppUITests";
 			sourceTree = "<group>";
 		};
 		D69FB9062F666F3F0091BDD2 /* TrainingOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = TrainingOSTests;
 			sourceTree = "<group>";
 		};
@@ -948,6 +958,7 @@
 				TDYW001TDYW001TDYW001001 /* TodayWidgets.swift */,
 				9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */,
 				WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */,
+				E6856209D1844532210AEBF7 /* DashboardReadinessHero.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -1593,6 +1604,7 @@
 				9BBA8416FAF9815FEDC4D28D /* BudgetLogSheet.swift in Sources */,
 				A7F8B4D3C2E19056871F3A2B /* BudgetJournalView.swift in Sources */,
 				705B79D28FFF46C74C20E3BE /* RoundedCorner.swift in Sources */,
+				AE86F032A8E609F4F01794F7 /* DashboardReadinessHero.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
