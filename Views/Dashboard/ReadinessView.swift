@@ -4,49 +4,25 @@ import SwiftUI
 
 struct ReadinessBadge: View {
     let readiness: ReadinessResponse?
-    var cap: EffortCap = .none
+    var cap: EffortCap = .none   // ponytail: conservé pour signature (a11y label cap-aware)
 
-    var body: some View {
-        if let r = readiness {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(color(r))
-                    .frame(width: 7, height: 7)
-                Text("\(label(r)) · \(r.score)")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(color(r))
-                Text("—")
-                    .font(.appCaption)
-                    .foregroundColor(.gray)
-                Text(r.why)
-                    .font(.appCaption)
-                    .foregroundColor(Color.appOnSurface.opacity(0.70))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(color(r).opacity(0.08))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(color(r).opacity(0.20), lineWidth: 1)
-            )
-            .cornerRadius(8)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Readiness : \(label(r)), score \(r.score). \(r.why)")
+    // Verdict brut, aligné sur DashboardReadinessHero — jamais cap-aware ici.
+    private var dotColor: Color {
+        switch readiness?.verdict {
+        case "go":       return .statusGreen
+        case "moderate": return .statusYellow
+        case "rest":     return .statusOrange
+        default:         return .gray
         }
     }
 
-    // Verdict effectif = verdict backend plafonné par le cap (jamais "go" sous cap).
-    private func effective(_ r: ReadinessResponse) -> String {
-        switch cap {
-        case .rest:     return "rest"
-        case .moderate: return r.verdict == "go" ? "moderate" : r.verdict
-        case .none:     return r.verdict
-        }
+    private var a11yLabel: String {
+        guard let r = readiness else { return "Readiness indisponible" }
+        return "Readiness : \(label(r)), score \(r.score). \(r.why)"
     }
 
-    // Label affiché = mention explicite du cap quand il downgrade.
+    // Label a11y = mention explicite du cap quand il downgrade (info accessible non
+    // visible dans le dot). Conservé pour VoiceOver malgré le dot verdict-brut.
     private func label(_ r: ReadinessResponse) -> String {
         switch cap {
         case .rest:                             return "Repos actif"
@@ -55,12 +31,12 @@ struct ReadinessBadge: View {
         }
     }
 
-    private func color(_ r: ReadinessResponse) -> Color {
-        switch effective(r) {
-        case "go":       return .statusGreen
-        case "moderate": return Color(red: 0.98, green: 0.76, blue: 0.15)
-        default:         return .statusRed
-        }
+    var body: some View {
+        Circle()
+            .fill(dotColor)
+            .frame(width: 7, height: 7)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(a11yLabel)
     }
 }
 
