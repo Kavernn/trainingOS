@@ -101,9 +101,9 @@ extension ReadinessResponse {
 
     var verdictLabel: String {
         switch verdict {
-        case "go":       return "Go hard"
-        case "moderate": return "Modère"
-        default:         return "Rest day"
+        case "go":       return "Prêt"
+        case "moderate": return "Modéré"
+        default:         return "Repos"
         }
     }
 }
