@@ -105,9 +105,11 @@ struct MomentumStripView: View {
                 // Colonne droite — volume
                 VStack(alignment: .center, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text(t >= 1000 ? String(format: "%.1f", Double(t) / 1000.0) : "\(t)")
+                        Text(t >= 1000 ? (t % 1000 == 0 ? "\(t/1000)" : String(format: "%.1f", Double(t) / 1000.0)) : "\(t)")
                             .font(.system(size: 22, weight: .black, design: .rounded))
                             .foregroundColor(.statusCyan)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                             .contentTransition(.numericText())
                         Text(t >= 1000 ? "t" : "kg")
                             .font(.appCaption.weight(.semibold))
