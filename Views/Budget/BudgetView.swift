@@ -459,6 +459,9 @@ struct BudgetCard: View {
         let dateStr = BudgetFormat.shortDate(debt.projectedDeathDate)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
+                Image(systemName: "creditcard.fill")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(Color.appTextPrimary.opacity(0.85))
                 Text(debt.label)
                     .font(.appCaption.weight(.semibold))
                     .foregroundColor(Color.appTextPrimary.opacity(0.85))
