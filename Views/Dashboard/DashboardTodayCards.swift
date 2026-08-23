@@ -78,11 +78,16 @@ struct TodayCardView: View {
                         .foregroundColor(isLoggedToday ? Color.statusGreen : todayColor)
                         .lineLimit(1)
                     if let pm = dash.eveningSessionName, !pm.isEmpty {
-                        Text(pm)
-                            .font(.appCaption)
-                            .foregroundColor(Color.statusBlue)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                        HStack(spacing: 4) {
+                            Image(systemName: "moon.stars.fill")
+                                .font(.appCaption)
+                                .foregroundColor(Color.statusBlue)
+                            Text(pm)
+                                .font(.appCaption)
+                                .foregroundColor(Color.statusBlue)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
                     }
                 }
                 Spacer()
