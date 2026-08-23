@@ -117,36 +117,22 @@ struct DashboardView: View {
                                 DashboardStatusBar(dash: dash)
                                     .appearAnimation(delay: 0.03)
 
-                                // 1a — État du jour (3 mini-cards : entraînement / nutrition / récupération)
+                                // 2 — État nutrition du jour (entraînement → TodayCard, récup → hero)
                                 DailyStatusStack(
                                     dash: dash,
-                                    brief: vm.morningBrief,
-                                    recovery: vm.todayRecovery,
-                                    hrv: vm.hrvAnalysis,
                                     todayNutritionType: vm.todayNutritionType
                                 )
-                                .appearAnimation(delay: 0.035)
+                                .appearAnimation(delay: 0.04)
 
-                                // 1b — Momentum strip — semaine + streak, visible sans scroll
-                                MomentumStripView(dash: dash, streakData: vm.streakData, weeklyTonnage: vm.weeklyTonnage)
-                                    .appearAnimation(delay: 0.04)
-
-                                // 1b — Routine de soir (visible dès 20h, et jusqu'à 3h pour couchers tardifs)
-                                let eveningHour = Calendar.current.component(.hour, from: Date())
-                                if eveningHour >= 20 || eveningHour < 3 {
-                                    EveningSleepCard()
-                                        .appearAnimation(delay: 0.035)
-                                }
-
-                                // 2 — Alerte critique
+                                // 3 — Alerte critique
                                 if let signal = vm.criticalSignal(dash: dash) {
                                     CriticalAlertCard(signal: signal) {
                                         handleAlertAction(signal: signal, dash: dash)
                                     }
-                                    .appearAnimation(delay: 0.04)
+                                    .appearAnimation(delay: 0.05)
                                 }
 
-                                // 3 — Séance du jour
+                                // 4 — Séance du jour
                                 TodayCardView(
                                     dash: dash,
                                     showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
@@ -154,29 +140,30 @@ struct DashboardView: View {
                                     readiness: vm.readinessData,
                                     effortCap: DashboardVerdictArbiter.cap(signal: vm.criticalSignal(dash: dash))
                                 )
-                                .appearAnimation(delay: 0.05)
+                                .appearAnimation(delay: 0.06)
                                 .padding(.vertical, 8)
 
-                                // 4 — Recovery trio (Readiness + HRV + Sommeil)
-                                if vm.morningBrief != nil || vm.todayRecovery != nil {
-                                    RecoveryTrioCard(brief: vm.morningBrief, recovery: vm.todayRecovery, hrvAnalysis: vm.hrvAnalysis)
-                                        .padding(.top, 8)
-                                        .appearAnimation(delay: 0.06)
-                                    NavigationLink(destination: HealthDashboardView()) {
-                                        HStack(spacing: 4) {
-                                            Spacer()
-                                            Text("Voir tout")
-                                                .font(.appCaption.weight(.medium))
-                                                .foregroundColor(.gray)
-                                            Image(systemName: "chevron.right")
-                                                .font(.appCaption).foregroundColor(.gray)
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                    .appearAnimation(delay: 0.07)
+                                // 5 — Routine de soir (visible dès 20h, et jusqu'à 3h pour couchers tardifs)
+                                let eveningHour = Calendar.current.component(.hour, from: Date())
+                                if eveningHour >= 20 || eveningHour < 3 {
+                                    EveningSleepCard()
+                                        .appearAnimation(delay: 0.07)
                                 }
 
-                                // 5 — Coach + alerte proactive (priorité : alerte > coach)
+                                // 6 — Hero readiness (source unique /api/readiness) — tap → HealthDashboardView
+                                NavigationLink(destination: HealthDashboardView()) {
+                                    DashboardReadinessHero(
+                                        readiness:   vm.readinessData,
+                                        hrvAnalysis: vm.hrvAnalysis,
+                                        recovery:    vm.todayRecovery,
+                                        todayAccent: Color.sessionTypeColor(dash.today)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 8)
+                                .appearAnimation(delay: 0.08)
+
+                                // 7 — Coach + alerte proactive (priorité : alerte > coach)
                                 if vm.morningBrief != nil || alertService.visibleAlert != nil {
                                     CoachInsightCard(
                                         brief: vm.morningBrief,
@@ -188,7 +175,7 @@ struct DashboardView: View {
                                             }
                                         }
                                     )
-                                    .appearAnimation(delay: 0.08)
+                                    .appearAnimation(delay: 0.09)
                                 } else if vm.morningBriefFailed {
                                     HStack(spacing: 8) {
                                         Image(systemName: "brain.head.profile")
@@ -210,23 +197,27 @@ struct DashboardView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 4)
-                                    .appearAnimation(delay: 0.08)
+                                    .appearAnimation(delay: 0.09)
                                 }
 
-                                // 5b — Leçon du jour (registre calme, sous le Coach)
+                                // 8 — Momentum strip — semaine + streak
+                                MomentumStripView(dash: dash, streakData: vm.streakData, weeklyTonnage: vm.weeklyTonnage)
+                                    .appearAnimation(delay: 0.10)
+
+                                // 9 — Leçon du jour (registre calme)
                                 if let lesson = lessonOfDay {
                                     LessonOfDayCard(capsule: lesson, exhausted: false) {
                                         lessonSheetCapsule = lesson
                                     }
                                     .padding(.top, 8)
-                                    .appearAnimation(delay: 0.09)
+                                    .appearAnimation(delay: 0.11)
                                 } else if lessonExhausted {
                                     LessonOfDayCard(capsule: nil, exhausted: true) { }
                                         .padding(.top, 8)
-                                        .appearAnimation(delay: 0.09)
+                                        .appearAnimation(delay: 0.11)
                                 }
 
-                                // 6 — Actions du jour
+                                // 10 — Actions du jour
                                 DayActionsRow(
                                     sessionLogged: dash.alreadyLoggedToday,
                                     moodDone: vm.moodDue?.isDue == false,
@@ -236,9 +227,9 @@ struct DashboardView: View {
                                     onNutritionTap: { showNutritionAddSheet = true }
                                 )
                                 .padding(.top, 14)
-                                .appearAnimation(delay: 0.10)
+                                .appearAnimation(delay: 0.12)
 
-                                // 8e — War Room strip
+                                // 11 — War Room strip
                                 if vm.warRoomEnabled {
                                     WarRoomStripView(
                                         hasResult:      vm.warRoomHasResult,
