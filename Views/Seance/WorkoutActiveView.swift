@@ -436,7 +436,6 @@ struct WorkoutSeanceView: View {
                 .padding(.vertical, 12)
                 .background(Color.forge.opacity(0.06))
                 .cornerRadius(8)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.18), lineWidth: 1))
             }
             .buttonStyle(SpringButtonStyle())
             .padding(.horizontal, 16)
@@ -947,8 +946,6 @@ struct WorkoutSeanceView: View {
                     .background(cardioCount > 0 ? Color.appSuccess.opacity(0.12) : Color.appCard)
                     .foregroundColor(cardioCount > 0 ? Color.appSuccess : .gray)
                     .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-                        cardioCount > 0 ? Color.appSuccess.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1))
                 }
 
                 Button(action: { showAddHIIT = true }) {
@@ -963,8 +960,6 @@ struct WorkoutSeanceView: View {
                     .background(hiitCount > 0 ? Color.appSuccess.opacity(0.12) : Color.appCard)
                     .foregroundColor(hiitCount > 0 ? Color.appSuccess : .gray)
                     .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-                        hiitCount > 0 ? Color.appSuccess.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1))
                 }
             }
         }
@@ -1025,7 +1020,6 @@ struct WorkoutSeanceView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Color.appSurfaceInset)
             .cornerRadius(8)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
     }
@@ -1123,7 +1117,6 @@ struct WorkoutSeanceView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Color.appSurfaceInset)
             .cornerRadius(8)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 16)
@@ -1380,7 +1373,6 @@ struct WorkoutSeanceView: View {
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(Color.forge.opacity(0.08))
                     .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -1430,7 +1422,6 @@ struct WorkoutSeanceView: View {
                         .background(Color.forge.opacity(0.12))
                         .foregroundColor(Color.forge)
                         .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.3), lineWidth: 1))
                     }
                     .padding(.horizontal, 16)
                 }

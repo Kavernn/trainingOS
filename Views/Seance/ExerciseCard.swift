@@ -1423,7 +1423,6 @@ struct ExerciseCard: View {
                     .lineLimit(1...3)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(evm.sessionNote.isEmpty ? Color.clear : Color.forge.opacity(0.06))
             .cornerRadius(8)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(
                 evm.sessionNote.isEmpty ? Color.appSurfaceInset : Color.forge.opacity(0.15), lineWidth: 1))
@@ -1478,7 +1477,6 @@ struct ExerciseCard: View {
             .padding(.horizontal, 12).padding(.vertical, 8)
             .background(Color.appDanger.opacity(0.1))
             .cornerRadius(8)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appDanger.opacity(0.2), lineWidth: 1))
         }
     }
 
@@ -1659,7 +1657,6 @@ struct ExerciseCard: View {
                     .background(Color.forge.opacity(0.14))
                     .foregroundColor(Color.forge)
                     .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.28), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
@@ -1694,7 +1691,6 @@ struct ExerciseCard: View {
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.appDanger.opacity(0.08))
                     .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appDanger.opacity(0.2), lineWidth: 1))
                 }
             }
         }
@@ -1786,7 +1782,6 @@ private struct RepCounterSection: View {
                 } label: {
                     ZStack {
                         Circle().fill(Color.forge.opacity(0.12)).frame(width: 112, height: 112)
-                        Circle().stroke(Color.forge.opacity(0.35), lineWidth: 2).frame(width: 112, height: 112)
                         VStack(spacing: 4) {
                             Image(systemName: "hand.tap.fill").font(.appTitle)
                             Text("REP").font(.appLabel).fontWeight(.black)
@@ -1908,8 +1903,6 @@ struct EnduranceTimerSection: View {
                             .background(targetDur == s ? Color.forge.opacity(0.28) : Color.forge.opacity(0.10))
                             .foregroundColor(Color.forge)
                             .cornerRadius(8)
-                            .overlay(RoundedRectangle(cornerRadius: 8)
-                                .stroke(targetDur == s ? Color.forge.opacity(0.55) : .clear, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }

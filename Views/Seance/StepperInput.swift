@@ -81,7 +81,6 @@ struct StepperInput: View {
         }
         .background(Color.appSurfaceInset)
         .cornerRadius(8)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appSurfaceInset, lineWidth: 1))
         .onChange(of: isManualFocused) { _, focused in
             if !focused { validateInput() }
         }
