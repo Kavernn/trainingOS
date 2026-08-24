@@ -435,8 +435,8 @@ struct WorkoutSeanceView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(Color.forge.opacity(0.06))
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.18), lineWidth: 1))
+                .cornerRadius(8)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.18), lineWidth: 1))
             }
             .buttonStyle(SpringButtonStyle())
             .padding(.horizontal, 16)
@@ -946,8 +946,8 @@ struct WorkoutSeanceView: View {
                     .padding(.vertical, 11)
                     .background(cardioCount > 0 ? Color.statusGreen.opacity(0.12) : Color.appCard)
                     .foregroundColor(cardioCount > 0 ? .statusGreen : .statusBlue)
-                    .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
                         cardioCount > 0 ? Color.statusGreen.opacity(0.3) : Color.statusBlue.opacity(0.2), lineWidth: 1))
                 }
 
@@ -962,8 +962,8 @@ struct WorkoutSeanceView: View {
                     .padding(.vertical, 11)
                     .background(hiitCount > 0 ? Color.statusGreen.opacity(0.12) : Color.appCard)
                     .foregroundColor(hiitCount > 0 ? .statusGreen : .statusRed)
-                    .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
                         hiitCount > 0 ? Color.statusGreen.opacity(0.3) : Color.statusRed.opacity(0.2), lineWidth: 1))
                 }
             }
@@ -1023,8 +1023,8 @@ struct WorkoutSeanceView: View {
             }
             .padding(.horizontal, 14).padding(.vertical, 11)
             .background(Color.appSurfaceInset)
-            .cornerRadius(10)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
+            .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
     }
@@ -1091,7 +1091,7 @@ struct WorkoutSeanceView: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
             .background(Color.statusYellow.opacity(0.07))
-            .cornerRadius(10)
+            .cornerRadius(8)
         }
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
@@ -1120,8 +1120,8 @@ struct WorkoutSeanceView: View {
             }
             .padding(.horizontal, 14).padding(.vertical, 11)
             .background(Color.appSurfaceInset)
-            .cornerRadius(10)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
+            .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 16)
@@ -1207,13 +1207,13 @@ struct WorkoutSeanceView: View {
                         Spacer()
                     }
                     .animation(.easeInOut(duration: 0.2), value: allDone)
-                    RoundedRectangle(cornerRadius: 3)
+                    Capsule()
                         .fill(Color.appSurfaceInset)
                         .frame(height: 5)
                         .overlay(
                             GeometryReader { g in
                                 let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
-                                RoundedRectangle(cornerRadius: 3)
+                                Capsule()
                                     .fill(allDone ? Color.appSuccess : Color.appWarning)
                                     .frame(width: g.size.width * fraction)
                                     .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
@@ -1266,7 +1266,7 @@ struct WorkoutSeanceView: View {
                         .foregroundColor(Color.statusRed.opacity(0.8))
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.statusRed.opacity(0.1))
-                        .cornerRadius(6)
+                        .cornerRadius(8)
                         Button { withAnimation { showResumeBanner = false } } label: {
                             Image(systemName: "xmark")
                                 .font(.appCaption).fontWeight(.semibold)
@@ -1277,7 +1277,7 @@ struct WorkoutSeanceView: View {
                     }
                     .padding(.horizontal, 12).padding(.vertical, 10)
                     .background(Color.statusCyan.opacity(0.08))
-                    .cornerRadius(10)
+                    .cornerRadius(8)
                     .padding(.horizontal, 16)
                     .transition(.opacity)
                     .onAppear {
@@ -1345,7 +1345,7 @@ struct WorkoutSeanceView: View {
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Color.forge.opacity(currentVolume > 0 ? 0.07 : 0.03))
-                .cornerRadius(10)
+                .cornerRadius(8)
                 .padding(.horizontal, 16)
                 .animation(.spring(response: 0.4), value: currentVolume)
 
@@ -1377,8 +1377,8 @@ struct WorkoutSeanceView: View {
                     }
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(Color.forge.opacity(0.08))
-                    .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.2), lineWidth: 1))
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -1410,7 +1410,7 @@ struct WorkoutSeanceView: View {
                     }
                     .padding(.horizontal, 16).padding(.vertical, 12)
                     .background(RPEHelper.color(for: computedSessionRPE).opacity(0.08))
-                    .cornerRadius(12)
+                    .cornerRadius(8)
                     .padding(.horizontal, 16)
                 }
 
@@ -1427,8 +1427,8 @@ struct WorkoutSeanceView: View {
                         .padding(.vertical, 12)
                         .background(Color.forge.opacity(0.12))
                         .foregroundColor(Color.forge)
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.3), lineWidth: 1))
+                        .cornerRadius(8)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.3), lineWidth: 1))
                     }
                     .padding(.horizontal, 16)
                 }
@@ -1507,7 +1507,7 @@ struct WorkoutSeanceView: View {
                         .foregroundColor(Color.forge)
                         .background(Color.clear)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.forge.opacity(0.4), lineWidth: 1)
                         )
                     }

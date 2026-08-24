@@ -446,7 +446,7 @@ struct ExerciseCard: View {
                         .frame(width: 22, height: 18)
                         .foregroundColor(.gray.opacity(0.7))
                         .background(Color.appSurfaceInset)
-                        .cornerRadius(4)
+                        .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
                 Button { adjustAllWeights(1) } label: {
@@ -455,7 +455,7 @@ struct ExerciseCard: View {
                         .frame(width: 22, height: 18)
                         .foregroundColor(Color.forge.opacity(0.85))
                         .background(Color.forge.opacity(0.1))
-                        .cornerRadius(4)
+                        .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
             }
@@ -611,7 +611,7 @@ struct ExerciseCard: View {
                     .frame(width: 48, height: 48)
                     .shadow(color: Color.forge.opacity(0.35), radius: 3, x: 0, y: 1)
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.appTitle)
                     .foregroundColor(.white)
             }
         }
@@ -810,7 +810,7 @@ struct ExerciseCard: View {
                 .frame(maxWidth: .infinity)
                 .background((done ? Color.appSuccess : Color.forge).opacity(0.12))
                 .foregroundColor(done ? Color.appSuccess : Color.forge)
-                .cornerRadius(10)
+                .cornerRadius(8)
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
@@ -867,9 +867,9 @@ struct ExerciseCard: View {
             // MARK: Expanded content
             if isExpanded { expandedContent }
         }
-        .glassCard(cornerRadius: 16)
+        .glassCard(cornerRadius: 14)
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 14)
                 .stroke(borderColor, lineWidth: alreadyLogged || isFocused ? 1 : 0)
         )
         .opacity(alreadyLogged && !isExpanded ? 0.72 : 1.0)
@@ -1092,7 +1092,7 @@ struct ExerciseCard: View {
                 .foregroundColor(Color.appSuccess.opacity(0.7))
                 .padding(.horizontal, 8).padding(.vertical, 4)
                 .background(Color.appSuccess.opacity(0.08))
-                .cornerRadius(6)
+                .cornerRadius(8)
                 .padding(12)
                 .transition(.opacity)
             }
@@ -1245,7 +1245,7 @@ struct ExerciseCard: View {
                         Spacer()
                     }
                     .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Color.statusYellow.opacity(0.08)).cornerRadius(6)
+                    .background(Color.statusYellow.opacity(0.08)).cornerRadius(8)
                     .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -1305,7 +1305,7 @@ struct ExerciseCard: View {
                 Text(p.label)
                     .font(.appCaption).fontWeight(.bold).foregroundColor(Color.statusPurple)
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.statusPurple.opacity(0.12)).cornerRadius(6)
+                    .background(Color.statusPurple.opacity(0.12)).cornerRadius(8)
                 if let note = p.note {
                     Text(note).font(.appMicro).foregroundColor(Color.forge.opacity(0.8)).lineLimit(1)
                 }
@@ -1577,7 +1577,7 @@ struct ExerciseCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
                                 Image(systemName: i == 0 ? "clock.arrow.circlepath" : "circle.fill")
-                                    .font(.system(size: i == 0 ? 10 : 5))
+                                    .font(.appMicro)
                                     .foregroundColor(.gray.opacity(i == 0 ? 0.5 : 0.25))
                                 Text(entry.date ?? "—").font(.appMicro).foregroundColor(i == 0 ? .gray : .gray.opacity(0.7))
                                 if let note = entry.note, !note.isEmpty {
@@ -1658,8 +1658,8 @@ struct ExerciseCard: View {
                     .padding(.vertical, 14)
                     .background(Color.forge.opacity(0.14))
                     .foregroundColor(Color.forge)
-                    .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.28), lineWidth: 1))
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.28), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
@@ -1692,8 +1692,8 @@ struct ExerciseCard: View {
                     .foregroundColor(Color.appDanger.opacity(0.7))
                     .padding(.horizontal, 14).padding(.vertical, 6)
                     .background(Color.appDanger.opacity(0.08))
-                    .cornerRadius(20)
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.appDanger.opacity(0.2), lineWidth: 1))
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appDanger.opacity(0.2), lineWidth: 1))
                 }
             }
         }
@@ -1761,7 +1761,7 @@ private struct RepCounterSection: View {
                 .foregroundColor(Color.statusPurple.opacity(0.7))
 
             Text("\(count)")
-                .font(.system(size: 80, weight: .black, design: .rounded))
+                .font(.appDisplay)
                 .foregroundColor(Color.statusPurple)
                 .contentTransition(.numericText())
                 .animation(.spring(response: 0.2, dampingFraction: 0.6), value: count)
@@ -1773,8 +1773,9 @@ private struct RepCounterSection: View {
                     triggerImpact(style: .light)
                 } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 44))
+                        .font(.appHero)
                         .foregroundColor(.gray.opacity(0.45))
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
 
@@ -1799,8 +1800,9 @@ private struct RepCounterSection: View {
                     triggerImpact(style: .light)
                 } label: {
                     Image(systemName: "arrow.counterclockwise.circle.fill")
-                        .font(.system(size: 44))
+                        .font(.appHero)
                         .foregroundColor(.gray.opacity(0.45))
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
             }
@@ -1821,7 +1823,7 @@ private struct RepCounterSection: View {
                 .padding(.vertical, 13)
                 .background(count > 0 ? (isLastSet ? Color.forge : Color.statusPurple) : Color.gray.opacity(0.1))
                 .foregroundColor(count > 0 ? .white : .gray)
-                .cornerRadius(12)
+                .cornerRadius(8)
             }
             .disabled(count == 0)
             .buttonStyle(SpringButtonStyle())
@@ -1950,11 +1952,12 @@ struct EnduranceTimerSection: View {
             : (isCurrent ? Color.statusCyan : Color.gray.opacity(0.5))
         let letter = s == .left ? "G" : "D"
         return ZStack {
+            // ponytail: micro-checkbox 20×20, échelle non-card, exception 8/14 volontaire
             RoundedRectangle(cornerRadius: 5).fill(bg)
             if isDone {
-                Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundColor(fg)
+                Image(systemName: "checkmark").font(.appMicro).foregroundColor(fg)
             } else {
-                Text(letter).font(.system(size: 11, weight: .black)).foregroundColor(fg)
+                Text(letter).font(.appCaption).foregroundColor(fg)
             }
         }
         .frame(width: 20, height: 20)
@@ -1965,7 +1968,7 @@ struct EnduranceTimerSection: View {
         case .idle:
             VStack(spacing: 6) {
                 Text(fmt(targetDur))
-                    .font(.system(size: 52, weight: .black, design: .rounded))
+                    .font(.appHero)
                     .foregroundColor(Color.appOnSurface.opacity(0.9))
                 Text("durée cible")
                     .font(.appCaption).foregroundColor(.gray)
@@ -1974,7 +1977,7 @@ struct EnduranceTimerSection: View {
 
         case .countdown(let n):
             Text("\(n)")
-                .font(.system(size: 80, weight: .black, design: .rounded))
+                .font(.appDisplay)
                 .foregroundColor(.appTextPrimary)
                 .contentTransition(.numericText())
                 .frame(height: 110)
@@ -1984,7 +1987,7 @@ struct EnduranceTimerSection: View {
 
         case .warning(let n):
             Text("\(n)")
-                .font(.system(size: 80, weight: .black, design: .rounded))
+                .font(.appDisplay)
                 .foregroundColor(n <= 3 ? Color.appDanger : Color.forge)
                 .contentTransition(.numericText())
                 .frame(height: 110)
@@ -1992,7 +1995,7 @@ struct EnduranceTimerSection: View {
         case .finished:
             VStack(spacing: 8) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 44)).foregroundColor(Color.appSuccess)
+                    .font(.appHero).foregroundColor(Color.appSuccess)
                 Text(fmt(targetDur))
                     .font(.appHeadline).fontWeight(.black).foregroundColor(.appTextPrimary)
                 Text(finishedSubText)
@@ -2000,7 +2003,7 @@ struct EnduranceTimerSection: View {
             }
             .frame(height: 110)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 14)
                     .stroke(Color.appSuccess.opacity(flashGreen ? 0.7 : 0), lineWidth: 2)
                     .animation(.easeOut(duration: 0.9), value: flashGreen)
             )
@@ -2020,7 +2023,7 @@ struct EnduranceTimerSection: View {
                 .animation(.linear(duration: 0.9), value: remaining)
             VStack(spacing: 4) {
                 Text(fmt(remaining))
-                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .font(.appHero)
                     .foregroundColor(color == Color.statusCyan ? .white : .gray)
                     .contentTransition(.numericText())
                 if case .paused = timerState {
@@ -2039,7 +2042,7 @@ struct EnduranceTimerSection: View {
                     .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity).padding(.vertical, 12)
-                    .background(Color.statusCyan).cornerRadius(12)
+                    .background(Color.statusCyan).cornerRadius(8)
             }
             .buttonStyle(SpringButtonStyle())
 
@@ -2058,7 +2061,7 @@ struct EnduranceTimerSection: View {
                     Label("Reprendre", systemImage: "play.fill")
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
                         .padding(.horizontal, 20).padding(.vertical, 12)
-                        .background(Color.statusCyan).cornerRadius(12)
+                        .background(Color.statusCyan).cornerRadius(8)
                 }
                 .buttonStyle(SpringButtonStyle())
                 iconBtn("stop.fill", fg: Color.appDanger.opacity(0.8), bg: Color.appDanger.opacity(0.1)) { stopTimer() }
@@ -2070,7 +2073,7 @@ struct EnduranceTimerSection: View {
                     Label(nextSetLabel, systemImage: "arrow.right.circle.fill")
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .background(Color.appSuccess).cornerRadius(12)
+                        .background(Color.appSuccess).cornerRadius(8)
                 }
                 .buttonStyle(SpringButtonStyle())
             } else {

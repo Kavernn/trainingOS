@@ -80,8 +80,8 @@ struct StepperInput: View {
                 .disabled(isDisabled)
         }
         .background(Color.appSurfaceInset)
-        .cornerRadius(10)
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appSurfaceInset, lineWidth: 1))
+        .cornerRadius(8)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appSurfaceInset, lineWidth: 1))
         .onChange(of: isManualFocused) { _, focused in
             if !focused { validateInput() }
         }
@@ -96,7 +96,7 @@ struct StepperInput: View {
                 if isManualFocused {
                     Spacer()
                     Button("Terminé") { isManualFocused = false }
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel)
                         .foregroundColor(Color.forge)
                 }
             }
