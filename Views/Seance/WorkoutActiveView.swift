@@ -432,7 +432,7 @@ struct WorkoutSeanceView: View {
                         .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(Color.forge.opacity(0.7))
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .padding(.vertical, 12)
                 .background(Color.forge.opacity(0.06))
                 .cornerRadius(8)
@@ -942,7 +942,7 @@ struct WorkoutSeanceView: View {
                         Text(cardioCount > 0 ? "Cardio ×\(cardioCount) — Ajouter +" : "Ajouter Cardio")
                             .font(.appLabel).fontWeight(.semibold)
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 12)
                     .background(cardioCount > 0 ? Color.statusGreen.opacity(0.12) : Color.appCard)
                     .foregroundColor(cardioCount > 0 ? .statusGreen : .statusBlue)
@@ -958,7 +958,7 @@ struct WorkoutSeanceView: View {
                         Text(hiitCount > 0 ? "HIIT ×\(hiitCount) — Ajouter +" : "Ajouter HIIT")
                             .font(.appLabel).fontWeight(.semibold)
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 12)
                     .background(hiitCount > 0 ? Color.statusGreen.opacity(0.12) : Color.appCard)
                     .foregroundColor(hiitCount > 0 ? .statusGreen : .statusRed)
@@ -1021,6 +1021,7 @@ struct WorkoutSeanceView: View {
                     .foregroundColor(Color.appTextSecondary)
                     .rotationEffect(.degrees(showContextPanel ? 180 : 0))
             }
+            .frame(minHeight: 44)
             .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Color.appSurfaceInset)
             .cornerRadius(8)
@@ -1118,6 +1119,7 @@ struct WorkoutSeanceView: View {
                     .foregroundColor(Color.appTextSecondary)
                     .rotationEffect(.degrees(showAddonsPanel ? 180 : 0))
             }
+            .frame(minHeight: 44)
             .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Color.appSurfaceInset)
             .cornerRadius(8)
@@ -1423,7 +1425,7 @@ struct WorkoutSeanceView: View {
                             Text("Séance 2 (\(assignments.count) exo\(assignments.count > 1 ? "s" : "")) →")
                                 .font(.appLabel).fontWeight(.semibold)
                         }
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                         .padding(.vertical, 12)
                         .background(Color.forge.opacity(0.12))
                         .foregroundColor(Color.forge)
@@ -1502,7 +1504,7 @@ struct WorkoutSeanceView: View {
                             Text("Tout ramener à la séance 1")
                                 .font(.appLabel).fontWeight(.medium)
                         }
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                         .padding(.vertical, 12)
                         .foregroundColor(Color.forge)
                         .background(Color.clear)

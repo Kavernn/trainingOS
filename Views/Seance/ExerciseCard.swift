@@ -1294,7 +1294,7 @@ struct ExerciseCard: View {
                     Text("Reprendre la dernière séance").font(.appCaption).fontWeight(.semibold)
                 }
                 .foregroundColor(Color.forge.opacity(0.85))
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .padding(.vertical, 8)
                 .background(Color.forge.opacity(0.08)).cornerRadius(8)
             }
@@ -1690,6 +1690,7 @@ struct ExerciseCard: View {
                             .font(.appCaption).fontWeight(.semibold)
                     }
                     .foregroundColor(Color.appDanger.opacity(0.7))
+                    .frame(minHeight: 44)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.appDanger.opacity(0.08))
                     .cornerRadius(8)
@@ -1819,7 +1820,7 @@ private struct RepCounterSection: View {
                     Text(isLastSet ? "Logger l'exercice" : "Set terminé →")
                         .font(.appBody).fontWeight(.bold)
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .padding(.vertical, 12)
                 .background(count > 0 ? (isLastSet ? Color.forge : Color.statusPurple) : Color.gray.opacity(0.1))
                 .foregroundColor(count > 0 ? .white : .gray)
@@ -2041,7 +2042,7 @@ struct EnduranceTimerSection: View {
                 Label("Démarrer", systemImage: "play.fill")
                     .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(.white)
-                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 12)
                     .background(Color.statusCyan).cornerRadius(8)
             }
             .buttonStyle(SpringButtonStyle())
@@ -2060,6 +2061,7 @@ struct EnduranceTimerSection: View {
                 Button { resumeTimer() } label: {
                     Label("Reprendre", systemImage: "play.fill")
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
+                        .frame(minHeight: 44)
                         .padding(.horizontal, 16).padding(.vertical, 12)
                         .background(Color.statusCyan).cornerRadius(8)
                 }
@@ -2072,7 +2074,7 @@ struct EnduranceTimerSection: View {
                 Button { nextSet() } label: {
                     Label(nextSetLabel, systemImage: "arrow.right.circle.fill")
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 12)
                         .background(Color.appSuccess).cornerRadius(8)
                 }
                 .buttonStyle(SpringButtonStyle())
