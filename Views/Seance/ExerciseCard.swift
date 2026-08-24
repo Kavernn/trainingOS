@@ -1240,12 +1240,12 @@ struct ExerciseCard: View {
                    let previousBest = evm.weightData?.currentWeight,
                    previousBest > 0, r.weight > previousBest {
                     HStack(spacing: 8) {
-                        Text("🏆 PR!").font(.appCaption).fontWeight(.black).foregroundColor(Color.statusYellow)
-                        Text("Nouveau record → \(units.format(r.weight))").font(.appMicro).foregroundColor(Color.statusYellow.opacity(0.75))
+                        Text("🏆 PR!").font(.appCaption).fontWeight(.black).foregroundColor(Color.appSuccess)
+                        Text("Nouveau record → \(units.format(r.weight))").font(.appMicro).foregroundColor(Color.appSuccess.opacity(0.75))
                         Spacer()
                     }
                     .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Color.statusYellow.opacity(0.08)).cornerRadius(8)
+                    .background(Color.appSuccess.opacity(0.08)).cornerRadius(8)
                     .transition(.scale.combined(with: .opacity))
                 }
             }

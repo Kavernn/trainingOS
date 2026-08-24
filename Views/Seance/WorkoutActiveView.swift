@@ -328,7 +328,7 @@ struct WorkoutSeanceView: View {
                 Spacer()
                 Text("\(vm.logResults.count)/\(exercises.count)")
                     .font(.appCaption).fontWeight(.bold)
-                    .foregroundColor(vm.logResults.count == exercises.count ? .statusGreen : .statusOrange)
+                    .foregroundColor(vm.logResults.count == exercises.count ? Color.appSuccess : .statusOrange)
             }
             .padding(.horizontal, 16).padding(.bottom, 8)
             ForEach(exercises, id: \.0) { name, scheme in
@@ -336,7 +336,7 @@ struct WorkoutSeanceView: View {
                 HStack(spacing: 8) {
                     Image(systemName: r != nil ? "checkmark.circle.fill" : "circle")
                         .font(.appLabel)
-                        .foregroundColor(r != nil ? .statusGreen : .gray.opacity(0.3))
+                        .foregroundColor(r != nil ? Color.appSuccess : .gray.opacity(0.3))
                     VStack(alignment: .leading, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                         Text(name).font(.appLabel).fontWeight(r != nil ? .semibold : .regular)
                             .foregroundColor(r != nil ? .white : .gray)
@@ -405,8 +405,8 @@ struct WorkoutSeanceView: View {
 
             if orderSaveError {
                 HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.circle.fill").foregroundColor(.statusRed)
-                    Text("Ordre non sauvegardé").font(.appCaption).foregroundColor(.statusRed)
+                    Image(systemName: "exclamationmark.circle.fill").foregroundColor(Color.appDanger)
+                    Text("Ordre non sauvegardé").font(.appCaption).foregroundColor(Color.appDanger)
                     Spacer()
                     Button("Réessayer") {
                         orderSaveError = false
@@ -419,7 +419,7 @@ struct WorkoutSeanceView: View {
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(Color.statusRed.opacity(0.08))
+                .background(Color.appDanger.opacity(0.08))
                 .cornerRadius(8)
                 .padding(.horizontal, 16)
             }
@@ -448,7 +448,7 @@ struct WorkoutSeanceView: View {
         HStack(spacing: 12) {
             Button { Task { await deleteExercise(name) } } label: {
                 Image(systemName: "minus.circle.fill")
-                    .font(.appTitle).foregroundColor(.statusRed)
+                    .font(.appTitle).foregroundColor(Color.appDanger)
             }
             Button {
                 editTarget = ExerciseTarget(seance: data.today, exercise: name, scheme: scheme)
@@ -944,11 +944,11 @@ struct WorkoutSeanceView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 12)
-                    .background(cardioCount > 0 ? Color.statusGreen.opacity(0.12) : Color.appCard)
-                    .foregroundColor(cardioCount > 0 ? .statusGreen : .statusBlue)
+                    .background(cardioCount > 0 ? Color.appSuccess.opacity(0.12) : Color.appCard)
+                    .foregroundColor(cardioCount > 0 ? Color.appSuccess : .statusBlue)
                     .cornerRadius(8)
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-                        cardioCount > 0 ? Color.statusGreen.opacity(0.3) : Color.statusBlue.opacity(0.2), lineWidth: 1))
+                        cardioCount > 0 ? Color.appSuccess.opacity(0.3) : Color.statusBlue.opacity(0.2), lineWidth: 1))
                 }
 
                 Button(action: { showAddHIIT = true }) {
@@ -960,11 +960,11 @@ struct WorkoutSeanceView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 12)
-                    .background(hiitCount > 0 ? Color.statusGreen.opacity(0.12) : Color.appCard)
-                    .foregroundColor(hiitCount > 0 ? .statusGreen : .statusRed)
+                    .background(hiitCount > 0 ? Color.appSuccess.opacity(0.12) : Color.appCard)
+                    .foregroundColor(hiitCount > 0 ? Color.appSuccess : .statusRed)
                     .cornerRadius(8)
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-                        hiitCount > 0 ? Color.statusGreen.opacity(0.3) : Color.statusRed.opacity(0.2), lineWidth: 1))
+                        hiitCount > 0 ? Color.appSuccess.opacity(0.3) : Color.statusRed.opacity(0.2), lineWidth: 1))
                 }
             }
         }
@@ -1042,12 +1042,12 @@ struct WorkoutSeanceView: View {
                 HStack(spacing: 8) {
                     Image(systemName: hint.isAbove ? "fork.knife" : "exclamationmark.circle")
                         .font(.appMicro).fontWeight(.medium)
-                        .foregroundColor(hint.isAbove ? .statusGreen : .statusOrange)
+                        .foregroundColor(hint.isAbove ? Color.appSuccess : .statusOrange)
                     Text(hint.isAbove
                          ? "Bonne nutrition hier — conditions optimales"
                          : "Nutrition de la veille sous ton seuil optimal (\(hint.macro))")
                         .font(.appCaption)
-                        .foregroundColor(hint.isAbove ? Color.statusGreen.opacity(0.85) : Color.statusOrange.opacity(0.85))
+                        .foregroundColor(hint.isAbove ? Color.appSuccess.opacity(0.85) : Color.statusOrange.opacity(0.85))
                         .lineLimit(1)
                     Spacer()
                 }
@@ -1083,11 +1083,11 @@ struct WorkoutSeanceView: View {
                 if energyConfirmed {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.appLabel)
-                        .foregroundColor(.statusGreen)
+                        .foregroundColor(Color.appSuccess)
                         .transition(.scale.combined(with: .opacity))
                 } else if energyPreDate == data.todayDate {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.appMicro).foregroundColor(Color.statusGreen.opacity(0.6))
+                        .font(.appMicro).foregroundColor(Color.appSuccess.opacity(0.6))
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
@@ -1176,7 +1176,7 @@ struct WorkoutSeanceView: View {
                         } label: {
                             Image(systemName: isEditMode ? "checkmark.circle.fill" : "pencil.circle")
                                 .font(.appTitle)
-                                .foregroundColor(isEditMode ? .statusGreen : .statusOrange)
+                                .foregroundColor(isEditMode ? Color.appSuccess : .statusOrange)
                         }
                         .padding(.leading, 8)
                         // W-D11 — abandon session button
@@ -1186,7 +1186,7 @@ struct WorkoutSeanceView: View {
                             } label: {
                                 Image(systemName: "xmark.circle")
                                     .font(.appTitle)
-                                    .foregroundColor(Color.statusRed.opacity(0.6))
+                                    .foregroundColor(Color.appDanger.opacity(0.6))
                             }
                             .padding(.leading, 8)
                         }
@@ -1198,12 +1198,12 @@ struct WorkoutSeanceView: View {
                     HStack(spacing: 8) {
                         Text(allDone ? "Tous les exercices loggés" : "\(done) / \(total) exercices")
                             .font(.appCaption).fontWeight(.semibold)
-                            .foregroundColor(allDone ? .statusGreen : .secondary)
+                            .foregroundColor(allDone ? Color.appSuccess : .secondary)
                             .animation(.easeInOut(duration: 0.2), value: allDone)
                         if allDone {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.appMicro).fontWeight(.bold)
-                                .foregroundColor(.statusGreen)
+                                .foregroundColor(Color.appSuccess)
                                 .transition(.scale.combined(with: .opacity))
                         }
                         Spacer()
@@ -1265,9 +1265,9 @@ struct WorkoutSeanceView: View {
                             }
                         }
                         .font(.appCaption).fontWeight(.semibold)
-                        .foregroundColor(Color.statusRed.opacity(0.8))
+                        .foregroundColor(Color.appDanger.opacity(0.8))
                         .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.statusRed.opacity(0.1))
+                        .background(Color.appDanger.opacity(0.1))
                         .cornerRadius(8)
                         Button { withAnimation { showResumeBanner = false } } label: {
                             Image(systemName: "xmark")
