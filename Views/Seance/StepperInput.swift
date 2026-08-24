@@ -82,7 +82,13 @@ struct StepperInput: View {
         .background(Color.appSurfaceInset)
         .cornerRadius(8)
         .onChange(of: isManualFocused) { _, focused in
-            if !focused { validateInput() }
+            if focused {
+                DispatchQueue.main.async {
+                    UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
+                }
+            } else {
+                validateInput()
+            }
         }
         .onAppear {
             guard autoFocus else { return }
