@@ -333,18 +333,18 @@ struct WorkoutSeanceView: View {
             .padding(.horizontal, 16).padding(.bottom, 8)
             ForEach(exercises, id: \.0) { name, scheme in
                 let r = vm.logResults[name]
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Image(systemName: r != nil ? "checkmark.circle.fill" : "circle")
                         .font(.appLabel)
                         .foregroundColor(r != nil ? .statusGreen : .gray.opacity(0.3))
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                         Text(name).font(.appLabel).fontWeight(r != nil ? .semibold : .regular)
                             .foregroundColor(r != nil ? .white : .gray)
                         Text(scheme).font(.appMicro).foregroundColor(.gray)
                     }
                     Spacer()
                     if let r = r {
-                        VStack(alignment: .trailing, spacing: 1) {
+                        VStack(alignment: .trailing, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                             Text(UnitSettings.shared.format(r.weight))
                                 .font(.appCaption).fontWeight(.bold).foregroundColor(Color.forge)
                             Text(r.reps).font(.appMicro).foregroundColor(.gray)
@@ -353,7 +353,7 @@ struct WorkoutSeanceView: View {
                         Text("—").font(.appCaption).foregroundColor(.gray.opacity(0.3))
                     }
                 }
-                .padding(.horizontal, 16).padding(.vertical, 9)
+                .padding(.horizontal, 16).padding(.vertical, 8)
                 Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
             }
         }
@@ -404,7 +404,7 @@ struct WorkoutSeanceView: View {
             .onPreferenceChange(CardHeightKey.self) { cardHeights.merge($0) { $1 } }
 
             if orderSaveError {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.circle.fill").foregroundColor(.statusRed)
                     Text("Ordre non sauvegardé").font(.appCaption).foregroundColor(.statusRed)
                     Spacer()
@@ -454,7 +454,7 @@ struct WorkoutSeanceView: View {
                 editTarget = ExerciseTarget(seance: data.today, exercise: name, scheme: scheme)
             } label: {
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(name).font(.appLabel).fontWeight(.regular).foregroundColor(.appTextPrimary)
                         Text(scheme).font(.appCaption).foregroundColor(Color.appTextSecondary)
                     }
@@ -464,7 +464,7 @@ struct WorkoutSeanceView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 16).padding(.vertical, 8)
         .background(Color.appCard)
         Divider().background(Color.appSeparatorSubtle).padding(.horizontal, 16)
     }
@@ -516,7 +516,7 @@ struct WorkoutSeanceView: View {
     }
 
     @ViewBuilder private var stickyHeader: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 4) {
             if progressComplete {
                 Text("SÉANCE TERMINÉE")
                     .font(.appMicro).fontWeight(.bold).tracking(2)
@@ -532,7 +532,7 @@ struct WorkoutSeanceView: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 16).padding(.vertical, 8)
         .background(.ultraThinMaterial)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
@@ -547,7 +547,7 @@ struct WorkoutSeanceView: View {
         } label: {
             HStack(spacing: 8) {
                 Rectangle().fill(Color.appSurfaceInset).frame(height: 1)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: collapsedCompleted ? "chevron.down" : "chevron.up")
                         .font(.appMicro).fontWeight(.bold)
                     Text("COMPLÉTÉS (\(loggedCount))")
@@ -625,13 +625,13 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder
     private func supersetBlock(group: String, entry: SupersetEntry, schemeA: String, schemeB: String, nextName: String?) -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             HStack(spacing: 8) {
                 Text(group)
                     .font(.appCaption).fontWeight(.semibold)
                     .foregroundColor(Color.forge)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
                     .background(Color.forge.opacity(0.15))
                     .clipShape(Capsule())
                 Text("Superset")
@@ -653,7 +653,7 @@ struct WorkoutSeanceView: View {
                     Text("Dissocier")
                         .font(.appCaption)
                         .foregroundColor(.secondary)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.secondary.opacity(0.12))
                         .clipShape(Capsule())
                 }
@@ -662,7 +662,7 @@ struct WorkoutSeanceView: View {
 
             draggableCard(name: entry.a, scheme: schemeA, nextExerciseName: nil, forceNoRest: true)
 
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.appCaption)
                 Text("enchaîner")
@@ -695,7 +695,7 @@ struct WorkoutSeanceView: View {
                 let targetSlot: SessionKind = isSecondSession ? .morning : .evening
                 performMove(name: name, to: targetSlot)
             } label: {
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     if isSecondSession {
                         Image(systemName: "arrow.left")
                         Text("Matin")
@@ -707,7 +707,7 @@ struct WorkoutSeanceView: View {
                 .font(.appMicro.weight(.semibold))
                 .foregroundColor(Color.forge)
                 .padding(.horizontal, 8)
-                .padding(.vertical, 5)
+                .padding(.vertical, 4)
                 .background(Color.appCard)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(Color.forge.opacity(0.3), lineWidth: 0.5))
@@ -934,16 +934,16 @@ struct WorkoutSeanceView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OPTIONNEL")
                 .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Button(action: { showAddCardio = true }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Image(systemName: cardioCount > 0 ? "plus.circle.fill" : "figure.run")
                             .font(.appLabel)
                         Text(cardioCount > 0 ? "Cardio ×\(cardioCount) — Ajouter +" : "Ajouter Cardio")
                             .font(.appLabel).fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
+                    .padding(.vertical, 12)
                     .background(cardioCount > 0 ? Color.statusGreen.opacity(0.12) : Color.appCard)
                     .foregroundColor(cardioCount > 0 ? .statusGreen : .statusBlue)
                     .cornerRadius(8)
@@ -952,14 +952,14 @@ struct WorkoutSeanceView: View {
                 }
 
                 Button(action: { showAddHIIT = true }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Image(systemName: hiitCount > 0 ? "plus.circle.fill" : "bolt.fill")
                             .font(.appLabel)
                         Text(hiitCount > 0 ? "HIIT ×\(hiitCount) — Ajouter +" : "Ajouter HIIT")
                             .font(.appLabel).fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
+                    .padding(.vertical, 12)
                     .background(hiitCount > 0 ? Color.statusGreen.opacity(0.12) : Color.appCard)
                     .foregroundColor(hiitCount > 0 ? .statusGreen : .statusRed)
                     .cornerRadius(8)
@@ -989,7 +989,7 @@ struct WorkoutSeanceView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 16)
             }
             .frame(height: 22)
         }
@@ -1021,7 +1021,7 @@ struct WorkoutSeanceView: View {
                     .foregroundColor(Color.appTextSecondary)
                     .rotationEffect(.degrees(showContextPanel ? 180 : 0))
             }
-            .padding(.horizontal, 14).padding(.vertical, 11)
+            .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Color.appSurfaceInset)
             .cornerRadius(8)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
@@ -1038,7 +1038,7 @@ struct WorkoutSeanceView: View {
 
             // Macro nutrition hint — lecture seule, calculé depuis DashboardViewModel
             if let hint = appState.macroSessionHint {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: hint.isAbove ? "fork.knife" : "exclamationmark.circle")
                         .font(.appMicro).fontWeight(.medium)
                         .foregroundColor(hint.isAbove ? .statusGreen : .statusOrange)
@@ -1053,7 +1053,7 @@ struct WorkoutSeanceView: View {
             }
 
             // Énergie inline — remplace la modal bloquante
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text("ÉNERGIE")
                     .font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
                 ForEach(1...5, id: \.self) { val in
@@ -1089,7 +1089,7 @@ struct WorkoutSeanceView: View {
                         .font(.appMicro).foregroundColor(Color.statusGreen.opacity(0.6))
                 }
             }
-            .padding(.horizontal, 10).padding(.vertical, 7)
+            .padding(.horizontal, 12).padding(.vertical, 8)
             .background(Color.statusYellow.opacity(0.07))
             .cornerRadius(8)
         }
@@ -1118,7 +1118,7 @@ struct WorkoutSeanceView: View {
                     .foregroundColor(Color.appTextSecondary)
                     .rotationEffect(.degrees(showAddonsPanel ? 180 : 0))
             }
-            .padding(.horizontal, 14).padding(.vertical, 11)
+            .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Color.appSurfaceInset)
             .cornerRadius(8)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appTextSecondary.opacity(0.15), lineWidth: 0.5))
@@ -1132,7 +1132,7 @@ struct WorkoutSeanceView: View {
         ScrollView {
             VStack(spacing: 16) {
                 // Header
-                VStack(spacing: 9) {
+                VStack(spacing: 8) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Button {
@@ -1193,7 +1193,7 @@ struct WorkoutSeanceView: View {
                     let done = progressDone
                     let total = progressTotal
                     let allDone = progressComplete
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Text(allDone ? "Tous les exercices loggés" : "\(done) / \(total) exercices")
                             .font(.appCaption).fontWeight(.semibold)
                             .foregroundColor(allDone ? .statusGreen : .secondary)
@@ -1243,7 +1243,7 @@ struct WorkoutSeanceView: View {
                         Image(systemName: "arrow.clockwise.circle.fill")
                             .font(.appBody)
                             .foregroundColor(.statusCyan)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text("Continuer la séance")
                                 .font(.appLabel).fontWeight(.semibold)
                                 .foregroundColor(.statusCyan)
@@ -1275,7 +1275,7 @@ struct WorkoutSeanceView: View {
                         .buttonStyle(.plain)
                         .padding(.leading, 4)
                     }
-                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(Color.statusCyan.opacity(0.08))
                     .cornerRadius(8)
                     .padding(.horizontal, 16)
@@ -1391,11 +1391,11 @@ struct WorkoutSeanceView: View {
 
                 // Effort live — visible dès qu'un exercice est loggé
                 if !vm.logResults.isEmpty {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 8) {
                         Image(systemName: "gauge.with.dots.needle.67percent")
                             .font(.appLabel)
                             .foregroundColor(RPEHelper.color(for: computedSessionRPE))
-                        VStack(alignment: .leading, spacing: 1) {
+                        VStack(alignment: .leading, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                             Text("Effort séance")
                                 .font(.appCaption).fontWeight(.semibold)
                                 .foregroundColor(Color.appTextSecondary)
@@ -1446,7 +1446,7 @@ struct WorkoutSeanceView: View {
                             .font(.appCaption)
                             .foregroundColor(Color.appTextMuted)
                             .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.bottom, 6)
+                            .padding(.bottom, 8)
                             .transition(.opacity)
                     }
                     Button(action: {
@@ -1471,7 +1471,7 @@ struct WorkoutSeanceView: View {
                             Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
                                 .font(.appBody).fontWeight(.semibold)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 16)
                         .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.appSuccess : Color.appWarning)
                         .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
                         .cornerRadius(14)

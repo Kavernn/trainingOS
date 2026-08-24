@@ -263,7 +263,7 @@ struct ExerciseCard: View {
             Rectangle()
                 .fill(Color.appSeparatorSubtle)
                 .frame(height: 0.5)
-                .padding(.vertical, 2)
+                .padding(.vertical, 4)
             ForEach(evm.sets.indices, id: \.self) { i in
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
@@ -316,7 +316,7 @@ struct ExerciseCard: View {
                     Text("→ \(evm.repsStr)").font(.appCaption).foregroundColor(.gray)
                     Spacer()
                 }
-                .padding(.top, 2)
+                .padding(.top, 4)
             }
             overloadHintLine()
             if evm.repCountMode {
@@ -359,7 +359,7 @@ struct ExerciseCard: View {
                 }
                 .frame(height: 3)
             }
-            .padding(.top, 2)
+            .padding(.top, 4)
         }
     }
 
@@ -439,7 +439,7 @@ struct ExerciseCard: View {
             }
         }
         if evm.equipmentType != "bodyweight" {
-            HStack(spacing: 2) {
+            HStack(spacing: 4) {
                 Button { adjustAllWeights(-1) } label: {
                     Image(systemName: "minus")
                         .font(.appMicro).fontWeight(.bold)
@@ -468,7 +468,7 @@ struct ExerciseCard: View {
                 Image(systemName: "scalemass.fill")
                     .font(.appCaption).fontWeight(.semibold)
                     .foregroundColor(Color.forge.opacity(0.8))
-                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(Color.forge.opacity(0.12))
                     .clipShape(Capsule())
             }
@@ -484,8 +484,8 @@ struct ExerciseCard: View {
             .frame(width: evm.setBySetMode ? 132 : 140, alignment: .center)
         // W-C2 — hide RIR column for time-based exercises
         if showRIRColumn && !isTimeBased {
-            HStack(spacing: 3) {
-                VStack(spacing: 1) {
+            HStack(spacing: 4) {
+                VStack(spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                     Text("RIR")
                         .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(Color.statusCyan.opacity(0.7))
                     Text("avant échec")
@@ -628,13 +628,13 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func timeSetRows() -> some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 6) {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
                 ForEach([15, 30, 45, 60, 90, 120], id: \.self) { secs in
                     Button { for i in evm.sets.indices { evm.sets[i].duration = secs } } label: {
                         Text(evm.formatDuration(secs))
                             .font(.appCaption).fontWeight(.semibold)
-                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .padding(.horizontal, 12).padding(.vertical, 4)
                             .background(Color.statusCyan.opacity(0.15))
                             .foregroundColor(Color.statusCyan)
                             .cornerRadius(8)
@@ -651,7 +651,7 @@ struct ExerciseCard: View {
                 Spacer()
             }
             ForEach(evm.sets.indices, id: \.self) { i in
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Text("S\(i + 1)").font(.appCaption).fontWeight(.bold).foregroundColor(.gray).frame(width: 28)
                     Button { if evm.sets[i].duration > 5 { evm.sets[i].duration -= 5 } } label: {
                         Image(systemName: "minus.circle.fill").font(.appTitle).foregroundColor(.gray)
@@ -659,7 +659,7 @@ struct ExerciseCard: View {
                     Text(evm.formatDuration(evm.sets[i].duration))
                         .font(.appHeadline).fontWeight(.bold).foregroundColor(.appTextPrimary)
                         .frame(minWidth: 64, alignment: .center)
-                        .padding(.vertical, 6).padding(.horizontal, 12)
+                        .padding(.vertical, 8).padding(.horizontal, 12)
                         .background(Color.appSurfaceInset).cornerRadius(8)
                     Button { evm.sets[i].duration += 5 } label: {
                         Image(systemName: "plus.circle.fill").font(.appTitle).foregroundColor(Color.statusCyan)
@@ -671,7 +671,7 @@ struct ExerciseCard: View {
                 Text("→ \(evm.sets.map { evm.formatDuration($0.duration) }.joined(separator: ", "))")
                     .font(.appCaption).foregroundColor(.gray)
                 Spacer()
-            }.padding(.top, 2)
+            }.padding(.top, 4)
         }
     }
 
@@ -799,14 +799,14 @@ struct ExerciseCard: View {
                 evm.sets[0].protocolCompleted.toggle()
             } label: {
                 let done = evm.sets.first?.protocolCompleted == true
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Image(systemName: done ? "checkmark.circle.fill" : "circle")
                         .font(.title2)
                     Text(done ? "Fait" : "Marquer comme fait")
                         .font(.appBody).fontWeight(.semibold)
                     Spacer()
                 }
-                .padding(.vertical, 14).padding(.horizontal, 16)
+                .padding(.vertical, 16).padding(.horizontal, 16)
                 .frame(maxWidth: .infinity)
                 .background((done ? Color.appSuccess : Color.forge).opacity(0.12))
                 .foregroundColor(done ? Color.appSuccess : Color.forge)
@@ -830,7 +830,7 @@ struct ExerciseCard: View {
                     Text("\(units.format(avgLbs)) → \(units.format(total))")
                         .font(.appLabel).fontWeight(.black).foregroundColor(Color.forge)
                 }
-                .padding(.top, 2)
+                .padding(.top, 4)
             }
         case "bodyweight":
             if bodyWeight > 0 {
@@ -841,7 +841,7 @@ struct ExerciseCard: View {
                     Text(units.format(bodyWeight))
                         .font(.appLabel).fontWeight(.black).foregroundColor(Color.forge)
                 }
-                .padding(.top, 2)
+                .padding(.top, 4)
             }
         default:
             EmptyView()
@@ -926,8 +926,8 @@ struct ExerciseCard: View {
                         .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(alreadyLogged ? Color.appSuccess : Color.statusOrange)
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
                         let titleFont: Font = isExpanded ? .appTitle : .appHeadline
                         let titleWeight: Font.Weight = isExpanded ? .heavy : .bold
                         Text(name)
@@ -938,7 +938,7 @@ struct ExerciseCard: View {
                         if isReplaced {
                             Text("remplacé")
                                 .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)
-                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .padding(.horizontal, 4).padding(.vertical, 4)
                                 .background(Color.forge.opacity(0.12)).clipShape(Capsule())
                         }
                         let hasCoaching = logResult == nil && (
@@ -949,7 +949,7 @@ struct ExerciseCard: View {
                             Image(systemName: "bolt.fill")
                                 .font(.appMicro)
                                 .foregroundColor(Color.forge)
-                                .padding(3)
+                                .padding(4)
                                 .background(Color.forge.opacity(0.15))
                                 .clipShape(Circle())
                         }
@@ -959,7 +959,7 @@ struct ExerciseCard: View {
                 Spacer()
                 headerTrailing
             }
-            .padding(.horizontal, 16).padding(.vertical, 15)
+            .padding(.horizontal, 16).padding(.vertical, 16)
         }
         .buttonStyle(.plain)
     }
@@ -989,11 +989,11 @@ struct ExerciseCard: View {
                             Text(evm.formatDuration(remaining))
                                 .font(.appCaption).fontWeight(.bold).foregroundColor(Color.statusCyan)
                         }
-                        .padding(.horizontal, 7).padding(.vertical, 4)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.statusCyan.opacity(0.1)).clipShape(Capsule())
                     }
                 }
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: 4) {
                     if isTimeBased {
                         Text(r.reps.split(separator: ",").compactMap { Int($0) }
                                 .map { evm.formatDuration($0) }.first ?? "—")
@@ -1021,9 +1021,9 @@ struct ExerciseCard: View {
             HStack(spacing: 8) {
                 noteIconButton
                 if !isTimeBased, evm.lastReps != "—", !evm.lastReps.isEmpty {
-                    VStack(alignment: .trailing, spacing: 1) {
+                    VStack(alignment: .trailing, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                         if let sw = suggestion?.suggestedWeight, sw > 0 {
-                            HStack(spacing: 3) {
+                            HStack(spacing: 4) {
                                 Image(systemName: "bolt.fill").font(.appMicro).foregroundColor(Color.statusCyan)
                                 Text(units.format(sw))
                                     .font(.appCaption).fontWeight(.bold).foregroundColor(Color.statusCyan)
@@ -1045,10 +1045,10 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var expandedContent: some View {
         Divider().background(Color.appSurfaceInset)
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             expandedTopBar
             if evm.isFirstTime && !alreadyLogged {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "sparkles")
                         .font(.appCaption).foregroundColor(Color.statusCyan)
                     Text("Première fois pour cet exercice — pas d'historique encore.")
@@ -1066,7 +1066,7 @@ struct ExerciseCard: View {
             if alreadyLogged && !evm.isEditing { loggedStateDisplay } else { formView }
             historySection
             if let next = nextExerciseName {
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Text("Suivant").font(.appCaption).fontWeight(.semibold).foregroundColor(.gray.opacity(0.3))
                     Image(systemName: "arrow.right").font(.appMicro).fontWeight(.bold).foregroundColor(.gray.opacity(0.3))
                     Text(next).font(.appCaption).fontWeight(.medium).foregroundColor(.gray.opacity(0.45))
@@ -1110,11 +1110,11 @@ struct ExerciseCard: View {
                         onSwap()
                     }
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         Image(systemName: "arrow.left.arrow.right").font(.appCaption)
                         Text("Changer").font(.appCaption).fontWeight(.semibold)
                     }
-                    .foregroundColor(.gray.opacity(0.7)).padding(.horizontal, 10).padding(.vertical, 5)
+                    .foregroundColor(.gray.opacity(0.7)).padding(.horizontal, 12).padding(.vertical, 4)
                     .background(Color.appSurfaceInset).clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -1131,14 +1131,14 @@ struct ExerciseCard: View {
                         if !evm.setBySetMode { evm.repCountMode = false }
                     }
                 } label: {
-                    HStack(spacing: 3) {
+                    HStack(spacing: 4) {
                         Image(systemName: evm.setBySetMode ? "list.number" : "arrow.forward.circle")
                             .font(.appCaption)
                         Text("Set à set")
                             .font(.appMicro).fontWeight(.semibold)
                     }
                     .foregroundColor(evm.setBySetMode && !evm.repCountMode ? Color.forge : .gray.opacity(0.6))
-                    .padding(.horizontal, 8).padding(.vertical, 5)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(Color.appSurfaceInset).clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -1157,14 +1157,14 @@ struct ExerciseCard: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: 3) {
+                        HStack(spacing: 4) {
                             Image(systemName: "hand.tap.fill")
                                 .font(.appCaption)
                             Text("Compteur")
                                 .font(.appMicro).fontWeight(.semibold)
                         }
                         .foregroundColor(evm.repCountMode ? Color.statusPurple : .gray.opacity(0.6))
-                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.appSurfaceInset).clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -1188,7 +1188,7 @@ struct ExerciseCard: View {
                     Image(systemName: "chevron.down").font(.appMicro).fontWeight(.semibold)
                 }
                 .foregroundColor(evm.equipmentType == equipmentType ? .gray.opacity(0.6) : Color.statusCyan)
-                .padding(.horizontal, 10).padding(.vertical, 5)
+                .padding(.horizontal, 12).padding(.vertical, 4)
                 .background((evm.equipmentType == equipmentType ? Color.white : Color.statusCyan).opacity(0.07))
                 .clipShape(Capsule())
             }
@@ -1239,7 +1239,7 @@ struct ExerciseCard: View {
                 if !isTimeBased,
                    let previousBest = evm.weightData?.currentWeight,
                    previousBest > 0, r.weight > previousBest {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Text("🏆 PR!").font(.appCaption).fontWeight(.black).foregroundColor(Color.statusYellow)
                         Text("Nouveau record → \(units.format(r.weight))").font(.appMicro).foregroundColor(Color.statusYellow.opacity(0.75))
                         Spacer()
@@ -1267,7 +1267,7 @@ struct ExerciseCard: View {
            let prevNote = prev.sessionNotes, !hidePreviousNote {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "note.text").font(.appCaption).foregroundColor(Color.forge.opacity(0.7))
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Dernière séance · \(prev.date ?? "")")
                         .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge.opacity(0.6))
                     Text(prevNote.count > 120 ? String(prevNote.prefix(120)) + "…" : prevNote)
@@ -1280,7 +1280,7 @@ struct ExerciseCard: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 10).padding(.vertical, 8)
+            .padding(.horizontal, 12).padding(.vertical, 8)
             .background(Color.forge.opacity(0.07))
             .cornerRadius(8)
         }
@@ -1289,22 +1289,22 @@ struct ExerciseCard: View {
                 triggerImpact(style: .medium)
                 evm.fillFromLastSession()
             } label: {
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Image(systemName: "arrow.counterclockwise").font(.appCaption)
                     Text("Reprendre la dernière séance").font(.appCaption).fontWeight(.semibold)
                 }
                 .foregroundColor(Color.forge.opacity(0.85))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
+                .padding(.vertical, 8)
                 .background(Color.forge.opacity(0.08)).cornerRadius(8)
             }
             .buttonStyle(.plain)
         }
         if let p = prescription {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(p.label)
                     .font(.appCaption).fontWeight(.bold).foregroundColor(Color.statusPurple)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(Color.statusPurple.opacity(0.12)).cornerRadius(8)
                 if let note = p.note {
                     Text(note).font(.appMicro).foregroundColor(Color.forge.opacity(0.8)).lineLimit(1)
@@ -1332,7 +1332,7 @@ struct ExerciseCard: View {
             Button {
                 withAnimation { evm.showWarmup.toggle() }
             } label: {
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Image(systemName: evm.showWarmup ? "chevron.down" : "flame")
                         .font(.appCaption).foregroundColor(Color.statusYellow.opacity(0.7))
                     Text("Échauffement (\(Int(evm.currentWeight)) \(UnitSettings.shared.label))")
@@ -1409,20 +1409,20 @@ struct ExerciseCard: View {
             .buttonStyle(.plain)
             Spacer()
         }
-        .padding(.top, 2)
+        .padding(.top, 4)
         if !isTimeBased, evm.avgWeight != nil { avgTotalRow }
         // Note de séance — repliable, auto-dépliée si non vide, sauvegardée au log
         if noteExpanded || !evm.sessionNote.isEmpty {
-            HStack(alignment: .top, spacing: 6) {
+            HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "note").font(.appCaption)
                     .foregroundColor(evm.sessionNote.isEmpty ? .gray.opacity(0.35) : Color.forge.opacity(0.7))
-                    .padding(.top, 1)
+                    .padding(.top, 1) // ponytail: micro-align, hors échelle volontaire
                 TextField("Note de séance…", text: $evm.sessionNote, axis: .vertical)
                     .font(.appCaption)
                     .foregroundColor(evm.sessionNote.isEmpty ? .gray : Color.forge)
                     .lineLimit(1...3)
             }
-            .padding(.horizontal, 10).padding(.vertical, 7)
+            .padding(.horizontal, 12).padding(.vertical, 8)
             .background(evm.sessionNote.isEmpty ? Color.clear : Color.forge.opacity(0.06))
             .cornerRadius(8)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(
@@ -1443,14 +1443,14 @@ struct ExerciseCard: View {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { showAdvanced = false }
             } label: {
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Image(systemName: "chevron.up.circle").font(.appMicro)
                     Text("Masquer").font(.appMicro)
                 }
                 .foregroundColor(.gray.opacity(0.4))
             }
             .buttonStyle(.plain)
-            .padding(.top, 2)
+            .padding(.top, 4)
         }
         if showAdvanced { advancedFields }
         RestTimerBadge(restSeconds: restSeconds ?? 120, onTap: {
@@ -1475,7 +1475,7 @@ struct ExerciseCard: View {
                     Image(systemName: "xmark").font(.appMicro).foregroundColor(.gray)
                 }
             }
-            .padding(.horizontal, 10).padding(.vertical, 8)
+            .padding(.horizontal, 12).padding(.vertical, 8)
             .background(Color.appDanger.opacity(0.1))
             .cornerRadius(8)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appDanger.opacity(0.2), lineWidth: 1))
@@ -1485,12 +1485,12 @@ struct ExerciseCard: View {
     @ViewBuilder private var advancedFields: some View {
         let noteBinding = Binding<String>(get: { exoNote }, set: { saveExoNote($0) })
         VStack(spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: "bandage").font(.appCaption).foregroundColor(Color.appDanger.opacity(0.6))
                 TextField("Zone douloureuse (optionnel)", text: $evm.painZone)
                     .font(.appCaption).foregroundColor(evm.painZone.isEmpty ? .gray : Color.appDanger)
             }
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: "note.text").font(.appCaption).foregroundColor(Color.statusCyan.opacity(0.6))
                 TextField("Notes techniques (persistantes)", text: noteBinding, axis: .vertical)
                     .font(.appCaption)
@@ -1503,7 +1503,7 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var logStatusRow: some View {
         if let status = evm.logStatus {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 switch status {
                 case .success(let newW):
                     Image(systemName: "arrow.up.circle.fill").foregroundColor(Color.appSuccess)
@@ -1511,7 +1511,7 @@ struct ExerciseCard: View {
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(Color.appSuccess)
                 case .stagné:
                     Image(systemName: "equal.circle.fill").foregroundColor(Color.statusYellow)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("Stagné — même poids").font(.appLabel).fontWeight(.semibold).foregroundColor(Color.statusYellow)
                         if let hint = RPEHelper.progressionHint(for: evm.exerciseRPE) {
                             Text(hint).font(.appCaption).foregroundColor(Color.statusYellow.opacity(0.7))
@@ -1572,10 +1572,10 @@ struct ExerciseCard: View {
                         Spacer()
                     }
                 }
-                VStack(spacing: 3) {
+                VStack(spacing: 4) {
                     ForEach(Array(visibleEntries.enumerated()), id: \.offset) { i, entry in
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 8) {
                                 Image(systemName: i == 0 ? "clock.arrow.circlepath" : "circle.fill")
                                     .font(.appMicro)
                                     .foregroundColor(.gray.opacity(i == 0 ? 0.5 : 0.25))
@@ -1608,7 +1608,7 @@ struct ExerciseCard: View {
                                     .padding(.leading, 16)
                                 }
                             } else {
-                                HStack(spacing: 6) {
+                                HStack(spacing: 8) {
                                     Text("·").foregroundColor(.gray.opacity(0.3)).font(.appMicro)
                                     Text(units.format(historyPerSide(entry.weight ?? 0)))
                                         .font(.appMicro).fontWeight(i == 0 ? .semibold : .regular)
@@ -1622,7 +1622,7 @@ struct ExerciseCard: View {
                 }
                 if history.count > defaultCount {
                     Button(action: { evm.showHistory.toggle() }) {
-                        HStack(spacing: 2) {
+                        HStack(spacing: 4) {
                             Text(evm.showHistory ? "Moins" : "+\(history.count - defaultCount) sessions").font(.appMicro)
                             Image(systemName: evm.showHistory ? "chevron.up" : "chevron.down").font(.appMicro)
                         }
@@ -1643,7 +1643,7 @@ struct ExerciseCard: View {
                     logResult = nil
                     evm.undoLog()
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Image(systemName: "arrow.uturn.backward.circle.fill")
                             .font(.appBody)
                         Text("Annuler le log")
@@ -1655,7 +1655,7 @@ struct ExerciseCard: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
                     .background(Color.forge.opacity(0.14))
                     .foregroundColor(Color.forge)
                     .cornerRadius(8)
@@ -1683,14 +1683,14 @@ struct ExerciseCard: View {
                 }
             } else {
                 Button(action: { confirmSkip = true }) {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         Image(systemName: "forward.fill")
                             .font(.appMicro).fontWeight(.bold)
                         Text("Sauter")
                             .font(.appCaption).fontWeight(.semibold)
                     }
                     .foregroundColor(Color.appDanger.opacity(0.7))
-                    .padding(.horizontal, 14).padding(.vertical, 6)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.appDanger.opacity(0.08))
                     .cornerRadius(8)
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appDanger.opacity(0.2), lineWidth: 1))
@@ -1767,7 +1767,7 @@ private struct RepCounterSection: View {
                 .animation(.spring(response: 0.2, dampingFraction: 0.6), value: count)
                 .frame(minWidth: 100)
 
-            HStack(spacing: 36) {
+            HStack(spacing: 36) { // ponytail: écart rep-counter volontaire (isolation tap-target)
                 Button {
                     count = max(0, count - 1)
                     triggerImpact(style: .light)
@@ -1820,7 +1820,7 @@ private struct RepCounterSection: View {
                         .font(.appBody).fontWeight(.bold)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
+                .padding(.vertical, 12)
                 .background(count > 0 ? (isLastSet ? Color.forge : Color.statusPurple) : Color.gray.opacity(0.1))
                 .foregroundColor(count > 0 ? .white : .gray)
                 .cornerRadius(8)
@@ -1881,7 +1881,7 @@ struct EnduranceTimerSection: View {
     }
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             if case .idle = timerState { presetBar }
             setHeader
             mainDisplay
@@ -1896,14 +1896,14 @@ struct EnduranceTimerSection: View {
 
     private var presetBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ForEach(presets, id: \.self) { s in
                     Button {
                         targetDur = s; remaining = s
                     } label: {
                         Text(fmt(s))
                             .font(.appCaption).fontWeight(.semibold)
-                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .padding(.horizontal, 12).padding(.vertical, 4)
                             .background(targetDur == s ? Color.statusCyan.opacity(0.28) : Color.statusCyan.opacity(0.10))
                             .foregroundColor(Color.statusCyan)
                             .cornerRadius(8)
@@ -1966,7 +1966,7 @@ struct EnduranceTimerSection: View {
     @ViewBuilder private var mainDisplay: some View {
         switch timerState {
         case .idle:
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Text(fmt(targetDur))
                     .font(.appHero)
                     .foregroundColor(Color.appOnSurface.opacity(0.9))
@@ -2060,7 +2060,7 @@ struct EnduranceTimerSection: View {
                 Button { resumeTimer() } label: {
                     Label("Reprendre", systemImage: "play.fill")
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
-                        .padding(.horizontal, 20).padding(.vertical, 12)
+                        .padding(.horizontal, 16).padding(.vertical, 12)
                         .background(Color.statusCyan).cornerRadius(8)
                 }
                 .buttonStyle(SpringButtonStyle())
