@@ -63,15 +63,9 @@ class HealthKitService: ObservableObject {
             .vo2Max,
             .oxygenSaturation,
             .appleSleepingWristTemperature,
-            .runningStrideLength,
-            .runningVerticalOscillation,
-            .runningGroundContactTime,
         ]
         for id in ids {
             if let t = HKQuantityType.quantityType(forIdentifier: id) { types.insert(t) }
-        }
-        if #available(iOS 17, *) {
-            if let t = HKQuantityType.quantityType(forIdentifier: .physicalEffort) { types.insert(t) }
         }
         if let sleep   = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(sleep) }
         if let workout = HKObjectType.workoutType() as HKObjectType? { types.insert(workout) }
