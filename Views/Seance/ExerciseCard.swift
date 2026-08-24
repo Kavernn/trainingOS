@@ -507,7 +507,7 @@ struct ExerciseCard: View {
         }
         Text("S\(i + 1)")
             .font(isActive ? .appBody : .appCaption).fontWeight(.bold)
-            .foregroundColor(isDone ? Color.appSuccess : isActive ? Color.statusOrange : .gray)
+            .foregroundColor(isDone ? Color.appSuccess : isActive ? Color.forge : .gray)
             .frame(width: 28)
             .onLongPressGesture(minimumDuration: 0.35) {
                 guard i > 0 else { return }
@@ -532,11 +532,11 @@ struct ExerciseCard: View {
         if evm.repCountMode && isActive {
             Text("—")
                 .font(.appBody).fontWeight(.bold)
-                .foregroundColor(Color.statusPurple)
+                .foregroundColor(Color.forge)
                 .multilineTextAlignment(.center)
                 .frame(width: 56)
                 .padding(8)
-                .background(Color.statusPurple.opacity(0.1))
+                .background(Color.forge.opacity(0.1))
                 .cornerRadius(8)
         } else {
             StepperInput(
@@ -1163,7 +1163,7 @@ struct ExerciseCard: View {
                             Text("Compteur")
                                 .font(.appMicro).fontWeight(.semibold)
                         }
-                        .foregroundColor(evm.repCountMode ? Color.statusPurple : .gray.opacity(0.6))
+                        .foregroundColor(evm.repCountMode ? Color.forge : .gray.opacity(0.6))
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.appSurfaceInset).clipShape(Capsule())
                     }
@@ -1759,11 +1759,11 @@ private struct RepCounterSection: View {
 
             Text("SET \(evm.currentSetIndex + 1) / \(evm.sets.count)")
                 .font(.appCaption).fontWeight(.bold).tracking(2)
-                .foregroundColor(Color.statusPurple.opacity(0.7))
+                .foregroundColor(Color.forge.opacity(0.7))
 
             Text("\(count)")
                 .font(.appDisplay)
-                .foregroundColor(Color.statusPurple)
+                .foregroundColor(Color.forge)
                 .contentTransition(.numericText())
                 .animation(.spring(response: 0.2, dampingFraction: 0.6), value: count)
                 .frame(minWidth: 100)
@@ -1785,13 +1785,13 @@ private struct RepCounterSection: View {
                     triggerImpact(style: .medium)
                 } label: {
                     ZStack {
-                        Circle().fill(Color.statusPurple.opacity(0.12)).frame(width: 112, height: 112)
-                        Circle().stroke(Color.statusPurple.opacity(0.35), lineWidth: 2).frame(width: 112, height: 112)
+                        Circle().fill(Color.forge.opacity(0.12)).frame(width: 112, height: 112)
+                        Circle().stroke(Color.forge.opacity(0.35), lineWidth: 2).frame(width: 112, height: 112)
                         VStack(spacing: 4) {
                             Image(systemName: "hand.tap.fill").font(.appTitle)
                             Text("REP").font(.appLabel).fontWeight(.black)
                         }
-                        .foregroundColor(Color.statusPurple)
+                        .foregroundColor(Color.forge)
                     }
                 }
                 .buttonStyle(SpringButtonStyle(scale: 0.92))
@@ -1822,7 +1822,7 @@ private struct RepCounterSection: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .padding(.vertical, 12)
-                .background(count > 0 ? (isLastSet ? Color.forge : Color.statusPurple) : Color.gray.opacity(0.1))
+                .background(count > 0 ? Color.forge : Color.gray.opacity(0.1))
                 .foregroundColor(count > 0 ? .white : .gray)
                 .cornerRadius(8)
             }
@@ -1905,11 +1905,11 @@ struct EnduranceTimerSection: View {
                         Text(fmt(s))
                             .font(.appCaption).fontWeight(.semibold)
                             .padding(.horizontal, 12).padding(.vertical, 4)
-                            .background(targetDur == s ? Color.statusCyan.opacity(0.28) : Color.statusCyan.opacity(0.10))
-                            .foregroundColor(Color.statusCyan)
+                            .background(targetDur == s ? Color.forge.opacity(0.28) : Color.forge.opacity(0.10))
+                            .foregroundColor(Color.forge)
                             .cornerRadius(8)
                             .overlay(RoundedRectangle(cornerRadius: 8)
-                                .stroke(targetDur == s ? Color.statusCyan.opacity(0.55) : .clear, lineWidth: 1))
+                                .stroke(targetDur == s ? Color.forge.opacity(0.55) : .clear, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }
@@ -1947,10 +1947,10 @@ struct EnduranceTimerSection: View {
         let isCurrent = (s == currentSide && !isDone)
         let bg: Color = isDone
             ? Color.appSuccess.opacity(0.28)
-            : (isCurrent ? Color.statusCyan.opacity(0.28) : Color.appOnSurface.opacity(0.08))
+            : (isCurrent ? Color.forge.opacity(0.28) : Color.appOnSurface.opacity(0.08))
         let fg: Color = isDone
             ? Color.appSuccess
-            : (isCurrent ? Color.statusCyan : Color.gray.opacity(0.5))
+            : (isCurrent ? Color.forge : Color.gray.opacity(0.5))
         let letter = s == .left ? "G" : "D"
         return ZStack {
             // ponytail: micro-checkbox 20×20, échelle non-card, exception 8/14 volontaire
@@ -1984,7 +1984,7 @@ struct EnduranceTimerSection: View {
                 .frame(height: 110)
 
         case .running:
-            arcTimer(color: Color.statusCyan)
+            arcTimer(color: Color.forge)
 
         case .warning(let n):
             Text("\(n)")
@@ -2025,7 +2025,7 @@ struct EnduranceTimerSection: View {
             VStack(spacing: 4) {
                 Text(fmt(remaining))
                     .font(.appHero)
-                    .foregroundColor(color == Color.statusCyan ? .white : .gray)
+                    .foregroundColor(color == Color.forge ? .white : .gray)
                     .contentTransition(.numericText())
                 if case .paused = timerState {
                     Text("en pause").font(.appCaption).foregroundColor(.gray)
@@ -2043,7 +2043,7 @@ struct EnduranceTimerSection: View {
                     .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 12)
-                    .background(Color.statusCyan).cornerRadius(8)
+                    .background(Color.forge).cornerRadius(8)
             }
             .buttonStyle(SpringButtonStyle())
 
@@ -2063,7 +2063,7 @@ struct EnduranceTimerSection: View {
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
                         .frame(minHeight: 44)
                         .padding(.horizontal, 16).padding(.vertical, 12)
-                        .background(Color.statusCyan).cornerRadius(8)
+                        .background(Color.forge).cornerRadius(8)
                 }
                 .buttonStyle(SpringButtonStyle())
                 iconBtn("stop.fill", fg: Color.appDanger.opacity(0.8), bg: Color.appDanger.opacity(0.1)) { stopTimer() }

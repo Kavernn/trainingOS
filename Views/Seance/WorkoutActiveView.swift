@@ -1069,7 +1069,7 @@ struct WorkoutSeanceView: View {
                     } label: {
                         Image(systemName: val <= energyPre ? "bolt.fill" : "bolt")
                             .font(.appBody)
-                            .foregroundColor(val <= energyPre ? .statusYellow : .gray.opacity(0.25))
+                            .foregroundColor(val <= energyPre ? Color.forge : Color.gray.opacity(0.25))
                     }
                     .buttonStyle(.plain)
                 }
@@ -1168,7 +1168,7 @@ struct WorkoutSeanceView: View {
                         } label: {
                             Image(systemName: showSummary ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
                                 .font(.appTitle)
-                                .foregroundColor(showSummary ? .statusCyan : Color.statusCyan.opacity(0.5))
+                                .foregroundColor(showSummary ? Color.forge : Color.forge.opacity(0.5))
                         }
                         .padding(.leading, 8)
                         Button {
@@ -1216,7 +1216,7 @@ struct WorkoutSeanceView: View {
                             GeometryReader { g in
                                 let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
                                 Capsule()
-                                    .fill(allDone ? Color.appSuccess : Color.appWarning)
+                                    .fill(allDone ? Color.appSuccess : Color.forge)
                                     .frame(width: g.size.width * fraction)
                                     .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
                             },
@@ -1244,11 +1244,11 @@ struct WorkoutSeanceView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise.circle.fill")
                             .font(.appBody)
-                            .foregroundColor(.statusCyan)
+                            .foregroundColor(Color.forge)
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Continuer la séance")
                                 .font(.appLabel).fontWeight(.semibold)
-                                .foregroundColor(.statusCyan)
+                                .foregroundColor(Color.forge)
                             // W-D2 — show WHICH exercises are already logged (compact, in program order)
                             Text(loggedNames.isEmpty
                                  ? "Reprise sans exercice loggé."
@@ -1474,7 +1474,7 @@ struct WorkoutSeanceView: View {
                                 .font(.appBody).fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 16)
-                        .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.appSuccess : Color.appWarning)
+                        .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.appSuccess : Color.forge)
                         .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
                         .cornerRadius(14)
                         .overlay(
