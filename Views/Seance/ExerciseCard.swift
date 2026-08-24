@@ -487,7 +487,7 @@ struct ExerciseCard: View {
             HStack(spacing: 4) {
                 VStack(spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                     Text("RIR")
-                        .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(Color.statusCyan.opacity(0.7))
+                        .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(Color.gray.opacity(0.7))
                     Text("avant échec")
                         .font(.appMicro).foregroundColor(.gray.opacity(0.45))
                 }
@@ -532,11 +532,11 @@ struct ExerciseCard: View {
         if evm.repCountMode && isActive {
             Text("—")
                 .font(.appBody).fontWeight(.bold)
-                .foregroundColor(Color.forge)
+                .foregroundColor(Color.gray)
                 .multilineTextAlignment(.center)
                 .frame(width: 56)
                 .padding(8)
-                .background(Color.forge.opacity(0.1))
+                .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
         } else {
             StepperInput(
@@ -581,7 +581,7 @@ struct ExerciseCard: View {
         if let p = prescription, !evm.sets[i].reps.isEmpty, let entered = Int(evm.sets[i].reps) {
             Image(systemName: entered >= p.repMin ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                 .font(.appLabel)
-                .foregroundColor(entered >= p.repMin ? Color.appSuccess : Color.statusOrange)
+                .foregroundColor(entered >= p.repMin ? Color.appSuccess : Color.gray)
                 .transition(.opacity)
         }
     }
@@ -635,8 +635,8 @@ struct ExerciseCard: View {
                         Text(evm.formatDuration(secs))
                             .font(.appCaption).fontWeight(.semibold)
                             .padding(.horizontal, 12).padding(.vertical, 4)
-                            .background(Color.statusCyan.opacity(0.15))
-                            .foregroundColor(Color.statusCyan)
+                            .background(Color.gray.opacity(0.15))
+                            .foregroundColor(Color.gray)
                             .cornerRadius(8)
                             .frame(minHeight: 44)
                             .contentShape(Rectangle())
@@ -662,7 +662,7 @@ struct ExerciseCard: View {
                         .padding(.vertical, 8).padding(.horizontal, 12)
                         .background(Color.appSurfaceInset).cornerRadius(8)
                     Button { evm.sets[i].duration += 5 } label: {
-                        Image(systemName: "plus.circle.fill").font(.appTitle).foregroundColor(Color.statusCyan)
+                        Image(systemName: "plus.circle.fill").font(.appTitle).foregroundColor(Color.gray)
                     }.buttonStyle(.plain)
                     Spacer()
                 }
@@ -920,11 +920,11 @@ struct ExerciseCard: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(alreadyLogged ? Color.appSuccess.opacity(0.14) : Color.statusOrange.opacity(0.11))
+                        .fill(alreadyLogged ? Color.appSuccess.opacity(0.14) : Color.gray.opacity(0.11))
                         .frame(width: 34, height: 34)
                     Image(systemName: alreadyLogged ? "checkmark" : "dumbbell")
                         .font(.appLabel).fontWeight(.semibold)
-                        .foregroundColor(alreadyLogged ? Color.appSuccess : Color.statusOrange)
+                        .foregroundColor(alreadyLogged ? Color.appSuccess : Color.gray)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
@@ -985,12 +985,12 @@ struct ExerciseCard: View {
                         let elapsed = max(0, ctx.date.timeIntervalSince(restTimer.startDate ?? .now))
                         let remaining = max(0, restTimer.totalSeconds - Int(elapsed))
                         HStack(spacing: 4) {
-                            Image(systemName: "timer").font(.appMicro).foregroundColor(Color.statusCyan)
+                            Image(systemName: "timer").font(.appMicro).foregroundColor(Color.gray)
                             Text(evm.formatDuration(remaining))
-                                .font(.appCaption).fontWeight(.bold).foregroundColor(Color.statusCyan)
+                                .font(.appCaption).fontWeight(.bold).foregroundColor(Color.gray)
                         }
                         .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.statusCyan.opacity(0.1)).clipShape(Capsule())
+                        .background(Color.gray.opacity(0.1)).clipShape(Capsule())
                     }
                 }
                 VStack(alignment: .trailing, spacing: 4) {
@@ -1024,9 +1024,9 @@ struct ExerciseCard: View {
                     VStack(alignment: .trailing, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
                         if let sw = suggestion?.suggestedWeight, sw > 0 {
                             HStack(spacing: 4) {
-                                Image(systemName: "bolt.fill").font(.appMicro).foregroundColor(Color.statusCyan)
+                                Image(systemName: "bolt.fill").font(.appMicro).foregroundColor(Color.gray)
                                 Text(units.format(sw))
-                                    .font(.appCaption).fontWeight(.bold).foregroundColor(Color.statusCyan)
+                                    .font(.appCaption).fontWeight(.bold).foregroundColor(Color.gray)
                             }
                         } else if evm.inputHint > 0 {
                             Text(units.format(evm.inputHint))
@@ -1050,7 +1050,7 @@ struct ExerciseCard: View {
             if evm.isFirstTime && !alreadyLogged {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
-                        .font(.appCaption).foregroundColor(Color.statusCyan)
+                        .font(.appCaption).foregroundColor(Color.gray)
                     Text("Première fois pour cet exercice — pas d'historique encore.")
                         .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.55))
                 }
@@ -1187,9 +1187,9 @@ struct ExerciseCard: View {
                     Text(equipmentLabel).font(.appCaption).fontWeight(.semibold)
                     Image(systemName: "chevron.down").font(.appMicro).fontWeight(.semibold)
                 }
-                .foregroundColor(evm.equipmentType == equipmentType ? .gray.opacity(0.6) : Color.statusCyan)
+                .foregroundColor(evm.equipmentType == equipmentType ? .gray.opacity(0.6) : Color.gray)
                 .padding(.horizontal, 12).padding(.vertical, 4)
-                .background((evm.equipmentType == equipmentType ? Color.white : Color.statusCyan).opacity(0.07))
+                .background((evm.equipmentType == equipmentType ? Color.white : Color.gray).opacity(0.07))
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
@@ -1303,9 +1303,9 @@ struct ExerciseCard: View {
         if let p = prescription {
             HStack(spacing: 8) {
                 Text(p.label)
-                    .font(.appCaption).fontWeight(.bold).foregroundColor(Color.statusPurple)
+                    .font(.appCaption).fontWeight(.bold).foregroundColor(Color.gray)
                     .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Color.statusPurple.opacity(0.12)).cornerRadius(8)
+                    .background(Color.gray.opacity(0.12)).cornerRadius(8)
                 if let note = p.note {
                     Text(note).font(.appMicro).foregroundColor(Color.forge.opacity(0.8)).lineLimit(1)
                 }
@@ -1334,9 +1334,9 @@ struct ExerciseCard: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: evm.showWarmup ? "chevron.down" : "flame")
-                        .font(.appCaption).foregroundColor(Color.statusYellow.opacity(0.7))
+                        .font(.appCaption).foregroundColor(Color.gray.opacity(0.7))
                     Text("Échauffement (\(Int(evm.currentWeight)) \(UnitSettings.shared.label))")
-                        .font(.appCaption).fontWeight(.medium).foregroundColor(Color.statusYellow.opacity(0.7))
+                        .font(.appCaption).fontWeight(.medium).foregroundColor(Color.gray.opacity(0.7))
                 }
             }
             .buttonStyle(.plain)
@@ -1345,13 +1345,13 @@ struct ExerciseCard: View {
                     ForEach(evm.warmupSets, id: \.pct) { ws in
                         HStack {
                             Text("\(ws.pct)%")
-                                .font(.appMicro).fontWeight(.bold).foregroundColor(Color.statusYellow.opacity(0.6)).frame(width: 32)
+                                .font(.appMicro).fontWeight(.bold).foregroundColor(Color.gray.opacity(0.6)).frame(width: 32)
                             Text("1×5 @ \(UnitSettings.shared.format(ws.weight, decimals: 1))")
                                 .font(.appCaption).foregroundColor(.gray)
                         }
                     }
                 }
-                .padding(8).background(Color.statusYellow.opacity(0.05)).cornerRadius(8)
+                .padding(8).background(Color.gray.opacity(0.05)).cornerRadius(8)
             }
         }
         if trackingType == "protocol" {
@@ -1491,10 +1491,10 @@ struct ExerciseCard: View {
                     .font(.appCaption).foregroundColor(evm.painZone.isEmpty ? .gray : Color.appDanger)
             }
             HStack(spacing: 8) {
-                Image(systemName: "note.text").font(.appCaption).foregroundColor(Color.statusCyan.opacity(0.6))
+                Image(systemName: "note.text").font(.appCaption).foregroundColor(Color.gray.opacity(0.6))
                 TextField("Notes techniques (persistantes)", text: noteBinding, axis: .vertical)
                     .font(.appCaption)
-                    .foregroundColor(exoNote.isEmpty ? .gray : Color.statusCyan)
+                    .foregroundColor(exoNote.isEmpty ? .gray : Color.gray)
                     .lineLimit(1...3)
             }
         }
@@ -1510,14 +1510,14 @@ struct ExerciseCard: View {
                     Text("Loggé! \(units.format(newW))")
                         .font(.appLabel).fontWeight(.semibold).foregroundColor(Color.appSuccess)
                 case .stagné:
-                    Image(systemName: "equal.circle.fill").foregroundColor(Color.statusYellow)
+                    Image(systemName: "equal.circle.fill").foregroundColor(Color.gray)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Stagné — même poids").font(.appLabel).fontWeight(.semibold).foregroundColor(Color.statusYellow)
+                        Text("Stagné — même poids").font(.appLabel).fontWeight(.semibold).foregroundColor(Color.gray)
                         if let hint = RPEHelper.progressionHint(for: evm.exerciseRPE) {
-                            Text(hint).font(.appCaption).foregroundColor(Color.statusYellow.opacity(0.7))
+                            Text(hint).font(.appCaption).foregroundColor(Color.gray.opacity(0.7))
                         } else {
                             Text(RPEHelper.feedback(for: evm.exerciseRPE))
-                                .font(.appCaption).foregroundColor(Color.statusYellow.opacity(0.7))
+                                .font(.appCaption).foregroundColor(Color.gray.opacity(0.7))
                         }
                     }
                 case .loading:
@@ -1584,7 +1584,7 @@ struct ExerciseCard: View {
                                     Text(note).font(.appMicro).fontWeight(.medium)
                                         .foregroundColor(note.hasPrefix("+")
                                                          ? (i == 0 ? Color.appSuccess : Color.appSuccess.opacity(0.7))
-                                                         : (i == 0 ? Color.statusYellow : Color.statusYellow.opacity(0.7)))
+                                                         : (i == 0 ? Color.gray : Color.gray.opacity(0.7)))
                                 }
                                 Spacer()
                             }
@@ -1755,7 +1755,7 @@ private struct RepCounterSection: View {
     var body: some View {
         let isLastSet = evm.currentSetIndex == evm.sets.count - 1
         VStack(spacing: 16) {
-            Divider().background(Color.statusPurple.opacity(0.2)).padding(.top, 4)
+            Divider().background(Color.gray.opacity(0.2)).padding(.top, 4)
 
             Text("SET \(evm.currentSetIndex + 1) / \(evm.sets.count)")
                 .font(.appCaption).fontWeight(.bold).tracking(2)
