@@ -47,16 +47,19 @@ struct StepperInput: View {
                 .disabled(isDisabled)
 
             ZStack {
-                Text(valueStr.isEmpty ? placeholderText : displayText)
-                    .font(.appTitle)
-                    .foregroundColor(valueStr.isEmpty ? .gray.opacity(0.35) : .white)
-                    .frame(minWidth: isCompact ? 44 : 52, alignment: .center)
-                    .allowsHitTesting(false)
+                if valueStr.isEmpty {
+                    Text(placeholderText)
+                        .font(.appTitle)
+                        .foregroundColor(.gray.opacity(0.35))
+                        .frame(minWidth: isCompact ? 44 : 52, alignment: .center)
+                        .allowsHitTesting(false)
+                }
 
                 TextField("", text: $valueStr)
+                    .font(.appTitle)
+                    .foregroundColor(.white)
                     .keyboardType(isInteger ? .numberPad : .decimalPad)
                     .focused($isManualFocused)
-                    .opacity(0.01)
                     .frame(minWidth: isCompact ? 44 : 52)
                     .disabled(isDisabled)
                     .multilineTextAlignment(.center)
