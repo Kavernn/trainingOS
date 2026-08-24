@@ -176,7 +176,7 @@ enum ExerciseCalculator {
         switch equipmentType {
         case "barbell":                  perSide = w > 45 ? (w - 45) / 2 : 0
         case "dumbbell", "cable_double": perSide = w / 2
-        case "bodyweight":               perSide = 0
+        case "bodyweight":               perSide = w
         default:                         perSide = w
         }
         return UnitSettings.shared.inputStr(perSide)
@@ -350,10 +350,12 @@ final class ExerciseViewModel: ObservableObject {
         return history.first(where: { ($0.date ?? "") < sessionDate })
     }
 
-    /// Feature désactivée pour tracking par temps et équipement bodyweight,
-    /// ou si aucune cible utilisable n'existe (première fois qu'on fait cet exo).
+    /// Feature désactivée pour tracking par temps uniquement.
+    /// Bodyweight pur : target volume nil (v=0), overload reste actif sur les reps.
+    /// Bodyweight lesté : target volume et reps disponibles via sets_json historiques.
+    /// Nouvel exo (aucun historique) : les deux targets sont nil → overload caché.
     var overloadEnabled: Bool {
-        guard !isTimeBased, equipmentType != "bodyweight" else { return false }
+        guard !isTimeBased else { return false }
         return overloadTargetReps != nil || overloadTargetVolumeLbs != nil
     }
 
