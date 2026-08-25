@@ -25,10 +25,13 @@ POST /api/wearable/sync
 """
 from __future__ import annotations
 
+import logging
 from datetime import date as date_cls
 from flask import request, jsonify
 
 import db
+
+logger = logging.getLogger("trainingos.wearable")
 
 
 def register_routes(app):
@@ -52,6 +55,19 @@ def register_routes(app):
             ok = db.merge_recovery_wearable(target_date, wearable_recovery)
             if ok:
                 synced.extend(wearable_recovery.keys())
+
+        # ── Body composition ─────────────────────────────────────────────────
+        # Manuel > HK garanti par log_body_weight_wearable (n'insère que si aucune
+        # entrée du jour existe). body_fat sans poids : ignoré + warning.
+        bw = data.get("body_weight")
+        bf = data.get("body_fat")
+        if bw is not None:
+            if db.log_body_weight_wearable(target_date, bw, bf):
+                synced.append("body_weight")
+                if bf is not None:
+                    synced.append("body_fat")
+        elif bf is not None:
+            logger.warning("body_fat reçu sans body_weight pour %s, ignoré", target_date)
 
         # ── Smart Alarm latency calibration ──────────────────────────────────
         # When HealthKit sends bedtime (= first asleep sample HH:mm), pair it
