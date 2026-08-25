@@ -7,6 +7,7 @@ struct HealthDashboardView: View {
     @State private var lifeStress: LifeStressScore?
     @State private var lifeStressTrend: [LifeStressScore] = []
     @State private var pssDueStatus: PSSDueStatus?
+    @State private var readiness: ReadinessResponse?
     @State private var isLoading = true
     @ObservedObject private var units = UnitSettings.shared
     // Live HealthKit values — shown when backend summary has no data for today
@@ -53,7 +54,7 @@ struct HealthDashboardView: View {
 
                             // État du jour — Recovery + LSS fusionnés
                             if let t = today {
-                                DayStatusHeaderView(summary: t, lifeStress: lifeStress)
+                                DayStatusHeaderView(summary: t, lifeStress: lifeStress, readinessScore: readiness?.score)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.03)
                             }
@@ -136,6 +137,7 @@ struct HealthDashboardView: View {
         lifeStress      = try? await APIService.shared.fetchLifeStressScore(forceRefresh: true)
         lifeStressTrend = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? []
         pssDueStatus    = try? await APIService.shared.checkPSSDue(type: "full")
+        readiness       = try? await APIService.shared.fetchReadiness()
         isLoading = false
         // Fetch live HK data in parallel — fills gaps when recovery not yet logged
         await fetchHKLive()
@@ -747,18 +749,19 @@ struct LifeStressTrendChart: View {
 struct DayStatusHeaderView: View {
     let summary: DailyHealthSummary
     let lifeStress: LifeStressScore?
+    let readinessScore: Int?
 
-    private var recoveryScore: Double { summary.recoveryScore ?? 0 }
     private var recoveryColor: Color {
-        if recoveryScore >= 70 { return .statusGreen }
-        if recoveryScore >= 50 { return .statusYellow }
+        guard let s = readinessScore else { return .gray }
+        if s >= 70 { return .statusGreen }
+        if s >= 50 { return .statusYellow }
         return .statusRed
     }
     private var recoveryLabel: String {
-        guard summary.recoveryScore != nil else { return "Aucune donnée" }
-        if recoveryScore >= 80 { return "Excellente" }
-        if recoveryScore >= 60 { return "Bonne" }
-        if recoveryScore >= 40 { return "Moyenne" }
+        guard let s = readinessScore else { return "Aucune donnée" }
+        if s >= 80 { return "Excellente" }
+        if s >= 60 { return "Bonne" }
+        if s >= 40 { return "Moyenne" }
         return "Faible"
     }
 
@@ -771,14 +774,14 @@ struct DayStatusHeaderView: View {
                         .stroke(recoveryColor.opacity(0.15), lineWidth: 12)
                         .frame(width: 90, height: 90)
                     Circle()
-                        .trim(from: 0, to: CGFloat(recoveryScore / 100))
+                        .trim(from: 0, to: readinessScore.map { CGFloat($0) / 100 } ?? 0)
                         .stroke(recoveryColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .frame(width: 90, height: 90)
-                        .animation(.easeOut(duration: 0.8), value: recoveryScore)
+                        .animation(.easeOut(duration: 0.8), value: readinessScore)
                     VStack(spacing: 1) {
-                        if let s = summary.recoveryScore {
-                            Text("\(Int(s))")
+                        if let s = readinessScore {
+                            Text("\(s)")
                                 .font(.appTitle.weight(.black)).foregroundColor(recoveryColor)
                         } else {
                             Text("—").font(.appTitle.weight(.black)).foregroundColor(.gray)
