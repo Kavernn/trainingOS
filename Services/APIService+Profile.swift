@@ -126,6 +126,8 @@ extension APIService {
         if let v = snapshot.hrEvening     { body["hr_evening"]      = Int(v) }
         if let v = snapshot.bedtime       { body["bedtime"]         = v }
         if let v = snapshot.wakeTime      { body["wake_time"]       = v }
+        if let v = snapshot.bodyWeightLbs { body["body_weight"]     = v }
+        if let v = snapshot.bodyFatPct    { body["body_fat"]        = v }
         let workouts: [[String: Any]] = snapshot.workouts.map { w in
             var entry: [String: Any] = ["type": w.type, "duration_min": w.durationMin]
             if let v = w.distanceKm { entry["distance_km"] = v }

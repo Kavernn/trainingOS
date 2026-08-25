@@ -720,27 +720,7 @@ private struct UnifiedRecoverySleepSection: View {
             syncError = "Accès refusé — activer dans Réglages > Confidentialité > Santé"
             return
         }
-        let snap = await hk.fetchRecoverySnapshot(for: Date())
-        let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
-        let todayStr = DateFormatter.isoDate.string(from: Date())
-        let snapshot = WearableSnapshot(
-            date:          todayStr,
-            steps:         snap.steps,
-            sleepHours:    snap.sleepHours,
-            restingHr:     snap.restingHr,
-            hrv:           snap.hrv,
-            activeEnergy:  snap.activeEnergy,
-            bodyWeightLbs: nil,
-            bodyFatPct:    nil,
-            hrMorning:     snap.hrMorning,
-            hrPostWorkout: snap.hrPostWorkout,
-            hrEvening:     snap.hrEvening,
-            workouts:      [],
-            spo2:          nil,
-            wristTemp:     nil,
-            bedtime:       snap.sleepWindow.map { fmt.string(from: $0.bedtime) },
-            wakeTime:      snap.sleepWindow.map { fmt.string(from: $0.wakeTime) }
-        )
+        let snapshot = await hk.fetchTodayHealthSnapshot()
         do {
             try await APIService.shared.syncWearableData(snapshot)
         } catch {
