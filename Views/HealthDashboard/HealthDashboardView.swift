@@ -23,6 +23,8 @@ struct HealthDashboardView: View {
     @State private var energyHistory: [EnergyHistoryDay] = []
     @State private var hrvAnalysis: HRVAnalysis?
     @State private var sleepHistory: [SleepEntry] = []
+    @State private var readinessHistory: [ReadinessHistoryPoint] = []
+    @State private var editTarget: RecoveryEntry?
 
     // Data — live HealthKit
     @State private var hkRestingHR: Double? = nil
@@ -63,7 +65,7 @@ struct HealthDashboardView: View {
                                 switch activeTab {
                                 case 0: todayTab
                                 case 1: energyTab
-                                default: Text("À venir").font(.appBody).foregroundColor(.gray).padding(.top, 40)
+                                default: historyTab
                                 }
                                 Spacer(minLength: 40)
                             }
@@ -168,18 +170,6 @@ struct HealthDashboardView: View {
         }
         .padding(.horizontal, 16)
         .appearAnimation(delay: 0.18)
-
-        // WeeklyCharts — temporaire ici, migrent vers onglet Historique au Lot 4c
-        if week.filter({ $0.sleepDuration != nil }).count >= 2 {
-            WeeklySleepChart(week: week)
-                .padding(.horizontal, 16)
-                .appearAnimation(delay: 0.22)
-        }
-        if week.filter({ $0.steps != nil }).count >= 2 {
-            WeeklyStepsChart(week: week)
-                .padding(.horizontal, 16)
-                .appearAnimation(delay: 0.24)
-        }
     }
 
     // MARK: - Tab 1 — Énergie
@@ -214,6 +204,54 @@ struct HealthDashboardView: View {
         )
     }
 
+    // MARK: - Tab 2 — Historique
+
+    @ViewBuilder
+    private var historyTab: some View {
+        VStack(spacing: 16) {
+            if !readinessHistory.isEmpty {
+                Recovery14dChart(history: readinessHistory)
+                    .padding(14)
+                    .glassCard()
+                    .padding(.horizontal, 16)
+            }
+
+            let entries30 = Array(recoveryLog.prefix(30))
+            let sleepPts  = Array(entries30.filter { $0.sleepHours != nil }.prefix(30))
+            if sleepPts.count >= 2 {
+                RecoverySleepBarChart(entries: sleepPts, goalHours: 8.0)
+                    .padding(.horizontal, 16)
+            }
+
+            if week.filter({ $0.steps != nil }).count >= 2 {
+                WeeklyStepsChart(week: week)
+                    .padding(.horizontal, 16)
+            }
+
+            if !entries30.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(entries30) { entry in
+                        AccordionRow(entry: entry, onEdit: { editTarget = entry })
+                        if entry.id != entries30.last?.id {
+                            Divider().padding(.leading, 14)
+                        }
+                    }
+                }
+                .background(Color.appCard)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+            } else {
+                Text("Aucun log de récupération pour le moment.")
+                    .font(.appCaption)
+                    .foregroundColor(.gray)
+                    .padding(.top, 40)
+            }
+        }
+        .sheet(item: $editTarget) { entry in
+            LogRecoverySheet(prefillEntry: entry, onSaved: { await loadData() })
+        }
+    }
+
     // MARK: - Data
 
     private func loadData() async {
@@ -231,6 +269,7 @@ struct HealthDashboardView: View {
         hrvAnalysis     = try? await APIService.shared.fetchHRVAnalysis()
         let sleepPg     = try? await APIService.shared.fetchSleepHistory(limit: 10)
         sleepHistory    = sleepPg?.items ?? []
+        readinessHistory = (try? await APIService.shared.fetchReadinessHistory(days: 14)) ?? []
         isLoading = false
         await fetchHKLive()
     }
@@ -2031,5 +2070,312 @@ private struct DynamicSuggestionsSection: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(s.color.opacity(0.2), lineWidth: 1)
         )
+    }
+}
+
+// MARK: - Accordion Row (copié de RecoveryView.AccordionRow L422)
+
+private struct AccordionRow: View {
+    let entry: RecoveryEntry
+    var onEdit: () -> Void
+
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+    private static let displayFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_CA")
+        f.dateFormat = "EEE d MMM"
+        return f
+    }()
+
+    private var formattedDate: String {
+        guard let d = entry.date,
+              let date = Self.isoFmt.date(from: d) else { return entry.date ?? "—" }
+        return Self.displayFmt.string(from: date).capitalized
+    }
+
+    var body: some View {
+        Button(action: onEdit) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(formattedDate)
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(Color.appOnSurface.opacity(0.9))
+                    if let src = entry.source {
+                        Text(src == "manual" ? "Manuel" : "Apple Santé")
+                            .font(.appMicro)
+                            .foregroundColor(.gray.opacity(0.55))
+                    }
+                }
+                Spacer()
+                Group {
+                    metricChip(icon: "moon.zzz.fill",
+                               value: entry.sleepHours.map { String(format: "%.1fh", $0) },
+                               color: Color.statusBlue)
+                    metricChip(icon: "waveform.path.ecg",
+                               value: entry.hrv.map { String(format: "%.0f", $0) },
+                               color: Color.appSuccess)
+                    metricChip(icon: "heart.fill",
+                               value: entry.restingHr.map { String(format: "%.0f", $0) },
+                               color: Color.appDanger)
+                }
+                Image(systemName: "pencil")
+                    .font(.appMicro)
+                    .foregroundColor(.gray.opacity(0.35))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func metricChip(icon: String, value: String?, color: Color) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.appMicro)
+                .foregroundColor(value != nil ? color : .gray.opacity(0.3))
+            Text(value ?? "—")
+                .font(.appCaption.weight(.semibold))
+                .foregroundColor(value != nil ? Color.appOnSurface.opacity(0.85) : .gray.opacity(0.35))
+        }
+    }
+}
+
+// MARK: - Recovery Sleep Bar Chart (copié de RecoveryView.RecoverySleepBarChart L331)
+
+private struct RecoverySleepBarChart: View {
+    let entries: [RecoveryEntry]
+    let goalHours: Double
+
+    private static let dateFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+    private static let dayFmt: DateFormatter = {
+        let f = DateFormatter(); f.locale = Locale(identifier: "fr_CA")
+        f.dateFormat = "EEE"; return f
+    }()
+
+    private func barColor(_ h: Double) -> Color {
+        if h < 5 { return Color.appDanger }
+        if h < goalHours * 0.85 { return Color.statusOrange }
+        if h <= goalHours * 1.15 { return Color.appSuccess }
+        return Color.statusBlue
+    }
+
+    private func dayLabel(_ iso: String) -> String {
+        guard let d = Self.dateFmt.date(from: iso) else { return "" }
+        return Self.dayFmt.string(from: d).prefix(3).lowercased()
+    }
+
+    var body: some View {
+        let yMax = max((entries.compactMap(\.sleepHours).max() ?? 9) + 0.5, goalHours + 0.5)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 5) {
+                Image(systemName: "moon.zzz.fill").font(.appMicro).foregroundColor(Color.statusBlue)
+                Text("SOMMEIL — \(entries.count) JOURS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text(String(format: "Obj. %.0fh", goalHours))
+                    .font(.appMicro.weight(.semibold)).foregroundColor(Color.appSuccess.opacity(0.7))
+            }
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let barW = w / CGFloat(entries.count) - 4
+                let goalY = h - CGFloat(goalHours / yMax) * h
+
+                ZStack(alignment: .topLeading) {
+                    Path { p in
+                        p.move(to: CGPoint(x: 0, y: goalY))
+                        p.addLine(to: CGPoint(x: w, y: goalY))
+                    }
+                    .stroke(Color.appSuccess.opacity(0.35),
+                            style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+
+                    ForEach(Array(entries.enumerated()), id: \.1.id) { i, entry in
+                        let x = CGFloat(i) * (w / CGFloat(entries.count)) + 2
+                        let bh = entry.sleepHours.map { CGFloat($0 / yMax) * h } ?? 0
+                        let color = barColor(entry.sleepHours ?? 0)
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color.opacity(0.75))
+                            .frame(width: barW, height: bh)
+                            .position(x: x + barW / 2, y: h - bh / 2)
+
+                        if let q = entry.sleepQuality {
+                            let qColor: Color = q >= 7 ? Color.appSuccess : (q >= 4 ? Color.statusYellow : Color.appDanger)
+                            Circle()
+                                .fill(qColor)
+                                .frame(width: 5, height: 5)
+                                .position(x: x + barW / 2, y: h - bh - 6)
+                        }
+                    }
+                }
+            }
+            .frame(height: 90)
+
+            HStack(spacing: 0) {
+                ForEach(entries, id: \.id) { entry in
+                    Text(dayLabel(entry.date ?? ""))
+                        .font(.appMicro)
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(14)
+        .glassCard()
+    }
+}
+
+// MARK: - Recovery 14d Chart (copié de EnergyRecoveryView.Recovery14dChart L1149)
+
+private struct Recovery14dChart: View {
+    let history: [ReadinessHistoryPoint]
+
+    private struct ChartPoint: Identifiable {
+        let id: String
+        let label: String
+        let score: Double
+        let color: Color
+    }
+
+    private static let mtl = TimeZone(identifier: "America/Toronto")!
+    private static let ymd: DateFormatter = {
+        let f = DateFormatter()
+        f.calendar   = Calendar(identifier: .iso8601)
+        f.locale     = Locale(identifier: "en_US_POSIX")
+        f.timeZone   = mtl
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private var chartPoints: [ChartPoint] {
+        var cal = Calendar(identifier: .iso8601)
+        cal.timeZone = Self.mtl
+        let today = cal.startOfDay(for: Date())
+        let byDate: [String: Int] = Dictionary(uniqueKeysWithValues: history.map { ($0.date, $0.score) })
+        return (0..<14).reversed().compactMap { offset in
+            guard let day = cal.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            let key = Self.ymd.string(from: day)
+            guard let s = byDate[key] else { return nil }
+            let score = Double(s)
+            let parts = key.split(separator: "-")
+            let label = parts.count == 3 ? "\(parts[2])/\(parts[1])" : key
+            let color: Color = score >= 75 ? .statusGreen : score >= 50 ? .statusOrange : .statusRed
+            return ChartPoint(id: key, label: label, score: score, color: color)
+        }
+    }
+
+    private var trend: (slope: Double, intercept: Double)? {
+        let pts = chartPoints.enumerated().map { (x: Double($0.offset), y: $0.element.score) }
+        guard pts.count >= 2 else { return nil }
+        let n    = Double(pts.count)
+        let sumX = pts.reduce(0) { $0 + $1.x }
+        let sumY = pts.reduce(0) { $0 + $1.y }
+        let sumXY = pts.reduce(0) { $0 + $1.x * $1.y }
+        let sumX2 = pts.reduce(0) { $0 + $1.x * $1.x }
+        let denom = n * sumX2 - sumX * sumX
+        guard denom != 0 else { return nil }
+        let slope     = (n * sumXY - sumX * sumY) / denom
+        let intercept = (sumY - slope * sumX) / n
+        return (slope, intercept)
+    }
+
+    var body: some View {
+        let points      = chartPoints
+        let trendResult = trend
+        let trendLabel: String = {
+            guard let t = trendResult else { return "Stable" }
+            if t.slope > 0.5  { return "En hausse" }
+            if t.slope < -0.5 { return "En baisse" }
+            return "Stable"
+        }()
+        let trendColor: Color = {
+            guard let t = trendResult else { return .statusOrange }
+            if t.slope > 0.5  { return .statusGreen }
+            if t.slope < -0.5 { return .statusRed }
+            return .statusOrange
+        }()
+        let trendIcon: String = {
+            guard let t = trendResult else { return "arrow.right" }
+            if t.slope > 0.5  { return "arrow.up.right" }
+            if t.slope < -0.5 { return "arrow.down.right" }
+            return "arrow.right"
+        }()
+
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("READINESS 14J")
+                    .font(.appCaption.weight(.black))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: trendIcon)
+                        .font(.appMicro.weight(.bold))
+                        .foregroundColor(trendColor)
+                    Text(trendLabel)
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(trendColor)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(trendColor.opacity(0.12))
+                .clipShape(Capsule())
+            }
+
+            Chart {
+                ForEach(points) { p in
+                    BarMark(
+                        x: .value("Date", p.label),
+                        y: .value("Score", p.score)
+                    )
+                    .foregroundStyle(p.color.opacity(0.75))
+                    .cornerRadius(3)
+                }
+
+                if let t = trendResult, let first = points.first, let last = points.last {
+                    let y0 = t.intercept
+                    let yN = t.slope * Double(points.count - 1) + t.intercept
+                    LineMark(
+                        x: .value("Date", first.label),
+                        y: .value("Tendance", max(0, min(100, y0))),
+                        series: .value("S", "Tendance")
+                    )
+                    .foregroundStyle(Color.appOnSurface.opacity(0.45))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4]))
+                    LineMark(
+                        x: .value("Date", last.label),
+                        y: .value("Tendance", max(0, min(100, yN))),
+                        series: .value("S", "Tendance")
+                    )
+                    .foregroundStyle(Color.appOnSurface.opacity(0.45))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4]))
+                }
+            }
+            .chartYScale(domain: 0.0...100.0)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 5)) {
+                    AxisValueLabel()
+                        .font(.appMicro)
+                        .foregroundStyle(Color.gray)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(values: [0.0, 50.0, 75.0, 100.0]) { val in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.4))
+                        .foregroundStyle(Color.appSurfaceInset)
+                    AxisValueLabel {
+                        if let v = val.as(Double.self) {
+                            Text("\(Int(v))")
+                                .font(.appMicro)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
+            .frame(height: 130)
+        }
     }
 }
