@@ -57,7 +57,7 @@ private struct iOSContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            DashboardView(onOpenSession: { selectedTab = 1 })
+            DashboardView(onOpenSession: { selectedTab = 1 }, onOpenHealth: { selectedTab = 3 })
                 .tag(0)
                 .tabItem { Label("Aujourd'hui", systemImage: "sun.horizon.fill") }
                 .badge(sync.pendingCount > 0 ? sync.pendingCount : 0)
@@ -68,9 +68,9 @@ private struct iOSContentView: View {
             ProgrammeView()
                 .tag(2)
                 .tabItem { Label("Programme", systemImage: "list.bullet.clipboard") }
-            EnergyRecoveryView()
+            HealthDashboardView()
                 .tag(3)
-                .tabItem { Label("Énergie", systemImage: "bolt.heart.fill") }
+                .tabItem { Label("Santé", systemImage: "heart.text.square.fill") }
             MoreView()
                 .tag(4)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }

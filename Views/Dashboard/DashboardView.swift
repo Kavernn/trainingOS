@@ -36,6 +36,7 @@ struct DashboardView: View {
     @State private var budgetCelebrationData: BudgetCelebrationData? = nil
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
+    var onOpenHealth: (() -> Void)? = nil
 
     private var todayStr: String {
         DateFormatter.isoDate.string(from: Date())
@@ -150,8 +151,8 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.07)
                                 }
 
-                                // 6 — Hero readiness (source unique /api/readiness) — tap → HealthDashboardView
-                                NavigationLink(destination: HealthDashboardView()) {
+                                // 6 — Hero readiness (source unique /api/readiness) — tap → onglet Santé
+                                Button { onOpenHealth?() } label: {
                                     DashboardReadinessHero(
                                         readiness:   vm.readinessData,
                                         hrvAnalysis: vm.hrvAnalysis,
