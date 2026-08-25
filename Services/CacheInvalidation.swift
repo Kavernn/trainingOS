@@ -166,13 +166,16 @@ enum CacheInvalidation {
     var prefixesToClear: [String] {
         switch self {
         case .pssSubmitted:   return ["life_stress_trend"]
-        case .nutritionLogged: return ["life_stress_trend"]
+        case .nutritionLogged: return ["life_stress_trend", "health_weekly"]
         case .wearableSynced: return ["energy_daily", "energy_history", "health_weekly"]
+        case .recoveryLogged: return ["health_weekly"]
+        case .cardioLogged:   return ["health_weekly"]
+        case .bodyWeightMutated: return ["health_weekly"]
         // progression_suggestions_<date>_<sessionType>_<sessionName> — un nouveau
         // log change les suggestions ; une mutation de programme change la liste
         // de séances. exerciseLogged NON : les suggestions ciblent la prochaine
         // séance, pas la courante — pas de refresh en cours de log.
-        case .sessionLogged:     return ["progression_suggestions"]
+        case .sessionLogged:     return ["progression_suggestions", "health_weekly"]
         case .programmeMutated:  return ["progression_suggestions"]
         default: return []
         }
