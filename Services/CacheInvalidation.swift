@@ -167,7 +167,7 @@ enum CacheInvalidation {
         switch self {
         case .pssSubmitted:   return ["life_stress_trend"]
         case .nutritionLogged: return ["life_stress_trend"]
-        case .wearableSynced: return ["energy_daily", "energy_history"]
+        case .wearableSynced: return ["energy_daily", "energy_history", "health_weekly"]
         // progression_suggestions_<date>_<sessionType>_<sessionName> — un nouveau
         // log change les suggestions ; une mutation de programme change la liste
         // de séances. exerciseLogged NON : les suggestions ciblent la prochaine
