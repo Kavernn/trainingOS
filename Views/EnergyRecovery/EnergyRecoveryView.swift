@@ -171,7 +171,7 @@ private struct EnergyTabContent: View {
 
 // MARK: - Energy Header Card
 
-struct EnergyHeaderCard: View {
+private struct EnergyHeaderCard: View {
     let energy: EnergyDaily
 
     var body: some View {
