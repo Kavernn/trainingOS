@@ -20,9 +20,9 @@ struct StatsTabBar: View {
                 Button {
                     withAnimation(.spring(response: 0.3)) { selectedTab = i }
                 } label: {
-                    VStack(spacing: 3) {
+                    VStack(spacing: 4) {
                         Image(systemName: tabs[i].icon)
-                            .font(.system(size: 13, weight: selectedTab == i ? .bold : .regular))
+                            .font(.appLabel.weight(selectedTab == i ? .bold : .regular))
                         Text(tabs[i].label)
                             .font(.appMicro.weight(.semibold))
                             .lineLimit(1)
@@ -32,7 +32,7 @@ struct StatsTabBar: View {
                     .padding(.vertical, 8)
                     .foregroundColor(selectedTab == i ? Color.forge : .gray)
                     .background(selectedTab == i ? Color.forge.opacity(0.12) : Color.clear)
-                    .cornerRadius(10)
+                    .cornerRadius(8)
                 }
             }
         }
@@ -47,18 +47,18 @@ struct PeriodPicker: View {
     @Binding var selected: StatsPeriod
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             ForEach(StatsPeriod.allCases, id: \.self) { p in
                 Button {
                     withAnimation(.spring(response: 0.25)) { selected = p }
                 } label: {
                     Text(p.rawValue)
-                        .font(.system(size: 12, weight: .semibold))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 5)
+                        .font(.appCaption.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
                         .background(selected == p ? Color.forge : Color.appSurfaceInset)
                         .foregroundColor(selected == p ? Color.onAccent : .gray)
-                        .cornerRadius(20)
+                        .clipShape(Capsule())
                 }
             }
             Spacer()
@@ -71,15 +71,15 @@ struct SmartInsightsBanner: View {
     let insights: [(icon: String, text: String, color: Color)]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "lightbulb.fill").foregroundColor(.statusYellow).font(.system(size: 10))
-                Text("INSIGHTS").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "lightbulb.fill").foregroundColor(.statusYellow).font(.appMicro)
+                Text("INSIGHTS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
             }
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(insights.indices, id: \.self) { i in
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         Image(systemName: insights[i].icon)
                             .foregroundColor(insights[i].color)
                             .font(.appLabel)
@@ -92,7 +92,7 @@ struct SmartInsightsBanner: View {
                 }
             }
         }
-        .padding(14)
+        .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.25), lineWidth: 1))
@@ -132,10 +132,11 @@ struct AdherenceRingsCard: View {
     @State private var showFuelInfo = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
+            // collage titre/sous-titre, micro-optique volontaire
             VStack(alignment: .leading, spacing: 2) {
                 Text("CONSTANCE CE MOIS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Text("\(data.daysElapsed) / \(daysInMonth) j écoulés")
                     .font(.appCaption).foregroundColor(.gray.opacity(0.7))
             }
@@ -153,21 +154,21 @@ struct AdherenceRingsCard: View {
                 }
                 .frame(width: 90, height: 90)
 
-                VStack(alignment: .leading, spacing: 7) {
+                VStack(alignment: .leading, spacing: 8) {
                     ForEach(pillars.indices, id: \.self) { i in
                         HStack(spacing: 8) {
                             Circle()
                                 .fill(pillars[i].color)
                                 .frame(width: 8, height: 8)
                             Text(pillars[i].label)
-                                .font(.system(size: 12)).foregroundColor(Color.appOnSurface.opacity(0.85))
+                                .font(.appCaption).foregroundColor(Color.appOnSurface.opacity(0.85))
                             Spacer()
                             if pillars[i].rawDays == .some(0) {
                                 Text("—")
-                                    .font(.system(size: 12, weight: .bold)).foregroundColor(.gray)
+                                    .font(.appCaption.weight(.bold)).foregroundColor(.gray)
                             } else {
                                 Text("\(pillars[i].pct)%")
-                                    .font(.system(size: 12, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .foregroundColor(adherenceColor(pillars[i].pct))
                             }
                             if pillars[i].rawDays != nil {
