@@ -419,22 +419,23 @@ struct StatsView: View {
                     AppLoadingView()
                 } else if fetchError {
                     VStack(spacing: 12) {
-                        Image(systemName: "wifi.slash").font(.system(size: 40)).foregroundColor(.gray)
+                        Image(systemName: "wifi.slash").font(.appHero).foregroundColor(.gray)
                         Text("Impossible de charger les stats").foregroundColor(.gray)
                         Button("Réessayer") { Task { await loadData() } }
                             .foregroundColor(Color.forge).fontWeight(.semibold)
                     }
                 } else if weights.isEmpty {
                     VStack(spacing: 8) {
-                        Image(systemName: "chart.bar").font(.system(size: 40)).foregroundColor(.gray.opacity(0.4))
+                        Image(systemName: "chart.bar").font(.appHero).foregroundColor(.gray.opacity(0.4))
                         Text("Tes stats se construisent séance après séance.")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.appBody.weight(.medium))
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                         Text("Continue à logger.")
                             .font(.appLabel)
                             .foregroundColor(.gray.opacity(0.6))
                     }
+                    // offset lisibilité empty state
                     .padding(.horizontal, 40)
                 } else {
                     VStack(spacing: 0) {
@@ -445,7 +446,7 @@ struct StatsView: View {
                         if [2, 3, 4].contains(selectedTab) {
                             PeriodPicker(selected: $period)
                                 .padding(.horizontal, 16)
-                                .padding(.vertical, 6)
+                                .padding(.vertical, 8)
                         }
 
                         ScrollView(showsIndicators: false) {
