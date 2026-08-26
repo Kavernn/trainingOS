@@ -11,14 +11,14 @@ private struct DeloadCard: View {
     @State private var showConfirmDeactivate = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             if let s = status, s.active {
                 activeView(s)
             } else {
                 inactiveView
             }
         }
-        .padding(14)
+        .padding(16)
         .background(Color(white: 0.07))
         .cornerRadius(14)
     }
@@ -64,8 +64,9 @@ private struct DeloadCard: View {
     private var inactiveView: some View {
         HStack(spacing: 12) {
             Image(systemName: "moon.zzz.fill")
-                .font(.system(size: 22))
+                .font(.appTitle)
                 .foregroundColor(Color(white: 0.35))
+            // collage titre/sous-titre, micro-optique
             VStack(alignment: .leading, spacing: 2) {
                 Text("Semaine de décharge")
                     .font(.appLabel.weight(.semibold))
@@ -120,6 +121,7 @@ extension StatsView {
                     .font(.appHeadline)
                     .foregroundColor(.statusPurple)
                     .frame(width: 30)
+                // collage titre/sous-titre, micro-optique
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Workout DNA")
                         .font(.appHeadline)
@@ -133,7 +135,7 @@ extension StatsView {
                     .font(.appCaption)
                     .foregroundColor(Color(white: 0.45))
             }
-            .padding(14)
+            .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.appCard)
             .cornerRadius(14)
@@ -195,7 +197,7 @@ extension StatsView {
         .padding(.horizontal, 16)
 
         // 4. KPI Grid — fenêtres fixes étiquetées (sélecteur absent de cet onglet)
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
             KPICard(value: "\(sessionsThisMonth)", label: "Séances — ce mois-ci", color: Color.forge)
             KPICard(
                 value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",
@@ -261,9 +263,10 @@ extension StatsView {
             ACWRCardView(data: acwrData)
                 .padding(.horizontal, 16)
         } else {
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 18)).foregroundColor(.gray)
+                    .font(.appHeadline).foregroundColor(.gray)
+                // collage titre/sous-titre, micro-optique
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ACWR non disponible")
                         .font(.appLabel.weight(.semibold)).foregroundColor(.gray)
@@ -272,7 +275,7 @@ extension StatsView {
                 }
                 Spacer()
             }
-            .padding(14).background(Color.appCard).cornerRadius(14)
+            .padding(16).background(Color.appCard).cornerRadius(14)
             .padding(.horizontal, 16)
         }
 
@@ -429,7 +432,7 @@ extension StatsView {
         } else {
             VStack(spacing: 12) {
                 Image(systemName: "fork.knife.circle")
-                    .font(.system(size: 40)).foregroundColor(.gray)
+                    .font(.appHero).foregroundColor(.gray)
                 Text("Données nutritionnelles insuffisantes.")
                     .foregroundColor(.gray)
             }
@@ -481,7 +484,7 @@ extension StatsView {
         // 5. Exercices — recherche et poids actuels
         VStack(alignment: .leading, spacing: 8) {
             Text("POIDS ACTUELS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 .padding(.horizontal, 16)
             HStack {
                 Image(systemName: "magnifyingglass").foregroundColor(.gray)
@@ -489,7 +492,7 @@ extension StatsView {
                     .foregroundColor(.appTextPrimary).tint(Color.forge)
             }
             .padding(12)
-            .background(Color.appCard).cornerRadius(12)
+            .background(Color.appCard).cornerRadius(8)
             .padding(.horizontal, 16)
 
             ForEach(exercisesWithHistory, id: \.0) { name, data in
