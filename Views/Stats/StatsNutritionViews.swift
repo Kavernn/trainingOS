@@ -6,9 +6,9 @@ struct NutritionComplianceChart: View {
     let target: NutritionSettings
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("COMPLIANCE CALORIES (\(days.count) JOURS)")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             let targetCal = target.calories ?? 2000
             HStack(alignment: .bottom, spacing: 4) {
@@ -16,9 +16,12 @@ struct NutritionComplianceChart: View {
                     let cal = day.calories ?? 0
                     let pct = targetCal > 0 ? min(cal / targetCal, 1.4) : 0
                     let color: Color = pct >= 0.9 && pct <= 1.1 ? Color.appSuccess : pct < 0.9 ? Color.appWarning : Color.appDanger
+                    // collage number/bar/date micro-barre
                     VStack(spacing: 2) {
+                        // chart axis, densité 30 barres — appMicro (9pt) chevaucherait
                         Text(String(format: "%.0f", cal))
                             .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
+                        // shape géométrique inline — radius calibré à la taille de la barre
                         RoundedRectangle(cornerRadius: 3)
                             .fill(color.opacity(0.7))
                             .frame(height: max(CGFloat(pct) * 60, 2))
@@ -42,7 +45,7 @@ struct NutritionComplianceChart: View {
 
             HStack(spacing: 12) {
                 Label("Objectif: \(Int(targetCal)) kcal", systemImage: "target")
-                    .font(.system(size: 10)).foregroundColor(.gray)
+                    .font(.appMicro).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
                     Circle().fill(Color.appSuccess).frame(width: 6, height: 6)
@@ -80,15 +83,16 @@ struct RPEDistributionView: View {
     private let colors: [Color] = [Color.appSuccess, Color.statusCyan, Color.statusYellow, Color.appWarning, Color.appDanger]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("DISTRIBUTION RPE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             HStack(alignment: .bottom, spacing: 8) {
                 ForEach(Array(distribution.enumerated()), id: \.0) { i, item in
                     let pct = total > 0 ? Double(item.1) / Double(total) : 0
                     VStack(spacing: 4) {
-                        Text("\(item.1)").font(.system(size: 10, weight: .bold)).foregroundColor(colors[i])
+                        Text("\(item.1)").font(.appMicro.weight(.bold)).foregroundColor(colors[i])
+                        // shape géométrique inline — radius calibré à la taille de la barre
                         RoundedRectangle(cornerRadius: 4)
                             .fill(colors[i])
                             .frame(height: max(CGFloat(pct) * 80, 2))
@@ -142,12 +146,12 @@ struct ProteinComplianceView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("COMPLIANCE PROTÉINES — 30J")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.appMicro.weight(.bold))
                     .tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
                 Text("Objectif : \(Int(protTarget))g/j")
-                    .font(.system(size: 10))
+                    .font(.appMicro)
                     .foregroundColor(.gray)
             }
 
@@ -163,6 +167,7 @@ struct ProteinComplianceView: View {
                 let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 10)
                 LazyVGrid(columns: columns, spacing: 4) {
                     ForEach(statuses) { day in
+                        // shape géométrique inline — radius calibré à la taille de la cellule
                         RoundedRectangle(cornerRadius: 3)
                             .fill(day.hit ? Color.appSuccess : day.partial ? Color.appWarning : Color.appSurfaceInset)
                             .frame(height: 14)
@@ -178,6 +183,7 @@ struct ProteinComplianceView: View {
                     legendDot(Color.forge,          "≥ 75%")
                     legendDot(Color.appSurfaceInset, "< 75%")
                 }
+                // alignement fin sous grille
                 .padding(.top, 2)
             }
         }
@@ -187,7 +193,7 @@ struct ProteinComplianceView: View {
     }
 
     private func compKPI(_ value: String, _ label: String, _ color: Color) -> some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 4) {
             Text(value).font(.appHeadline.weight(.black)).foregroundColor(color)
             Text(label).font(.appMicro).foregroundColor(.gray)
         }
@@ -196,6 +202,7 @@ struct ProteinComplianceView: View {
 
     private func legendDot(_ color: Color, _ label: String) -> some View {
         HStack(spacing: 4) {
+            // shape géométrique inline — radius calibré au dot 10×10
             RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 10, height: 10)
             Text(label).font(.appMicro).foregroundColor(.gray)
         }
@@ -213,16 +220,16 @@ struct MacrosBreakdownView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("MACROS — MOYENNE \(days.count)J")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             let avgG = avgMacro(\.glucides)
             let avgL = avgMacro(\.lipides)
             let avgP = avgMacro(\.proteines)
             let avgCal = avgMacro(\.calories)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 StatsMacroBar(label: "Glucides", value: avgG, target: target.glucides, color: Color.statusBlue, unit: "g")
                 StatsMacroBar(label: "Lipides",  value: avgL, target: target.lipides,  color: Color.statusYellow, unit: "g")
                 StatsMacroBar(label: "Protéines",value: avgP, target: target.proteines,color: Color.forge, unit: "g")
@@ -230,11 +237,11 @@ struct MacrosBreakdownView: View {
 
             HStack {
                 Text("Moy. cal: \(Int(avgCal)) kcal")
-                    .font(.system(size: 10)).foregroundColor(.gray)
+                    .font(.appMicro).foregroundColor(.gray)
                 Spacer()
                 if let tc = target.calories {
                     Text("Cible: \(Int(tc)) kcal")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
@@ -259,9 +266,10 @@ private struct StatsMacroBar: View {
     }
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Text(String(format: "%.0f%@", value, unit))
-                .font(.system(size: 14, weight: .black)).foregroundColor(color)
+                .font(.appBody.weight(.black)).foregroundColor(color)
+            // shape géométrique inline — radius calibré à la taille de la barre
             RoundedRectangle(cornerRadius: 4).fill(compliance.opacity(0.7))
                 .frame(height: max(CGFloat(pct) * 50, 2))
             if let t = target {
@@ -283,10 +291,10 @@ struct ProteinWeightRatioView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("RATIO PROTÉINES / POIDS CORPOREL")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text(String(format: "Moy. %.2f g/lb", avg))
                     .font(.appCaption.weight(.bold))
@@ -321,9 +329,9 @@ struct ProteinWeightRatioView: View {
             }
             .frame(height: 90)
             Text("Zone verte = 0.8–1.2 g/lb — cible hypertrophie")
-                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+                .font(.appMicro).foregroundColor(.gray.opacity(0.7))
         }
-        .padding(14)
+        .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
     }
@@ -336,7 +344,7 @@ struct MacrosDayTypeView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("MACROS : JOUR TRAINING VS REPOS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
             if let t = data.training, let r = data.rest {
                 HStack(spacing: 12) {
                     macroColumn(label: "Entraînement", bucket: t, color: Color.forge, n: data.nTraining)
@@ -344,13 +352,13 @@ struct MacrosDayTypeView: View {
                 }
             }
         }
-        .padding(14)
+        .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
     }
 
     private func macroColumn(label: String, bucket: MacroBucket, color: Color, n: Int) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(label).font(.appCaption.weight(.bold)).foregroundColor(color)
             Text("(\(n) jours)").font(.appMicro).foregroundColor(.gray)
             StatRow(label: "Calories",  value: String(format: "%.0f kcal", bucket.avgCal),   dot: color,              compact: true)
@@ -359,9 +367,9 @@ struct MacrosDayTypeView: View {
             StatRow(label: "Lipides",   value: String(format: "%.0f g",    bucket.avgFat),   dot: Color.forge,        compact: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
+        .padding(12)
         .background(Color.appSurfaceInset)
-        .cornerRadius(10)
+        .cornerRadius(8)
     }
 }
 
@@ -412,9 +420,9 @@ struct NutritionVsPerfView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("NUTRITION → PERFORMANCE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             if pairs.count < 4 {
                 EmptyChartPlaceholder(message: "Activé après 4 semaines de logs nutrition + workout")
@@ -422,7 +430,7 @@ struct NutritionVsPerfView: View {
                 miniDualChart
                 if let msg = insight {
                     Text(msg)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(Color.appOnSurface.opacity(0.8))
                         .fixedSize(horizontal: false, vertical: true)
                 }
