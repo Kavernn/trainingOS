@@ -145,10 +145,7 @@ extension StatsView {
         //    + accents (PR récent, volume velocity). Structure figée par Vince.
         //    PR source = /api/pr-tracker (backend filtre baseline_count ≥ 2, récence
         //    30j). recentPRs sont triés date DESC serveur → .first = plus récent PR
-        //    validé. Remplace le calcul iOS naïf (StatsView.swift:559-566) qui
-        //    remontait des 1RM Epley aberrants (calf raise 736 lbs).
-        //    NB : StatsView.exercicesTab affiche encore personalRecords via le même
-        //    calcul naïf — bug latent, à basculer sur /api/pr-tracker séparément.
+        //    validé. Source unique PR dans tout Stats (hero + exercicesTab).
         if !forceAccessoryTimeline.isEmpty || thisWeekVolume > 0 {
             StatsHeroCard(
                 timeline:        forceAccessoryTimeline,
@@ -464,8 +461,8 @@ extension StatsView {
     @ViewBuilder var exercicesTab: some View {
 
         // 1. PRs actuels
-        if !personalRecords.isEmpty {
-            PersonalRecordsView(records: personalRecords)
+        if !recentPRs.isEmpty {
+            PersonalRecordsView(records: recentPRs.map { ($0.name, $0.est1RM) })
                 .padding(.horizontal, 16)
         }
 

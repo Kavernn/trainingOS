@@ -108,7 +108,6 @@ struct StatsView: View {
     @State var streakData: StreakResponse? = nil
     // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
     @State var cachedWeeklyVolume: Double = 0
-    @State var cachedPersonalRecords: [(String, Double)] = []
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
@@ -159,7 +158,6 @@ struct StatsView: View {
     }
 
     // ── Personal Records ─────────────────────────────────────────────
-    var personalRecords: [(String, Double)] { cachedPersonalRecords }
 
     // ── Weekly charts ─────────────────────────────────────────────────
     var last8Weeks: [String] {
@@ -397,7 +395,7 @@ struct StatsView: View {
             Badge(id: "streak_30",       icon: "⚡", title: "Streak 30j",       desc: "30 jours consécutifs",    earned: bestStreak >= 30,         color: .statusPurple),
             Badge(id: "exercises_10",    icon: "📚", title: "10 exercices",     desc: "10 exercices différents", earned: exercisesCount >= 10,     color: .statusBlue),
             Badge(id: "perfect_month",   icon: "🌟", title: "Mois actif",       desc: "20 séances en 1 mois",   earned: sessionsThisMonth >= 20,  color: .statusYellow),
-            Badge(id: "pr_5",            icon: "🥇", title: "5 records",        desc: "5 exercices avec PR",     earned: personalRecords.count >= 5, color: .statusGreen),
+            Badge(id: "pr_5",            icon: "🥇", title: "5 records",        desc: "5 exercices avec PR",     earned: recentPRs.count >= 5, color: .statusGreen),
         ]
     }
 
@@ -557,14 +555,6 @@ struct StatsView: View {
             return UnitSettings.shared.display(w * totalReps(r))
         }.reduce(0, +)
 
-        cachedPersonalRecords = weights.compactMap { name, data -> (String, Double)? in
-            let best = data.history?.compactMap { e -> Double? in
-                (e.oneRM ?? 0) > 0 ? e.oneRM : nil
-            }.max()
-            return best.map { (name, $0) }
-        }
-        .sorted { $0.1 > $1.1 }
-        .prefix(10).map { $0 }
     }
 
     func applyStats(_ r: StatsAPIResponse) {
