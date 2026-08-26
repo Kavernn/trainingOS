@@ -14,9 +14,9 @@ struct MeasurementsTrendView: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("MENSURATIONS (cm)")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             ForEach(metrics, id: \.0) { label, kp, color in
                 let vals = entries.compactMap { e -> (String, Double)? in
@@ -104,13 +104,13 @@ struct VolumeLandmarksCard: View {
                     .font(.appCaption)
                     .foregroundColor(.statusPurple)
                 Text("VOLUME HEBDO — LANDMARKS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2)
+                    .font(.appMicro.weight(.bold)).tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
                 CardInfoButton(title: "Volume landmarks", entries: InfoEntry.volumeLandmarkEntries)
             }
 
-            HStack(spacing: 14) {
+            HStack(spacing: 16) {
                 legendDot(.statusBlue,   "Sous le min")
                 legendDot(.statusGreen,  "Optimal")
                 legendDot(Color.forge, "Proche du max")
@@ -118,17 +118,18 @@ struct VolumeLandmarksCard: View {
             }
 
             GeometryReader { outer in
-                VStack(spacing: 7) {
+                VStack(spacing: 8) {
                     ForEach(sorted, id: \.0) { muscle, lm in
                         let barW = outer.size.width - 190
                         let ratio = min(Double(lm.weeklySets) / Double(lm.mrv), 1.2)
                         HStack(spacing: 8) {
                             Text(muscle.localizedMuscleGroup)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.appCaption.weight(.medium))
                                 .foregroundColor(.appTextPrimary)
                                 .frame(width: 100, alignment: .leading)
                                 .lineLimit(1)
 
+                            // shape inline, radius calibré à la hauteur de la jauge
                             ZStack(alignment: .leading) {
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(Color.appSurfaceInset)
@@ -148,7 +149,7 @@ struct VolumeLandmarksCard: View {
                             .frame(height: 12)
 
                             Text("\(lm.weeklySets)")
-                                .font(.system(size: 12, weight: .black))
+                                .font(.appCaption.weight(.black))
                                 .foregroundColor(zoneColor(lm.zone))
                                 .frame(width: 22, alignment: .trailing)
 
@@ -164,6 +165,7 @@ struct VolumeLandmarksCard: View {
 
             Text("MEV · MAV · MRV d'après Renaissance Periodization (Israetel et al.)")
                 .font(.appMicro).foregroundColor(.gray.opacity(0.6))
+                // alignement fin sous grille
                 .padding(.top, 2)
 
             let specificsEntries: [(String, [String: Int])] = sorted.compactMap { muscle, lm in
@@ -172,7 +174,7 @@ struct VolumeLandmarksCard: View {
             }
             if !specificsEntries.isEmpty {
                 Divider().background(Color.appSeparatorStrong)
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("DÉTAIL PAR MUSCLE SPÉCIFIQUE")
                         .font(.appMicro.weight(.bold)).tracking(2)
                         .foregroundColor(.gray)
@@ -243,7 +245,7 @@ struct BodyRecompView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("BODY RECOMPOSITION — 3 COURBES")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             if points.count < 3 {
                 EmptyChartPlaceholder(message: "Logge ton % de masse grasse pour activer le recomp tracker")
@@ -296,12 +298,12 @@ struct BodyRecompView: View {
             legendDot(Color.bodyComp(.fat),    "Masse grasse")
             legendDot(Color.bodyComp(.lean),   "Masse maigre")
         }
-        .font(.system(size: 10)).foregroundColor(.gray)
+        .font(.appMicro).foregroundColor(.gray)
     }
 
     @ViewBuilder private func deltaRow(_ d: (lean: Double, fat: Double, label: String)) -> some View {
         Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
-        HStack(spacing: 20) {
+        HStack(spacing: 24) {
             deltaKPI(
                 label: "Masse maigre (\(d.label))",
                 value: units.format(d.lean, decimals: 1),
@@ -317,12 +319,13 @@ struct BodyRecompView: View {
     }
 
     @ViewBuilder private func deltaKPI(label: String, value: String, good: Bool) -> some View {
+        // collage valeur/label deltaKPI, micro-optique
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(.system(size: 16, weight: .bold))
+                .font(.appHeadline.weight(.bold))
                 .foregroundColor(good ? .statusGreen : .statusOrange)
             Text(label)
-                .font(.system(size: 10)).foregroundColor(.gray)
+                .font(.appMicro).foregroundColor(.gray)
         }
     }
 
@@ -341,11 +344,11 @@ struct SeasonComparisonCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: "calendar.badge.clock")
-                    .foregroundColor(Color.forge).font(.system(size: 12))
+                    .foregroundColor(Color.forge).font(.appCaption)
                 Text("COMPARAISON SAISONS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
             }
 
             if let current = data.current {
@@ -360,7 +363,7 @@ struct SeasonComparisonCard: View {
 
     @ViewBuilder private func seasonTable(current: SeasonCompStats, previous: SeasonCompStats?) -> some View {
         HStack(alignment: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text("").frame(height: 16)
                 Text("Vol. moy/sem").font(.appCaption).foregroundColor(.gray)
                 Text("Séances").font(.appCaption).foregroundColor(.gray)
@@ -369,9 +372,9 @@ struct SeasonComparisonCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .center, spacing: 12) {
                 Text(current.title ?? "En cours")
-                    .font(.system(size: 11, weight: .bold)).foregroundColor(Color.forge)
+                    .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)
                     .lineLimit(1).frame(height: 16)
                 valCell(current.volumeAvgWeek.map { units.format($0, decimals: 0) })
                 valCell(current.sessionsCount.map { "\($0)" })
@@ -381,7 +384,7 @@ struct SeasonComparisonCard: View {
             .frame(maxWidth: .infinity)
 
             if let prev = previous {
-                VStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .center, spacing: 12) {
                     Text("").frame(height: 16)
                     deltaArrow(current.volumeAvgWeek, prev.volumeAvgWeek, higherBetter: true)
                     deltaArrow(current.sessionsCount.map(Double.init), prev.sessionsCount.map(Double.init), higherBetter: true)
@@ -390,9 +393,9 @@ struct SeasonComparisonCard: View {
                 }
                 .frame(width: 40)
 
-                VStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .center, spacing: 12) {
                     Text(prev.title ?? "Précédente")
-                        .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+                        .font(.appCaption.weight(.bold)).foregroundColor(.gray)
                         .lineLimit(1).frame(height: 16)
                     valCell(prev.volumeAvgWeek.map { units.format($0, decimals: 0) }, dim: true)
                     valCell(prev.sessionsCount.map { "\($0)" }, dim: true)
@@ -449,12 +452,12 @@ struct TransformationMarkersCard: View {
         let showWarRoom = warRoomStats?.warStartDate != nil
         VStack(alignment: .leading, spacing: 12) {
             Text("MARQUEURS DE TRANSFORMATION")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             if showWarRoom, let wr = warRoomStats {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("\(wr.totalVictories)")
-                        .font(.system(size: 30, weight: .black))
+                        .font(.appTitle.weight(.black))
                         .foregroundColor(Color.appSuccess)
                         .contentTransition(.numericText())
                     Text("jours de victoire")
@@ -465,16 +468,16 @@ struct TransformationMarkersCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(Color.appSuccess.opacity(0.07))
-                .cornerRadius(12)
+                .cornerRadius(8)
             } else {
                 Button { showGate = true } label: {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         Image(systemName: "shield.fill")
-                            .font(.system(size: 15))
+                            .font(.appBody)
                             .foregroundColor(Color.forge.opacity(0.7))
-                        VStack(alignment: .leading, spacing: 3) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text("Ton premier jour de victoire t'attend")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.appTextPrimary)
                             Text("Démarre War Room")
                                 .font(.appCaption)
@@ -482,12 +485,12 @@ struct TransformationMarkersCard: View {
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(Color.forge.opacity(0.4))
                     }
                     .padding(12)
                     .background(Color.forge.opacity(0.06))
-                    .cornerRadius(12)
+                    .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
             }
@@ -545,9 +548,9 @@ struct ForceHeroCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("PROGRESSION FORCE — 6 MOIS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             if lifts.isEmpty {
                 EmptyChartPlaceholder(message: "Logge tes lifts composés pour voir ta force monter")
@@ -555,11 +558,12 @@ struct ForceHeroCard: View {
                 if let best = bestGainer {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(best.deltaPct >= 0 ? "+\(best.deltaPct)%" : "\(best.deltaPct)%")
-                            .font(.system(size: 38, weight: .black))
+                            .font(.appHero.weight(.black))
                             .foregroundColor(best.deltaPct >= 0 ? Color(hex: "FF9F0A") : .statusRed)
+                        // collage nom/sub-label bestGainer, micro-optique
                         VStack(alignment: .leading, spacing: 2) {
                             Text(best.name)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.appTextPrimary)
                                 .lineLimit(1)
                             Text("\(lifts.count) lift\(lifts.count > 1 ? "s" : "") en progression")
@@ -604,7 +608,7 @@ struct ForceHeroCard: View {
                         AxisValueLabel {
                             if let v = val.as(Double.self) {
                                 Text("\(Int(v))%")
-                                    .font(.system(size: 9))
+                                    .font(.appMicro)
                                     .foregroundColor(.gray)
                             }
                         }
@@ -613,12 +617,12 @@ struct ForceHeroCard: View {
                 .chartPlotStyle { $0.background(Color.clear) }
                 .frame(height: 160)
 
-                HStack(spacing: 14) {
+                HStack(spacing: 16) {
                     ForEach(lifts) { lift in
-                        HStack(spacing: 5) {
+                        HStack(spacing: 4) {
                             Circle().fill(lift.color).frame(width: 6, height: 6)
                             Text("\(lift.name.components(separatedBy: " ").prefix(2).joined(separator: " ")) \(lift.deltaPct >= 0 ? "+" : "")\(lift.deltaPct)%")
-                                .font(.system(size: 10))
+                                .font(.appMicro)
                                 .foregroundColor(.gray)
                                 .lineLimit(1)
                         }
@@ -677,7 +681,7 @@ struct StrengthCurveChart: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("COURBE DE FORCE")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Picker("", selection: $metric) {
                     ForEach(ChartMetric.allCases, id: \.self) { m in
@@ -716,7 +720,7 @@ struct StrengthCurveChart: View {
                             .foregroundStyle(Color.forge.opacity(0.3))
                             .annotation(position: .top, alignment: .trailing) {
                                 Text("PR \(units.format(pr.value))")
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(.appMicro.weight(.semibold))
                                     .foregroundColor(Color.forge)
                             }
                     }
@@ -767,17 +771,17 @@ struct IntensityCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("INTENSITÉ RELATIVE — %1RM")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             HStack(alignment: .bottom, spacing: 12) {
                 if let pct = data.avgPct1rm {
                     Text(String(format: "%.0f%%", pct))
-                        .font(.system(size: 36, weight: .black))
+                        .font(.appHero.weight(.black))
                         .foregroundColor(zoneColor)
                 }
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(zoneLabel)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(zoneColor)
                     Text("\(data.setsCount) sets cette semaine")
                         .font(.appCaption).foregroundColor(.gray)
@@ -787,6 +791,7 @@ struct IntensityCard: View {
 
             GeometryReader { g in
                 let w = g.size.width
+                // shape inline, radius calibré à la hauteur de la jauge %1RM
                 ZStack(alignment: .leading) {
                     HStack(spacing: 0) {
                         Rectangle().fill(Color.statusBlue.opacity(0.25)).frame(width: w * 0.65)
@@ -807,11 +812,11 @@ struct IntensityCard: View {
                 .cornerRadius(4)
 
                 HStack {
-                    Text("<65%").font(.system(size: 8)).foregroundColor(.statusBlue)
+                    Text("<65%").font(.appMicro).foregroundColor(.statusBlue)
                     Spacer()
-                    Text("65–80%").font(.system(size: 8)).foregroundColor(Color.forge)
+                    Text("65–80%").font(.appMicro).foregroundColor(Color.forge)
                     Spacer()
-                    Text(">80%").font(.system(size: 8)).foregroundColor(.statusRed)
+                    Text(">80%").font(.appMicro).foregroundColor(.statusRed)
                 }
                 .offset(y: 16)
             }
@@ -828,22 +833,22 @@ struct DeloadStatusCard: View {
     private var weeksSince: Int { data.weeksSinceDeload ?? 0 }
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("DELOAD")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 if data.deloadActif {
                     Text("Deload actif")
                         .font(.appBody.weight(.bold)).foregroundColor(.statusBlue)
                 } else if let w = data.weeksSinceDeload {
                     Text("\(w) sem.")
-                        .font(.system(size: 28, weight: .black))
+                        .font(.appTitle.weight(.black))
                         .foregroundColor(deloadColor)
                     Text("depuis le dernier deload")
                         .font(.appCaption).foregroundColor(.gray)
                 } else {
                     Text("—")
-                        .font(.system(size: 28, weight: .black)).foregroundColor(.gray)
+                        .font(.appTitle.weight(.black)).foregroundColor(.gray)
                     Text("pas encore de deload enregistré")
                         .font(.appCaption).foregroundColor(.gray)
                 }
@@ -852,9 +857,9 @@ struct DeloadStatusCard: View {
             if data.recommande {
                 VStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 20)).foregroundColor(Color.forge)
+                        .font(.appTitle).foregroundColor(Color.forge)
                     Text("Recommandé")
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(Color.forge)
+                        .font(.appMicro.weight(.semibold)).foregroundColor(Color.forge)
                 }
             }
         }
