@@ -73,7 +73,7 @@ struct SmartInsightsBanner: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Image(systemName: "lightbulb.fill").foregroundColor(.statusYellow).font(.appMicro)
+                Image(systemName: "lightbulb.fill").foregroundColor(.gray).font(.appMicro)
                 Text("INSIGHTS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
             }

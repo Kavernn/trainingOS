@@ -67,8 +67,8 @@ struct RecoveryScoreChart: View {
                 HStack(spacing: 16) {
                     if let hrv = last.hrv, hrv > 0 {
                         HStack(spacing: 4) {
-                            Image(systemName: "waveform.path.ecg").font(.appMicro).foregroundColor(Color.statusCyan)
-                            Text("HRV \(Int(hrv))ms").font(.appMicro.weight(.semibold)).foregroundColor(Color.statusCyan)
+                            Image(systemName: "waveform.path.ecg").font(.appMicro).foregroundColor(Color.gray)
+                            Text("HRV \(Int(hrv))ms").font(.appMicro.weight(.semibold)).foregroundColor(Color.gray)
                         }
                     }
                     if let hr = last.restingHr, hr > 0 {
@@ -537,7 +537,7 @@ struct HRVBaselineCard: View {
                 if let today = data.todayRmssd {
                     HStack(spacing: 8) {
                         Text(String(format: "Aujourd'hui : %.0f ms", today))
-                            .font(.appLabel.weight(.semibold)).foregroundColor(Color.statusCyan)
+                            .font(.appLabel.weight(.semibold)).foregroundColor(Color.gray)
                         Text("· mesure isolée, pas encore de tendance")
                             .font(.appCaption).foregroundColor(.gray)
                     }
@@ -566,7 +566,7 @@ struct HRVBaselineCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("BASELINE 30J").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                             Text(String(format: "%.0f ms", baseline))
-                                .font(.appHeadline.weight(.black)).foregroundColor(Color.statusCyan)
+                                .font(.appHeadline.weight(.black)).foregroundColor(Color.gray)
                         }
                     }
                     if let cv = data.hrvCv {

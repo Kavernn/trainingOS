@@ -119,7 +119,7 @@ extension StatsView {
             HStack(spacing: 12) {
                 Image(systemName: "staroflife.fill")
                     .font(.appHeadline)
-                    .foregroundColor(.statusPurple)
+                    .foregroundColor(.gray)
                     .frame(width: 30)
                 // collage titre/sous-titre, micro-optique
                 VStack(alignment: .leading, spacing: 2) {

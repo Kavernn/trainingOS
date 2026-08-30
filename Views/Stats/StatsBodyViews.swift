@@ -102,7 +102,7 @@ struct VolumeLandmarksCard: View {
             HStack {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .font(.appCaption)
-                    .foregroundColor(.statusPurple)
+                    .foregroundColor(.gray)
                 Text("VOLUME HEBDO — LANDMARKS")
                     .font(.appMicro.weight(.bold)).tracking(2)
                     .foregroundColor(.gray)

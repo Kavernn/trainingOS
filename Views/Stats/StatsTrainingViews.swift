@@ -257,7 +257,7 @@ struct BadgesView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "medal.fill")
-                    .foregroundColor(.statusYellow)
+                    .foregroundColor(.gray)
                     .font(.appLabel.weight(.bold))
                 Text("Badges")
                     .font(.appLabel.weight(.bold))
@@ -591,9 +591,9 @@ struct HIITStatsSection: View {
                 .font(.appMicro).tracking(2).foregroundColor(.gray)
 
             HStack(spacing: 12) {
-                KPICard(value: "\(log.count)", label: "Sessions", color: .statusRed)
-                KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: .statusOrange)
-                KPICard(value: avgRounds > 0 ? String(format: "%.0f", avgRounds) : "—", label: "Rounds moy.", color: .statusPurple)
+                KPICard(value: "\(log.count)", label: "Sessions", color: .gray)
+                KPICard(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE moy.", color: .gray)
+                KPICard(value: avgRounds > 0 ? String(format: "%.0f", avgRounds) : "—", label: "Rounds moy.", color: .gray)
             }
 
             if rpeHistory.count >= 3 {
@@ -746,7 +746,7 @@ struct ExerciseStatRow: View {
                 } else {
                     Text("Poids corps")
                         .font(.appCaption.weight(.medium))
-                        .foregroundColor(Color.statusCyan.opacity(0.7))
+                        .foregroundColor(Color.gray.opacity(0.7))
                 }
             }
             Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
@@ -1565,7 +1565,7 @@ struct StatsHeroCard: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("VOLUME VELOCITY")
                 .font(.appCaption.weight(.bold))
-                .foregroundColor(.statusGreen)
+                .foregroundColor(.gray)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if let v = volumeVelocityPct {
                     let sign = v >= 0 ? "+" : ""

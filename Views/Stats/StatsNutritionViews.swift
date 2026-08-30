@@ -158,7 +158,7 @@ struct ProteinComplianceView: View {
             HStack(spacing: 0) {
                 compKPI("\(Int(complianceRate * 100))%", "jours atteints", complianceRate >= 0.8 ? Color.appSuccess : complianceRate >= 0.5 ? Color.appWarning : Color.appDanger)
                 Divider().background(Color.appSeparator).frame(height: 36)
-                compKPI("\(hitCount)/\(statuses.count)", "jours trackés", Color.statusBlue)
+                compKPI("\(hitCount)/\(statuses.count)", "jours trackés", Color.gray)
                 Divider().background(Color.appSeparator).frame(height: 36)
                 compKPI("\(Int(avgProteines))g", "moy. / jour", avgProteines >= protTarget ? Color.appSuccess : Color.appWarning)
             }
@@ -230,9 +230,9 @@ struct MacrosBreakdownView: View {
             let avgCal = avgMacro(\.calories)
 
             HStack(spacing: 12) {
-                StatsMacroBar(label: "Glucides", value: avgG, target: target.glucides, color: Color.statusBlue, unit: "g")
-                StatsMacroBar(label: "Lipides",  value: avgL, target: target.lipides,  color: Color.statusYellow, unit: "g")
-                StatsMacroBar(label: "Protéines",value: avgP, target: target.proteines,color: Color.forge, unit: "g")
+                StatsMacroBar(label: "Glucides", value: avgG, target: target.glucides, color: Color.gray, unit: "g")
+                StatsMacroBar(label: "Lipides",  value: avgL, target: target.lipides,  color: Color.gray, unit: "g")
+                StatsMacroBar(label: "Protéines",value: avgP, target: target.proteines,color: Color.gray, unit: "g")
             }
 
             HStack {
@@ -348,7 +348,7 @@ struct MacrosDayTypeView: View {
             if let t = data.training, let r = data.rest {
                 HStack(spacing: 12) {
                     macroColumn(label: "Entraînement", bucket: t, color: Color.forge, n: data.nTraining)
-                    macroColumn(label: "Repos", bucket: r, color: Color.statusBlue, n: data.nRest)
+                    macroColumn(label: "Repos", bucket: r, color: Color.gray, n: data.nRest)
                 }
             }
         }
@@ -362,9 +362,9 @@ struct MacrosDayTypeView: View {
             Text(label).font(.appCaption.weight(.bold)).foregroundColor(color)
             Text("(\(n) jours)").font(.appMicro).foregroundColor(.gray)
             StatRow(label: "Calories",  value: String(format: "%.0f kcal", bucket.avgCal),   dot: color,              compact: true)
-            StatRow(label: "Protéines", value: String(format: "%.0f g",    bucket.avgProt),  dot: Color.appSuccess,   compact: true)
-            StatRow(label: "Glucides",  value: String(format: "%.0f g",    bucket.avgCarbs), dot: Color.statusYellow, compact: true)
-            StatRow(label: "Lipides",   value: String(format: "%.0f g",    bucket.avgFat),   dot: Color.forge,        compact: true)
+            StatRow(label: "Protéines", value: String(format: "%.0f g",    bucket.avgProt),  dot: Color.gray, compact: true)
+            StatRow(label: "Glucides",  value: String(format: "%.0f g",    bucket.avgCarbs), dot: Color.gray, compact: true)
+            StatRow(label: "Lipides",   value: String(format: "%.0f g",    bucket.avgFat),   dot: Color.gray, compact: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
