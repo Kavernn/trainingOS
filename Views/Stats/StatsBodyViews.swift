@@ -42,7 +42,7 @@ struct MeasurementsTrendView: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .statusPurple, intensity: 0.04)
+        .padding(16).glassCard()
     }
 }
 
@@ -194,7 +194,6 @@ struct VolumeLandmarksCard: View {
         }
         .padding(16)
         .glassCard()
-        .cornerRadius(16)
     }
 
     private func legendDot(_ color: Color, _ label: String) -> some View {
@@ -632,7 +631,7 @@ struct ForceHeroCard: View {
             }
         }
         .padding(16)
-        .glassCard(color: .forge, intensity: 0.03)
+        .glassCard()
     }
 }
 
@@ -822,7 +821,7 @@ struct IntensityCard: View {
             }
             .frame(height: 32)
         }
-        .padding(16).glassCard(color: zoneColor, intensity: 0.04)
+        .padding(16).glassCard()
     }
 }
 
@@ -863,7 +862,7 @@ struct DeloadStatusCard: View {
                 }
             }
         }
-        .padding(16).glassCard(color: deloadColor, intensity: 0.04)
+        .padding(16).glassCard()
     }
 
     private var deloadColor: Color {

@@ -95,7 +95,6 @@ struct SmartInsightsBanner: View {
         .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.25), lineWidth: 1))
     }
 }
 

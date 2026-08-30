@@ -81,7 +81,7 @@ struct RecoveryScoreChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: Color.statusBlue, intensity: 0.05)
+        .padding(16).glassCard()
     }
 }
 
@@ -910,7 +910,7 @@ struct StressCravingsInsightView: View {
                 .foregroundColor(Color.appOnSurface.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16).glassCard(color: Color.forge, intensity: 0.04)
+        .padding(16).glassCard()
     }
 
     private var insightText: String {

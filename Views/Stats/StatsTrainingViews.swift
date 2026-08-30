@@ -89,7 +89,7 @@ struct ACWRCardView: View {
                 ACWRSparkline(trend: data.trend)
             }
         }
-        .padding(16).glassCard(color: isLowConfidence ? .gray : zoneColor, intensity: 0.05)
+        .padding(16).glassCard()
     }
 }
 
@@ -291,7 +291,6 @@ struct BadgesView: View {
         }
         .padding(16)
         .background(Color.appCard)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.15), lineWidth: 1))
         .cornerRadius(14)
     }
 }
@@ -511,7 +510,7 @@ struct SimpleBarChart: View {
                 }
             }
         }
-        .padding(12).glassCard(color: color, intensity: 0.04)
+        .padding(12).glassCard()
         .frame(maxWidth: .infinity)
     }
 
@@ -625,7 +624,7 @@ struct HIITStatsSection: View {
                 .padding(12).background(Color.appCard).cornerRadius(8)
             }
         }
-        .padding(16).glassCard(color: .statusRed, intensity: 0.04)
+        .padding(16).glassCard()
     }
 }
 
@@ -712,7 +711,7 @@ struct KPICard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .glassCard(color: isNull ? .gray : color, intensity: isNull ? 0.02 : 0.05)
+        .glassCard()
     }
 }
 
