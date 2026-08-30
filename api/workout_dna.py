@@ -542,5 +542,5 @@ def compute(period_days: int = 90) -> dict:
         return result
 
     except Exception as e:
-        logger.error("workout_dna error: %s", e)
-        return {"error": str(e)}
+        logger.exception("workout_dna error: %s", e)
+        raise
