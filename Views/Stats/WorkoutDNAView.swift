@@ -875,7 +875,7 @@ private struct SignatureLiftRow: View {
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% sur l'ancienne limite")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.statusGreen)
+                        .foregroundColor(.appSuccess)
                 }
             }
         }
@@ -1012,7 +1012,7 @@ struct WorkoutDNAShareCard: View {
                                 .font(.appMicro.weight(.bold)).foregroundColor(.appTextPrimary)
                             if lift.progressionPct > 0 {
                                 Text("+\(Int(lift.progressionPct))%")
-                                    .font(.system(size: 8, weight: .semibold)).foregroundColor(.statusGreen)
+                                    .font(.system(size: 8, weight: .semibold)).foregroundColor(.appSuccess)
                             }
                         }
                         .padding(.bottom, 4)

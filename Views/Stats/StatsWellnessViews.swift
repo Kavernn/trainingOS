@@ -46,7 +46,7 @@ struct RecoveryScoreChart: View {
                         ForEach(Array(scores.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
                             let y = geo.size.height * (1 - CGFloat(entry.1 / maxS))
-                            let col: Color = entry.1 >= 7 ? Color.appSuccess : entry.1 >= 4 ? Color.statusYellow : Color.appDanger
+                            let col: Color = entry.1 >= 7 ? Color.appSuccess : entry.1 >= 4 ? Color.appWarning : Color.appDanger
                             Circle().fill(col).frame(width: 6, height: 6).position(x: x, y: y)
                         }
                     }
@@ -60,7 +60,7 @@ struct RecoveryScoreChart: View {
                     Text("Dernière:").font(.appCaption).foregroundColor(.gray)
                     Text(String(format: "%.1f / 10", s))
                         .font(.appCaption.weight(.bold))
-                        .foregroundColor(s >= 7 ? Color.appSuccess : s >= 4 ? Color.statusYellow : Color.appDanger)
+                        .foregroundColor(s >= 7 ? Color.appSuccess : s >= 4 ? Color.appWarning : Color.appDanger)
                 }
             }
             if let last = log.last {
@@ -125,7 +125,7 @@ struct RecoveryCompositeScoreView: View {
         return s <= 3 ? .green : s <= 6 ? .yellow : .red
     }
     private func statusColor(_ s: ComponentStatus) -> Color {
-        switch s { case .green: return Color.appSuccess; case .yellow: return Color.statusYellow; case .red: return Color.appDanger }
+        switch s { case .green: return Color.appSuccess; case .yellow: return Color.appWarning; case .red: return Color.appDanger }
     }
     private func componentDot(_ label: String, _ status: ComponentStatus) -> some View {
         HStack(spacing: 4) {
@@ -500,7 +500,7 @@ struct HRVBaselineCard: View {
     let data: HRVAnalysis
 
     private var accentColor: Color {
-        data.hrvZone != nil ? data.zoneColor : (data.flagRest ? Color.appDanger : Color.statusCyan)
+        data.hrvZone != nil ? data.zoneColor : (data.flagRest ? Color.appDanger : Color.gray)
     }
 
     var body: some View {

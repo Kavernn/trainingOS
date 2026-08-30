@@ -97,7 +97,7 @@ private struct ACWRSparkline: View {
     let trend: [ACWRWeek]
 
     private let thresholds: [(Double, Color)] = [
-        (1.5, Color.appDanger), (1.3, Color.appWarning), (0.8, Color.statusBlue)
+        (1.5, Color.appDanger), (1.3, Color.appWarning), (0.8, Color.gray)
     ]
 
     var body: some View {
@@ -170,10 +170,10 @@ private struct ACWRSparkline: View {
 
     private func dotColor(_ ratio: Double) -> Color {
         if ratio == 0   { return .gray }
-        if ratio < 0.8  { return Color.statusBlue }
+        if ratio < 0.8  { return Color.gray }
         if ratio <= 1.3 { return Color.appSuccess }
         if ratio <= 1.5 { return Color.appWarning }
-        return .statusRed
+        return .appDanger
     }
 }
 
@@ -897,14 +897,14 @@ struct EnergyTrendView: View {
             .frame(height: 70)
 
             HStack {
-                Text("1 = Épuisé").font(.appMicro).foregroundColor(.statusRed)
+                Text("1 = Épuisé").font(.appMicro).foregroundColor(.appDanger)
                 Spacer()
                 if let last = data.last {
                     Text("Dernière: \(energyLabel(last.1))")
                         .font(.appMicro.weight(.bold)).foregroundColor(energyColor(last.1))
                 }
                 Spacer()
-                Text("5 = Excellent").font(.appMicro).foregroundColor(.statusGreen)
+                Text("5 = Excellent").font(.appMicro).foregroundColor(.appSuccess)
             }
         }
         .padding(16).background(Color.appCard).cornerRadius(14)
@@ -1058,7 +1058,7 @@ struct OneRMTrendView: View {
                 Spacer()
                 if let last = points.last, let first = points.first, last.oneRM > first.oneRM {
                     Text("+\(String(format: "%.1f", last.oneRM - first.oneRM)) \(units.label)")
-                        .font(.appMicro.weight(.semibold)).foregroundColor(.statusGreen)
+                        .font(.appMicro.weight(.semibold)).foregroundColor(.appSuccess)
                 }
             }
             if exercises.count > 1 {
@@ -1551,7 +1551,7 @@ struct StatsHeroCard: View {
                 if let d = latestPRDelta, d > 0 {
                     Text("+\(Int(d.rounded()))")
                         .font(.appCaption)
-                        .foregroundColor(.statusGreen)
+                        .foregroundColor(.appSuccess)
                 }
             }
         }
@@ -1571,7 +1571,7 @@ struct StatsHeroCard: View {
                     let sign = v >= 0 ? "+" : ""
                     Text("\(sign)\(Int(v.rounded()))%")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(v >= 0 ? .statusGreen : .statusRed)
+                        .foregroundColor(v >= 0 ? .appSuccess : .appDanger)
                 }
                 Text("vs sem. préc.")
                     .font(.appCaption)
@@ -1587,7 +1587,7 @@ struct StatsHeroCard: View {
                             .fill(Color.appSurfaceInset)
                             .frame(height: 4)
                         RoundedRectangle(cornerRadius: 2) // shape inline
-                            .fill(v >= 0 ? Color.statusGreen : Color.statusRed)
+                            .fill(v >= 0 ? Color.appSuccess : Color.appDanger)
                             .frame(width: max(2, geo.size.width * ratio), height: 4)
                     }
                 }

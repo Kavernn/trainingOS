@@ -793,9 +793,9 @@ struct IntensityCard: View {
                 // shape inline, radius calibré à la hauteur de la jauge %1RM
                 ZStack(alignment: .leading) {
                     HStack(spacing: 0) {
-                        Rectangle().fill(Color.statusBlue.opacity(0.25)).frame(width: w * 0.65)
-                        Rectangle().fill(Color.forge.opacity(0.25)).frame(width: w * 0.15)
-                        Rectangle().fill(Color.statusRed.opacity(0.25))
+                        Rectangle().fill(Color.gray.opacity(0.25)).frame(width: w * 0.65)
+                        Rectangle().fill(Color.appSuccess.opacity(0.25)).frame(width: w * 0.15)
+                        Rectangle().fill(Color.appDanger.opacity(0.25))
                     }
                     .cornerRadius(4)
 
@@ -811,11 +811,11 @@ struct IntensityCard: View {
                 .cornerRadius(4)
 
                 HStack {
-                    Text("<65%").font(.appMicro).foregroundColor(.statusBlue)
+                    Text("<65%").font(.appMicro).foregroundColor(.gray)
                     Spacer()
-                    Text("65–80%").font(.appMicro).foregroundColor(Color.forge)
+                    Text("65–80%").font(.appMicro).foregroundColor(.appSuccess)
                     Spacer()
-                    Text(">80%").font(.appMicro).foregroundColor(.statusRed)
+                    Text(">80%").font(.appMicro).foregroundColor(.appDanger)
                 }
                 .offset(y: 16)
             }
@@ -838,7 +838,7 @@ struct DeloadStatusCard: View {
                     .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 if data.deloadActif {
                     Text("Deload actif")
-                        .font(.appBody.weight(.bold)).foregroundColor(.statusBlue)
+                        .font(.appBody.weight(.bold)).foregroundColor(.forge)
                 } else if let w = data.weeksSinceDeload {
                     Text("\(w) sem.")
                         .font(.appTitle.weight(.black))

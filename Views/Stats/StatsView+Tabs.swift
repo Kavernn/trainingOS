@@ -27,10 +27,10 @@ private struct DeloadCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "bed.double.fill")
-                    .foregroundColor(.statusBlue)
+                    .foregroundColor(.forge)
                 Text("DÉCHARGE VOLONTAIRE")
                     .font(.appCaption.weight(.bold))
-                    .foregroundColor(.statusBlue)
+                    .foregroundColor(.forge)
                 Spacer()
                 if let days = s.daysRemaining {
                     Text("\(days)j restant\(days > 1 ? "s" : "")")
@@ -51,7 +51,7 @@ private struct DeloadCard: View {
             Button(action: { showConfirmDeactivate = true }) {
                 Text("Terminer la décharge")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.statusRed)
+                    .foregroundColor(.appDanger)
             }
             .disabled(isLoading)
         }
