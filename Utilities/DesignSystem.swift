@@ -5,6 +5,9 @@ import SwiftUI
 // Mapping : voir docs/typography_migration.md
 
 extension Font {
+    /// 64pt black rounded — chiffre display plein écran (compteur reps, timer séance)
+    static let appDisplay = Font.system(size: 64, weight: .black, design: .rounded)
+
     /// 42pt — métriques principales, design et poids lus depuis le thème actif
     static var appHero: Font {
         .system(size: 42, weight: AppTheme.shared.displayWeight, design: AppTheme.shared.heroFontDesign)
