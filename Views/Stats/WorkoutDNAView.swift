@@ -158,11 +158,11 @@ private struct WorkoutDNAInlineContent: View {
                     ProgressView().tint(accent).padding(.bottom, 8)
                 } else {
                     Text(dna.archetype.label)
-                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .font(.system(size: 22, weight: .black, design: .rounded))
                         .foregroundColor(.appTextPrimary)
                         .minimumScaleFactor(0.8)
                     Text(dna.archetype.tagline)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(accent)
                         .italic()
                         .minimumScaleFactor(0.8)
@@ -184,7 +184,7 @@ private struct WorkoutDNAInlineContent: View {
 
     private var pplSection: some View {
         DNASectionCard(title: "RÉPARTITION", accent: accent) {
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 PPLBalanceChart(ppl: dna.ppl, accent: accent)
                 HStack {
                     Image(systemName: dna.ppl.balanceScore >= 70 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
@@ -227,11 +227,11 @@ private struct WorkoutDNAInlineContent: View {
     @ViewBuilder
     private func muscleDominantsSection(_ muscles: [DNAMuscleDominant]) -> some View {
         DNASectionCard(title: "MUSCLES DOMINANTS", accent: accent) {
-            VStack(spacing: 7) {
+            VStack(spacing: 8) {
                 ForEach(muscles, id: \.muscle) { m in
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         Text(m.muscle.capitalized)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.gray)
                             .frame(width: 80, alignment: .leading)
                         GeometryReader { geo in
@@ -244,7 +244,7 @@ private struct WorkoutDNAInlineContent: View {
                         }
                         .frame(height: 8)
                         Text("\(m.pct)%")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .foregroundColor(accent)
                             .frame(width: 32, alignment: .trailing)
                     }
@@ -277,7 +277,7 @@ private struct WorkoutDNAInlineContent: View {
 
     private var recoverySection: some View {
         DNASectionCard(title: "RÉCUPÉRATION", accent: accent) {
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 RecoveryIndicator(recovery: dna.recovery)
                 HStack {
                     Image(systemName: dna.recovery.verdict == "Optimal" ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
@@ -314,20 +314,20 @@ private struct WorkoutDNAInlineContent: View {
     private func intensityTimelineSection(_ timeline: [DNAIntensityMonth]) -> some View {
         DNASectionCard(title: "ÉVOLUTION DE L'INTENSITÉ — 6 MOIS", accent: accent) {
             let activeMonths = timeline.filter { $0.totalSets > 0 }
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 // Stacked bar chart
-                HStack(alignment: .bottom, spacing: 5) {
+                HStack(alignment: .bottom, spacing: 4) {
                     ForEach(timeline) { month in
                         VStack(spacing: 2) {
                             if month.totalSets > 0 {
                                 IntensityTimelineBar(month: month)
                             } else {
-                                RoundedRectangle(cornerRadius: 3)
+                                RoundedRectangle(cornerRadius: 3) // shape inline
                                     .fill(Color.appSurfaceInset)
                                     .frame(height: 48)
                             }
                             Text(String(month.month.suffix(2)))
-                                .font(.system(size: 8))
+                                .font(.appMicro)
                                 .foregroundColor(.gray.opacity(0.5))
                         }
                         .frame(maxWidth: .infinity)
@@ -368,7 +368,7 @@ private struct WorkoutDNAInlineContent: View {
             VStack(spacing: 12) {
                 // Top 6 patterns as bars
                 let topPatterns = Array(patterns.patterns.prefix(6))
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     ForEach(topPatterns) { entry in
                         HStack(spacing: 8) {
                             Text(patternLabel(entry.pattern))
@@ -481,7 +481,7 @@ private struct IntensityTimelineBar: View {
             let endH  = CGFloat(month.endurancePct)   / 100 * h
             VStack(spacing: 0) {
                 // Endurance (top)
-                RoundedRectangle(cornerRadius: 2)
+                RoundedRectangle(cornerRadius: 2) // shape inline
                     .fill(Color(red: 0.20, green: 0.70, blue: 0.98).opacity(0.75))
                     .frame(height: max(0, endH))
                 // Hypertrophie (middle)
@@ -489,13 +489,13 @@ private struct IntensityTimelineBar: View {
                     .fill(Color(red: 0.66, green: 0.33, blue: 0.97).opacity(0.75))
                     .frame(height: max(0, hypH))
                 // Force (bottom)
-                RoundedRectangle(cornerRadius: 2)
+                RoundedRectangle(cornerRadius: 2) // shape inline
                     .fill(Color(red: 0.31, green: 0.43, blue: 0.97).opacity(0.75))
                     .frame(height: max(0, strH))
             }
         }
         .frame(height: 48)
-        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .clipShape(RoundedRectangle(cornerRadius: 3)) // shape inline
     }
 }
 
@@ -531,12 +531,12 @@ private struct PatternRatioPill: View {
                 .font(.system(size: 13, weight: .black, design: .rounded))
                 .foregroundColor(pillColor)
             Text(label)
-                .font(.system(size: 8))
+                .font(.appMicro)
                 .foregroundColor(.gray)
         }
-        .padding(.horizontal, 8).padding(.vertical, 5)
+        .padding(.horizontal, 8).padding(.vertical, 4)
         .background(pillColor.opacity(0.10))
-        .cornerRadius(7)
+        .cornerRadius(8)
     }
 }
 
@@ -550,10 +550,10 @@ private struct ScorePill: View {
     var body: some View {
         VStack(spacing: 2) {
             Text("\(score)")
-                .font(.system(size: 14, weight: .black, design: .rounded))
+                .font(.system(size: 15, weight: .black, design: .rounded))
                 .foregroundColor(accent)
             Text(label)
-                .font(.system(size: 8, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
                 .foregroundColor(.gray)
                 .tracking(0.3)
         }
@@ -645,7 +645,7 @@ private struct DNASectionCard<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.system(size: 10, weight: .bold))
+                .font(.appMicro)
                 .foregroundColor(Color(white: 0.38))
                 .tracking(0.8)
             content()
@@ -672,11 +672,11 @@ private struct PPLBalanceChart: View {
             ("Pull", ppl.pullPct, Color(red: 0.20, green: 0.70, blue: 0.98)),
             ("Legs", ppl.legsPct, Color(red: 0.95, green: 0.80, blue: 0.10)),
         ]
-        VStack(spacing: 7) {
+        VStack(spacing: 8) {
             ForEach(items.indices, id: \.self) { i in
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Text(items[i].0)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray)
                         .frame(width: 28, alignment: .leading)
                     GeometryReader { geo in
@@ -689,7 +689,7 @@ private struct PPLBalanceChart: View {
                     }
                     .frame(height: 8)
                     Text("\(items[i].1)%")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.appCaption.weight(.bold))
                         .foregroundColor(items[i].2)
                         .frame(width: 32, alignment: .trailing)
                 }
@@ -704,7 +704,7 @@ private struct IntensitySlider: View {
     let score: Int
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     LinearGradient(
@@ -744,7 +744,7 @@ private struct IntensityZonePill: View {
     var body: some View {
         VStack(spacing: 3) {
             Text("\(pct)%")
-                .font(.system(size: 14, weight: .black, design: .rounded))
+                .font(.system(size: 15, weight: .black, design: .rounded))
                 .foregroundColor(color)
             Text(label)
                 .font(.appMicro)
@@ -770,13 +770,13 @@ private struct ConsistencyGrid: View {
             ForEach(weeks.indices, id: \.self) { i in
                 let c     = weeks[i]
                 let frac  = CGFloat(c) / CGFloat(maxCount)
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: 3) // shape inline
                     .fill(c == 0 ? Color.appSurfaceInset : accent.opacity(0.25 + frac * 0.70))
                     .frame(maxWidth: .infinity)
                     .frame(height: 24)
                     .overlay(
                         Text(c > 0 ? "\(c)" : "")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.appMicro.weight(.bold))
                             .foregroundColor(Color.appOnSurface.opacity(0.7))
                     )
             }
@@ -791,7 +791,7 @@ private struct ConsistencyStat: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 16, weight: .black, design: .rounded))
+                .font(.system(size: 17, weight: .black, design: .rounded))
                 .foregroundColor(.appTextPrimary)
             Text(label)
                 .font(.appMicro)
@@ -818,7 +818,7 @@ private struct RecoveryIndicator: View {
             }
             Spacer()
             // Ratio bar
-            VStack(alignment: .trailing, spacing: 6) {
+            VStack(alignment: .trailing, spacing: 8) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.appSurfaceInset)
@@ -874,12 +874,12 @@ private struct SignatureLiftRow: View {
                     .foregroundColor(.appTextPrimary)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% sur l'ancienne limite")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.statusGreen)
                 }
             }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         .padding(.horizontal, 4)
     }
 }
@@ -895,7 +895,7 @@ private struct WorkoutDNAShareSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Text("Ton DNA Card").font(.system(size: 16, weight: .semibold)).foregroundColor(.appTextPrimary).padding(.top, 16)
+                Text("Ton DNA Card").font(.appHeadline).foregroundColor(.appTextPrimary).padding(.top, 16)
 
                 WorkoutDNAShareCard(dna: dna)
                     .frame(width: 300, height: 380)
@@ -914,7 +914,7 @@ private struct WorkoutDNAShareSheet: View {
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(archetypeAccent(dna.archetype.key))
-                    .foregroundColor(.white).cornerRadius(12)
+                    .foregroundColor(.white).cornerRadius(8)
                 }
                 .buttonStyle(SpringButtonStyle()).padding(.horizontal, 24)
                 Spacer()
@@ -1046,7 +1046,7 @@ private struct WorkoutDNAActivitySheet: UIViewControllerRepresentable {
 private struct DNASkeleton: View {
     var body: some View {
         VStack(spacing: 12) {
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 Capsule().fill(Color.appSurfaceInset).frame(width: 72, height: 80)
                 VStack(alignment: .leading, spacing: 8) {
                     Capsule().fill(Color.appSurfaceInset).frame(width: 130, height: 16)
@@ -1062,37 +1062,37 @@ private struct DNASkeleton: View {
 private struct DNAEmptyState: View {
     let onLoad: () -> Void
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Image(systemName: "waveform.path.ecg").font(.system(size: 26)).foregroundColor(.gray.opacity(0.35))
             Text("Pas encore assez de données")
                 .font(.appLabel).foregroundColor(.gray)
             Button(action: onLoad) {
                 Text("Générer mon DNA")
-                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.appSurfaceInset).cornerRadius(8)
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 20).padding(.horizontal, 16)
+        .padding(.vertical, 24).padding(.horizontal, 16)
     }
 }
 
 private struct DNAErrorState: View {
     let onRetry: () -> Void
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle").font(.system(size: 26)).foregroundColor(Color.forge.opacity(0.7))
             Text("Erreur de chargement")
                 .font(.appLabel).foregroundColor(.gray)
             Button(action: onRetry) {
                 Text("Réessayer")
-                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextPrimary)
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.appSurfaceInset).cornerRadius(8)
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 20).padding(.horizontal, 16)
+        .padding(.vertical, 24).padding(.horizontal, 16)
     }
 }
