@@ -113,6 +113,22 @@ class APIService: ObservableObject {
         return data
     }
 
+    // Variante décodée avec self-healing sur cache empoisonné :
+    // un 200 avec body indécodable (ex : ancien fantôme backend {"error": ...})
+    // est mis en cache par fetchWithCache. Ici on tente le decode ; s'il throw,
+    // on clear (mémoire + disque) et on refetch le réseau une fois. Adoption
+    // opt-in — les callers qui veulent le filet migrent, les autres restent.
+    func fetchWithCacheDecoded<T: Decodable>(url: URL, key: String, as type: T.Type) async throws -> T {
+        let data = try await fetchWithCache(url: url, key: key)
+        do {
+            return try APIService.decoder.decode(T.self, from: data)
+        } catch {
+            CacheService.shared.clear(for: key)
+            let fresh = try await fetchWithCache(url: url, key: key)
+            return try APIService.decoder.decode(T.self, from: fresh)
+        }
+    }
+
     // MARK: - URL Builder
     func buildURL(path: String, queryItems: [URLQueryItem] = []) throws -> URL {
         var components = URLComponents()
