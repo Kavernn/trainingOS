@@ -30,12 +30,12 @@ struct ACWRCardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("ACWR — CHARGE AIGUË/CHRONIQUE")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro).tracking(2).foregroundColor(.gray)
                 Spacer()
                 if isEstimate {
                     Text("ESTIMATION")
-                        .font(.system(size: 8, weight: .bold)).tracking(1)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .font(.appMicro.weight(.bold)).tracking(1)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.forge.opacity(0.15))
                         .foregroundColor(Color.forge)
                         .clipShape(Capsule())
@@ -44,11 +44,11 @@ struct ACWRCardView: View {
 
             if isLowConfidence {
                 // Pas assez d'historique — ne pas afficher le ratio
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Données insuffisantes")
-                        .font(.system(size: 20, weight: .bold)).foregroundColor(.gray)
+                        .font(.system(size: 22, weight: .bold)).foregroundColor(.gray)
                     Text("\(data.daysOfData) / 28 jours de données")
-                        .font(.system(size: 12)).foregroundColor(.gray.opacity(0.6))
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.6))
                     ProgressView(value: Double(data.daysOfData), total: 28)
                         .tint(.gray).frame(maxWidth: 160)
                 }
@@ -57,11 +57,11 @@ struct ACWRCardView: View {
                     // Ratio
                     VStack(alignment: .leading, spacing: 4) {
                         Text(String(format: "%.2f", data.ratio))
-                            .font(.system(size: 40, weight: .black))
+                            .font(.system(size: 42, weight: .black))
                             .foregroundColor(zoneColor)
                         Text(data.zone.label)
                             .font(.appCaption.weight(.bold))
-                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(zoneColor.opacity(0.2))
                             .foregroundColor(zoneColor)
                             .clipShape(Capsule())
@@ -80,7 +80,7 @@ struct ACWRCardView: View {
             // Recommendation
             if !data.zone.recommendation.isEmpty {
                 Text(data.zone.recommendation)
-                    .font(.system(size: 12)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -101,7 +101,7 @@ private struct ACWRSparkline: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("TENDANCE 8 SEMAINES")
                 .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
 
@@ -210,10 +210,10 @@ struct SessionHeatmapView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("90 DERNIERS JOURS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro).tracking(2).foregroundColor(.gray)
                 Spacer()
                 if bestStreak > 1 {
                     Text("Best \(bestStreak)🔥")
@@ -222,7 +222,7 @@ struct SessionHeatmapView: View {
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 15), spacing: 3) {
                 ForEach(cells, id: \.0) { _, type in
-                    RoundedRectangle(cornerRadius: 2)
+                    RoundedRectangle(cornerRadius: 2) // shape inline
                         .fill(cellColor(type))
                         .frame(height: 16)
                 }
@@ -251,7 +251,7 @@ struct SessionHeatmapView: View {
 // MARK: - Badges View
 struct BadgesView: View {
     let badges: [StatsView.Badge]
-    private let cols = Array(repeating: GridItem(.flexible(), spacing: 10), count: 5)
+    private let cols = Array(repeating: GridItem(.flexible(), spacing: 12), count: 5)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -269,7 +269,7 @@ struct BadgesView: View {
                     .foregroundColor(.gray)
             }
 
-            LazyVGrid(columns: cols, spacing: 10) {
+            LazyVGrid(columns: cols, spacing: 12) {
                 ForEach(badges) { badge in
                     VStack(spacing: 4) {
                         Text(badge.icon)
@@ -284,8 +284,8 @@ struct BadgesView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                     .background(badge.earned ? badge.color.opacity(0.1) : Color.appSurfaceInset)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(badge.earned ? badge.color.opacity(0.3) : Color.appSurfaceInset, lineWidth: 1))
-                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(badge.earned ? badge.color.opacity(0.3) : Color.appSurfaceInset, lineWidth: 1))
+                    .cornerRadius(8)
                 }
             }
         }
@@ -349,52 +349,52 @@ struct WeekComparisonCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("TOI VS TOI — SEMAINE PASSÉE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
             if isProjecting {
                 Text("Projection basée sur \(daysElapsed) jour\(daysElapsed > 1 ? "s" : "")")
-                    .font(.system(size: 10)).foregroundColor(Color.forge.opacity(0.7))
+                    .font(.appMicro).foregroundColor(Color.forge.opacity(0.7))
             }
             HStack(spacing: 0) {
                 // Header
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("").font(.appCaption).frame(height: 18)
-                    Text("Séances").font(.system(size: 12)).foregroundColor(.gray)
-                    Text("Volume").font(.system(size: 12)).foregroundColor(.gray)
-                    Text("RPE moy.").font(.system(size: 12)).foregroundColor(.gray)
+                    Text("Séances").font(.appCaption).foregroundColor(.gray)
+                    Text("Volume").font(.appCaption).foregroundColor(.gray)
+                    Text("RPE moy.").font(.appCaption).foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // This week / Projection
-                VStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .center, spacing: 12) {
                     Text(isProjecting ? "Proj. J+\(daysElapsed)" : "Cette sem.")
-                        .font(.system(size: 10, weight: .bold)).foregroundColor(Color.forge)
+                        .font(.appMicro.weight(.bold)).foregroundColor(Color.forge)
                     Text(isProjecting ? "~\(Int(round(projectedSessions)))" : "\(thisWeekSessions)")
-                        .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
+                        .font(.appBody.weight(.black)).foregroundColor(.appTextPrimary)
                     Text(projectedVolume > 0 ? (isProjecting ? "~\(_formatK(projectedVolume))" : _formatK(thisWeekVolume)) : "—")
-                        .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
+                        .font(.appBody.weight(.black)).foregroundColor(.appTextPrimary)
                     Text(thisWeekAvgRPE > 0 ? String(format: "%.1f", thisWeekAvgRPE) : "—")
-                        .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
+                        .font(.appBody.weight(.black)).foregroundColor(.appTextPrimary)
                 }
                 .frame(maxWidth: .infinity)
 
                 // Delta (vs last week, using projected values)
-                VStack(alignment: .center, spacing: 10) {
-                    Text("").font(.system(size: 10)).frame(height: 18)
+                VStack(alignment: .center, spacing: 12) {
+                    Text("").font(.appMicro).frame(height: 18)
                     let ds = delta(projectedSessions, Double(lastWeekSessions))
-                    Text(ds.0).font(.system(size: 12, weight: .bold)).foregroundColor(ds.1)
+                    Text(ds.0).font(.appCaption.weight(.bold)).foregroundColor(ds.1)
                     let dv = delta(projectedVolume, lastWeekVolume)
-                    Text(dv.0).font(.system(size: 12, weight: .bold)).foregroundColor(dv.1)
+                    Text(dv.0).font(.appCaption.weight(.bold)).foregroundColor(dv.1)
                     let dr = delta(thisWeekAvgRPE, lastWeekAvgRPE)
-                    Text(dr.0).font(.system(size: 12, weight: .bold)).foregroundColor(dr.1)
+                    Text(dr.0).font(.appCaption.weight(.bold)).foregroundColor(dr.1)
                 }
                 .frame(width: 40)
 
                 // Last week
-                VStack(alignment: .center, spacing: 10) {
-                    Text("Sem. passée").font(.system(size: 10, weight: .bold)).foregroundColor(.gray)
-                    Text("\(lastWeekSessions)").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
-                    Text(lastWeekVolume > 0 ? _formatK(lastWeekVolume) : "—").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
-                    Text(lastWeekAvgRPE > 0 ? String(format: "%.1f", lastWeekAvgRPE) : "—").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
+                VStack(alignment: .center, spacing: 12) {
+                    Text("Sem. passée").font(.appMicro.weight(.bold)).foregroundColor(.gray)
+                    Text("\(lastWeekSessions)").font(.appBody.weight(.bold)).foregroundColor(.gray)
+                    Text(lastWeekVolume > 0 ? _formatK(lastWeekVolume) : "—").font(.appBody.weight(.bold)).foregroundColor(.gray)
+                    Text(lastWeekAvgRPE > 0 ? String(format: "%.1f", lastWeekAvgRPE) : "—").font(.appBody.weight(.bold)).foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -403,7 +403,7 @@ struct WeekComparisonCard: View {
             let verdict = weekVerdict
             Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
             Text(verdict.text)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(verdict.color)
         }
         .padding(16).glassCard()
@@ -416,14 +416,14 @@ struct PersonalRecordsView: View {
     @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("MEILLEURS 1RM ESTIMÉS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
 
             let maxORM = records.map(\.1).max() ?? 1
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 ForEach(Array(records.enumerated()), id: \.0) { i, record in
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         Text("\(i + 1)")
                             .font(.appCaption.weight(.bold))
                             .foregroundColor(.gray)
@@ -484,13 +484,13 @@ struct SimpleBarChart: View {
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .bottom, spacing: 3) {
+                HStack(alignment: .bottom, spacing: 4) {
                     ForEach(Array(data.enumerated()), id: \.0) { i, item in
                         let pct = maxVal > 0 ? item.1 / maxVal : 0
                         let isLast = i == data.count - 1
                         VStack(spacing: 0) {
                             Spacer()
-                            RoundedRectangle(cornerRadius: 3)
+                            RoundedRectangle(cornerRadius: 3) // shape inline
                                 .fill(isLast ? color : color.opacity(0.4))
                                 .frame(height: max(CGFloat(pct) * 60, 2))
                         }
@@ -502,7 +502,7 @@ struct SimpleBarChart: View {
                 // Show label for first and last
                 HStack {
                     Text(data.first?.0 ?? "")
-                        .font(.system(size: 8)).foregroundColor(.gray)
+                        .font(.appMicro).foregroundColor(.gray)
                     Spacer()
                     if let last = data.last, last.1 > 0 {
                         Text(formatVal(last.1))
@@ -528,16 +528,16 @@ struct Top5VolumeView: View {
     var maxVol: Double { data.map(\.1).max() ?? 1 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("TOP 5 — VOLUME CUMULÉ")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
 
             GeometryReader { outer in
                 VStack(spacing: 8) {
                     ForEach(Array(data.enumerated()), id: \.0) { i, item in
-                        HStack(spacing: 10) {
+                        HStack(spacing: 12) {
                             Text(item.0)
-                                .font(.system(size: 12, weight: .medium)).foregroundColor(.appTextPrimary)
+                                .font(.appCaption.weight(.medium)).foregroundColor(.appTextPrimary)
                                 .lineLimit(1).frame(width: 120, alignment: .leading)
                             let barW = outer.size.width - 184
                             ZStack(alignment: .leading) {
@@ -589,7 +589,7 @@ struct HIITStatsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("HIIT — \(log.count) SESSIONS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
 
             HStack(spacing: 12) {
                 KPICard(value: "\(log.count)", label: "Sessions", color: .statusRed)
@@ -598,7 +598,7 @@ struct HIITStatsSection: View {
             }
 
             if rpeHistory.count >= 3 {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("RPE — DERNIÈRES SESSIONS")
                         .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                     GeometryReader { geo in
@@ -622,7 +622,7 @@ struct HIITStatsSection: View {
                     }
                     .frame(height: 60)
                 }
-                .padding(12).background(Color.appCard).cornerRadius(10)
+                .padding(12).background(Color.appCard).cornerRadius(8)
             }
         }
         .padding(16).glassCard(color: .statusRed, intensity: 0.04)
@@ -635,9 +635,9 @@ struct RPEChartView: View {
     var maxY: Double { 10 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("ÉVOLUTION RPE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
 
             GeometryReader { geo in
                 ZStack {
@@ -695,7 +695,7 @@ struct KPICard: View {
     private var isNull: Bool { value == "—" }
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Text(value)
                 .font(.system(size: 22, weight: .black))
                 .foregroundColor(isNull ? .gray.opacity(0.35) : color)
@@ -706,7 +706,7 @@ struct KPICard: View {
                 .textCase(.uppercase).lineLimit(1)
             if let sub = subtitle {
                 Text(sub)
-                    .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.45))
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
         }
@@ -727,16 +727,16 @@ struct ExerciseStatRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(name).font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
+                Text(name).font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
                 if let reps = data.lastReps, !reps.isEmpty {
-                    Text(reps).font(.system(size: 12)).foregroundColor(.gray)
+                    Text(reps).font(.appCaption).foregroundColor(.gray)
                 }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 if let w = data.currentWeight, w > 0 {
                     Text(units.format(w))
-                        .font(.system(size: 16, weight: .black)).foregroundColor(Color.forge)
+                        .font(.appHeadline.weight(.black)).foregroundColor(Color.forge)
                     if let history = data.history, history.count > 1,
                        let first = history.last?.weight, let last = history.first?.weight,
                        first > 0, last > 0 {
@@ -750,7 +750,7 @@ struct ExerciseStatRow: View {
                         .foregroundColor(Color.statusCyan.opacity(0.7))
                 }
             }
-            Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray)
+            Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
         }
         .padding(14).glassCard()
     }
@@ -774,10 +774,10 @@ struct ExerciseDetailView: View {
                         VStack(spacing: 4) {
                             if let w = data?.currentWeight {
                                 Text(units.format(w))
-                                    .font(.system(size: 48, weight: .black)).foregroundColor(Color.forge)
+                                    .font(.system(size: 42, weight: .black)).foregroundColor(Color.forge)
                             }
                             if let reps = data?.lastReps {
-                                Text("Dernières reps: \(reps)").font(.system(size: 14)).foregroundColor(.gray)
+                                Text("Dernières reps: \(reps)").font(.appBody).foregroundColor(.gray)
                             }
                         }
                         .padding()
@@ -790,20 +790,20 @@ struct ExerciseDetailView: View {
                         if let history = data?.history, !history.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("HISTORIQUE")
-                                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    .font(.appMicro).tracking(2).foregroundColor(.gray)
                                 ForEach(history, id: \.date) { entry in
                                     HStack {
                                         Text(entry.date ?? "—").font(.appLabel).foregroundColor(.gray)
                                         Spacer()
                                         Text(units.format(entry.weight ?? 0))
-                                            .font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
+                                            .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
                                         Text(entry.reps ?? "").font(.appLabel).foregroundColor(.gray)
                                         if let note = entry.note, !note.isEmpty {
-                                            Text(note).font(.system(size: 12, weight: .semibold))
+                                            Text(note).font(.appCaption.weight(.semibold))
                                                 .foregroundColor(note.hasPrefix("+") ? .statusGreen : .statusYellow)
                                         }
                                     }
-                                    .padding(.vertical, 6)
+                                    .padding(.vertical, 8)
                                     Divider().background(Color.appSeparator)
                                 }
                             }
@@ -861,9 +861,9 @@ struct EnergyTrendView: View {
     let data: [(String, Int)]   // (date, energy 1-5)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("ÉNERGIE PRÉ-SÉANCE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
 
             GeometryReader { geo in
                 let step = data.count > 1 ? geo.size.width / CGFloat(data.count - 1) : geo.size.width
@@ -873,7 +873,7 @@ struct EnergyTrendView: View {
                         let y = geo.size.height * (1 - CGFloat(level - 1) / 4.0)
                         Path { p in p.move(to: CGPoint(x: 0, y: y)); p.addLine(to: CGPoint(x: geo.size.width, y: y)) }
                             .stroke(Color.appSurfaceInset, lineWidth: 1)
-                        Text("\(level)").font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
+                        Text("\(level)").font(.appMicro).foregroundColor(.gray.opacity(0.4))
                             .position(x: 10, y: y)
                     }
                     if data.count > 1 {
@@ -902,7 +902,7 @@ struct EnergyTrendView: View {
                 Spacer()
                 if let last = data.last {
                     Text("Dernière: \(energyLabel(last.1))")
-                        .font(.system(size: 10, weight: .bold)).foregroundColor(energyColor(last.1))
+                        .font(.appMicro.weight(.bold)).foregroundColor(energyColor(last.1))
                 }
                 Spacer()
                 Text("5 = Excellent").font(.appMicro).foregroundColor(.statusGreen)
@@ -941,15 +941,15 @@ struct PatternVolumeView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text("VOLUME PAR PATTERN")
-                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appMicro).tracking(2).foregroundColor(.gray)
                     Spacer()
                     if let r = pushPullRatio {
                         Text(r)
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.appMicro.weight(.semibold))
                             .foregroundColor(pushPullBalance)
                     }
                 }
@@ -962,19 +962,19 @@ struct PatternVolumeView: View {
             } else {
                 GeometryReader { outer in
                     let barW = max(0, outer.size.width - 102)
-                    VStack(spacing: 10) {
+                    VStack(spacing: 12) {
                         ForEach(entries, id: \.0) { name, vol, color in
                             let pct = CGFloat(maxVal > 0 ? vol / maxVal : 0)
                             HStack(spacing: 8) {
                                 Text(name)
                                     .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                                     .frame(width: 42, alignment: .leading)
-                                RoundedRectangle(cornerRadius: 4)
+                                RoundedRectangle(cornerRadius: 4) // shape inline
                                     .fill(color.opacity(0.7))
                                     .frame(width: max(0, barW * pct), height: 14)
                                 Spacer(minLength: 0)
                                 Text(_formatK(units.display(vol)))
-                                    .font(.system(size: 10)).foregroundColor(.gray)
+                                    .font(.appMicro).foregroundColor(.gray)
                                     .frame(width: 44, alignment: .trailing)
                             }
                         }
@@ -1006,13 +1006,13 @@ struct ComplianceProgrammeView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("COMPLIANCE PROGRAMME")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text(String(format: "%.0f%%", overallRate * 100))
-                    .font(.system(size: 16, weight: .black))
+                    .font(.appHeadline.weight(.black))
                     .foregroundColor(overallRate >= 0.8 ? .statusGreen : overallRate >= 0.6 ? .statusOrange : .statusRed)
             }
             HStack(alignment: .bottom, spacing: 4) {
@@ -1022,11 +1022,11 @@ struct ComplianceProgrammeView: View {
                     let color: Color = pct >= 1.0 ? .statusGreen : pct >= 0.5 ? .statusOrange : .statusRed
                     VStack(spacing: 2) {
                         Spacer()
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: 4) // shape inline
                             .fill(isLast ? color : color.opacity(0.5))
                             .frame(height: max(CGFloat(pct) * 60, 3))
                         Text("\(w.done)/\(w.planned)")
-                            .font(.system(size: 7)).foregroundColor(.gray)
+                            .font(.appMicro).foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 75)
                 }
@@ -1052,29 +1052,29 @@ struct OneRMTrendView: View {
     private var minRM: Double { points.map(\.oneRM).min() ?? 0 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("TENDANCE 1RM — BLOC ACTIF")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro).tracking(2).foregroundColor(.gray)
                 Spacer()
                 if let last = points.last, let first = points.first, last.oneRM > first.oneRM {
                     Text("+\(String(format: "%.1f", last.oneRM - first.oneRM)) \(units.label)")
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.statusGreen)
+                        .font(.appMicro.weight(.semibold)).foregroundColor(.statusGreen)
                 }
             }
             if exercises.count > 1 {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         ForEach(exercises, id: \.self) { ex in
                             Button {
                                 withAnimation { selectedExercise = ex }
                             } label: {
                                 Text(ex)
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .font(.appMicro.weight(.semibold))
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
                                     .background(currentExercise == ex ? Color.forge : Color.appSurfaceInset)
                                     .foregroundColor(currentExercise == ex ? Color.onAccent : .gray)
-                                    .cornerRadius(20)
+                                    .clipShape(Capsule())
                             }
                         }
                     }
@@ -1129,13 +1129,13 @@ struct RPEProgressionView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("QUELLE INTENSITÉ TE FAIT PROGRESSER ?")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
             Text("Gain de charge moyen sur la séance suivante par zone d'intensité")
-                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+                .font(.appMicro).foregroundColor(.gray.opacity(0.7))
             GeometryReader { outer in
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     ForEach(buckets, id: \.0) { name, val, color in
                         let pct = val.map { abs($0) / max(maxAbs, 1) } ?? 0
                         let c = (val ?? 0) >= 0 ? color : Color.appDanger
@@ -1145,17 +1145,17 @@ struct RPEProgressionView: View {
                                 .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
                                 .frame(width: 60, alignment: .leading)
                             HStack(spacing: 0) {
-                                RoundedRectangle(cornerRadius: 3).fill(c).frame(width: max(barW * CGFloat(pct), 2), height: 14)
+                                RoundedRectangle(cornerRadius: 3) // shape inline.fill(c).frame(width: max(barW * CGFloat(pct), 2), height: 14)
                                 Spacer(minLength: 0)
                             }
                             .frame(height: 14)
                             if let v = val {
                                 Text(v >= 0 ? "+\(String(format: "%.1f", v))%" : "\(String(format: "%.1f", v))%")
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(.appMicro.weight(.semibold))
                                     .foregroundColor((v) >= 0 ? .statusGreen : .statusRed)
                                     .frame(width: 50, alignment: .trailing)
                             } else {
-                                Text("—").font(.system(size: 10)).foregroundColor(.gray).frame(width: 50, alignment: .trailing)
+                                Text("—").font(.appMicro).foregroundColor(.gray).frame(width: 50, alignment: .trailing)
                             }
                         }
                     }
@@ -1175,26 +1175,26 @@ struct RIRByExerciseView: View {
     private var maxRIR: Double { entries.map(\.avgRir).max() ?? 5 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("RIR MOYEN PAR EXERCICE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
             Text("Reps In Reserve — distance à l'échec musculaire")
-                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+                .font(.appMicro).foregroundColor(.gray.opacity(0.7))
             GeometryReader { outer in
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     ForEach(entries.prefix(8)) { e in
                         let pct = maxRIR > 0 ? e.avgRir / maxRIR : 0
                         let c: Color = e.avgRir <= 1 ? .statusRed : e.avgRir <= 2 ? .statusOrange : .statusGreen
                         let barW = outer.size.width - 164
                         HStack(spacing: 8) {
                             Text(e.exercise)
-                                .font(.system(size: 10, weight: .semibold)).foregroundColor(.appTextPrimary)
+                                .font(.appMicro.weight(.semibold)).foregroundColor(.appTextPrimary)
                                 .frame(width: 120, alignment: .leading).lineLimit(1)
-                            RoundedRectangle(cornerRadius: 3).fill(c.opacity(0.7))
+                            RoundedRectangle(cornerRadius: 3) // shape inline.fill(c.opacity(0.7))
                                 .frame(width: barW * CGFloat(pct), height: 12)
                             Spacer(minLength: 0)
                             Text(String(format: "%.1f", e.avgRir))
-                                .font(.system(size: 10, weight: .bold)).foregroundColor(c)
+                                .font(.appMicro.weight(.bold)).foregroundColor(c)
                                 .frame(width: 28, alignment: .trailing)
                         }
                     }
@@ -1223,16 +1223,16 @@ struct Top5FrequencyView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("TOP 5 EXERCICES (30J)")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).tracking(2).foregroundColor(.gray)
 
             if top5.isEmpty {
-                Text("Pas encore de données").font(.system(size: 12)).foregroundColor(.gray)
+                Text("Pas encore de données").font(.appCaption).foregroundColor(.gray)
             } else {
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     ForEach(Array(top5.enumerated()), id: \.0) { i, item in
-                        HStack(spacing: 10) {
+                        HStack(spacing: 12) {
                             Text("\(i + 1)")
                                 .font(.appCaption.weight(.bold)).foregroundColor(.gray)
                                 .frame(width: 16)
@@ -1361,7 +1361,7 @@ struct StatsHeroCard: View {
         }
         .padding(16)
         .background(Color.appCard)
-        .cornerRadius(16)
+        .cornerRadius(14)
     }
 
     // MARK: - Sub-views
@@ -1380,11 +1380,11 @@ struct StatsHeroCard: View {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 if let v = currentForce {
                     Text(formatK(v))
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
                         .foregroundColor(.appTextPrimary)
                 } else {
                     Text("—")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
                         .foregroundColor(.gray)
                 }
                 if let d = deltaPct {
@@ -1508,9 +1508,9 @@ struct StatsHeroCard: View {
                     .frame(width: 5, height: 5)
             }
         }
-        .padding(10)
+        .padding(12)
         .background(Color.appSurfaceInset)
-        .cornerRadius(10)
+        .cornerRadius(8)
     }
 
     @ViewBuilder private var accentsRow: some View {
@@ -1518,7 +1518,7 @@ struct StatsHeroCard: View {
         let hasPR       = latestPRName != nil && (latestPROneRM ?? 0) > 0
         let hasVelocity = volumeVelocityPct != nil
         if hasPR || hasVelocity {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 if hasPR {
                     prAccent
                 }
@@ -1533,7 +1533,7 @@ struct StatsHeroCard: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 10))
+                    .font(.appMicro)
                     .foregroundColor(.statusOrange)
                 Text("NOUVEAU PR")
                     .font(.appCaption.weight(.bold))
@@ -1543,7 +1543,7 @@ struct StatsHeroCard: View {
                 .font(.appLabel.weight(.semibold))
                 .foregroundColor(.appTextPrimary)
                 .lineLimit(1)
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 if let orm = latestPROneRM {
                     Text("\(Int(orm.rounded())) lbs")
                         .font(.appCaption.weight(.semibold))
@@ -1557,9 +1557,9 @@ struct StatsHeroCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
+        .padding(12)
         .background(Color.appSurfaceInset)
-        .cornerRadius(10)
+        .cornerRadius(8)
     }
 
     @ViewBuilder private var velocityAccent: some View {
@@ -1567,11 +1567,11 @@ struct StatsHeroCard: View {
             Text("VOLUME VELOCITY")
                 .font(.appCaption.weight(.bold))
                 .foregroundColor(.statusGreen)
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if let v = volumeVelocityPct {
                     let sign = v >= 0 ? "+" : ""
                     Text("\(sign)\(Int(v.rounded()))%")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(v >= 0 ? .statusGreen : .statusRed)
                 }
                 Text("vs sem. préc.")
@@ -1584,10 +1584,10 @@ struct StatsHeroCard: View {
                     let clamped = max(-30, min(30, v))
                     let ratio   = (clamped + 30) / 60
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
+                        RoundedRectangle(cornerRadius: 2) // shape inline
                             .fill(Color.appSurfaceInset)
                             .frame(height: 4)
-                        RoundedRectangle(cornerRadius: 2)
+                        RoundedRectangle(cornerRadius: 2) // shape inline
                             .fill(v >= 0 ? Color.statusGreen : Color.statusRed)
                             .frame(width: max(2, geo.size.width * ratio), height: 4)
                     }
@@ -1596,8 +1596,8 @@ struct StatsHeroCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
+        .padding(12)
         .background(Color.appSurfaceInset)
-        .cornerRadius(10)
+        .cornerRadius(8)
     }
 }
