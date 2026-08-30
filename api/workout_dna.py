@@ -128,7 +128,8 @@ def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> d
             iter_reps: list[int] = []
             if isinstance(sets_list, list):
                 for s in sets_list:
-                    r = int(s.get("reps") if isinstance(s, dict) else default_reps)
+                    raw = s.get("reps") if isinstance(s, dict) else default_reps
+                    r = default_reps if raw is None else int(raw)
                     iter_reps.append(r)
             else:
                 iter_reps = [default_reps]
@@ -442,7 +443,8 @@ def _compute_intensity_timeline(history: dict, months: int = 6) -> list[dict]:
             iter_reps: list[int] = []
             if isinstance(sets_list, list):
                 for s in sets_list:
-                    iter_reps.append(int(s.get("reps") if isinstance(s, dict) else default_reps))
+                    raw = s.get("reps") if isinstance(s, dict) else default_reps
+                    iter_reps.append(default_reps if raw is None else int(raw))
             else:
                 iter_reps = [default_reps]
 
