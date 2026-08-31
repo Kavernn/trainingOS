@@ -202,19 +202,19 @@ extension StatsView {
             KPICard(
                 value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",
                 label: "Streak",
-                color: .statusRed,
+                color: .gray,
                 subtitle: "jours cons."
             )
             KPICard(
                 value: avgRPE30 > 0 ? String(format: "%.1f", avgRPE30) : "—",
                 label: "RPE moy. — 30 j",
-                color: .statusPurple
+                color: .gray
             )
-            KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .statusGreen)
+            KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .gray)
             KPICard(
                 value: thisWeekAvgDuration > 0 ? "\(Int(thisWeekAvgDuration))min" : "—",
                 label: "Durée moy.",
-                color: .statusCyan,
+                color: .gray,
                 subtitle: {
                     guard thisWeekAvgDuration > 0, lastWeekAvgDuration > 0 else { return nil }
                     let d = Int(thisWeekAvgDuration - lastWeekAvgDuration)

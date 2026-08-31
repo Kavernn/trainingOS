@@ -32,7 +32,7 @@ struct MeasurementsTrendView: View {
                             let diff = (vals.last?.1 ?? 0) - (vals.first?.1 ?? 0)
                             Text(String(format: "%+.1f cm", diff))
                                 .font(.appCaption.weight(.bold))
-                                .foregroundColor(diff <= 0 ? .statusGreen : .statusRed)
+                                .foregroundColor(diff <= 0 ? .appSuccess : .appDanger)
                             Text(String(format: "%.0f", vals.last?.1 ?? 0))
                                 .font(.appLabel.weight(.black)).foregroundColor(color)
                         }
@@ -81,10 +81,10 @@ struct VolumeLandmarksCard: View {
 
     private func zoneColor(_ zone: MuscleLandmark.Zone) -> Color {
         switch zone {
-        case .underMEV:       return .statusBlue
-        case .optimal:        return .statusGreen
-        case .approachingMRV: return .statusOrange
-        case .overMRV:        return .statusRed
+        case .underMEV:       return .gray
+        case .optimal:        return .appSuccess
+        case .approachingMRV: return .appWarning
+        case .overMRV:        return .appDanger
         }
     }
 
@@ -111,10 +111,10 @@ struct VolumeLandmarksCard: View {
             }
 
             HStack(spacing: 16) {
-                legendDot(.statusBlue,   "Sous le min")
-                legendDot(.statusGreen,  "Optimal")
-                legendDot(Color.forge, "Proche du max")
-                legendDot(.statusRed,    "Surcharge")
+                legendDot(.gray,       "Sous le min")
+                legendDot(.appSuccess, "Optimal")
+                legendDot(.appWarning, "Proche du max")
+                legendDot(.appDanger,  "Surcharge")
             }
 
             GeometryReader { outer in
@@ -322,7 +322,7 @@ struct BodyRecompView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
                 .font(.appHeadline.weight(.bold))
-                .foregroundColor(good ? .statusGreen : .statusOrange)
+                .foregroundColor(good ? .appSuccess : .appWarning)
             Text(label)
                 .font(.appMicro).foregroundColor(.gray)
         }
@@ -416,7 +416,7 @@ struct SeasonComparisonCard: View {
     @ViewBuilder private func weightCell(_ delta: Double?, dim: Bool = false) -> some View {
         if let d = delta {
             let sign = d > 0 ? "+" : ""
-            let color: Color = dim ? .gray : (d < 0 ? .statusGreen : .statusOrange)
+            let color: Color = dim ? .gray : (d < 0 ? .appSuccess : .appWarning)
             Text("\(sign)\(units.format(d, decimals: 1))")
                 .font(.appLabel.weight(.bold))
                 .foregroundColor(color)
@@ -434,7 +434,7 @@ struct SeasonComparisonCard: View {
             let sym = diff > 0 ? "↑" : "↓"
             Text("\(sym)\(pct)%")
                 .font(.appMicro.weight(.bold))
-                .foregroundColor(isGood ? .statusGreen : .statusOrange)
+                .foregroundColor(isGood ? .appSuccess : .appWarning)
                 .frame(height: 18)
         } else {
             Text("").frame(height: 18)
@@ -558,7 +558,7 @@ struct ForceHeroCard: View {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(best.deltaPct >= 0 ? "+\(best.deltaPct)%" : "\(best.deltaPct)%")
                             .font(.appHero.weight(.black))
-                            .foregroundColor(best.deltaPct >= 0 ? Color(hex: "FF9F0A") : .statusRed)
+                            .foregroundColor(best.deltaPct >= 0 ? Color(hex: "FF9F0A") : .appDanger)
                         // collage nom/sub-label bestGainer, micro-optique
                         VStack(alignment: .leading, spacing: 2) {
                             Text(best.name)
@@ -866,11 +866,11 @@ struct DeloadStatusCard: View {
     }
 
     private var deloadColor: Color {
-        if data.recommande { return .statusOrange }
+        if data.recommande { return .appWarning }
         guard let w = data.weeksSinceDeload else { return .gray }
-        if w <= 4 { return .statusGreen }
-        if w <= 6 { return .statusOrange }
-        return .statusRed
+        if w <= 4 { return .appSuccess }
+        if w <= 6 { return .appWarning }
+        return .appDanger
     }
 }
 

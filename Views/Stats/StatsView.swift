@@ -343,13 +343,13 @@ struct StatsView: View {
         if prev4 > 0 {
             let pct = Int(round(Double(last4 - prev4) / Double(prev4) * 100))
             if pct >= 10 {
-                insights.append(("arrow.up.circle.fill", "Fréquence +\(pct)% vs les 4 semaines précédentes. Tu accélères.", .statusGreen))
+                insights.append(("arrow.up.circle.fill", "Fréquence +\(pct)% vs les 4 semaines précédentes. Tu accélères.", .appSuccess))
             } else if pct <= -15 {
                 insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs les 4 semaines précédentes. Le rythme faiblit.", Color.forge))
             }
         }
         if let a = acwr, ["caution", "danger"].contains(a.zone.code) {
-            insights.append(("exclamationmark.triangle.fill", "ACWR \(String(format: "%.2f", a.ratio)) — tu surcharges ta base. La fatigue s'accumule.", .statusRed))
+            insights.append(("exclamationmark.triangle.fill", "ACWR \(String(format: "%.2f", a.ratio)) — tu surcharges ta base. La fatigue s'accumule.", .appDanger))
         }
         if currentStreak > 0 && currentStreak < bestStreak && currentStreak >= bestStreak - 2 {
             let gap = bestStreak - currentStreak
@@ -370,7 +370,7 @@ struct StatsView: View {
         if let overdue = overdueList.first {
             insights.append(("exclamationmark.circle.fill",
                              "\(overdue.0.localizedMuscleGroup) absent depuis \(overdue.1) jours. Le groupe régresse.",
-                             .statusBlue))
+                             .appWarning))
         }
         return Array(insights.prefix(4))
     }

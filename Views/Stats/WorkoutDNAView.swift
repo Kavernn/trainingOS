@@ -188,7 +188,7 @@ private struct WorkoutDNAInlineContent: View {
                 PPLBalanceChart(ppl: dna.ppl, accent: accent)
                 HStack {
                     Image(systemName: dna.ppl.balanceScore >= 70 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundColor(dna.ppl.balanceScore >= 70 ? .statusGreen : .statusOrange)
+                        .foregroundColor(dna.ppl.balanceScore >= 70 ? .appSuccess : .appWarning)
                         .font(.appLabel)
                     Text(dna.ppl.verdict)
                         .font(.appLabel)
@@ -281,7 +281,7 @@ private struct WorkoutDNAInlineContent: View {
                 RecoveryIndicator(recovery: dna.recovery)
                 HStack {
                     Image(systemName: dna.recovery.verdict == "Optimal" ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundColor(dna.recovery.verdict == "Optimal" ? .statusGreen : .statusOrange)
+                        .foregroundColor(dna.recovery.verdict == "Optimal" ? .appSuccess : .appWarning)
                         .font(.appLabel)
                     Text(dna.recovery.verdict)
                         .font(.appLabel)
@@ -520,9 +520,9 @@ private struct PatternRatioPill: View {
     let warn: Double
 
     private var pillColor: Color {
-        if value < warn { return .statusRed }
-        if abs(value - ideal) / max(ideal, 0.01) > 0.35 { return .statusOrange }
-        return .statusGreen
+        if value < warn { return .appDanger }
+        if abs(value - ideal) / max(ideal, 0.01) > 0.35 { return .appWarning }
+        return .appSuccess
     }
 
     var body: some View {
@@ -837,8 +837,8 @@ private struct RecoveryIndicator: View {
     }
 
     private var ratioColor: Color {
-        if recovery.ratio < 0.75 || recovery.ratio > 1.30 { return .statusOrange }
-        return .statusGreen
+        if recovery.ratio < 0.75 || recovery.ratio > 1.30 { return .appWarning }
+        return .appSuccess
     }
 }
 

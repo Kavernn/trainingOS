@@ -8,10 +8,10 @@ struct ACWRCardView: View {
     private var zoneColor: Color {
         let surgical = AppTheme.shared.colors.accentDistribution == .surgical
         switch data.zone.code {
-        case "optimal":  return surgical ? Color(white: 0.65) : .statusGreen
-        case "caution":  return surgical ? Color(white: 0.55) : .statusOrange
-        case "danger":   return .statusRed   // sang — toujours rouge, même en surgical
-        case "under":    return surgical ? Color(white: 0.50) : .statusBlue
+        case "optimal":  return surgical ? Color(white: 0.65) : .appSuccess
+        case "caution":  return surgical ? Color(white: 0.55) : .appWarning
+        case "danger":   return .appDanger   // sang — toujours rouge, même en surgical
+        case "under":    return surgical ? Color(white: 0.50) : .gray
         default:         return surgical ? Color(white: 0.45) : .gray
         }
     }
@@ -910,7 +910,7 @@ struct EnergyTrendView: View {
         .padding(16).background(Color.appCard).cornerRadius(14)
     }
 
-    private func energyColor(_ v: Int) -> Color { v >= 4 ? .statusGreen : v == 3 ? .statusYellow : .statusRed }
+    private func energyColor(_ v: Int) -> Color { v >= 4 ? .appSuccess : v == 3 ? .appWarning : .appDanger }
     private func energyLabel(_ v: Int) -> String {
         ["", "Épuisé 😴", "Fatigué 😕", "Normal 😐", "En forme 💪", "Excellent ⚡"][v]
     }
@@ -990,7 +990,7 @@ struct PatternVolumeView: View {
     private var pushPullBalance: Color {
         guard let push = data.push, let pull = data.pull, push > 0 else { return .gray }
         let r = pull / push
-        return r >= 0.77 && r <= 1.3 ? .statusGreen : .statusOrange
+        return r >= 0.77 && r <= 1.3 ? .appSuccess : .appWarning
     }
 }
 
@@ -1018,7 +1018,7 @@ struct ComplianceProgrammeView: View {
                 ForEach(Array(weeks.enumerated()), id: \.0) { i, w in
                     let pct = w.planned > 0 ? Double(min(w.done, w.planned)) / Double(w.planned) : 0
                     let isLast = i == weeks.count - 1
-                    let color: Color = pct >= 1.0 ? .statusGreen : pct >= 0.5 ? .statusOrange : .statusRed
+                    let color: Color = pct >= 1.0 ? .appSuccess : pct >= 0.5 ? .appWarning : .appDanger
                     VStack(spacing: 2) {
                         Spacer()
                         RoundedRectangle(cornerRadius: 4) // shape inline
@@ -1183,7 +1183,7 @@ struct RIRByExerciseView: View {
                 VStack(spacing: 12) {
                     ForEach(entries.prefix(8)) { e in
                         let pct = maxRIR > 0 ? e.avgRir / maxRIR : 0
-                        let c: Color = e.avgRir <= 1 ? .statusRed : e.avgRir <= 2 ? .statusOrange : .statusGreen
+                        let c: Color = e.avgRir <= 1 ? .appDanger : e.avgRir <= 2 ? .appWarning : .appSuccess
                         let barW = outer.size.width - 164
                         HStack(spacing: 8) {
                             Text(e.exercise)

@@ -191,9 +191,9 @@ struct AdherenceRingsCard: View {
     }
 
     private func adherenceColor(_ pct: Int) -> Color {
-        if pct >= 70 { return .statusGreen }
-        if pct >= 40 { return .statusOrange }
-        return .statusRed
+        if pct >= 70 { return .appSuccess }
+        if pct >= 40 { return .appWarning }
+        return .appDanger
     }
 }
 
