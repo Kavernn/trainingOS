@@ -6,11 +6,11 @@ struct MeasurementsTrendView: View {
     let entries: [BodyWeightEntry]
 
     private let metrics: [(String, KeyPath<BodyWeightEntry, Double?>, Color)] = [
-        ("Taille", \.waistCm, .statusPurple),
-        ("Bras",   \.armsCm,  .statusBlue),
-        ("Cuisses",\.thighsCm,Color.forge),
-        ("Hanches",\.hipsCm,  .pink),
-        ("Cou",    \.neckCm,  .teal),
+        ("Taille", \.waistCm, .forge),
+        ("Bras",   \.armsCm,  .forge),
+        ("Cuisses",\.thighsCm,.forge),
+        ("Hanches",\.hipsCm,  .forge),
+        ("Cou",    \.neckCm,  .forge),
     ]
 
     var body: some View {
@@ -761,9 +761,9 @@ struct IntensityCard: View {
     }
     private var zoneColor: Color {
         switch data.zone {
-        case "force":        return .statusRed
-        case "hypertrophie": return .statusOrange
-        default:             return .statusBlue
+        case "force":        return .forge
+        case "hypertrophie": return .forge
+        default:             return .forge
         }
     }
 

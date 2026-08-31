@@ -203,9 +203,9 @@ struct SessionHeatmapView: View {
     private func cellColor(_ t: CellType) -> Color {
         switch t {
         case .none:  return Color.appSurfaceInset
-        case .muscu: return Color.statusOrange
-        case .hiit:  return Color.statusBlue
-        case .both:  return Color.statusPurple
+        case .muscu: return Color.forge
+        case .hiit:  return Color.gray
+        case .both:  return Color.gray.opacity(0.5)
         }
     }
 
@@ -235,11 +235,11 @@ struct SessionHeatmapView: View {
                     Text("Muscu").font(.appCaption).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
-                    Circle().fill(Color.statusBlue).frame(width: 8, height: 8)
+                    Circle().fill(Color.gray).frame(width: 8, height: 8)
                     Text("HIIT").font(.appCaption).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
-                    Circle().fill(Color.statusPurple).frame(width: 8, height: 8)
+                    Circle().fill(Color.gray.opacity(0.5)).frame(width: 8, height: 8)
                     Text("Les 2").font(.appCaption).foregroundColor(.gray)
                 }
             }
@@ -605,12 +605,12 @@ struct HIITStatsSection: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.statusRed, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.forge, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(rpeHistory, id: \.0) { i, rpe in
                             let x = CGFloat(i) * step
                             let y = geo.size.height * (1 - rpe / 10.0)
-                            Circle().fill(Color.statusRed).frame(width: 5, height: 5)
+                            Circle().fill(Color.forge).frame(width: 5, height: 5)
                                 .position(x: x, y: y)
                         }
                     }
@@ -653,7 +653,7 @@ struct RPEChartView: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.statusPurple, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.forge, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(Array(data.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
@@ -879,7 +879,7 @@ struct EnergyTrendView: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.statusGreen, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.forge, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(Array(data.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
@@ -918,6 +918,7 @@ struct PatternVolumeView: View {
 
     private var entries: [(String, Double, Color)] {
         [
+            // exception radical : palette catégorielle 6 mouvements, distinction irréductible
             ("Push",  data.push  ?? 0, .statusOrange),
             ("Pull",  data.pull  ?? 0, .statusBlue),
             ("Hinge", data.hinge ?? 0, .statusPurple),
@@ -1113,10 +1114,10 @@ struct RPEProgressionView: View {
     let data: RPEProgressionData
 
     private var buckets: [(String, Double?, Color)] {[
-        ("<7",   data.lt7,   .statusBlue),
-        ("7–8",  data.r7_8,  .statusGreen),
-        ("8–9",  data.r8_9,  .statusOrange),
-        ("9–10", data.r9_10, .statusRed),
+        ("<7",   data.lt7,   Color.forge.opacity(0.30)),
+        ("7–8",  data.r7_8,  Color.forge.opacity(0.55)),
+        ("8–9",  data.r8_9,  Color.forge.opacity(0.75)),
+        ("9–10", data.r9_10, Color.forge),
     ]}
     private var maxAbs: Double {
         buckets.compactMap { $0.1 }.map { abs($0) }.max() ?? 1

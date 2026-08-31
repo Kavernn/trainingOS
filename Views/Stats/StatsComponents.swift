@@ -122,9 +122,9 @@ struct AdherenceRingsCard: View {
     private var pillars: [Pillar] {
         [
             Pillar(label: "Body",        pct: data.bodyPct,   color: .forge, rawDays: nil),
-            Pillar(label: "Mind",        pct: data.mindPct,   color: .statusBlue,                rawDays: nil),
-            Pillar(label: "Consistance", pct: data.fuelPct,   color: .statusGreen,               rawDays: data.fuelDays),
-            Pillar(label: "Spirit",      pct: data.spiritPct, color: .statusPurple, rawDays: nil),
+            Pillar(label: "Mind",        pct: data.mindPct,   color: .gray, rawDays: nil),
+            Pillar(label: "Consistance", pct: data.fuelPct,   color: .gray, rawDays: data.fuelDays),
+            Pillar(label: "Spirit",      pct: data.spiritPct, color: .gray, rawDays: nil),
         ]
     }
 

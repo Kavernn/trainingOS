@@ -80,7 +80,7 @@ struct RPEDistributionView: View {
 
     var total: Int { distribution.map(\.1).reduce(0, +) }
 
-    private let colors: [Color] = [Color.appSuccess, Color.statusCyan, Color.statusYellow, Color.appWarning, Color.appDanger]
+    private let colors: [Color] = [Color.forge.opacity(0.30), Color.forge.opacity(0.475), Color.forge.opacity(0.65), Color.forge.opacity(0.825), Color.forge]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

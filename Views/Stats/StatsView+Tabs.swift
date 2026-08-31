@@ -290,7 +290,7 @@ extension StatsView {
             SimpleBarChart(
                 title: "VOLUME / SEM",
                 data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
-                color: .statusBlue,
+                color: .forge,
                 unit: UnitSettings.shared.label
             )
         }
@@ -524,7 +524,7 @@ extension StatsView {
                 xLabel: "Qualité sommeil (J-1)",
                 yLabel: "Volume séance (J)",
                 title: "SOMMEIL → PERFORMANCE",
-                color: .statusBlue
+                color: .forge
             )
             .padding(.horizontal, 16)
         }
