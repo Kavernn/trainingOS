@@ -46,6 +46,45 @@ def get_block(blocks: list, block_type: str) -> dict | None:
     return next((b for b in blocks if b.get("type") == block_type), None)
 
 
+def find_blocks_containing(blocks: list, exercise_name: str) -> list:
+    """Return REPS_BLOCKS où exercise_name apparaît dans .exercises, par order croissant.
+
+    Source unique de résolution pour add/remove/scheme/replace/rename : ces
+    actions supposaient historiquement type="strength" en dur, cassé sur les
+    séances multi-blocs typés (ex : v4 avec force/isolation/core/finisher/
+    explosive/mobility). Cf. dossier PERSISTANCE v3.
+    """
+    if not exercise_name:
+        return []
+    matched = []
+    for block in sorted(blocks, key=lambda b: b.get("order", 0)):
+        if block.get("type") not in REPS_BLOCKS:
+            continue
+        if exercise_name in (block.get("exercises") or {}):
+            matched.append(block)
+    return matched
+
+
+def find_add_target_block(blocks: list) -> dict | None:
+    """Cible naturelle d'un action=add : bloc "strength" s'il existe, sinon
+    premier REPS_BLOCK non-mobility par order.
+
+    Rétrocompatible from-scratch (une séance créée dans l'app n'a qu'un bloc
+    strength → strength choisi). Sur v4-like (pas de strength, ou strength +
+    autres) : strength prioritaire quand présent ; sinon force/isolation/core/
+    explosive/finisher — jamais mobility (échauffement pur).
+    Retour None si aucun bloc adéquat (cas dégénéré, appelant crée un strength).
+    """
+    strength = get_block(blocks, "strength")
+    if strength is not None:
+        return strength
+    for block in sorted(blocks, key=lambda b: b.get("order", 0)):
+        btype = block.get("type")
+        if btype in REPS_BLOCKS and btype != "mobility":
+            return block
+    return None
+
+
 def get_strength_exercises(session_def: dict) -> dict:
     """Return exercises of ALL reps-blocks (REPS_BLOCKS) merged in block order.
 

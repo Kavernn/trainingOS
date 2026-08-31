@@ -9,7 +9,7 @@ workout_exercises_bp = Blueprint("workout_exercises", __name__)
 def api_save_exercise():
     from inventory import load_inventory, add_exercise, rename_inventory_exercise
     from planner import load_program, save_program
-    from blocks import get_block, get_strength_exercises
+    from blocks import get_strength_exercises, find_blocks_containing
     data          = (request.get_json(silent=True) or {})
     original_name = data.get("original_name", "").strip()
     name          = data.get("name", "").strip()
@@ -48,12 +48,19 @@ def api_save_exercise():
         import db as _db
         program = _db.get_full_program()
         if program is not None:
+            # Dossier PERSISTANCE v3 : renomme dans TOUS les REPS_BLOCKS où
+            # l'exo apparaît, pas seulement "strength" (bug v4).
             modified = {}
             for sname, sdef in program.items():
-                sb = get_block(sdef.get("blocks", []), "strength")
-                if sb and original_name in sb.get("exercises", {}):
-                    sb["exercises"][name] = sb["exercises"].pop(original_name)
-                    modified[sname] = sdef
+                matched = find_blocks_containing(sdef.get("blocks", []), original_name)
+                if not matched:
+                    continue
+                for block in matched:
+                    exos = block.get("exercises") or {}
+                    block["exercises"] = {
+                        (name if n == original_name else n): s for n, s in exos.items()
+                    }
+                modified[sname] = sdef
             if modified:
                 save_program(modified)
     else:

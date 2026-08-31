@@ -66,7 +66,8 @@ def api_programme():
     from planner import load_program, save_program
     from blocks import (make_strength_block, make_hiit_block, make_cardio_block,
                         get_block, get_strength_exercises,
-                        upsert_block, remove_block, reorder_blocks)
+                        upsert_block, remove_block, reorder_blocks,
+                        find_blocks_containing, find_add_target_block)
     from inventory import load_inventory, add_exercise, rename_inventory_exercise
     data       = (request.get_json(silent=True) or {})
     action     = data.get("action")
@@ -124,12 +125,22 @@ def api_programme():
             return jsonify({"error": "Supabase indisponible"}), 503
         old_ex = data.get("old_exercise")
         new_ex = data.get("new_exercise")
+        # Dossier PERSISTANCE v3 : résout l'exo dans TOUS les REPS_BLOCKS
+        # de CHAQUE séance. L'ancien code ne cherchait que "strength" → sur
+        # v4, un exo en force/isolation/etc. n'était jamais renommé côté
+        # programme, désynchronisant inventaire (renommé) et blocs.
         modified = {}
         for sname, sdef in program.items():
-            sb = get_block(sdef.get("blocks", []), "strength")
-            if sb and old_ex in sb.get("exercises", {}):
-                sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
-                modified[sname] = sdef
+            matched = find_blocks_containing(sdef.get("blocks", []), old_ex)
+            if not matched:
+                continue
+            for block in matched:
+                exos = block.get("exercises") or {}
+                # Préserve l'ordre : reconstruit le dict clé par clé.
+                block["exercises"] = {
+                    (new_ex if n == old_ex else n): s for n, s in exos.items()
+                }
+            modified[sname] = sdef
         if modified:
             _db.save_full_program(modified, program_id)
         inv = load_inventory() or {}
@@ -142,9 +153,9 @@ def api_programme():
             if info is None:
                 scheme = "3x8-12"
                 for sdef in program.values():
-                    sb = get_block(sdef.get("blocks", []), "strength")
-                    if sb and new_ex in sb.get("exercises", {}):
-                        scheme = sb["exercises"][new_ex]
+                    hits = find_blocks_containing(sdef.get("blocks", []), new_ex)
+                    if hits:
+                        scheme = (hits[0].get("exercises") or {}).get(new_ex, scheme)
                         break
                 info = {"type": "machine", "increment": 5, "default_scheme": scheme}
             rename_inventory_exercise(old_ex, new_ex, info)
@@ -169,68 +180,104 @@ def api_programme():
     session_def = session_data[jour]
     blks        = session_def.get("blocks", [])
 
-    if action in ("add", "remove", "scheme", "replace", "reorder"):
-        strength  = get_block(blks, "strength") or make_strength_block({}, order=0)
+    # Dossier PERSISTANCE v3 — Direction 1 : add/remove/scheme/replace résolvent
+    # le bloc réel où vit l'exo (find_blocks_containing sur TOUS les REPS_BLOCKS),
+    # au lieu de deviner type="strength". Le fallback historique
+    # `get_block(blks, "strength") or make_strength_block(...)` fabriquait un
+    # bloc strength fantôme sur v4-like → écritures dans un vide, exo réel
+    # jamais touché, réapparition au reload via merge get_strength_exercises.
+    # save_full_program reçoit uniquement les blocs mutés → aucun fantôme créé,
+    # les autres blocs de la séance restent intacts en base.
+
+    if action == "add":
+        exercise = data.get("exercise")
+        if find_blocks_containing(blks, exercise):
+            return jsonify({"error": "Déjà dans le programme"}), 400
+        inv    = load_inventory() or {}
+        scheme = data.get("scheme") or inv.get(exercise, {}).get("default_scheme", "3x8-12")
+        target = find_add_target_block(blks)
+        if target is None:
+            target = make_strength_block({}, order=len(blks))
+            session_def["blocks"] = upsert_block(blks, target)
+        target.setdefault("exercises", {})[exercise] = scheme
+        if exercise not in inv:
+            add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5})
+        _db.save_full_program({jour: session_def}, program_id)
+        logger.info(
+            "programme add: jour='%s' exercise='%s' scheme='%s' target=%s order=%s post_count=%d",
+            jour, exercise, scheme, target.get("type"), target.get("order"),
+            len(target["exercises"]),
+        )
+        return jsonify({"success": True})
+
+    if action == "remove":
+        exercise_to_remove = data.get("exercise", "")
+        matched = find_blocks_containing(blks, exercise_to_remove)
+        if not matched:
+            return jsonify({"error": "Exercice introuvable dans la séance"}), 404
+        for block in matched:
+            block.get("exercises", {}).pop(exercise_to_remove, None)
+        _db.save_full_program({jour: session_def}, program_id, allow_empty_blocks=True)
+        return jsonify({"success": True})
+
+    if action == "scheme":
+        exercise   = data.get("exercise")
+        new_scheme = data.get("scheme")
+        matched = find_blocks_containing(blks, exercise)
+        if not matched:
+            return jsonify({"error": "Exercice introuvable dans la séance"}), 404
+        for block in matched:
+            block.get("exercises", {})[exercise] = new_scheme
+        _db.save_full_program({jour: session_def}, program_id)
+        inv = load_inventory() or {}
+        if exercise in inv and isinstance(inv[exercise], dict):
+            entry = dict(inv[exercise])
+            entry["default_scheme"] = new_scheme
+            add_exercise(exercise, entry)
+        return jsonify({"success": True})
+
+    if action == "replace":
+        old_ex = data.get("old_exercise")
+        new_ex = data.get("new_exercise")
+        scheme = data.get("scheme", "3x8-12")
+        matched = find_blocks_containing(blks, old_ex)
+        if not matched:
+            return jsonify({"error": "Exercice introuvable dans la séance"}), 404
+        for block in matched:
+            exos = block.get("exercises", {})
+            exos.pop(old_ex, None)
+            exos[new_ex] = scheme
+        _db.save_full_program({jour: session_def}, program_id, allow_empty_blocks=True)
+        inv = load_inventory() or {}
+        if new_ex not in inv:
+            entry = {**inv.get(old_ex, {}), "default_scheme": scheme}
+            entry.setdefault("type", "machine")
+            entry.setdefault("increment", 5)
+            add_exercise(new_ex, entry)
+        else:
+            entry = dict(inv[new_ex])
+            entry["default_scheme"] = scheme
+            add_exercise(new_ex, entry)
+        return jsonify({"success": True})
+
+    if action == "reorder":
+        # ponytail: hors périmètre Direction 1 — reorder cross-blocs sémantique
+        # ambiguë (le payload iOS envoie une liste d'exos merged sans dire dans
+        # quel bloc). Conserve le comportement legacy strength-only le temps que
+        # la doctrine réordre multi-blocs soit tranchée (dossier séparé).
+        strength = get_block(blks, "strength") or make_strength_block({}, order=0)
         exercises = strength.get("exercises", {})
-
-        if action == "add":
-            exercise = data.get("exercise")
-            if exercise in exercises:
-                return jsonify({"error": "Déjà dans le programme"}), 400
-            inv    = load_inventory() or {}
-            scheme = data.get("scheme") or inv.get(exercise, {}).get("default_scheme", "3x8-12")
-            exercises[exercise] = scheme
-            if exercise not in inv:
-                add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5})
-            logger.info(
-                "programme add: jour='%s' exercise='%s' scheme='%s' post_count=%d",
-                jour, exercise, scheme, len(exercises),
-            )
-
-        elif action == "remove":
-            exercise_to_remove = data.get("exercise", "")
-            exercises.pop(exercise_to_remove, None)
-
-        elif action == "scheme":
-            exercise   = data.get("exercise")
-            new_scheme = data.get("scheme")
-            if exercise in exercises:
-                exercises[exercise] = new_scheme
-                inv = load_inventory() or {}
-                if exercise in inv and isinstance(inv[exercise], dict):
-                    entry = dict(inv[exercise])
-                    entry["default_scheme"] = new_scheme
-                    add_exercise(exercise, entry)
-
-        elif action == "replace":
-            old_ex = data.get("old_exercise")
-            new_ex = data.get("new_exercise")
-            scheme = data.get("scheme", "3x8-12")
-            exercises.pop(old_ex, None)
-            exercises[new_ex] = scheme
-            inv = load_inventory() or {}
-            if new_ex not in inv:
-                entry = {**inv.get(old_ex, {}), "default_scheme": scheme}
-                entry.setdefault("type", "machine")
-                entry.setdefault("increment", 5)
-                add_exercise(new_ex, entry)
-            else:
-                entry = dict(inv[new_ex])
-                entry["default_scheme"] = scheme
-                add_exercise(new_ex, entry)
-
-        elif action == "reorder":
-            ordre = data.get("ordre", [])
-            reordered = {ex: exercises[ex] for ex in ordre if ex in exercises}
-            for ex, scheme in exercises.items():
-                if ex not in reordered:
-                    reordered[ex] = scheme
-            exercises = reordered
-
-        strength["exercises"] = exercises
+        ordre = data.get("ordre", [])
+        reordered = {ex: exercises[ex] for ex in ordre if ex in exercises}
+        for ex, s in exercises.items():
+            if ex not in reordered:
+                reordered[ex] = s
+        strength["exercises"] = reordered
         session_def["blocks"] = upsert_block(blks, strength)
+        _db.save_full_program({jour: session_def}, program_id)
+        return jsonify({"success": True})
 
-    elif action == "add_block":
+    if action == "add_block":
         block_type = data.get("block_type")
         if block_type == "strength":
             new_block = make_strength_block(data.get("exercises", {}), order=len(blks))
@@ -241,16 +288,17 @@ def api_programme():
         else:
             return jsonify({"error": "block_type invalide"}), 400
         session_def["blocks"] = upsert_block(blks, new_block)
+        _db.save_full_program({jour: session_def}, program_id)
+        return jsonify({"success": True})
 
-    elif action == "remove_block":
+    if action == "remove_block":
         session_def["blocks"] = remove_block(blks, data.get("block_type", ""))
+        _db.save_full_program({jour: session_def}, program_id)
+        return jsonify({"success": True})
 
-    elif action == "reorder_blocks":
+    if action == "reorder_blocks":
         session_def["blocks"] = reorder_blocks(blks, data.get("order", []))
+        _db.save_full_program({jour: session_def}, program_id)
+        return jsonify({"success": True})
 
-    # allow_empty_blocks=True uniquement pour action=remove : seule intention
-    # explicite qui peut légitimement produire exercises={} sur un block existant
-    # (delete du dernier exo). Toutes les autres actions gardent le filet anti-wipe.
-    _db.save_full_program({jour: session_def}, program_id,
-                          allow_empty_blocks=(action == "remove"))
-    return jsonify({"success": True})
+    return jsonify({"error": "action inconnue"}), 400

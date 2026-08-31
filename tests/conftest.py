@@ -245,7 +245,7 @@ def make_store():
     def get_full_program(program_id=None):
         return copy.deepcopy(store.get("program", {}))
 
-    def save_full_program(program, program_id=None):
+    def save_full_program(program, program_id=None, allow_empty_blocks=False):
         current = store.get("program", {})
         current.update(copy.deepcopy(program))
         store["program"] = current
