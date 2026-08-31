@@ -90,10 +90,17 @@ final class ProgrammeViewModel: ObservableObject {
         return scheduled + unscheduled
     }
 
-    /// Fréquence hebdo par séance (schedule.values, hors "Repos").
+    /// Fréquence hebdo par séance (union additive matin+soir, hors "Repos").
+    /// Chaque occurrence compte : une séance planifiée matin ET soir un même jour
+    /// = 2× son volume (Vince la ferait 2 fois). L'héritage visuel matin→soir
+    /// (résolu à la volée dans la vue) n'est PAS compté ici — seules les entrées
+    /// explicites de eveningSchedule ajoutent au volume.
     private var weeklySessionFrequency: [String: Int] {
         var freq: [String: Int] = [:]
-        for session in schedule.values where session != "Repos" {
+        for session in schedule.values where !session.isEmpty && session != "Repos" {
+            freq[session, default: 0] += 1
+        }
+        for session in eveningSchedule.values where !session.isEmpty && session != "Repos" {
             freq[session, default: 0] += 1
         }
         return freq
