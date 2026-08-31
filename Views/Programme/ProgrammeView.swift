@@ -140,6 +140,9 @@ struct ProgrammeView: View {
     // (sheets, alerts, drag transitoire, clipboard @AppStorage, undo, périodisation)
     // restent ici.
     @StateObject private var vm = ProgrammeViewModel()
+    // Sert au flush du delete-undo en attente si l'app quitte < 4 s
+    // (cf. commitPendingDelete + .onChange(of: scenePhase)).
+    @Environment(\.scenePhase) private var scenePhase
 
     private enum ProgrammeTab: String, CaseIterable, Identifiable {
         case today = "Aujourd'hui"
@@ -503,6 +506,10 @@ struct ProgrammeView: View {
                 await vm.loadSuggestions()
             }
         }
+        .onDisappear { commitPendingDelete() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { commitPendingDelete() }
+        }
         .onChange(of: vm.selectedProgramId) { _, newId in
             guard !newId.isEmpty else { return }
             Task { await vm.loadData(programId: newId); await vm.loadSuggestions() }
@@ -615,16 +622,30 @@ struct ProgrammeView: View {
     //  - applyPhaseScheme (plus haut) : loop → vm.editExercise.
     //  - pasteSeance (plus haut) : clipboard @AppStorage → boucle vm.addExercise.
 
+    /// Flush immédiat du delete-undo en attente : cancel le Task différé et
+    /// POST tout de suite. Anti-double-POST par construction : le Task original,
+    /// s'il se réveille après cancel, voit `!Task.isCancelled == false` et
+    /// return (cf. sleep+guard L637-642). Idempotent : 2e invocation quasi-
+    /// simultanée voit undoDeleteItem=nil et no-op.
+    ///
+    /// Appelé depuis 3 sites :
+    ///  - deleteWithUndo (nouveau delete pendant qu'un précédent attend)
+    ///  - .onDisappear (l'onglet Programme quitte)
+    ///  - .onChange(of: scenePhase) quand phase ≠ .active (app background/inactive)
+    private func commitPendingDelete() {
+        guard let item = undoDeleteItem else { return }
+        undoDeleteTask?.cancel()
+        undoDeleteTask = nil
+        undoDeleteItem = nil
+        Task { await vm.deleteExercise(seance: item.seance, exercise: item.name) }
+    }
+
     /// Delete local optimiste + POST tardif via Task { sleep 4s }. Le cancel
     /// (undoDelete) restaure l'état local ET annule le task avant le POST — zéro
     /// trafic serveur si annulé dans les 4s.
     private func deleteWithUndo(seance: String, exercise: String) {
         // Commit any previous pending delete immediately
-        if let prev = undoDeleteItem {
-            undoDeleteTask?.cancel()
-            undoDeleteTask = nil
-            Task { await vm.deleteExercise(seance: prev.seance, exercise: prev.name) }
-        }
+        commitPendingDelete()
         // Snapshot for undo
         let idx = vm.exerciseOrder[seance]?.firstIndex(of: exercise) ?? 0
         let scheme = vm.fullProgram[seance]?[exercise] ?? ""
