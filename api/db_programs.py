@@ -433,13 +433,20 @@ def reorder_program_sessions(session_names: list, program_id: str) -> bool:
         return False
 
 
-def save_full_program(program: dict, program_id: str | None = None) -> bool:
+def save_full_program(program: dict, program_id: str | None = None,
+                      allow_empty_blocks: bool = False) -> bool:
     """Persist {session_name: {"blocks": [...]}} to relational tables.
 
     If program_id is None, uses the first/oldest program.
     For each session: upsert program_sessions, upsert program_blocks,
     delete + reinsert program_block_exercises.
     Returns True on full success, False on any error.
+
+    allow_empty_blocks: si True, autorise l'écriture d'un block vide (0 exercices)
+    sur un block existant qui en avait N. Réservé aux mutations d'intention
+    explicite (ex : action=remove du dernier exo d'un block). Default False
+    conserve le filet anti-wipe accidentel (cf. commit 4420151, lessons.md
+    §"DELETE ALL + reinsert = opération dangereuse sans guard").
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
@@ -499,7 +506,9 @@ def save_full_program(program: dict, program_id: str | None = None) -> bool:
                 exercises = block.get("exercises", {})
 
                 # Safety guard: never wipe a block that has exercises when saving 0
-                # (would silently delete all exercises from program_block_exercises)
+                # (would silently delete all exercises from program_block_exercises).
+                # Bypass via allow_empty_blocks=True quand l'appelant porte
+                # l'intention explicite (ex: action=remove du dernier exo).
                 if not exercises:
                     existing_count_resp = (
                         db_core._client.table("program_block_exercises")
@@ -509,11 +518,17 @@ def save_full_program(program: dict, program_id: str | None = None) -> bool:
                     )
                     existing_count = existing_count_resp.count  # None on query error
                     if existing_count is None or existing_count > 0:
-                        db_core.logger.warning(
-                            "save_full_program: refusing to save 0 exercises over %d existing for block %s — skipping",
-                            existing_count, block_id,
-                        )
-                        continue
+                        if allow_empty_blocks:
+                            db_core.logger.info(
+                                "save_full_program: intentional empty block %s (allow_empty_blocks=True), was %d",
+                                block_id, existing_count or 0,
+                            )
+                        else:
+                            db_core.logger.warning(
+                                "save_full_program: refusing to save 0 exercises over %d existing for block %s — skipping",
+                                existing_count, block_id,
+                            )
+                            continue
 
                 # Clear existing exercises for this block then reinsert
                 db_core._client.table("program_block_exercises").delete().eq("block_id", block_id).execute()

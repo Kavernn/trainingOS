@@ -248,5 +248,9 @@ def api_programme():
     elif action == "reorder_blocks":
         session_def["blocks"] = reorder_blocks(blks, data.get("order", []))
 
-    _db.save_full_program({jour: session_def}, program_id)
+    # allow_empty_blocks=True uniquement pour action=remove : seule intention
+    # explicite qui peut légitimement produire exercises={} sur un block existant
+    # (delete du dernier exo). Toutes les autres actions gardent le filet anti-wipe.
+    _db.save_full_program({jour: session_def}, program_id,
+                          allow_empty_blocks=(action == "remove"))
     return jsonify({"success": True})
