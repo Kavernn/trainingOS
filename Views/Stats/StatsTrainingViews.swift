@@ -315,12 +315,12 @@ struct WeekComparisonCard: View {
         let d = a - b
         if abs(d) < 0.01 { return ("=", .gray) }
         let s = d > 0 ? "+\(String(format: "%.0f", abs(d)))" : "-\(String(format: "%.0f", abs(d)))"
-        return (s, d > 0 ? .statusGreen : .statusRed)
+        return (s, d > 0 ? .appSuccess : .appDanger)
     }
     private func deltaInt(_ a: Int, _ b: Int) -> (String, Color) {
         let d = a - b
         if d == 0 { return ("=", .gray) }
-        return (d > 0 ? "+\(d)" : "\(d)", d > 0 ? .statusGreen : .statusRed)
+        return (d > 0 ? "+\(d)" : "\(d)", d > 0 ? .appSuccess : .appDanger)
     }
 
     private var weekVerdict: (text: String, color: Color) {
@@ -335,9 +335,9 @@ struct WeekComparisonCard: View {
         let sessionsUp = compSessions >= Double(lastWeekSessions) * 0.98
 
         if volumeUp && sessionsUp {
-            return ("Volume en hausse, sessions stables ou en hausse. Tu montes.\(suffix)", .statusGreen)
+            return ("Volume en hausse, sessions stables ou en hausse. Tu montes.\(suffix)", .appSuccess)
         } else if !volumeUp && !sessionsUp {
-            return ("Volume en baisse, sessions en baisse. Le relâchement s'installe.\(suffix)", .statusRed)
+            return ("Volume en baisse, sessions en baisse. Le relâchement s'installe.\(suffix)", .appDanger)
         } else if volumeUp && !sessionsUp {
             return ("Moins de séances, plus de volume par séance. Tu condenses.\(suffix)", Color.forge)
         } else {
@@ -741,7 +741,7 @@ struct ExerciseStatRow: View {
                        first > 0, last > 0 {
                         let diff = last - first
                         Text(diff >= 0 ? "+\(diff, specifier: "%.1f")" : "\(diff, specifier: "%.1f")")
-                            .font(.appCaption).foregroundColor(diff >= 0 ? .statusGreen : .statusRed)
+                            .font(.appCaption).foregroundColor(diff >= 0 ? .appSuccess : .appDanger)
                     }
                 } else {
                     Text("Poids corps")
@@ -799,7 +799,7 @@ struct ExerciseDetailView: View {
                                         Text(entry.reps ?? "").font(.appLabel).foregroundColor(.gray)
                                         if let note = entry.note, !note.isEmpty {
                                             Text(note).font(.appCaption.weight(.semibold))
-                                                .foregroundColor(note.hasPrefix("+") ? .statusGreen : .statusYellow)
+                                                .foregroundColor(note.hasPrefix("+") ? .appSuccess : .appWarning)
                                         }
                                     }
                                     .padding(.vertical, 8)
@@ -1012,7 +1012,7 @@ struct ComplianceProgrammeView: View {
                 Spacer()
                 Text(String(format: "%.0f%%", overallRate * 100))
                     .font(.appHeadline.weight(.black))
-                    .foregroundColor(overallRate >= 0.8 ? .statusGreen : overallRate >= 0.6 ? .statusOrange : .statusRed)
+                    .foregroundColor(overallRate >= 0.8 ? .appSuccess : overallRate >= 0.6 ? .appWarning : .appDanger)
             }
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(Array(weeks.enumerated()), id: \.0) { i, w in
@@ -1151,7 +1151,7 @@ struct RPEProgressionView: View {
                             if let v = val {
                                 Text(v >= 0 ? "+\(String(format: "%.1f", v))%" : "\(String(format: "%.1f", v))%")
                                     .font(.appMicro.weight(.semibold))
-                                    .foregroundColor((v) >= 0 ? .statusGreen : .statusRed)
+                                    .foregroundColor((v) >= 0 ? .appSuccess : .appDanger)
                                     .frame(width: 50, alignment: .trailing)
                             } else {
                                 Text("—").font(.appMicro).foregroundColor(.gray).frame(width: 50, alignment: .trailing)
@@ -1390,7 +1390,7 @@ struct StatsHeroCard: View {
                     let sign = d >= 0 ? "+" : ""
                     Text("\(sign)\(Int(d.rounded()))% vs 6 mois")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(d >= 0 ? .statusGreen : .statusRed)
+                        .foregroundColor(d >= 0 ? .appSuccess : .appDanger)
                 }
                 Spacer()
             }
