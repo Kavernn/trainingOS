@@ -2,16 +2,7 @@ import SwiftUI
 
 // MARK: - Archetype color helpers (file-private)
 
-private func archetypeAccent(_ key: String) -> Color {
-    switch key {
-    case "powerlifter": return Color(red: 0.31, green: 0.43, blue: 0.97)
-    case "bodybuilder": return Color(red: 0.98, green: 0.45, blue: 0.09)
-    case "grinder":     return Color(red: 0.13, green: 0.77, blue: 0.37)
-    case "warrior":     return Color(red: 0.66, green: 0.33, blue: 0.97)
-    case "athlete":     return Color(red: 0.08, green: 0.72, blue: 0.64)
-    default:            return Color(red: 0.37, green: 0.63, blue: 0.98)
-    }
-}
+private func archetypeAccent(_ key: String) -> Color { .forge }
 
 private func pplDominantColor(_ ppl: DNAPPLBalance) -> Color {
     if ppl.pushPct >= ppl.pullPct && ppl.pushPct >= ppl.legsPct {

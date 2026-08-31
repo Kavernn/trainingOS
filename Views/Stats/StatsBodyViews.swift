@@ -558,7 +558,7 @@ struct ForceHeroCard: View {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(best.deltaPct >= 0 ? "+\(best.deltaPct)%" : "\(best.deltaPct)%")
                             .font(.appHero.weight(.black))
-                            .foregroundColor(best.deltaPct >= 0 ? Color(hex: "FF9F0A") : .appDanger)
+                            .foregroundColor(best.deltaPct >= 0 ? .appSuccess : .appDanger)
                         // collage nom/sub-label bestGainer, micro-optique
                         VStack(alignment: .leading, spacing: 2) {
                             Text(best.name)

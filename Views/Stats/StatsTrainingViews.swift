@@ -459,12 +459,7 @@ struct PersonalRecordsView: View {
             default: return Color(white: 0.25)
             }
         }
-        switch rank {
-        case 0: return .statusYellow
-        case 1: return .gray
-        case 2: return Color(hex: "cd7f32")
-        default: return .statusOrange
-        }
+        return rank == 0 ? .forge : .gray
     }
 }
 
@@ -1533,10 +1528,10 @@ struct StatsHeroCard: View {
             HStack(spacing: 4) {
                 Image(systemName: "trophy.fill")
                     .font(.appMicro)
-                    .foregroundColor(.statusOrange)
+                    .foregroundColor(.forge)
                 Text("NOUVEAU PR")
                     .font(.appCaption.weight(.bold))
-                    .foregroundColor(.statusOrange)
+                    .foregroundColor(.forge)
             }
             Text(latestPRName ?? "—")
                 .font(.appLabel.weight(.semibold))
