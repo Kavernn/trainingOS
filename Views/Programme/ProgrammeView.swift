@@ -422,8 +422,8 @@ struct ProgrammeView: View {
                 SeanceSoirView(sessionName: manualEveningSessionName)
             }
             .sheet(item: $addTarget) { sn in
-                AddExerciseSheet(seance: sn.id, inventory: vm.inventory, inventorySchemes: vm.inventorySchemes, inventoryMuscleGroups: vm.inventoryMuscleGroups) { ex, scheme in
-                    Task { await vm.addExercise(seance: sn.id, exercise: ex, scheme: scheme) }
+                AddExerciseSheet(seance: sn.id, inventory: vm.inventory, inventorySchemes: vm.inventorySchemes, inventoryMuscleGroups: vm.inventoryMuscleGroups) { list in
+                    Task { await vm.addExercises(seance: sn.id, exercises: list) }
                 }
             }
             .sheet(item: $editTarget) { target in
@@ -2109,19 +2109,20 @@ struct AddExerciseSheet: View {
     let inventorySchemes: [String: String]
     let inventoryMuscleGroups: [String: String]
     var recentExercises: [String] = []
-    let onAdd: (String, String) -> Void
+    /// Callback multi : la sheet collecte la sélection, le VM boucle séquentiellement
+    /// (une intention côté VM, cf. addExercises). Schemes = défauts inventaire,
+    /// ajustables ensuite via EditSchemeSheet (tap row en carte).
+    let onAddMultiple: ([(String, String)]) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
-    // Fallback "3x8-12" resté UNIQUEMENT dans les fallbacks d'inventorySchemes[ex]
-    // (L1838) et côté backend. Ici on part vide : le lookup à la sélection remplit
-    // dès qu'un exo du catalogue est sélectionné. Champ vide → canSave=false, donc
-    // l'utilisateur ne peut jamais envoyer un scheme fantôme au serveur.
-    @State private var scheme = ""
+    // query = recherche pure (ex-name qui servait double rôle recherche/valeur).
+    // selected = Set → dédup naturel (récents ∪ liste = 1 seule entrée).
+    @State private var query = ""
+    @State private var selected: Set<String> = []
     @State private var selectedGroup: String? = nil
     @State private var confirmDiscard = false
 
-    private var isDirty: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var isDirty: Bool { !selected.isEmpty }
 
     // Ordre canonique + append trié des nouveaux groupes (Cou, Hanches, etc.)
     // que le catalogue peut porter — évite un sorted() alphabétique pur qui
@@ -2135,169 +2136,201 @@ struct AddExerciseSheet: View {
     }
 
     private var filtered: [String] {
-        var result = name.isEmpty ? inventory : inventory.filter { $0.localizedCaseInsensitiveContains(name) }
+        var result = query.isEmpty ? inventory : inventory.filter { $0.localizedCaseInsensitiveContains(query) }
         if let grp = selectedGroup {
             result = result.filter { (inventoryMuscleGroups[$0] ?? "Autre") == grp }
         }
         return result
     }
 
-    private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty && !scheme.isEmpty }
+    /// Label CTA bas : pluriel géré, "Ajouter des exercices" en état vide (disabled).
+    private var ctaLabel: String {
+        switch selected.count {
+        case 0: return "Ajouter des exercices"
+        case 1: return "Ajouter 1 exercice"
+        default: return "Ajouter \(selected.count) exercices"
+        }
+    }
+
+    private func toggle(_ ex: String) {
+        if selected.contains(ex) { selected.remove(ex) } else { selected.insert(ex) }
+    }
+
+    // Sections extraites en @ViewBuilder pour dénouer le type-check du body.
+    // Le module avait franchi le seuil du solver Swift (cf. lessons.md /
+    // feedback_swiftui_typechecker) — chaque section type-check en isolation.
+
+    @ViewBuilder private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass").foregroundColor(.gray)
+            TextField("Rechercher un exercice...", text: $query)
+                .foregroundColor(.appTextPrimary)
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(10)
+        .background(Color.appCard)
+        .cornerRadius(10)
+        .padding(.horizontal, .appPagePadding)
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder private var muscleChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                Button {
+                    selectedGroup = nil
+                } label: {
+                    Text("Tous")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(selectedGroup == nil ? .onAccent : Color.appOnSurface.opacity(0.7))
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(selectedGroup == nil ? Color.forge : Color.appSurfaceInset)
+                        .cornerRadius(.appCardRadius)
+                }
+                .buttonStyle(.plain)
+                ForEach(muscleGroupOrder, id: \.self) { grp in
+                    let active = selectedGroup == grp
+                    Button {
+                        selectedGroup = active ? nil : grp
+                    } label: {
+                        Text(grp)
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(active ? .onAccent : Color.appOnSurface.opacity(0.7))
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(active ? Color.forge : Color.appSurfaceInset)
+                            .cornerRadius(.appCardRadius)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, .appPagePadding)
+            .padding(.vertical, 8)
+        }
+    }
+
+    @ViewBuilder private var recentsSection: some View {
+        if !recentExercises.isEmpty && query.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("RÉCENTS")
+                    .font(.appCaption.weight(.bold))
+                    .tracking(1.5)
+                    .foregroundColor(.gray.opacity(0.55))
+                    .padding(.horizontal, .appPagePadding)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(recentExercises, id: \.self) { ex in
+                            recentChip(ex)
+                        }
+                    }
+                    .padding(.horizontal, .appPagePadding)
+                }
+                Divider()
+                    .background(Color.appSeparatorSubtle)
+                    .padding(.horizontal, .appPagePadding)
+                    .padding(.top, 2)
+            }
+            .padding(.bottom, 6)
+        }
+    }
+
+    @ViewBuilder private func recentChip(_ ex: String) -> some View {
+        let isSelected = selected.contains(ex)
+        let iconName: String = isSelected ? "checkmark.circle.fill" : "clock.arrow.circlepath"
+        let iconColor: Color = isSelected ? Color.forge : Color.forge.opacity(0.7)
+        let bgColor: Color = isSelected ? Color.forge.opacity(0.25) : Color.forge.opacity(0.1)
+        let strokeColor: Color = isSelected ? Color.forge : Color.forge.opacity(0.22)
+        let strokeWidth: CGFloat = isSelected ? 1.5 : 1
+        Button {
+            toggle(ex)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: iconName)
+                    .font(.appCaption)
+                    .foregroundColor(iconColor)
+                Text(ex)
+                    .font(.appLabel)
+                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 7)
+            .background(bgColor)
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(strokeColor, lineWidth: strokeWidth))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder private var inventoryList: some View {
+        if !filtered.isEmpty {
+            List(filtered, id: \.self) { ex in
+                let isSelected = selected.contains(ex)
+                Button {
+                    toggle(ex)
+                } label: {
+                    HStack {
+                        Text(ex)
+                            .foregroundColor(.appTextPrimary)
+                            .font(.appLabel.weight(.regular))
+                        Spacer()
+                        Text(inventoryMuscleGroups[ex] ?? "Autre")
+                            .font(.appCaption)
+                            .foregroundColor(.gray.opacity(0.6))
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(isSelected ? Color.forge : .gray.opacity(0.4))
+                    }
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color.appCard)
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+        }
+    }
+
+    @ViewBuilder private var bottomCTA: some View {
+        let isEmpty = selected.isEmpty
+        let ctaFg: Color = isEmpty ? .gray : .onAccent
+        let ctaBg: Color = isEmpty ? Color.appSurfaceInset : Color.forge
+        VStack(spacing: 0) {
+            Divider().background(Color.appSeparatorSubtle)
+            Button {
+                // Ordre alphabétique stable (Set → sorted). Ordre visuel final
+                // dans la séance = ordre d'append côté VM ; ré-ordonnançable
+                // via handle ≡ après ajout.
+                let list = selected.sorted().map { ($0, inventorySchemes[$0] ?? "3x8-12") }
+                onAddMultiple(list)
+                dismiss()
+            } label: {
+                Text(ctaLabel)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(ctaFg)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 48)
+                    .background(ctaBg)
+                    .cornerRadius(10)
+            }
+            .buttonStyle(.plain)
+            .disabled(isEmpty)
+            .padding(.horizontal, .appPagePadding)
+            .padding(.vertical, 10)
+        }
+        .background(Color.appCard)
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    // Name field (also filters inventory)
-                    HStack {
-                        Image(systemName: "magnifyingglass").foregroundColor(.gray)
-                        TextField("Nom de l'exercice...", text: $name)
-                            .foregroundColor(.appTextPrimary)
-                        if !name.isEmpty {
-                            Button { name = "" } label: {
-                                Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
-                            }
-                        }
-                    }
-                    .padding(10)
-                    .background(Color.appCard)
-                    .cornerRadius(10)
-                    .padding(.horizontal, .appPagePadding)
-                    .padding(.top, 8)
-
-                    // Muscle group filter chips
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            Button {
-                                selectedGroup = nil
-                            } label: {
-                                Text("Tous")
-                                    .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(selectedGroup == nil ? .onAccent : Color.appOnSurface.opacity(0.7))
-                                    .padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(selectedGroup == nil ? Color.forge : Color.appSurfaceInset)
-                                    .cornerRadius(.appCardRadius)
-                            }
-                            .buttonStyle(.plain)
-                            ForEach(muscleGroupOrder, id: \.self) { grp in
-                                let active = selectedGroup == grp
-                                Button {
-                                    selectedGroup = active ? nil : grp
-                                } label: {
-                                    Text(grp)
-                                        .font(.appCaption.weight(.semibold))
-                                        .foregroundColor(active ? .onAccent : Color.appOnSurface.opacity(0.7))
-                                        .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(active ? Color.forge : Color.appSurfaceInset)
-                                        .cornerRadius(.appCardRadius)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, .appPagePadding)
-                        .padding(.vertical, 8)
-                    }
-
-                    // Récents — exercices ajoutés à la volée dans les séances précédentes
-                    if !recentExercises.isEmpty && name.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("RÉCENTS")
-                                .font(.appCaption.weight(.bold))
-                                .tracking(1.5)
-                                .foregroundColor(.gray.opacity(0.55))
-                                .padding(.horizontal, .appPagePadding)
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(recentExercises, id: \.self) { ex in
-                                        Button {
-                                            onAdd(ex, inventorySchemes[ex] ?? "3x8-12")
-                                            dismiss()
-                                        } label: {
-                                            HStack(spacing: 5) {
-                                                Image(systemName: "clock.arrow.circlepath")
-                                                    .font(.appCaption)
-                                                    .foregroundColor(Color.forge.opacity(0.7))
-                                                Text(ex)
-                                                    .font(.appLabel)
-                                                    .foregroundColor(.appTextPrimary)
-                                                    .lineLimit(1)
-                                            }
-                                            .padding(.horizontal, 12).padding(.vertical, 7)
-                                            .background(Color.forge.opacity(0.1))
-                                            .cornerRadius(10)
-                                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.22), lineWidth: 1))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .padding(.horizontal, .appPagePadding)
-                            }
-                            Divider()
-                                .background(Color.appSeparatorSubtle)
-                                .padding(.horizontal, .appPagePadding)
-                                .padding(.top, 2)
-                        }
-                        .padding(.bottom, 6)
-                    }
-
-                    // Scheme field
-                    HStack {
-                        Text("Schéma :")
-                            .font(.appLabel.weight(.regular))
-                            .foregroundColor(.gray)
-                        TextField("ex: 4x6-8", text: $scheme)
-                            .font(.appLabel)
-                            .foregroundColor(.appTextPrimary)
-                            .padding(8)
-                            .background(Color.appCard)
-                            .cornerRadius(8)
-                    }
-                    .padding(.horizontal, .appPagePadding)
-                    .padding(.bottom, 4)
-
-                    // Hint visible quand le scheme bloque canSave : un exo choisi sans
-                    // scheme (catalogue muet ou saisie manuelle) → dire pourquoi le
-                    // bouton reste inactif au lieu de laisser Vince taper dans le vide.
-                    if scheme.isEmpty && !name.trimmingCharacters(in: .whitespaces).isEmpty {
-                        Text("Précisez un scheme (ex : 4x6-8) pour activer Enregistrer")
-                            .font(.appCaption)
-                            .foregroundColor(.statusOrange)
-                            .padding(.horizontal, .appPagePadding)
-                            .padding(.bottom, 8)
-                    }
-
-                    // Inventory suggestions
-                    if !filtered.isEmpty {
-                        List(filtered, id: \.self) { ex in
-                            Button {
-                                name = ex
-                                // Hérite le default_scheme de l'inventaire
-                                if let defaultScheme = inventorySchemes[ex] {
-                                    scheme = defaultScheme
-                                }
-                            } label: {
-                                HStack {
-                                    Text(ex)
-                                        .foregroundColor(.appTextPrimary)
-                                        .font(.appLabel.weight(.regular))
-                                    Spacer()
-                                    Text(inventoryMuscleGroups[ex] ?? "Autre")
-                                        .font(.appCaption)
-                                        .foregroundColor(.gray.opacity(0.6))
-                                    if name == ex {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(Color.forge)
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                            .listRowBackground(Color.appCard)
-                        }
-                        .listStyle(.plain)
-                        .scrollContentBackground(.hidden)
-                        .scrollDismissesKeyboard(.interactively)
-                    }
+                    searchBar
+                    muscleChips
+                    recentsSection
+                    inventoryList
                 }
             }
             .navigationTitle("Ajouter à \(seance)")
@@ -2308,23 +2341,14 @@ struct AddExerciseSheet: View {
                         if isDirty { confirmDiscard = true } else { dismiss() }
                     }.foregroundColor(.gray)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") {
-                        let trimmed = name.trimmingCharacters(in: .whitespaces)
-                        guard !trimmed.isEmpty, !scheme.isEmpty else { return }
-                        onAdd(trimmed, scheme)
-                        dismiss()
-                    }
-                    .foregroundColor(canSave ? Color.forge : .gray)
-                    .disabled(!canSave)
-                }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) { bottomCTA }
             .interactiveDismissDisabled(isDirty)
             .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
                 Button("Abandonner", role: .destructive) { dismiss() }
                 Button("Continuer", role: .cancel) {}
             } message: {
-                Text("Les valeurs saisies seront perdues.")
+                Text("Les exercices cochés seront perdus.")
             }
         }
     }

@@ -323,6 +323,42 @@ final class ProgrammeViewModel: ObservableObject {
         if !lastSaveError { showSaveSuccess("Exercice ajouté") }
     }
 
+    /// Ajout multiple séquentiel — une intention côté VM (au lieu d'une boucle
+    /// côté vue comme pasteSeance). Filtre les exos déjà présents (fullProgram
+    /// est source de vérité, la sheet ne le voit pas). Mutation locale
+    /// CONDITIONNÉE au succès du POST (évite l'optimiste non conditionné :
+    /// un exo qui n'est pas persisté ne doit pas apparaître à l'affichage).
+    /// Option 1 continue-on-error : un échec n'interrompt pas le batch.
+    func addExercises(seance: String, exercises: [(String, String)]) async {
+        guard !exercises.isEmpty else { return }
+        let existing: Set<String> = fullProgram[seance].map { Set($0.keys) } ?? []
+        let toAdd = exercises.filter { !existing.contains($0.0) }
+        guard !toAdd.isEmpty else { return }
+
+        mutationCount += 1
+        lastSaveError = false
+        defer { mutationCount = max(0, mutationCount - 1) }
+
+        var added = 0
+        var failed = 0
+        for (ex, scheme) in toAdd {
+            do {
+                try await postProgrammeThrowing(["action": "add", "jour": seance, "exercise": ex, "scheme": scheme])
+                fullProgram[seance, default: [:]][ex] = scheme
+                exerciseOrder[seance, default: []].append(ex)
+                added += 1
+            } catch {
+                failed += 1
+            }
+        }
+        if failed > 0 { lastSaveError = true }
+        if added > 0 && failed == 0 {
+            showSaveSuccess(added == 1 ? "1 exercice ajouté" : "\(added) exercices ajoutés")
+        } else if added > 0 {
+            showSaveSuccess("\(added) ajouté(s), \(failed) échec(s)")
+        }
+    }
+
     func deleteExercise(seance: String, exercise: String) async {
         await postProgramme(["action": "remove", "jour": seance, "exercise": exercise])
     }
