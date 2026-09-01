@@ -1271,6 +1271,7 @@ struct ProgrammeView: View {
     }
 
     private var structureContent: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: .appSectionSpacing) {
                 // ── Onglets programmes (multi-progs seulement) ────
@@ -1443,6 +1444,7 @@ struct ProgrammeView: View {
                     } else {
                         ForEach(vm.orderedSeances, id: \.self) { seance in
                             sessionCard(for: seance)
+                                .id(seance)
                         }
                         PrimaryButton(title: "Nouvelle séance", icon: "plus",
                                       style: .outlined, size: .medium) {
@@ -1480,6 +1482,14 @@ struct ProgrammeView: View {
             CacheService.shared.clear(for: "programme_data")
             seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? []
             await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
+        }
+        .onChange(of: expandedSeance) { _, new in
+            guard let s = new else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                withAnimation { proxy.scrollTo(s, anchor: .top) }
+            }
+        }
         }
     }
 
