@@ -1906,54 +1906,97 @@ struct SwipeToDeleteRow<Content: View>: View {
     let onDelete: () -> Void
     let content: Content
     @State private var offset: CGFloat = 0
+    // Position reposée : 0 fermé, openOffset ouvert (corbeille révélée tap-actionnable).
+    // Visuel = offset (drag en cours) + restingOffset (position stable).
+    @State private var restingOffset: CGFloat = 0
 
-    private let deleteThreshold: CGFloat = 90
+    private let deleteThreshold: CGFloat = 60
+    private let openOffset: CGFloat = -80
 
     init(onDelete: @escaping () -> Void, @ViewBuilder content: () -> Content) {
         self.onDelete = onDelete
         self.content = content()
     }
 
+    private var visualOffset: CGFloat { offset + restingOffset }
+
+    private func close() {
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+            offset = 0
+            restingOffset = 0
+        }
+    }
+
+    private func triggerDelete() {
+        triggerImpact(style: .medium)
+        withAnimation(.easeOut(duration: 0.22)) {
+            offset = -600
+            restingOffset = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { onDelete() }
+    }
+
     var body: some View {
         ZStack(alignment: .trailing) {
-            // Fond rouge révélé au swipe. Opacité progressive suit l'offset.
-            HStack {
-                Spacer()
-                Image(systemName: "trash.fill")
-                    .foregroundColor(.white)
-                    .font(.appBody.weight(.semibold))
-                    .padding(.trailing, 24)
+            // Fond rouge révélé au swipe. En état open (restingOffset != 0), tap = delete.
+            // allowsHitTesting gate : fermé = pas de bouton tapable (couvert par content).
+            Button(action: triggerDelete) {
+                HStack {
+                    Spacer()
+                    Image(systemName: "trash.fill")
+                        .foregroundColor(.white)
+                        .font(.appBody.weight(.semibold))
+                        .padding(.trailing, 24)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .buttonStyle(.plain)
             .background(Color.appDanger)
-            .opacity(offset < -10 ? min(1, -offset / 40) : 0)
+            .opacity(visualOffset < -10 ? min(1, -visualOffset / 40) : 0)
+            .allowsHitTesting(restingOffset != 0)
 
             content
                 .background(Color.appCard)
-                .offset(x: offset)
+                .offset(x: visualOffset)
+                .overlay(
+                    // Tap-close en état open UNIQUEMENT. Overlay conditionnel :
+                    // absent quand fermé → taps passent au Button interne (ExerciseRow
+                    // → EditSchemeSheet). Zéro vol de tap en état fermé.
+                    Group {
+                        if restingOffset != 0 {
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .onTapGesture { close() }
+                        }
+                    }
+                )
                 .gesture(
-                    DragGesture(minimumDistance: 12)
+                    DragGesture(minimumDistance: 8)
                         .onChanged { val in
                             let dx = val.translation.width
                             let dy = val.translation.height
-                            // Discriminate direction — évite d'attraper un scroll
-                            // vertical de la ScrollView parente ou un reorder handle.
-                            guard abs(dx) > abs(dy) * 1.5 else { return }
+                            // Tolérance 1.0 (45°) : accepte les diagonales au pouce.
+                            // Scroll vertical parent capture avant nous les gestes clairement verticaux.
+                            guard abs(dx) > abs(dy) else { return }
                             offset = min(0, dx)
                         }
                         .onEnded { val in
                             let dx = val.translation.width
                             let dy = val.translation.height
-                            let horiz = abs(dx) > abs(dy) * 1.5
+                            let horiz = abs(dx) > abs(dy)
                             if horiz && dx < -deleteThreshold {
-                                triggerImpact(style: .medium)
-                                withAnimation(.easeOut(duration: 0.22)) { offset = -600 }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                    onDelete()
+                                triggerDelete()
+                            } else if horiz && dx < -30 {
+                                // Swipe partiel : snap open, corbeille tap-actionnable.
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                                    offset = 0
+                                    restingOffset = openOffset
                                 }
                             } else {
                                 withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
                                     offset = 0
+                                    restingOffset = 0
                                 }
                             }
                         }
