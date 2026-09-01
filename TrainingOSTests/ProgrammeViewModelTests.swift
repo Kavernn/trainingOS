@@ -115,6 +115,23 @@ final class ProgrammeViewModelTests: XCTestCase {
         XCTAssertEqual(vm.orderedSeances, ["Push A", "Legs", "Zzz Test"])
     }
 
+    /// Ordre chronologique complet : AM avant PM à l'intérieur d'un jour,
+    /// jours dans l'ordre Lun→Dim. Locked In 2027 shape (double séance).
+    /// Sans ça, les PM tombaient dans "unscheduled" et sortaient alpha en fin.
+    func test_orderedSeances_interleavesMorningEvening() {
+        let vm = ProgrammeViewModel()
+        vm.fullProgram = [
+            "Lundi AM — Jambes": [:], "Lundi PM — Haut": [:],
+            "Mardi AM — Épaules": [:], "Mardi PM — Puissance": [:],
+        ]
+        vm.schedule = ["Lun": "Lundi AM — Jambes", "Mar": "Mardi AM — Épaules"]
+        vm.eveningSchedule = ["Lun": "Lundi PM — Haut", "Mar": "Mardi PM — Puissance"]
+        XCTAssertEqual(vm.orderedSeances, [
+            "Lundi AM — Jambes", "Lundi PM — Haut",
+            "Mardi AM — Épaules", "Mardi PM — Puissance",
+        ])
+    }
+
     // MARK: - Doctrine dérivée : weeklyVolumeByMuscle
 
     /// Verrouille le fix Lot 1 (58dab26/97ce9cb) : la valeur DB "glutes" (anglais

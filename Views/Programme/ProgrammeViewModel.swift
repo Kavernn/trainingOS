@@ -71,9 +71,10 @@ final class ProgrammeViewModel: ObservableObject {
 
     // MARK: - Doctrine dérivée
 
-    /// Ordre d'affichage des séances : dérivé du planning matin, source unique.
-    ///  - Base : ordre d'apparition dans schedule Lun→Dim (première occurrence
-    ///    d'une séance donnée l'ancre à ce jour).
+    /// Ordre d'affichage des séances : dérivé du planning, source unique.
+    ///  - Base : ordre chronologique Lun→Dim, AM avant PM à l'intérieur d'un
+    ///    jour (schedule puis eveningSchedule). Première occurrence d'une
+    ///    séance donnée l'ancre à ce slot.
     ///  - Ensuite : les séances de fullProgram non planifiées, triées alpha.
     ///
     /// D5 : remplace le régime dual apiSessionOrder+drag persisté serveur. Le
@@ -83,8 +84,10 @@ final class ProgrammeViewModel: ObservableObject {
         var scheduled: [String] = []
         var seen = Set<String>()
         for day in TrainingDoctrine.dayNames {
-            guard let s = schedule[day], s != "Repos", fullProgram[s] != nil else { continue }
-            if seen.insert(s).inserted { scheduled.append(s) }
+            for dict in [schedule, eveningSchedule] {
+                guard let s = dict[day], s != "Repos", fullProgram[s] != nil else { continue }
+                if seen.insert(s).inserted { scheduled.append(s) }
+            }
         }
         let unscheduled = fullProgram.keys.filter { !seen.contains($0) }.sorted()
         return scheduled + unscheduled
@@ -253,9 +256,21 @@ final class ProgrammeViewModel: ObservableObject {
         guard programSuggestions.isEmpty else { return }
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
         let dateStr = fmt.string(from: Date())
+        let amNames = Set(schedule.values)
+        let pmNames = Set(eveningSchedule.values)
         for seance in orderedSeances {
+            // Slot réel de la séance : morning si planifiée AM (ou fallback
+            // non-planifiée), evening si uniquement PM. AM gagne en cas
+            // d'ambiguïté AM+PM, cohérent avec priorité 1 par nom du backend
+            // (get_previous_session_by_name ignore session_type). "morning" en
+            // dur cassait la précharge des séances PM neuves : mauvais slot en
+            // workout_schedule.py (exos du matin chargés) + fallback historique
+            // filtré sur le mauvais type.
+            let sessionType: String = amNames.contains(seance) ? "morning"
+                                    : pmNames.contains(seance) ? "evening"
+                                    : "morning"
             if let list = try? await APIService.shared.fetchProgressionSuggestions(
-                date: dateStr, sessionType: "morning", sessionName: seance
+                date: dateStr, sessionType: sessionType, sessionName: seance
             ) {
                 programSuggestions[seance] = Dictionary(uniqueKeysWithValues: list.map { ($0.exerciseName, $0) })
             }
