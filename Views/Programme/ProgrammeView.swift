@@ -986,13 +986,15 @@ struct ProgrammeView: View {
         .padding(.vertical, 40)
     }
 
-    // MARK: - Tab Semaine (consultation pure — planning, volume, mésocycle)
+    // MARK: - Tab Semaine (14 cartes AM/PM ouvrables + volume + mésocycle)
+    // Consultation pure : chaque carte est repliée par défaut, dépli local
+    // pour voir les exos, bouton "Modifier →" qui bascule vers Structure et
+    // déplie la bonne séance (expandedSeance + selectedTab).
 
     private var weekContent: some View {
         ScrollView {
             VStack(spacing: .appSectionSpacing) {
-                planningMatinSection
-                planningSoirSection
+                weekAgendaSection
                 volumeSection
                 mesocycleSection
             }
@@ -1008,66 +1010,39 @@ struct ProgrammeView: View {
         return TrainingDoctrine.dayNames[idx]
     }
 
-    // Planning — deux blocs identiques matin / soir, lecture seule.
-
-    private var planningMatinSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AppSectionHeader("PLANNING MATIN")
-            planningCard(schedule: vm.schedule)
-        }
+    private func openInStructure(_ seance: String?) {
+        guard let s = seance else { return }
+        expandedSeance = s
+        withAnimation { selectedTab = .structure }
     }
 
-    private var planningSoirSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AppSectionHeader("PLANNING SOIR")
-            planningCard(schedule: vm.eveningSchedule, inheritFrom: vm.schedule)
-        }
-    }
-
-    private func planningCard(schedule: [String: String], inheritFrom: [String: String]? = nil) -> some View {
-        let days = TrainingDoctrine.dayNames
-        return VStack(spacing: 0) {
-            ForEach(Array(days.enumerated()), id: \.offset) { pair in
-                planningRow(
-                    day: pair.element,
-                    session: schedule[pair.element],
-                    inheritedFrom: inheritFrom?[pair.element]
+    private var weekAgendaSection: some View {
+        VStack(spacing: 10) {
+            ForEach(TrainingDoctrine.dayNames, id: \.self) { day in
+                let am = vm.schedule[day]
+                let pm = vm.eveningSchedule[day]
+                DaySessionCard(
+                    moment: .am,
+                    day: day,
+                    isToday: day == todayDayName,
+                    seance: am,
+                    exercises: vm.fullProgram[am ?? ""] ?? [:],
+                    sessionsList: sessionsList,
+                    onPick: { _ in },
+                    onEdit: { openInStructure(am) }
                 )
-                if pair.offset < days.count - 1 {
-                    Rectangle()
-                        .fill(Color.appTextSecondary.opacity(0.10))
-                        .frame(height: .appHairline)
-                        .padding(.horizontal, .appCardInsetH)
-                }
+                DaySessionCard(
+                    moment: .pm,
+                    day: day,
+                    isToday: day == todayDayName,
+                    seance: pm,
+                    exercises: vm.fullProgram[pm ?? ""] ?? [:],
+                    sessionsList: sessionsList,
+                    onPick: { _ in },
+                    onEdit: { openInStructure(pm) }
+                )
             }
         }
-        .glassCard()
-    }
-
-    // Distinction visuelle : hérité (matin bat le soir vide) = italique + gris,
-    // manuel (override soir défini) = plein, Repos = gris (inchangé).
-    private func planningRow(day: String, session: String?, inheritedFrom: String? = nil) -> some View {
-        let isToday = day == todayDayName
-        let manual = session.flatMap { ($0.isEmpty || $0 == "Repos") ? nil : $0 }
-        let inherited = manual == nil
-            ? inheritedFrom.flatMap { ($0.isEmpty || $0 == "Repos") ? nil : $0 }
-            : nil
-        let isInherited = inherited != nil
-        let displaySession = manual ?? inherited ?? "Repos"
-        let isRepos = displaySession == "Repos"
-        return HStack {
-            Text(day)
-                .frame(width: 44, alignment: .leading)
-                .font(.appLabel.weight(isToday ? .semibold : .regular))
-                .foregroundColor(isToday ? .forge : .appTextPrimary)
-            Text(displaySession)
-                .font(.appLabel.weight(isToday ? .semibold : .regular))
-                .italic(isInherited)
-                .foregroundColor((isRepos || isInherited) ? .appTextSecondary : .appTextPrimary)
-            Spacer()
-        }
-        .frame(height: 44)
-        .padding(.horizontal, .appCardInsetH)
     }
 
     // Volume — 11 barres doctrinales pleine largeur + alertes pied MEV+ / MAV+.
@@ -2587,6 +2562,10 @@ private struct DaySessionCard: View {
     let exercises: [String: String]
     let sessionsList: [String]
     let onPick: (String?) -> Void
+    // nil = mode édition inline (menu ⋯ assigner/vider, onglet Aujourd'hui).
+    // Non-nil = mode lecture (menu caché, bouton "Modifier →" dans filledBody,
+    // onglet Semaine → pont vers Structure).
+    var onEdit: (() -> Void)? = nil
 
     @State private var isExpanded = false
 
@@ -2645,7 +2624,7 @@ private struct DaySessionCard: View {
 
             Spacer()
 
-            menu
+            if onEdit == nil { menu }
         }
     }
 
@@ -2676,27 +2655,44 @@ private struct DaySessionCard: View {
 
     @ViewBuilder
     private func filledBody(seance: String) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
-        } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(seance)
-                        .font(.appBody.weight(.semibold))
-                        .foregroundColor(.appTextPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text("\(exercises.count) exercice\(exercises.count > 1 ? "s" : "")")
+        HStack(spacing: 8) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(seance)
+                            .font(.appBody.weight(.semibold))
+                            .foregroundColor(.appTextPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Text("\(exercises.count) exercice\(exercises.count > 1 ? "s" : "")")
+                            .font(.appCaption)
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.appCaption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.gray.opacity(0.6))
                 }
-                Spacer()
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.appCaption)
-                    .foregroundColor(.gray.opacity(0.6))
+            }
+            .buttonStyle(.plain)
+            if let onEdit {
+                Button(action: onEdit) {
+                    HStack(spacing: 4) {
+                        Text("Modifier")
+                            .font(.appMicro.weight(.semibold))
+                        Image(systemName: "arrow.right")
+                            .font(.appMicro.weight(.semibold))
+                    }
+                    .foregroundColor(moment.color)
+                    .padding(.horizontal, 8).padding(.vertical, 5)
+                    .background(moment.color.opacity(0.12))
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
             }
         }
-        .buttonStyle(.plain)
 
         if isExpanded && !exercises.isEmpty {
             VStack(spacing: 6) {
