@@ -21,7 +21,6 @@ struct DashboardView: View {
     @State private var showMoodSheet = false
     @State private var lastRefresh: Date = .distantPast
     @State private var actionErrorMessage: String? = nil
-    @State private var showMorningReveal = false
     @State private var showNutritionAddSheet = false
     @State private var showQuickTrigger = false
     @State private var showQuickBattle = false
@@ -397,14 +396,6 @@ struct DashboardView: View {
         } message: {
             Text(actionErrorMessage ?? "")
         }
-        .fullScreenCover(isPresented: $showMorningReveal) {
-            if let brief = vm.morningBrief {
-                MorningRevealView(morningBrief: brief) {
-                    UserDefaults.standard.set(todayStr, forKey: "morningRevealDate")
-                    showMorningReveal = false
-                }
-            }
-        }
         .sheet(isPresented: $showNutritionAddSheet) {
             AddNutritionSheet {
                 Task { await vm.loadAll() }
@@ -455,8 +446,8 @@ struct DashboardView: View {
         let hour = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         guard hour < 14,
               UserDefaults.standard.string(forKey: "morningRevealDate") != todayStr,
-              vm.morningBrief != nil else { return }
-        showMorningReveal = true
+              let brief = vm.morningBrief else { return }
+        AppState.shared.enqueueLaunchPrompt(.morningReveal(brief))
     }
 
     private var dailyAccent: Color {

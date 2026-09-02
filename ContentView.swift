@@ -81,11 +81,37 @@ private struct iOSContentView: View {
         .buttonStyle(ScaleButtonStyle())
         .task { await appState.checkDNAEvolution() }
         .task { await appState.checkYesterdayNutrition() }
-        .fullScreenCover(item: $appState.pendingDNAEvolution) { event in
-            DNAEvolutionSheet(event: event, onDismiss: appState.acknowledgeDNAEvolution)
+        // File d'attente unifiée : cover et sheet racines pilotés par AppState.launchQueue.
+        // Ordre séance>nutrition>DNA, version molle : le head reste stable jusqu'à son dismiss.
+        .fullScreenCover(item: Binding(
+            get: { appState.currentCoverPrompt },
+            set: { _ in }  // fullScreenCover non-dismissable interactivement — side-effect via onDismiss du modal
+        )) { prompt in
+            switch prompt {
+            case .morningReveal(let brief):
+                MorningRevealView(morningBrief: brief) {
+                    appState.dismissLaunchPrompt(.morningReveal(brief))
+                }
+            case .dnaEvolution(let event):
+                DNAEvolutionSheet(event: event, onDismiss: appState.acknowledgeDNAEvolution)
+            case .nutritionCatchup:
+                EmptyView()  // exclu par currentCoverPrompt — ne devrait jamais arriver
+            }
         }
-        .sheet(item: $appState.pendingNutritionCatchup) { prompt in
-            NutritionCatchupSheet(prompt: prompt)
+        .sheet(item: Binding(
+            get: { appState.currentSheetPrompt },
+            set: { newValue in
+                // Swipe-close du sheet nutrition : dequeue sans ack (re-prompt au prochain launch).
+                // Le bouton "Non hier était complet" / le commit passent par dismissNutritionCatchup(true)
+                // qui a déjà retiré le head — dans ce cas launchQueue.first != nutrition, guard échoue, skip.
+                if newValue == nil, let head = appState.launchQueue.first, case .nutritionCatchup = head {
+                    appState.dismissNutritionCatchup(ackForToday: false)
+                }
+            }
+        )) { prompt in
+            if case .nutritionCatchup(let ncp) = prompt {
+                NutritionCatchupSheet(prompt: ncp)
+            }
         }
         .globalActionFeedback()
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
