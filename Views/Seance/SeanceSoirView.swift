@@ -126,6 +126,7 @@ class SeanceSoirViewModel: SeanceViewModel {
 /// WorkoutActiveView.swift:1315 (sheet), SeanceView.swift:502 (sheet),
 /// DashboardTodayCards.swift (sheet), DashboardView.swift (sheet).
 struct SeanceSoirView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var vm: SeanceSoirViewModel
     private let hasOverride: Bool
 
@@ -180,7 +181,7 @@ struct SeanceSoirView: View {
             // isOverride bypass le filtre split (assignments) côté WorkoutSeanceView :
             // un override manuel (Yoga, séance dédiée) montre TOUS ses exos, pas
             // seulement ceux envoyés depuis le matin.
-            WorkoutSeanceView(data: data, vm: vm, isSecondSession: true, isOverride: hasOverride)
+            WorkoutSeanceView(data: data, vm: vm, isSecondSession: true, isOverride: hasOverride, onDidFinish: { dismiss() })
         }
     }
 }
