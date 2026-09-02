@@ -117,56 +117,16 @@ struct VolumeLandmarksCard: View {
                 legendDot(.appDanger,  "Surcharge")
             }
 
-            GeometryReader { outer in
-                VStack(spacing: 8) {
-                    ForEach(sorted, id: \.0) { muscle, lm in
-                        let barW = outer.size.width - 190
-                        let ratio = min(Double(lm.weeklySets) / Double(lm.mrv), 1.2)
-                        HStack(spacing: 8) {
-                            Text(muscle.localizedMuscleGroup)
-                                .font(.appCaption.weight(.medium))
-                                .foregroundColor(.appTextPrimary)
-                                .frame(width: 100, alignment: .leading)
-                                .lineLimit(1)
-
-                            // shape inline, radius calibré à la hauteur de la jauge
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(Color.appSurfaceInset)
-                                    .frame(height: 8)
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(zoneColor(lm.zone).opacity(0.8))
-                                    .frame(width: min(barW * ratio, barW), height: 8)
-                                Rectangle()
-                                    .fill(Color.appOnSurface.opacity(0.4))
-                                    .frame(width: 1, height: 12)
-                                    .offset(x: barW * Double(lm.mev) / Double(lm.mrv))
-                                Rectangle()
-                                    .fill(Color.appOnSurface.opacity(0.25))
-                                    .frame(width: 1, height: 12)
-                                    .offset(x: min(barW * Double(lm.mav) / Double(lm.mrv), barW - 1))
-                            }
-                            .frame(height: 12)
-
-                            Text("\(lm.weeklySets)")
-                                .font(.appCaption.weight(.black))
-                                .foregroundColor(zoneColor(lm.zone))
-                                .frame(width: 22, alignment: .trailing)
-
-                            Text(zoneLabel(lm.zone))
-                                .font(.appMicro.weight(.semibold))
-                                .foregroundColor(zoneColor(lm.zone).opacity(0.8))
-                                .frame(width: 44, alignment: .trailing)
-                        }
-                    }
+            VStack(spacing: 10) {
+                ForEach(sorted, id: \.0) { muscle, lm in
+                    landmarkRow(muscle: muscle, lm: lm)
                 }
             }
-            .frame(height: CGFloat(sorted.count) * (12 + 7) - 7)
 
             Text("MEV · MAV · MRV d'après Renaissance Periodization (Israetel et al.)")
                 .font(.appMicro).foregroundColor(.gray.opacity(0.6))
-                // alignement fin sous grille
-                .padding(.top, 2)
+                .padding(.top, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             let specificsEntries: [(String, [String: Int])] = sorted.compactMap { muscle, lm in
                 guard let detail = lm.specificDetail, !detail.isEmpty else { return nil }
@@ -194,6 +154,54 @@ struct VolumeLandmarksCard: View {
         }
         .padding(16)
         .glassCard()
+    }
+
+    // Une ligne = nom + "N direct · +M indirect" (au-dessus) puis barre pleine largeur.
+    // La barre + couleur = direct uniquement. Indirect en gris, indicatif.
+    @ViewBuilder
+    private func landmarkRow(muscle: String, lm: MuscleLandmark) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Text(muscle.localizedMuscleGroup)
+                    .font(.appCaption.weight(.medium))
+                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Text("\(lm.weeklySetsDirect)")
+                    .font(.appCaption.weight(.black))
+                    .foregroundColor(zoneColor(lm.zone))
+                Text("direct")
+                    .font(.appMicro.weight(.medium))
+                    .foregroundColor(.gray)
+                if lm.weeklySetsIndirect > 0 {
+                    Text("· +\(lm.weeklySetsIndirect) ind.")
+                        .font(.appMicro.weight(.medium))
+                        .foregroundColor(.gray.opacity(0.65))
+                }
+            }
+            GeometryReader { geo in
+                let barW  = geo.size.width
+                let ratio = min(Double(lm.weeklySetsDirect) / Double(lm.mrv), 1.2)
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.appSurfaceInset)
+                        .frame(height: 8)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(zoneColor(lm.zone).opacity(0.85))
+                        .frame(width: min(barW * ratio, barW), height: 8)
+                    Rectangle()
+                        .fill(Color.appOnSurface.opacity(0.4))
+                        .frame(width: 1, height: 12)
+                        .offset(x: barW * Double(lm.mev) / Double(lm.mrv))
+                    Rectangle()
+                        .fill(Color.appOnSurface.opacity(0.25))
+                        .frame(width: 1, height: 12)
+                        .offset(x: min(barW * Double(lm.mav) / Double(lm.mrv), barW - 1))
+                }
+                .frame(height: 12)
+            }
+            .frame(height: 12)
+        }
     }
 
     private func legendDot(_ color: Color, _ label: String) -> some View {

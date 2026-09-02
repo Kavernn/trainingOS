@@ -243,24 +243,26 @@ struct ExercisePrescription: Codable {
 
 // MARK: - Muscle Landmark
 struct MuscleLandmark: Codable {
-    let mev: Int        // Minimum Effective Volume (weekly sets)
-    let mav: Int        // Maximum Adaptive Volume
-    let mrv: Int        // Maximum Recoverable Volume
-    let weeklySets: Int // Actual sets logged this week
-    let specificDetail: [String: Int]? // {specific_name: sets} for exercises with muscle_specific set
+    let mev: Int
+    let mav: Int
+    let mrv: Int
+    let weeklySetsDirect:   Int  // exos primaires (muscle_group) — comparé aux seuils
+    let weeklySetsIndirect: Int  // exos secondaires (muscles[] − direct) — indicatif seul
+    let specificDetail: [String: Int]?
 
     enum CodingKeys: String, CodingKey {
         case mev, mav, mrv
-        case weeklySets     = "weekly_sets"
-        case specificDetail = "specific_detail"
+        case weeklySetsDirect   = "weekly_sets_direct"
+        case weeklySetsIndirect = "weekly_sets_indirect"
+        case specificDetail     = "specific_detail"
     }
 
     enum Zone { case underMEV, optimal, approachingMRV, overMRV }
 
     var zone: Zone {
-        if weeklySets < mev  { return .underMEV }
-        if weeklySets > mrv  { return .overMRV }
-        if weeklySets >= mav { return .approachingMRV }
+        if weeklySetsDirect < mev  { return .underMEV }
+        if weeklySetsDirect > mrv  { return .overMRV }
+        if weeklySetsDirect >= mav { return .approachingMRV }
         return .optimal
     }
 }

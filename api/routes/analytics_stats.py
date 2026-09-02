@@ -83,14 +83,19 @@ def api_stats_data():
     muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
     weekly_sets     = _calc_weekly_sets_per_muscle(weights, inventory)
     weekly_specific = _calc_weekly_specific_breakdown(weights, inventory)
+    # Direct = exos avec muscle_group primaire mappé (via _calc_weekly_specific_breakdown).
+    # Indirect = total any-touching (muscles[]) − direct. Seuls les DIRECT nourrissent la
+    # coloration MEV/MAV/MRV — l'indirect est indicatif (voir dossier landmarks 2026-09).
+    direct_totals   = {k: sum(v.values()) for k, v in weekly_specific.items()}
     inventory_types = {name: info.get("type") or "machine" for name, info in inventory.items()}
 
     tracked_muscles = set(muscle_stats.keys()) | set(weekly_sets.keys())
     muscle_landmarks = {
         muscle: {
             **MUSCLE_LANDMARKS[muscle],
-            "weekly_sets":    weekly_sets.get(muscle, 0),
-            "specific_detail": weekly_specific.get(muscle) or None,
+            "weekly_sets_direct":   direct_totals.get(muscle, 0),
+            "weekly_sets_indirect": max(0, weekly_sets.get(muscle, 0) - direct_totals.get(muscle, 0)),
+            "specific_detail":      weekly_specific.get(muscle) or None,
         }
         for muscle in tracked_muscles
         if muscle in MUSCLE_LANDMARKS
