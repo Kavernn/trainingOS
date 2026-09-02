@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Optional
 
 import db
-from tdee import compute_bmr, _LBS_TO_KG
+from tdee import compute_bmr, _LBS_TO_KG, _GOAL_ADJ
 from utils import _today_mtl, get_nutrition_time_context
 
 _OBJECTIVE_LABELS = {
@@ -275,6 +275,14 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
     objective      = _OBJECTIVE_LABELS.get(goal, goal)
     target_balance = _TARGET_BALANCE.get(goal, "±100 kcal")
 
+    # ── Cible calorique adaptative (7j précédents complets, stable intra-jour) ─
+    prior_history = compute_energy_history(days=8)[:-1]
+    if prior_history:
+        avg_tdee_prior  = sum(h["tdee"] for h in prior_history) / len(prior_history)
+        target_calories = round(avg_tdee_prior + _GOAL_ADJ.get(goal, 0))
+    else:
+        target_calories = None
+
     return {
         "date":           today,
         "bmr":            bmr,
@@ -291,6 +299,7 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
         "is_too_early":   is_too_early,
         "objective":      objective,
         "target_balance": target_balance,
+        "target_calories": target_calories,
         "breakdown": {
             "workouts":      workout_sessions,
             "cardio":        cardio_sessions,

@@ -36,6 +36,8 @@ _ACTIVITY_MAP = [
     (float("inf"), 1.900),
 ]
 
+_GOAL_ADJ = {"bulk": +300, "cut": -400, "recomp": -200, "maintain": 0}
+
 
 # ── Activité ──────────────────────────────────────────────────────────────────
 
@@ -98,8 +100,7 @@ def compute_tdee(profile: dict) -> dict:
     bmr      = bmr_data["bmr"]
     tdee     = round(bmr * af)
 
-    goal_adj = {"bulk": +300, "cut": -400, "recomp": -200, "maintain": 0}
-    calorie_target = tdee + goal_adj.get(goal, 0)
+    calorie_target = tdee + _GOAL_ADJ.get(goal, 0)
 
     macros = compute_macro_targets(weight_kg, calorie_target, goal, body_fat)
 
