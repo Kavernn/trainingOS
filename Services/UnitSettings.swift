@@ -23,6 +23,9 @@ final class UnitSettings: ObservableObject {
         String(format: "%.\(decimals)f \(label)", display(lbs))
     }
     func inputStr(_ lbs: Double) -> String {
-        String(format: "%.1f", display(lbs))
+        let v = display(lbs)
+        return v.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(v))"
+            : String(format: "%.1f", v)
     }
 }
