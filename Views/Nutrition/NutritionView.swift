@@ -22,7 +22,7 @@ struct NutritionView: View {
                                     onDismiss: { vm.networkError = nil })
                                     .padding(.horizontal, 16)
                             }
-                            KcalHeader(consumed: consumed, target: energy?.tdee)
+                            KcalHeader(consumed: consumed, target: energy?.targetCalories)
                                 .padding(.horizontal, 16)
                             MacroRow(totals: vm.totals)
                                 .padding(.horizontal, 16)

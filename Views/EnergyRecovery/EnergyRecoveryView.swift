@@ -161,7 +161,7 @@ private struct EnergyTabContent: View {
 
             if history.count >= 2 {
                 EnergyChartSection(history: history,
-                                   targetBalance: energy?.targetBalance)
+                                   targetCalories: energy?.targetCalories)
             }
         }
         .padding(.horizontal, 16)
@@ -447,25 +447,8 @@ private struct EnergyErrorCard: View {
 
 private struct EnergyChartSection: View {
     let history: [EnergyHistoryDay]
-    var targetBalance: String? = nil
+    var targetCalories: Int? = nil
     @State private var selectedDay: EnergyHistoryDay?
-
-    private func targetMidpoint(_ s: String?) -> Int? {
-        guard let s = s else { return nil }
-        if s.contains("±") { return 0 }
-        var nums: [Int] = []
-        var cur = ""
-        var sign = 1
-        for ch in s {
-            if ch == "+" { sign = 1; cur = "" }
-            else if ch == "-" { sign = -1; cur = "" }
-            else if ch.isNumber { cur.append(ch) }
-            else if !cur.isEmpty, let n = Int(cur) { nums.append(n * sign); cur = "" }
-        }
-        if !cur.isEmpty, let n = Int(cur) { nums.append(n * sign) }
-        guard !nums.isEmpty else { return nil }
-        return nums.reduce(0, +) / nums.count
-    }
 
     private var yDomain: ClosedRange<Int> {
         let allVals = history.flatMap { day -> [Int] in
@@ -489,7 +472,7 @@ private struct EnergyChartSection: View {
                 HStack(spacing: 12) {
                     legendDot(color: .statusBlue,   label: "TDEE")
                     legendDot(color: .statusGreen,  label: "Apports")
-                    if targetBalance != nil {
+                    if targetCalories != nil {
                         legendDot(color: .statusYellow, label: "Cible")
                     }
                 }
@@ -551,10 +534,8 @@ private struct EnergyChartSection: View {
                     .symbolSize(20)
                 }
 
-                // Ligne cible (objectif nutritionnel)
-                let avgTDEE = history.reduce(0) { $0 + $1.tdee } / history.count
-                if let mid = targetMidpoint(targetBalance) {
-                    let target = avgTDEE + mid
+                // Ligne cible (source unique serveur : /api/energy/daily.target_calories)
+                if let target = targetCalories {
                     RuleMark(y: .value("Cible", target))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
                         .foregroundStyle(Color.statusYellow.opacity(0.5))

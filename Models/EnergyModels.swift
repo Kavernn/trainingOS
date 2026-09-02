@@ -25,6 +25,7 @@ struct EnergyDaily: Codable {
     let isTooEarly: Bool?
     let objective: String?
     let targetBalance: String?
+    let targetCalories: Int?
     let breakdown: EnergyBreakdown?
 
     var isError: Bool { error != nil }
@@ -39,6 +40,7 @@ struct EnergyDaily: Codable {
         case balanceStatus = "balance_status"
         case isTooEarly    = "is_too_early"
         case targetBalance = "target_balance"
+        case targetCalories = "target_calories"
     }
 }
 
