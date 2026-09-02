@@ -2,330 +2,262 @@ import SwiftUI
 import Combine
 
 struct NutritionView: View {
-    @EnvironmentObject private var appState: AppState
     @StateObject private var vm = NutritionViewModel()
+    @State private var energy: EnergyDaily? = nil
     @State private var showAdd = false
-    @State private var showComposer = false
-    @State private var editTarget: NutritionEntry? = nil
-    @State private var showSettings = false
     @State private var toast: ToastMessage? = nil
-    @State private var historyPeriod = 7
-    @State private var macroGap: MacroGap? = nil
-    // N-D1: banner when settings are missing
-    @State private var showSettingsBanner = false
-    @State private var pendingDelete: NutritionEntry? = nil
-    @State private var pendingDeleteIndex: Int? = nil
-    @State private var pendingDeleteTimer: Task<Void, Never>? = nil
-    @State private var showUndoBanner = false
-    private var effectiveSettings: NutritionSettings? { vm.settings }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 AmbientBackground(color: Color.forge)
-                // N-B1: AppLoadingView only on first load (entries empty); otherwise show content
                 if vm.isLoading && vm.entries.isEmpty {
                     AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 20) {
                             if let err = vm.networkError {
                                 ErrorBannerView(error: err,
-                                    onRetry: { Task { await vm.loadData() } },
+                                    onRetry: { Task { await reload() } },
                                     onDismiss: { vm.networkError = nil })
                                     .padding(.horizontal, 16)
                             }
-
-
-                            // N-D1: banner when nutritional settings are not configured
-                            if showSettingsBanner {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundColor(Color.statusYellow)
-                                    Text("Cibles nutritionnelles non définies — l'app calcule dans le vide.")
-                                        .font(.appLabel)
-                                        .foregroundColor(.appTextPrimary)
-                                    Spacer()
-                                    Button("Définir les cibles") { showSettings = true }
-                                        .font(.appLabel).fontWeight(.semibold)
-                                        .foregroundColor(Color.forge)
-                                }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(Color.statusYellow.opacity(0.1))
-                                .cornerRadius(10)
-                                .overlay(RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.statusYellow.opacity(0.3), lineWidth: 1))
+                            KcalHeader(consumed: consumed, target: energy?.tdee)
                                 .padding(.horizontal, 16)
-                            }
-
-                            // Message actionnable déficit / surplus
-                            NutritionActionMessage(
-                                totals: vm.totals,
-                                settings: effectiveSettings,
-                                hasEntries: !vm.entries.isEmpty,
-                                onAddMeal: { showAdd = true }
-                            )
-                            .padding(.horizontal, 16)
-                            .appearAnimation(delay: 0.03)
-
-                            if let score = vm.qualityScore, !vm.qualityIsTooEarly, !vm.qualityNoData {
-                                NutritionQualityBadge(score: score)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.04)
-                            }
-
-                            // Hero calories + macros
-                            MacroSummaryCard(totals: vm.totals, settings: effectiveSettings)
+                            MacroRow(totals: vm.totals)
                                 .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.05)
-
-                            DailyRemainingCard(totals: vm.totals, settings: effectiveSettings, todayType: vm.todayType)
+                            EntriesList(entries: vm.entries,
+                                        onDelete: { entry in
+                                            Task { await vm.deleteEntry(entry) }
+                                        })
                                 .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.08)
-
-                            if let dayType = vm.todayType {
-                                DayTypeBadge(
-                                    type: dayType,
-                                    session: vm.todaySession,
-                                    effectiveCal: vm.settings?.dayTypeTargets?.target(for: dayType)?.calories,
-                                    effectiveGluc: vm.settings?.dayTypeTargets?.target(for: dayType)?.glucides
-                                )
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.1)
-                            }
-
-                            WorkoutTimingCard(todayType: vm.todayType, totals: vm.totals, settings: effectiveSettings)
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.12)
-
-                            // Entrées du jour groupées
-                            GroupedEntryList(
-                                entries: vm.entries,
-                                onEdit: { editTarget = $0 },
-                                onDelete: { entry in
-                                    // Confirm any previously pending delete before starting a new one
-                                    if let prev = pendingDelete {
-                                        pendingDeleteTimer?.cancel()
-                                        Task { await vm.deleteEntry(prev) }
-                                    }
-                                    pendingDeleteTimer?.cancel()
-                                    pendingDeleteIndex = vm.entries.firstIndex { $0.entryId == entry.entryId }
-                                    pendingDelete = entry
-                                    vm.entries.removeAll { $0.entryId == entry.entryId }
-                                    withAnimation { showUndoBanner = true }
-                                    pendingDeleteTimer = Task {
-                                        try? await Task.sleep(nanoseconds: 5_000_000_000) // 5s
-                                        guard !Task.isCancelled else { return }
-                                        await vm.deleteEntry(entry)
-                                        pendingDelete = nil
-                                        await MainActor.run { withAnimation { showUndoBanner = false } }
-                                    }
-                                }
-                            )
-                            .padding(.horizontal, 16)
-                            .appearAnimation(delay: 0.15)
-
-                            // Historique + period picker
-                            if !vm.history.isEmpty {
-                                HStack(spacing: 6) {
-                                    ForEach([7, 30, 90], id: \.self) { p in
-                                        let sel    = historyPeriod == p
-                                        let bg: Color     = sel ? Color.forge.opacity(0.18) : .clear
-                                        let fg: Color     = sel ? Color.forge : .gray
-                                        let stroke: Color = sel ? Color.forge.opacity(0.4)  : .clear
-                                        Button("\(p)j") {
-                                            withAnimation { historyPeriod = p }
-                                            Task { await vm.loadData(days: p, silent: true) }
-                                        }
-                                        .font(.appCaption).fontWeight(.semibold)
-                                        .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(bg)
-                                        .foregroundColor(fg)
-                                        .cornerRadius(7)
-                                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(stroke, lineWidth: 1))
-                                    }
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.18)
-
-                                WeeklyNutritionChart(
-                                    history: vm.history,
-                                    protTarget: vm.settings?.proteines ?? 180,
-                                    calTarget: vm.settings?.calories
-                                )
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.2)
-                            }
-
-                            if !vm.history.isEmpty {
-                                AdherenceScoreCard(history: vm.history, settings: vm.settings, period: historyPeriod)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.22)
-                            }
-
-                            if vm.history.count >= 14 {
-                                NutritionPatternsCard(history: vm.history, settings: vm.settings)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.25)
-                            }
-
-                            NutritionCorrelationsCard(settings: vm.settings, refreshID: vm.refreshID)
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.28)
-
-                            if let gap = macroGap, gap.gaps.protein > 10 || gap.gaps.carbs > 20 {
-                                MacroGapCard(gap: gap, onLogSuggestion: { name, cal, prot, gluc in
-                                    let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
-                                    let mealType: String
-                                    switch h {
-                                    case 5..<11:  mealType = "matin"
-                                    case 11..<15: mealType = "midi"
-                                    case 15..<21: mealType = "soir"
-                                    default:      mealType = "collation"
-                                    }
-                                    Task {
-                                        try? await APIService.shared.addNutritionEntry(
-                                            name: name, calories: cal,
-                                            proteines: prot, glucides: gluc, lipides: 0,
-                                            mealType: mealType
-                                        )
-                                        await vm.loadData()
-                                        await AlertService.shared.fetch()
-                                        toast = ToastMessage(message: "\(name) ajouté ✓", style: .success)
-                                    }
-                                })
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.30)
-                            }
-
                             Spacer(minLength: fabBottomPadding + 72)
                         }
                         .padding(.vertical, 16)
                     }
-                    .scrollDismissesKeyboard(.interactively)
-                    .refreshable {
-            await vm.loadData()
-            await loadMacroGap()
-        }
+                    .refreshable { await reload() }
                 }
             }
             .navigationTitle("Nutrition")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 16) {
-                        Button { showComposer = true } label: {
-                            Image(systemName: "fork.knife").foregroundColor(Color.forge)
-                        }
-                        Button { showSettings = true } label: {
-                            Image(systemName: "gearshape").foregroundColor(Color.forge)
-                        }
-                        // N-D6: show ProgressView while reloading, button otherwise
-                        if vm.isLoading && !vm.entries.isEmpty {
-                            ProgressView().tint(Color.forge)
-                        } else {
-                            Button(action: { Task { await vm.loadData() } }) {
-                                Image(systemName: "arrow.clockwise").foregroundColor(Color.forge)
-                            }
-                        }
+            .sheet(isPresented: $showAdd) {
+                SimpleAddNutritionSheet { name, p, l, g in
+                    let trimmed = name.trimmingCharacters(in: .whitespaces)
+                    let finalName = trimmed.isEmpty ? "Repas" : trimmed
+                    do {
+                        try await APIService.shared.addNutritionEntry(
+                            name: finalName, calories: 0,
+                            proteines: p, glucides: g, lipides: l
+                        )
+                        await reload()
+                        toast = ToastMessage(message: "\(finalName) ajouté ✓", style: .success)
+                    } catch {
+                        toast = ToastMessage(message: "Échec ajout — réessaie", style: .error)
                     }
                 }
-            }
-            .sheet(isPresented: $showAdd) {
-                AddNutritionSheet(onSaved: {
-                    await vm.loadData()
-                    await AlertService.shared.fetch()
-                    await showMealFeedback()
-                }, onLogged: { name, mealType in
-                    toast = ToastMessage(message: "\(name) → \(mealType.capitalized) ✓", style: .success)
-                })
-            }
-            .sheet(isPresented: $showComposer) {
-                MealComposerSheet(onSaved: {
-                    await vm.loadData()
-                    await AlertService.shared.fetch()
-                    await showMealFeedback()
-                }, onLogged: { count, mealType in
-                    let label = count > 1 ? "\(count) entrées → \(mealType.capitalized) ✓" : "Entrée → \(mealType.capitalized) ✓"
-                    toast = ToastMessage(message: label, style: .success)
-                })
-            }
-            .sheet(item: $editTarget) { entry in
-                EditNutritionSheet(entry: entry) { await vm.loadData() }
-            }
-            .sheet(isPresented: $showSettings) {
-                NutritionSettingsSheet(settings: vm.settings) { await vm.loadData(silent: true) }
             }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: "plus") { showAdd = true }
                     .padding(.trailing, 20)
                     .padding(.bottom, fabBottomPadding)
             }
-            // N-D4: undo delete banner
-            .overlay(alignment: .bottom) {
-                if showUndoBanner {
-                    HStack(spacing: 12) {
-                        Image(systemName: "trash").foregroundColor(Color.appDanger)
-                        Text("Supprimé.")
-                            .font(.appLabel)
-                            .foregroundColor(.appTextPrimary)
-                        Spacer()
-                        Button("Restaurer") {
-                            pendingDeleteTimer?.cancel()
-                            pendingDeleteTimer = nil
-                            if let entry = pendingDelete {
-                                let idx = min(pendingDeleteIndex ?? vm.entries.count, vm.entries.count)
-                                vm.entries.insert(entry, at: idx)
-                            }
-                            pendingDelete = nil
-                            pendingDeleteIndex = nil
-                            withAnimation { showUndoBanner = false }
-                        }
-                        .font(.appLabel).fontWeight(.semibold)
-                        .foregroundColor(Color.forge)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(Color.appCard)
-                    .cornerRadius(12)
-                    .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, fabBottomPadding + 60)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
         }
-        .task {
-            await vm.loadData(days: historyPeriod)
-            showSettingsBanner = vm.settings == nil
-            await loadMacroGap()
-        }
+        .task { await reload() }
         .toast($toast)
     }
 
-    @MainActor
-    private func loadMacroGap() async {
-        guard let url = URL(string: "\(APIService.shared.baseURL)/api/macro_gap"),
-              let (d, _) = try? await URLSession.authed.data(from: url),
-              let gap = try? APIService.decoder.decode(MacroGap.self, from: d) else { return }
-        macroGap = gap
-    }
+    private var consumed: Int { Int(vm.totals?.calories ?? 0) }
 
-    @MainActor
-    private func showMealFeedback() async {
-        let pTarget = effectiveSettings?.proteines ?? 0
-        let consumed = vm.totals?.proteines ?? 0
-        if pTarget > 0, consumed >= pTarget * 0.95 {
-            let goalFb = ActionFeedback.proteinGoalReached
-            if goalFb.shouldShow {
-                ActionFeedbackManager.shared.show(goalFb)
-                return
+    private func reload() async {
+        await vm.loadData(silent: false)
+        energy = try? await APIService.shared.fetchEnergyDaily()
+    }
+}
+
+// MARK: - Header (kcal + barre vs TDEE)
+private struct KcalHeader: View {
+    let consumed: Int
+    let target: Int?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("\(consumed)")
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .foregroundColor(.appTextPrimary)
+                Text("kcal")
+                    .font(.appLabel)
+                    .foregroundColor(.gray)
+                Spacer()
+                if let t = target {
+                    Text("sur \(t)")
+                        .font(.appCaption)
+                        .foregroundColor(.gray)
+                }
+            }
+            if let t = target, t > 0 {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.appCard).frame(height: 10)
+                        Capsule().fill(Color.forge)
+                            .frame(width: min(geo.size.width,
+                                              geo.size.width * CGFloat(consumed) / CGFloat(t)),
+                                   height: 10)
+                    }
+                }
+                .frame(height: 10)
+                let diff = t - consumed
+                Text(diff >= 0 ? "\(diff) kcal restantes" : "\(-diff) kcal au-dessus")
+                    .font(.appCaption)
+                    .foregroundColor(diff >= 0 ? .gray : Color.statusOrange)
+            } else {
+                Text("Objectif non calculé — voir Énergie")
+                    .font(.appCaption)
+                    .foregroundColor(.gray)
             }
         }
-        let remaining = pTarget > 0 ? max(0, Int(pTarget - consumed)) : nil
-        ActionFeedbackManager.shared.show(.mealLogged(proteinRemaining: remaining))
+        .padding(16)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Macros (grammes accumulés, info seule)
+private struct MacroRow: View {
+    let totals: NutritionTotals?
+    var body: some View {
+        HStack(spacing: 10) {
+            tile("Protéines", Int(totals?.proteines ?? 0))
+            tile("Lipides",   Int(totals?.lipides   ?? 0))
+            tile("Glucides",  Int(totals?.glucides  ?? 0))
+        }
+    }
+    private func tile(_ label: String, _ grams: Int) -> some View {
+        VStack(spacing: 4) {
+            Text("\(grams) g")
+                .font(.system(size: 22, weight: .semibold, design: .rounded))
+                .foregroundColor(.appTextPrimary)
+            Text(label)
+                .font(.appCaption)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(Color.appCard)
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Entrées du jour (delete direct, pas d'undo)
+private struct EntriesList: View {
+    let entries: [NutritionEntry]
+    let onDelete: (NutritionEntry) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Entrées du jour")
+                .font(.appLabel).fontWeight(.semibold)
+                .foregroundColor(.gray)
+            if entries.isEmpty {
+                Text("Aucune entrée — tap + pour ajouter")
+                    .font(.appCaption)
+                    .foregroundColor(.gray)
+                    .padding(.vertical, 8)
+            } else {
+                ForEach(entries) { entry in
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.name ?? "Repas")
+                                .font(.appLabel)
+                                .foregroundColor(.appTextPrimary)
+                            Text("P\(Int(entry.proteines ?? 0))  L\(Int(entry.lipides ?? 0))  G\(Int(entry.glucides ?? 0))")
+                                .font(.appCaption)
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                        Text("\(Int(entry.calories ?? 0)) kcal")
+                            .font(.appCaption)
+                            .foregroundColor(.gray)
+                        Button { onDelete(entry) } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(Color.appDanger)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(12)
+                    .background(Color.appCard)
+                    .cornerRadius(10)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Sheet simple : P/L/G + nom optionnel + aperçu kcal live
+private struct SimpleAddNutritionSheet: View {
+    let onSave: (String, Double, Double, Double) async -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var pStr = ""
+    @State private var lStr = ""
+    @State private var gStr = ""
+    @State private var saving = false
+
+    private var p: Double { Double(pStr.replacingOccurrences(of: ",", with: ".")) ?? 0 }
+    private var l: Double { Double(lStr.replacingOccurrences(of: ",", with: ".")) ?? 0 }
+    private var g: Double { Double(gStr.replacingOccurrences(of: ",", with: ".")) ?? 0 }
+    private var kcal: Int { Int((p * 4) + (g * 4) + (l * 9)) }
+    private var canSave: Bool { p > 0 || l > 0 || g > 0 }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Macros (g)") {
+                    macroField("Protéines", text: $pStr)
+                    macroField("Lipides",   text: $lStr)
+                    macroField("Glucides",  text: $gStr)
+                }
+                Section("Nom (optionnel)") {
+                    TextField("Repas", text: $name)
+                }
+                Section {
+                    HStack {
+                        Text("Calories")
+                        Spacer()
+                        Text("\(kcal) kcal")
+                            .font(.system(.body, design: .rounded))
+                            .fontWeight(.semibold)
+                            .foregroundColor(.appTextPrimary)
+                    }
+                }
+            }
+            .navigationTitle("Ajouter")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(saving ? "…" : "Ajouter") {
+                        saving = true
+                        Task {
+                            await onSave(name, p, l, g)
+                            dismiss()
+                        }
+                    }
+                    .disabled(!canSave || saving)
+                }
+            }
+        }
+    }
+
+    private func macroField(_ label: String, text: Binding<String>) -> some View {
+        HStack {
+            Text(label).frame(width: 100, alignment: .leading)
+            TextField("0", text: text)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+        }
     }
 }
 
