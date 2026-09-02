@@ -31,6 +31,10 @@ struct ExerciseCard: View {
     var onSwap: (() -> Void)? = nil
     var movementPattern: String = ""
     var topAccessory: AnyView? = nil
+    // Mode check-only (trackingType="mobility") : état géré par le parent
+    // (WorkoutSeanceView.mobilityChecked, non persisté). Ignorés si !isCheckOnly.
+    var isChecked: Bool = false
+    var onCheckToggle: (() -> Void)? = nil
 
     @StateObject private var evm: ExerciseViewModel
     @ObservedObject private var units = UnitSettings.shared
@@ -71,6 +75,8 @@ struct ExerciseCard: View {
          onSwap: (() -> Void)? = nil,
          movementPattern: String = "",
          topAccessory: AnyView? = nil,
+         isChecked: Bool = false,
+         onCheckToggle: (() -> Void)? = nil,
          sessionDate: String = "") {
         self.name            = name
         self.scheme          = scheme
@@ -96,6 +102,8 @@ struct ExerciseCard: View {
         self.onSwap          = onSwap
         self.movementPattern = movementPattern
         self.topAccessory    = topAccessory
+        self.isChecked       = isChecked
+        self.onCheckToggle   = onCheckToggle
         _evm = StateObject(wrappedValue: ExerciseViewModel(
             name: name, scheme: scheme, weightData: weightData,
             equipmentType: equipmentType, trackingType: trackingType,
@@ -115,6 +123,11 @@ struct ExerciseCard: View {
     private var isNonLoggable: Bool {
         ["cardio", "interval"].contains(trackingType)
     }
+
+    // mobility : stretch/CARs/wall slides/pull-apart. Rappel visuel, case à cocher.
+    // Aucune saisie, aucun log en base, aucun volume/stats. Étape 1 = catalogue
+    // (migration 094), étape 2 = check local piloté par le parent.
+    private var isCheckOnly: Bool { trackingType == "mobility" }
 
     private var weightIncrement: Double {
         let isLower = ["squat", "hinge"].contains(movementPattern.lowercased())
@@ -851,6 +864,55 @@ struct ExerciseCard: View {
     // MARK: - Body
 
     var body: some View {
+        if isCheckOnly {
+            checkOnlyCard
+        } else {
+            fullCard
+        }
+    }
+
+    // Mode mobility : nom + rappel + case à cocher. Tap = toggle du set géré
+    // par le parent (WorkoutSeanceView.mobilityChecked). Ni expand, ni log, ni
+    // note, ni undo — juste un rappel qui avance la barre de progression.
+    @ViewBuilder private var checkOnlyCard: some View {
+        Button(action: { onCheckToggle?(); triggerImpact(style: .light) }) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(isChecked ? Color.appSuccess.opacity(0.14) : Color.gray.opacity(0.11))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: isChecked ? "checkmark" : "figure.flexibility")
+                        .font(.appLabel).fontWeight(.semibold)
+                        .foregroundColor(isChecked ? Color.appSuccess : Color.gray)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(name)
+                        .font(.appHeadline).fontWeight(.bold)
+                        .foregroundColor(.appTextPrimary)
+                    Text(scheme).font(.appCaption).foregroundColor(.gray)
+                    if let h = hint, !h.isEmpty {
+                        Text(h)
+                            .font(.appCaption).foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 16).padding(.vertical, 16)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .glassCard(cornerRadius: 14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(isChecked ? Color.appSuccess.opacity(0.42) : Color.appOnSurface.opacity(0.07),
+                        lineWidth: isChecked ? 1 : 0)
+        )
+        .opacity(isChecked ? 0.72 : 1.0)
+        .animation(.easeInOut(duration: 0.25), value: isChecked)
+    }
+
+    @ViewBuilder private var fullCard: some View {
         VStack(alignment: .leading, spacing: 0) {
 
             // Bandeau accessoire (bouton déplacement matin↔soir/bonus, étape 4).

@@ -148,6 +148,10 @@ struct WorkoutSeanceView: View {
 
     // Split de séance — exos envoyés vers la séance 2 (Set local UserDefaults)
     @State private var assignments: Set<String> = []
+    // Exos mobility cochés — local à l'instance (non persisté, remis à zéro à
+    // la prochaine ouverture). Aucun log en base — juste un rappel visuel qui
+    // avance la barre de progression via isItemLogged.
+    @State private var mobilityChecked: Set<String> = []
     @State private var showSeanceSoir = false
     @State private var showRefusionConfirm = false
 
@@ -475,7 +479,7 @@ struct WorkoutSeanceView: View {
         case .superset(_, _, let entry, _, _, _):
             return vm.logResults[entry.a] != nil || vm.logResults[entry.b] != nil
         case .solo(let name, _, _):
-            return vm.logResults[name] != nil
+            return vm.logResults[name] != nil || mobilityChecked.contains(name)
         }
     }
 
@@ -774,6 +778,11 @@ struct WorkoutSeanceView: View {
             },
             movementPattern: inventoryPatterns[name] ?? "",
             topAccessory: moveAccessory,
+            isChecked: mobilityChecked.contains(name),
+            onCheckToggle: {
+                if mobilityChecked.contains(name) { mobilityChecked.remove(name) }
+                else { mobilityChecked.insert(name) }
+            },
             sessionDate: data.todayDate
         )
 
@@ -1122,6 +1131,405 @@ struct WorkoutSeanceView: View {
         .padding(.horizontal, 16)
     }
 
+    private var unloggedWarningSheet: some View {
+        WorkoutSummarySheet(
+            exercises: exercises.map(\.0),
+            logResults: vm.logResults
+        ) {
+            confirmedFromWarning = true
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var finishSheet: some View {
+        FinishSessionSheet(
+            exercises: exercises.map(\.0),
+            logResults: vm.logResults,
+            elapsedMin: Double(vm.chrono.elapsedSeconds) / 60.0,
+            rpe: $rpe,
+            comment: $comment,
+            preEnergy: energyPre,
+            onSubmit: { _ in
+                let dur = Double(vm.chrono.stop())
+                recapSnapshot = SessionRecapSnapshot(
+                    sessionName: data.today,
+                    durationMin: dur,
+                    logResults: vm.logResults,
+                    exercises: exercises.map(\.0),
+                    rpe: rpe,
+                    comment: comment,
+                    energyPre: energyPre,
+                    previousVolume: ghostData?.volume
+                )
+                Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today, bonusSession: isBonusSession) }
+            }
+        )
+        .presentationDetents([.medium, .large])
+        .onAppear { rpe = computedSessionRPE }
+    }
+
+    private var progressionSheet: some View {
+        ProgressionSuggestionsSheet(
+            suggestions: progressionSuggestions,
+            sessionName: data.today
+        ) {
+            showProgressionSheet = false
+            Task { await vm.load() }
+        }
+    }
+
+    private func addTargetSheet(for sn: SeanceName) -> some View {
+        AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes, inventoryMuscleGroups: inventoryMuscleGroups) { list in
+            Task {
+                for (ex, scheme) in list {
+                    await addExercise(ex, scheme: scheme)
+                }
+            }
+        }
+    }
+
+    private var addLocalSheet: some View {
+        AddExerciseSheet(
+            seance: data.today,
+            inventory: inventory,
+            inventorySchemes: inventorySchemes,
+            inventoryMuscleGroups: inventoryMuscleGroups,
+            recentExercises: recentAdHocExercises
+        ) { list in
+            // Local-only: adds to this session without modifying the programme
+            for (ex, scheme) in list {
+                localProgram[ex] = scheme
+            }
+        }
+    }
+
+    private func editSchemeSheet(for target: ExerciseTarget) -> some View {
+        EditSchemeSheet(target: target) { newName, newScheme in
+            Task { await editExercise(oldName: target.exercise, newName: newName, scheme: newScheme) }
+        }
+    }
+
+    private var sessionPickerSheet: some View {
+        SessionPickerSheet(
+            currentSession: data.today,
+            availableSessions: Array(data.fullProgram.keys).sorted()
+        ) { selected in
+            Task {
+                await setSessionOverride(selected)
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    @ViewBuilder
+    private var swapSheet: some View {
+        if let pending = swapPending {
+            ExerciseSwapSheet(
+                originalName: pending,
+                originalType: inventoryTypes[pending] ?? "machine",
+                originalMuscles: inventoryMuscles[pending] ?? [],
+                originalPattern: inventoryPatterns[pending] ?? "",
+                inventory: inventory,
+                inventoryTypes: inventoryTypes,
+                inventoryMuscles: inventoryMuscles,
+                inventoryPatterns: inventoryPatterns,
+                onSwap: { replacement in
+                    Task { await performSwap(original: pending, replacement: replacement) }
+                },
+                onCreateVariant: {
+                    showCreateVariant = true
+                }
+            )
+            .presentationDetents([.large])
+        }
+    }
+
+    @ViewBuilder
+    private var createVariantSheet: some View {
+        if let pending = swapPending {
+            CreateVariantSheet(
+                originalName: pending,
+                originalMuscles: inventoryMuscles[pending] ?? [],
+                originalPattern: inventoryPatterns[pending] ?? "",
+                originalScheme: localProgram[pending] ?? "3x8-12",
+                originalCategory: "",
+                onCreated: { newName in
+                    // Refresh inventory then perform swap
+                    Task {
+                        await loadInventory()
+                        await performSwap(original: pending, replacement: newName)
+                    }
+                }
+            )
+            .presentationDetents([.large])
+        }
+    }
+
+    // Extractions pour désengorger le type-checker sur le VStack englobant du body
+    // (accumulation ternaires + confirmationDialog + Task async). Comportement et
+    // rendu strictement identiques à la version inline précédente.
+    @ViewBuilder
+    private var resumeBanner: some View {
+        if vm.isResuming && showResumeBanner {
+            let loggedNames = exercises.map(\.0).filter { vm.logResults[$0] != nil }
+            let loggedPreview = loggedNames.prefix(3).joined(separator: " · ")
+            let loggedExtra = max(0, loggedNames.count - 3)
+            let loggedLabel = loggedExtra > 0 ? "\(loggedPreview) · +\(loggedExtra) autres" : loggedPreview
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.clockwise.circle.fill")
+                    .font(.appBody)
+                    .foregroundColor(Color.forge)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Continuer la séance")
+                        .font(.appLabel).fontWeight(.semibold)
+                        .foregroundColor(Color.forge)
+                    // W-D2 — show WHICH exercises are already logged (compact, in program order)
+                    Text(loggedNames.isEmpty
+                         ? "Reprise sans exercice loggé."
+                         : "Déjà fait : \(loggedLabel)")
+                        .font(.appCaption)
+                        .foregroundColor(.gray)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Button("Recommencer") {
+                    withAnimation {
+                        vm.logResults.removeAll()
+                        vm.isResuming = false
+                    }
+                }
+                .font(.appCaption).fontWeight(.semibold)
+                .foregroundColor(Color.appDanger.opacity(0.8))
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Color.appDanger.opacity(0.1))
+                .cornerRadius(8)
+                Button { withAnimation { showResumeBanner = false } } label: {
+                    Image(systemName: "xmark")
+                        .font(.appCaption).fontWeight(.semibold)
+                        .foregroundColor(.gray)
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 4)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(Color.appSurfaceInset)
+            .cornerRadius(8)
+            .padding(.horizontal, 16)
+            .transition(.opacity)
+            .onAppear {
+                // W-D2 — scroll to first unlogged exercise on resume
+                let logged = Set(vm.logResults.keys)
+                if let firstUnlogged = exercises.first(where: { !logged.contains($0.0) })?.0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            scrollProxy?.scrollTo(firstUnlogged, anchor: .top)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var ghostBanner: some View {
+        if showGhost, let ghost = ghostData, !vm.isResuming, vm.logResults.isEmpty {
+            GhostBanner(
+                ghost: ghost,
+                currentVolume: currentVolume,
+                beaten: ghostBeaten,
+                onDismiss: {
+                    withAnimation { showGhost = false }
+                    // W-C3 — persist dismissal so banner doesn't reappear on resume
+                    UserDefaults.standard.set(true, forKey: "ghostDismissed_\(data.today)")
+                }
+            )
+            .padding(.horizontal, 16)
+            .onChange(of: currentVolume) {
+                if !ghostBeaten && currentVolume >= ghost.volume {
+                    ghostBeaten = true
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var warmupBanner: some View {
+        if showWarmupBanner && vm.logResults.isEmpty {
+            let guidance = warmupGuidance
+            if guidance != nil {
+                WarmupGuidanceBanner(guidance: guidance!) {
+                    withAnimation(.easeOut(duration: 0.2)) { showWarmupBanner = false }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private var volumeTotalRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "scalemass.fill")
+                .font(.appCaption)
+                .foregroundColor(currentVolume > 0 ? Color.forge : .gray.opacity(0.4))
+            Text("Volume total")
+                .font(.appCaption).fontWeight(.semibold).foregroundColor(.gray)
+            Spacer()
+            Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")
+                .font(.appLabel).fontWeight(.black)
+                .foregroundColor(currentVolume > 0 ? Color.forge : .gray.opacity(0.4))
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Color.forge.opacity(currentVolume > 0 ? 0.07 : 0.03))
+        .cornerRadius(8)
+        .padding(.horizontal, 16)
+        .animation(.spring(response: 0.4), value: currentVolume)
+    }
+
+    @ViewBuilder
+    private var effortLiveBanner: some View {
+        if !vm.logResults.isEmpty {
+            HStack(spacing: 8) {
+                Image(systemName: "gauge.with.dots.needle.67percent")
+                    .font(.appLabel)
+                    .foregroundColor(RPEHelper.color(for: computedSessionRPE))
+                VStack(alignment: .leading, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
+                    Text("Effort séance")
+                        .font(.appCaption).fontWeight(.semibold)
+                        .foregroundColor(Color.appTextSecondary)
+                    Text(RPEHelper.option(for: RPEHelper.rirFromRPE(computedSessionRPE)).label)
+                        .font(.appCaption)
+                        .foregroundColor(RPEHelper.color(for: computedSessionRPE))
+                }
+                Spacer()
+                Text("RPE \(String(format: "%.0f", computedSessionRPE))")
+                    .font(.appBody).fontWeight(.black)
+                    .foregroundColor(RPEHelper.color(for: computedSessionRPE))
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            .background(RPEHelper.color(for: computedSessionRPE).opacity(0.08))
+            .cornerRadius(8)
+            .padding(.horizontal, 16)
+        }
+    }
+
+    @ViewBuilder
+    private var seance2CTAButton: some View {
+        if !isSecondSession && !assignments.isEmpty {
+            Button { showSeanceSoir = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "2.circle.fill")
+                        .font(.appLabel)
+                    Text("Séance 2 (\(assignments.count) exo\(assignments.count > 1 ? "s" : "")) →")
+                        .font(.appLabel).fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .padding(.vertical, 12)
+                .background(Color.forge.opacity(0.12))
+                .foregroundColor(Color.forge)
+                .cornerRadius(8)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private var finishSessionButton: some View {
+        VStack(spacing: 0) {
+            if vm.logResults.isEmpty {
+                Text("Loggue au moins 1 exercice pour terminer")
+                    .font(.appCaption)
+                    .foregroundColor(Color.appTextMuted)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 8)
+                    .transition(.opacity)
+            }
+            Button(action: {
+                let unlogged = exercises.filter { vm.logResults[$0.0] == nil }
+                if unlogged.isEmpty {
+                    showFinishConfirm = true
+                } else if isSecondSession {
+                    let total = data.fullProgram[data.today]?.count ?? exercises.count
+                    partialTotalCount = total
+                    partialDoneCount = total - unlogged.count
+                    showPartialSecondDialog = true
+                } else {
+                    showUnloggedWarning = true
+                }
+            }) {
+                HStack(spacing: 8) {
+                    if vm.isFinishing {
+                        ProgressView().tint(.onAccent).scaleEffect(0.8)
+                    } else {
+                        Image(systemName: completionGlow ? "flag.checkered" : "checkmark.circle.fill")
+                    }
+                    Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
+                        .font(.appBody).fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 16)
+                .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.appSuccess : Color.forge)
+                .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
+                .cornerRadius(14)
+                .overlay(
+                    !vm.logResults.isEmpty && !vm.isFinishing ? nil :
+                        RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+                .shadow(color: completionGlow && !vm.isFinishing ? Color.appSuccess.opacity(0.5) : .clear, radius: 12)
+                .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
+                .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
+            }
+            .disabled(vm.logResults.isEmpty || vm.isFinishing || showFinishConfirm || showUnloggedWarning || showFinish || showPartialSecondDialog)
+            .animation(.easeInOut(duration: 0.25), value: vm.logResults.isEmpty)
+            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: completionGlow)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 32)
+        .padding(.bottom, 48)
+    }
+
+    @ViewBuilder
+    private var refusionButton: some View {
+        if isSecondSession && !assignments.isEmpty {
+            Button { showRefusionConfirm = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "1.circle.fill")
+                        .font(.appLabel)
+                    Text("Tout ramener à la séance 1")
+                        .font(.appLabel).fontWeight(.medium)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .padding(.vertical, 12)
+                .foregroundColor(Color.forge)
+                .background(Color.clear)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.forge.opacity(0.4), lineWidth: 1)
+                )
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+            .confirmationDialog(
+                "Vider la séance 2 ?",
+                isPresented: $showRefusionConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Tout ramener", role: .destructive) {
+                    // Étape 3b — bulk clear via backend. Notif conservée pour
+                    // que les listeners existants (SeanceView, DashboardView)
+                    // refetchent leur payload.
+                    Task {
+                        do {
+                            _ = try await APIService.shared.clearPlanOverrides(date: data.todayDate)
+                            NotificationCenter.default.post(name: .planOverridesDidChange, object: nil)
+                        } catch {
+                            await MainActor.run {
+                                toast = ToastMessage(message: "Annulation échouée : \(error.localizedDescription)", style: .error)
+                            }
+                        }
+                    }
+                }
+                Button("Annuler", role: .cancel) {}
+            }
+        }
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
         ScrollView {
@@ -1229,64 +1637,7 @@ struct WorkoutSeanceView: View {
                 exerciseSection
 
                 // Resume banner — shown when exercises were already logged (partial prior session)
-                if vm.isResuming && showResumeBanner {
-                    let loggedNames = exercises.map(\.0).filter { vm.logResults[$0] != nil }
-                    let loggedPreview = loggedNames.prefix(3).joined(separator: " · ")
-                    let loggedExtra = max(0, loggedNames.count - 3)
-                    let loggedLabel = loggedExtra > 0 ? "\(loggedPreview) · +\(loggedExtra) autres" : loggedPreview
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.clockwise.circle.fill")
-                            .font(.appBody)
-                            .foregroundColor(Color.forge)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Continuer la séance")
-                                .font(.appLabel).fontWeight(.semibold)
-                                .foregroundColor(Color.forge)
-                            // W-D2 — show WHICH exercises are already logged (compact, in program order)
-                            Text(loggedNames.isEmpty
-                                 ? "Reprise sans exercice loggé."
-                                 : "Déjà fait : \(loggedLabel)")
-                                .font(.appCaption)
-                                .foregroundColor(.gray)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer()
-                        Button("Recommencer") {
-                            withAnimation {
-                                vm.logResults.removeAll()
-                                vm.isResuming = false
-                            }
-                        }
-                        .font(.appCaption).fontWeight(.semibold)
-                        .foregroundColor(Color.appDanger.opacity(0.8))
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.appDanger.opacity(0.1))
-                        .cornerRadius(8)
-                        Button { withAnimation { showResumeBanner = false } } label: {
-                            Image(systemName: "xmark")
-                                .font(.appCaption).fontWeight(.semibold)
-                                .foregroundColor(.gray)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.leading, 4)
-                    }
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(Color.appSurfaceInset)
-                    .cornerRadius(8)
-                    .padding(.horizontal, 16)
-                    .transition(.opacity)
-                    .onAppear {
-                        // W-D2 — scroll to first unlogged exercise on resume
-                        let logged = Set(vm.logResults.keys)
-                        if let firstUnlogged = exercises.first(where: { !logged.contains($0.0) })?.0 {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                withAnimation(.easeInOut(duration: 0.35)) {
-                                    scrollProxy?.scrollTo(firstUnlogged, anchor: .top)
-                                }
-                            }
-                        }
-                    }
-                }
+                resumeBanner
 
                 // Start banner — shown on fresh session before first log
                 if !vm.sessionStarted && !vm.isResuming {
@@ -1296,53 +1647,13 @@ struct WorkoutSeanceView: View {
                 }
 
                 // Ghost mode banner — suppressed while resume banner is active to avoid header clutter
-                if showGhost, let ghost = ghostData, !vm.isResuming, vm.logResults.isEmpty {
-                    GhostBanner(
-                        ghost: ghost,
-                        currentVolume: currentVolume,
-                        beaten: ghostBeaten,
-                        onDismiss: {
-                            withAnimation { showGhost = false }
-                            // W-C3 — persist dismissal so banner doesn't reappear on resume
-                            UserDefaults.standard.set(true, forKey: "ghostDismissed_\(data.today)")
-                        }
-                    )
-                    .padding(.horizontal, 16)
-                    .onChange(of: currentVolume) {
-                        if !ghostBeaten && currentVolume >= ghost.volume {
-                            ghostBeaten = true
-                        }
-                    }
-                }
+                ghostBanner
 
                 // Warmup guidance — shown pre-session, dismissable
-                if showWarmupBanner && vm.logResults.isEmpty {
-                    let guidance = warmupGuidance
-                    if guidance != nil {
-                        WarmupGuidanceBanner(guidance: guidance!) {
-                            withAnimation(.easeOut(duration: 0.2)) { showWarmupBanner = false }
-                        }
-                        .padding(.horizontal, 16)
-                    }
-                }
+                warmupBanner
 
                 // Volume cumulé temps réel
-                HStack(spacing: 8) {
-                    Image(systemName: "scalemass.fill")
-                        .font(.appCaption)
-                        .foregroundColor(currentVolume > 0 ? Color.forge : .gray.opacity(0.4))
-                    Text("Volume total")
-                        .font(.appCaption).fontWeight(.semibold).foregroundColor(.gray)
-                    Spacer()
-                    Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")
-                        .font(.appLabel).fontWeight(.black)
-                        .foregroundColor(currentVolume > 0 ? Color.forge : .gray.opacity(0.4))
-                }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(Color.forge.opacity(currentVolume > 0 ? 0.07 : 0.03))
-                .cornerRadius(8)
-                .padding(.horizontal, 16)
-                .animation(.spring(response: 0.4), value: currentVolume)
+                volumeTotalRow
 
                 exerciseNavigator
 
@@ -1384,47 +1695,10 @@ struct WorkoutSeanceView: View {
                 }
 
                 // Effort live — visible dès qu'un exercice est loggé
-                if !vm.logResults.isEmpty {
-                    HStack(spacing: 8) {
-                        Image(systemName: "gauge.with.dots.needle.67percent")
-                            .font(.appLabel)
-                            .foregroundColor(RPEHelper.color(for: computedSessionRPE))
-                        VStack(alignment: .leading, spacing: 1) { // ponytail: micro-align, hors échelle volontaire
-                            Text("Effort séance")
-                                .font(.appCaption).fontWeight(.semibold)
-                                .foregroundColor(Color.appTextSecondary)
-                            Text(RPEHelper.option(for: RPEHelper.rirFromRPE(computedSessionRPE)).label)
-                                .font(.appCaption)
-                                .foregroundColor(RPEHelper.color(for: computedSessionRPE))
-                        }
-                        Spacer()
-                        Text("RPE \(String(format: "%.0f", computedSessionRPE))")
-                            .font(.appBody).fontWeight(.black)
-                            .foregroundColor(RPEHelper.color(for: computedSessionRPE))
-                    }
-                    .padding(.horizontal, 16).padding(.vertical, 12)
-                    .background(RPEHelper.color(for: computedSessionRPE).opacity(0.08))
-                    .cornerRadius(8)
-                    .padding(.horizontal, 16)
-                }
+                effortLiveBanner
 
                 // CTA Séance 2 — visible uniquement en séance matin avec assignments non vide
-                if !isSecondSession && !assignments.isEmpty {
-                    Button { showSeanceSoir = true } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "2.circle.fill")
-                                .font(.appLabel)
-                            Text("Séance 2 (\(assignments.count) exo\(assignments.count > 1 ? "s" : "")) →")
-                                .font(.appLabel).fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .padding(.vertical, 12)
-                        .background(Color.forge.opacity(0.12))
-                        .foregroundColor(Color.forge)
-                        .cornerRadius(8)
-                    }
-                    .padding(.horizontal, 16)
-                }
+                seance2CTAButton
 
                 Rectangle()
                     .fill(Color.appSurfaceInset)
@@ -1433,102 +1707,12 @@ struct WorkoutSeanceView: View {
                     .padding(.top, 24)
 
                 // Terminer la séance — dernier élément du scroll, jamais sticky
-                VStack(spacing: 0) {
-                    if vm.logResults.isEmpty {
-                        Text("Loggue au moins 1 exercice pour terminer")
-                            .font(.appCaption)
-                            .foregroundColor(Color.appTextMuted)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.bottom, 8)
-                            .transition(.opacity)
-                    }
-                    Button(action: {
-                        let unlogged = exercises.filter { vm.logResults[$0.0] == nil }
-                        if unlogged.isEmpty {
-                            showFinishConfirm = true
-                        } else if isSecondSession {
-                            let total = data.fullProgram[data.today]?.count ?? exercises.count
-                            partialTotalCount = total
-                            partialDoneCount = total - unlogged.count
-                            showPartialSecondDialog = true
-                        } else {
-                            showUnloggedWarning = true
-                        }
-                    }) {
-                        HStack(spacing: 8) {
-                            if vm.isFinishing {
-                                ProgressView().tint(.onAccent).scaleEffect(0.8)
-                            } else {
-                                Image(systemName: completionGlow ? "flag.checkered" : "checkmark.circle.fill")
-                            }
-                            Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
-                                .font(.appBody).fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 16)
-                        .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.appSuccess : Color.forge)
-                        .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
-                        .cornerRadius(14)
-                        .overlay(
-                            !vm.logResults.isEmpty && !vm.isFinishing ? nil :
-                                RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                        .shadow(color: completionGlow && !vm.isFinishing ? Color.appSuccess.opacity(0.5) : .clear, radius: 12)
-                        .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
-                        .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
-                    }
-                    .disabled(vm.logResults.isEmpty || vm.isFinishing || showFinishConfirm || showUnloggedWarning || showFinish || showPartialSecondDialog)
-                    .animation(.easeInOut(duration: 0.25), value: vm.logResults.isEmpty)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: completionGlow)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 32)
-                .padding(.bottom, 48)
+                finishSessionButton
 
                 // Refusion — geste second niveau, séance 2 uniquement.
                 // Medium-tier : bordure forge sans fill (visible mais sobre, contraste
                 // volontaire avec le CTA d'envoi premium).
-                if isSecondSession && !assignments.isEmpty {
-                    Button { showRefusionConfirm = true } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "1.circle.fill")
-                                .font(.appLabel)
-                            Text("Tout ramener à la séance 1")
-                                .font(.appLabel).fontWeight(.medium)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .padding(.vertical, 12)
-                        .foregroundColor(Color.forge)
-                        .background(Color.clear)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.forge.opacity(0.4), lineWidth: 1)
-                        )
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
-                    .confirmationDialog(
-                        "Vider la séance 2 ?",
-                        isPresented: $showRefusionConfirm,
-                        titleVisibility: .visible
-                    ) {
-                        Button("Tout ramener", role: .destructive) {
-                            // Étape 3b — bulk clear via backend. Notif conservée pour
-                            // que les listeners existants (SeanceView, DashboardView)
-                            // refetchent leur payload.
-                            Task {
-                                do {
-                                    _ = try await APIService.shared.clearPlanOverrides(date: data.todayDate)
-                                    NotificationCenter.default.post(name: .planOverridesDidChange, object: nil)
-                                } catch {
-                                    await MainActor.run {
-                                        toast = ToastMessage(message: "Annulation échouée : \(error.localizedDescription)", style: .error)
-                                    }
-                                }
-                            }
-                        }
-                        Button("Annuler", role: .cancel) {}
-                    }
-                }
+                refusionButton
 
             }
             .padding(.bottom, 4)
@@ -1569,46 +1753,13 @@ struct WorkoutSeanceView: View {
                 assignments = data.pushedToEvening
             }
         }
-        .sheet(isPresented: $showUnloggedWarning) {
-            WorkoutSummarySheet(
-                exercises: exercises.map(\.0),
-                logResults: vm.logResults
-            ) {
-                confirmedFromWarning = true
-            }
-            .presentationDetents([.medium, .large])
-        }
+        .sheet(isPresented: $showUnloggedWarning) { unloggedWarningSheet }
         .onChange(of: showUnloggedWarning) { _, isShowing in
             guard !isShowing, confirmedFromWarning else { return }
             confirmedFromWarning = false
             showFinish = true
         }
-        .sheet(isPresented: $showFinish) {
-            FinishSessionSheet(
-                exercises: exercises.map(\.0),
-                logResults: vm.logResults,
-                elapsedMin: Double(vm.chrono.elapsedSeconds) / 60.0,
-                rpe: $rpe,
-                comment: $comment,
-                preEnergy: energyPre,
-                onSubmit: { _ in
-                    let dur = Double(vm.chrono.stop())
-                    recapSnapshot = SessionRecapSnapshot(
-                        sessionName: data.today,
-                        durationMin: dur,
-                        logResults: vm.logResults,
-                        exercises: exercises.map(\.0),
-                        rpe: rpe,
-                        comment: comment,
-                        energyPre: energyPre,
-                        previousVolume: ghostData?.volume
-                    )
-                    Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today, bonusSession: isBonusSession) }
-                }
-            )
-            .presentationDetents([.medium, .large])
-            .onAppear { rpe = computedSessionRPE }
-        }
+        .sheet(isPresented: $showFinish) { finishSheet }
         .onChange(of: vm.logResults.count) { count in
             guard count > 0 else { completionGlow = false; return }
             triggerImpact(style: .light)
@@ -1653,15 +1804,7 @@ struct WorkoutSeanceView: View {
         }) {
             recapSheetContent
         }
-        .sheet(isPresented: $showProgressionSheet) {
-            ProgressionSuggestionsSheet(
-                suggestions: progressionSuggestions,
-                sessionName: data.today
-            ) {
-                showProgressionSheet = false
-                Task { await vm.load() }
-            }
-        }
+        .sheet(isPresented: $showProgressionSheet) { progressionSheet }
         .alert("Erreur d'enregistrement", isPresented: Binding(
             get: { vm.submitError != nil },
             set: { if !$0 { vm.submitError = nil } }
@@ -1723,39 +1866,10 @@ struct WorkoutSeanceView: View {
         } message: {
             Text(abandonMessage())
         }
-        .sheet(item: $addTarget) { (sn: SeanceName) in
-            AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes, inventoryMuscleGroups: inventoryMuscleGroups) { ex, scheme in
-                Task { await addExercise(ex, scheme: scheme) }
-            }
-        }
-        .sheet(isPresented: $showAddLocal) {
-            AddExerciseSheet(
-                seance: data.today,
-                inventory: inventory,
-                inventorySchemes: inventorySchemes,
-                inventoryMuscleGroups: inventoryMuscleGroups,
-                recentExercises: recentAdHocExercises
-            ) { ex, scheme in
-                // Local-only: adds to this session without modifying the programme
-                localProgram[ex] = scheme
-            }
-        }
-        .sheet(item: $editTarget) { target in
-            EditSchemeSheet(target: target) { newName, newScheme in
-                Task { await editExercise(oldName: target.exercise, newName: newName, scheme: newScheme) }
-            }
-        }
-        .sheet(isPresented: $showSessionPicker) {
-            SessionPickerSheet(
-                currentSession: data.today,
-                availableSessions: Array(data.fullProgram.keys).sorted()
-            ) { selected in
-                Task {
-                    await setSessionOverride(selected)
-                }
-            }
-            .presentationDetents([.medium])
-        }
+        .sheet(item: $addTarget) { addTargetSheet(for: $0) }
+        .sheet(isPresented: $showAddLocal) { addLocalSheet }
+        .sheet(item: $editTarget) { editSchemeSheet(for: $0) }
+        .sheet(isPresented: $showSessionPicker) { sessionPickerSheet }
         .sheet(isPresented: $showAddCardio) {
             AddCardioSheet { cardioCount += 1 }
                 .presentationDetents([.large])
@@ -1764,46 +1878,8 @@ struct WorkoutSeanceView: View {
             AddHIITSheet { hiitCount += 1 }
                 .presentationDetents([.large])
         }
-        .sheet(isPresented: $showSwapSheet) {
-            if let pending = swapPending {
-                ExerciseSwapSheet(
-                    originalName: pending,
-                    originalType: inventoryTypes[pending] ?? "machine",
-                    originalMuscles: inventoryMuscles[pending] ?? [],
-                    originalPattern: inventoryPatterns[pending] ?? "",
-                    inventory: inventory,
-                    inventoryTypes: inventoryTypes,
-                    inventoryMuscles: inventoryMuscles,
-                    inventoryPatterns: inventoryPatterns,
-                    onSwap: { replacement in
-                        Task { await performSwap(original: pending, replacement: replacement) }
-                    },
-                    onCreateVariant: {
-                        showCreateVariant = true
-                    }
-                )
-                .presentationDetents([.large])
-            }
-        }
-        .sheet(isPresented: $showCreateVariant) {
-            if let pending = swapPending {
-                CreateVariantSheet(
-                    originalName: pending,
-                    originalMuscles: inventoryMuscles[pending] ?? [],
-                    originalPattern: inventoryPatterns[pending] ?? "",
-                    originalScheme: localProgram[pending] ?? "3x8-12",
-                    originalCategory: "",
-                    onCreated: { newName in
-                        // Refresh inventory then perform swap
-                        Task {
-                            await loadInventory()
-                            await performSwap(original: pending, replacement: newName)
-                        }
-                    }
-                )
-                .presentationDetents([.large])
-            }
-        }
+        .sheet(isPresented: $showSwapSheet) { swapSheet }
+        .sheet(isPresented: $showCreateVariant) { createVariantSheet }
         .onAppear {
             // W-C3 — restore ghost dismissal state for this session
             if UserDefaults.standard.bool(forKey: "ghostDismissed_\(data.today)") {
