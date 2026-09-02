@@ -453,7 +453,7 @@ struct SessionRecapSheet: View {
         snapshot.logResults.values.reduce(0.0) { total, result in
             total + result.sets.reduce(0.0) { s, set in
                 let w = (set["weight"] as? Double) ?? 0
-                let r = Double((set["reps"] as? String) ?? "0") ?? 0
+                let r = Double(set.repsString() ?? "0") ?? 0
                 return s + w * r
             }
         }
@@ -719,7 +719,7 @@ struct SessionRecapSheet: View {
             return r.reps.isEmpty ? "—" : r.reps
         }
         let count = r.sets.count
-        let firstReps = (r.sets.first?["reps"] as? String) ?? "—"
+        let firstReps = r.sets.first?.repsString() ?? "—"
         if r.weight > 0 {
             return "\(count)×\(firstReps) · \(UnitSettings.shared.format(r.weight))"
         }

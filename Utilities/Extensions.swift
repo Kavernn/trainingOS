@@ -324,3 +324,18 @@ extension String {
         }
     }
 }
+
+// MARK: - sets_json decode (tolérant int/str/double)
+//
+// sets_json.reps arrive tantôt en String (ancien logger api_log), tantôt en Int
+// (rebuild backend via _rebuild_sets_json/parse_reps qui retourne list[int]).
+// Sans ce helper, `as? String` échoue silencieusement sur un int → "—" à l'affichage,
+// volume à 0, sets droppés en draft.
+extension Dictionary where Key == String, Value == Any {
+    func repsString(_ key: String = "reps") -> String? {
+        if let s = self[key] as? String { return s }
+        if let n = self[key] as? Int    { return String(n) }
+        if let d = self[key] as? Double { return String(Int(d)) }
+        return nil
+    }
+}

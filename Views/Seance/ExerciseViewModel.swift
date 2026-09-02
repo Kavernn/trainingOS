@@ -1081,7 +1081,7 @@ class SeanceViewModel: ObservableObject {
                 painZone: $0.painZone,
                 sets: $0.sets.compactMap { s -> PersistedSet? in
                     guard let w = s["weight"] as? Double,
-                          let r = s["reps"] as? String else { return nil }
+                          let r = s.repsString() else { return nil }
                     return PersistedSet(
                         weight: w,
                         reps: r,
