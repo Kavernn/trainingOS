@@ -66,7 +66,9 @@ def api_stats_data():
     from body_weight import load_body_weight
     from nutrition import (load_settings as load_nutrition_settings)
     from inventory import load_inventory
-    from utils import _calc_muscle_stats, _calc_weekly_sets_per_muscle, _calc_weekly_specific_breakdown, MUSCLE_LANDMARKS
+    from utils import (_calc_muscle_stats, _calc_weekly_sets_per_muscle,
+                        _calc_weekly_indirect_per_muscle, _calc_weekly_specific_breakdown,
+                        MUSCLE_LANDMARKS)
     import db as _db
     from utils import load_hiit_log
 
@@ -80,21 +82,22 @@ def api_stats_data():
     nutr_settings = load_nutrition_settings()
     nutr_entries  = _db.get_nutrition_daily_full(180)
     inventory       = load_inventory() or {}
-    muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
-    weekly_sets     = _calc_weekly_sets_per_muscle(weights, inventory)
-    weekly_specific = _calc_weekly_specific_breakdown(weights, inventory)
-    # Direct = exos avec muscle_group primaire mappé (via _calc_weekly_specific_breakdown).
-    # Indirect = total any-touching (muscles[]) − direct. Seuls les DIRECT nourrissent la
-    # coloration MEV/MAV/MRV — l'indirect est indicatif (voir dossier landmarks 2026-09).
-    direct_totals   = {k: sum(v.values()) for k, v in weekly_specific.items()}
-    inventory_types = {name: info.get("type") or "machine" for name, info in inventory.items()}
+    muscle_stats     = _calc_muscle_stats(sessions, weights, inventory)
+    weekly_sets      = _calc_weekly_sets_per_muscle(weights, inventory)
+    weekly_specific  = _calc_weekly_specific_breakdown(weights, inventory)
+    weekly_indirect  = _calc_weekly_indirect_per_muscle(weights, inventory)
+    # Direct = _calc_weekly_specific_breakdown (mg primaire mappé). Indirect = comptage direct
+    # (fonction dédiée), PAS soustraction total−direct — cette dernière casse dès qu'un exo a
+    # son muscle primaire aussi listé dans muscles[] (double-compte). Cf. dossier landmarks 2026-09.
+    direct_totals    = {k: sum(v.values()) for k, v in weekly_specific.items()}
+    inventory_types  = {name: info.get("type") or "machine" for name, info in inventory.items()}
 
     tracked_muscles = set(muscle_stats.keys()) | set(weekly_sets.keys())
     muscle_landmarks = {
         muscle: {
             **MUSCLE_LANDMARKS[muscle],
             "weekly_sets_direct":   direct_totals.get(muscle, 0),
-            "weekly_sets_indirect": max(0, weekly_sets.get(muscle, 0) - direct_totals.get(muscle, 0)),
+            "weekly_sets_indirect": weekly_indirect.get(muscle, 0),
             "specific_detail":      weekly_specific.get(muscle) or None,
         }
         for muscle in tracked_muscles

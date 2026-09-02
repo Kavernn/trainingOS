@@ -322,7 +322,9 @@ _MUSCLE_ALIASES: dict = {
     # rear delt — canonical key matches MUSCLE_LANDMARKS
     "rear deltoid":       "rear delt",
     "rear delts":         "rear delt",
+    "rear_delts":         "rear delt",
     "posterior deltoid":  "rear delt",
+    "rotator_cuff":       "rear delt",
     # Chest
     "pectorals":       "chest",
     "pectoral":        "chest",
@@ -332,22 +334,27 @@ _MUSCLE_ALIASES: dict = {
     # Traps
     "traps":           "trapezius",
     "trap":            "trapezius",
-    # Back
+    # Back (accessoires → lats parent, Option A)
+    "back":            "lats",
     "upper back":      "lats",
+    "lower back":      "lats",
     "rhomboids":       "lats",
-    # Calves
+    # Calves (soleus fait partie du complexe → calves parent)
     "calf":            "calves",
+    "soleus":          "calves",
     # Arms
     "brachialis":      "biceps",
     "brachioradialis": "biceps",
     "avant bras":      "forearms",
     # External rotators → rear deltoid canonical
     "external rotators": "rear delt",
-    # Core
+    # Core (rectus abdominis + obliques → core parent, Option A)
     "abdominaux":          "core",
     "abdominaux obliques": "core",
     "gainage":             "core",
     "abs":                 "core",
+    "rectus abdominis":    "core",
+    "obliques":            "core",
     # Glutes (canonical: "fessiers" — matches MUSCLE_LANDMARKS)
     "glutes":              "fessiers",
     "glute":               "fessiers",
@@ -356,6 +363,7 @@ _MUSCLE_ALIASES: dict = {
     "gluteus medius":      "fessiers",
     "fessier":             "fessiers",
     "hip thrust":          "fessiers",
+    "adductors":           "fessiers",
     # Hamstrings — variantes courantes
     "hams":                "hamstrings",
     "ham":                 "hamstrings",
@@ -381,22 +389,28 @@ MUSCLE_LANDMARKS: dict[str, dict] = {
     "triceps":    {"mev": 6,  "mav": 14, "mrv": 18},
     "quadriceps": {"mev": 8,  "mav": 16, "mrv": 22},
     "hamstrings": {"mev": 6,  "mav": 12, "mrv": 16},
-    "fessiers":     {"mev": 4,  "mav": 12, "mrv": 16},
+    "fessiers":   {"mev": 4,  "mav": 12, "mrv": 16},
     "calves":     {"mev": 8,  "mav": 16, "mrv": 20},
-    "abs":        {"mev": 4,  "mav": 16, "mrv": 25},
+    "core":       {"mev": 4,  "mav": 16, "mrv": 25},
     "forearms":   {"mev": 4,  "mav": 10, "mrv": 14},
+    "neck":       {"mev": 4,  "mav": 10, "mrv": 14},
 }
 
 
 def _calc_weekly_sets_per_muscle(weights: dict, inventory: dict) -> dict[str, int]:
-    """Count direct hard sets per muscle group logged in the last 7 days."""
+    """Count total sets per muscle touching (muscles[]) in the last 7 days.
+    Dédup: chaque set compte 1× par muscle même si le nom apparaît sous deux alias.
+    Exclut les exos tracking_type='mobility' (n'entrent pas dans le budget volume)."""
     from datetime import date, timedelta
     from progression import parse_reps
     cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=7)).isoformat()
     weekly: dict[str, int] = {}
     for ex_name, ex_data in weights.items():
-        raw_muscles = (inventory.get(ex_name) or {}).get("muscles") or []
-        muscles = [_normalize_muscle(m) for m in raw_muscles if _normalize_muscle(m) not in _MUSCLE_JUNK]
+        info = inventory.get(ex_name) or {}
+        if (info.get("tracking_type") or "").lower() == "mobility":
+            continue
+        raw_muscles = info.get("muscles") or []
+        muscles = {_normalize_muscle(m) for m in raw_muscles if _normalize_muscle(m) not in _MUSCLE_JUNK}
         if not muscles:
             continue
         for entry in ex_data.get("history", []):
@@ -415,11 +429,47 @@ def _calc_weekly_sets_per_muscle(weights: dict, inventory: dict) -> dict[str, in
     return weekly
 
 
+def _calc_weekly_indirect_per_muscle(weights: dict, inventory: dict) -> dict[str, int]:
+    """Sets où le muscle est SECONDAIRE : normalisé ∈ muscles[] et ≠ muscle_group primaire.
+    Comptage DIRECT (pas de soustraction total−direct — cf. dossier landmarks 2026-09,
+    la soustraction se casse quand muscles[] contient aussi le muscle primaire → doublons).
+    Exclut les exos tracking_type='mobility'."""
+    from datetime import date, timedelta
+    from progression import parse_reps
+    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=7)).isoformat()
+    weekly: dict[str, int] = {}
+    for ex_name, ex_data in weights.items():
+        info = inventory.get(ex_name) or {}
+        if (info.get("tracking_type") or "").lower() == "mobility":
+            continue
+        primary_key = _MUSCLE_GROUP_FR_TO_EN.get((info.get("muscle_group") or "").strip().lower())
+        raw_muscles = info.get("muscles") or []
+        secondary = {_normalize_muscle(m) for m in raw_muscles if _normalize_muscle(m) not in _MUSCLE_JUNK}
+        secondary.discard(primary_key)  # retire le primaire → ne reste que le secondaire
+        if not secondary:
+            continue
+        for entry in ex_data.get("history", []):
+            d = entry.get("date") or ""
+            if d < cutoff:
+                break
+            if entry.get("sets"):
+                n_sets = len(entry["sets"])
+            else:
+                try:
+                    n_sets = len(parse_reps(entry.get("reps") or ""))
+                except Exception:
+                    n_sets = 1
+            for muscle in secondary:
+                weekly[muscle] = weekly.get(muscle, 0) + n_sets
+    return weekly
+
+
 # French muscle_group → normalized English key (same keys as MUSCLE_LANDMARKS)
 _MUSCLE_GROUP_FR_TO_EN: dict[str, str] = {
     "pectoraux":         "chest",
     "dos":               "lats",
     "épaules":           "deltoids",
+    "shoulders":         "deltoids",
     "épaules post.":     "rear delt",
     "biceps":            "biceps",
     "triceps":           "triceps",
@@ -428,8 +478,10 @@ _MUSCLE_GROUP_FR_TO_EN: dict[str, str] = {
     "fessiers":          "fessiers",
     "mollets":           "calves",
     "abdominaux":        "core",
+    "core":              "core",
     "avant-bras":        "forearms",
     "trapèzes":          "trapezius",
+    "cou":               "neck",
 }
 
 
@@ -438,6 +490,7 @@ def _calc_weekly_specific_breakdown(weights: dict, inventory: dict) -> dict[str,
 
     Used to show 'Épaules → Deltoïde postérieur: X sets' in the volume landmarks card.
     Only populated for exercises where muscle_specific is explicitly set (new taxonomy).
+    Exclut les exos tracking_type='mobility' (n'entrent pas dans le budget volume).
     """
     from datetime import date, timedelta
     from progression import parse_reps
@@ -445,6 +498,8 @@ def _calc_weekly_specific_breakdown(weights: dict, inventory: dict) -> dict[str,
     result: dict[str, dict[str, int]] = {}
     for ex_name, ex_data in weights.items():
         inv = inventory.get(ex_name) or {}
+        if (inv.get("tracking_type") or "").lower() == "mobility":
+            continue
         muscle_group_fr  = (inv.get("muscle_group")  or "").strip()
         muscle_specific  = (inv.get("muscle_specific") or "").strip()
         if not muscle_group_fr or not muscle_specific:

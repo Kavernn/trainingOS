@@ -320,6 +320,7 @@ extension String {
         case "lower back":                              return "Lombaires"
         case "rotators":                                return "Rotateurs"
         case "abductors":                               return "Abducteurs"
+        case "neck":                                    return "Cou"
         default:                                        return self.capitalized
         }
     }
