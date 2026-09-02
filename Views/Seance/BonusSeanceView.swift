@@ -190,6 +190,100 @@ struct BonusSeanceView: View {
         return (vals.reduce(0, +) / Double(vals.count) * 2).rounded() / 2
     }
 
+    // Extraction pour désengorger le type-checker sur le VStack englobant du body.
+    // Comportement et rendu strictement identiques à la version inline précédente.
+    @ViewBuilder
+    private var finishSessionButton: some View {
+        if !vm.logResults.isEmpty {
+            Button {
+                let unlogged = orderedExercises.filter { vm.logResults[$0] == nil }
+                if unlogged.isEmpty {
+                    showFinish = true
+                } else {
+                    showUnloggedWarning = true
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("Terminer la séance")
+                        .font(.appBody.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.forge)
+                .foregroundColor(Color.onAccent)
+                .cornerRadius(14)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private var unloggedWarningSheet: some View {
+        WorkoutSummarySheet(
+            exercises: orderedExercises,
+            logResults: vm.logResults
+        ) {
+            confirmedFromWarning = true
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var addExerciseSheet: some View {
+        AddExerciseSheet(
+            seance: "Bonus",
+            inventory: inventory,
+            inventorySchemes: inventorySchemes,
+            inventoryMuscleGroups: inventoryMuscleGroups
+        ) { list in
+            for (name, scheme) in list {
+                if localExercises[name] == nil {
+                    exerciseOrder.append(name)
+                }
+                localExercises[name] = scheme
+            }
+        }
+    }
+
+    private var finishSheet: some View {
+        FinishSessionSheet(
+            exercises: exerciseOrder,
+            logResults: vm.logResults,
+            elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
+            rpe: $rpe,
+            comment: $comment,
+            onSubmit: { energy in
+                let dur = Date().timeIntervalSince(sessionStart) / 60
+                Task {
+                    await vm.finish(
+                        rpe: rpe,
+                        comment: comment,
+                        durationMin: dur,
+                        energyPre: energy
+                    )
+                }
+            }
+        )
+        .presentationDetents([.medium, .large])
+        .onAppear { rpe = computedRPE }
+    }
+
+    private var quitButton: some View {
+        Button {
+            showQuitConfirm = true
+        } label: {
+            Text("Quitter sans sauvegarder")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color.statusRed.opacity(0.7))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.statusRed.opacity(0.07))
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusRed.opacity(0.2), lineWidth: 1))
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 24)
+    }
+
     var body: some View {
         ZStack {
             Color.appBg.ignoresSafeArea()
@@ -243,44 +337,10 @@ struct BonusSeanceView: View {
                         addExerciseButton
 
                         // Terminer — visible dès qu'au moins 1 exercice est loggé
-                        if !vm.logResults.isEmpty {
-                            Button {
-                                let unlogged = orderedExercises.filter { vm.logResults[$0] == nil }
-                                if unlogged.isEmpty {
-                                    showFinish = true
-                                } else {
-                                    showUnloggedWarning = true
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                    Text("Terminer la séance")
-                                        .font(.appBody.weight(.semibold))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(Color.forge)
-                                .foregroundColor(Color.onAccent)
-                                .cornerRadius(14)
-                            }
-                            .padding(.horizontal, 16)
-                        }
+                        finishSessionButton
 
                         // W-B3 — always-visible quit button (no data loss if tapped)
-                        Button {
-                            showQuitConfirm = true
-                        } label: {
-                            Text("Quitter sans sauvegarder")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color.statusRed.opacity(0.7))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.statusRed.opacity(0.07))
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.statusRed.opacity(0.2), lineWidth: 1))
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
+                        quitButton
                     }
                     .background(
                         GeometryReader { geo in
@@ -320,55 +380,14 @@ struct BonusSeanceView: View {
         .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange)) { _ in
             Task { await loadBonusPlan() }
         }
-        .sheet(isPresented: $showUnloggedWarning) {
-            WorkoutSummarySheet(
-                exercises: orderedExercises,
-                logResults: vm.logResults
-            ) {
-                confirmedFromWarning = true
-            }
-            .presentationDetents([.medium, .large])
-        }
+        .sheet(isPresented: $showUnloggedWarning) { unloggedWarningSheet }
         .onChange(of: showUnloggedWarning) { _, isShowing in
             guard !isShowing, confirmedFromWarning else { return }
             confirmedFromWarning = false
             showFinish = true
         }
-        .sheet(isPresented: $showAddExercise) {
-            AddExerciseSheet(
-                seance: "Bonus",
-                inventory: inventory,
-                inventorySchemes: inventorySchemes,
-                inventoryMuscleGroups: inventoryMuscleGroups
-            ) { name, scheme in
-                if localExercises[name] == nil {
-                    exerciseOrder.append(name)
-                }
-                localExercises[name] = scheme
-            }
-        }
-        .sheet(isPresented: $showFinish) {
-            FinishSessionSheet(
-                exercises: exerciseOrder,
-                logResults: vm.logResults,
-                elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
-                rpe: $rpe,
-                comment: $comment,
-                onSubmit: { energy in
-                    let dur = Date().timeIntervalSince(sessionStart) / 60
-                    Task {
-                        await vm.finish(
-                            rpe: rpe,
-                            comment: comment,
-                            durationMin: dur,
-                            energyPre: energy
-                        )
-                    }
-                }
-            )
-            .presentationDetents([.medium, .large])
-            .onAppear { rpe = computedRPE }
-        }
+        .sheet(isPresented: $showAddExercise) { addExerciseSheet }
+        .sheet(isPresented: $showFinish) { finishSheet }
         .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await vm.load() } }
         }
