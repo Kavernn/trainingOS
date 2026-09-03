@@ -171,12 +171,17 @@ def api_nutrition_adaptive_check():
     Évalue la progression du poids sur 14 jours et propose ±150 kcal si nécessaire.
     Lecture seule — l'utilisateur applique l'ajustement manuellement.
     """
-    from tdee import check_weight_progress
+    from tdee import check_weight_progress, compute_target_calories
     from nutrition import load_settings
 
     settings = load_settings()
     goal     = settings.get("goal_phase") or "maintain"
-    cal      = int(settings.get("limite_calories") or 2400)
+    cal      = compute_target_calories()
+    if cal is None:
+        return jsonify({
+            "available": False,
+            "reason": "Moins de 7 jours de TDEE historique — cible adaptative indisponible.",
+        })
 
     result = check_weight_progress(goal, cal)
     if result is None:

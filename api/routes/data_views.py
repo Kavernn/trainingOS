@@ -15,6 +15,7 @@ def api_dashboard():
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
                          get_suggested_weights_for_today, get_today_evening)
     from nutrition import (load_settings as load_nutrition_settings)
+    from tdee import compute_target_calories
     from blocks import get_strength_exercises, get_strength_exercise_ids
     from utils import get_current_week, load_hiit_log
     import db as _db
@@ -221,6 +222,7 @@ def api_dashboard():
         "exercise_ids":        {name: eid for sdef in full_program.values() for name, eid in get_strength_exercise_ids(sdef).items()},
         "nutrition_totals":    nutrition_totals,
         "nutrition_settings":  load_nutrition_settings(),
+        "target_calories":     compute_target_calories(),
         "profile":             profile,
         "total_workout_min_today": _total_workout_min_today if _total_workout_min_today > 0 else None,
         "has_evening_session":     _evening_session_name is not None,

@@ -421,12 +421,12 @@ extension StatsView {
     @ViewBuilder var nutritionTab: some View {
         let fn = filteredNutrition
         if fn.count >= 3, let target = nutritionTarget {
-            NutritionComplianceChart(days: fn, target: target)
+            NutritionComplianceChart(days: fn, targetCalories: targetCalories)
                 .padding(.horizontal, 16)
             ProteinComplianceView(days: fn, target: target)
                 .padding(.horizontal, 16)
             if target.glucides != nil || target.lipides != nil {
-                MacrosBreakdownView(days: fn, target: target)
+                MacrosBreakdownView(days: fn, target: target, targetCalories: targetCalories)
                     .padding(.horizontal, 16)
             }
         } else {

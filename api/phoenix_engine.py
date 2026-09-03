@@ -109,10 +109,17 @@ def _mind_axis(last7: set[str], prior7: set[str]) -> tuple[float, dict]:
 
 
 def _fuel_axis(last7: set[str], prior7: set[str]) -> tuple[float, dict]:
+    from tdee import compute_target_calories
     entries  = db.get_nutrition_entries_recent(16) or []
     settings = db.get_nutrition_settings() or {}
 
-    cal_target  = float(settings.get("calorie_limit")  or settings.get("limite_calories")    or 2000)
+    cal_int     = compute_target_calories()
+    # Anti-fantôme : sans cible calorique (moins de 7j TDEE), axe fuel neutre
+    # (has_baseline: False) — même comportement que prior_count == 0.
+    if cal_int is None:
+        return 0.0, {"has_baseline": False, "target_missing": True,
+                     "reason": "insufficient_tdee_history"}
+    cal_target  = float(cal_int)
     prot_target = float(settings.get("protein_target") or settings.get("objectif_proteines") or 150)
 
     # Exclude today from last7 if day is not substantially complete (< 80% of eating window)
@@ -299,9 +306,14 @@ def _guidance_mind(mind_details: dict) -> str:
 
 def _guidance_fuel(fuel_details: dict) -> str:
     try:
+        from tdee import compute_target_calories
         today_str = _today_iso()
         settings  = db.get_nutrition_settings() or {}
-        cal_target  = float(settings.get("calorie_limit")  or settings.get("limite_calories")    or 2000)
+        cal_int   = compute_target_calories()
+        # Anti-fantôme : sans cible, pas de conseil calorique inventé.
+        if cal_int is None:
+            return "Log tes calories 7 jours pour débloquer ta cible adaptative."
+        cal_target  = float(cal_int)
         prot_target = float(settings.get("protein_target") or settings.get("objectif_proteines") or 150)
 
         entries     = db.get_nutrition_entries_recent(7) or []

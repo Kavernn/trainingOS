@@ -14,8 +14,10 @@ def api_nutrition_correlations():
     from datetime import date as _date, timedelta
     from nutrition import get_recent_days, load_settings
 
+    from tdee import compute_target_calories
     settings    = load_settings()
-    cal_target  = float(settings.get("limite_calories", 2400)    or 2400)
+    cal_int     = compute_target_calories()
+    cal_target  = float(cal_int) if cal_int is not None else None  # anti-fantôme : pas de fallback inventé
     prot_target = float(settings.get("objectif_proteines", 180)  or 180)
 
     nutr_days    = get_recent_days(90)
@@ -51,19 +53,20 @@ def api_nutrition_correlations():
 
     # ── 2. Calorie adherence D → same-day recovery score ─────────────────
     on_target_rec, off_target_rec = [], []
-    for d_str, nutr in nutr_by_date.items():
-        rec = rec_by_date.get(d_str)
-        if not rec:
-            continue
-        scores = []
-        if rec.get("soreness") is not None: scores.append(10 - float(rec["soreness"]))
-        if rec.get("fatigue")  is not None: scores.append(10 - float(rec["fatigue"]))
-        if rec.get("mood")     is not None: scores.append(float(rec["mood"]))
-        if len(scores) < 2:
-            continue
-        rec_score = sum(scores) / len(scores)
-        cal = nutr.get("calories", 0) or 0
-        (on_target_rec if cal_target * 0.85 <= cal <= cal_target * 1.15 else off_target_rec).append(rec_score)
+    if cal_target is not None:
+        for d_str, nutr in nutr_by_date.items():
+            rec = rec_by_date.get(d_str)
+            if not rec:
+                continue
+            scores = []
+            if rec.get("soreness") is not None: scores.append(10 - float(rec["soreness"]))
+            if rec.get("fatigue")  is not None: scores.append(10 - float(rec["fatigue"]))
+            if rec.get("mood")     is not None: scores.append(float(rec["mood"]))
+            if len(scores) < 2:
+                continue
+            rec_score = sum(scores) / len(scores)
+            cal = nutr.get("calories", 0) or 0
+            (on_target_rec if cal_target * 0.85 <= cal <= cal_target * 1.15 else off_target_rec).append(rec_score)
 
     cal_rec = None
     if len(on_target_rec) >= _CORR_MIN_N and len(off_target_rec) >= _CORR_MIN_N:

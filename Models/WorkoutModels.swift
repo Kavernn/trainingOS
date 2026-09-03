@@ -61,6 +61,9 @@ struct DashboardData: Codable {
     let fullProgram: [String: [String: SafeString]]
     let nutritionTotals: NutritionTotals
     let nutritionSettings: NutritionSettings?
+    /// Cible calorique adaptative (source unique : tdee.compute_target_calories()).
+    /// `nil` si <7j de TDEE historique — anti-fantôme : afficher "—", pas un nombre inventé.
+    let targetCalories: Int?
     let profile: UserProfile
     let totalWorkoutMinToday: Double?
     let hasEveningSession: Bool
@@ -91,6 +94,7 @@ struct DashboardData: Codable {
         case fullProgram = "full_program"
         case nutritionTotals = "nutrition_totals"
         case nutritionSettings = "nutrition_settings"
+        case targetCalories = "target_calories"
         case profile
         case totalWorkoutMinToday = "total_workout_min_today"
         case hasEveningSession = "has_evening_session"
@@ -120,6 +124,7 @@ struct DashboardData: Codable {
         fullProgram         = try c.decode([String: [String: SafeString]].self, forKey: .fullProgram)
         nutritionTotals     = try c.decode(NutritionTotals.self, forKey: .nutritionTotals)
         nutritionSettings   = try? c.decode(NutritionSettings.self, forKey: .nutritionSettings)
+        targetCalories      = try? c.decode(Int.self, forKey: .targetCalories)
         profile             = try c.decode(UserProfile.self, forKey: .profile)
         totalWorkoutMinToday = try? c.decode(Double.self, forKey: .totalWorkoutMinToday)
         // Rétrocompatible : cache pré-fix Volet F → false/nil → comportement dashboard actuel.

@@ -150,8 +150,9 @@ struct DailyStatusStack: View {
     private var nutritionRow: some View {
         let totals = dash.nutritionTotals
         let consumed = Int(totals.calories ?? 0)
-        let target = dash.nutritionSettings?.dayTypeTargets?.target(for: todayNutritionType)
-        let targetCal = target.map { Int($0.calories) }
+        // Source unique : tdee.compute_target_calories() via payload dashboard.target_calories.
+        // nil si <7j historique → affichage "—" (règle anti-fantôme, jamais de nombre inventé).
+        let targetCal = dash.targetCalories
 
         // ponytail: jamais de cible inventée — tiret explicite si data absente.
         let valueText = targetCal.map { "\(consumed)/\($0)" } ?? "\(consumed)/—"

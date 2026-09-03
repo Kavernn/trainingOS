@@ -65,6 +65,9 @@ struct StatsView: View {
     @State var bodyWeight:       [BodyWeightEntry]       = []
     @State var recoveryLog:      [RecoveryEntry]         = []
     @State var nutritionTarget:  NutritionSettings?      = nil
+    /// Cible calorique adaptative — source unique (energy?.targetCalories via /api/energy/daily).
+    /// `nil` si <7j TDEE historique → labels cachés (règle anti-fantôme).
+    @State var targetCalories:   Int?                    = nil
     @State var nutritionDays:    [NutritionDay]          = []
     @State var acwr:             ACWRData?               = nil
     @State var activeDeload:      DeloadStatus?           = nil
@@ -622,6 +625,9 @@ struct StatsView: View {
             // No cache and network failed → show error state
             fetchError = true
         }
+        // Cible calorique adaptative — même source que NutritionView / EnergyChart.
+        targetCalories = (try? await APIService.shared.fetchEnergyDaily())?.targetCalories
+
         // sequential — async let LIFO crash on iOS 26 beta
         acwr = try? await APIService.shared.fetchACWR()
 

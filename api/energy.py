@@ -275,13 +275,9 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
     objective      = _OBJECTIVE_LABELS.get(goal, goal)
     target_balance = _TARGET_BALANCE.get(goal, "±100 kcal")
 
-    # ── Cible calorique adaptative (7j précédents complets, stable intra-jour) ─
-    prior_history = compute_energy_history(days=8)[:-1]
-    if prior_history:
-        avg_tdee_prior  = sum(h["tdee"] for h in prior_history) / len(prior_history)
-        target_calories = round(avg_tdee_prior + _GOAL_ADJ.get(goal, 0))
-    else:
-        target_calories = None
+    # ── Cible calorique adaptative — source unique tdee.compute_target_calories() ─
+    from tdee import compute_target_calories
+    target_calories = compute_target_calories(today)
 
     return {
         "date":           today,

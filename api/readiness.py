@@ -299,13 +299,19 @@ def _ratio_score(r: float) -> float:
 def _score_nutrition() -> tuple[float, dict]:
     details: dict = {}
     try:
+        from tdee import compute_target_calories
         settings    = db.get_nutrition_settings() or {}
-        target_cal  = float(settings.get("calorie_limit")  or settings.get("limite_calories")  or 2400)
+        target_cal  = compute_target_calories()
         target_prot = float(settings.get("protein_target") or settings.get("objectif_proteines") or 180)
         target_carb = float(settings.get("glucides_target") or 0)
     except Exception as e:
         logger.exception("_score_nutrition failed: %s", e)
         return 65.0, {"error": True}
+
+    # Anti-fantôme : sans cible calorique (moins de 7j TDEE), on n'invente pas de score.
+    if target_cal is None:
+        return 50.0, {"target_missing": True, "reason": "insufficient_tdee_history"}
+    target_cal = float(target_cal)
 
     entries = db.get_nutrition_entries_recent(2) or []
     today   = date_cls.fromisoformat(_today_mtl())

@@ -62,7 +62,11 @@ def detect_low_protein(settings: dict, recent_days: list[dict]) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def detect_under_calories(settings: dict, recent_days: list[dict]) -> dict | None:
-    target = float(settings.get("limite_calories") or 2400)
+    from tdee import compute_target_calories
+    target_int = compute_target_calories()
+    if target_int is None:
+        return None  # anti-fantôme : pas de cible → pas d'alerte "sous-calorique"
+    target = float(target_int)
     threshold = target * 0.75
     today = _today_mtl()
 

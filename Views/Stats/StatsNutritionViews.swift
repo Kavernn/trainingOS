@@ -3,14 +3,15 @@ import SwiftUI
 // MARK: - Nutrition Compliance
 struct NutritionComplianceChart: View {
     let days: [NutritionDay]
-    let target: NutritionSettings
+    /// Source unique adaptative (energy?.targetCalories). `nil` → chart neutre, label "Objectif" cachée.
+    let targetCalories: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("COMPLIANCE CALORIES (\(days.count) JOURS)")
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
-            let targetCal = target.calories ?? 2000
+            let targetCal = Double(targetCalories ?? 0)
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(days.suffix(30)) { day in
                     let cal = day.calories ?? 0
@@ -44,8 +45,10 @@ struct NutritionComplianceChart: View {
             )
 
             HStack(spacing: 12) {
-                Label("Objectif: \(Int(targetCal)) kcal", systemImage: "target")
-                    .font(.appMicro).foregroundColor(.gray)
+                if let tc = targetCalories {
+                    Label("Objectif: \(tc) kcal", systemImage: "target")
+                        .font(.appMicro).foregroundColor(.gray)
+                }
                 Spacer()
                 HStack(spacing: 4) {
                     Circle().fill(Color.appSuccess).frame(width: 6, height: 6)
@@ -212,7 +215,10 @@ struct ProteinComplianceView: View {
 // MARK: - Macros Breakdown
 struct MacrosBreakdownView: View {
     let days: [NutritionDay]
+    /// Macros (P/L/G) uniquement — la cible calorique passe par targetCalories (source unique).
     let target: NutritionSettings
+    /// Source unique adaptative (energy?.targetCalories). `nil` → ligne "Cible" cachée.
+    let targetCalories: Int?
 
     private func avgMacro(_ kp: KeyPath<NutritionDay, Double?>) -> Double {
         let vals = days.compactMap { $0[keyPath: kp] }.filter { $0 > 0 }
@@ -239,8 +245,8 @@ struct MacrosBreakdownView: View {
                 Text("Moy. cal: \(Int(avgCal)) kcal")
                     .font(.appMicro).foregroundColor(.gray)
                 Spacer()
-                if let tc = target.calories {
-                    Text("Cible: \(Int(tc)) kcal")
+                if let tc = targetCalories {
+                    Text("Cible: \(tc) kcal")
                         .font(.appMicro).foregroundColor(.gray)
                 }
             }

@@ -156,6 +156,24 @@ def compute_macro_targets(weight_kg: float, calorie_target: int,
     }
 
 
+def compute_target_calories(date: Optional[str] = None) -> Optional[int]:
+    """
+    Cible calorique adaptative : moyenne TDEE des 7 jours précédents + ajustement objectif.
+    Source unique lue par toutes les surfaces (dashboard, nutrition, énergie, readiness,
+    alerts, adaptive-check). Retourne None si <7j d'historique — anti-fantôme : les
+    consommateurs doivent gérer l'absence explicitement (skip / payload null), jamais
+    retomber sur un fallback inventé.
+    """
+    from energy import compute_energy_history  # lazy — évite cycle tdee ↔ energy
+    prior = compute_energy_history(days=8)[:-1]
+    if not prior:
+        return None
+    profile = db.get_profile() or {}
+    goal    = str(profile.get("goal") or "maintain")
+    avg     = sum(h["tdee"] for h in prior) / len(prior)
+    return round(avg + _GOAL_ADJ.get(goal, 0))
+
+
 def compute_dynamic_day_targets(weight_kg: float, tdee: int) -> dict:
     """Cibles caloriques + glucides par type de journée, relatives au poids."""
     return {
