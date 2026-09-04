@@ -10,6 +10,9 @@ struct MentalAmeView: View {
     @State private var lss:            LifeStressScore?
     @State private var cachedEmotions: [MoodEmotion] = []
     @State private var showMoodSheet   = false
+    @State private var initialLoaded      = false
+    @State private var lssFailed          = false
+    @State private var moodHistoryFailed  = false
     @AppStorage("mh_disclaimer_dismissed") private var disclaimerDismissed = false
 
     var body: some View {
@@ -19,7 +22,13 @@ struct MentalAmeView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    SignalDuJourHeader(lss: lss, recentMoods: recentMoods)
+                    SignalDuJourHeader(
+                        lss: lss,
+                        recentMoods: recentMoods,
+                        initialLoaded: initialLoaded,
+                        lssFailed: lssFailed,
+                        moodHistoryFailed: moodHistoryFailed
+                    )
                         .padding(.horizontal)
                         .padding(.top, 8)
                         .padding(.bottom, 12)
@@ -29,6 +38,8 @@ struct MentalAmeView: View {
                         recentMoods: recentMoods,
                         moodDue: moodDue,
                         cachedEmotions: cachedEmotions,
+                        initialLoaded: initialLoaded,
+                        moodHistoryFailed: moodHistoryFailed,
                         disclaimerDismissed: $disclaimerDismissed,
                         showMoodSheet: $showMoodSheet
                     )
@@ -48,15 +59,27 @@ struct MentalAmeView: View {
         // Sequential — async let LIFO crash on iOS 26 beta
         let d = try? await APIService.shared.checkMoodDue()
         let s = try? await APIService.shared.fetchMentalHealthSummary(days: 7)
-        let m = try? await APIService.shared.fetchMoodHistory(days: 14, limit: 7)
         let e = try? await APIService.shared.fetchMoodEmotions()
-        let l = try? await APIService.shared.fetchLifeStressScore()
+
+        var mFailed = false
+        let m: PagedResponse<MoodEntry>?
+        do    { m = try await APIService.shared.fetchMoodHistory(days: 14, limit: 7) }
+        catch { m = nil; mFailed = true }
+
+        var lFailed = false
+        let l: LifeStressScore?
+        do    { l = try await APIService.shared.fetchLifeStressScore() }
+        catch { l = nil; lFailed = true }
+
         await MainActor.run {
             moodDue        = d
             summary        = s
             if let items = m?.items { recentMoods = items }
             if let list  = e, !list.isEmpty { cachedEmotions = list }
             lss            = l
+            lssFailed          = lFailed
+            moodHistoryFailed  = mFailed
+            initialLoaded      = true
         }
     }
 }
@@ -66,6 +89,9 @@ struct MentalAmeView: View {
 private struct SignalDuJourHeader: View {
     let lss: LifeStressScore?
     let recentMoods: [MoodEntry]
+    let initialLoaded: Bool
+    let lssFailed: Bool
+    let moodHistoryFailed: Bool
 
     private var todayMood: MoodEntry? {
         let today = String(Date().ISO8601Format().prefix(10))
@@ -87,6 +113,29 @@ private struct SignalDuJourHeader: View {
         return Color.moodColor(for: s)
     }
 
+    private var lssScoreText: String {
+        if !initialLoaded { return "…" }
+        if lss == nil     { return "—" }
+        return "\(lss!.score)"
+    }
+
+    private var lssStatusText: String {
+        if !initialLoaded            { return "" }
+        if lss == nil && lssFailed   { return "Indisponible" }
+        return lssLabel
+    }
+
+    private var moodScoreText: String {
+        if !initialLoaded { return "…" }
+        return todayMood.map { "\($0.score)" } ?? "—"
+    }
+
+    private var moodStatusText: String {
+        if !initialLoaded                            { return "" }
+        if todayMood == nil && moodHistoryFailed     { return "Indisponible" }
+        return todayMood != nil ? "Aujourd'hui" : "Non loggé"
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
@@ -95,18 +144,18 @@ private struct SignalDuJourHeader: View {
                     .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     .tracking(2)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(lss.map { "\($0.score)" } ?? "—")
+                    Text(lssScoreText)
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
-                        .foregroundStyle(lssColor)
+                        .foregroundStyle(lss != nil ? lssColor : Color.appOnSurface.opacity(0.4))
                     if lss != nil {
                         Text("/ 100")
                             .font(.appMicro.weight(.light))
                             .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     }
                 }
-                Text(lssLabel)
+                Text(lssStatusText)
                     .font(.appMicro.weight(.medium))
-                    .foregroundStyle(lssColor.opacity(0.8))
+                    .foregroundStyle(lss != nil ? lssColor.opacity(0.8) : Color.appOnSurface.opacity(0.4))
                 Text("Sommeil · HRV · Fatigue")
                     .font(.system(size: 8, weight: .light))
                     .foregroundStyle(Color.appOnSurface.opacity(0.25))
@@ -124,16 +173,16 @@ private struct SignalDuJourHeader: View {
                     .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     .tracking(2)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(todayMood.map { "\($0.score)" } ?? "—")
+                    Text(moodScoreText)
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
-                        .foregroundStyle(moodColor)
+                        .foregroundStyle(todayMood != nil ? moodColor : Color.appOnSurface.opacity(0.4))
                     if todayMood != nil {
                         Text("/ 10")
                             .font(.appMicro.weight(.light))
                             .foregroundStyle(Color.appOnSurface.opacity(0.4))
                     }
                 }
-                Text(todayMood != nil ? "Aujourd'hui" : "Non loggé")
+                Text(moodStatusText)
                     .font(.appMicro.weight(.medium))
                     .foregroundStyle(todayMood != nil ? moodColor.opacity(0.8) : Color.gray.opacity(0.5))
                 Text("Humeur subjective /10")
@@ -161,6 +210,8 @@ private struct MesuresContent: View {
     let recentMoods: [MoodEntry]
     let moodDue: MoodDueStatus?
     let cachedEmotions: [MoodEmotion]
+    let initialLoaded: Bool
+    let moodHistoryFailed: Bool
     @Binding var disclaimerDismissed: Bool
     @Binding var showMoodSheet: Bool
 
@@ -175,6 +226,8 @@ private struct MesuresContent: View {
                     moodDue: moodDue,
                     recentMoods: recentMoods,
                     cachedEmotions: cachedEmotions,
+                    initialLoaded: initialLoaded,
+                    moodHistoryFailed: moodHistoryFailed,
                     onLog: { showMoodSheet = true }
                 )
                 .appearAnimation(delay: 0.03)
@@ -294,6 +347,8 @@ private struct MoodQuickLogCard: View {
     let moodDue: MoodDueStatus?
     let recentMoods: [MoodEntry]
     let cachedEmotions: [MoodEmotion]
+    let initialLoaded: Bool
+    let moodHistoryFailed: Bool
     let onLog: () -> Void
 
     private var todayEntry: MoodEntry? {
@@ -306,6 +361,9 @@ private struct MoodQuickLogCard: View {
         return Color.moodColor(for: s)
     }
 
+    private var isLoadingState: Bool { !initialLoaded }
+    private var isErrorState:   Bool { initialLoaded && todayEntry == nil && moodHistoryFailed }
+
     var body: some View {
         Button(action: onLog) {
             HStack(spacing: 14) {
@@ -314,6 +372,12 @@ private struct MoodQuickLogCard: View {
                     if let entry = todayEntry {
                         Text("\(entry.score)")
                             .font(.system(size: 20, weight: .bold)).foregroundColor(scoreColor)
+                    } else if isLoadingState {
+                        Text("…")
+                            .font(.system(size: 20, weight: .bold)).foregroundColor(Color.appOnSurface.opacity(0.4))
+                    } else if isErrorState {
+                        Image(systemName: "wifi.slash")
+                            .font(.system(size: 20)).foregroundColor(Color.appOnSurface.opacity(0.4))
                     } else {
                         Image(systemName: "face.smiling")
                             .font(.system(size: 22)).foregroundColor(.statusYellow)
@@ -330,6 +394,16 @@ private struct MoodQuickLogCard: View {
                             Text("Appuie pour modifier")
                                 .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6))
                         }
+                    } else if isLoadingState {
+                        Text("Chargement…")
+                            .font(.system(size: 14, weight: .semibold)).foregroundColor(Color.appOnSurface.opacity(0.6))
+                        Text(" ")
+                            .font(.caption)
+                    } else if isErrorState {
+                        Text("Indisponible")
+                            .font(.system(size: 14, weight: .semibold)).foregroundColor(Color.appOnSurface.opacity(0.6))
+                        Text("Réessaie plus tard")
+                            .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.5))
                     } else {
                         Text(moodDue?.isDue == true ? "Note ton humeur" : "Comment tu te sens ?")
                             .font(.system(size: 14, weight: .semibold)).foregroundColor(.appTextPrimary)
@@ -347,6 +421,7 @@ private struct MoodQuickLogCard: View {
         }
         .buttonStyle(SpringButtonStyle())
         .padding(.horizontal)
+        .disabled(isLoadingState || isErrorState)
     }
 }
 
