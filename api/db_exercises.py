@@ -69,7 +69,7 @@ def get_exercise_id(name: str) -> Optional[str]:
         return None
 
     def _do() -> Optional[str]:
-        resp = db_core._client.table("exercises").select("id").eq("name", name).single().execute()
+        resp = db_core._client.table("exercises").select("id").eq("name", name).is_("deleted_at", "null").single().execute()
         return resp.data["id"] if resp.data else None
 
     try:
