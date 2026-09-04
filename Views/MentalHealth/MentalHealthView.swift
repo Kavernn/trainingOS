@@ -99,7 +99,7 @@ private struct SignalDuJourHeader: View {
     }
 
     private var lssColor: Color {
-        guard let s = lss?.score else { return .gray }
+        guard let s = lss?.score else { return .appTextMuted }
         return s >= 70 ? Color.appSuccess : s >= 40 ? Color.appWarning : Color.appDanger
     }
 
@@ -109,7 +109,7 @@ private struct SignalDuJourHeader: View {
     }
 
     private var moodColor: Color {
-        guard let s = todayMood?.score else { return .gray }
+        guard let s = todayMood?.score else { return .appTextMuted }
         return Color.moodColor(for: s)
     }
 
@@ -184,7 +184,7 @@ private struct SignalDuJourHeader: View {
                 }
                 Text(moodStatusText)
                     .font(.appMicro.weight(.medium))
-                    .foregroundStyle(todayMood != nil ? moodColor.opacity(0.8) : Color.gray.opacity(0.5))
+                    .foregroundStyle(todayMood != nil ? moodColor.opacity(0.8) : Color.appTextMuted.opacity(0.5))
                 Text("Humeur subjective /10")
                     .font(.system(size: 8, weight: .light))
                     .foregroundStyle(Color.appOnSurface.opacity(0.25))
@@ -248,7 +248,7 @@ private struct MesuresContent: View {
                                 .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6))
                         }
                         Spacer()
-                        Image(systemName: "chevron.right").foregroundColor(Color.appOnSurface.opacity(0.4))
+                        Image(systemName: "chevron.right").foregroundColor(.appTextMuted)
                     }
                     .padding(14)
                     .glassCard()
@@ -267,7 +267,7 @@ private struct MesuresContent: View {
                                 .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6))
                         }
                         Spacer()
-                        Image(systemName: "chevron.right").foregroundColor(Color.appOnSurface.opacity(0.4))
+                        Image(systemName: "chevron.right").foregroundColor(.appTextMuted)
                     }
                     .padding(14)
                     .glassCard()
@@ -280,7 +280,7 @@ private struct MesuresContent: View {
                         Label("Résumé & insights", systemImage: "chart.bar.fill")
                             .foregroundColor(.appTextPrimary)
                         Spacer()
-                        Image(systemName: "chevron.right").foregroundColor(Color.appOnSurface.opacity(0.4))
+                        Image(systemName: "chevron.right").foregroundColor(.appTextMuted)
                     }
                     .padding()
                     .glassCard(color: .teal, intensity: 0.08)
@@ -294,7 +294,7 @@ private struct MesuresContent: View {
                         Text("Ressources en cas de crise")
                             .foregroundColor(Color.appDanger).fontWeight(.semibold)
                         Spacer()
-                        Image(systemName: "chevron.right").foregroundColor(Color.appOnSurface.opacity(0.4))
+                        Image(systemName: "chevron.right").foregroundColor(.appTextMuted)
                     }
                     .padding()
                     .glassCard(color: Color.appDanger, intensity: 0.06)
@@ -334,7 +334,7 @@ private struct DisclaimerBanner: View {
             Spacer()
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.appCaption.weight(.medium)).foregroundColor(.gray)
+                    .font(.appCaption.weight(.medium)).foregroundColor(.appTextMuted)
             }
         }
         .padding(12)
