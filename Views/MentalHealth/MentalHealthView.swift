@@ -329,7 +329,7 @@ private struct DisclaimerBanner: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "info.circle.fill").foregroundColor(Color.appInfo)
-            Text("Cette section est un outil d'auto-suivi. Elle ne remplace pas un professionnel de santé mentale.")
+            Text("Auto-suivi — consulte un professionnel de santé mentale si tu en as besoin.")
                 .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.7))
             Spacer()
             Button(action: onDismiss) {
