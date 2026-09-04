@@ -2135,11 +2135,9 @@ struct WorkoutSeanceView: View {
             await MainActor.run { toast = ToastMessage(message: "Erreur ajout exercice", style: .error) }
             return
         }
-        let fetched = try? await APIService.shared.fetchExerciseWeightData(name: name)
-        await MainActor.run {
-            localProgram[name] = scheme
-            if let f = fetched { swapWeightData[name] = f }
-        }
+        await MainActor.run { localProgram[name] = scheme }
+        CacheService.shared.clear(for: "seance_data")
+        await vm.load()
     }
 
     private func deleteExercise(_ name: String) async {
