@@ -143,9 +143,14 @@ struct DashboardView: View {
                                 .appearAnimation(delay: 0.06)
                                 .padding(.vertical, 8)
 
-                                // 5 — Routine de soir (visible dès 20h, et jusqu'à 3h pour couchers tardifs)
-                                let eveningHour = Calendar.current.component(.hour, from: Date())
-                                if eveningHour >= 20 || eveningHour < 3 {
+                                // 5 — Carte de la période (matin : Humeur ~6h-14h si isDue, soir : Routine sommeil ≥20h)
+                                let hour = Calendar.current.component(.hour, from: Date())
+                                let isMorningMoodPrompt = hour >= 6 && hour < 14 && vm.moodDue?.isDue == true
+                                if isMorningMoodPrompt {
+                                    MorningMoodPromptCard(action: { showMoodSheet = true })
+                                        .appearAnimation(delay: 0.07)
+                                }
+                                if hour >= 20 || hour < 3 {
                                     EveningSleepCard()
                                         .appearAnimation(delay: 0.07)
                                 }
@@ -222,6 +227,7 @@ struct DashboardView: View {
                                     sessionLogged: dash.alreadyLoggedToday,
                                     moodDone: vm.moodDue?.isDue == false,
                                     nutritionLogged: (dash.nutritionTotals.calories ?? 0) >= 1,
+                                    hideMoodChip: isMorningMoodPrompt,
                                     onSessionTap: { onOpenSession?() },
                                     onMoodTap: { showMoodSheet = true },
                                     onNutritionTap: { showNutritionAddSheet = true }

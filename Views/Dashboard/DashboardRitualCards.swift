@@ -262,6 +262,49 @@ enum EveningRemindersStore {
     }
 }
 
+// MARK: - MorningMoodPromptCard (invitation matinale à logger l'humeur, ~6h-14h si isDue)
+
+struct MorningMoodPromptCard: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sun.max.fill")
+                        .font(.appLabel)
+                        .foregroundColor(Color.statusYellow.opacity(0.85))
+                    Text("Humeur du matin")
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(Color.appOnSurface.opacity(0.9))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(Color.appOnSurface.opacity(0.3))
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Comment tu te sens ce matin ?")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(Color.appOnSurface.opacity(0.8))
+                    Text("30 secondes pour poser ton mood.")
+                        .font(.appCaption)
+                        .foregroundColor(Color.appOnSurface.opacity(0.6))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .padding(13)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassCard(cornerRadius: 14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.statusYellow.opacity(0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - EveningSleepCard (aide-mémoire bienveillant, après 20h)
 
 struct EveningSleepCard: View {

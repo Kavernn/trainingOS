@@ -6,6 +6,7 @@ struct DayActionsRow: View {
     let sessionLogged: Bool
     let moodDone: Bool
     let nutritionLogged: Bool
+    var hideMoodChip: Bool = false
     var onSessionTap: () -> Void
     var onMoodTap: () -> Void
     var onNutritionTap: () -> Void
@@ -18,7 +19,7 @@ struct DayActionsRow: View {
                 if !sessionLogged {
                     ActionChip(icon: "dumbbell.fill", label: "Séance", color: Color.forge, action: onSessionTap)
                 }
-                if !moodDone {
+                if !moodDone && !hideMoodChip {
                     ActionChip(icon: "brain.head.profile", label: "Humeur", color: Color.statusYellow, action: onMoodTap)
                 }
                 if !nutritionLogged {
