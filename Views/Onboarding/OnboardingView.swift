@@ -5,7 +5,7 @@ struct OnboardingView: View {
 
     @State private var step = 0
     @State private var name = ""
-    @State private var goal = "Prise de masse"
+    @State private var goal = "bulk"
     @State private var isSaving    = false
     @State private var hkRequesting = false
     @State private var isKgSelected: Bool = Locale.current.usesMetricSystem
@@ -16,11 +16,10 @@ struct OnboardingView: View {
 
     private let level = "Intermédiaire"
 
-    private let goalOptions: [(label: String, subtitle: String, value: String)] = [
-        ("Prendre du muscle",   "Force & hypertrophie",      "Prise de masse"),
-        ("Perdre du gras",      "Composition corporelle",    "Perte de poids"),
-        ("Performer",           "Force, vitesse, endurance", "Performance"),
-        ("Rester consistant",   "Habitudes durables",        "Maintien"),
+    private let goalOptions: [(key: String, subtitle: String)] = [
+        ("bulk",     "Force & hypertrophie"),
+        ("cut",      "Composition corporelle"),
+        ("maintain", "Habitudes durables"),
     ]
 
     private var isNameValid: Bool {
@@ -106,14 +105,14 @@ struct OnboardingView: View {
             .padding(.bottom, 44)
 
             VStack(spacing: 12) {
-                ForEach(goalOptions, id: \.value) { option in
+                ForEach(goalOptions, id: \.key) { option in
                     Button {
-                        goal = option.value
+                        goal = option.key
                         withAnimation { step = 2 }
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(option.label)
+                                Text(Goal.label(for: option.key))
                                     .font(.appHeadline)
                                     .foregroundColor(.appTextPrimary)
                                 Text(option.subtitle)

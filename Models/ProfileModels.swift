@@ -47,3 +47,16 @@ struct UserProfile: Codable {
         case photoUrl = "photo_url"
     }
 }
+
+// Clé raw stockée en base (source unique) + label FR pour l'UI.
+// Backend (tdee/energy) branche sur les clés raw : "bulk" / "cut" / "maintain".
+enum Goal {
+    static let options: [(key: String, label: String)] = [
+        ("bulk",     "Prise de masse"),
+        ("cut",      "Perte de poids"),
+        ("maintain", "Maintien"),
+    ]
+    static func label(for key: String) -> String {
+        options.first { $0.key == key }?.label ?? key
+    }
+}

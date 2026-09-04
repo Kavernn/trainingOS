@@ -242,7 +242,7 @@ struct ProfileView: View {
                 .clipShape(Capsule())
             }
             if let goal = profile?.goal, !goal.isEmpty {
-                Text(goal)
+                Text(Goal.label(for: goal))
                     .font(.appCaption).foregroundColor(.gray)
                     .padding(.horizontal, 10).padding(.vertical, 5)
                     .background(Color.appSurfaceInset)
@@ -732,7 +732,7 @@ struct ProfileView: View {
     private var settingsCard: some View {
         VStack(spacing: 0) {
             settingsRow(icon: "trophy.fill",         color: Color.statusYellow,  label: "Objectif & niveau",
-                        detail: profile?.goal.flatMap { $0.isEmpty ? nil : $0 },
+                        detail: profile?.goal.flatMap { $0.isEmpty ? nil : Goal.label(for: $0) },
                         action: { showEdit = true })
             settingsDivider
             settingsRow(icon: "waveform.path.ecg", color: Color.statusCyan, label: "Revoir l'intro HRV", detail: nil, action: {
@@ -1155,9 +1155,10 @@ struct EditProfileSheet: View {
                     .listRowBackground(Color.appCard).foregroundColor(.gray)
 
                     Section("Programme") {
-                        LabeledContent("Objectif") {
-                            TextField("Objectif", text: $goal)
-                                .multilineTextAlignment(.trailing).foregroundColor(.appTextPrimary)
+                        Picker("Objectif", selection: $goal) {
+                            ForEach(Goal.options, id: \.key) { opt in
+                                Text(opt.label).tag(opt.key)
+                            }
                         }
                         LabeledContent("Niveau") {
                             TextField("Niveau", text: $level)
