@@ -38,7 +38,9 @@ struct MentalAmeView: View {
                         recentMoods: recentMoods,
                         moodDue: moodDue,
                         cachedEmotions: cachedEmotions,
+                        lss: lss,
                         initialLoaded: initialLoaded,
+                        lssFailed: lssFailed,
                         moodHistoryFailed: moodHistoryFailed,
                         disclaimerDismissed: $disclaimerDismissed,
                         showMoodSheet: $showMoodSheet
@@ -210,7 +212,9 @@ private struct MesuresContent: View {
     let recentMoods: [MoodEntry]
     let moodDue: MoodDueStatus?
     let cachedEmotions: [MoodEmotion]
+    let lss: LifeStressScore?
     let initialLoaded: Bool
+    let lssFailed: Bool
     let moodHistoryFailed: Bool
     @Binding var disclaimerDismissed: Bool
     @Binding var showMoodSheet: Bool
@@ -221,6 +225,13 @@ private struct MesuresContent: View {
                 if !disclaimerDismissed {
                     DisclaimerBanner(onDismiss: { disclaimerDismissed = true })
                 }
+
+                LifeStressBreakdownCard(
+                    lss: lss,
+                    initialLoaded: initialLoaded,
+                    lssFailed: lssFailed
+                )
+                .appearAnimation(delay: 0.02)
 
                 MoodQuickLogCard(
                     moodDue: moodDue,
@@ -468,5 +479,181 @@ private struct MoodSparklineCard: View {
         .padding(.vertical, 12)
         .glassCard(color: .teal, intensity: 0.05)
         .padding(.horizontal)
+    }
+}
+
+// MARK: - Life Stress Breakdown Card (Équilibre enrichi — composantes + coverage + reco)
+
+private struct LifeStressBreakdownCard: View {
+    let lss: LifeStressScore?
+    let initialLoaded: Bool
+    let lssFailed: Bool
+
+    private struct Item: Identifiable {
+        let name: String
+        let value: Double
+        var id: String { name }
+    }
+
+    private var items: [Item] {
+        guard let c = lss?.components else { return [] }
+        let raw: [(String, Double?)] = [
+            ("Sommeil",                c.sleepQuality),
+            ("Variabilité cardiaque",  c.hrvTrend),
+            ("FC repos",               c.rhrTrend),
+            ("Tension perçue",         c.subjectiveStress),
+            ("Charge d'entraînement",  c.trainingFatigue),
+        ]
+        return raw.compactMap { name, v -> Item? in
+            guard let v = v else { return nil }
+            return Item(name: name, value: v)
+        }
+    }
+
+    private var visible: [Item] {
+        let sorted = items.sorted { $0.value < $1.value }
+        switch sorted.count {
+        case 0:      return []
+        case 1, 2:   return sorted
+        default:
+            let mid = sorted.count / 2
+            return [sorted.first!, sorted[mid], sorted.last!]
+        }
+    }
+
+    private func componentColor(_ v: Double) -> Color {
+        v >= 70 ? Color.appSuccess : v >= 40 ? Color.appWarning : Color.appDanger
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("COMPOSANTES")
+                .font(.appMicro.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.4))
+                .tracking(2)
+
+            content
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 14)
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if !initialLoaded {
+            Text("…")
+                .font(.appLabel.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.4))
+        } else if lss == nil && lssFailed {
+            Text("Indisponible")
+                .font(.appLabel.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.5))
+        } else if let lss = lss {
+            loadedContent(lss)
+        } else {
+            Text("Indisponible")
+                .font(.appLabel.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.5))
+        }
+    }
+
+    @ViewBuilder
+    private func loadedContent(_ lss: LifeStressScore) -> some View {
+        if visible.isEmpty {
+            emptyDataContent
+        } else {
+            componentsList
+            footer(lss)
+        }
+    }
+
+    private var emptyDataContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Connecte ta Watch ou logge ta récup pour activer ce signal.")
+                .font(.appCaption)
+                .foregroundStyle(Color.appOnSurface.opacity(0.75))
+                .fixedSize(horizontal: false, vertical: true)
+            NavigationLink(destination: RecoveryView()) {
+                HStack(spacing: 6) {
+                    Text("Ouvrir Recovery")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.appTextPrimary)
+                    Image(systemName: "chevron.right")
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(.appTextMuted)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.appInfo.opacity(0.10))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.appInfo.opacity(0.25), lineWidth: 1))
+                .cornerRadius(20)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var componentsList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(visible) { item in
+                componentRow(item)
+            }
+        }
+    }
+
+    private func componentRow(_ item: Item) -> some View {
+        let color = componentColor(item.value)
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(item.name)
+                    .font(.appLabel.weight(.medium))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.85))
+                Spacer()
+                Text("\(Int(item.value))/100")
+                    .font(.appLabel.weight(.medium))
+                    .foregroundStyle(color)
+            }
+            segmentBar(value: item.value, color: color)
+        }
+    }
+
+    private func segmentBar(value: Double, color: Color) -> some View {
+        let filled = min(10, max(0, Int(value / 10)))
+        return HStack(spacing: 2) {
+            ForEach(0..<10, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(i < filled ? color : Color.appTextMuted.opacity(0.18))
+                    .frame(height: 6)
+            }
+        }
+    }
+
+    private func footer(_ lss: LifeStressScore) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(coverageBadge(lss.dataCoverage))
+                .font(.appMicro)
+                .foregroundStyle(Color.appTextMuted)
+            Text(footerMessage(lss))
+                .font(.appCaption)
+                .foregroundStyle(Color.appOnSurface.opacity(0.75))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, 4)
+    }
+
+    private func coverageBadge(_ coverage: Double) -> String {
+        let pct = Int((coverage * 100).rounded())
+        if coverage >= 0.8 { return "Basé sur \(pct) % de tes données" }
+        if coverage >= 0.4 { return "Basé sur \(pct) % de tes données ⓘ" }
+        return "Basé sur \(pct) % de tes données ⚠"
+    }
+
+    private func footerMessage(_ lss: LifeStressScore) -> String {
+        if lss.dataCoverage < 0.4 {
+            return "Ajoute des logs ou active la synchro Watch pour un signal plus complet."
+        }
+        if let first = lss.recommendations.first { return first }
+        return "Équilibre stable, rien à ajuster."
     }
 }
