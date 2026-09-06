@@ -189,6 +189,13 @@ struct MoodLogSheet: View {
 
     @State private var emotionList: [MoodEmotion] = []
 
+    // Creuser (optionnel)
+    @State private var isCreuserExpanded: Bool = false
+    @State private var tags: [String] = []
+    @State private var tagInput: String = ""
+    @State private var backdateEnabled: Bool = false
+    @State private var backdateValue: Date = Date()
+
     var body: some View {
         NavigationStack {
             Form {
@@ -210,7 +217,7 @@ struct MoodLogSheet: View {
                     }
                 }
 
-                Section("Émotions (optionnel)") {
+                Section(selectedEmotions.isEmpty ? "Émotions (optionnel)" : "Émotions (\(selectedEmotions.count))") {
                     EmotionChipGrid(
                         emotions: emotionList.isEmpty ? emotions : emotionList,
                         selected: $selectedEmotions
@@ -220,6 +227,26 @@ struct MoodLogSheet: View {
                 Section("Notes (optionnel)") {
                     TextField("Qu'est-ce qui se passe ?", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
+                }
+
+                Section {
+                    DisclosureGroup(isExpanded: $isCreuserExpanded) {
+                        creuserContent
+                    } label: {
+                        Text("Creuser")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+
+                Section {
+                    HStack {
+                        Spacer()
+                        Text(recapText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        Spacer()
+                    }
                 }
 
                 if let err = errorMsg {
@@ -237,8 +264,15 @@ struct MoodLogSheet: View {
                     Button("Annuler") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") { submit() }
-                        .disabled(isSubmitting)
+                    Button(action: submit) {
+                        HStack(spacing: 6) {
+                            if isSubmitting {
+                                ProgressView().controlSize(.small)
+                            }
+                            Text("Enregistrer")
+                        }
+                    }
+                    .disabled(isSubmitting)
                 }
             }
             .task {
@@ -251,7 +285,119 @@ struct MoodLogSheet: View {
 
     private var sliderColor: Color { Color.moodColor(for: Int(score)) }
 
+    // MARK: - Creuser content
+
+    @ViewBuilder
+    private var creuserContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Tags
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Tags")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                if !tags.isEmpty {
+                    FlowLayoutMH(spacing: 6) {
+                        ForEach(tags, id: \.self) { tag in
+                            HStack(spacing: 4) {
+                                Text(tag).font(.caption)
+                                Button {
+                                    removeTag(tag)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.appInfo.opacity(0.10))
+                            .overlay(Capsule().stroke(Color.appInfo.opacity(0.25), lineWidth: 1))
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+
+                TextField("travail · sommeil · sport…", text: $tagInput)
+                    .onSubmit { addTag() }
+                    .onChange(of: tagInput) { _, new in
+                        if new.hasSuffix(",") { addTag() }
+                    }
+            }
+
+            // Backdate
+            Toggle("Loguer pour un autre jour", isOn: $backdateEnabled)
+            if backdateEnabled {
+                DatePicker(
+                    "Date",
+                    selection: $backdateValue,
+                    in: (Date().addingTimeInterval(-7 * 86400))...Date(),
+                    displayedComponents: .date
+                )
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    // MARK: - Tags
+
+    private func addTag() {
+        let cleaned = tagInput
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ","))
+        defer { tagInput = "" }
+        guard !cleaned.isEmpty,
+              !tags.contains(where: { $0.lowercased() == cleaned.lowercased() })
+        else { return }
+        tags.append(cleaned)
+    }
+
+    private func removeTag(_ tag: String) {
+        tags.removeAll { $0 == tag }
+    }
+
+    // Inclut le tag en cours (non commité) pour que l'aperçu ne mente pas.
+    private var pendingTags: [String] {
+        let live = tagInput
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ","))
+        guard !live.isEmpty,
+              !tags.contains(where: { $0.lowercased() == live.lowercased() })
+        else { return tags }
+        return tags + [live]
+    }
+
+    // MARK: - Récap
+
+    private var recapText: String {
+        var parts: [String] = ["Score \(Int(score))/10"]
+        let n = selectedEmotions.count
+        if n > 0 { parts.append("\(n) émotion\(n > 1 ? "s" : "")") }
+        if !pendingTags.isEmpty { parts.append("avec contexte") }
+        if backdateEnabled {
+            let df = DateFormatter()
+            df.locale = Locale(identifier: "fr_FR")
+            df.dateFormat = "d MMM"
+            parts.append("daté du \(df.string(from: backdateValue))")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func iso8601Day(_ d: Date) -> String {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        df.timeZone = TimeZone.current
+        return df.string(from: d)
+    }
+
+    // MARK: - Submit
+
     private func submit() {
+        // Capture le tag en cours si tapé mais non commité (Retour/virgule)
+        if !tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            addTag()
+        }
         isSubmitting = true
         Task {
             do {
@@ -259,7 +405,8 @@ struct MoodLogSheet: View {
                     score:    Int(score),
                     emotions: Array(selectedEmotions),
                     notes:    notes.isEmpty ? nil : notes,
-                    triggers: []
+                    triggers: tags,
+                    date:     backdateEnabled ? iso8601Day(backdateValue) : nil
                 )
                 await MainActor.run {
                     ActionFeedbackManager.shared.show(.moodLogged)
@@ -323,6 +470,7 @@ private struct EmotionChip: View {
                 )
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: isSelected)
     }
 }
 
