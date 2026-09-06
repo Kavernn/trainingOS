@@ -22,16 +22,16 @@ from utils import _today_mtl
 # ── Questions PSS-10 (version française validée) ──────────────────────────────
 
 PSS10_QUESTIONS = [
-    {"id": 1,  "text": "Ce mois-ci, un événement inattendu t'a souvent pris de court ?",                        "positive": False},
-    {"id": 2,  "text": "T'es-tu souvent senti(e) hors de contrôle de ta vie ?",                                 "positive": False},
-    {"id": 3,  "text": "T'es-tu souvent senti(e) nerveux(se) ou stressé(e) ?",                                  "positive": False},
+    {"id": 1,  "text": "Ce mois-ci, un événement inattendu t'a souvent pris de court ?",                        "positive": False, "short": "événements inattendus"},
+    {"id": 2,  "text": "T'es-tu souvent senti(e) hors de contrôle de ta vie ?",                                 "positive": False, "short": "prise sur ta vie"},
+    {"id": 3,  "text": "T'es-tu souvent senti(e) nerveux(se) ou stressé(e) ?",                                  "positive": False, "short": "nervosité"},
     {"id": 4,  "text": "T'as souvent eu l'impression de bien gérer les choses importantes ?",                   "positive": True},
-    {"id": 5,  "text": "T'es-tu souvent senti(e) débordé(e) par tout ce que tu devais faire ?",                "positive": False},
+    {"id": 5,  "text": "T'es-tu souvent senti(e) débordé(e) par tout ce que tu devais faire ?",                "positive": False, "short": "sentiment de débordement"},
     {"id": 6,  "text": "T'as souvent réussi à faire face efficacement aux difficultés ?",                       "positive": True},
     {"id": 7,  "text": "T'as souvent eu l'impression d'avoir les choses sous contrôle ?",                       "positive": True},
-    {"id": 8,  "text": "T'es-tu souvent senti(e) tellement à bout de nerfs que tu ne te contrôlais plus ?",    "positive": False},
+    {"id": 8,  "text": "T'es-tu souvent senti(e) tellement à bout de nerfs que tu ne te contrôlais plus ?",    "positive": False, "short": "à bout de nerfs"},
     {"id": 9,  "text": "T'as souvent eu l'impression d'être au sommet de ta forme ?",                          "positive": True},
-    {"id": 10, "text": "T'as souvent eu l'impression que les difficultés s'accumulaient trop pour t'en sortir ?", "positive": False},
+    {"id": 10, "text": "T'as souvent eu l'impression que les difficultés s'accumulaient trop pour t'en sortir ?", "positive": False, "short": "difficultés qui s'accumulent"},
 ]
 
 # Indices 0-based des items positifs dans PSS-10 (inversés au scoring)
@@ -281,10 +281,8 @@ def generate_insights(
         ]
         hot.sort(key=lambda q: full_responses[q["id"] - 1], reverse=True)
         if hot and category != "low":
-            nums = " et ".join(f"item {q['id']}" for q in hot[:2])
-            insights.append(
-                f"Tension visible à l'{nums}. Note un déclencheur concret pour agir dessus."
-            )
+            nums = " · ".join(q["short"] for q in hot[:2])
+            insights.append(f"Sources de tension : {nums}.")
 
     # 3. Message catégorie
     msgs = {
