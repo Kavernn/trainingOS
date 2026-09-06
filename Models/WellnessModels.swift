@@ -231,6 +231,9 @@ struct MentalHealthSummary: Codable {
     let pssScore: Int?
     let pssCategory: String?
     let pssDate: String?
+    let pssType: String?
+    let pssIsDue: Bool
+    let pssHotItems: [String]
 
     enum CodingKeys: String, CodingKey {
         case insights, correlations
@@ -247,6 +250,31 @@ struct MentalHealthSummary: Codable {
         case pssScore          = "pss_score"
         case pssCategory       = "pss_category"
         case pssDate           = "pss_date"
+        case pssType           = "pss_type"
+        case pssIsDue          = "pss_is_due"
+        case pssHotItems       = "pss_hot_items"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        periodDays         = try c.decode(Int.self, forKey: .periodDays)
+        avgMood            = try c.decodeIfPresent(Double.self, forKey: .avgMood)
+        moodTrend          = try c.decode(String.self, forKey: .moodTrend)
+        moodHistory        = try c.decode([MoodEntry].self, forKey: .moodHistory)
+        breathworkSessions = try c.decode(Int.self, forKey: .breathworkSessions)
+        breathworkMinutes  = try c.decode(Int.self, forKey: .breathworkMinutes)
+        journalEntries     = try c.decode(Int.self, forKey: .journalEntries)
+        selfCareRate       = try c.decode(Double.self, forKey: .selfCareRate)
+        topStreaks         = try c.decode([SelfCareStreak].self, forKey: .topStreaks)
+        topEmotions        = try c.decode([String].self, forKey: .topEmotions)
+        insights           = try c.decode([String].self, forKey: .insights)
+        correlations       = try c.decode([String].self, forKey: .correlations)
+        pssScore           = try c.decodeIfPresent(Int.self,    forKey: .pssScore)
+        pssCategory        = try c.decodeIfPresent(String.self, forKey: .pssCategory)
+        pssDate            = try c.decodeIfPresent(String.self, forKey: .pssDate)
+        pssType            = try c.decodeIfPresent(String.self, forKey: .pssType)
+        pssIsDue           = (try c.decodeIfPresent(Bool.self,      forKey: .pssIsDue))    ?? false
+        pssHotItems        = (try c.decodeIfPresent([String].self,  forKey: .pssHotItems)) ?? []
     }
 }
 

@@ -237,6 +237,32 @@ def _due_message(pss_type: str, days: int) -> str:
     return "Petit check rapide de ton stress cette semaine ? (1 min)"
 
 
+# ── Fonctions pures réutilisables ─────────────────────────────────────────────
+
+def compute_hot_items(full_responses: list[int] | None) -> list[str]:
+    """Libellés courts des items chauds PSS-10 (négatifs à réponse ≥ 3, top 2 tri desc).
+    Retourne [] si responses absent, mauvaise longueur, ou PSS-4."""
+    if not full_responses or len(full_responses) != 10:
+        return []
+    hot = [
+        PSS10_QUESTIONS[i]
+        for i in range(10)
+        if not PSS10_QUESTIONS[i]["positive"] and full_responses[i] >= 3
+    ]
+    hot.sort(key=lambda q: full_responses[q["id"] - 1], reverse=True)
+    return [q["short"] for q in hot[:2]]
+
+
+def compute_pss_full_due(pss_full_record: dict | None) -> bool:
+    """True si le dernier PSS-full est absent ou trop ancien (≥ _FULL_INTERVAL_DAYS)."""
+    if not pss_full_record:
+        return True
+    from datetime import date as _date
+    last = _date.fromisoformat(pss_full_record["date"])
+    days_since = (_date.fromisoformat(_today_mtl()) - last).days
+    return days_since >= _FULL_INTERVAL_DAYS
+
+
 # ── Insights narratifs ────────────────────────────────────────────────────────
 
 def generate_insights(
@@ -273,16 +299,10 @@ def generate_insights(
         insights.append(f"Premier bilan enregistré — score de référence : {score}/{max_s}.")
 
     # 2. Items chauds (PSS-10 uniquement, réponses brutes disponibles)
-    if is_full and full_responses and len(full_responses) == 10:
-        hot = [
-            PSS10_QUESTIONS[i]
-            for i in range(10)
-            if not PSS10_QUESTIONS[i]["positive"] and full_responses[i] >= 3
-        ]
-        hot.sort(key=lambda q: full_responses[q["id"] - 1], reverse=True)
-        if hot and category != "low":
-            nums = " · ".join(q["short"] for q in hot[:2])
-            insights.append(f"Sources de tension : {nums}.")
+    if category != "low":
+        shorts = compute_hot_items(full_responses)
+        if shorts:
+            insights.append(f"Sources de tension : {' · '.join(shorts)}.")
 
     # 3. Message catégorie
     msgs = {

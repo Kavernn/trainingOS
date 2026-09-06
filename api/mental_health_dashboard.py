@@ -15,7 +15,7 @@ from mood       import _list_history as mood_history, get_weekly_avg, get_mood_t
 from journal    import get_entry_count
 from breathwork import get_stats as bw_stats, get_session_dates
 from self_care  import get_completion_rate, get_streaks
-from pss        import get_latest_pss_score
+from pss        import get_latest_pss_score, compute_hot_items, compute_pss_full_due
 
 
 def get_summary(days: int = 7) -> dict:
@@ -46,7 +46,11 @@ def get_summary(days: int = 7) -> dict:
     journal_n    = get_entry_count(days)
     self_care    = get_completion_rate(days)
     streaks      = get_streaks()[:3]
-    pss          = get_latest_pss_score("full") or get_latest_pss_score("short")
+    pss_full     = get_latest_pss_score("full")
+    pss          = pss_full or get_latest_pss_score("short")
+    pss_type     = pss.get("type") if pss else None
+    pss_hot_items = compute_hot_items(pss.get("responses")) if pss and pss_type == "full" else []
+    pss_is_due   = compute_pss_full_due(pss_full)
 
     avg_mood  = get_weekly_avg(days)
     trend     = get_mood_trend(days)
@@ -79,6 +83,9 @@ def get_summary(days: int = 7) -> dict:
         "pss_score":           pss.get("score")    if pss else None,
         "pss_category":        pss.get("category") if pss else None,
         "pss_date":            pss.get("date")     if pss else None,
+        "pss_type":            pss_type,
+        "pss_is_due":          pss_is_due,
+        "pss_hot_items":       pss_hot_items,
     }
 
 
