@@ -71,3 +71,11 @@ graphify-out/
 
 # Backups runtime (snapshots weekly_schedule, etc.)
 scripts/backups/
+
+# Ruflo / claude-flow / MCP runtime artefacts (state + DB, régénérés à l'install)
+.agents/
+.claude-flow/
+.swarm/
+agentdb.rvf
+agentdb.rvf.lock
+ruvector.db
