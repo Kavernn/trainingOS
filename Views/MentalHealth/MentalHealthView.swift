@@ -243,6 +243,14 @@ private struct MesuresContent: View {
                 )
                 .appearAnimation(delay: 0.03)
 
+                EmotionsCard(
+                    recentMoods: recentMoods,
+                    cachedEmotions: cachedEmotions,
+                    initialLoaded: initialLoaded,
+                    moodHistoryFailed: moodHistoryFailed
+                )
+                .appearAnimation(delay: 0.04)
+
                 if recentMoods.count >= 2 {
                     MoodSparklineCard(entries: recentMoods)
                         .appearAnimation(delay: 0.05)
@@ -655,5 +663,206 @@ private struct LifeStressBreakdownCard: View {
         }
         if let first = lss.recommendations.first { return first }
         return "Équilibre stable, rien à ajuster."
+    }
+}
+
+// MARK: - Emotions Card (Histoire 2 — refléter Aujourd'hui + Cette semaine, sans juger)
+
+private struct EmotionsCard: View {
+    let recentMoods: [MoodEntry]
+    let cachedEmotions: [MoodEmotion]
+    let initialLoaded: Bool
+    let moodHistoryFailed: Bool
+
+    private var todayEntry: MoodEntry? {
+        let today = String(Date().ISO8601Format().prefix(10))
+        return recentMoods.first { $0.date.hasPrefix(today) }
+    }
+
+    // Dédoublonne par date (recentMoods trié desc → garde la 1re entrée par jour).
+    private var dailyLogs: [MoodEntry] {
+        var seen = Set<String>()
+        return recentMoods.filter { entry in
+            seen.insert(String(entry.date.prefix(10))).inserted
+        }
+    }
+
+    private var weekCounts: [(id: String, count: Int)] {
+        let dict = Dictionary(grouping: dailyLogs.flatMap { $0.emotions }, by: { $0 })
+                       .mapValues { $0.count }
+        return dict.map { (id: $0.key, count: $0.value) }
+    }
+
+    private func valence(_ id: String) -> Int {
+        cachedEmotions.first { $0.id == id }?.valence ?? 0
+    }
+
+    private func label(_ id: String) -> String {
+        cachedEmotions.first { $0.id == id }?.label ?? id
+    }
+
+    private func emoji(_ id: String) -> String {
+        cachedEmotions.first { $0.id == id }?.emoji ?? ""
+    }
+
+    private func chipColor(_ id: String) -> Color {
+        switch valence(id) {
+        case  1:  return Color.appSuccess
+        case -1:  return Color.appDanger
+        default:  return Color.appTextMuted
+        }
+    }
+
+    private var positives: [(id: String, count: Int)] {
+        weekCounts.filter { valence($0.id) > 0 }.sorted { $0.count > $1.count }
+    }
+
+    private var difficult: [(id: String, count: Int)] {
+        weekCounts.filter { valence($0.id) < 0 }.sorted { $0.count > $1.count }
+    }
+
+    private var neutralCount: Int {
+        weekCounts.first { valence($0.id) == 0 }?.count ?? 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("ÉMOTIONS")
+                .font(.appMicro.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.4))
+                .tracking(2)
+
+            content
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 14)
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if !initialLoaded {
+            Text("…")
+                .font(.appLabel.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.4))
+        } else if recentMoods.isEmpty && moodHistoryFailed {
+            Text("Indisponible")
+                .font(.appLabel.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.5))
+        } else if recentMoods.isEmpty {
+            Text("Note ton humeur pour te refléter.")
+                .font(.appCaption)
+                .foregroundStyle(Color.appOnSurface.opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            loadedContent
+        }
+    }
+
+    @ViewBuilder
+    private var loadedContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let today = todayEntry, !today.emotions.isEmpty {
+                todaySection(today.emotions)
+            }
+            weekSection
+        }
+    }
+
+    private func todaySection(_ ids: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Aujourd'hui")
+                .font(.appMicro.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.55))
+                .tracking(1.5)
+            FlowChips(ids: ids, emoji: emoji, label: label, color: chipColor)
+        }
+    }
+
+    @ViewBuilder
+    private var weekSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Cette semaine")
+                .font(.appMicro.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.55))
+                .tracking(1.5)
+
+            HStack(alignment: .top, spacing: 16) {
+                emotionColumn(title: "Positives", items: positives, color: Color.appSuccess)
+                emotionColumn(title: "Difficiles", items: difficult, color: Color.appDanger)
+            }
+
+            if neutralCount > 0 {
+                HStack(spacing: 4) {
+                    Text(emoji("neutre"))
+                    Text("\(label("neutre"))")
+                        .font(.appCaption)
+                        .foregroundStyle(Color.appOnSurface.opacity(0.65))
+                    Text("× \(neutralCount)")
+                        .font(.appCaption.weight(.medium))
+                        .foregroundStyle(Color.appTextMuted)
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private func emotionColumn(title: String, items: [(id: String, count: Int)], color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.appCaption.weight(.semibold))
+                .foregroundStyle(color.opacity(0.85))
+
+            if items.isEmpty {
+                Text("—")
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appTextMuted)
+            } else {
+                ForEach(items, id: \.id) { item in
+                    HStack(spacing: 4) {
+                        Text(emoji(item.id))
+                        Text(label(item.id))
+                            .font(.appCaption)
+                            .foregroundStyle(Color.appOnSurface.opacity(0.8))
+                        Spacer(minLength: 4)
+                        Text("× \(item.count)")
+                            .font(.appCaption.weight(.medium))
+                            .foregroundStyle(color)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - FlowChips (chips wrap horizontal pour émotions du jour)
+
+private struct FlowChips: View {
+    let ids: [String]
+    let emoji: (String) -> String
+    let label: (String) -> String
+    let color: (String) -> Color
+
+    var body: some View {
+        // Wrap simple : plusieurs HStacks empilés si nécessaire, mais pour <= 5 chips on tient sur 1 ligne.
+        // Pattern SwiftUI natif ; si dépassement, la ligne wrap via .fixedSize horizontal:false.
+        HStack(spacing: 6) {
+            ForEach(ids, id: \.self) { id in
+                HStack(spacing: 4) {
+                    Text(emoji(id))
+                    Text(label(id))
+                        .font(.appCaption.weight(.medium))
+                        .foregroundStyle(color(id))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(color(id).opacity(0.10))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(color(id).opacity(0.25), lineWidth: 1))
+                .cornerRadius(14)
+            }
+            Spacer(minLength: 0)
+        }
     }
 }
