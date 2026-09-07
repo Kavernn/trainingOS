@@ -144,6 +144,35 @@ struct DashboardData: Codable {
     }
 }
 
+extension DashboardData {
+    var weekSessions: Int {
+        let fmt = DateFormatter.isoDate
+        let todayStr = fmt.string(from: Date())
+        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
+        let base = todayMidnight.timeIntervalSince1970
+        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+        let weekday = ((epochDays + 4) % 7) + 1
+        let daysSinceMonday = (weekday + 5) % 7
+        var count = 0
+        for i in 0...daysSinceMonday {
+            let dateStr = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
+            let counted = sessions[dateStr] != nil
+                || (dateStr == todayDate && alreadyLoggedToday)
+            if counted { count += 1 }
+        }
+        return count
+    }
+
+    var weekTarget: Int {
+        let restWords = ["repos", "rest", "off", "récupération"]
+        let active = schedule.values.filter { val in
+            let lower = val.lowercased()
+            return !lower.isEmpty && !restWords.contains(where: { lower.contains($0) })
+        }.count
+        return max(active, 1)
+    }
+}
+
 struct SessionSlot: Codable {
     let type: String       // "morning"|"evening"|"bonus"
     let label: String      // "AM"|"PM"|"Bonus"

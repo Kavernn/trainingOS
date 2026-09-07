@@ -35,6 +35,10 @@ extension BudgetStatus {
             .sorted { ($0.attackOrder ?? Int.max) < ($1.attackOrder ?? Int.max) }
             .first
     }
+
+    var totalVariableCents: Int {
+        envelopes.reduce(0) { $0 + $1.remainingCents }
+    }
 }
 
 struct BudgetProjection: Decodable {

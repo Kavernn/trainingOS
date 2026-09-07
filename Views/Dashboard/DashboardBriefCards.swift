@@ -11,33 +11,6 @@ struct MomentumStripView: View {
     private var bestStreak: Int    { streakData?.bestStreak ?? 0 }
     private var showStreak: Bool   { currentStreak > 3 }
 
-    var weekSessions: Int {
-        let fmt = DateFormatter.isoDate
-        let todayStr = fmt.string(from: Date())
-        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
-        let base = todayMidnight.timeIntervalSince1970
-        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
-        let weekday = ((epochDays + 4) % 7) + 1
-        let daysSinceMonday = (weekday + 5) % 7
-        var count = 0
-        for i in 0...daysSinceMonday {
-            let dateStr = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
-            let counted = dash.sessions[dateStr] != nil
-                || (dateStr == dash.todayDate && dash.alreadyLoggedToday)
-            if counted { count += 1 }
-        }
-        return count
-    }
-
-    var weekTarget: Int {
-        let restWords = ["repos", "rest", "off", "récupération"]
-        let active = dash.schedule.values.filter { val in
-            let lower = val.lowercased()
-            return !lower.isEmpty && !restWords.contains(where: { lower.contains($0) })
-        }.count
-        return max(active, 1)
-    }
-
     var body: some View {
         HStack(spacing: 0) {
             // Colonne gauche — semaine
@@ -46,16 +19,16 @@ struct MomentumStripView: View {
                     .font(.appLabel.weight(.regular))
                     .foregroundColor(.statusCyan)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(weekSessions) / \(weekTarget) séances")
+                    Text("\(dash.weekSessions) / \(dash.weekTarget) séances")
                         .font(.appLabel.weight(.semibold))
                         .foregroundColor(.appTextPrimary)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.appSurfaceInset).frame(height: 4)
                             Capsule()
-                                .fill(weekSessions >= weekTarget ? Color.appSuccess : Color.statusCyan)
-                                .frame(width: max(4, geo.size.width * min(Double(weekSessions) / Double(weekTarget), 1.0)), height: 4)
-                                .animation(.easeOut(duration: 0.5), value: weekSessions)
+                                .fill(dash.weekSessions >= dash.weekTarget ? Color.appSuccess : Color.statusCyan)
+                                .frame(width: max(4, geo.size.width * min(Double(dash.weekSessions) / Double(dash.weekTarget), 1.0)), height: 4)
+                                .animation(.easeOut(duration: 0.5), value: dash.weekSessions)
                         }
                     }
                     .frame(height: 4)

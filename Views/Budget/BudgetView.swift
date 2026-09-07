@@ -302,10 +302,6 @@ struct BudgetCard: View {
     let status: BudgetStatus
     var onTransferTap: ((PlannedTransfer) -> Void)? = nil
 
-    private var totalVariable: Int {
-        status.envelopes.reduce(0) { $0 + $1.remainingCents }
-    }
-
     private var isFallback: Bool { status.projection?.isFallbackRate == true }
     private var isPayday: Bool { status.isPaydayToday == true }
 
@@ -441,7 +437,7 @@ struct BudgetCard: View {
             Image(systemName: "wallet.pass.fill")
                 .foregroundColor(Color.forge)
                 .font(.appLabel.weight(.semibold))
-            Text(BudgetFormat.dollars(totalVariable))
+            Text(BudgetFormat.dollars(status.totalVariableCents))
                 .font(.appHeadline.weight(.bold))
                 .foregroundColor(Color.appTextPrimary)
             Text("· paie dans \(status.daysToNextPayday) j")
