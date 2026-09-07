@@ -38,6 +38,18 @@ struct RecoveryEntry: Codable, Identifiable {
     }
 }
 
+extension RecoveryEntry {
+    // Libellé qualité de sommeil dérivé des heures — source unique (extrait
+    // de l'ancien DashboardReadinessHero avant suppression). Consommé par
+    // DashboardHeroState. nil hours → nil label (état vide honnête).
+    var sleepQualityLabel: String? {
+        guard let h = sleepHours else { return nil }
+        if h >= 7.5 { return "Récupérateur" }
+        if h >= 6.0 { return "Correct" }
+        return "Insuffisant"
+    }
+}
+
 struct DailySummary: Codable {
     let recoveryScore: Double?
     enum CodingKeys: String, CodingKey {

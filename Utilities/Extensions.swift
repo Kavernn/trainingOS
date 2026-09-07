@@ -140,6 +140,19 @@ static let pssBg           = Color(hex: "0C0C18")  // Fond de mood fixe — NE s
         }
     }
 
+    // Verdict readiness — source unique de mapping verdict → couleur.
+    // Consommé par le ring du Hero State. Autres sites (ReadinessView,
+    // MorningRevealView, DashboardTodayCards, DashboardWeeklyCards) dupliquent
+    // encore ce switch en local — dette de migration hors scope Diff 3.
+    static func verdictAccent(_ verdict: String?) -> Color {
+        switch verdict {
+        case "go":       return .statusGreen
+        case "moderate": return .statusYellow
+        case "rest":     return .statusOrange
+        default:         return .gray
+        }
+    }
+
     // Composition corporelle — deux séries stables, indépendantes du thème (lisibilité graphe)
     enum BodyCompSeries { case lean, fat }
     static func bodyComp(_ series: BodyCompSeries) -> Color {

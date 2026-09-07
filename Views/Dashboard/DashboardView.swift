@@ -163,13 +163,14 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.07)
                                 }
 
-                                // 6 — Hero readiness (source unique /api/readiness) — tap → onglet Santé
+                                // 6 — Hero State (salutation, ring readiness, HRV, sommeil, streak, synthèse) — tap → onglet Santé
                                 Button { onOpenHealth?() } label: {
-                                    DashboardReadinessHero(
+                                    DashboardHeroState(
                                         readiness:   vm.readinessData,
                                         hrvAnalysis: vm.hrvAnalysis,
                                         recovery:    vm.todayRecovery,
-                                        todayAccent: Color.sessionTypeColor(dash.today)
+                                        streak:      vm.streakData?.currentStreak ?? 0,
+                                        userName:    dash.profile.name
                                     )
                                 }
                                 .buttonStyle(.plain)
