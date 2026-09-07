@@ -74,6 +74,37 @@ struct SkeletonBar: View {
     }
 }
 
+// MARK: - Dashboard Branding Bar
+struct DashboardBrandingBar: View {
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "bolt.fill")  // TODO: remplacer par asset logo
+                .font(.appTitle)
+                .foregroundColor(Color.forge)
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text("VinceSeven")
+                    .font(.appTitle.weight(.bold))
+                    .foregroundColor(.appTextPrimary)
+                Text("Do fucking more.")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+            }
+
+            Spacer(minLength: 0)
+
+            NavigationLink { ProfileView() } label: {
+                Image(systemName: "person.crop.circle")
+                    .font(.appTitle)
+                    .foregroundColor(.appOnSurface)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 8)
+    }
+}
+
 // MARK: - Dashboard Status Bar
 struct DashboardStatusBar: View {
     let dash: DashboardData

@@ -113,6 +113,10 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0)
                                 }
 
+                                // 0 — Branding bar (VinceSeven + tagline + profil)
+                                DashboardBrandingBar()
+                                    .appearAnimation(delay: 0.02)
+
                                 // 1 — Status bar
                                 DashboardStatusBar(dash: dash)
                                     .appearAnimation(delay: 0.03)
