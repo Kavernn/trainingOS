@@ -127,6 +127,19 @@ static let pssBg           = Color(hex: "0C0C18")  // Fond de mood fixe — NE s
         return .statusBlue
     }
 
+    // Domaine principal du dashboard — un accent status* par domaine.
+    // Source unique consommée par DashboardDomainGrid, jamais dupliquée.
+    enum Domain { case training, nutrition, recovery, finance }
+
+    static func domainAccent(_ domain: Domain) -> Color {
+        switch domain {
+        case .training:  return .statusOrange
+        case .nutrition: return .statusGreen
+        case .recovery:  return .statusCyan
+        case .finance:   return .statusBlue
+        }
+    }
+
     // Composition corporelle — deux séries stables, indépendantes du thème (lisibilité graphe)
     enum BodyCompSeries { case lean, fat }
     static func bodyComp(_ series: BodyCompSeries) -> Color {

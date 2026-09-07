@@ -121,10 +121,14 @@ struct DashboardView: View {
                                 DashboardStatusBar(dash: dash)
                                     .appearAnimation(delay: 0.03)
 
-                                // 2 — État nutrition du jour (entraînement → TodayCard, récup → hero)
-                                DailyStatusStack(
+                                // 2 — Grille domaines (Entraînement · Nutrition · Récupération · Finances)
+                                DashboardDomainGrid(
                                     dash: dash,
-                                    todayNutritionType: vm.todayNutritionType
+                                    hrvAnalysis: vm.hrvAnalysis,
+                                    budgetStatus: vm.budgetStatus,
+                                    onOpenSession: onOpenSession,
+                                    onOpenHealth:  onOpenHealth,
+                                    onOpenNutrition: { showNutritionAddSheet = true }
                                 )
                                 .appearAnimation(delay: 0.04)
 
@@ -209,10 +213,6 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.09)
                                 }
 
-                                // 8 — Momentum strip — semaine + streak
-                                MomentumStripView(dash: dash, streakData: vm.streakData, weeklyTonnage: vm.weeklyTonnage)
-                                    .appearAnimation(delay: 0.10)
-
                                 // 9 — Leçon du jour (registre calme)
                                 if let lesson = lessonOfDay {
                                     LessonOfDayCard(capsule: lesson, exhausted: false) {
@@ -290,12 +290,6 @@ struct DashboardView: View {
                                             }
                                             .padding(.horizontal, 4)
                                         }
-                                        .appearAnimation(delay: 0.23)
-                                    } else {
-                                        NavigationLink { BudgetView() } label: {
-                                            BudgetCard(status: bs)
-                                        }
-                                        .buttonStyle(.plain)
                                         .appearAnimation(delay: 0.23)
                                     }
                                 }
