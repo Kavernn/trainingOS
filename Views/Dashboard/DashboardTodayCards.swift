@@ -62,29 +62,47 @@ struct TodayCardView: View {
         return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
     }
 
+    /// Données d'affichage uniquement — ne participe jamais au choix de branche AM/PM.
+    private var eveningPreview: [(String, String)] {
+        if let name = dash.eveningSessionName,
+           let program = dash.fullProgram[name] {
+            return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
+        }
+        return exercises.filter { dash.pushedToEvening.contains($0.0) }
+    }
+
+    /// Projection visuelle de la branche existante — ne pilote aucun CTA ni navigation.
+    private var recapPresentation: TodaySessionRecap.Presentation {
+        if (dash.hasEveningSession || hasLocalPushedExercises) && !dash.secondSessionCompleted {
+            return .morningCompleted
+        }
+        return .dayCompleted
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Top bar
-            HStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
                 ZStack {
-                    Circle().fill(todayColor.opacity(0.15)).frame(width: 36, height: 36)
+                    Circle()
+                        .fill(isLoggedToday ? Color.appSuccess.opacity(0.14) : Color.appSurfaceInset)
+                        .frame(width: 42, height: 42)
                     Image(systemName: isLoggedToday ? "checkmark" : todayIcon)
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(isLoggedToday ? Color.statusGreen : todayColor)
+                        .foregroundColor(isLoggedToday ? Color.appSuccess : todayColor)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(dash.today.isEmpty ? "Repos" : dash.today)
-                        .font(.appHeadline.weight(.bold))
-                        .foregroundColor(isLoggedToday ? Color.statusGreen : todayColor)
+                        .font(.appTitle.weight(.bold))
+                        .foregroundColor(Color.appOnSurface)
                         .lineLimit(1)
                     if let pm = dash.eveningSessionName, !pm.isEmpty {
                         HStack(spacing: 4) {
                             Image(systemName: "moon.stars.fill")
                                 .font(.appCaption)
-                                .foregroundColor(Color.statusBlue)
+                                .foregroundColor(Color.appTextSecondary)
                             Text(pm)
                                 .font(.appCaption)
-                                .foregroundColor(Color.statusBlue)
+                                .foregroundColor(Color.appTextSecondary)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                         }
@@ -106,15 +124,16 @@ struct TodayCardView: View {
                             .background(Color.forge.opacity(0.12))
                             .clipShape(Capsule())
                         } else {
-                            PulsingDot(color: Color.statusGreen)
+                            PulsingDot(color: Color.appSuccess)
                             Text("Complété")
-                                .font(.appCaption.weight(.semibold)).foregroundColor(Color.statusGreen)
+                                .font(.appCaption.weight(.semibold))
+                                .foregroundColor(Color.appSuccess)
                         }
                     }
                 } else if !exercises.isEmpty {
                     Text("\(exercises.count) exos")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.gray)
+                        .foregroundColor(Color.appTextSecondary)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(Color.appSurfaceInset)
                         .clipShape(Capsule())
@@ -128,11 +147,30 @@ struct TodayCardView: View {
                 // ── Récap séance loggée ───────────────────────────────────
                 // isLoggedToday peut être vrai via alreadyLoggedToday même sans session dans le dict
                 if let session = todaySession {
-                    TodaySessionRecap(session: session, color: todayColor, totalWorkoutMin: dash.totalWorkoutMinToday)
+                    TodaySessionRecap(
+                        session: session,
+                        sessionName: dash.today,
+                        color: todayColor,
+                        totalWorkoutMin: dash.totalWorkoutMinToday,
+                        presentation: recapPresentation
+                    )
                 }
                 // Séance 2 non complétée ET (planifiée backend OU exos poussés localement)
                 // → CTA vers SeanceSoirView (flow evening, is_second=true).
                 if (dash.hasEveningSession || hasLocalPushedExercises) && !dash.secondSessionCompleted {
+                    VStack(alignment: .leading, spacing: 10) {
+                        TodayPriorityHeader(
+                            title: "À FAIRE MAINTENANT",
+                            subtitle: dash.eveningSessionName ?? "Séance 2",
+                            icon: "moon.stars.fill"
+                        )
+                        if !eveningPreview.isEmpty {
+                            TodayExercisePreview(exercises: eveningPreview, accent: Color.forge)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
                     // Sheet obligatoire (Volet G) — voir SeanceSoirView.swift head.
                     Button { showSeance2Sheet = true } label: {
                         HStack(spacing: 8) {
@@ -141,16 +179,11 @@ struct TodayCardView: View {
                                 .font(.appBody.weight(.bold))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            LinearGradient(
-                                colors: [todayColor, todayColor.opacity(0.75)],
-                                startPoint: .leading, endPoint: .trailing
-                            )
-                        )
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                        .shadow(color: todayColor.opacity(0.4), radius: 10, y: 4)
+                        .padding(.vertical, 16)
+                        .background(AppTheme.shared.accentGradient(startPoint: .leading, endPoint: .trailing))
+                        .foregroundColor(Color.onAccent)
+                        .cornerRadius(14)
+                        .shadow(color: Color.forge.opacity(0.30), radius: 12, y: 5)
                     }
                     .buttonStyle(SpringButtonStyle())
                     .padding(.horizontal, 16)
@@ -161,33 +194,16 @@ struct TodayCardView: View {
             } else {
                 // ── Programme prévu (pas encore loggé) ───────────────────
                 if !exercises.isEmpty {
-                    VStack(spacing: 0) {
-                        ForEach(Array(exercises.prefix(5).enumerated()), id: \.offset) { idx, item in
-                            HStack(spacing: 10) {
-                                Text("\(idx + 1)")
-                                    .font(.appCaption.weight(.black))
-                                    .foregroundColor(todayColor.opacity(0.5))
-                                    .frame(width: 16)
-                                Text(item.0)
-                                    .font(.appLabel).foregroundColor(.appTextPrimary)
-                                    .lineLimit(1)
-                                Spacer()
-                                Text(item.1)
-                                    .font(.appCaption).foregroundColor(.gray)
-                            }
-                            .padding(.horizontal, 16).padding(.vertical, 7)
-                            if idx < exercises.prefix(5).count - 1 {
-                                Divider()
-                                    .background(Color.appSurfaceInset)
-                                    .padding(.horizontal, 16)
-                            }
-                        }
-                        if exercises.count > 5 {
-                            Text("+ \(exercises.count - 5) exercices")
-                                .font(.appCaption).foregroundColor(.gray)
-                                .padding(.horizontal, 16).padding(.bottom, 8)
-                        }
+                    VStack(alignment: .leading, spacing: 10) {
+                        TodayPriorityHeader(
+                            title: "À FAIRE MAINTENANT",
+                            subtitle: dash.today,
+                            icon: todayIcon
+                        )
+                        TodayExercisePreview(exercises: exercises, accent: todayColor)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
 
                 // ── Readiness badge ──────────────────────────────────
@@ -211,16 +227,11 @@ struct TodayCardView: View {
                                         .font(.appBody.weight(.bold))
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(
-                                    LinearGradient(
-                                        colors: [todayColor, todayColor.opacity(0.75)],
-                                        startPoint: .leading, endPoint: .trailing
-                                    )
-                                )
-                                .foregroundColor(.white)
-                                .cornerRadius(12)
-                                .shadow(color: todayColor.opacity(0.4), radius: 10, y: 4)
+                                .padding(.vertical, 16)
+                                .background(AppTheme.shared.accentGradient(startPoint: .leading, endPoint: .trailing))
+                                .foregroundColor(Color.onAccent)
+                                .cornerRadius(14)
+                                .shadow(color: Color.forge.opacity(0.30), radius: 12, y: 5)
                             }
                         } else {
                             NavigationLink(destination: SeanceView()) {
@@ -230,16 +241,11 @@ struct TodayCardView: View {
                                         .font(.appBody.weight(.bold))
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(
-                                    LinearGradient(
-                                        colors: [todayColor, todayColor.opacity(0.75)],
-                                        startPoint: .leading, endPoint: .trailing
-                                    )
-                                )
-                                .foregroundColor(.white)
-                                .cornerRadius(12)
-                                .shadow(color: todayColor.opacity(0.4), radius: 10, y: 4)
+                                .padding(.vertical, 16)
+                                .background(AppTheme.shared.accentGradient(startPoint: .leading, endPoint: .trailing))
+                                .foregroundColor(Color.onAccent)
+                                .cornerRadius(14)
+                                .shadow(color: Color.forge.opacity(0.30), radius: 12, y: 5)
                             }
                         }
                     }
@@ -277,51 +283,169 @@ struct TodayCardView: View {
     }
 }
 
-// MARK: - Today Session Recap
-struct TodaySessionRecap: View {
-    let session: SessionEntry
-    let color: Color
-    var totalWorkoutMin: Double? = nil
-    @ObservedObject private var units = UnitSettings.shared
+private struct TodayPriorityHeader: View {
+    let title: String
+    let subtitle: String
+    let icon: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Métriques clés
-            HStack(spacing: 0) {
-                // Multi-slot (AM + PM + bonus) : une pill RPE par slot, remplace le scalaire.
-                // Source de vérité : session.slots (backend). Mono-slot ou payload legacy
-                // sans `slots` → fallback pill RPE unique (session.rpe scalaire).
-                if let slots = session.slots, slots.count > 1 {
-                    ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
-                        RecapMetric(
-                            value: slot.rpe.map { String(format: "%.1f", $0) } ?? "—",
-                            label: slot.label,
-                            color: slot.rpe.map(rpeColor) ?? Color.gray
-                        )
-                    }
-                } else if let rpe = session.rpe {
-                    RecapMetric(value: String(format: "%.1f", rpe), label: "RPE", color: rpeColor(rpe))
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                Text(title)
+            }
+            .font(.appMicro.weight(.black))
+            .tracking(1.8)
+            .foregroundColor(Color.forge)
+
+            Text(subtitle)
+                .font(.appHeadline.weight(.bold))
+                .foregroundColor(Color.appOnSurface)
+                .lineLimit(1)
+        }
+    }
+}
+
+private struct TodayExercisePreview: View {
+    let exercises: [(String, String)]
+    let accent: Color
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(exercises.prefix(5).enumerated()), id: \.offset) { index, exercise in
+                HStack(spacing: 10) {
+                    Text("\(index + 1)")
+                        .font(.appCaption.weight(.black))
+                        .foregroundColor(accent)
+                        .frame(width: 18)
+                    Text(exercise.0)
+                        .font(.appLabel.weight(.medium))
+                        .foregroundColor(Color.appTextPrimary)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(exercise.1)
+                        .font(.appCaption)
+                        .foregroundColor(Color.appTextSecondary)
+                        .lineLimit(1)
                 }
-                if let total = totalWorkoutMin, total > 0 {
-                    RecapMetric(value: "\(Int(total)) min", label: total > (session.durationMin ?? 0) + 1 ? "Total séances" : "Durée", color: Color.statusBlue)
-                } else if let dur = session.durationMin {
-                    RecapMetric(value: String(format: "%.0f min", dur), label: "Durée", color: Color.statusBlue)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                if index < exercises.prefix(5).count - 1 {
+                    Divider().background(Color.appSeparatorSubtle)
                 }
-                if let energy = session.energyPre {
-                    RecapMetric(
-                        value: String(repeating: "⚡", count: energy),
-                        label: "Énergie",
-                        color: Color.statusYellow
-                    )
+            }
+            if exercises.count > 5 {
+                Text("+ \(exercises.count - 5) exercices")
+                    .font(.appCaption.weight(.medium))
+                    .foregroundColor(Color.appTextSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+            }
+        }
+        .background(Color.appSurfaceInset)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.appSeparatorSubtle, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Today Session Recap
+struct TodaySessionRecap: View {
+    enum Presentation: Equatable {
+        case morningCompleted
+        case dayCompleted
+    }
+
+    let session: SessionEntry
+    let sessionName: String
+    let color: Color
+    var totalWorkoutMin: Double? = nil
+    let presentation: Presentation
+    @ObservedObject private var units = UnitSettings.shared
+
+    private var morningSlot: SessionSlot? {
+        session.slots?.first { $0.type == "morning" }
+    }
+
+    private var morningRPE: Double? {
+        morningSlot?.rpe ?? session.rpe
+    }
+
+    private var morningDuration: Double? {
+        morningSlot?.durationMin ?? session.durationMin
+    }
+
+    private var dayDuration: Double? {
+        if let totalWorkoutMin, totalWorkoutMin > 0 { return totalWorkoutMin }
+        return nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.appHeadline)
+                    .foregroundColor(Color.appSuccess)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(presentation == .morningCompleted ? "AM TERMINÉE" : "JOURNÉE COMPLÉTÉE")
+                        .font(.appMicro.weight(.black))
+                        .tracking(1.6)
+                        .foregroundColor(Color.appSuccess)
+                    Text(sessionName)
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(Color.appOnSurface)
+                        .lineLimit(1)
                 }
                 Spacer()
+            }
+
+            HStack(spacing: 8) {
+                if presentation == .morningCompleted {
+                    if let duration = morningDuration, duration > 0 {
+                        RecapMetric(value: "\(Int(duration)) min", label: "Durée", color: Color.appInfo)
+                    }
+                    if let rpe = morningRPE {
+                        RecapMetric(value: String(format: "%.1f", rpe), label: "RPE", color: rpeColor(rpe))
+                    }
+                } else {
+                    if let duration = dayDuration, duration > 0 {
+                        RecapMetric(value: "\(Int(duration)) min", label: "Durée totale", color: Color.appInfo)
+                    }
+                    if let volume = session.sessionVolume, volume > 0 {
+                        RecapMetric(value: units.format(volume, decimals: 0), label: "Volume total", color: Color.forge)
+                    }
+                }
+                Spacer()
+            }
+
+            if presentation == .dayCompleted,
+               let slots = session.slots,
+               slots.count > 1 {
+                HStack(spacing: 8) {
+                    ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
+                        if let rpe = slot.rpe {
+                            RecapMetric(
+                                value: String(format: "%.1f", rpe),
+                                label: "RPE \(slot.label)",
+                                color: rpeColor(rpe),
+                                compact: true
+                            )
+                        }
+                    }
+                    Spacer()
+                }
             }
 
             // Exercices réalisés
             if let exos = session.exos, !exos.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("EXERCICES")
-                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appMicro.weight(.bold))
+                        .tracking(2)
+                        .foregroundColor(Color.appTextSecondary)
                     FlowRow(items: exos.prefix(6).map { $0 }) { ex in
                         Text(ex)
                             .font(.appCaption.weight(.medium))
@@ -332,7 +456,8 @@ struct TodaySessionRecap: View {
                     }
                     if exos.count > 6 {
                         Text("+ \(exos.count - 6) autres")
-                            .font(.appCaption).foregroundColor(.gray)
+                            .font(.appCaption)
+                            .foregroundColor(Color.appTextSecondary)
                     }
                 }
             }
@@ -341,14 +466,24 @@ struct TodaySessionRecap: View {
             if let comment = session.comment, !comment.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "quote.bubble.fill")
-                        .font(.appCaption).foregroundColor(.gray)
+                        .font(.appCaption)
+                        .foregroundColor(Color.appTextSecondary)
                     Text(comment)
-                        .font(.appCaption).foregroundColor(.gray)
+                        .font(.appCaption)
+                        .foregroundColor(Color.appTextSecondary)
                         .lineLimit(2)
                 }
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
+        .padding(14)
+        .background(Color.appSurfaceInset.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.appSeparatorSubtle, lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     private func rpeColor(_ rpe: Double) -> Color { RPEHelper.color(for: rpe) }
@@ -359,18 +494,26 @@ struct RecapMetric: View {
     let value: String
     let label: String
     let color: Color
+    var compact: Bool = false
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(value)
-                .font(.appHeadline.weight(.black))
+                .font(compact ? .appLabel.weight(.bold) : .appHeadline.weight(.black))
                 .foregroundColor(color)
             Text(label)
                 .font(.appMicro.weight(.medium))
-                .foregroundColor(.gray)
+                .foregroundColor(Color.appTextSecondary)
         }
-        .frame(minWidth: 60)
-        .padding(.vertical, 4)
+        .frame(minWidth: compact ? 54 : 82, alignment: .leading)
+        .padding(.horizontal, compact ? 9 : 11)
+        .padding(.vertical, compact ? 7 : 9)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.appSeparatorSubtle, lineWidth: 1)
+        )
     }
 }
 
