@@ -51,6 +51,8 @@ def get_summary(days: int = 7) -> dict:
     pss_type     = pss.get("type") if pss else None
     pss_hot_items = compute_hot_items(pss.get("responses")) if pss and pss_type == "full" else []
     pss_is_due   = compute_pss_full_due(pss_full)
+    bw_dates     = get_session_dates(days)
+    bw_corr      = compute_bw_correlation(mood_records, bw_dates)
 
     avg_mood  = get_weekly_avg(days)
     trend     = get_mood_trend(days)
@@ -65,7 +67,7 @@ def get_summary(days: int = 7) -> dict:
     top_emotions = sorted(emotion_counts, key=emotion_counts.get, reverse=True)[:4]
 
     insights     = _generate_insights(avg_mood, trend, bw, journal_n, self_care, pss)
-    correlations = _compute_correlations(mood_records, bw["sessions_count"], days)
+    correlations = _compute_correlations(bw_corr)
 
     return {
         "period_days":         days,
@@ -86,6 +88,7 @@ def get_summary(days: int = 7) -> dict:
         "pss_type":            pss_type,
         "pss_is_due":          pss_is_due,
         "pss_hot_items":       pss_hot_items,
+        "bw_correlation":      bw_corr,
     }
 
 
@@ -124,24 +127,40 @@ def _generate_insights(avg_mood, trend, bw, journal_n, self_care, pss) -> list[s
     return insights
 
 
-def _compute_correlations(mood_records: list, bw_sessions: int, days: int) -> list[str]:
-    """Corrélations simples humeur vs breathwork."""
-    correlations = []
-    if len(mood_records) < 5 or bw_sessions == 0:
-        return correlations
+def compute_bw_correlation(
+    mood_records: list,
+    bw_dates: set[str],
+) -> dict | None:
+    """Source unique du calcul corrélation mood × breathwork.
+    Retourne None si seuils non atteints :
+      - < 5 mood logs
+      - aucun jour avec bw
+      - < 2 mood logs dans un des 2 groupes (partition trop faible)
+      - |delta| < 0.5 pts
+    """
+    if len(mood_records) < 5 or not bw_dates:
+        return None
+    with_bw    = [r["score"] for r in mood_records if r.get("date") in bw_dates]
+    without_bw = [r["score"] for r in mood_records if r.get("date") not in bw_dates]
+    if len(with_bw) < 2 or len(without_bw) < 2:
+        return None
+    delta = round(sum(with_bw) / len(with_bw) - sum(without_bw) / len(without_bw), 1)
+    if abs(delta) < 0.5:
+        return None
+    return {
+        "delta":           delta,
+        "days_with_bw":    len(with_bw),
+        "days_without_bw": len(without_bw),
+    }
 
-    bw_dates = get_session_dates(days)
-    mood_with_bw    = [r["score"] for r in mood_records if r.get("date") in bw_dates]
-    mood_without_bw = [r["score"] for r in mood_records if r.get("date") not in bw_dates]
 
-    if len(mood_with_bw) >= 2 and len(mood_without_bw) >= 2:
-        avg_w  = sum(mood_with_bw)    / len(mood_with_bw)
-        avg_wo = sum(mood_without_bw) / len(mood_without_bw)
-        delta  = round(avg_w - avg_wo, 1)
-        if abs(delta) >= 0.5:
-            sign = "+" if delta > 0 else ""
-            correlations.append(
-                f"Ton humeur est {sign}{delta} pts les jours où tu fais de la respiration guidée 🧘"
-            )
-
-    return correlations
+def _compute_correlations(bw_corr: dict | None) -> list[str]:
+    """Formatter texte des corrélations pour insights display (correlations[]).
+    Co-occurrence honnête, pas de causalité implicite."""
+    out: list[str] = []
+    if bw_corr:
+        direction = "plus haute" if bw_corr["delta"] > 0 else "plus basse"
+        out.append(
+            f"Les jours de respiration, ton humeur moyenne est {direction} ({bw_corr['delta']:+.1f} pts)."
+        )
+    return out

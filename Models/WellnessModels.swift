@@ -234,6 +234,7 @@ struct MentalHealthSummary: Codable {
     let pssType: String?
     let pssIsDue: Bool
     let pssHotItems: [String]
+    let bwCorrelation: BreathworkCorrelation?
 
     enum CodingKeys: String, CodingKey {
         case insights, correlations
@@ -253,6 +254,7 @@ struct MentalHealthSummary: Codable {
         case pssType           = "pss_type"
         case pssIsDue          = "pss_is_due"
         case pssHotItems       = "pss_hot_items"
+        case bwCorrelation     = "bw_correlation"
     }
 
     init(from decoder: Decoder) throws {
@@ -275,6 +277,19 @@ struct MentalHealthSummary: Codable {
         pssType            = try c.decodeIfPresent(String.self, forKey: .pssType)
         pssIsDue           = (try c.decodeIfPresent(Bool.self,      forKey: .pssIsDue))    ?? false
         pssHotItems        = (try c.decodeIfPresent([String].self,  forKey: .pssHotItems)) ?? []
+        bwCorrelation      = try c.decodeIfPresent(BreathworkCorrelation.self, forKey: .bwCorrelation)
+    }
+}
+
+struct BreathworkCorrelation: Codable {
+    let delta: Double
+    let daysWithBw: Int
+    let daysWithoutBw: Int
+
+    enum CodingKeys: String, CodingKey {
+        case delta
+        case daysWithBw    = "days_with_bw"
+        case daysWithoutBw = "days_without_bw"
     }
 }
 
