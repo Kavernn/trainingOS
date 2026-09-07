@@ -87,7 +87,6 @@
 		AB5A5BBA12AEB12AF0596F9C /* APIService+WorkoutDNA.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7692E44A985A89B88122708 /* APIService+WorkoutDNA.swift */; };
 		AC0001AC0001AC0001AC0001 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0002AC0002AC0002AC0002 /* APIConfig.swift */; };
 		ACS0002ACS0002ACS0002AC2 /* AddCardioSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACS0001ACS0001ACS0001AC1 /* AddCardioSheet.swift */; };
-		AE86F032A8E609F4F01794F7 /* DashboardReadinessHero.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6856209D1844532210AEBF7 /* DashboardReadinessHero.swift */; };
 		AHS0002AHS0002AHS0002AH2 /* AddHIITSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AHS0001AHS0001AHS0001AH1 /* AddHIITSheet.swift */; };
 		APICA002APICA002APICA002 /* APIService+Cardio.swift in Sources */ = {isa = PBXBuildFile; fileRef = APICA001APICA001APICA001 /* APIService+Cardio.swift */; };
 		APIEN002APIEN002APIEN002 /* APIService+Energy.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIEN001APIEN001APIEN001 /* APIService+Energy.swift */; };
@@ -129,6 +128,8 @@
 		D665E4582F5D98BA002AE470 /* DashboardRitualCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */; };
 		D68A5C642FD0CE6800B824DF /* VinceSeven Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D68A5C442FD0CE6600B824DF /* VinceSeven Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D68A5C8D2FD0D0B900B824DF /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */; };
+		D69570D6304F75060008F1A2 /* DashboardDomainGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69570D5304F75060008F1A2 /* DashboardDomainGrid.swift */; };
+		D69570D8304F77C20008F1A2 /* DashboardHeroState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69570D7304F77C20008F1A2 /* DashboardHeroState.swift */; };
 		D69D3EEF2F85895800553153 /* SessionDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69D3EEE2F85895800553153 /* SessionDraftStore.swift */; };
 		DA26223185CE48C094B9CA75 /* PlateCalculatorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */; };
 		DC73018555BF2F8EE84E78C2 /* APIService+Plateau.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955D6FDBE3CAB80990772A49 /* APIService+Plateau.swift */; };
@@ -406,6 +407,8 @@
 		D68A5C5A2FD0CE6800B824DF /* VinceSeven Watch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "VinceSeven Watch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		D68B8535D55F4B109509F146 /* MorningRevealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningRevealView.swift; sourceTree = "<group>"; };
+		D69570D5304F75060008F1A2 /* DashboardDomainGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardDomainGrid.swift; sourceTree = "<group>"; };
+		D69570D7304F77C20008F1A2 /* DashboardHeroState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeroState.swift; sourceTree = "<group>"; };
 		D69D3EEE2F85895800553153 /* SessionDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDraftStore.swift; sourceTree = "<group>"; };
 		D69FB9052F666F3F0091BDD2 /* TrainingOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBriefCards.swift; sourceTree = "<group>"; };
@@ -420,7 +423,6 @@
 		E163D5411790B6DA5108E310 /* PatternModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternModels.swift; sourceTree = "<group>"; };
 		E28DFDE63827E1A91C5C5B5D /* RoundedCorner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoundedCorner.swift; sourceTree = "<group>"; };
 		E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsModels.swift; sourceTree = "<group>"; };
-		E6856209D1844532210AEBF7 /* DashboardReadinessHero.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DashboardReadinessHero.swift; sourceTree = "<group>"; };
 		EAD9AC36E56041C996317086 /* ProactiveAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveAlert.swift; sourceTree = "<group>"; };
 		ED6AAE13530007B583B67B1D /* APIService+Ritual.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Ritual.swift"; sourceTree = "<group>"; };
 		EDD35C9A164F89962D3E6E18 /* ProfileModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileModels.swift; sourceTree = "<group>"; };
@@ -538,29 +540,21 @@
 		};
 		D68A5C452FD0CE6600B824DF /* VinceSeven Watch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch App";
 			sourceTree = "<group>";
 		};
 		D68A5C532FD0CE6800B824DF /* VinceSeven Watch Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppTests";
 			sourceTree = "<group>";
 		};
 		D68A5C5D2FD0CE6800B824DF /* VinceSeven Watch Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppUITests";
 			sourceTree = "<group>";
 		};
 		D69FB9062F666F3F0091BDD2 /* TrainingOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TrainingOSTests;
 			sourceTree = "<group>";
 		};
@@ -941,6 +935,8 @@
 		D665E43D2F5D98B8002AE470 /* Dashboard */ = {
 			isa = PBXGroup;
 			children = (
+				D69570D7304F77C20008F1A2 /* DashboardHeroState.swift */,
+				D69570D5304F75060008F1A2 /* DashboardDomainGrid.swift */,
 				D665E43C2F5D98B8002AE470 /* DashboardView.swift */,
 				2C092A48A92B45199AD49EE3 /* DashboardHeaderCards.swift */,
 				2E763610F6C4444B969517B6 /* DashboardTodayCards.swift */,
@@ -956,7 +952,6 @@
 				TDYW001TDYW001TDYW001001 /* TodayWidgets.swift */,
 				9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */,
 				WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */,
-				E6856209D1844532210AEBF7 /* DashboardReadinessHero.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -1533,6 +1528,7 @@
 				0886AB2185354BBDA38FD7C4 /* NutritionViewModel.swift in Sources */,
 				4EFCF4438370ABAB574089F4 /* AppState.swift in Sources */,
 				007B73D0E06243669AC645D8 /* CoachInsightModels.swift in Sources */,
+				D69570D8304F77C20008F1A2 /* DashboardHeroState.swift in Sources */,
 				7ACF294B2ADCEC68F9444BAC /* PatternModels.swift in Sources */,
 				1D462FB9E69CF0CEDDBF854D /* ReadinessModels.swift in Sources */,
 				CC44D44C781C46D3A5237760 /* APIService+Coach.swift in Sources */,
@@ -1562,6 +1558,7 @@
 				WR007001AA00300B2F5DAAAA /* ArsenalView.swift in Sources */,
 				WR008001AA00300B2F5DAAAA /* PatternReportView.swift in Sources */,
 				WR009001AA00300B2F5DAAAA /* WarMapView.swift in Sources */,
+				D69570D6304F75060008F1A2 /* DashboardDomainGrid.swift in Sources */,
 				WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */,
 				OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */,
 				OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */,
@@ -1600,7 +1597,6 @@
 				9BBA8416FAF9815FEDC4D28D /* BudgetLogSheet.swift in Sources */,
 				A7F8B4D3C2E19056871F3A2B /* BudgetJournalView.swift in Sources */,
 				705B79D28FFF46C74C20E3BE /* RoundedCorner.swift in Sources */,
-				AE86F032A8E609F4F01794F7 /* DashboardReadinessHero.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
