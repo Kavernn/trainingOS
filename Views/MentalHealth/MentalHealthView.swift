@@ -256,24 +256,8 @@ private struct MesuresContent: View {
                         .appearAnimation(delay: 0.05)
                 }
 
-                NavigationLink { PSSView() } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "brain.head.profile")
-                            .font(.title2).foregroundColor(Color.appInfo)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Stress & PSS")
-                                .font(.headline).foregroundColor(.appTextPrimary)
-                            Text(stressSubtitle)
-                                .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6))
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right").foregroundColor(.appTextMuted)
-                    }
-                    .padding(14)
-                    .glassCard()
-                    .padding(.horizontal)
-                }
-                .appearAnimation(delay: 0.06)
+                PSSCard(summary: summary, initialLoaded: initialLoaded)
+                    .appearAnimation(delay: 0.06)
 
                 NavigationLink { MoodTrackerView() } label: {
                     HStack(spacing: 12) {
@@ -325,14 +309,6 @@ private struct MesuresContent: View {
             }
             .padding(.top, 8)
         }
-    }
-
-    private var stressSubtitle: String {
-        if let score = summary?.pssScore, let cat = summary?.pssCategory {
-            let label = cat == "low" ? "Faible" : cat == "moderate" ? "Modéré" : "Élevé"
-            return "PSS \(score)/40 · Stress \(label)"
-        }
-        return "Bilan mensuel + score automatique"
     }
 
     private var moodSubtitle: String {
@@ -863,6 +839,138 @@ private struct FlowChips: View {
                 .cornerRadius(14)
             }
             Spacer(minLength: 0)
+        }
+    }
+}
+
+// MARK: - PSS Card (Histoire 6 — sources de tension nommees + fraicheur honnete)
+
+private struct PSSCard: View {
+    let summary: MentalHealthSummary?
+    let initialLoaded: Bool
+
+    private func daysSince(_ dateString: String) -> Int? {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        df.timeZone = TimeZone.current
+        guard let date = df.date(from: dateString) else { return nil }
+        return Calendar.current.dateComponents([.day], from: date, to: Date()).day
+    }
+
+    private func maxScore(for type: String?) -> Int {
+        type == "short" ? 16 : 40
+    }
+
+    private func categoryColor(_ category: String?) -> Color {
+        switch category {
+        case "low":      return Color.appSuccess
+        case "moderate": return Color.appWarning
+        case "high":     return Color.appDanger
+        default:         return Color.appTextMuted
+        }
+    }
+
+    private func categoryLabel(_ category: String?) -> String {
+        switch category {
+        case "low":      return "Stress faible"
+        case "moderate": return "Stress modéré"
+        case "high":     return "Stress élevé"
+        default:         return "—"
+        }
+    }
+
+    private func hotItemsText(_ items: [String]) -> String {
+        "Sources de tension : \(items.joined(separator: " · "))."
+    }
+
+    private func freshnessText(days: Int) -> String {
+        switch days {
+        case 0:  return "Bilan aujourd'hui"
+        case 1:  return "Bilan hier"
+        default: return "Bilan il y a \(days) jours"
+        }
+    }
+
+    var body: some View {
+        NavigationLink { PSSView() } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("STRESS")
+                    .font(.appMicro.weight(.medium))
+                    .foregroundStyle(Color.appOnSurface.opacity(0.4))
+                    .tracking(2)
+
+                content
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassCard(cornerRadius: 14)
+            .padding(.horizontal)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if !initialLoaded {
+            Text("…")
+                .font(.appLabel.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.4))
+        } else if summary == nil {
+            Text("Indisponible")
+                .font(.appLabel.weight(.medium))
+                .foregroundStyle(Color.appOnSurface.opacity(0.5))
+        } else if let s = summary, s.pssScore == nil {
+            neverTestedContent
+        } else if let s = summary, let score = s.pssScore {
+            loadedContent(s, score: score)
+        }
+    }
+
+    private var neverTestedContent: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Fais le point sur ton stress.")
+                .font(.appLabel.weight(.medium))
+                .foregroundStyle(Color.appTextPrimary)
+            Text("3 minutes pour le bilan complet.")
+                .font(.appCaption)
+                .foregroundStyle(Color.appOnSurface.opacity(0.6))
+        }
+    }
+
+    private func loadedContent(_ s: MentalHealthSummary, score: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("Score : \(score)/\(maxScore(for: s.pssType))")
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundStyle(Color.appTextPrimary)
+                Text("·")
+                    .font(.appLabel)
+                    .foregroundStyle(Color.appTextMuted)
+                Text(categoryLabel(s.pssCategory))
+                    .font(.appLabel.weight(.medium))
+                    .foregroundStyle(categoryColor(s.pssCategory))
+            }
+
+            if let date = s.pssDate, let days = daysSince(date) {
+                HStack(spacing: 4) {
+                    Text(freshnessText(days: days))
+                        .font(.appMicro)
+                        .foregroundStyle(Color.appTextMuted)
+                    if s.pssIsDue {
+                        Text("· à refaire")
+                            .font(.appMicro.weight(.medium))
+                            .foregroundStyle(Color.appWarning)
+                    }
+                }
+            }
+
+            if !s.pssHotItems.isEmpty {
+                Text(hotItemsText(s.pssHotItems))
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appOnSurface.opacity(0.75))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            }
         }
     }
 }
