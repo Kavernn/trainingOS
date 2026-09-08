@@ -1,5 +1,132 @@
 import SwiftUI
 
+// MARK: - Cockpit Overview
+struct StatsProgressionHero: View {
+    let progression: StatsCockpitProgression
+
+    private var improving: Int { progression.statusCounts.improving }
+    private var stable: Int { progression.statusCounts.stable }
+    private var declining: Int { progression.statusCounts.declining }
+    private var comparable: Int { improving + stable + declining }
+
+    private var presentation: (eyebrow: String, headline: String, support: String) {
+        if comparable == 0 {
+            return (
+                "TRAJECTOIRE",
+                "En construction",
+                "Pas encore assez d’expositions comparables pour conclure."
+            )
+        }
+        if improving > 0 && stable == 0 && declining == 0 {
+            let movement = improving == 1 ? "1 mouvement en progression" : "\(improving) mouvements en progression"
+            return (
+                "PROGRESSION SUR \(progression.comparisonWindowDays) JOURS",
+                movement,
+                "\(improving) sur \(comparable) exercices comparables ont amélioré leur meilleur e1RM."
+            )
+        }
+        if improving == 0 && stable > 0 && declining == 0 {
+            return (
+                "TRAJECTOIRE SUR \(progression.comparisonWindowDays) JOURS",
+                "Stable",
+                "\(stable) mouvements comparables sans changement matériel détecté."
+            )
+        }
+        if improving == 0 && stable == 0 && declining > 0 {
+            let movement = declining == 1
+                ? "1 mouvement comparable est en baisse sur la période."
+                : "\(declining) mouvements comparables sont en baisse sur la période."
+            return (
+                "TRAJECTOIRE SUR \(progression.comparisonWindowDays) JOURS",
+                "En baisse",
+                movement
+            )
+        }
+        return (
+            "TRAJECTOIRE SUR \(progression.comparisonWindowDays) JOURS",
+            "Progression mixte",
+            "\(improving) en hausse · \(stable) stables · \(declining) en baisse"
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(presentation.eyebrow)
+                .font(.appMicro.weight(.bold))
+                .tracking(2)
+                .foregroundColor(Color.domainAccent(.training))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(presentation.headline)
+                    .font(.appTitle.weight(.bold))
+                    .foregroundColor(.appTextPrimary)
+                Text(presentation.support)
+                    .font(.appBody)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if comparable > 0 {
+                HStack(spacing: 8) {
+                    if improving > 0 { StatusChip(label: "\(improving) en hausse", color: .appSuccess) }
+                    if stable > 0 { StatusChip(label: "\(stable) stable\(stable == 1 ? "" : "s")", color: .appTextSecondary) }
+                    if declining > 0 { StatusChip(label: "\(declining) en baisse", color: .appDanger) }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.appCardInsetV)
+        .background(Color.appCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: CGFloat.appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private struct StatusChip: View {
+        let label: String
+        let color: Color
+
+        var body: some View {
+            Text(label)
+                .font(.appMicro.weight(.semibold))
+                .foregroundColor(color)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 6)
+                .background(Color.appSurfaceInset)
+                .clipShape(Capsule())
+        }
+    }
+}
+
+struct StatsOverviewMetric: View {
+    let value: String
+    let label: String
+    var detail: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(.appHeadline.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            Text(label)
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+            if let detail {
+                Text(detail)
+                    .font(.appMicro.weight(.semibold))
+                    .foregroundColor(.appTextMuted)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 // MARK: - Stats Tab Bar
 struct StatsTabBar: View {
     @Binding var selectedTab: StatsTab

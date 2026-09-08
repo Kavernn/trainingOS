@@ -149,8 +149,87 @@ extension StatsView {
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
     }
 
+    private func tonnageCoverageLabel(_ coverage: StatsTonnageCoverage) -> String {
+        switch coverage {
+        case .complete: return "Complet"
+        case .partial: return "Partiel"
+        case .unavailable: return "Indisponible"
+        case .unknown: return "Données partielles"
+        }
+    }
+
     // MARK: - Vue Globale Tab
     @ViewBuilder var vueGlobaleTab: some View {
+
+        if let cockpit = cockpitData {
+            let counts = cockpit.progression.statusCounts
+            let comparable = counts.improving + counts.stable + counts.declining
+            let tonnage = cockpit.trainingLoad.summary.tonnage
+
+            StatsProgressionHero(progression: cockpit.progression)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                StatsOverviewMetric(
+                    value: "\(comparable)",
+                    label: "Comparables"
+                )
+                StatsOverviewMetric(
+                    value: "\(cockpit.trainingLoad.summary.sessionCount)",
+                    label: "Séances"
+                )
+                StatsOverviewMetric(
+                    value: "\(cockpit.trainingLoad.summary.activeDayCount)",
+                    label: "Jours actifs"
+                )
+                StatsOverviewMetric(
+                    value: tonnage.value.map { units.format($0, decimals: 0) } ?? "—",
+                    label: "Tonnage reps",
+                    detail: tonnageCoverageLabel(tonnage.coverage)
+                )
+            }
+            .padding(.appCardInsetV)
+            .background(Color.appCard)
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+            .padding(.horizontal, .appPagePadding)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("RÉGULARITÉ")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(.appTextMuted)
+                Text("\(cockpit.trainingLoad.summary.sessionCount) séances · \(cockpit.trainingLoad.summary.activeDayCount) jours actifs")
+                    .font(.appBody.weight(.medium))
+                    .foregroundColor(.appTextPrimary)
+                Button("Voir la régularité") {
+                    selectedTab = .consistency
+                }
+                .font(.appCaption.weight(.semibold))
+                .foregroundColor(Color.domainAccent(.training))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.appCardInsetV)
+            .background(Color.appCard)
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+            .padding(.horizontal, .appPagePadding)
+        } else if cockpitError != nil {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("PROGRESSION")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(.appTextMuted)
+                Text("Progression indisponible")
+                    .font(.appHeadline.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                Text("Les données de progression n’ont pas pu être chargées.")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.appCardInsetV)
+            .background(Color.appCard)
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+            .padding(.horizontal, .appPagePadding)
+        }
 
         // 0. Workout DNA — accès à la synthèse (archétype · patterns · intensité)
         NavigationLink { WorkoutDNASection() } label: {
@@ -181,98 +260,13 @@ extension StatsView {
         .buttonStyle(.plain)
         .padding(.horizontal, 16)
 
-        // 0. Hero Stats — tonnage/séance FORCE + delta 6 mois + courbe force/accessoire
-        //    + accents (PR récent, volume velocity). Structure figée par Vince.
-        //    PR source = /api/pr-tracker (backend filtre baseline_count ≥ 2, récence
-        //    30j). recentPRs sont triés date DESC serveur → .first = plus récent PR
-        //    validé. Source unique PR dans tout Stats (hero + exercicesTab).
-        if !forceAccessoryTimeline.isEmpty || thisWeekVolume > 0 {
-            StatsHeroCard(
-                timeline:        forceAccessoryTimeline,
-                thisWeekVolume:  thisWeekVolume,
-                lastWeekVolume:  lastWeekVolume,
-                latestPRName:    recentPRs.first?.name,
-                latestPROneRM:   recentPRs.first?.est1RM,
-                latestPRDelta:   recentPRs.first?.delta
-            )
-            .padding(.horizontal, 16)
-            .appearAnimation(delay: 0.0)
-        }
-
-        // 1. Smart Insights (moved inside tab)
-        if !smartInsights.isEmpty {
-            SmartInsightsBanner(insights: smartInsights)
-                .padding(.horizontal, 16)
-        }
-
-        // 1b. Héros force — la progression qui monte
-        if !oneRmTrend.isEmpty {
-            ForceHeroCard(trend: oneRmTrend)
-                .padding(.horizontal, 16)
-                .appearAnimation(delay: 0.01)
-        }
-
         // 2. Décharge volontaire (si active ou à déclarer)
         DeloadCard(status: activeDeload) { newStatus in
             activeDeload = newStatus
         }
         .padding(.horizontal, 16)
 
-        // 3. Activity Rings — Score de constance
-        if let adh = adherenceData {
-            AdherenceRingsCard(data: adh)
-                .padding(.horizontal, 16)
-                .appearAnimation(delay: 0.02)
-        }
-
-        // 3. Cette semaine vs semaine précédente
-        WeekComparisonCard(
-            thisWeekSessions: thisWeekSessions, lastWeekSessions: lastWeekSessions,
-            thisWeekVolume: thisWeekVolume,     lastWeekVolume: lastWeekVolume,
-            thisWeekAvgRPE: thisWeekAvgRPE,     lastWeekAvgRPE: lastWeekAvgRPE,
-            daysElapsed: daysElapsedThisWeek
-        )
-        .padding(.horizontal, 16)
-
-        // 4. KPI Grid — fenêtres fixes étiquetées (sélecteur absent de cet onglet)
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            KPICard(value: "\(sessionsThisMonth)", label: "Séances — ce mois-ci", color: Color.forge)
-            KPICard(
-                value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",
-                label: "Streak",
-                color: .gray,
-                subtitle: "jours cons."
-            )
-            KPICard(
-                value: avgRPE30 > 0 ? String(format: "%.1f", avgRPE30) : "—",
-                label: "RPE moy. — 30 j",
-                color: .gray
-            )
-            KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .gray)
-            KPICard(
-                value: thisWeekAvgDuration > 0 ? "\(Int(thisWeekAvgDuration))min" : "—",
-                label: "Durée moy.",
-                color: .gray,
-                subtitle: {
-                    guard thisWeekAvgDuration > 0, lastWeekAvgDuration > 0 else { return nil }
-                    let d = Int(thisWeekAvgDuration - lastWeekAvgDuration)
-                    if d == 0 { return nil }
-                    return d > 0 ? "+\(d) vs sem. préc." : "\(d) vs sem. préc."
-                }()
-            )
-        }
-        .padding(.horizontal, 16)
-        .appearAnimation(delay: 0.05)
-
-        // 5. Heatmap 90 jours
-        SessionHeatmapView(
-            sessions: sessions,
-            hiitDates: Set(hiitLog.compactMap(\.date).map { String($0.prefix(10)) }),
-            bestStreak: bestStreak
-        )
-        .padding(.horizontal, 16)
-
-        // 6. Season Comparison
+        // Season Comparison
         if let comp = seasonComparison {
             SeasonComparisonCard(data: comp)
                 .padding(.horizontal, 16)
@@ -283,12 +277,6 @@ extension StatsView {
         TransformationMarkersCard(warRoomStats: warRoomStats)
             .padding(.horizontal, 16)
             .appearAnimation(delay: 0.10)
-
-        // 8. Badges
-        if !earnedBadges.isEmpty {
-            BadgesView(badges: earnedBadges)
-                .padding(.horizontal, 16)
-        }
 
         Spacer(minLength: 32)
     }
