@@ -110,8 +110,6 @@ struct StatsView: View {
     @State var nutritionDays:    [NutritionDay]          = []
     @State var acwr:             ACWRData?               = nil
     @State var activeDeload:      DeloadStatus?           = nil
-    @State var muscleStats:      [String: MuscleStatEntry]  = [:]
-    @State var inventoryTypes:   [String: String]            = [:]
     @State var isLoading    = true
     @State var fetchError   = false
     @State var selectedExercise: String? = nil
@@ -388,8 +386,6 @@ struct StatsView: View {
         let recoveryLog:          [RecoveryEntry]
         let nutritionTarget:      NutritionSettings?
         let nutritionDays:        [NutritionDay]
-        let muscleStats:          [String: MuscleStatEntry]
-        let inventoryTypes:       [String: String]?
         let weeklyTonnage:        [WeeklyTonnageEntry]?
         let oneRmTrend:           [String: [OneRMPoint]]?
         let macrosByDayType:      MacrosByDayType?
@@ -402,8 +398,6 @@ struct StatsView: View {
             case recoveryLog        = "recovery_log"
             case nutritionTarget    = "nutrition_target"
             case nutritionDays      = "nutrition_days"
-            case muscleStats        = "muscle_stats"
-            case inventoryTypes     = "inventory_types"
             case weeklyTonnage      = "weekly_tonnage"
             case oneRmTrend         = "one_rm_trend"
             case macrosByDayType    = "macros_by_day_type"
@@ -441,8 +435,6 @@ struct StatsView: View {
         recoveryLog        = r.recoveryLog
         nutritionTarget    = r.nutritionTarget
         nutritionDays      = r.nutritionDays
-        muscleStats        = r.muscleStats
-        inventoryTypes     = r.inventoryTypes ?? [:]
         weeklyTonnage      = r.weeklyTonnage ?? []
         oneRmTrend         = r.oneRmTrend ?? [:]
         macrosByDayType    = r.macrosByDayType
