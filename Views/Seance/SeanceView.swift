@@ -587,45 +587,237 @@ struct AlreadyLoggedSeanceView: View {
 
     @ViewBuilder
     private func exoRow(_ exo: String) -> some View {
-        let entry = data.weights[exo]?.history?.first(where: { $0.date == data.todayDate })
-        let reps = entry?.reps ?? ""
-        let weightStr: String = (entry?.weight ?? 0) > 0
-            ? UnitSettings.shared.format(entry?.weight ?? 0)
-            : ""
-        let summary = [reps, weightStr].filter { !$0.isEmpty }.joined(separator: " · ")
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(exo)
-                    .font(.appBody).fontWeight(.semibold)
-                    .foregroundColor(.appTextPrimary)
-                if !summary.isEmpty {
-                    Text(summary)
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(.gray)
-                        .monospacedDigit()
-                }
-            }
-            Spacer(minLength: 8)
-            Image(systemName: "checkmark")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(.statusGreen)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        SessionExerciseResultRow(presentation: exercisePresentation(for: exo))
     }
 
     @ViewBuilder
     private func exoCard(_ exos: [String]) -> some View {
         VStack(spacing: 0) {
-            ForEach(Array(exos.enumerated()), id: \.1) { idx, exo in
+            ForEach(exos, id: \.self) { exo in
                 exoRow(exo)
-                if idx < exos.count - 1 {
-                    Divider().background(Color.appSeparatorSubtle).padding(.leading, 16)
-                }
             }
         }
-        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private struct HistoricalLoadSet {
+        let index: Int
+        let reps: String?
+        let weight: Double?
+        let rir: Int?
+    }
+
+    private struct HistoricalDurationSet {
+        let index: Int
+        let seconds: Int
+    }
+
+    private func uniqueHistoryEntry(for exercise: String) -> WeightHistoryEntry? {
+        let matches = data.weights[exercise]?.history?.filter {
+            $0.date == data.todayDate
+        } ?? []
+        guard matches.count == 1 else { return nil }
+        return matches.first
+    }
+
+    private func exercisePresentation(for exercise: String) -> SessionExerciseResultPresentation {
+        guard let tracking = data.inventoryTracking[exercise],
+              let entry = uniqueHistoryEntry(for: exercise) else {
+            return SessionExerciseResultPresentation(title: exercise)
+        }
+
+        switch tracking {
+        case "reps":
+            return historicalLoadPresentation(
+                title: exercise,
+                entry: entry,
+                resultLabel: "reps",
+                homogeneousSuffix: nil
+            )
+        case "time":
+            return historicalTimePresentation(title: exercise, entry: entry)
+        case "carry":
+            return historicalCarryPresentation(title: exercise, entry: entry)
+        case "plyo":
+            return historicalLoadPresentation(
+                title: exercise,
+                entry: entry,
+                resultLabel: "sauts",
+                homogeneousSuffix: " sauts"
+            )
+        case "protocol":
+            return SessionExerciseResultPresentation(
+                title: exercise,
+                primaryResult: "Protocole complété"
+            )
+        case "cardio", "interval", "mobility":
+            return SessionExerciseResultPresentation(title: exercise)
+        default:
+            return SessionExerciseResultPresentation(title: exercise)
+        }
+    }
+
+    private func historicalLoadPresentation(
+        title: String,
+        entry: WeightHistoryEntry,
+        resultLabel: String,
+        homogeneousSuffix: String?
+    ) -> SessionExerciseResultPresentation {
+        if let storedSets = entry.sets, !storedSets.isEmpty {
+            let sets = storedSets.enumerated().compactMap { offset, set -> HistoricalLoadSet? in
+                let reps = positiveHistoricalValue(set.reps)
+                let weight = set.weight > 0 ? set.weight : nil
+                guard reps != nil || weight != nil else { return nil }
+                return HistoricalLoadSet(
+                    index: offset + 1,
+                    reps: reps,
+                    weight: weight,
+                    rir: set.rir
+                )
+            }
+            guard let first = sets.first else {
+                return SessionExerciseResultPresentation(title: title)
+            }
+
+            let homogeneous = sets.dropFirst().allSatisfy {
+                $0.reps == first.reps && $0.weight == first.weight
+            }
+            if homogeneous {
+                var parts: [String] = []
+                if let reps = first.reps {
+                    parts.append("\(sets.count) × \(reps)\(homogeneousSuffix ?? "")")
+                } else {
+                    parts.append(setCountLabel(sets.count))
+                }
+                if let weight = first.weight {
+                    parts.append(UnitSettings.shared.format(weight))
+                }
+                return SessionExerciseResultPresentation(
+                    title: title,
+                    primaryResult: parts.joined(separator: " · ")
+                )
+            }
+
+            return SessionExerciseResultPresentation(
+                title: title,
+                primaryResult: setCountLabel(sets.count),
+                detailLines: sets.compactMap { set in
+                    var parts: [String] = []
+                    if let reps = set.reps { parts.append("\(reps) \(resultLabel)") }
+                    if let weight = set.weight { parts.append(UnitSettings.shared.format(weight)) }
+                    if let rir = set.rir { parts.append("RIR \(rir)") }
+                    guard !parts.isEmpty else { return nil }
+                    return "S\(set.index) · " + parts.joined(separator: " · ")
+                }
+            )
+        }
+
+        let values = positiveHistoricalCSV(entry.reps)
+        let weight = entry.weight.flatMap { $0 > 0 ? $0 : nil }
+        let valueText = values.isEmpty
+            ? nil
+            : "\(values.joined(separator: " / ")) \(resultLabel)"
+        if let valueText {
+            return SessionExerciseResultPresentation(
+                title: title,
+                primaryResult: valueText,
+                secondaryResult: weight.map { UnitSettings.shared.format($0) }
+            )
+        }
+        return SessionExerciseResultPresentation(
+            title: title,
+            primaryResult: weight.map { UnitSettings.shared.format($0) }
+        )
+    }
+
+    private func historicalTimePresentation(
+        title: String,
+        entry: WeightHistoryEntry
+    ) -> SessionExerciseResultPresentation {
+        if let storedSets = entry.sets, !storedSets.isEmpty {
+            let sets = storedSets.enumerated().compactMap { offset, set -> HistoricalDurationSet? in
+                guard let seconds = positiveHistoricalInt(set.reps) else { return nil }
+                return HistoricalDurationSet(index: offset + 1, seconds: seconds)
+            }
+            guard let first = sets.first else {
+                return SessionExerciseResultPresentation(title: title)
+            }
+            if sets.dropFirst().allSatisfy({ $0.seconds == first.seconds }) {
+                return SessionExerciseResultPresentation(
+                    title: title,
+                    primaryResult: "\(sets.count) × \(ExerciseCalculator.formatDuration(first.seconds))"
+                )
+            }
+            return SessionExerciseResultPresentation(
+                title: title,
+                primaryResult: setCountLabel(sets.count),
+                detailLines: sets.map {
+                    "S\($0.index) · \(ExerciseCalculator.formatDuration($0.seconds))"
+                }
+            )
+        }
+
+        let durations = positiveHistoricalCSV(entry.reps).compactMap {
+            positiveHistoricalInt($0)
+        }
+        guard !durations.isEmpty else {
+            return SessionExerciseResultPresentation(title: title)
+        }
+        return SessionExerciseResultPresentation(
+            title: title,
+            primaryResult: durations
+                .map(ExerciseCalculator.formatDuration)
+                .joined(separator: " · ")
+        )
+    }
+
+    private func historicalCarryPresentation(
+        title: String,
+        entry: WeightHistoryEntry
+    ) -> SessionExerciseResultPresentation {
+        let distances = positiveHistoricalCSV(entry.reps).compactMap {
+            positiveHistoricalInt($0)
+        }
+        guard let first = distances.first else {
+            return SessionExerciseResultPresentation(title: title)
+        }
+
+        let distanceText: String
+        if distances.count > 1, distances.dropFirst().allSatisfy({ $0 == first }) {
+            distanceText = "\(distances.count) × \(first) m"
+        } else {
+            distanceText = distances.map { "\($0) m" }.joined(separator: " · ")
+        }
+        let weight = entry.weight.flatMap { $0 > 0 ? $0 : nil }
+        return SessionExerciseResultPresentation(
+            title: title,
+            primaryResult: distanceText,
+            secondaryResult: weight.map { UnitSettings.shared.format($0) }
+        )
+    }
+
+    private func positiveHistoricalCSV(_ raw: String?) -> [String] {
+        guard let raw else { return [] }
+        return raw.split(separator: ",").compactMap {
+            positiveHistoricalValue(String($0))
+        }
+    }
+
+    private func positiveHistoricalValue(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")),
+              value > 0 else { return nil }
+        return trimmed
+    }
+
+    private func positiveHistoricalInt(_ raw: String) -> Int? {
+        guard let value = Int(raw.trimmingCharacters(in: .whitespacesAndNewlines)),
+              value > 0 else { return nil }
+        return value
+    }
+
+    private func setCountLabel(_ count: Int) -> String {
+        "\(count) série\(count > 1 ? "s" : "")"
     }
 
     @ViewBuilder
