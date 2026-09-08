@@ -88,6 +88,12 @@ enum StatsTab: String, CaseIterable, Identifiable {
     var accessibilityLabel: String { title }
 }
 
+private enum StatsCockpitPolicy {
+    static let progressionDays = 90
+    static let weeklyDays = 84
+    static let muscleDays = 30
+}
+
 // MARK: - Main View
 struct StatsView: View {
     @EnvironmentObject private var theme: AppTheme
@@ -113,6 +119,9 @@ struct StatsView: View {
     @State var searchText   = ""
     @State var selectedTab: StatsTab = .overview
     @State var period: StatsPeriod = .month3
+    @State var cockpitData: StatsCockpitResponse? = nil
+    @State var cockpitError: String? = nil
+    @State var isLoadingCockpit = false
 
     // ── Stats Expansion State ────────────────────────────────────────
     @State var weeklyTonnage:      [WeeklyTonnageEntry]        = []
@@ -489,7 +498,10 @@ struct StatsView: View {
                             .padding(.top, 8)
                             .padding(.bottom, contentBottomPadding)
                         }
-                        .refreshable { await loadData() }
+                        .refreshable {
+                            await loadData()
+                            await loadCockpitData()
+                        }
                         .scrollDismissesKeyboard(.interactively)
                     }
                 }
@@ -534,10 +546,33 @@ struct StatsView: View {
                 ExerciseDetailView(name: wrapper.name, data: weights[wrapper.name])
             }
         }
-        .task { await loadData() }
+        .task {
+            await loadData()
+            await loadCockpitData()
+        }
     }
 
     func formatK(_ v: Double) -> String { _formatK(v) }
+
+    /// Loads the new cockpit independently from the legacy Stats pipeline.
+    /// A failed refresh keeps the last usable cockpit snapshot in memory.
+    func loadCockpitData() async {
+        guard !isLoadingCockpit else { return }
+        isLoadingCockpit = true
+        cockpitError = nil
+        defer { isLoadingCockpit = false }
+
+        do {
+            cockpitData = try await APIService.shared.fetchStatsCockpit(
+                asOf: AppState.shared.todayStr,
+                progressionDays: StatsCockpitPolicy.progressionDays,
+                weeklyDays: StatsCockpitPolicy.weeklyDays,
+                muscleDays: StatsCockpitPolicy.muscleDays
+            )
+        } catch {
+            cockpitError = error.localizedDescription
+        }
+    }
 
     // Local decodable mirror of the stats response
     struct StatsAPIResponse: Codable {
