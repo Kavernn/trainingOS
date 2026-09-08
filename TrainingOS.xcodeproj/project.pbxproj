@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6C6C00026C6C00026C6C0002 /* MuscleMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6C00016C6C00016C6C0001 /* MuscleMapping.swift */; };
+		6C6C00046C6C00046C6C0004 /* MuscleMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6C00036C6C00036C6C0003 /* MuscleMapView.swift */; };
 		HM5A0002HM5A0002HM5A0002 /* HeroMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */; };
 		007B73D0E06243669AC645D8 /* CoachInsightModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621800FD5B1E4C5CA2A93753 /* CoachInsightModels.swift */; };
 		04DE878575732A6BDD77F956 /* EducationalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9311048858BF8ACFBBCE3B8 /* EducationalModels.swift */; };
@@ -287,6 +289,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		6C6C00016C6C00016C6C0001 /* MuscleMapping.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MuscleMapping.swift; sourceTree = "<group>"; };
+		6C6C00036C6C00036C6C0003 /* MuscleMapView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MuscleMapView.swift; sourceTree = "<group>"; };
 		HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeroMood.swift; sourceTree = "<group>"; };
 		058BA2E35BCC575568655DDC /* ExerciseViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
@@ -648,6 +652,7 @@
 		7422762B7F37251A1E7B0E06 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				6C6C00036C6C00036C6C0003 /* MuscleMapView.swift */,
 				9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */,
 				BD000001BD000001BD000001 /* Badge.swift */,
 				64709C7BAEA141594DB92A70 /* EmptyStateView.swift */,
@@ -841,6 +846,7 @@
 		D665E4352F5D98B8002AE470 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				6C6C00016C6C00016C6C0001 /* MuscleMapping.swift */,
 				HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */,
 				D665E4342F5D98B8002AE470 /* APIModels.swift */,
 				BC0000022F5D98BA002AE470 /* BodyCompEntry.swift */,
@@ -1420,6 +1426,8 @@
 				AT000001AT000001AT000001 /* AppTheme.swift in Sources */,
 				PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */,
 				RH000002RH000002RH000002 /* RPEHelper.swift in Sources */,
+				6C6C00026C6C00026C6C0002 /* MuscleMapping.swift in Sources */,
+				6C6C00046C6C00046C6C0004 /* MuscleMapView.swift in Sources */,
 				D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */,
 				1CA0933819744850A2C926D1 /* DashboardHeaderCards.swift in Sources */,
 				5235FFAB182E4E9F9D4F4648 /* DashboardTodayCards.swift in Sources */,
