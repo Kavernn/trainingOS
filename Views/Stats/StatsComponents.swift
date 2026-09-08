@@ -2,43 +2,35 @@ import SwiftUI
 
 // MARK: - Stats Tab Bar
 struct StatsTabBar: View {
-    @Binding var selectedTab: Int
-
-    private let tabs: [(icon: String, label: String)] = [
-        ("chart.bar.fill",           "Synthèse"),
-        ("chart.bar.fill",           "Charge"),
-        ("flame.fill",               "Intensité"),
-        ("figure.stand",             "Corps"),
-        ("fork.knife",               "Nutrition"),
-        ("dumbbell.fill",            "Force"),
-        ("heart.text.square.fill",   "Bien-être"),
-    ]
+    @Binding var selectedTab: StatsTab
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(tabs.indices, id: \.self) { i in
+            ForEach(StatsTab.allCases) { tab in
                 Button {
-                    withAnimation(.spring(response: 0.3)) { selectedTab = i }
+                    withAnimation(.spring(response: 0.3)) { selectedTab = tab }
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: tabs[i].icon)
-                            .font(.appLabel.weight(selectedTab == i ? .bold : .regular))
-                        Text(tabs[i].label)
+                        Image(systemName: tab.systemImage)
+                            .font(.appLabel.weight(selectedTab == tab ? .bold : .regular))
+                        Text(tab.title)
                             .font(.appMicro.weight(.semibold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .foregroundColor(selectedTab == i ? Color.forge : .gray)
-                    .background(selectedTab == i ? Color.forge.opacity(0.12) : Color.clear)
-                    .cornerRadius(8)
+                    .foregroundColor(selectedTab == tab ? Color.domainAccent(.training) : Color.appTextSecondary)
+                    .background(selectedTab == tab ? Color.appSurfaceInset : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: .appCardRadius / 2))
                 }
+                .accessibilityLabel(tab.accessibilityLabel)
+                .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
             }
         }
         .padding(4)
         .background(Color.appCard)
-        .cornerRadius(14)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
     }
 }
 

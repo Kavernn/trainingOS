@@ -55,6 +55,39 @@ enum StatsPeriod: String, CaseIterable {
     }
 }
 
+// MARK: - Primary Stats Navigation
+enum StatsTab: String, CaseIterable, Identifiable {
+    case overview
+    case strength
+    case load
+    case consistency
+    case body
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .overview: return "Vue d’ensemble"
+        case .strength: return "Force"
+        case .load: return "Charge"
+        case .consistency: return "Régularité"
+        case .body: return "Corps"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .overview: return "chart.bar.xaxis"
+        case .strength: return "dumbbell.fill"
+        case .load: return "chart.line.uptrend.xyaxis"
+        case .consistency: return "calendar.badge.clock"
+        case .body: return "figure.stand"
+        }
+    }
+
+    var accessibilityLabel: String { title }
+}
+
 // MARK: - Main View
 struct StatsView: View {
     @EnvironmentObject private var theme: AppTheme
@@ -78,7 +111,7 @@ struct StatsView: View {
     @State var fetchError   = false
     @State var selectedExercise: String? = nil
     @State var searchText   = ""
-    @State var selectedTab: Int = 0
+    @State var selectedTab: StatsTab = .overview
     @State var period: StatsPeriod = .month3
 
     // ── Stats Expansion State ────────────────────────────────────────
@@ -434,10 +467,10 @@ struct StatsView: View {
                 } else {
                     VStack(spacing: 0) {
                         StatsTabBar(selectedTab: $selectedTab)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, .appPagePadding)
                             .padding(.top, 4)
 
-                        if [2, 3, 4].contains(selectedTab) {
+                        if selectedTab == .body {
                             PeriodPicker(selected: $period)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
@@ -445,13 +478,13 @@ struct StatsView: View {
 
                         ScrollView(showsIndicators: false) {
                             LazyVStack(spacing: 16) {
-                                if selectedTab == 0 { vueGlobaleTab }
-                                else if selectedTab == 1 { chargeVolumeTab }
-                                else if selectedTab == 2 { intensiteTab }
-                                else if selectedTab == 3 { corpsTab }
-                                else if selectedTab == 4 { nutritionTab }
-                                else if selectedTab == 5 { exercicesTab }
-                                else { bienetreTab }
+                                switch selectedTab {
+                                case .overview: vueGlobaleTab
+                                case .strength: exercicesTab
+                                case .load: chargeVolumeTab
+                                case .consistency: consistencyTab
+                                case .body: corpsTab
+                                }
                             }
                             .padding(.top, 8)
                             .padding(.bottom, contentBottomPadding)
@@ -463,6 +496,37 @@ struct StatsView: View {
             }
             .navigationTitle("Stats")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        NavigationLink {
+                            ScrollView(showsIndicators: false) {
+                                VStack(spacing: 16) {
+                                    PeriodPicker(selected: $period)
+                                        .padding(.horizontal, 16)
+                                    nutritionTab
+                                }
+                                .padding(.top, 8)
+                                .padding(.bottom, contentBottomPadding)
+                            }
+                        } label: {
+                            Label("Nutrition", systemImage: "fork.knife")
+                        }
+                        NavigationLink {
+                            ScrollView(showsIndicators: false) {
+                                bienetreTab
+                                    .padding(.top, 8)
+                                    .padding(.bottom, contentBottomPadding)
+                            }
+                        } label: {
+                            Label("Bien-être", systemImage: "heart.text.square.fill")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .accessibilityLabel("Autres analyses")
+                    }
+                }
+            }
             .sheet(item: Binding(
                 get: { selectedExercise.map { ExerciseWrapper(name: $0) } },
                 set: { selectedExercise = $0?.name }

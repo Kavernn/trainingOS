@@ -111,6 +111,44 @@ private struct DeloadCard: View {
 // MARK: - Tab Content Extensions
 extension StatsView {
 
+    // MARK: - Régularité Tab
+    // Shell-only composition of the existing heatmap and server-provided streak.
+    @ViewBuilder var consistencyTab: some View {
+        let daysActive = Set(sessions.keys).union(
+            hiitLog.compactMap(\.date).map { String($0.prefix(10)) }
+        ).count
+        SessionHeatmapView(
+            sessions: sessions,
+            hiitDates: Set(hiitLog.compactMap(\.date).map { String($0.prefix(10)) }),
+            bestStreak: bestStreak
+        )
+        .padding(.horizontal, 16)
+
+        HStack(spacing: 12) {
+            consistencyMetric(title: "JOURS ACTIFS", value: "\(daysActive)")
+            consistencyMetric(title: "STREAK ACTUEL", value: "\(currentStreak)")
+            consistencyMetric(title: "MEILLEUR STREAK", value: "\(bestStreak)")
+        }
+        .padding(.horizontal, 16)
+
+        Spacer(minLength: 32)
+    }
+
+    private func consistencyMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.appMicro.weight(.bold))
+                .foregroundColor(.appTextMuted)
+            Text(value)
+                .font(.appHeadline.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+    }
+
     // MARK: - Vue Globale Tab
     @ViewBuilder var vueGlobaleTab: some View {
 
