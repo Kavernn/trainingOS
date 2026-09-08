@@ -49,6 +49,11 @@ final class CardioSessionManager: NSObject, ObservableObject {
     @Published var routePoints: [CLLocation] = []
     @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published var completedSession: CompletedCardioSession?
+    // True si la session courante a été restaurée d'un état persisté par
+    // recoverSessionIfNeeded() (pas démarrée live via start()). Consommé par
+    // ActiveLayout (diff 4b) pour désambiguïser visuellement "reprendre" vs
+    // "démarrer" — évite qu'un tap sur play.fill soit ambigu comme sur le row 4111.
+    @Published var wasRestored: Bool = false
 
     // Session metadata
     @Published var selectedType: String = "course"
@@ -130,6 +135,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
             clearPersistedSession()
             reset()
         }
+        wasRestored = false
         selectedType = type
         startTime = Date()
         legStartTime = startTime
@@ -210,6 +216,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
         elapsedSeconds = 0
         maxPaceSecondsPerKm = 0
         completedSession = nil
+        wasRestored = false
         sessionState = .idle
     }
 
@@ -313,6 +320,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
             return
         }
         legStartTime = savedLegStart
+        wasRestored = true
 
         if let data = ud.data(forKey: UDKey.gpsPoints),
            let points = try? JSONDecoder().decode([GPSPoint].self, from: data) {
