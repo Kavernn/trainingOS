@@ -491,12 +491,11 @@ struct SessionRecapSheet: View {
                         prHighlights
                         exercisesList
                         muscleSection
-                        if snapshot.energyPre > 0 { energyRow }
-                        if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty { notesBlock }
-                        nextSessionBlock
-                        actions.padding(.top, 4).padding(.bottom, 32)
+                        detailsSection
+                        nextSessionSection
+                        actionsSection.padding(.top, 4).padding(.bottom, 32)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, .appPagePadding)
                 }
             }
             .navigationTitle("")
@@ -573,7 +572,7 @@ struct SessionRecapSheet: View {
                 if next.name == "Repos" {
                     Image(systemName: "moon.zzz")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.appTextSecondary)
                     Text("Jour de repos")
                         .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(.appTextPrimary)
@@ -581,27 +580,42 @@ struct SessionRecapSheet: View {
                     Text(next.label.uppercased())
                         .font(.system(size: 10, weight: .bold))
                         .tracking(1)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.appTextSecondary)
                     Text("·")
                         .font(.appMicro)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.appTextSecondary)
                     Text(next.name)
                         .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(.appTextPrimary)
                     if let n = next.exoCount {
                         Text("·")
                             .font(.appMicro)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                         Text("\(n) exo\(n > 1 ? "s" : "")")
                             .font(.appLabel)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.appTextSecondary)
                     }
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 14).padding(.vertical, 12)
+            .padding(.horizontal, .appCardInsetH)
+            .padding(.vertical, 12)
             .background(Color.appCard)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: .appCardRadius)
+                    .stroke(Color.appSeparator, lineWidth: .appHairline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        }
+    }
+
+    @ViewBuilder
+    private var nextSessionSection: some View {
+        if nextSession != nil {
+            VStack(alignment: .leading, spacing: 12) {
+                SessionReportSectionHeader(title: "À SUIVRE")
+                nextSessionBlock
+            }
         }
     }
 
@@ -997,27 +1011,48 @@ struct SessionRecapSheet: View {
         }
     }
 
-    // MARK: - Énergie (ligne discrète, plus le gros card)
+    // MARK: - Détails secondaires
+    @ViewBuilder
+    private var detailsSection: some View {
+        if snapshot.energyPre > 0
+            || !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SessionReportSectionHeader(title: "DÉTAILS")
+                if snapshot.energyPre > 0 { energyRow }
+                if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty { notesBlock }
+            }
+        }
+    }
+
     private var energyRow: some View {
         HStack(spacing: 10) {
             Text("Énergie avant")
                 .font(.appCaption).fontWeight(.semibold)
-                .foregroundColor(.gray)
+                .foregroundColor(.appTextSecondary)
             Spacer()
             HStack(spacing: 2) {
                 ForEach(1...5, id: \.self) { i in
                     Image(systemName: i <= snapshot.energyPre ? "bolt.fill" : "bolt")
                         .font(.system(size: 12))
-                        .foregroundColor(i <= snapshot.energyPre ? energyColor(snapshot.energyPre) : .gray.opacity(0.25))
+                        .foregroundColor(
+                            i <= snapshot.energyPre
+                                ? energyColor(snapshot.energyPre)
+                                : Color.appTextSecondary.opacity(0.25)
+                        )
                 }
             }
             Text(energyLabel(snapshot.energyPre))
                 .font(.appCaption).fontWeight(.semibold)
                 .foregroundColor(energyColor(snapshot.energyPre))
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
+        .padding(.horizontal, .appCardInsetH)
+        .padding(.vertical, 12)
         .background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: .appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
     }
 
     // MARK: - Notes (inchangé structurellement, restylé card)
@@ -1025,20 +1060,32 @@ struct SessionRecapSheet: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "note.text")
                 .font(.appBody)
-                .foregroundColor(.gray)
+                .foregroundColor(.appTextSecondary)
                 .padding(.top, 2)
             Text(snapshot.comment)
                 .font(.appBody)
-                .foregroundColor(Color.appOnSurface.opacity(0.85))
+                .foregroundColor(.appTextPrimary)
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 0)
         }
-        .padding(14)
+        .padding(.horizontal, .appCardInsetH)
+        .padding(.vertical, .appCardInsetV)
         .background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: .appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
     }
 
     // MARK: - CTA principal + partage secondaire
+    private var actionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SessionReportSectionHeader(title: "ACTIONS")
+            actions
+        }
+    }
+
     private var actions: some View {
         HStack(spacing: 10) {
             Button(action: { dismiss() }) {
@@ -1047,19 +1094,26 @@ struct SessionRecapSheet: View {
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(Color.forge)
                     .foregroundColor(Color.onAccent)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
             }
             .buttonStyle(SpringButtonStyle())
 
             ShareLink(item: shareText) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(Color.appTextPrimary.opacity(0.7))
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.appSeparatorSubtle, lineWidth: 1)
-                    )
+                HStack(spacing: 7) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Partager")
+                        .font(.appBody.weight(.semibold))
+                }
+                .foregroundColor(.appTextSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.appSurfaceInset)
+                .overlay(
+                    RoundedRectangle(cornerRadius: .appCardRadius)
+                        .stroke(Color.appSeparator, lineWidth: .appHairline)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
             }
             .buttonStyle(SpringButtonStyle())
         }
