@@ -301,32 +301,6 @@ struct ExercisePrescription: Codable {
     var label: String { "\(sets)×\(repMin)–\(repMax)" }
 }
 
-// MARK: - Muscle Landmark
-struct MuscleLandmark: Codable {
-    let mev: Int
-    let mav: Int
-    let mrv: Int
-    let weeklySetsDirect:   Int  // exos primaires (muscle_group) — comparé aux seuils
-    let weeklySetsIndirect: Int  // exos secondaires (muscles[] − direct) — indicatif seul
-    let specificDetail: [String: Int]?
-
-    enum CodingKeys: String, CodingKey {
-        case mev, mav, mrv
-        case weeklySetsDirect   = "weekly_sets_direct"
-        case weeklySetsIndirect = "weekly_sets_indirect"
-        case specificDetail     = "specific_detail"
-    }
-
-    enum Zone { case underMEV, optimal, approachingMRV, overMRV }
-
-    var zone: Zone {
-        if weeklySetsDirect < mev  { return .underMEV }
-        if weeklySetsDirect > mrv  { return .overMRV }
-        if weeklySetsDirect >= mav { return .approachingMRV }
-        return .optimal
-    }
-}
-
 // MARK: - Programs
 struct ProgramInfo: Codable, Identifiable, Equatable {
     let id: String
@@ -1144,15 +1118,6 @@ struct WeeklyTonnageEntry: Codable, Identifiable {
         case totalVolume  = "total_volume"
         case sessionCount = "session_count"
     }
-}
-
-struct PatternVolumeData: Codable {
-    let push: Double?
-    let pull: Double?
-    let hinge: Double?
-    let squat: Double?
-    let carry: Double?
-    let core: Double?
 }
 
 struct OneRMPoint: Codable, Identifiable {

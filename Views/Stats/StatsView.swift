@@ -390,10 +390,7 @@ struct StatsView: View {
         let nutritionDays:        [NutritionDay]
         let muscleStats:          [String: MuscleStatEntry]
         let inventoryTypes:       [String: String]?
-        let muscleLandmarks:      [String: MuscleLandmark]?
         let weeklyTonnage:        [WeeklyTonnageEntry]?
-        let patternVolume:        PatternVolumeData?
-        let programmeCompliance:  [ComplianceWeek]?
         let oneRmTrend:           [String: [OneRMPoint]]?
         let macrosByDayType:      MacrosByDayType?
         let proteinWeightRatio:   [ProteinWeightPoint]?
@@ -407,10 +404,7 @@ struct StatsView: View {
             case nutritionDays      = "nutrition_days"
             case muscleStats        = "muscle_stats"
             case inventoryTypes     = "inventory_types"
-            case muscleLandmarks    = "muscle_landmarks"
             case weeklyTonnage      = "weekly_tonnage"
-            case patternVolume      = "pattern_volume"
-            case programmeCompliance = "programme_compliance"
             case oneRmTrend         = "one_rm_trend"
             case macrosByDayType    = "macros_by_day_type"
             case proteinWeightRatio = "protein_weight_ratio"

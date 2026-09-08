@@ -353,21 +353,6 @@ struct WeeklyReport: Codable {
     }
 }
 
-// MARK: - Stats Expansion Analytics Models
-
-struct ComplianceWeek: Codable, Identifiable {
-    var id: String { weekStart }
-    let weekStart: String
-    let planned: Int
-    let done: Int
-    var rate: Double { planned > 0 ? Double(done) / Double(planned) : 0 }
-
-    enum CodingKeys: String, CodingKey {
-        case weekStart = "week_start"
-        case planned, done
-    }
-}
-
 struct RPEProgressionData: Codable {
     let lt7:  Double?
     let r7_8: Double?
@@ -707,44 +692,6 @@ struct HRVAnalysis: Codable {
     }
 }
 
-// MARK: - Soreness Threshold
-struct SorenessThreshold: Codable {
-    let medianVolume:          Double?
-    let avgSorenessLowVol:     Double?
-    let avgSorenessHighVol:    Double?
-    let thresholdVol:          Double?
-    let message:               String?
-
-    enum CodingKeys: String, CodingKey {
-        case message
-        case medianVolume       = "median_volume"
-        case avgSorenessLowVol  = "avg_soreness_low_vol"
-        case avgSorenessHighVol = "avg_soreness_high_vol"
-        case thresholdVol       = "threshold_vol"
-    }
-}
-
-// MARK: - Adherence (4-pillar constance rings)
-struct AdherenceData: Codable {
-    let bodyPct:     Int
-    let mindPct:     Int
-    let fuelPct:     Int
-    let spiritPct:   Int
-    let daysElapsed: Int
-    let period:      String
-    let fuelDays:    Int?
-
-    enum CodingKeys: String, CodingKey {
-        case bodyPct     = "body_pct"
-        case mindPct     = "mind_pct"
-        case fuelPct     = "fuel_pct"
-        case spiritPct   = "spirit_pct"
-        case daysElapsed = "days_elapsed"
-        case period
-        case fuelDays    = "fuel_days"
-    }
-}
-
 // MARK: - Season Comparison
 struct SeasonCompStats: Codable {
     let title:         String?
@@ -812,18 +759,6 @@ struct DeloadStatus: Codable {
         case daysRemaining = "days_remaining"
         case durationDays  = "duration_days"
         case lastCompleted = "last_completed"
-    }
-}
-
-struct DeloadStatusData: Codable {
-    let recommande:       Bool
-    let weeksSinceDeload: Int?
-    let deloadActif:      Bool
-
-    enum CodingKeys: String, CodingKey {
-        case recommande
-        case weeksSinceDeload = "weeks_since_deload"
-        case deloadActif      = "deload_actif"
     }
 }
 
