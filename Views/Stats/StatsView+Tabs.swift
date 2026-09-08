@@ -527,22 +527,16 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
-        // 3. Top 5 fréquence
-        if !weights.isEmpty {
-            Top5FrequencyView(weights: weights)
-                .padding(.horizontal, 16)
-        }
-
         // 4. 1RM trend par exercice
-        if cockpitData == nil && !oneRmTrend.isEmpty {
+        if cockpitData == nil && !isLoadingCockpit && cockpitError != nil && !oneRmTrend.isEmpty {
             OneRMTrendView(trend: oneRmTrend)
                 .padding(.horizontal, 16)
         }
 
         // 5. Exercices — recherche et poids actuels
         VStack(alignment: .leading, spacing: 8) {
-            Text("POIDS ACTUELS")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
+            Text("TOUS LES EXERCICES")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
                 .padding(.horizontal, 16)
             HStack {
                 Image(systemName: "magnifyingglass").foregroundColor(.gray)

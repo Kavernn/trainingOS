@@ -416,50 +416,27 @@ struct PersonalRecordsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("MEILLEURS 1RM ESTIMÉS")
-                .font(.appMicro).tracking(2).foregroundColor(.gray)
+            Text("RECORDS ACTUELS")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
 
-            let maxORM = records.map(\.1).max() ?? 1
             VStack(spacing: 8) {
-                ForEach(Array(records.enumerated()), id: \.0) { i, record in
+                ForEach(Array(records.enumerated()), id: \.0) { _, record in
                     HStack(spacing: 12) {
-                        Text("\(i + 1)")
-                            .font(.appCaption.weight(.bold))
-                            .foregroundColor(.gray)
-                            .frame(width: 16)
                         Text(record.0)
                             .font(.appLabel)
                             .foregroundColor(.appTextPrimary)
                             .lineLimit(1)
                         Spacer()
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Color.appSurfaceInset).frame(height: 6)
-                            Capsule()
-                                .fill(prColor(i))
-                                .frame(width: 80 * (record.1 / maxORM), height: 6)
-                        }
-                        .frame(width: 80, height: 6)
                         Text(units.format(record.1, decimals: 0))
                             .font(.appLabel.weight(.bold))
-                            .foregroundColor(prColor(i))
-                            .frame(width: 64, alignment: .trailing)
+                            .foregroundColor(Color.domainAccent(.training))
+                            .frame(alignment: .trailing)
                     }
+                    .accessibilityElement(children: .combine)
                 }
             }
         }
         .padding(16).glassCard()
-    }
-
-    private func prColor(_ rank: Int) -> Color {
-        if AppTheme.shared.selectedTheme == .monochrome {
-            switch rank {
-            case 0: return .white
-            case 1: return Color(white: 0.60)
-            case 2: return Color(white: 0.40)
-            default: return Color(white: 0.25)
-            }
-        }
-        return rank == 0 ? .forge : .gray
     }
 }
 
