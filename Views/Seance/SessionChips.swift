@@ -75,12 +75,7 @@ struct ReadinessChip: View {
                 .foregroundColor(swiftColor.opacity(0.8))
             Spacer()
         }
-        .padding(.horizontal, 10).padding(.vertical, 6)
-        .glassCard(cornerRadius: 8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(swiftColor.opacity(0.2), lineWidth: 1)
-        )
+        .padding(.vertical, 6)
     }
 }
 
@@ -97,32 +92,33 @@ struct StartSessionBanner: View {
         }) {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle()
-                        .fill(Color.forge.opacity(0.15))
+                    RoundedRectangle(cornerRadius: .appPillRadius)
+                        .fill(Color.forge)
                         .frame(width: 40, height: 40)
                     Image(systemName: "play.fill")
                         .font(.appBody.weight(.bold))
-                        .foregroundColor(Color.forge)
+                        .foregroundColor(Color.onAccent)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Commencer la séance")
                         .font(.appBody.weight(.bold))
                         .foregroundColor(.appTextPrimary)
                     Text("Le chrono démarre maintenant")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
+                        .font(.appCaption)
+                        .foregroundColor(Color.appTextMuted)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color.forge.opacity(0.6))
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(Color.appTextMuted)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .glassCard(cornerRadius: 12)
+            .background(Color.appSurfaceInset.opacity(0.72))
+            .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.forge.opacity(0.25), lineWidth: 1)
+                    .stroke(Color.forge.opacity(0.32), lineWidth: .appHairline)
             )
         }
         .buttonStyle(SpringButtonStyle(scale: 0.97))

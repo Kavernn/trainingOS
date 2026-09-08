@@ -27,7 +27,7 @@ struct GhostBanner: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 Text("👻")
-                    .font(.system(size: 16))
+                    .font(.appLabel)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("GHOST · \(shortDate(ghost.date))")
                         .font(.appMicro.weight(.bold)).tracking(2)
@@ -35,7 +35,7 @@ struct GhostBanner: View {
                     HStack(spacing: 6) {
                         Text(beaten ? "Battu ! 🔥" : "\(UnitSettings.shared.display(ghost.volume), specifier: "%.0f") \(UnitSettings.shared.label)")
                             .font(.appLabel.weight(.bold))
-                            .foregroundColor(beaten ? Color.forge : .white)
+                            .foregroundColor(beaten ? Color.appSuccess : Color.appTextPrimary)
                         if let rpe = ghost.rpe {
                             Text("RPE \(String(format: "%.1f", rpe))")
                                 .font(.appCaption).foregroundColor(.gray)
@@ -56,10 +56,7 @@ struct GhostBanner: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.appSurfaceInset).frame(height: 5)
                     Capsule()
-                        .fill(beaten
-                            ? LinearGradient(colors: [Color.forge, Color.forgeDeep], startPoint: .leading, endPoint: .trailing)
-                            : LinearGradient(colors: [Color.statusPurple.opacity(0.8), Color.statusBlue.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
-                        )
+                        .fill(beaten ? Color.appSuccess : Color.forge.opacity(0.72))
                         .frame(width: geo.size.width * progress, height: 5)
                         .animation(.spring(response: 0.5), value: progress)
                 }
@@ -74,14 +71,16 @@ struct GhostBanner: View {
                 Spacer()
                 Text("\(Int(progress * 100))%")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(beaten ? Color.forge : .statusPurple)
+                    .foregroundColor(beaten ? Color.appSuccess : Color.appTextSecondary)
             }
         }
         .padding(12)
-        .glassCard(cornerRadius: 12)
+        .background(Color.appSurfaceInset.opacity(0.55))
+        .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(beaten ? Color.forge.opacity(0.5) : Color.clear, lineWidth: 1)
+                .stroke(beaten ? Color.appSuccess.opacity(0.32) : Color.appSeparator,
+                        lineWidth: .appHairline)
         )
     }
 }

@@ -942,7 +942,8 @@ struct WorkoutSeanceView: View {
     @ViewBuilder private var optionalAddonsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OPTIONNEL")
-                .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).fontWeight(.bold).tracking(2)
+                .foregroundColor(Color.appTextMuted)
             HStack(spacing: 8) {
                 Button(action: { showAddCardio = true }) {
                     HStack(spacing: 8) {
@@ -953,9 +954,13 @@ struct WorkoutSeanceView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 12)
-                    .background(cardioCount > 0 ? Color.appSuccess.opacity(0.12) : Color.appCard)
-                    .foregroundColor(cardioCount > 0 ? Color.appSuccess : .gray)
+                    .background(Color.appSurfaceInset.opacity(0.55))
+                    .foregroundColor(cardioCount > 0 ? Color.appSuccess : Color.appTextSecondary)
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.appSeparator, lineWidth: .appHairline)
+                    )
                 }
 
                 Button(action: { showAddHIIT = true }) {
@@ -967,9 +972,13 @@ struct WorkoutSeanceView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 12)
-                    .background(hiitCount > 0 ? Color.appSuccess.opacity(0.12) : Color.appCard)
-                    .foregroundColor(hiitCount > 0 ? Color.appSuccess : .gray)
+                    .background(Color.appSurfaceInset.opacity(0.55))
+                    .foregroundColor(hiitCount > 0 ? Color.appSuccess : Color.appTextSecondary)
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.appSeparator, lineWidth: .appHairline)
+                    )
                 }
             }
         }
@@ -1027,9 +1036,9 @@ struct WorkoutSeanceView: View {
                     .rotationEffect(.degrees(showContextPanel ? 180 : 0))
             }
             .frame(minHeight: 44)
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .background(Color.appSurfaceInset)
-            .cornerRadius(8)
+            .overlay(alignment: .top) {
+                Rectangle().fill(Color.appSeparatorSubtle).frame(height: .appHairline)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -1095,7 +1104,7 @@ struct WorkoutSeanceView: View {
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Color.appSurfaceInset)
+            .background(Color.appSurfaceInset.opacity(0.55))
             .cornerRadius(8)
         }
         .transition(.opacity.combined(with: .move(edge: .top)))
@@ -1124,9 +1133,13 @@ struct WorkoutSeanceView: View {
                     .rotationEffect(.degrees(showAddonsPanel ? 180 : 0))
             }
             .frame(minHeight: 44)
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .background(Color.appSurfaceInset)
+            .padding(.horizontal, 12)
+            .background(Color.appSurfaceInset.opacity(0.45))
             .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.appSeparator, lineWidth: .appHairline)
+            )
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 16)
@@ -1370,17 +1383,18 @@ struct WorkoutSeanceView: View {
         HStack(spacing: 8) {
             Image(systemName: "scalemass.fill")
                 .font(.appCaption)
-                .foregroundColor(currentVolume > 0 ? Color.forge : .gray.opacity(0.4))
+                .foregroundColor(currentVolume > 0 ? Color.forge.opacity(0.7) : Color.appTextMuted)
             Text("Volume total")
-                .font(.appCaption).fontWeight(.semibold).foregroundColor(.gray)
+                .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.appTextMuted)
             Spacer()
             Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")
                 .font(.appLabel).fontWeight(.black)
-                .foregroundColor(currentVolume > 0 ? Color.forge : .gray.opacity(0.4))
+                .foregroundColor(currentVolume > 0 ? Color.appTextPrimary : Color.appTextMuted)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(Color.forge.opacity(currentVolume > 0 ? 0.07 : 0.03))
-        .cornerRadius(8)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.appSeparatorSubtle).frame(height: .appHairline)
+        }
         .padding(.horizontal, 16)
         .animation(.spring(response: 0.4), value: currentVolume)
     }
@@ -1405,9 +1419,10 @@ struct WorkoutSeanceView: View {
                     .font(.appBody).fontWeight(.black)
                     .foregroundColor(RPEHelper.color(for: computedSessionRPE))
             }
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .background(RPEHelper.color(for: computedSessionRPE).opacity(0.08))
-            .cornerRadius(8)
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .overlay(alignment: .top) {
+                Rectangle().fill(Color.appSeparatorSubtle).frame(height: .appHairline)
+            }
             .padding(.horizontal, 16)
         }
     }
@@ -1465,16 +1480,14 @@ struct WorkoutSeanceView: View {
                         .font(.appBody).fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 16)
-                .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : completionGlow ? Color.appSuccess : Color.forge)
-                .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
+                .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : Color.forge)
+                .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? Color.onAccent : Color.appTextMuted)
                 .cornerRadius(14)
                 .overlay(
                     !vm.logResults.isEmpty && !vm.isFinishing ? nil :
-                        RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.appSeparator, lineWidth: .appHairline)
                 )
-                .shadow(color: completionGlow && !vm.isFinishing ? Color.appSuccess.opacity(0.5) : .clear, radius: 12)
-                .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
-                .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
             }
             .disabled(vm.logResults.isEmpty || vm.isFinishing || showFinishConfirm || showUnloggedWarning || showFinish || showPartialSecondDialog)
             .animation(.easeInOut(duration: 0.25), value: vm.logResults.isEmpty)

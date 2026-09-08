@@ -47,9 +47,9 @@ struct FloatingRestTimerCard: View {
                             .font(.appLabel.weight(.semibold))
                             .foregroundColor(ringColor.opacity(0.85))
                             .frame(width: 52, height: 40)
-                            .background(ringColor.opacity(0.1))
+                            .background(Color.appSurfaceInset)
                             .cornerRadius(14)
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(ringColor.opacity(0.25), lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: .appHairline))
                     }
 
                     Button {
@@ -60,9 +60,9 @@ struct FloatingRestTimerCard: View {
                             .font(.appLabel.weight(.semibold))
                             .foregroundColor(ringColor.opacity(0.85))
                             .frame(width: 52, height: 40)
-                            .background(ringColor.opacity(0.1))
+                            .background(Color.appSurfaceInset)
                             .cornerRadius(14)
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(ringColor.opacity(0.25), lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: .appHairline))
                     }
 
                     Spacer()
@@ -81,11 +81,10 @@ struct FloatingRestTimerCard: View {
                     } label: {
                         Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(Color.onAccent)
                             .frame(width: 48, height: 48)
                             .background(ringColor)
                             .clipShape(Circle())
-                            .shadow(color: ringColor.opacity(0.45), radius: 8, y: 3)
                     }
                     .animation(.easeInOut(duration: 0.25), value: timer.isRunning)
 
@@ -112,12 +111,12 @@ struct FloatingRestTimerCard: View {
             // (ScrollView bornée à l'écran) au lieu de proposer ∞ au safeAreaInset,
             // ce qui étirait la ScrollView (cf. régression chantier B).
             .containerRelativeFrame(.horizontal) { length, _ in length - 32 }
-            .glassCard(cornerRadius: 20)
+            .background(Color.appCard)
+            .cornerRadius(20)
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(Color.forge.opacity(0.28), lineWidth: 1)
+                    .stroke(Color.appSeparatorStrong, lineWidth: .appHairline)
             )
-            .shadow(color: .black.opacity(0.45), radius: 12, x: 0, y: -4)
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
