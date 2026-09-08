@@ -323,10 +323,10 @@ private struct HealthTabPicker: View {
                 } label: {
                     Text(titles[i])
                         .font(.appLabel.weight(selected ? .bold : .medium))
-                        .foregroundColor(selected ? Color.onAccent : .gray)
+                        .foregroundColor(selected ? Color.selectedControlForeground : .gray)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(selected ? Color.statusCyan : Color.clear)
+                        .background(selected ? Color.selectedControlBackground : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                         .padding(3)
                 }
