@@ -1,5 +1,128 @@
 import SwiftUI
 
+// MARK: - Canonical external load
+struct StatsExternalLoadSection: View {
+    let trainingLoad: StatsCockpitTrainingLoad
+
+    private var tonnageLabel: String {
+        trainingLoad.summary.tonnage.value.map { UnitSettings.shared.format($0, decimals: 0) } ?? "—"
+    }
+
+    private var coverageLabel: String {
+        let tonnage = trainingLoad.summary.tonnage
+        switch tonnage.coverage {
+        case .complete: return "Complet"
+        case .partial:
+            return tonnage.applicableExposureCount > 0
+                ? "Partiel · \(tonnage.calculableExposureCount)/\(tonnage.applicableExposureCount) expositions calculables"
+                : "Partiel"
+        case .unavailable: return "Indisponible"
+        case .unknown: return "Données partielles"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("CHARGE EXTERNE")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            Text("Tonnage reps sur la période")
+                .font(.appCaption).foregroundColor(.appTextSecondary)
+
+            HStack(spacing: 12) {
+                metric(value: tonnageLabel, label: "Tonnage reps", detail: coverageLabel)
+                metric(value: "\(trainingLoad.summary.validRepsSetCount)", label: "Séries valides", detail: nil)
+                metric(
+                    value: "\(trainingLoad.summary.tonnage.calculableExposureCount) / \(trainingLoad.summary.tonnage.applicableExposureCount)",
+                    label: "Expositions calculables",
+                    detail: nil
+                )
+            }
+
+            StatsWeeklyTonnageChart(weekly: trainingLoad.weekly)
+        }
+        .padding(.appCardInsetV)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Charge externe. Tonnage reps \(tonnageLabel). \(coverageLabel). \(trainingLoad.summary.validRepsSetCount) séries valides.")
+    }
+
+    private func metric(value: String, label: String, detail: String?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value).font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
+                .lineLimit(1).minimumScaleFactor(0.65)
+            Text(label).font(.appMicro).foregroundColor(.appTextSecondary)
+            if let detail { Text(detail).font(.appMicro.weight(.semibold)).foregroundColor(.appTextMuted).lineLimit(2) }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct StatsWeeklyTonnageChart: View {
+    let weekly: [StatsWeeklyTrainingLoad]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("TONNAGE REPS / SEMAINE")
+                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.appTextMuted)
+            if weekly.isEmpty {
+                Text("Pas encore de trajectoire hebdomadaire disponible.")
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
+            } else {
+                GeometryReader { geometry in
+                    HStack(alignment: .bottom, spacing: 5) {
+                        ForEach(weekly, id: \.weekStart) { bucket in
+                            weeklyBar(bucket, maxValue: maxValue, height: geometry.size.height)
+                        }
+                    }
+                }
+                .frame(height: 110)
+                HStack(spacing: 12) {
+                    Text("— indisponible").font(.appMicro).foregroundColor(.appTextMuted)
+                    if weekly.contains(where: { $0.isPartial }) {
+                        Text("· semaine partielle").font(.appMicro).foregroundColor(.appTextSecondary)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var maxValue: Double {
+        max(weekly.compactMap { $0.tonnage.value }.max() ?? 0, 1)
+    }
+
+    @ViewBuilder
+    private func weeklyBar(_ bucket: StatsWeeklyTrainingLoad, maxValue: Double, height: CGFloat) -> some View {
+        let tonnage = bucket.tonnage.value
+        VStack(spacing: 4) {
+            if let tonnage {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(bucket.tonnage.coverage == .partial ? Color.appWarning : Color.domainAccent(.training))
+                    .frame(height: max(tonnage > 0 ? CGFloat(tonnage / maxValue) * (height - 22) : 2, 2))
+                    .accessibilityLabel(weeklyAccessibilityLabel(bucket, tonnage: tonnage))
+            } else {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.appSurfaceInset)
+                    .frame(height: 2)
+                    .overlay(Rectangle().fill(Color.appTextMuted).frame(width: 10, height: 1))
+                    .accessibilityLabel(weeklyAccessibilityLabel(bucket, tonnage: nil))
+            }
+            Text(String(bucket.weekStart.prefix(7)))
+                .font(.appMicro).foregroundColor(.appTextMuted).lineLimit(1).minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+    }
+
+    private func weeklyAccessibilityLabel(_ bucket: StatsWeeklyTrainingLoad, tonnage: Double?) -> String {
+        let value = tonnage.map { UnitSettings.shared.format($0, decimals: 0) } ?? "indisponible"
+        let partial = bucket.isPartial ? ", semaine partielle" : ""
+        return "Semaine du \(bucket.weekStart). Tonnage reps \(value)\(partial)."
+    }
+}
+
 // MARK: - Canonical Force progression
 struct StatsStrengthProgressionSection: View {
     let comparisons: [StatsProgressionComparison]

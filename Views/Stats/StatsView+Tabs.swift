@@ -309,6 +309,10 @@ extension StatsView {
     // MARK: - Charge & Volume Tab
     @ViewBuilder var chargeVolumeTab: some View {
 
+        if let cockpit = cockpitData {
+            StatsExternalLoadSection(trainingLoad: cockpit.trainingLoad)
+        }
+
         // 1. Charge — ACWR
         if let acwrData = acwr {
             ACWRCardView(data: acwrData)
@@ -338,12 +342,14 @@ extension StatsView {
                 color: Color.forge,
                 unit: "séances"
             )
-            SimpleBarChart(
-                title: "VOLUME / SEM",
-                data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
-                color: .forge,
-                unit: UnitSettings.shared.label
-            )
+            if cockpitData == nil && !isLoadingCockpit && cockpitError != nil {
+                SimpleBarChart(
+                    title: "VOLUME / SEM",
+                    data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
+                    color: .forge,
+                    unit: UnitSettings.shared.label
+                )
+            }
         }
         .padding(.horizontal, 16)
 
