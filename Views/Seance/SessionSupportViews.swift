@@ -444,6 +444,8 @@ struct SessionRecapSheet: View {
     let snapshot: SessionRecapSnapshot
     let prs: [(name: String, deltaWeight: Double?)]
     let trends: [String: WeightTrend]
+    let inventoryTracking: [String: String]
+    let inventoryUnilateral: [String: Bool]
     var nextSession: NextSessionInfo? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var animateHeader = false
@@ -635,87 +637,329 @@ struct SessionRecapSheet: View {
         return "\(headline) · \(cited)\(extrasStr)"
     }
 
-    // MARK: - Liste exos restylée (fond card, hairline separators, summary compact)
+    // MARK: - Résultats d'exercices
+    private var loggedExerciseNames: [String] {
+        let planned = snapshot.exercises.filter { snapshot.logResults[$0] != nil }
+        let plannedSet = Set(planned)
+        let extras = snapshot.logResults.keys.filter { !plannedSet.contains($0) }.sorted()
+        return planned + extras
+    }
+
     private var exercisesList: some View {
         VStack(spacing: 0) {
-            ForEach(Array(snapshot.exercises.enumerated()), id: \.0) { idx, name in
-                exerciseRow(name: name, result: snapshot.logResults[name])
-                if idx < snapshot.exercises.count - 1 {
-                    Divider()
-                        .background(Color.appSeparatorSubtle)
-                        .padding(.leading, 16)
+            ForEach(loggedExerciseNames, id: \.self) { name in
+                if let result = snapshot.logResults[name] {
+                    SessionExerciseResultRow(
+                        presentation: exercisePresentation(
+                            name: name,
+                            result: result,
+                            trend: trends[name]
+                        )
+                    )
                 }
             }
         }
-        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    @ViewBuilder
-    private func exerciseRow(name: String, result: ExerciseLogResult?) -> some View {
-        let done = result != nil
-        let trend = done ? trends[name] : nil
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(name)
-                    .font(.appBody).fontWeight(done ? .semibold : .regular)
-                    .foregroundColor(done ? .appTextPrimary : .gray)
-                if let r = result {
-                    Text(setsSummary(r))
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundColor(.gray)
-                        .monospacedDigit()
-                }
+    private struct LoadSetResult {
+        let index: Int
+        let reps: String?
+        let weight: Double?
+    }
+
+    private struct DurationSetResult {
+        let index: Int
+        let seconds: Int
+    }
+
+    private struct UnilateralDurationSetResult {
+        let index: Int
+        let left: Int
+        let right: Int
+    }
+
+    private struct CarrySetResult {
+        let index: Int
+        let distance: Int
+        let weight: Double?
+    }
+
+    private func exercisePresentation(
+        name: String,
+        result: ExerciseLogResult,
+        trend: WeightTrend?
+    ) -> SessionExerciseResultPresentation {
+        guard let tracking = inventoryTracking[name] else {
+            return SessionExerciseResultPresentation(title: name)
+        }
+
+        switch tracking {
+        case "reps":
+            return loadPresentation(
+                name: name,
+                result: result,
+                resultLabel: "reps",
+                homogeneousSuffix: nil,
+                badgeText: trendText(trend)
+            )
+        case "time":
+            guard let isUnilateral = inventoryUnilateral[name] else {
+                return SessionExerciseResultPresentation(title: name)
             }
-            Spacer(minLength: 8)
-            if let t = trend {
-                trendBadge(t)
+            return isUnilateral
+                ? unilateralTimePresentation(name: name, result: result)
+                : timePresentation(name: name, result: result)
+        case "carry":
+            return carryPresentation(name: name, result: result)
+        case "plyo":
+            return loadPresentation(
+                name: name,
+                result: result,
+                resultLabel: "sauts",
+                homogeneousSuffix: " sauts",
+                badgeText: nil
+            )
+        case "protocol":
+            return SessionExerciseResultPresentation(
+                title: name,
+                primaryResult: "Protocole complété"
+            )
+        case "interval", "cardio", "mobility":
+            return SessionExerciseResultPresentation(title: name)
+        default:
+            return SessionExerciseResultPresentation(title: name)
+        }
+    }
+
+    private func loadPresentation(
+        name: String,
+        result: ExerciseLogResult,
+        resultLabel: String,
+        homogeneousSuffix: String?,
+        badgeText: String?
+    ) -> SessionExerciseResultPresentation {
+        var usesTopLevelFallback = false
+        var sets = result.sets.enumerated().compactMap { offset, set -> LoadSetResult? in
+            let reps = positiveReps(set.repsString())
+            let weight = positiveDouble(set["weight"])
+            guard reps != nil || weight != nil else { return nil }
+            return LoadSetResult(index: offset + 1, reps: reps, weight: weight)
+        }
+
+        if sets.isEmpty {
+            usesTopLevelFallback = true
+            sets = positiveCSVValues(result.reps).enumerated().map { offset, reps in
+                LoadSetResult(index: offset + 1, reps: reps, weight: nil)
             }
-            if done {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.statusGreen)
+            let weight = result.weight > 0 ? result.weight : nil
+            if sets.isEmpty, let weight {
+                return SessionExerciseResultPresentation(
+                    title: name,
+                    primaryResult: UnitSettings.shared.format(weight),
+                    badgeText: badgeText
+                )
+            }
+        }
+
+        guard let first = sets.first else {
+            return SessionExerciseResultPresentation(title: name, badgeText: badgeText)
+        }
+
+        let homogeneous = sets.dropFirst().allSatisfy {
+            $0.reps == first.reps && $0.weight == first.weight
+        }
+        if homogeneous {
+            var parts: [String] = []
+            if let reps = first.reps {
+                parts.append("\(sets.count) × \(reps)\(homogeneousSuffix ?? "")")
             } else {
-                Text("ignoré")
-                    .font(.appCaption)
-                    .foregroundColor(.gray.opacity(0.5))
+                parts.append(setCountLabel(sets.count))
             }
+            let summaryWeight = first.weight ?? (usesTopLevelFallback && result.weight > 0 ? result.weight : nil)
+            if let weight = summaryWeight {
+                parts.append(UnitSettings.shared.format(weight))
+            }
+            return SessionExerciseResultPresentation(
+                title: name,
+                primaryResult: parts.joined(separator: " · "),
+                badgeText: badgeText
+            )
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+
+        let details = sets.compactMap { set -> String? in
+            var parts: [String] = []
+            if let reps = set.reps { parts.append("\(reps) \(resultLabel)") }
+            if let weight = set.weight { parts.append(UnitSettings.shared.format(weight)) }
+            guard !parts.isEmpty else { return nil }
+            return "S\(set.index) · " + parts.joined(separator: " · ")
+        }
+        return SessionExerciseResultPresentation(
+            title: name,
+            primaryResult: setCountLabel(sets.count),
+            secondaryResult: usesTopLevelFallback && result.weight > 0
+                ? UnitSettings.shared.format(result.weight)
+                : nil,
+            detailLines: details,
+            badgeText: badgeText
+        )
     }
 
-    @ViewBuilder
-    private func trendBadge(_ trend: WeightTrend) -> some View {
-        let (icon, delta, color): (String, Double, Color) = {
-            switch trend {
-            case .up(let d):   return ("arrowtriangle.up.fill", d, Color.forge)
-            case .down(let d): return ("arrowtriangle.down.fill", d, Color.gray)
-            }
-        }()
-        HStack(spacing: 3) {
-            Image(systemName: icon)
-                .font(.system(size: 8, weight: .bold))
-            Text(UnitSettings.shared.format(delta))
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .monospacedDigit()
+    private func timePresentation(
+        name: String,
+        result: ExerciseLogResult
+    ) -> SessionExerciseResultPresentation {
+        var sets = result.sets.enumerated().compactMap { offset, set -> DurationSetResult? in
+            guard let seconds = positiveInt(set.repsString()) else { return nil }
+            return DurationSetResult(index: offset + 1, seconds: seconds)
         }
-        .foregroundColor(color)
+        if sets.isEmpty {
+            sets = positiveCSVValues(result.reps).enumerated().compactMap { offset, value in
+                guard let seconds = positiveInt(value) else { return nil }
+                return DurationSetResult(index: offset + 1, seconds: seconds)
+            }
+        }
+        guard let first = sets.first else {
+            return SessionExerciseResultPresentation(title: name)
+        }
+        if sets.dropFirst().allSatisfy({ $0.seconds == first.seconds }) {
+            return SessionExerciseResultPresentation(
+                title: name,
+                primaryResult: "\(sets.count) × \(ExerciseCalculator.formatDuration(first.seconds))"
+            )
+        }
+        return SessionExerciseResultPresentation(
+            title: name,
+            primaryResult: setCountLabel(sets.count),
+            detailLines: sets.map {
+                "S\($0.index) · \(ExerciseCalculator.formatDuration($0.seconds))"
+            }
+        )
     }
 
-    // "3×5 · 80kg" — reprend le rendu compact du design.
-    // ponytail: rendu time/unilatéral fin = Lot C ; ici on affiche "count×firstReps",
-    // ce qui donne "3×L+R" pour l'unilatéral — moche mais rien de perdu.
-    private func setsSummary(_ r: ExerciseLogResult) -> String {
-        guard !r.sets.isEmpty else {
-            return r.reps.isEmpty ? "—" : r.reps
+    private func unilateralTimePresentation(
+        name: String,
+        result: ExerciseLogResult
+    ) -> SessionExerciseResultPresentation {
+        let sets = result.sets.enumerated().compactMap { offset, set -> UnilateralDurationSetResult? in
+            guard let left = sideTime(set["left"]),
+                  let right = sideTime(set["right"]) else { return nil }
+            return UnilateralDurationSetResult(index: offset + 1, left: left, right: right)
         }
-        let count = r.sets.count
-        let firstReps = r.sets.first?.repsString() ?? "—"
-        if r.weight > 0 {
-            return "\(count)×\(firstReps) · \(UnitSettings.shared.format(r.weight))"
+        guard !sets.isEmpty else {
+            return SessionExerciseResultPresentation(title: name)
         }
-        return "\(count)×\(firstReps)"
+        return SessionExerciseResultPresentation(
+            title: name,
+            primaryResult: setCountLabel(sets.count),
+            detailLines: sets.map {
+                "S\($0.index) · G \(ExerciseCalculator.formatDuration($0.left)) · D \(ExerciseCalculator.formatDuration($0.right))"
+            }
+        )
+    }
+
+    private func carryPresentation(
+        name: String,
+        result: ExerciseLogResult
+    ) -> SessionExerciseResultPresentation {
+        let sets = result.sets.enumerated().compactMap { offset, set -> CarrySetResult? in
+            guard let distance = positiveInt(set["distance_m"]) else { return nil }
+            return CarrySetResult(
+                index: offset + 1,
+                distance: distance,
+                weight: positiveDouble(set["weight"])
+            )
+        }
+        guard let first = sets.first else {
+            return SessionExerciseResultPresentation(title: name)
+        }
+        let homogeneous = sets.dropFirst().allSatisfy {
+            $0.distance == first.distance && $0.weight == first.weight
+        }
+        if homogeneous {
+            var parts = ["\(sets.count) × \(first.distance) m"]
+            if let weight = first.weight {
+                parts.append(UnitSettings.shared.format(weight))
+            }
+            return SessionExerciseResultPresentation(
+                title: name,
+                primaryResult: parts.joined(separator: " · ")
+            )
+        }
+        return SessionExerciseResultPresentation(
+            title: name,
+            primaryResult: setCountLabel(sets.count),
+            detailLines: sets.map { set in
+                var parts = ["\(set.distance) m"]
+                if let weight = set.weight {
+                    parts.append(UnitSettings.shared.format(weight))
+                }
+                return "S\(set.index) · " + parts.joined(separator: " · ")
+            }
+        )
+    }
+
+    private func positiveCSVValues(_ raw: String) -> [String] {
+        raw.split(separator: ",").compactMap { positiveReps(String($0)) }
+    }
+
+    private func positiveReps(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")),
+              value > 0 else { return nil }
+        return trimmed
+    }
+
+    private func positiveDouble(_ value: Any?) -> Double? {
+        let number: Double?
+        if let value = value as? Double { number = value }
+        else if let value = value as? Int { number = Double(value) }
+        else if let value = value as? String {
+            number = Double(value.replacingOccurrences(of: ",", with: "."))
+        } else { number = nil }
+        guard let number, number > 0 else { return nil }
+        return number
+    }
+
+    private func positiveInt(_ value: Any?) -> Int? {
+        let number: Int?
+        if let value = value as? Int {
+            number = value
+        } else if let value = value as? Double,
+                  value.rounded() == value {
+            number = Int(value)
+        } else if let value = value as? String {
+            number = Int(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        } else {
+            number = nil
+        }
+        guard let number, number > 0 else { return nil }
+        return number
+    }
+
+    private func sideTime(_ value: Any?) -> Int? {
+        if let side = value as? [String: Int] {
+            return positiveInt(side["time"])
+        }
+        if let side = value as? [String: Any] {
+            return positiveInt(side["time"])
+        }
+        return nil
+    }
+
+    private func setCountLabel(_ count: Int) -> String {
+        "\(count) série\(count > 1 ? "s" : "")"
+    }
+
+    private func trendText(_ trend: WeightTrend?) -> String? {
+        guard let trend else { return nil }
+        switch trend {
+        case .up(let delta):
+            return "▲ \(UnitSettings.shared.format(delta))"
+        case .down(let delta):
+            return "▼ \(UnitSettings.shared.format(delta))"
+        }
     }
 
     // MARK: - Énergie (ligne discrète, plus le gros card)

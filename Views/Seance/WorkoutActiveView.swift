@@ -258,6 +258,8 @@ struct WorkoutSeanceView: View {
                 snapshot: snap,
                 prs: prsForRecap(snap),
                 trends: trendsForRecap(snap),
+                inventoryTracking: inventoryTracking.isEmpty ? data.inventoryTracking : inventoryTracking,
+                inventoryUnilateral: inventoryUnilateral.isEmpty ? data.inventoryUnilateral : inventoryUnilateral,
                 nextSession: nextSessionForRecap()
             )
         }
