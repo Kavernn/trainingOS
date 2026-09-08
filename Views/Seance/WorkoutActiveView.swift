@@ -778,6 +778,7 @@ struct WorkoutSeanceView: View {
             },
             movementPattern: inventoryPatterns[name] ?? "",
             topAccessory: moveAccessory,
+            showsReorderHandle: true,
             isChecked: mobilityChecked.contains(name),
             onCheckToggle: {
                 if mobilityChecked.contains(name) { mobilityChecked.remove(name) }
