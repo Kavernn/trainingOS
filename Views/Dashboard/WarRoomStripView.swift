@@ -6,39 +6,53 @@ struct WarRoomStripView: View {
     let onResultTap: () -> Void
     let onTemptationTap: () -> Void
 
-    var body: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 5) {
-                Image(systemName: "shield.lefthalf.filled")
-                    .font(.appCaption).fontWeight(.bold)
-                    .foregroundColor(Color.appDanger.opacity(0.75))
-                Text("War Room")
-                    .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(Color.appOnSurface.opacity(0.6))
-            }
+    private var statusAccent: Color {
+        if hasTemptation && !hasResult { return Color.appDanger }
+        if hasResult { return Color.appSuccess }
+        return Color.appTextSecondary
+    }
 
-            Spacer()
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 7) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.appLabel.weight(.bold))
+                    .foregroundColor(statusAccent)
+                Text("WAR ROOM")
+                    .font(.appMicro.weight(.black))
+                    .tracking(1.4)
+                    .foregroundColor(Color.appTextSecondary)
+                Spacer()
+                if hasResult && hasTemptation {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.appLabel)
+                        .foregroundColor(Color.appSuccess)
+                }
+            }
 
             if hasResult && hasTemptation {
                 HStack(spacing: 5) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.appCaption)
-                        .foregroundColor(Color.statusGreen.opacity(0.7))
+                        .foregroundColor(Color.appSuccess)
                     Text("Journée loggée")
-                        .font(.appCaption).fontWeight(.medium)
-                        .foregroundColor(Color.appOnSurface.opacity(0.45))
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(Color.appTextSecondary)
                 }
             } else {
-                resultButton
-                Text("·")
-                    .font(.appCaption)
-                    .foregroundColor(Color.appOnSurface.opacity(0.25))
-                temptationButton
+                VStack(spacing: 8) {
+                    resultButton
+                    temptationButton
+                }
             }
         }
-        .padding(.horizontal, 12)
-        .frame(height: 44)
-        .glassCard(cornerRadius: 10)
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(statusAccent.opacity(0.18), lineWidth: 1)
+        )
+        .glassCard(cornerRadius: 14)
     }
 
     private var resultButton: some View {
@@ -49,13 +63,14 @@ struct WarRoomStripView: View {
                 Text(hasResult ? "Résultat ✓" : "Résultat →")
                     .font(.appCaption).fontWeight(.semibold)
             }
-            .foregroundColor(hasResult ? Color.appOnSurface.opacity(0.3) : .white)
-            .padding(.horizontal, 10).padding(.vertical, 6)
+            .foregroundColor(hasResult ? Color.appTextMuted : Color.appOnSurface)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10).padding(.vertical, 8)
             .background(
-                Capsule()
+                RoundedRectangle(cornerRadius: 9)
                     .fill(Color.appSurfaceInset)
-                    .overlay(Capsule().stroke(
-                        hasResult ? Color.appSurfaceInset : Color.statusGreen.opacity(0.5),
+                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(
+                        hasResult ? Color.appSeparatorSubtle : Color.appSuccess.opacity(0.45),
                         lineWidth: 0.5
                     ))
             )
@@ -72,13 +87,14 @@ struct WarRoomStripView: View {
                 Text(hasTemptation ? "Tentation ✓" : "Tentation →")
                     .font(.appCaption).fontWeight(.semibold)
             }
-            .foregroundColor(hasTemptation ? Color.appOnSurface.opacity(0.3) : .white)
-            .padding(.horizontal, 10).padding(.vertical, 6)
+            .foregroundColor(hasTemptation ? Color.appTextMuted : Color.appOnSurface)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10).padding(.vertical, 8)
             .background(
-                Capsule()
+                RoundedRectangle(cornerRadius: 9)
                     .fill(Color.appSurfaceInset)
-                    .overlay(Capsule().stroke(
-                        hasTemptation ? Color.appSurfaceInset : Color.appDanger.opacity(0.6),
+                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(
+                        hasTemptation ? Color.appSeparatorSubtle : Color.appDanger.opacity(0.5),
                         lineWidth: 0.5
                     ))
             )

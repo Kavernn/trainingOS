@@ -26,97 +26,60 @@ struct DashboardCardioCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-
-            // Header
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
                 ZStack {
-                    Circle()
-                        .fill(accentColor.opacity(0.15))
-                        .frame(width: 36, height: 36)
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(accentColor.opacity(0.14))
+                        .frame(width: 38, height: 38)
                     Image(systemName: icon)
-                        .font(.appBody.weight(.semibold))
+                        .font(.appHeadline.weight(.semibold))
                         .foregroundColor(accentColor)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text("CARDIO")
-                        .font(.appMicro.weight(.bold)).tracking(2)
-                        .foregroundColor(.gray.opacity(0.7))
+                        .font(.appMicro.weight(.black))
+                        .tracking(1.4)
+                        .foregroundColor(accentColor)
                     Text(typeLabel)
-                        .font(.appHeadline.weight(.bold))
-                        .foregroundColor(accentColor)
+                        .font(.appLabel.weight(.bold))
+                        .foregroundColor(Color.appOnSurface)
+                        .lineLimit(1)
                 }
                 Spacer()
-                HStack(spacing: 4) {
-                    PulsingDot(color: accentColor)
-                    Text("Complété")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(accentColor)
-                }
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.appLabel)
+                    .foregroundColor(Color.appSuccess)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
 
-            Divider()
-                .background(Color.appSurfaceInset)
-                .padding(.horizontal, 16)
+            Spacer(minLength: 0)
 
-            // Metrics row
-            HStack(spacing: 0) {
-                if let dur = entry.durationMin {
-                    MetricCell(
-                        title: "Durée",
-                        value: dur >= 60
-                            ? String(format: "%dh%02d", Int(dur) / 60, Int(dur) % 60)
-                            : String(format: "%.0f min", dur),
-                        tint: accentColor,
-                        size: .medium
-                    )
-                    .frame(minWidth: 56)
-                }
-                if let dist = entry.distanceKm, dist > 0 {
-                    MetricCell(
-                        title: "Distance",
-                        value: String(format: "%.2f km", dist),
-                        tint: accentColor,
-                        size: .medium
-                    )
-                    .frame(minWidth: 56)
-                }
-                if let pace = entry.avgPace {
-                    MetricCell(title: "Allure", value: pace + "/km", tint: Color.appOnSurface.opacity(0.7), size: .medium)
-                        .frame(minWidth: 56)
-                }
-                if let hr = entry.avgHr, hr > 0 {
-                    MetricCell(
-                        title: "FC moy",
-                        value: String(format: "%.0f bpm", hr),
-                        tint: Color.statusRed.opacity(0.8),
-                        size: .medium
-                    )
-                    .frame(minWidth: 56)
+            HStack(alignment: .bottom) {
+                if let duration = entry.durationMin {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(duration >= 60
+                            ? String(format: "%dh%02d", Int(duration) / 60, Int(duration) % 60)
+                            : String(format: "%.0f min", duration))
+                            .font(.appHeadline.weight(.black))
+                            .foregroundColor(accentColor)
+                        Text("Durée")
+                            .font(.appMicro.weight(.medium))
+                            .foregroundColor(Color.appTextSecondary)
+                    }
                 }
                 Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-
-            // GPS badge si tracé enregistré
-            if let points = entry.gpsPoints, !points.isEmpty {
-                HStack(spacing: 5) {
-                    Image(systemName: "location.fill")
-                        .font(.appMicro)
-                        .foregroundColor(accentColor.opacity(0.7))
-                    Text("Tracé GPS — \(points.count) points")
-                        .font(.appCaption)
-                        .foregroundColor(.gray)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 14)
+                Text("Complété")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(Color.appSuccess)
             }
         }
-        .glassCard()
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .background(accentColor.opacity(0.04))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(accentColor.opacity(0.16), lineWidth: 1)
+        )
+        .glassCard(cornerRadius: 14)
     }
 }
-

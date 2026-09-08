@@ -63,28 +63,35 @@ struct QuoteCard: View {
     private let quote = QuoteData.today()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "quote.opening")
-                    .font(.appCaption)
-                    .foregroundColor(.statusPurple.opacity(0.8))
+                    .font(.appLabel)
+                    .foregroundColor(Color.statusPurple)
                 Text("PENSÉE DU JOUR")
-                    .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(.statusPurple.opacity(0.8))
-                    .tracking(0.8)
+                    .font(.appMicro.weight(.black))
+                    .foregroundColor(Color.statusPurple)
+                    .tracking(1.4)
             }
             Text(quote.text)
-                .font(.appBody)
+                .font(.appBody.weight(.medium))
                 .italic()
-                .foregroundColor(.appTextPrimary)
+                .foregroundColor(Color.appOnSurface)
                 .multilineTextAlignment(.leading)
+                .lineLimit(4)
                 .fixedSize(horizontal: false, vertical: true)
             Text("— \(quote.author) · \(quote.context)")
                 .font(.appCaption)
-                .foregroundColor(Color(white: 0.55))
+                .foregroundColor(Color.appTextSecondary)
+                .lineLimit(2)
         }
         .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .background(Color.statusPurple.opacity(0.035))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.statusPurple.opacity(0.14), lineWidth: 1)
+        )
         .glassCard(cornerRadius: 14)
     }
 }

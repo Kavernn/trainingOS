@@ -115,7 +115,7 @@ struct MomentumStripView: View {
 
 // MARK: - Lesson of Day Card
 //
-// Registre calme : carte compacte sous CoachInsight, au-dessus de DayActionsRow.
+// Registre calme : carte compacte dans le cluster secondaire du dashboard.
 // 2 états : capsule disponible (tap → sheet) | épuisé (message, pas de tap).
 // Carte absente si pas de données (fetch vide/échec).
 
@@ -140,55 +140,61 @@ struct LessonOfDayCard: View {
     var body: some View {
         if let capsule = capsule {
             Button(action: onTap) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 9) {
                     HStack(spacing: 6) {
-                        Image(systemName: "book.closed")
-                            .font(.appCaption)
-                            .foregroundColor(.statusPurple.opacity(0.8))
+                        Image(systemName: "book.closed.fill")
+                            .font(.appLabel)
+                            .foregroundColor(Color.statusPurple)
                         Text("LEÇON DU JOUR")
-                            .font(.appCaption).fontWeight(.semibold)
-                            .foregroundColor(.statusPurple.opacity(0.8))
-                            .tracking(0.8)
+                            .font(.appMicro.weight(.black))
+                            .foregroundColor(Color.statusPurple)
+                            .tracking(1.4)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.appCaption)
-                            .foregroundColor(Color(white: 0.45))
+                            .foregroundColor(Color.appTextMuted)
                     }
                     Text(capsule.title)
-                        .font(.appHeadline)
-                        .foregroundColor(.appTextPrimary)
+                        .font(.appHeadline.weight(.bold))
+                        .foregroundColor(Color.appOnSurface)
+                        .lineLimit(2)
                         .multilineTextAlignment(.leading)
                     if let preview = previewLine {
                         Text(preview)
-                            .font(.appBody)
-                            .foregroundColor(Color(white: 0.55))
-                            .lineLimit(1)
+                            .font(.appLabel)
+                            .foregroundColor(Color.appTextSecondary)
+                            .lineLimit(2)
                             .multilineTextAlignment(.leading)
                     }
                 }
                 .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+                .background(Color.statusPurple.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.statusPurple.opacity(0.16), lineWidth: 1)
+                )
                 .glassCard(cornerRadius: 14)
             }
             .buttonStyle(ScaleButtonStyle())
         } else if exhausted {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 6) {
                     Image(systemName: "book.closed")
-                        .font(.appCaption)
-                        .foregroundColor(.gray.opacity(0.5))
+                        .font(.appLabel)
+                        .foregroundColor(Color.appTextMuted)
                     Text("LEÇON DU JOUR")
-                        .font(.appCaption).fontWeight(.semibold)
-                        .foregroundColor(.gray.opacity(0.5))
-                        .tracking(0.8)
+                        .font(.appMicro.weight(.black))
+                        .foregroundColor(Color.appTextMuted)
+                        .tracking(1.4)
                 }
                 Text("Tu as tout parcouru — il est temps d'ajouter des capsules.")
-                    .font(.appBody)
-                    .foregroundColor(Color(white: 0.55))
+                    .font(.appLabel)
+                    .foregroundColor(Color.appTextSecondary)
                     .multilineTextAlignment(.leading)
             }
             .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
             .glassCard(cornerRadius: 14)
             .opacity(0.6)
         }

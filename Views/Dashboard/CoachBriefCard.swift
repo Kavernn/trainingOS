@@ -29,7 +29,7 @@ struct CoachInsightCard: View {
 
     @ViewBuilder
     private func alertContent(_ alert: ProactiveAlert) -> some View {
-        let accentColor: Color = alert.severity == "warning" ? Color.forge : .statusBlue
+        let accentColor: Color = alert.severity == "warning" ? Color.appWarning : Color.appInfo
         let alertIcon: String = {
             switch alert.type {
             case "nutrition": return "fork.knife.circle.fill"
@@ -38,34 +38,46 @@ struct CoachInsightCard: View {
             default:          return "bell.fill"
             }
         }()
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 14) {
             ZStack {
-                Circle().fill(accentColor.opacity(0.15)).frame(width: 36, height: 36)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(accentColor.opacity(0.14))
+                    .frame(width: 42, height: 42)
                 Image(systemName: alertIcon)
-                    .font(.appLabel.weight(.semibold))
+                    .font(.appHeadline.weight(.semibold))
                     .foregroundColor(accentColor)
             }
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("COACH · ALERTE")
+                    .font(.appMicro.weight(.black))
+                    .tracking(1.5)
+                    .foregroundColor(accentColor)
                 Text(alert.title)
-                    .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.appTextPrimary)
+                    .font(.appHeadline.weight(.bold))
+                    .foregroundColor(Color.appOnSurface)
                 Text(alert.message)
-                    .font(.appCaption)
-                    .foregroundColor(Color.appOnSurface.opacity(0.75))
+                    .font(.appLabel)
+                    .foregroundColor(Color.appTextSecondary)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Button(action: { onDismissAlert?() }) {
                 Image(systemName: "xmark")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.gray.opacity(0.7))
+                    .foregroundColor(Color.appTextMuted)
                     .padding(8)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
-        .padding(14)
-        .glassCard(cornerRadius: 14)
+        .padding(16)
+        .background(accentColor.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(accentColor.opacity(0.22), lineWidth: 1)
+        )
+        .glassCard(cornerRadius: 16)
     }
 
     @ViewBuilder
@@ -73,37 +85,43 @@ struct CoachInsightCard: View {
         Button {
             AppState.shared.pendingDeepLink = "intelligence"
         } label: {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
                 ZStack {
-                    Circle().fill(Color.forge.opacity(0.14)).frame(width: 28, height: 28)
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.forge.opacity(0.14))
+                        .frame(width: 42, height: 42)
                     Image(systemName: "brain.head.profile")
-                        .font(.appLabel.weight(.semibold))
+                        .font(.appHeadline.weight(.semibold))
                         .foregroundColor(Color.forge)
                 }
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 7) {
                     HStack {
                         Text(contextLabel)
-                            .font(.appCaption.weight(.semibold))
+                            .font(.appMicro.weight(.black))
                             .foregroundColor(Color.forge)
                             .textCase(.uppercase)
-                            .tracking(1)
+                            .tracking(1.5)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.appCaption.weight(.medium))
-                            .foregroundColor(Color.appOnSurface.opacity(0.35))
+                            .foregroundColor(Color.appTextMuted)
                     }
                     Text(brief.message)
-                        .font(.appLabel.weight(.regular))
-                        .foregroundColor(Color.appOnSurface.opacity(0.85))
+                        .font(.appBody.weight(.medium))
+                        .foregroundColor(Color.appOnSurface)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
                 }
             }
-            .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Color.forge.opacity(0.04))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.12), lineWidth: 1))
-            .cornerRadius(14)
+            .padding(16)
+            .background(Color.forge.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.forge.opacity(0.20), lineWidth: 1)
+            )
+            .cornerRadius(16)
+            .glassCard(cornerRadius: 16)
         }
         .buttonStyle(.plain)
     }

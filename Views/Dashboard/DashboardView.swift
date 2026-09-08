@@ -177,6 +177,19 @@ struct DashboardView: View {
                                 .padding(.top, 8)
                                 .appearAnimation(delay: 0.08)
 
+                                // 10 — Actions du jour
+                                DayActionsRow(
+                                    sessionLogged: dash.alreadyLoggedToday,
+                                    moodDone: vm.moodDue?.isDue == false,
+                                    nutritionLogged: (dash.nutritionTotals.calories ?? 0) >= 1,
+                                    hideMoodChip: isMorningMoodPrompt,
+                                    onSessionTap: { onOpenSession?() },
+                                    onMoodTap: { showMoodSheet = true },
+                                    onNutritionTap: { showNutritionAddSheet = true }
+                                )
+                                .padding(.top, 14)
+                                .appearAnimation(delay: 0.12)
+
                                 // 7 — Coach + alerte proactive (priorité : alerte > coach)
                                 if vm.morningBrief != nil || alertService.visibleAlert != nil {
                                     CoachInsightCard(
@@ -194,17 +207,17 @@ struct DashboardView: View {
                                     HStack(spacing: 8) {
                                         Image(systemName: "brain.head.profile")
                                             .font(.appCaption)
-                                            .foregroundColor(.gray.opacity(0.45))
+                                            .foregroundColor(Color.appTextMuted.opacity(0.45))
                                         Text("Coaching non disponible")
                                             .font(.appCaption)
-                                            .foregroundColor(.gray.opacity(0.55))
+                                            .foregroundColor(Color.appTextMuted.opacity(0.55))
                                         Spacer()
                                         Button {
                                             Task { await vm.refreshMorningBrief() }
                                         } label: {
                                             Image(systemName: "arrow.clockwise")
                                                 .font(.appCaption)
-                                                .foregroundColor(.gray.opacity(0.45))
+                                                .foregroundColor(Color.appTextMuted.opacity(0.45))
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -214,65 +227,67 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.09)
                                 }
 
-                                // 9 — Leçon du jour (registre calme)
-                                if let lesson = lessonOfDay {
-                                    LessonOfDayCard(capsule: lesson, exhausted: false) {
-                                        lessonSheetCapsule = lesson
-                                    }
-                                    .padding(.top, 8)
-                                    .appearAnimation(delay: 0.11)
-                                } else if lessonExhausted {
-                                    LessonOfDayCard(capsule: nil, exhausted: true) { }
-                                        .padding(.top, 8)
-                                        .appearAnimation(delay: 0.11)
-                                }
-
-                                // 10 — Actions du jour
-                                DayActionsRow(
-                                    sessionLogged: dash.alreadyLoggedToday,
-                                    moodDone: vm.moodDue?.isDue == false,
-                                    nutritionLogged: (dash.nutritionTotals.calories ?? 0) >= 1,
-                                    hideMoodChip: isMorningMoodPrompt,
-                                    onSessionTap: { onOpenSession?() },
-                                    onMoodTap: { showMoodSheet = true },
-                                    onNutritionTap: { showNutritionAddSheet = true }
-                                )
-                                .padding(.top, 14)
-                                .appearAnimation(delay: 0.12)
-
-                                // 11 — War Room strip
-                                if vm.warRoomEnabled {
-                                    WarRoomStripView(
-                                        hasResult:      vm.warRoomHasResult,
-                                        hasTemptation:  vm.warRoomHasTemptation,
-                                        onResultTap: {
-                                            if vm.warRoomHasResult {
-                                                warRoomToastMessage = "Résultat déjà loggué aujourd'hui"
-                                            } else {
-                                                showQuickBattle = true
-                                            }
-                                        },
-                                        onTemptationTap: {
-                                            if vm.warRoomHasTemptation {
-                                                warRoomToastMessage = "Tentation déjà loggée aujourd'hui"
-                                            } else {
-                                                showQuickTrigger = true
-                                            }
+                                VStack(spacing: 10) {
+                                    HStack(alignment: .top, spacing: 10) {
+                                        // 11 — War Room strip
+                                        if vm.warRoomEnabled {
+                                            WarRoomStripView(
+                                                hasResult:      vm.warRoomHasResult,
+                                                hasTemptation:  vm.warRoomHasTemptation,
+                                                onResultTap: {
+                                                    if vm.warRoomHasResult {
+                                                        warRoomToastMessage = "Résultat déjà loggué aujourd'hui"
+                                                    } else {
+                                                        showQuickBattle = true
+                                                    }
+                                                },
+                                                onTemptationTap: {
+                                                    if vm.warRoomHasTemptation {
+                                                        warRoomToastMessage = "Tentation déjà loggée aujourd'hui"
+                                                    } else {
+                                                        showQuickTrigger = true
+                                                    }
+                                                }
+                                            )
+                                            .frame(maxWidth: .infinity)
+                                            .appearAnimation(delay: 0.16)
                                         }
-                                    )
-                                    .padding(.top, 8)
-                                    .appearAnimation(delay: 0.16)
+
+                                        // 9 — Leçon du jour (registre calme)
+                                        if let lesson = lessonOfDay {
+                                            LessonOfDayCard(capsule: lesson, exhausted: false) {
+                                                lessonSheetCapsule = lesson
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .appearAnimation(delay: 0.11)
+                                        } else if lessonExhausted {
+                                            LessonOfDayCard(capsule: nil, exhausted: true) { }
+                                                .frame(maxWidth: .infinity)
+                                                .appearAnimation(delay: 0.11)
+                                        }
+                                    }
+
+                                    HStack(alignment: .top, spacing: 10) {
+                                        // 11 — Cardio du jour
+                                        if let cardio = vm.cardioToday {
+                                            DashboardCardioCard(entry: cardio)
+                                                .frame(maxWidth: .infinity)
+                                                .appearAnimation(delay: 0.22)
+                                        }
+
+                                        // 13 — Pensée du jour (fermeture calme du scroll)
+                                        QuoteCard()
+                                            .frame(maxWidth: .infinity)
+                                            .appearAnimation(delay: 0.24)
+                                    }
                                 }
+                                .padding(.top, 8)
 
                                 // ── FOLD NATUREL ──────────────────────────────
 
 
 
-                                // 11 — Cardio du jour
-                                if let cardio = vm.cardioToday {
-                                    DashboardCardioCard(entry: cardio)
-                                        .appearAnimation(delay: 0.22)
-                                }
+
 
                                 // 12 — Budget & finances
                                 if let bs = vm.budgetStatus {
@@ -294,11 +309,6 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.23)
                                     }
                                 }
-
-                                // 13 — Pensée du jour (fermeture calme du scroll)
-                                QuoteCard()
-                                    .padding(.top, 8)
-                                    .appearAnimation(delay: 0.24)
 
 
 
