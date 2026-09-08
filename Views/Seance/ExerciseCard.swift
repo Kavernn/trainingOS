@@ -146,6 +146,9 @@ struct ExerciseCard: View {
     /// Presentation-only compact state for an exercise waiting in the queue.
     private var isUpcomingCompact: Bool { !alreadyLogged && !isExpanded && !isCurrentHero }
 
+    /// Presentation-only compact state for an exercise already completed.
+    private var isCompletedCompact: Bool { alreadyLogged && !isExpanded }
+
     private func adjustAllWeights(_ direction: Int) {
         for i in evm.sets.indices {
             let base = evm.sets[i].weight.isEmpty
@@ -160,6 +163,7 @@ struct ExerciseCard: View {
     }
 
     private var borderColor: Color {
+        if isCompletedCompact { return Color.appSeparatorSubtle }
         if alreadyLogged { return Color.appSuccess.opacity(0.42) }
         if isCurrentHero  { return Color.forge.opacity(0.58) }
         if isFocused     { return Color.forge.opacity(0.30) }
@@ -947,7 +951,9 @@ struct ExerciseCard: View {
                     borderColor,
                     lineWidth: isCurrentHero
                         ? 1.5
-                        : (isUpcomingCompact ? .appHairline : (alreadyLogged || isFocused ? 1 : 0))
+                        : ((isUpcomingCompact || isCompletedCompact)
+                            ? .appHairline
+                            : (alreadyLogged || isFocused ? 1 : 0))
                 )
         )
         .overlay(alignment: .topLeading) {
@@ -960,7 +966,6 @@ struct ExerciseCard: View {
                     .accessibilityHidden(true)
             }
         }
-        .opacity(alreadyLogged && !isExpanded ? 0.72 : 1.0)
         .animation(.easeInOut(duration: 0.25), value: alreadyLogged)
         .onAppear {
             evm.initializeSets()
@@ -1006,7 +1011,7 @@ struct ExerciseCard: View {
     @ViewBuilder private var headerButton: some View {
         Button(action: onToggle) {
             HStack(alignment: isCurrentHero ? .top : .center,
-                   spacing: isUpcomingCompact ? 8 : 12) {
+                   spacing: (isUpcomingCompact || isCompletedCompact) ? 8 : 12) {
                 if isUpcomingCompact {
                     Color.clear.frame(width: 28, height: 28)
                 } else {
@@ -1015,32 +1020,36 @@ struct ExerciseCard: View {
                             .fill(alreadyLogged
                                   ? Color.appSuccess.opacity(0.14)
                                   : isCurrentHero ? Color.forge.opacity(0.14) : Color.gray.opacity(0.11))
-                            .frame(width: 34, height: 34)
+                            .frame(width: isCompletedCompact ? 28 : 34,
+                                   height: isCompletedCompact ? 28 : 34)
                         Image(systemName: alreadyLogged ? "checkmark" : "dumbbell")
-                            .font(.appLabel).fontWeight(.semibold)
+                            .font(isCompletedCompact ? .appMicro : .appLabel).fontWeight(.semibold)
                             .foregroundColor(alreadyLogged
-                                             ? Color.appSuccess
+                                             ? Color.appTextMuted
                                              : isCurrentHero ? Color.forge : Color.gray)
                     }
                 }
-                VStack(alignment: .leading, spacing: isCurrentHero ? 6 : (isUpcomingCompact ? 2 : 4)) {
+                VStack(alignment: .leading,
+                       spacing: isCurrentHero ? 6 : ((isUpcomingCompact || isCompletedCompact) ? 2 : 4)) {
                     if isCurrentHero {
                         Text("EXERCICE ACTUEL")
                             .font(.appMicro).fontWeight(.bold).tracking(1.6)
                             .foregroundColor(Color.forge.opacity(0.8))
                     }
                     HStack(spacing: 8) {
-                        let titleFont: Font = isCurrentHero ? .appCardMetric : (isExpanded ? .appTitle : (isUpcomingCompact ? .appBody : .appHeadline))
-                        let titleWeight: Font.Weight = isExpanded ? .heavy : .bold
+                        let titleFont: Font = isCurrentHero
+                            ? .appCardMetric
+                            : (isExpanded ? .appTitle : ((isUpcomingCompact || isCompletedCompact) ? .appBody : .appHeadline))
+                        let titleWeight: Font.Weight = isExpanded ? .heavy : (isCompletedCompact ? .semibold : .bold)
                         Text(name)
                             .font(titleFont)
                             .fontWeight(titleWeight)
                             .tracking(isExpanded ? 0.3 : 0)
-                            .foregroundColor(.appTextPrimary)
+                            .foregroundColor(isCompletedCompact ? Color.appTextSecondary : Color.appTextPrimary)
                             .lineLimit(isCurrentHero ? 2 : nil)
                             .minimumScaleFactor(isCurrentHero ? 0.82 : 1)
                             .layoutPriority(isCurrentHero ? 1 : 0)
-                        if isReplaced {
+                        if isReplaced && !isCompletedCompact {
                             Text("remplacé")
                                 .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)
                                 .padding(.horizontal, 4).padding(.vertical, 4)
@@ -1050,7 +1059,7 @@ struct ExerciseCard: View {
                             (suggestion?.suggestionType != "maintain" && suggestion != nil) ||
                             (hint != nil && !(hint?.isEmpty ?? true))
                         )
-                        if hasCoaching {
+                        if hasCoaching && !isCompletedCompact {
                             Image(systemName: "bolt.fill")
                                 .font(.appMicro)
                                 .foregroundColor(Color.forge)
@@ -1060,16 +1069,24 @@ struct ExerciseCard: View {
                         }
                     }
                     Text(scheme)
-                        .font(isCurrentHero ? .appLabel : (isUpcomingCompact ? .appMicro : .appCaption))
+                        .font(isCurrentHero
+                              ? .appLabel
+                              : ((isUpcomingCompact || isCompletedCompact) ? .appMicro : .appCaption))
                         .fontWeight(isCurrentHero ? .semibold : .regular)
-                        .foregroundColor(isCurrentHero ? Color.appTextSecondary : (isUpcomingCompact ? Color.appTextMuted : Color.gray))
+                        .foregroundColor(isCurrentHero
+                                         ? Color.appTextSecondary
+                                         : ((isUpcomingCompact || isCompletedCompact) ? Color.appTextMuted : Color.gray))
                 }
                 Spacer()
                 headerTrailing
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, isUpcomingCompact ? 8 : 16)
-            .background(isUpcomingCompact ? Color.appSurfaceInset.opacity(0.55) : Color.clear)
+            .padding(.vertical, isCompletedCompact ? 6 : (isUpcomingCompact ? 8 : 16))
+            .background(
+                isCompletedCompact
+                    ? Color.appSurfaceInset.opacity(0.32)
+                    : (isUpcomingCompact ? Color.appSurfaceInset.opacity(0.55) : Color.clear)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -1087,7 +1104,42 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var headerTrailing: some View {
-        if alreadyLogged && !evm.isEditing, let r = logResult {
+        if isCompletedCompact {
+            HStack(spacing: 8) {
+                if let r = logResult {
+                    HStack(spacing: 4) {
+                        if isTimeBased {
+                            Text(r.reps.split(separator: ",").compactMap { Int($0) }
+                                    .map { evm.formatDuration($0) }.first ?? "—")
+                        } else {
+                            if r.weight > 0 {
+                                Text(units.format(r.weight))
+                            }
+                            Text(loggedRepsSummary(r))
+                        }
+                    }
+                    .font(.appCaption).fontWeight(.semibold)
+                    .foregroundColor(Color.appTextSecondary)
+                }
+                if logResult != nil {
+                    Button {
+                        evm.isEditing = true
+                        if !isExpanded { onToggle() }
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.appCaption).fontWeight(.semibold)
+                            .foregroundColor(Color.appTextMuted)
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Image(systemName: "chevron.down")
+                        .font(.appCaption).fontWeight(.semibold)
+                        .foregroundColor(Color.appTextMuted)
+                        .frame(width: 28, height: 28)
+                }
+            }
+        } else if alreadyLogged && !evm.isEditing, let r = logResult {
             HStack(spacing: 8) {
                 noteIconButton
                 if restTimer.isRunning, restTimer.exerciseName == name {
