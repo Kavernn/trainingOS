@@ -137,6 +137,9 @@ struct ExerciseCard: View {
 
     private var alreadyLogged: Bool { evm.isLogged || logResult != nil || evm.isSkipped }
 
+    /// Presentation-only projection of the parent-owned current exercise state.
+    private var isCurrentHero: Bool { isFocused && isExpanded && !alreadyLogged }
+
     private func adjustAllWeights(_ direction: Int) {
         for i in evm.sets.indices {
             let base = evm.sets[i].weight.isEmpty
@@ -152,6 +155,7 @@ struct ExerciseCard: View {
 
     private var borderColor: Color {
         if alreadyLogged { return Color.appSuccess.opacity(0.42) }
+        if isCurrentHero  { return Color.forge.opacity(0.58) }
         if isFocused     { return Color.forge.opacity(0.30) }
         if isExpanded    { return Color.forge.opacity(0.12) }
         return Color.appOnSurface.opacity(0.07)
@@ -932,7 +936,7 @@ struct ExerciseCard: View {
         .glassCard(cornerRadius: 14)
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(borderColor, lineWidth: alreadyLogged || isFocused ? 1 : 0)
+                .stroke(borderColor, lineWidth: isCurrentHero ? 1.5 : (alreadyLogged || isFocused ? 1 : 0))
         )
         .opacity(alreadyLogged && !isExpanded ? 0.72 : 1.0)
         .animation(.easeInOut(duration: 0.25), value: alreadyLogged)
@@ -979,24 +983,36 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var headerButton: some View {
         Button(action: onToggle) {
-            HStack(spacing: 12) {
+            HStack(alignment: isCurrentHero ? .top : .center, spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(alreadyLogged ? Color.appSuccess.opacity(0.14) : Color.gray.opacity(0.11))
+                        .fill(alreadyLogged
+                              ? Color.appSuccess.opacity(0.14)
+                              : isCurrentHero ? Color.forge.opacity(0.14) : Color.gray.opacity(0.11))
                         .frame(width: 34, height: 34)
                     Image(systemName: alreadyLogged ? "checkmark" : "dumbbell")
                         .font(.appLabel).fontWeight(.semibold)
-                        .foregroundColor(alreadyLogged ? Color.appSuccess : Color.gray)
+                        .foregroundColor(alreadyLogged
+                                         ? Color.appSuccess
+                                         : isCurrentHero ? Color.forge : Color.gray)
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: isCurrentHero ? 6 : 4) {
+                    if isCurrentHero {
+                        Text("EXERCICE ACTUEL")
+                            .font(.appMicro).fontWeight(.bold).tracking(1.6)
+                            .foregroundColor(Color.forge.opacity(0.8))
+                    }
                     HStack(spacing: 8) {
-                        let titleFont: Font = isExpanded ? .appTitle : .appHeadline
+                        let titleFont: Font = isCurrentHero ? .appCardMetric : (isExpanded ? .appTitle : .appHeadline)
                         let titleWeight: Font.Weight = isExpanded ? .heavy : .bold
                         Text(name)
                             .font(titleFont)
                             .fontWeight(titleWeight)
                             .tracking(isExpanded ? 0.3 : 0)
                             .foregroundColor(.appTextPrimary)
+                            .lineLimit(isCurrentHero ? 2 : nil)
+                            .minimumScaleFactor(isCurrentHero ? 0.82 : 1)
+                            .layoutPriority(isCurrentHero ? 1 : 0)
                         if isReplaced {
                             Text("remplacé")
                                 .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)
@@ -1016,7 +1032,10 @@ struct ExerciseCard: View {
                                 .clipShape(Circle())
                         }
                     }
-                    Text(scheme).font(.appCaption).foregroundColor(.gray)
+                    Text(scheme)
+                        .font(isCurrentHero ? .appLabel : .appCaption)
+                        .fontWeight(isCurrentHero ? .semibold : .regular)
+                        .foregroundColor(isCurrentHero ? Color.appTextSecondary : Color.gray)
                 }
                 Spacer()
                 headerTrailing
@@ -1107,7 +1126,7 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var expandedContent: some View {
         Divider().background(Color.appSurfaceInset)
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: isCurrentHero ? 20 : 16) {
             expandedTopBar
             if evm.isFirstTime && !alreadyLogged {
                 HStack(spacing: 8) {
@@ -1125,19 +1144,41 @@ struct ExerciseCard: View {
                     .foregroundColor(Color.appOnSurface.opacity(0.42))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            if alreadyLogged && !evm.isEditing { loggedStateDisplay } else { formView }
+            if alreadyLogged && !evm.isEditing {
+                loggedStateDisplay
+            } else {
+                formView
+                    .padding(isCurrentHero ? 12 : 0)
+                    .background(isCurrentHero ? Color.appSurfaceInset : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isCurrentHero ? Color.appSeparatorStrong : Color.clear,
+                                    lineWidth: .appHairline)
+                    )
+                    .cornerRadius(12)
+            }
             historySection
             if let next = nextExerciseName {
                 HStack(spacing: 4) {
-                    Text("Suivant").font(.appCaption).fontWeight(.semibold).foregroundColor(.gray.opacity(0.3))
-                    Image(systemName: "arrow.right").font(.appMicro).fontWeight(.bold).foregroundColor(.gray.opacity(0.3))
-                    Text(next).font(.appCaption).fontWeight(.medium).foregroundColor(.gray.opacity(0.45))
+                    Text("SUIVANT")
+                        .font(.appMicro).fontWeight(.bold).tracking(isCurrentHero ? 1.2 : 0)
+                        .foregroundColor(isCurrentHero ? Color.appTextMuted : Color.gray.opacity(0.3))
+                    Image(systemName: "arrow.right")
+                        .font(.appMicro).fontWeight(.bold)
+                        .foregroundColor(isCurrentHero ? Color.forge.opacity(0.65) : Color.gray.opacity(0.3))
+                    Text(next)
+                        .font(isCurrentHero ? .appLabel : .appCaption).fontWeight(.medium)
+                        .foregroundColor(isCurrentHero ? Color.appTextSecondary : Color.gray.opacity(0.45))
                     Spacer()
                 }
-                .padding(.top, 4)
+                .padding(.horizontal, isCurrentHero ? 12 : 0)
+                .padding(.vertical, isCurrentHero ? 10 : 0)
+                .padding(.top, isCurrentHero ? 0 : 4)
+                .background(isCurrentHero ? Color.appSurfaceInset : Color.clear)
+                .cornerRadius(8)
             }
         }
-        .padding(16)
+        .padding(isCurrentHero ? 20 : 16)
         .onChange(of: evm.draftSavedAt) { _ in
             guard !evm.isLogged else { return }
             withAnimation(.easeIn(duration: 0.15)) { showSaved = true }
