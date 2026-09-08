@@ -6,18 +6,25 @@ struct ACWRCardView: View {
     let data: ACWRData
 
     private var zoneColor: Color {
-        let surgical = AppTheme.shared.colors.accentDistribution == .surgical
         switch data.zone.code {
-        case "optimal":  return surgical ? Color(white: 0.65) : .appSuccess
-        case "caution":  return surgical ? Color(white: 0.55) : .appWarning
+        case "optimal":  return .appSuccess
+        case "caution":  return .appWarning
         case "danger":   return .appDanger   // sang — toujours rouge, même en surgical
-        case "under":    return surgical ? Color(white: 0.50) : .gray
-        default:         return surgical ? Color(white: 0.45) : .gray
+        case "under":    return .appTextSecondary
+        default:         return .appTextMuted
         }
     }
 
-    private var isLowConfidence: Bool { data.confidence == "low" }
-    private var isEstimate: Bool { data.confidence == "moderate" }
+    private var hasIncompleteHistory: Bool { data.daysOfData < 28 }
+    private var factualZoneLabel: String {
+        switch data.zone.code {
+        case "under": return "Sous la plage de référence"
+        case "optimal": return "Dans la plage de référence"
+        case "caution": return "Au-dessus de la plage de référence"
+        case "danger": return "Charge interne élevée"
+        default: return "Données insuffisantes"
+        }
+    }
 
     private var relativeLoadText: String {
         guard data.chronicLoad > 0 else { return "" }
@@ -30,27 +37,19 @@ struct ACWRCardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("ACWR — CHARGE AIGUË/CHRONIQUE")
-                    .font(.appMicro).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro).tracking(2).foregroundColor(.appTextMuted)
                 Spacer()
-                if isEstimate {
-                    Text("ESTIMATION")
-                        .font(.appMicro.weight(.bold)).tracking(1)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.forge.opacity(0.15))
-                        .foregroundColor(Color.forge)
-                        .clipShape(Capsule())
-                }
             }
 
-            if isLowConfidence {
+            if hasIncompleteHistory {
                 // Pas assez d'historique — ne pas afficher le ratio
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Données insuffisantes")
-                        .font(.system(size: 22, weight: .bold)).foregroundColor(.gray)
+                        .font(.system(size: 22, weight: .bold)).foregroundColor(.appTextMuted)
                     Text("\(data.daysOfData) / 28 jours de données")
-                        .font(.appCaption).foregroundColor(.gray.opacity(0.6))
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
                     ProgressView(value: Double(data.daysOfData), total: 28)
-                        .tint(.gray).frame(maxWidth: 160)
+                        .tint(.appTextMuted).frame(maxWidth: 160)
                 }
             } else {
                 HStack(alignment: .top, spacing: 16) {
@@ -59,7 +58,7 @@ struct ACWRCardView: View {
                         Text(String(format: "%.2f", data.ratio))
                             .font(.system(size: 42, weight: .black))
                             .foregroundColor(zoneColor)
-                        Text(data.zone.label)
+                        Text(factualZoneLabel)
                             .font(.appCaption.weight(.bold))
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(zoneColor.opacity(0.2))
@@ -77,15 +76,8 @@ struct ACWRCardView: View {
                 }
             }
 
-            // Recommendation
-            if !data.zone.recommendation.isEmpty {
-                Text(data.zone.recommendation)
-                    .font(.appCaption).foregroundColor(.gray)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
             // Sparkline — seulement si données suffisantes
-            if !isLowConfidence, data.trend.count > 1 {
+            if !hasIncompleteHistory, data.trend.count > 1 {
                 ACWRSparkline(trend: data.trend)
             }
         }
@@ -97,13 +89,13 @@ private struct ACWRSparkline: View {
     let trend: [ACWRWeek]
 
     private let thresholds: [(Double, Color)] = [
-        (1.5, Color.appDanger), (1.3, Color.appWarning), (0.8, Color.gray)
+        (1.5, Color.appDanger), (1.3, Color.appWarning), (0.8, Color.appTextMuted)
     ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("TENDANCE 8 SEMAINES")
-                .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextMuted)
 
             GeometryReader { geo in
                 let w = geo.size.width

@@ -313,68 +313,32 @@ extension StatsView {
             StatsExternalLoadSection(trainingLoad: cockpit.trainingLoad)
         }
 
-        // 1. Charge — ACWR
+        // Volume hebdomadaire legacy — fallback uniquement si le cockpit est indisponible
+        if cockpitData == nil && !isLoadingCockpit && cockpitError != nil {
+            SimpleBarChart(
+                title: "VOLUME / SEM",
+                data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
+                color: .forge,
+                unit: UnitSettings.shared.label
+            )
+            .padding(.horizontal, 16)
+        }
+
+        Text("CHARGE INTERNE")
+            .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            .padding(.horizontal, .appPagePadding)
+        Text("Effort perçu × durée · ACWR aiguë 7 j / chronique 28 j")
+            .font(.appCaption).foregroundColor(.appTextSecondary)
+            .padding(.horizontal, .appPagePadding)
+
         if let acwrData = acwr {
             ACWRCardView(data: acwrData)
                 .padding(.horizontal, 16)
         } else {
-            HStack(spacing: 12) {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.appHeadline).foregroundColor(.gray)
-                // collage titre/sous-titre, micro-optique
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("ACWR non disponible")
-                        .font(.appLabel.weight(.semibold)).foregroundColor(.gray)
-                    Text("Logge au moins 4 semaines de séances avec RPE et durée")
-                        .font(.appCaption).foregroundColor(.gray.opacity(0.6))
-                }
-                Spacer()
-            }
-            .padding(16).background(Color.appCard).cornerRadius(14)
-            .padding(.horizontal, 16)
-        }
-
-        // 2. Tonnage hebdo + fréquence
-        HStack(spacing: 12) {
-            SimpleBarChart(
-                title: "FRÉQUENCE / SEM",
-                data: weeklyFrequency.map { (weekLabel($0.0), $0.1) },
-                color: Color.forge,
-                unit: "séances"
-            )
-            if cockpitData == nil && !isLoadingCockpit && cockpitError != nil {
-                SimpleBarChart(
-                    title: "VOLUME / SEM",
-                    data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
-                    color: .forge,
-                    unit: UnitSettings.shared.label
-                )
-            }
-        }
-        .padding(.horizontal, 16)
-
-        // 3. Volume / muscle / semaine (hard sets vs landmarks)
-        if !muscleLandmarks.isEmpty {
-            VolumeLandmarksCard(landmarks: muscleLandmarks)
-                .padding(.horizontal, 16)
-        }
-
-        // 4. Équilibre Push/Pull/Legs
-        if let pv = patternVolume {
-            PatternVolumeView(data: pv)
-                .padding(.horizontal, 16)
-        }
-
-        // 5. Programme compliance
-        if complianceWeeks.count >= 2 {
-            ComplianceProgrammeView(weeks: complianceWeeks)
-                .padding(.horizontal, 16)
-        }
-
-        // 6. Jours depuis deload
-        if let dl = deloadStatus {
-            DeloadStatusCard(data: dl)
-                .padding(.horizontal, 16)
+            Text("Charge interne indisponible")
+                .font(.appBody).foregroundColor(.appTextSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, .appPagePadding)
         }
 
         Spacer(minLength: 32)
