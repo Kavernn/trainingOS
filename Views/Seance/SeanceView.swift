@@ -258,17 +258,29 @@ struct AlreadyLoggedSeanceView: View {
 
                     // ── Commentaire ──────────────────────────────────────
                     if let comment = session.comment, !comment.isEmpty {
-                        HStack(spacing: 8) {
-                            Image(systemName: "quote.bubble")
-                                .font(.system(size: 12))
-                                .foregroundColor(.statusBlue)
-                            Text(comment)
-                                .font(.appLabel)
-                                .foregroundColor(.gray)
-                                .italic()
-                            Spacer()
+                        VStack(alignment: .leading, spacing: 12) {
+                            SessionReportSectionHeader(title: "DÉTAILS")
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "quote.bubble")
+                                    .font(.appBody)
+                                    .foregroundColor(.appTextSecondary)
+                                    .padding(.top, 2)
+                                Text(comment)
+                                    .font(.appBody)
+                                    .foregroundColor(.appTextPrimary)
+                                    .italic()
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, .appCardInsetH)
+                            .padding(.vertical, .appCardInsetV)
+                            .background(Color.appCard)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: .appCardRadius)
+                                    .stroke(Color.appSeparator, lineWidth: .appHairline)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, .appPagePadding)
                     }
                 } else {
                     Text("Données non disponibles")
@@ -277,288 +289,11 @@ struct AlreadyLoggedSeanceView: View {
                         .padding(.horizontal, 16)
                 }
 
-                // ── Séance PM à faire (état 2) ───────────────────────────
-                if showEveningBlock {
-                    let pmExos = eveningExercises
-                    let pmColor = eveningColor
-                    let pmName = resolvedEveningName
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("SÉANCE PM")
-                                .font(.system(size: 10, weight: .bold))
-                                .tracking(2)
-                                .foregroundColor(.gray)
-                            Spacer()
-                            Text(pmName)
-                                .font(.appLabel.weight(.bold))
-                                .foregroundColor(pmColor)
-                                .padding(.horizontal, 12).padding(.vertical, 5)
-                                .background(pmColor.opacity(0.12))
-                                .clipShape(Capsule())
-                        }
-
-                        if pmExos.isEmpty {
-                            Text("Aucun exercice défini")
-                                .font(.appLabel)
-                                .foregroundColor(.gray)
-                        } else {
-                            VStack(spacing: 0) {
-                                ForEach(pmExos.prefix(5), id: \.0) { name, scheme in
-                                    HStack {
-                                        Circle()
-                                            .fill(pmColor.opacity(0.25))
-                                            .frame(width: 5, height: 5)
-                                        Text(name)
-                                            .font(.appLabel)
-                                            .foregroundColor(Color.appOnSurface.opacity(0.75))
-                                        Spacer()
-                                        Text(scheme)
-                                            .font(.appCaption)
-                                            .foregroundColor(.gray)
-                                    }
-                                    .padding(.vertical, 6)
-                                    Divider().background(Color.appSeparatorSubtle)
-                                }
-                                if pmExos.count > 5 {
-                                    Text("+ \(pmExos.count - 5) exercices")
-                                        .font(.appCaption)
-                                        .foregroundColor(.gray)
-                                        .padding(.top, 4)
-                                }
-                            }
-                        }
-
-                        Button { showSeanceSoir = true } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "play.circle.fill")
-                                    .font(.system(size: 16))
-                                Text("Commencer la séance PM")
-                                    .font(.appBody.weight(.semibold))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(pmColor)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(SpringButtonStyle())
-                    }
-                    .padding(16)
-                    .background(Color.appCard)
-                    .cornerRadius(16)
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(pmColor.opacity(0.3), lineWidth: 1))
-                    .padding(.horizontal, 16)
-                }
-
-                // ── Aperçu demain ────────────────────────────────────────
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("DEMAIN")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(2)
-                            .foregroundColor(.gray)
-                        Spacer()
-                        Text(tomorrowType)
-                            .font(.appLabel.weight(.bold))
-                            .foregroundColor(tomorrowColor)
-                            .padding(.horizontal, 12).padding(.vertical, 5)
-                            .background(tomorrowColor.opacity(0.12))
-                            .clipShape(Capsule())
-                    }
-
-                    if tomorrowExercises.isEmpty {
-                        Text(tomorrowType == "Repos" ? "Journée de repos 🛌" : "Aucun exercice défini")
-                            .font(.appLabel)
-                            .foregroundColor(.gray)
-                    } else {
-                        VStack(spacing: 0) {
-                            ForEach(tomorrowExercises.prefix(5), id: \.0) { name, scheme in
-                                HStack {
-                                    Circle()
-                                        .fill(tomorrowColor.opacity(0.25))
-                                        .frame(width: 5, height: 5)
-                                    Text(name)
-                                        .font(.appLabel)
-                                        .foregroundColor(Color.appOnSurface.opacity(0.75))
-                                    Spacer()
-                                    Text(scheme)
-                                        .font(.appCaption)
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.vertical, 6)
-                                Divider().background(Color.appSeparatorSubtle)
-                            }
-                            if tomorrowExercises.count > 5 {
-                                Text("+ \(tomorrowExercises.count - 5) exercices")
-                                    .font(.appCaption)
-                                    .foregroundColor(.gray)
-                                    .padding(.top, 4)
-                            }
-                        }
-                    }
-                }
-                .padding(16)
-                .background(Color.appCard)
-                .cornerRadius(16)
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(tomorrowColor.opacity(0.15), lineWidth: 1))
-                .padding(.horizontal, 16)
-
-                // ── Partager la séance ─────────────────────────────────
-                let shareText: String = {
-                    let u = UnitSettings.shared
-                    var lines: [String] = []
-
-                    // Header
-                    var header = "💪 \(data.today)"
-                    if let s = todaySession {
-                        var meta: [String] = []
-                        if let dur = s.durationMin { meta.append("\(Int(dur)) min") }
-                        if let rpe = s.rpe { meta.append("RPE \(String(format: "%.1f", rpe))") }
-                        if !meta.isEmpty { header += " · " + meta.joined(separator: " · ") }
-                    }
-                    lines.append(header)
-                    lines.append("")
-
-                    // Per-exercise detail
-                    if let exos = todaySession?.exos {
-                        for exo in exos {
-                            let entry = data.weights[exo]?.history?.first(where: { $0.date == data.todayDate })
-                                     ?? data.weights[exo]?.history?.first
-                            if let e = entry, let w = e.weight, let r = e.reps {
-                                let oneRM = e.oneRM.map { "  🏆 1RM \(u.format($0))" } ?? ""
-                                lines.append("• \(exo): \(u.format(w)) · \(r)\(oneRM)")
-                            } else {
-                                lines.append("• \(exo)")
-                            }
-                        }
-                        lines.append("")
-                    }
-
-                    // Volume summary
-                    if let s = todaySession {
-                        var stats: [String] = []
-                        if let vol = s.sessionVolume, vol > 0 { stats.append("Volume: \(u.format(vol))") }
-                        if let sets = s.totalSets { stats.append("\(sets) sets") }
-                        if let reps = s.totalReps { stats.append("\(reps) reps") }
-                        if !stats.isEmpty { lines.append("📊 " + stats.joined(separator: " · ")) }
-                    }
-
-                    lines.append("\nTrainingOS 🏋️")
-                    return lines.joined(separator: "\n")
-                }()
-                ShareLink(item: shareText) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "square.and.arrow.up").font(.appBody)
-                        Text("Partager la séance").font(.system(size: 14, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, 12)
-                    .background(Color.appCard)
-                    .foregroundColor(Color.appOnSurface.opacity(0.7))
-                    .cornerRadius(14)
-                }
-                .buttonStyle(SpringButtonStyle())
-                .padding(.horizontal, 16)
-
-                // ── Modifier la séance ─────────────────────────────────
-                Button(action: { showEditSheet = true }) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "pencil.circle.fill").font(.system(size: 18))
-                        Text("Modifier la séance").font(.appBody.weight(.semibold))
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(Color.statusBlue.opacity(0.12))
-                    .foregroundColor(.statusBlue)
-                    .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusBlue.opacity(0.3), lineWidth: 1))
-                }
-                .buttonStyle(SpringButtonStyle())
-                .padding(.horizontal, 16)
-
-                // ── Reset aujourd'hui ───────────────────────────────────
-                Button(action: { confirmReset = true }) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 16))
-                        Text("Réinitialiser la séance")
-                            .font(.appBody.weight(.semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.statusRed.opacity(0.12))
-                    .foregroundColor(.statusRed)
-                    .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusRed.opacity(0.3), lineWidth: 1))
-                }
-                .buttonStyle(SpringButtonStyle())
-                .padding(.horizontal, 16)
-
-                // ── Exercices non loggés ─────────────────────────────────
-                if !unloggedExercises.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.appLabel)
-                                .foregroundColor(.statusYellow)
-                            Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggé\(unloggedExercises.count > 1 ? "s" : "")")
-                                .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.appOnBackground)
-                        }
-                        VStack(alignment: .leading, spacing: 3) {
-                            ForEach(unloggedExercises.prefix(3), id: \.0) { ex in
-                                HStack(spacing: 6) {
-                                    Circle().fill(Color.statusYellow.opacity(0.4)).frame(width: 4, height: 4)
-                                    Text(ex.0)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(Color.appOnSurface.opacity(0.7))
-                                }
-                            }
-                            if unloggedExercises.count > 3 {
-                                Text("+ \(unloggedExercises.count - 3) autre\(unloggedExercises.count - 3 > 1 ? "s" : "")…")
-                                    .font(.appCaption)
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        Button(action: { showFinishRemaining = true }) {
-                            Text("Finir la séance")
-                                .font(.system(size: 14, weight: .semibold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(Color.statusYellow.opacity(0.18))
-                                .foregroundColor(.statusYellow)
-                                .cornerRadius(10)
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.statusYellow.opacity(0.35), lineWidth: 1))
-                        }
-                    }
-                    .padding(14)
-                    .background(Color.statusYellow.opacity(0.07))
-                    .cornerRadius(14)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.statusYellow.opacity(0.2), lineWidth: 1))
-                    .padding(.horizontal, 16)
-                }
-
-                // ── Séance supplémentaire ────────────────────────────────
-                Button(action: { showExtra = true }) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 18))
-                        Text("Faire une séance supplémentaire")
-                            .font(.appBody.weight(.semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        LinearGradient(
-                            colors: [sessionColor, sessionColor.opacity(0.7)],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                    )
-                    .foregroundColor(.white)
-                    .cornerRadius(14)
-                    .shadow(color: sessionColor.opacity(0.3), radius: 10, y: 4)
-                }
-                .buttonStyle(SpringButtonStyle())
-                .padding(.horizontal, 16)
-                .padding(.bottom, 32)
+                continuationSection
+                tomorrowSection
+                actionsSection
+                resetAction
+                    .padding(.bottom, 32)
             }
         }
         .sheet(isPresented: $showFinishRemaining) {
@@ -592,6 +327,348 @@ struct AlreadyLoggedSeanceView: View {
         .onAppear {
             Task { await vm.load() }
         }
+    }
+
+    // MARK: - Secondary report hierarchy
+    private var continuationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SessionReportSectionHeader(title: "CONTINUER")
+
+            if showEveningBlock {
+                eveningContinuationBlock
+            }
+
+            if !unloggedExercises.isEmpty {
+                finishRemainingBlock
+            }
+
+            extraSessionAction
+        }
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private var eveningContinuationBlock: some View {
+        let pmExos = eveningExercises
+        let pmColor = eveningColor
+        let pmName = resolvedEveningName
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("SÉANCE PM")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(.appTextSecondary)
+                Spacer()
+                Text(pmName)
+                    .font(.appLabel.weight(.bold))
+                    .foregroundColor(pmColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(pmColor.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
+            if pmExos.isEmpty {
+                Text("Aucun exercice défini")
+                    .font(.appLabel)
+                    .foregroundColor(.appTextSecondary)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(pmExos.prefix(5), id: \.0) { name, scheme in
+                        HStack {
+                            Circle()
+                                .fill(pmColor.opacity(0.25))
+                                .frame(width: 5, height: 5)
+                            Text(name)
+                                .font(.appLabel)
+                                .foregroundColor(.appTextPrimary)
+                            Spacer()
+                            Text(scheme)
+                                .font(.appCaption)
+                                .foregroundColor(.appTextSecondary)
+                        }
+                        .padding(.vertical, 6)
+                        Divider().background(Color.appSeparatorSubtle)
+                    }
+                    if pmExos.count > 5 {
+                        Text("+ \(pmExos.count - 5) exercices")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .padding(.top, 4)
+                    }
+                }
+            }
+
+            Button { showSeanceSoir = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.appBody)
+                    Text("Commencer la séance PM")
+                        .font(.appBody.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(pmColor)
+                .foregroundColor(.onAccent)
+                .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+            }
+            .buttonStyle(SpringButtonStyle())
+        }
+        .padding(.horizontal, .appCardInsetH)
+        .padding(.vertical, .appCardInsetV)
+        .background(Color.appCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(pmColor.opacity(0.3), lineWidth: .appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+    }
+
+    private var finishRemainingBlock: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.appLabel)
+                    .foregroundColor(.statusYellow)
+                Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggé\(unloggedExercises.count > 1 ? "s" : "")")
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(unloggedExercises.prefix(3), id: \.0) { exercise in
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.statusYellow.opacity(0.4))
+                            .frame(width: 4, height: 4)
+                        Text(exercise.0)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                    }
+                }
+                if unloggedExercises.count > 3 {
+                    Text("+ \(unloggedExercises.count - 3) autre\(unloggedExercises.count - 3 > 1 ? "s" : "")…")
+                        .font(.appCaption)
+                        .foregroundColor(.appTextSecondary)
+                }
+            }
+            Button(action: { showFinishRemaining = true }) {
+                Text("Finir la séance")
+                    .font(.appBody.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.statusYellow.opacity(0.18))
+                    .foregroundColor(.statusYellow)
+                    .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: .appCardRadius)
+                            .stroke(Color.statusYellow.opacity(0.35), lineWidth: .appHairline)
+                    )
+            }
+            .buttonStyle(SpringButtonStyle())
+        }
+        .padding(.horizontal, .appCardInsetH)
+        .padding(.vertical, .appCardInsetV)
+        .background(Color.statusYellow.opacity(0.07))
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.statusYellow.opacity(0.2), lineWidth: .appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+    }
+
+    private var extraSessionAction: some View {
+        Button(action: { showExtra = true }) {
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle")
+                    .font(.appBody)
+                Text("Faire une séance supplémentaire")
+                    .font(.appBody.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.appSurfaceInset)
+            .foregroundColor(.appTextSecondary)
+            .overlay(
+                RoundedRectangle(cornerRadius: .appCardRadius)
+                    .stroke(Color.appSeparator, lineWidth: .appHairline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        }
+        .buttonStyle(SpringButtonStyle())
+    }
+
+    private var tomorrowSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SessionReportSectionHeader(title: "À SUIVRE")
+            tomorrowBlock
+        }
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private var tomorrowBlock: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("DEMAIN")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(.appTextSecondary)
+                Spacer()
+                Text(tomorrowType)
+                    .font(.appLabel.weight(.bold))
+                    .foregroundColor(tomorrowColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(tomorrowColor.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
+            if tomorrowExercises.isEmpty {
+                Text(tomorrowType == "Repos" ? "Journée de repos 🛌" : "Aucun exercice défini")
+                    .font(.appLabel)
+                    .foregroundColor(.appTextSecondary)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(tomorrowExercises.prefix(5), id: \.0) { name, scheme in
+                        HStack {
+                            Circle()
+                                .fill(tomorrowColor.opacity(0.25))
+                                .frame(width: 5, height: 5)
+                            Text(name)
+                                .font(.appLabel)
+                                .foregroundColor(.appTextPrimary)
+                            Spacer()
+                            Text(scheme)
+                                .font(.appCaption)
+                                .foregroundColor(.appTextSecondary)
+                        }
+                        .padding(.vertical, 6)
+                        Divider().background(Color.appSeparatorSubtle)
+                    }
+                    if tomorrowExercises.count > 5 {
+                        Text("+ \(tomorrowExercises.count - 5) exercices")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .padding(.top, 4)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, .appCardInsetH)
+        .padding(.vertical, .appCardInsetV)
+        .background(Color.appCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(tomorrowColor.opacity(0.15), lineWidth: .appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+    }
+
+    private var actionsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SessionReportSectionHeader(title: "ACTIONS")
+            HStack(spacing: 10) {
+                ShareLink(item: shareText) {
+                    secondaryActionLabel(
+                        title: "Partager",
+                        systemImage: "square.and.arrow.up"
+                    )
+                }
+                .buttonStyle(SpringButtonStyle())
+
+                Button(action: { showEditSheet = true }) {
+                    secondaryActionLabel(
+                        title: "Modifier",
+                        systemImage: "pencil"
+                    )
+                }
+                .buttonStyle(SpringButtonStyle())
+            }
+        }
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private func secondaryActionLabel(title: String, systemImage: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.appBody)
+            Text(title)
+                .font(.appBody.weight(.semibold))
+        }
+        .foregroundColor(.appTextSecondary)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(Color.appSurfaceInset)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: .appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+    }
+
+    private var resetAction: some View {
+        Button(action: { confirmReset = true }) {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.appBody)
+                Text("Réinitialiser la séance")
+                    .font(.appBody.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.statusRed.opacity(0.08))
+            .foregroundColor(.statusRed)
+            .overlay(
+                RoundedRectangle(cornerRadius: .appCardRadius)
+                    .stroke(Color.statusRed.opacity(0.24), lineWidth: .appHairline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        }
+        .buttonStyle(SpringButtonStyle())
+        .padding(.horizontal, .appPagePadding)
+        .padding(.top, 12)
+    }
+
+    private var shareText: String {
+        let u = UnitSettings.shared
+        var lines: [String] = []
+
+        // Header
+        var header = "💪 \(data.today)"
+        if let s = todaySession {
+            var meta: [String] = []
+            if let dur = s.durationMin { meta.append("\(Int(dur)) min") }
+            if let rpe = s.rpe { meta.append("RPE \(String(format: "%.1f", rpe))") }
+            if !meta.isEmpty { header += " · " + meta.joined(separator: " · ") }
+        }
+        lines.append(header)
+        lines.append("")
+
+        // Per-exercise detail
+        if let exos = todaySession?.exos {
+            for exo in exos {
+                let entry = data.weights[exo]?.history?.first(where: { $0.date == data.todayDate })
+                         ?? data.weights[exo]?.history?.first
+                if let e = entry, let w = e.weight, let r = e.reps {
+                    let oneRM = e.oneRM.map { "  🏆 1RM \(u.format($0))" } ?? ""
+                    lines.append("• \(exo): \(u.format(w)) · \(r)\(oneRM)")
+                } else {
+                    lines.append("• \(exo)")
+                }
+            }
+            lines.append("")
+        }
+
+        // Volume summary
+        if let s = todaySession {
+            var stats: [String] = []
+            if let vol = s.sessionVolume, vol > 0 { stats.append("Volume: \(u.format(vol))") }
+            if let sets = s.totalSets { stats.append("\(sets) sets") }
+            if let reps = s.totalReps { stats.append("\(reps) reps") }
+            if !stats.isEmpty { lines.append("📊 " + stats.joined(separator: " · ")) }
+        }
+
+        lines.append("\nTrainingOS 🏋️")
+        return lines.joined(separator: "\n")
     }
 
     private func resetToday() async {
