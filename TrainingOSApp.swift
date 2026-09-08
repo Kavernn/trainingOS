@@ -154,6 +154,7 @@ struct TrainingOSApp: App {
         }
         .environmentObject(appState)
         .environmentObject(appTheme)
+        .preferredColorScheme(appTheme.selectedTheme.preferredColorScheme)
         .onAppear {
             CacheService.invalidateIfVersionChanged()
             ExerciseDraftPersistence.purgeOldExerciseDrafts(currentDate: DateFormatter.isoDate.string(from: Date()))

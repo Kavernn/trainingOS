@@ -18,6 +18,13 @@ enum AppThemeOption: String, CaseIterable {
     case brutalist     = "brutalist"
     case liquidGlass   = "liquidGlass"
 
+    var preferredColorScheme: ColorScheme? {
+        switch self {
+        case .electricLight: return .light
+        default:             return nil
+        }
+    }
+
     var displayName: String {
         switch self {
         case .monochrome:    return "Monochrome"
@@ -47,7 +54,7 @@ enum AppThemeOption: String, CaseIterable {
         case .arctic:        return Color(hex: "7DD3FC")
         case .goldNoir:      return Color(hex: "D4AF37")
         case .desert:        return Color(hex: "E9C46A")
-        case .electricLight: return Color(hex: "FFFF33")
+        case .electricLight: return Color(hex: "CBEA16")
         case .aurora:        return Color(hex: "2EE6A6")
         case .brutalist:     return Color(hex: "FF4D00")
         case .liquidGlass:   return Color(hex: "5B9DFF")
@@ -546,49 +553,47 @@ extension AppThemeColors {
         sectionTitleUppercased: true
     )
 
-    // Jaune vif dominant — fond #FFFF33, cards sombres (Electric Dark inversé).
-    // accent = noir sur fond jaune ; onAccent = jaune (pour les cards noires).
-    // onBackground ≠ onSurface : seul thème du catalogue où ils divergent.
+    // Instrument clair sous tension — fond minéral, surfaces lumineuses, accent acid-lime réservé.
     static let electricLight = AppThemeColors(
-        accent:          Color(hex: "0A0A00"),          // noir = "accent" sur fond jaune
-        accentLight:     Color(hex: "1F1F00"),
-        accentMuted:     Color(hex: "FFFF80"),          // jaune pâle = muted du jaune
-        onAccent:        Color(hex: "FFFF33"),          // jaune sur fond noir (boutons)
-        background:      Color(hex: "FFFF33"),          // ALL IN — fond jaune pur
-        surfaceCard:     Color(hex: "1F1D00"),          // cards olive sombre, teinte jaune
-        surfaceElevated: Color(hex: "1A1C00"),
-        surfaceInset:    Color(hex: "060700"),
-        textPrimary:     Color(hex: "F5FFB0"),          // = onSurface — texte sur cards
-        onBackground:    Color(hex: "0A0A00"),          // noir sur fond jaune
-        onSurface:       Color(hex: "F5FFB0"),          // clair sur cards sombres
-        textSecondary:   Color(hex: "B8C800"),
-        textMuted:       Color(hex: "4A5000"),
-        separator:       Color(hex: "0A0A00").opacity(0.12),
-        separatorSubtle: Color(hex: "0A0A00").opacity(0.06),
-        separatorStrong: Color(hex: "0A0A00").opacity(0.25),
-        danger:          Color(hex: "C41A0A"),          // rouge assombri (lisible sur jaune)
-        success:         Color(hex: "007A33"),          // vert foncé (lisible sur jaune)
-        warning:         Color(hex: "8B5E00"),          // ambre foncé
-        info:            Color(hex: "005FA3"),          // bleu foncé
-        cardCornerRadius: 18,
-        cardBorderWidth:  1.5,
-        cardBorderColor:  Color(hex: "FFFF33").opacity(0.45),
-        cardShadowColor:  Color(hex: "FFFF33").opacity(0.35),
+        accent:          Color(hex: "647800"),
+        accentLight:     Color(hex: "CBEA16"),
+        accentMuted:     Color(hex: "EEF5B8"),
+        onAccent:        Color(hex: "11140A"),
+        background:      Color(hex: "F6F7EF"),
+        surfaceCard:     Color(hex: "FCFCF7"),
+        surfaceElevated: Color(hex: "EEF0E6"),
+        surfaceInset:    Color(hex: "E5E8DC"),
+        textPrimary:     Color(hex: "151811"),
+        onBackground:    Color(hex: "151811"),
+        onSurface:       Color(hex: "151811"),
+        textSecondary:   Color(hex: "555B4D"),
+        textMuted:       Color(hex: "777D6D"),
+        separator:       Color(hex: "151811").opacity(0.12),
+        separatorSubtle: Color(hex: "151811").opacity(0.07),
+        separatorStrong: Color(hex: "151811").opacity(0.22),
+        danger:          Color(hex: "B42318"),
+        success:         Color(hex: "217A45"),
+        warning:         Color(hex: "8A5A00"),
+        info:            Color(hex: "1F6091"),
+        cardCornerRadius: 16,
+        cardBorderWidth:  1.0,
+        cardBorderColor:  Color(hex: "151811").opacity(0.10),
+        cardShadowColor:  Color(hex: "151811").opacity(0.16),
         cardShadowRadius: 12,
-        cardShadowOffset: CGSize(width: 0, height: 4),
-        cardGlowColor:    Color(hex: "FFFF33").opacity(0.55),
-        cardGlowRadius:   35,
-        chartPalette:          [Color(hex: "0A0A00"), Color(hex: "005FA3"), Color(hex: "C41A0A"),
-                                Color(hex: "007A33"), Color(hex: "6B21A8")],
-        glassOpacity:          0.35,
-        accentGradientColors:  [Color(hex: "0A0A00"), Color(hex: "1F1F00")],
-        identityLayer:         .cyberGrid(opacity: 0.08),  // grille noire sur fond jaune
+        cardShadowOffset: CGSize(width: 0, height: 3),
+        cardGlowColor:    .clear,
+        cardGlowRadius:   0,
+        chartPalette:          [Color(hex: "647800"), Color(hex: "356B9A"), Color(hex: "2D7A4F"),
+                                Color(hex: "B5473C"), Color(hex: "7564A8")],
+        glassOpacity:          0.92,
+        accentGradientColors:  [Color(hex: "A9C700"), Color(hex: "DDF53A")],
+        identityLayer:         .none,
         heroFontDesign:        .monospaced,
         titleFontDesign:       .default,
         displayWeight:         .semibold,
-        cardAccentFillOpacity:   0.42,
-        cardAccentStrokeOpacity: 0.65,
-        cardStyle:               .floating,
+        cardAccentFillOpacity:   0.06,
+        cardAccentStrokeOpacity: 0.22,
+        cardStyle:               .raised,
         accentDistribution:      .pervasive,
         heroNumberSize:          40,
         sectionTitleTracking:    2.0,
