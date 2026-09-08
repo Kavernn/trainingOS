@@ -56,6 +56,18 @@ struct AlreadyLoggedSeanceView: View {
         APIService.shared.dashboard?.sessions[data.todayDate]
     }
 
+    private var exerciseMuscleMetadata: [String: ExerciseMuscleMetadata] {
+        APIService.shared.dashboard?.exerciseMuscleMetadata ?? [:]
+    }
+
+    private var loggedMuscleResult: MuscleMappingResult {
+        let exerciseNames = todaySession?.exos ?? []
+        let metadata = exerciseNames.compactMap {
+            exerciseMuscleMetadata[$0]
+        }
+        return MuscleMapper.aggregate(metadata)
+    }
+
     var unloggedExercises: [(String, String)] {
         guard let program = data.fullProgram[data.today] else { return [] }
         let order = data.exerciseOrder[data.today] ?? program.keys.sorted()
@@ -241,6 +253,8 @@ struct AlreadyLoggedSeanceView: View {
                                 .padding(.horizontal, 16)
                         }
                     }
+
+                    loggedMuscleSection
 
                     // ── Commentaire ──────────────────────────────────────
                     if let comment = session.comment, !comment.isEmpty {
@@ -818,6 +832,24 @@ struct AlreadyLoggedSeanceView: View {
 
     private func setCountLabel(_ count: Int) -> String {
         "\(count) série\(count > 1 ? "s" : "")"
+    }
+
+    @ViewBuilder
+    private var loggedMuscleSection: some View {
+        let result = loggedMuscleResult
+        if !result.zones.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SessionReportSectionHeader(title: "MUSCLES SOLLICITÉS")
+                MuscleMapView(
+                    zones: result.zones,
+                    tint: Color.domainAccent(.training),
+                    displayMode: .both
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 104)
+            }
+            .padding(.horizontal, 16)
+        }
     }
 
     @ViewBuilder
