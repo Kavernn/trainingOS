@@ -49,7 +49,6 @@ struct AlreadyLoggedSeanceView: View {
     @State private var showEditSheet = false
     @State private var confirmReset = false
     @State private var animateHeader = false
-    @State private var showConfetti = false
     @State private var showFinishRemaining = false
     @State private var showSeanceSoir = false
 
@@ -132,76 +131,80 @@ struct AlreadyLoggedSeanceView: View {
         let done = dash?.secondSessionCompleted ?? false
         return (backendPlanned || pushed) && !done
     }
+
+    private var isMultiSlot: Bool {
+        let slotCount = todaySession?.slots?.count ?? 0
+        let sessionCount = todaySession?.sessionCount ?? 1
+        return max(slotCount, sessionCount) > 1
+    }
+
+    private var completionMeta: String? {
+        guard isMultiSlot, let slots = todaySession?.slots else { return nil }
+        let labels = slots.map(\.label).filter { !$0.isEmpty }
+        return labels.isEmpty ? nil : labels.joined(separator: " · ")
+    }
+
+    private var completionSummary: String? {
+        guard let count = todaySession?.exos?.count, count > 0 else { return nil }
+        let plural = count == 1 ? "" : "s"
+        return "\(count) exercice\(plural) enregistré\(plural)"
+    }
+
+    private var scoreboardMetrics: [SessionReportMetric] {
+        guard let session = todaySession else { return [] }
+        var metrics: [SessionReportMetric] = []
+
+        if let duration = session.durationMin, duration > 0 {
+            metrics.append(
+                SessionReportMetric(
+                    label: "DURÉE",
+                    value: "\(Int(duration)) min",
+                    emphasis: .primary
+                )
+            )
+        }
+        if let volume = session.sessionVolume, volume > 0 {
+            let display = UnitSettings.shared.isKg ? volume * 0.453592 : volume
+            let value = display >= 1000
+                ? String(format: "%.1ft", display / 1000)
+                : "\(Int(display.rounded()))"
+            metrics.append(SessionReportMetric(label: "VOLUME", value: value))
+        }
+        if !isMultiSlot, let rpe = session.rpe, rpe > 0 {
+            metrics.append(
+                SessionReportMetric(label: "RPE", value: String(format: "%.1f", rpe))
+            )
+        }
+        return metrics
+    }
+
     var body: some View {
         ZStack {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
 
-                // ── Header épuré (Lot D — aligné SessionRecapSheet) ──────
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle().fill(Color.forge.opacity(0.14))
-                            .frame(width: 84, height: 84)
-                            .scaleEffect(animateHeader ? 1.0 : 0.4)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 38, weight: .bold))
-                            .foregroundColor(Color.forge)
-                            .scaleEffect(animateHeader ? 1.0 : 0.3)
-                            .opacity(animateHeader ? 1.0 : 0.0)
-                    }
-                    Text("Séance complétée")
-                        .font(.appTitle).fontWeight(.bold)
-                        .foregroundColor(.appTextPrimary)
-                        .opacity(animateHeader ? 1.0 : 0.0)
-                        .offset(y: animateHeader ? 0 : 8)
-                    let sess = todaySession
-                    let pmName = data.eveningSessionName ?? ""
-                    let showSplitPills = (sess?.sessionCount ?? 1) >= 2 && !pmName.isEmpty
-                    Group {
-                        if showSplitPills {
-                            HStack(spacing: 8) {
-                                headerPill("AM · \(data.today)", color: sessionColor)
-                                headerPill("PM · \(pmName)", color: eveningColor)
-                            }
-                        } else {
-                            headerPill(data.today, color: Color.forge)
-                        }
-                    }
-                    .opacity(animateHeader ? 1.0 : 0.0)
-                }
+                // ── Completion hero partagé ──────────────────────────────
+                SessionCompletionHero(
+                    title: data.today,
+                    subtitle: completionMeta,
+                    factualSummary: completionSummary
+                )
+                .padding(.horizontal, 16)
                 .padding(.top, 20)
+                .opacity(animateHeader ? 1.0 : 0.0)
+                .offset(y: animateHeader ? 0 : 8)
                 .onAppear {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.68)) {
                         animateHeader = true
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        showConfetti = true
-                    }
                 }
 
-                // ── Stats premium (Lot D — StatCard partagé) ─────────────
-                if let session = todaySession {
-                    let durStr: String = session.durationMin.map { "\(Int($0))" } ?? "—"
-                    let rpeVal = session.rpe
-                    let rpeStr: String = rpeVal.map { String(format: "%.1f", $0) } ?? "—"
-                    let rpeCol: Color = rpeVal.map { rpeColor($0) } ?? .appTextPrimary
-                    let volDisp: String? = {
-                        guard let v = session.sessionVolume, v > 0 else { return nil }
-                        let units = UnitSettings.shared
-                        let d = units.isKg ? v * 0.453592 : v
-                        return d >= 1000 ? String(format: "%.1ft", d / 1000) : "\(Int(d.rounded()))"
-                    }()
-                    HStack(spacing: 10) {
-                        StatCard(value: durStr, label: "min", color: .appTextPrimary)
-                        if let vol = volDisp {
-                            StatCard(value: vol, label: "vol", color: .appTextPrimary)
-                        } else {
-                            StatCard(value: "\(session.exos?.count ?? 0)", label: "exos", color: .appTextPrimary)
-                        }
-                        StatCard(value: rpeStr, label: "rpe", color: rpeCol)
-                    }
-                    .padding(.horizontal, 16)
+                if !scoreboardMetrics.isEmpty {
+                    SessionScoreboard(metrics: scoreboardMetrics)
+                        .padding(.horizontal, 16)
+                }
 
+                if let session = todaySession {
                     // ── Breakdown AM/PM (si double séance + slots dispo) ─
                     if (session.sessionCount ?? 1) >= 2,
                        let slots = session.slots,
@@ -571,17 +574,6 @@ struct AlreadyLoggedSeanceView: View {
         } message: {
             Text("Les données loggées aujourd'hui seront effacées.")
         }
-        // Confetti overlay
-        if showConfetti {
-            ConfettiView()
-                .allowsHitTesting(false)
-                .ignoresSafeArea()
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                        showConfetti = false
-                    }
-                }
-        }
         } // end ZStack
         .onAppear {
             Task { await vm.load() }
@@ -592,8 +584,6 @@ struct AlreadyLoggedSeanceView: View {
         try? await APIService.shared.deleteSession(date: data.todayDate)
         await vm.load()
     }
-
-    private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     @ViewBuilder
     private func exoRow(_ exo: String) -> some View {
@@ -636,16 +626,6 @@ struct AlreadyLoggedSeanceView: View {
         }
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func headerPill(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.system(size: 12, weight: .semibold))
-            .tracking(0.4)
-            .foregroundColor(color)
-            .padding(.horizontal, 12).padding(.vertical, 5)
-            .background(color.opacity(0.12))
-            .clipShape(Capsule())
     }
 
     @ViewBuilder

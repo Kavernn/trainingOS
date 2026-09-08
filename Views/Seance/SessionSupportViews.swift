@@ -447,7 +447,6 @@ struct SessionRecapSheet: View {
     var nextSession: NextSessionInfo? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var animateHeader = false
-    @State private var showConfetti = false
 
     private var totalVolume: Double {
         snapshot.logResults.values.reduce(0.0) { total, result in
@@ -484,8 +483,8 @@ struct SessionRecapSheet: View {
                 Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 20) {
-                        header
-                        statsRow
+                        completionHero
+                        SessionScoreboard(metrics: scoreboardMetrics)
                         prBanner
                         exercisesList
                         if snapshot.energyPre > 0 { energyRow }
@@ -495,54 +494,38 @@ struct SessionRecapSheet: View {
                     }
                     .padding(.horizontal, 20)
                 }
-                if showConfetti {
-                    ConfettiView()
-                        .allowsHitTesting(false)
-                        .ignoresSafeArea()
-                }
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 
-    // MARK: - Header (épuré : cercle ember + checkmark, un seul titre, pill compacte)
-    private var header: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.forge.opacity(0.14))
-                    .frame(width: 84, height: 84)
-                    .scaleEffect(animateHeader ? 1.0 : 0.4)
-                Image(systemName: "checkmark")
-                    .font(.system(size: 38, weight: .bold))
-                    .foregroundColor(Color.forge)
-                    .scaleEffect(animateHeader ? 1.0 : 0.3)
-                    .opacity(animateHeader ? 1.0 : 0.0)
-            }
-            Text("Séance complétée")
-                .font(.appTitle).fontWeight(.bold)
-                .foregroundColor(.appTextPrimary)
-                .opacity(animateHeader ? 1.0 : 0.0)
-                .offset(y: animateHeader ? 0 : 8)
-            Text(snapshot.sessionName)
-                .font(.system(size: 12, weight: .semibold))
-                .tracking(0.4)
-                .foregroundColor(Color.forge)
-                .padding(.horizontal, 12).padding(.vertical, 5)
-                .background(Color.forge.opacity(0.10))
-                .clipShape(Capsule())
-                .opacity(animateHeader ? 1.0 : 0.0)
-        }
+    // MARK: - Completion hero
+    private var completionHero: some View {
+        SessionCompletionHero(
+            title: snapshot.sessionName,
+            factualSummary: exerciseSummary
+        )
         .padding(.top, 20)
+        .opacity(animateHeader ? 1.0 : 0.0)
+        .offset(y: animateHeader ? 0 : 8)
         .onAppear {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.68)) {
                 animateHeader = true
             }
-            showConfetti = true
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             triggerNotificationFeedback(.success)
         }
+    }
+
+    private var exerciseSummary: String? {
+        let logged = snapshot.logResults.count
+        guard logged > 0 else { return nil }
+        let planned = snapshot.exercises.count
+        let loggedPlural = logged == 1 ? "" : "s"
+        let loggedLabel = "\(logged) exercice\(loggedPlural) renseigné\(loggedPlural)"
+        guard planned > 0 else { return loggedLabel }
+        return "\(loggedLabel) sur \(planned) prévu\(planned > 1 ? "s" : "")"
     }
 
     // Best-match historique (GhostData). nil = 1ère séance de ce type, pas d'overlap.
@@ -558,15 +541,24 @@ struct SessionRecapSheet: View {
         volumeDelta != nil ? "vs record" : nil
     }
 
-    // MARK: - Stats 3-col (durée · vol · RPE) — StatCard partagé
-    private var statsRow: some View {
-        let vDelta = volumeDelta
-        let vSub = volumeSubtitle
-        return HStack(spacing: 10) {
-            StatCard(value: "\(Int(snapshot.durationMin))", label: "min", color: .appTextPrimary)
-            StatCard(value: totalVolumeCompact, label: "vol", color: .appTextPrimary, subtitle: vSub, delta: vDelta)
-            StatCard(value: String(format: "%.1f", snapshot.rpe), label: "rpe", color: rpeColor(snapshot.rpe))
+    // MARK: - Scoreboard (valeurs formatées ici, présentation dans le composant partagé)
+    private var scoreboardMetrics: [SessionReportMetric] {
+        var metrics = [
+            SessionReportMetric(
+                label: "DURÉE",
+                value: "\(Int(snapshot.durationMin)) min",
+                emphasis: .primary
+            )
+        ]
+        if totalVolume > 0 {
+            metrics.append(SessionReportMetric(label: "VOLUME", value: totalVolumeCompact))
         }
+        if snapshot.rpe > 0 {
+            metrics.append(
+                SessionReportMetric(label: "RPE", value: String(format: "%.1f", snapshot.rpe))
+            )
+        }
+        return metrics
     }
 
     // MARK: - Prochaine séance (Phase 3 — post-log, avant actions)
@@ -795,8 +787,6 @@ struct SessionRecapSheet: View {
     }
 
     // MARK: - Helpers couleurs / labels
-    private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
-
     private func energyColor(_ v: Int) -> Color {
         switch v {
         case 1, 2: return .statusRed
