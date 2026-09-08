@@ -397,6 +397,10 @@ extension StatsView {
         let filteredBW = filteredBodyWeight
         let bwWithFat  = filteredBW.filter { $0.bodyFat != nil && ($0.bodyFat ?? 0) > 0 }
 
+        // Current measurements intentionally use the unfiltered history: each
+        // metric keeps its own latest valid observation/date.
+        StatsCurrentBodyMeasurements(entries: bodyWeight)
+
         // 1. Body Recomposition Tracker (flagship — remplace les 2 courbes séparées)
         if bwWithFat.count >= 3 {
             BodyRecompView(entries: Array(filteredBW.reversed()))
