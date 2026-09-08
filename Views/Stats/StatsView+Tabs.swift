@@ -166,6 +166,20 @@ extension StatsView {
             let comparable = counts.improving + counts.stable + counts.declining
             let tonnage = cockpit.trainingLoad.summary.tonnage
 
+            if cockpitError != nil {
+                Text("Actualisation impossible · dernières données affichées")
+                    .font(.appMicro.weight(.semibold))
+                    .foregroundColor(.appTextMuted)
+                    .padding(.horizontal, .appPagePadding)
+            }
+            let adapter = cockpit.dataQuality.adapter
+            if adapter.invalidRowCount > 0 || adapter.missingTrackingTypeCount > 0 {
+                Text("Données partielles")
+                    .font(.appMicro.weight(.semibold))
+                    .foregroundColor(.appTextMuted)
+                    .padding(.horizontal, .appPagePadding)
+            }
+
             StatsProgressionHero(progression: cockpit.progression)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
@@ -191,6 +205,17 @@ extension StatsView {
             .background(Color.appCard)
             .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
             .padding(.horizontal, .appPagePadding)
+
+            if !cockpit.progression.topMovers.isEmpty {
+                StatsTopMoversCard(
+                    movers: cockpit.progression.topMovers,
+                    onSelectExercise: { selectedExercise = $0 }
+                )
+            }
+
+            if !cockpit.progression.attention.isEmpty {
+                StatsAttentionCard(attention: cockpit.progression.attention)
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("RÉGULARITÉ")

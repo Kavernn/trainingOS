@@ -127,6 +127,129 @@ struct StatsOverviewMetric: View {
     }
 }
 
+struct StatsTopMoversCard: View {
+    let movers: [StatsProgressionComparison]
+    var onSelectExercise: ((String) -> Void)? = nil
+
+    private var visibleMovers: [StatsProgressionComparison] {
+        Array(movers.prefix(3))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("TOP MOVERS")
+                .font(.appMicro.weight(.bold))
+                .tracking(2)
+                .foregroundColor(.appTextMuted)
+
+            ForEach(visibleMovers, id: \.exerciseName) { mover in
+                Button {
+                    onSelectExercise?(mover.exerciseName)
+                } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(mover.exerciseName)
+                                .font(.appBody.weight(.semibold))
+                                .foregroundColor(.appTextPrimary)
+                                .lineLimit(1)
+                            if let baseline = mover.baselineBestE1RM,
+                               let recent = mover.recentBestE1RM {
+                                Text("\(UnitSettings.shared.format(baseline, decimals: 0)) → \(UnitSettings.shared.format(recent, decimals: 0)) e1RM")
+                                    .font(.appMicro)
+                                    .foregroundColor(.appTextSecondary)
+                            }
+                        }
+                        Spacer(minLength: 8)
+                        Text(formatRelativeDelta(mover.relativeDelta))
+                            .font(.appBody.weight(.bold))
+                            .foregroundColor(.appSuccess)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(accessibilityLabel(for: mover))
+
+                if mover.exerciseName != visibleMovers.last?.exerciseName {
+                    Divider().overlay(Color.appSeparator)
+                }
+            }
+        }
+        .padding(.appCardInsetV)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private func formatRelativeDelta(_ value: Double?) -> String {
+        guard let value else { return "—" }
+        let formatted = String(format: "%+.1f", value * 100)
+            .replacingOccurrences(of: ".", with: ",")
+        return "\(formatted) %"
+    }
+
+    private func accessibilityLabel(for mover: StatsProgressionComparison) -> String {
+        guard let delta = mover.relativeDelta else {
+            return "\(mover.exerciseName), progression disponible"
+        }
+        let formatted = String(format: "%.1f", abs(delta * 100))
+            .replacingOccurrences(of: ".", with: ",")
+        return "\(mover.exerciseName), en hausse de \(formatted) pour cent"
+    }
+}
+
+struct StatsAttentionCard: View {
+    let attention: [StatsAttentionObservation]
+
+    private var visibleAttention: [StatsAttentionObservation] {
+        Array(attention.prefix(3))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("À REVOIR")
+                .font(.appMicro.weight(.bold))
+                .tracking(2)
+                .foregroundColor(.appTextMuted)
+
+            ForEach(visibleAttention, id: \.exerciseName) { observation in
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "circle.dotted")
+                        .font(.appLabel)
+                        .foregroundColor(.appWarning)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(observation.exerciseName)
+                            .font(.appBody.weight(.semibold))
+                            .foregroundColor(.appTextPrimary)
+                        Text(detail(for: observation))
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .accessibilityElement(children: .combine)
+                if observation.exerciseName != visibleAttention.last?.exerciseName {
+                    Divider().overlay(Color.appSeparator)
+                }
+            }
+        }
+        .padding(.appCardInsetV)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private func detail(for observation: StatsAttentionObservation) -> String {
+        switch observation.kind {
+        case .noRecentImprovement:
+            return "Aucun nouveau meilleur e1RM sur les dernières expositions comparables."
+        case .unknown:
+            return "Observation disponible"
+        }
+    }
+}
+
 // MARK: - Stats Tab Bar
 struct StatsTabBar: View {
     @Binding var selectedTab: StatsTab
