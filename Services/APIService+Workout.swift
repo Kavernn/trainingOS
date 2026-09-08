@@ -365,4 +365,36 @@ extension APIService {
         CacheService.shared.save(data, for: "stats_data")
     }
 
+    /// Fetches the typed Stats cockpit contract without using the legacy cache.
+    /// Window and period policy belong to the caller, not APIService.
+    func fetchStatsCockpit(
+        asOf: String,
+        progressionDays: Int,
+        weeklyDays: Int,
+        muscleDays: Int
+    ) async throws -> StatsCockpitResponse {
+        let url = try buildURL(
+            path: "/api/stats/cockpit",
+            queryItems: [
+                URLQueryItem(name: "as_of", value: asOf),
+                URLQueryItem(name: "progression_days", value: String(progressionDays)),
+                URLQueryItem(name: "weekly_days", value: String(weeklyDays)),
+                URLQueryItem(name: "muscle_days", value: String(muscleDays)),
+            ]
+        )
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        let (data, response) = try await URLSession.authed.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw APIError.serverError(code, "GET /api/stats/cockpit")
+        }
+        do {
+            return try APIService.decoder.decode(StatsCockpitResponse.self, from: data)
+        } catch {
+            throw APIError.decodingFailed(endpoint: "/api/stats/cockpit", error: error)
+        }
+    }
+
 }
