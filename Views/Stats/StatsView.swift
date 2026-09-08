@@ -134,6 +134,10 @@ struct StatsView: View {
     @State var rpeProgression:     RPEProgressionData?         = nil
     @State var rirByExercise:      [RIREntry]                  = []
     @State var hrvAnalysis:        HRVAnalysis?                = nil
+    @State private var isLoadingStatsWellness = false
+    @State private var hasLoadedStatsWellness = false
+    @State private var isLoadingStatsHRV = false
+    @State private var hasLoadedStatsHRV = false
     @State var forceAccessoryTimeline: [ForceAccessoryPoint]  = []
     @State var recentPRs:              [RecentPR]              = []
 
@@ -304,6 +308,12 @@ struct StatsView: View {
                         .refreshable {
                             await loadData()
                             await loadCockpitData()
+                            if hasLoadedStatsWellness {
+                                await loadStatsWellnessIfNeeded(force: true)
+                            }
+                            if hasLoadedStatsHRV {
+                                await loadStatsHRVIfNeeded(force: true)
+                            }
                         }
                         .scrollDismissesKeyboard(.interactively)
                     }
@@ -332,6 +342,10 @@ struct StatsView: View {
                                 bienetreTab
                                     .padding(.top, 8)
                                     .padding(.bottom, contentBottomPadding)
+                            }
+                            .task {
+                                await loadStatsWellnessIfNeeded()
+                                await loadStatsHRVIfNeeded()
                             }
                         } label: {
                             Label("Bien-être", systemImage: "heart.text.square.fill")
@@ -500,20 +514,6 @@ struct StatsView: View {
         // sequential — async let LIFO crash on iOS 26 beta
         acwr = try? await APIService.shared.fetchACWR()
 
-        // Fetch wellness data (Bien-être tab)
-        guard let wellnessURL = URL(string: "\(APIService.shared.baseURL)/api/stats_wellness") else { return }
-        var wellnessReq = URLRequest(url: wellnessURL)
-        wellnessReq.timeoutInterval = 20
-        if let cachedW = CacheService.shared.load(for: "stats_wellness"),
-           let decodedW = try? APIService.decoder.decode(WellnessAPIResponse.self, from: cachedW) {
-            applyWellness(decodedW)
-        }
-        if let (wData, _) = try? await URLSession.authed.data(for: wellnessReq),
-           let decodedW = try? APIService.decoder.decode(WellnessAPIResponse.self, from: wData) {
-            CacheService.shared.save(wData, for: "stats_wellness")
-            applyWellness(decodedW)
-        }
-
         // Streak — source serveur unique (P1.2)
         streakData = try? await APIService.shared.fetchStreaks(date: AppState.shared.todayStr)
 
@@ -525,11 +525,6 @@ struct StatsView: View {
             currentStreak: currentStreak
         )
 
-        Task {
-            if let r = try? await APIService.shared.fetchHRVAnalysis() {
-                await MainActor.run { hrvAnalysis = r }
-            }
-        }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/seasons/comparison"),
                let d = try? await APIService.shared.fetchWithCache(url: url, key: "seasons_comparison"),
@@ -564,6 +559,44 @@ struct StatsView: View {
                let r = try? APIService.decoder.decode(IntensityData.self, from: d) {
                 await MainActor.run { intensityData = r }
             }
+        }
+    }
+
+    private func loadStatsWellnessIfNeeded(force: Bool = false) async {
+        guard !isLoadingStatsWellness else { return }
+        if hasLoadedStatsWellness && !force { return }
+
+        isLoadingStatsWellness = true
+        defer { isLoadingStatsWellness = false }
+
+        guard let wellnessURL = URL(string: "\(APIService.shared.baseURL)/api/stats_wellness") else { return }
+        var wellnessReq = URLRequest(url: wellnessURL)
+        wellnessReq.timeoutInterval = 20
+
+        if let cachedW = CacheService.shared.load(for: "stats_wellness"),
+           let decodedW = try? APIService.decoder.decode(WellnessAPIResponse.self, from: cachedW) {
+            applyWellness(decodedW)
+            hasLoadedStatsWellness = true
+        }
+
+        if let (wData, _) = try? await URLSession.authed.data(for: wellnessReq),
+           let decodedW = try? APIService.decoder.decode(WellnessAPIResponse.self, from: wData) {
+            CacheService.shared.save(wData, for: "stats_wellness")
+            applyWellness(decodedW)
+            hasLoadedStatsWellness = true
+        }
+    }
+
+    private func loadStatsHRVIfNeeded(force: Bool = false) async {
+        guard !isLoadingStatsHRV else { return }
+        if hasLoadedStatsHRV && !force { return }
+
+        isLoadingStatsHRV = true
+        defer { isLoadingStatsHRV = false }
+
+        if let analysis = try? await APIService.shared.fetchHRVAnalysis() {
+            hrvAnalysis = analysis
+            hasLoadedStatsHRV = true
         }
     }
 }

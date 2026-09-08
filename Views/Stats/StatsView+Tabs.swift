@@ -500,6 +500,14 @@ extension StatsView {
     // MARK: - Bien-être Tab
     @ViewBuilder var bienetreTab: some View {
 
+        if (!hasLoadedStatsWellness || !hasLoadedStatsHRV) &&
+            (isLoadingStatsWellness || isLoadingStatsHRV) {
+            ProgressView()
+                .tint(.appTextSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 12)
+        }
+
         // 1. HRV en tête (actionnable immédiatement)
         if let hrv = hrvAnalysis, hrv.hrv30dAvg != nil {
             HRVBaselineCard(data: hrv)
