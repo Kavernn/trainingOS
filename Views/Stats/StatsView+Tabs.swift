@@ -405,24 +405,6 @@ extension StatsView {
 
         StatsBodyMeasurementsHistoryView(entries: filteredBW)
 
-        // Recovery composite
-        if filteredRecovery.count >= 5 {
-            RecoveryCompositeScoreView(log: Array(filteredRecovery.prefix(30).reversed()))
-                .padding(.horizontal, 16)
-        }
-
-        // Soreness threshold
-        if let st = sorenessThreshold, st.thresholdVol != nil {
-            SorenessThresholdCard(data: st)
-                .padding(.horizontal, 16)
-        }
-
-        // 5. HIIT
-        if !hiitLog.isEmpty {
-            HIITStatsSection(log: hiitLog)
-                .padding(.horizontal, 16)
-        }
-
         Spacer(minLength: 32)
     }
 
