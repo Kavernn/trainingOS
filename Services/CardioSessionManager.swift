@@ -82,6 +82,11 @@ final class CardioSessionManager: NSObject, ObservableObject {
     private var timer: Timer?
     private var accumulatedGPSPoints: [GPSPoint] = []
     private var startTime: Date?
+    // Base du timer pour le leg actif courant. Recalé à chaque resume() sans
+    // toucher startTime (qui reste le VRAI début de session écrit en base).
+    // Sans cette séparation, resume() remappait startTime + tick ré-additionnait
+    // pausedElapsed = double compte (bug row duration_min=4111 pré-fix 2026-09-08).
+    private var legStartTime: Date?
     private var pausedElapsed: Int = 0  // seconds accumulated before current pause
 
     // Une session persistée plus vieille que ce seuil est considérée comme fantôme
@@ -94,6 +99,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
     private enum UDKey {
         static let isActive     = "cardio_session_active"
         static let startTime    = "cardio_session_start_time"
+        static let legStartTime = "cardio_session_leg_start_time"
         static let pausedElapsed = "cardio_session_paused_elapsed"
         static let gpsPoints    = "cardio_session_gps_points"
         static let sessionType  = "cardio_session_type"
@@ -119,6 +125,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
         guard sessionState == .idle else { return }
         selectedType = type
         startTime = Date()
+        legStartTime = startTime
         pausedElapsed = 0
         accumulatedGPSPoints = []
         routePoints = []
@@ -143,8 +150,9 @@ final class CardioSessionManager: NSObject, ObservableObject {
 
     func resume() {
         guard sessionState == .paused else { return }
-        // Adjust startTime so elapsed continues from where we left off
-        startTime = Date().addingTimeInterval(-Double(pausedElapsed))
+        // Nouveau leg : startTime reste le vrai début de session, seule la base
+        // du timer est recalée. Le tick calcule pausedElapsed + (now - legStart).
+        legStartTime = Date()
         persistSession()
         sessionState = .active
         startLocationUpdates()
@@ -187,6 +195,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
         timer = nil
         locationManager.stopUpdatingLocation()
         startTime = nil
+        legStartTime = nil
         pausedElapsed = 0
         accumulatedGPSPoints = []
         routePoints = []
@@ -207,7 +216,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
     }
 
     private func startTimer() {
-        let base = startTime ?? Date()
+        let base = legStartTime ?? Date()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self else { return }
             self.elapsedSeconds = self.pausedElapsed + Int(Date().timeIntervalSince(base))
@@ -239,6 +248,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
         let ud = UserDefaults.standard
         ud.set(true,              forKey: UDKey.isActive)
         ud.set(startTime,         forKey: UDKey.startTime)
+        ud.set(legStartTime,      forKey: UDKey.legStartTime)
         ud.set(pausedElapsed,     forKey: UDKey.pausedElapsed)
         ud.set(selectedType,      forKey: UDKey.sessionType)
         ud.set(sessionState.rawValue, forKey: UDKey.state)
@@ -262,6 +272,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
         let ud = UserDefaults.standard
         ud.removeObject(forKey: UDKey.isActive)
         ud.removeObject(forKey: UDKey.startTime)
+        ud.removeObject(forKey: UDKey.legStartTime)
         ud.removeObject(forKey: UDKey.pausedElapsed)
         ud.removeObject(forKey: UDKey.gpsPoints)
         ud.removeObject(forKey: UDKey.sessionType)
@@ -287,6 +298,14 @@ final class CardioSessionManager: NSObject, ObservableObject {
         selectedType = ud.string(forKey: UDKey.sessionType) ?? "course"
         pausedElapsed = ud.integer(forKey: UDKey.pausedElapsed)
         startTime = savedStart
+        // Fail fast : legStartTime absent = état pré-fix (OLD-code, potentiellement
+        // gonflé par double compte). Purge plutôt que fallback risqué.
+        guard let savedLegStart = ud.object(forKey: UDKey.legStartTime) as? Date else {
+            clearPersistedSession()
+            reset()
+            return
+        }
+        legStartTime = savedLegStart
 
         if let data = ud.data(forKey: UDKey.gpsPoints),
            let points = try? JSONDecoder().decode([GPSPoint].self, from: data) {
@@ -296,7 +315,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
         }
 
         if state == .active {
-            elapsedSeconds = pausedElapsed + Int(Date().timeIntervalSince(savedStart))
+            elapsedSeconds = pausedElapsed + Int(Date().timeIntervalSince(savedLegStart))
             sessionState = .active
             startLocationUpdates()
             startTimer()
