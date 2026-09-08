@@ -209,6 +209,7 @@
 		SPK0002SPK0002SPK0002SP2 /* SessionPreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */; };
 		SR000002SR000002SR000002 /* StatRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = SR000001SR000001SR000001 /* StatRow.swift */; };
 		SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */; };
+		SRP00002SRP00002SRP00002 /* SessionReportComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = SRP00001SRP00001SRP00001 /* SessionReportComponents.swift */; };
 		STNA0001STNA0001STNA0001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0001STNR0001STNR0001 /* SettingsView.swift */; };
 		STNA0002STNA0002STNA0002 /* TrainingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */; };
 		STNA0003STNA0003STNA0003 /* RecoverySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */; };
@@ -498,6 +499,7 @@
 		SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPreferenceKeys.swift; sourceTree = "<group>"; };
 		SR000001SR000001SR000001 /* StatRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatRow.swift; sourceTree = "<group>"; };
 		SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupportViews.swift; sourceTree = "<group>"; };
+		SRP00001SRP00001SRP00001 /* SessionReportComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReportComponents.swift; sourceTree = "<group>"; };
 		STNR0001STNR0001STNR0001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsView.swift; sourceTree = "<group>"; };
 		STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySettingsView.swift; sourceTree = "<group>"; };
@@ -988,6 +990,7 @@
 				D665E4422F5D98B8002AE470 /* SeanceView.swift */,
 				WAV00001WAV00001WAV00001 /* WorkoutActiveView.swift */,
 				SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */,
+				SRP00001SRP00001SRP00001 /* SessionReportComponents.swift */,
 				AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */,
 				BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */,
 				PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */,
@@ -1392,6 +1395,7 @@
 				D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */,
 				WAV00002WAV00002WAV00002 /* WorkoutActiveView.swift in Sources */,
 				SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */,
+				SRP00002SRP00002SRP00002 /* SessionReportComponents.swift in Sources */,
 				VDB00002VDB00002VDB00002 /* VoiceDictationButton.swift in Sources */,
 				SC0002SC0002SC0002SC0002 /* SessionChips.swift in Sources */,
 				GB0002GB0002GB0002GB0002 /* GhostBanner.swift in Sources */,
