@@ -90,7 +90,8 @@ def _entry_volume(entry: dict) -> float:
     return w * total_r
 
 
-def get_pattern_volume(days: int = 28, weights: dict | None = None) -> dict:
+def get_pattern_volume(days: int = 28, weights: dict | None = None,
+                       inventory: dict | None = None) -> dict:
     """Return volume (lbs×reps) per movement pattern for the last N days."""
     try:
         from weights import load_weights
@@ -99,7 +100,8 @@ def get_pattern_volume(days: int = 28, weights: dict | None = None) -> dict:
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         if weights is None:
             weights = load_weights()
-        inventory = load_inventory() or {}
+        if inventory is None:
+            inventory = load_inventory() or {}
         pattern_vol: dict[str, float] = {}
         for name, data in weights.items():
             raw = (inventory.get(name) or {}).get("movement_pattern") or ""
@@ -339,7 +341,8 @@ def get_programme_compliance(weeks: int = 8) -> list[dict]:
         return []
 
 
-def get_one_rm_trend(days: int = 84, weights: dict | None = None) -> dict:
+def get_one_rm_trend(days: int = 84, weights: dict | None = None,
+                     inventory: dict | None = None) -> dict:
     """Return estimated 1RM trend per compound exercise (push/pull/hinge/squat patterns)."""
     try:
         from weights import load_weights
@@ -348,7 +351,8 @@ def get_one_rm_trend(days: int = 84, weights: dict | None = None) -> dict:
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         if weights is None:
             weights = load_weights()
-        inventory = load_inventory() or {}
+        if inventory is None:
+            inventory = load_inventory() or {}
         compound_patterns = {"squat", "hinge", "push_horizontal", "push_vertical", "pull_horizontal", "pull_vertical"}
         result: dict[str, list[dict]] = {}
         for name, data in weights.items():

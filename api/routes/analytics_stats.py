@@ -161,9 +161,9 @@ def api_stats_data():
     _nutr_60     = [d for d in nutr_entries if (d.get("date") or "") >= _cutoff_60]
 
     weekly_tonnage       = _db.get_weekly_tonnage(26)
-    pattern_volume       = _db.get_pattern_volume(28, weights=weights)
+    pattern_volume       = _db.get_pattern_volume(28, weights=weights, inventory=inventory)
     programme_compliance = _db.get_programme_compliance(8)
-    one_rm_trend         = _db.get_one_rm_trend(84, weights=weights)
+    one_rm_trend         = _db.get_one_rm_trend(84, weights=weights, inventory=inventory)
     macros_by_day_type   = _db.get_macros_by_day_type(60, nutr_days=_nutr_60)
     protein_weight_ratio = _db.get_protein_weight_ratio(60, nutr_days=_nutr_60)
 
