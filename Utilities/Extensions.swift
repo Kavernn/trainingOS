@@ -86,6 +86,8 @@ extension Color {
     static var appTextTertiary:    Color { AppTheme.shared.textMuted }
     static var appTextMuted:       Color { AppTheme.shared.textMuted }
     static var onAccent:           Color { AppTheme.shared.onAccent }
+    static var selectedControlBackground: Color { AppTheme.shared.selectedControlBackground }
+    static var selectedControlForeground: Color { AppTheme.shared.selectedControlForeground }
     static var appSeparator:       Color { AppTheme.shared.separator }
     static var appSeparatorSubtle: Color { AppTheme.shared.separatorSubtle }
     static var appSeparatorStrong: Color { AppTheme.shared.separatorStrong }

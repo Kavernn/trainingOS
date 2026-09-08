@@ -98,6 +98,8 @@ struct AppThemeColors {
     let accentLight:     Color
     let accentMuted:     Color
     let onAccent:        Color
+    let selectedControlBackground: Color
+    let selectedControlForeground: Color
     let background:      Color
     let surfaceCard:     Color
     let surfaceElevated: Color
@@ -173,6 +175,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "AEAEB2"),
         accentMuted:     Color(hex: "F2F2F7"),
         onAccent:        .black,
+        selectedControlBackground: .white,
+        selectedControlForeground: .black,
         background:      .black,
         surfaceCard:     Color(hex: "2A2A2E"),
         surfaceElevated: Color(hex: "2C2C2E"),
@@ -222,6 +226,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "FF5555"),
         accentMuted:     Color(hex: "1A0000"),
         onAccent:        Color(hex: "F0F0F0"),
+        selectedControlBackground: .white,
+        selectedControlForeground: .black,
         background:      Color(hex: "060403"),
         surfaceCard:     Color(hex: "1A1410"),
         surfaceElevated: Color(hex: "160C0A"),
@@ -271,6 +277,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "E74C3C"),
         accentMuted:     Color(hex: "4A1010"),
         onAccent:        .white,
+        selectedControlBackground: Color(hex: "C0392B"),
+        selectedControlForeground: .white,
         background:      Color(hex: "3D0C0C"),
         surfaceCard:     Color(hex: "5A1818"),
         surfaceElevated: Color(hex: "5A1616"),
@@ -319,6 +327,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "FFFF80"),
         accentMuted:     Color(hex: "1F1F00"),
         onAccent:        .black,
+        selectedControlBackground: Color(hex: "FFFF33"),
+        selectedControlForeground: .black,
         background:      Color(hex: "0F1000"),
         surfaceCard:     Color(hex: "262800"),
         surfaceElevated: Color(hex: "222400"),
@@ -367,6 +377,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "66FFB2"),
         accentMuted:     Color(hex: "003311"),
         onAccent:        Color(hex: "002000"),
+        selectedControlBackground: Color(hex: "00FF66"),
+        selectedControlForeground: Color(hex: "002000"),
         background:      Color(hex: "002000"),
         surfaceCard:     Color(hex: "103C10"),
         surfaceElevated: Color(hex: "143814"),
@@ -415,6 +427,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "FFB3D1"),
         accentMuted:     Color(hex: "4A1030"),
         onAccent:        .white,
+        selectedControlBackground: Color(hex: "FF6B9E"),
+        selectedControlForeground: Color(hex: "12063A"),
         background:      Color(hex: "1A0A48"),
         surfaceCard:     Color(hex: "2A1B7A"),
         surfaceElevated: Color(hex: "2A1972"),
@@ -463,6 +477,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "4A8FB5"),
         accentMuted:     Color(hex: "C5E0F0"),      // tint léger chips/badges
         onAccent:        Color(hex: "FFFFFF"),       // blanc sur bleu foncé — 6.9:1
+        selectedControlBackground: Color(hex: "1A5F8A"),
+        selectedControlForeground: .white,
         background:      Color(hex: "EAF4FF"),       // glace bleue
         surfaceCard:     Color(hex: "FFFFFF"),       // cards blanches
         surfaceElevated: Color(hex: "F5FAFF"),
@@ -512,6 +528,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "FFF7D6"),
         accentMuted:     Color(hex: "2A1C05"),
         onAccent:        Color(hex: "201408"),
+        selectedControlBackground: Color(hex: "D4AF37"),
+        selectedControlForeground: Color(hex: "201408"),
         background:      Color(hex: "201408"),
         surfaceCard:     Color(hex: "3A2A18"),
         surfaceElevated: Color(hex: "322412"),
@@ -559,6 +577,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "CBEA16"),
         accentMuted:     Color(hex: "EEF5B8"),
         onAccent:        Color(hex: "11140A"),
+        selectedControlBackground: Color(hex: "CBEA16"),
+        selectedControlForeground: Color(hex: "11140A"),
         background:      Color(hex: "F6F7EF"),
         surfaceCard:     Color(hex: "FCFCF7"),
         surfaceElevated: Color(hex: "EEF0E6"),
@@ -608,6 +628,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "80F0CC"),
         accentMuted:     Color(hex: "051A12"),
         onAccent:        Color(hex: "030F0A"),
+        selectedControlBackground: Color(hex: "2EE6A6"),
+        selectedControlForeground: Color(hex: "030F0A"),
         background:      Color(hex: "060810"),
         surfaceCard:     Color(hex: "0F1320").opacity(0.72),
         surfaceElevated: Color(hex: "121828"),
@@ -657,6 +679,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "F4D08A"),
         accentMuted:     Color(hex: "4A2C08"),
         onAccent:        Color(hex: "2C1810"),
+        selectedControlBackground: Color(hex: "E9C46A"),
+        selectedControlForeground: Color(hex: "2C1810"),
         background:      Color(hex: "5C3D2E"),
         surfaceCard:     Color(hex: "7A5A48"),
         surfaceElevated: Color(hex: "7A5542"),
@@ -708,6 +732,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "FF7A40"),
         accentMuted:     Color(hex: "2A0F00"),
         onAccent:        Color(hex: "0A0A0A"),       // noir sur orange — lisibilité maximum
+        selectedControlBackground: Color(hex: "FF4D00"),
+        selectedControlForeground: Color(hex: "0A0A0A"),
         background:      Color(hex: "0A0A0A"),       // fond plat, zéro gradient
         surfaceCard:     Color(hex: "141414"),       // surface plate opaque
         surfaceElevated: Color(hex: "1C1C1C"),
@@ -764,6 +790,8 @@ extension AppThemeColors {
         accentLight:     Color(hex: "8FBFFF"),
         accentMuted:     Color(hex: "0A1830"),
         onAccent:        Color(hex: "0A1020"),
+        selectedControlBackground: Color(hex: "5B9DFF"),
+        selectedControlForeground: Color(hex: "0A1020"),
         background:      Color(hex: "0C0E14"),
         surfaceCard:     Color(hex: "1A2030").opacity(0.45),    // très translucide
         surfaceElevated: Color(hex: "1F2638").opacity(0.55),
@@ -852,6 +880,8 @@ final class AppTheme: ObservableObject {
     var accentLight: Color { colors.accentDistribution == .surgical ? .white.opacity(0.7) : colors.accentLight }
     var accentMuted:     Color { colors.accentMuted }
     var onAccent:        Color { colors.accentDistribution == .surgical ? .black : colors.onAccent }
+    var selectedControlBackground: Color { colors.selectedControlBackground }
+    var selectedControlForeground: Color { colors.selectedControlForeground }
 
     var background:      Color { colors.background }
     var surfaceCard:     Color { colors.surfaceCard }
