@@ -84,6 +84,12 @@ final class CardioSessionManager: NSObject, ObservableObject {
     private var startTime: Date?
     private var pausedElapsed: Int = 0  // seconds accumulated before current pause
 
+    // Une session persistée plus vieille que ce seuil est considérée comme fantôme
+    // (crash/kill/oubli) et purgée au recover. Sans cette garde, un pausedElapsed
+    // obsolète rechargé + resume() → double compte (bug row duration_min=4111,
+    // 2026-09-07). Cardio légitime : < 6h dans tous les cas normaux.
+    private static let maxSessionAgeSeconds: TimeInterval = 6 * 3600
+
     // UserDefaults keys for background persistence
     private enum UDKey {
         static let isActive     = "cardio_session_active"
@@ -270,6 +276,13 @@ final class CardioSessionManager: NSObject, ObservableObject {
               let state = CardioSessionState(rawValue: savedState),
               state == .active || state == .paused
         else { return }
+
+        // Fail fast : session trop vieille = fantôme. Purge + retour à .idle.
+        if Date().timeIntervalSince(savedStart) > Self.maxSessionAgeSeconds {
+            clearPersistedSession()
+            reset()
+            return
+        }
 
         selectedType = ud.string(forKey: UDKey.sessionType) ?? "course"
         pausedElapsed = ud.integer(forKey: UDKey.pausedElapsed)
