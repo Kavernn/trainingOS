@@ -260,6 +260,7 @@ struct WorkoutSeanceView: View {
                 trends: trendsForRecap(snap),
                 inventoryTracking: inventoryTracking.isEmpty ? data.inventoryTracking : inventoryTracking,
                 inventoryUnilateral: inventoryUnilateral.isEmpty ? data.inventoryUnilateral : inventoryUnilateral,
+                exerciseMuscleMetadata: APIService.shared.dashboard?.exerciseMuscleMetadata ?? [:],
                 nextSession: nextSessionForRecap()
             )
         }

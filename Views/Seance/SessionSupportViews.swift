@@ -446,6 +446,7 @@ struct SessionRecapSheet: View {
     let trends: [String: WeightTrend]
     let inventoryTracking: [String: String]
     let inventoryUnilateral: [String: Bool]
+    let exerciseMuscleMetadata: [String: ExerciseMuscleMetadata]
     var nextSession: NextSessionInfo? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var animateHeader = false
@@ -487,8 +488,9 @@ struct SessionRecapSheet: View {
                     VStack(spacing: 20) {
                         completionHero
                         SessionScoreboard(metrics: scoreboardMetrics)
-                        prBanner
+                        prHighlights
                         exercisesList
+                        muscleSection
                         if snapshot.energyPre > 0 { energyRow }
                         if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty { notesBlock }
                         nextSessionBlock
@@ -605,6 +607,16 @@ struct SessionRecapSheet: View {
 
     // MARK: - Bandeau PR (fusionné dans le récap, ex-fullScreenCover)
     @ViewBuilder
+    private var prHighlights: some View {
+        if !prs.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SessionReportSectionHeader(title: "HIGHLIGHTS")
+                prBanner
+            }
+        }
+    }
+
+    @ViewBuilder
     private var prBanner: some View {
         if !prs.isEmpty {
             HStack(spacing: 10) {
@@ -643,6 +655,29 @@ struct SessionRecapSheet: View {
         let plannedSet = Set(planned)
         let extras = snapshot.logResults.keys.filter { !plannedSet.contains($0) }.sorted()
         return planned + extras
+    }
+
+    private var muscleResult: MuscleMappingResult {
+        let metadata = snapshot.logResults.keys.compactMap {
+            exerciseMuscleMetadata[$0]
+        }
+        return MuscleMapper.aggregate(metadata)
+    }
+
+    @ViewBuilder
+    private var muscleSection: some View {
+        if !muscleResult.zones.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SessionReportSectionHeader(title: "MUSCLES SOLLICITÉS")
+                MuscleMapView(
+                    zones: muscleResult.zones,
+                    tint: Color.domainAccent(.training),
+                    displayMode: .both
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 104)
+            }
+        }
     }
 
     private var exercisesList: some View {
