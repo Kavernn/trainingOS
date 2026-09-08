@@ -553,13 +553,6 @@ struct StatsView: View {
                 await MainActor.run { warRoomStats = r }
             }
         }
-        Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/stats/intensity"),
-               let d = try? await APIService.shared.fetchWithCache(url: url, key: "stats_intensity"),
-               let r = try? APIService.decoder.decode(IntensityData.self, from: d) {
-                await MainActor.run { intensityData = r }
-            }
-        }
     }
 
     private func loadStatsWellnessIfNeeded(force: Bool = false) async {
