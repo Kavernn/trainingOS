@@ -1,10 +1,13 @@
 import SwiftUI
+import UIKit
 
 // Hero State — salutation + ring readiness (verdictAccent) + HRV + sommeil +
 // streak relogé + phrase de synthèse (readiness.why). Remplace l'ancien
 // DashboardReadinessHero. Source unique par domaine, états vides honnêtes.
 
 struct DashboardHeroState: View {
+    @AppStorage(HeroMoodPreference.storageKey) private var heroMoodRawValue = HeroMoodPreference.currentRawValue
+
     let readiness: ReadinessResponse?
     let hrvAnalysis: HRVAnalysis?
     let recovery: RecoveryEntry?
@@ -46,6 +49,12 @@ struct DashboardHeroState: View {
         return String(format: "%.1f h", h)
     }
     private var sleepLabel: String { recovery?.sleepQualityLabel ?? "—" }
+
+    private var moodImage: UIImage? {
+        let normalizedRawValue = HeroMoodPreference.normalizedRawValue(heroMoodRawValue)
+        guard let mood = HeroMood(rawValue: normalizedRawValue) else { return nil }
+        return UIImage(named: mood.assetName)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -110,7 +119,47 @@ struct DashboardHeroState: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.appCard)
+        .background {
+            if let moodImage {
+                GeometryReader { geometry in
+                    ZStack {
+                        Color.appCard
+
+                        Image(uiImage: moodImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped()
+
+                        Color.appCard.opacity(0.18)
+
+                        LinearGradient(
+                            colors: [
+                                Color.appCard.opacity(0.76),
+                                Color.appCard.opacity(0.46),
+                                Color.appCard.opacity(0.12)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+
+                        LinearGradient(
+                            colors: [
+                                Color.appCard.opacity(0.04),
+                                Color.appCard.opacity(0.18),
+                                Color.appCard.opacity(0.68)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            } else {
+                Color.appCard
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: .appCardRadius)
                 .stroke(Color.appSeparator, lineWidth: .appHairline)
