@@ -134,10 +134,10 @@ struct StatsView: View {
     @State var rpeProgression:     RPEProgressionData?         = nil
     @State var rirByExercise:      [RIREntry]                  = []
     @State var hrvAnalysis:        HRVAnalysis?                = nil
-    @State private var isLoadingStatsWellness = false
-    @State private var hasLoadedStatsWellness = false
-    @State private var isLoadingStatsHRV = false
-    @State private var hasLoadedStatsHRV = false
+    @State var isLoadingStatsWellness = false
+    @State var hasLoadedStatsWellness = false
+    @State var isLoadingStatsHRV = false
+    @State var hasLoadedStatsHRV = false
     @State var forceAccessoryTimeline: [ForceAccessoryPoint]  = []
     @State var recentPRs:              [RecentPR]              = []
 
