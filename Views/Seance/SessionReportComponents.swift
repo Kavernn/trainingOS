@@ -177,6 +177,115 @@ struct SessionReportSectionHeader: View {
     }
 }
 
+// MARK: - Session Exercise Result
+
+struct SessionExerciseResultPresentation: Equatable {
+    let title: String
+    let primaryResult: String?
+    let secondaryResult: String?
+    let detailLines: [String]
+    let badgeText: String?
+
+    init(
+        title: String,
+        primaryResult: String? = nil,
+        secondaryResult: String? = nil,
+        detailLines: [String] = [],
+        badgeText: String? = nil
+    ) {
+        self.title = title
+        self.primaryResult = primaryResult
+        self.secondaryResult = secondaryResult
+        self.detailLines = detailLines
+        self.badgeText = badgeText
+    }
+}
+
+struct SessionExerciseResultRow: View {
+    let presentation: SessionExerciseResultPresentation
+
+    init(presentation: SessionExerciseResultPresentation) {
+        self.presentation = presentation
+    }
+
+    private var visibleDetailLines: [String] {
+        presentation.detailLines.filter { !$0.isEmpty }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(presentation.title)
+                    .font(.appBody.weight(.semibold))
+                    .foregroundColor(Color.appTextPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 8)
+
+                if let badgeText = presentation.badgeText, !badgeText.isEmpty {
+                    Text(badgeText)
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(Color.appTextSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.appCard)
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.appSeparator, lineWidth: .appHairline)
+                        )
+                        .clipShape(Capsule())
+                }
+            }
+
+            if let primaryResult = presentation.primaryResult, !primaryResult.isEmpty {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(primaryResult)
+                        .font(.appHeadline.weight(.bold))
+                        .foregroundColor(Color.appTextPrimary)
+                        .monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let secondaryResult = presentation.secondaryResult,
+                       !secondaryResult.isEmpty {
+                        Text(secondaryResult)
+                            .font(.appLabel.weight(.semibold))
+                            .foregroundColor(Color.appTextSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            } else if let secondaryResult = presentation.secondaryResult,
+                      !secondaryResult.isEmpty {
+                Text(secondaryResult)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(Color.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if !visibleDetailLines.isEmpty {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(Array(visibleDetailLines.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(.appCaption)
+                            .foregroundColor(Color.appTextSecondary)
+                            .monospacedDigit()
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, .appCardInsetH)
+        .padding(.vertical, 14)
+        .background(Color.appSurfaceInset)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.appSeparatorSubtle)
+                .frame(height: .appHairline)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 #Preview("Session completion hero — short") {
     SessionCompletionHero(
         title: "Push A",
@@ -220,6 +329,67 @@ struct SessionReportSectionHeader: View {
         SessionReportMetric(label: "VOLUME", value: "4,2 t", emphasis: .primary),
         SessionReportMetric(label: "RPE", value: "8,0")
     ])
+    .padding(.appPagePadding)
+    .background(Color.appBg)
+}
+
+#Preview("Exercise results — strength") {
+    VStack(spacing: 12) {
+        SessionExerciseResultRow(
+            presentation: SessionExerciseResultPresentation(
+                title: "Bench Press",
+                primaryResult: "4 × 8 · 185 lb",
+                secondaryResult: "RPE 8.0"
+            )
+        )
+
+        SessionExerciseResultRow(
+            presentation: SessionExerciseResultPresentation(
+                title: "Incline Dumbbell Press",
+                primaryResult: "4 séries · 70 lb",
+                detailLines: [
+                    "S1 · 10 reps",
+                    "S2 · 9 reps",
+                    "S3 · 8 reps",
+                    "S4 · 7 reps"
+                ],
+                badgeText: "RPE 8.5"
+            )
+        )
+    }
+    .padding(.appPagePadding)
+    .background(Color.appBg)
+}
+
+#Preview("Exercise results — modalities") {
+    VStack(spacing: 12) {
+        SessionExerciseResultRow(
+            presentation: SessionExerciseResultPresentation(
+                title: "Plank",
+                primaryResult: "3 × 45s"
+            )
+        )
+
+        SessionExerciseResultRow(
+            presentation: SessionExerciseResultPresentation(
+                title: "Farmer's Carry",
+                primaryResult: "40 m · 70 lb"
+            )
+        )
+
+        SessionExerciseResultRow(
+            presentation: SessionExerciseResultPresentation(
+                title: "Pelvic Protocol",
+                primaryResult: "Protocole complété"
+            )
+        )
+
+        SessionExerciseResultRow(
+            presentation: SessionExerciseResultPresentation(
+                title: "Shoulder Mobility"
+            )
+        )
+    }
     .padding(.appPagePadding)
     .background(Color.appBg)
 }
