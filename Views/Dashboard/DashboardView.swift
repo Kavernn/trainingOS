@@ -121,24 +121,19 @@ struct DashboardView: View {
                                 DashboardStatusBar(dash: dash)
                                     .appearAnimation(delay: 0.03)
 
-                                // 2 — Grille domaines (Entraînement · Nutrition · Récupération · Finances)
-                                DashboardDomainGrid(
-                                    dash: dash,
-                                    hrvAnalysis: vm.hrvAnalysis,
-                                    budgetStatus: vm.budgetStatus,
-                                    onOpenSession: onOpenSession,
-                                    onOpenHealth:  onOpenHealth,
-                                    onOpenNutrition: { showNutritionAddSheet = true }
-                                )
-                                .appearAnimation(delay: 0.04)
-
-                                // 3 — Alerte critique
-                                if let signal = vm.criticalSignal(dash: dash) {
-                                    CriticalAlertCard(signal: signal) {
-                                        handleAlertAction(signal: signal, dash: dash)
-                                    }
-                                    .appearAnimation(delay: 0.05)
+                                // 6 — Hero State (salutation, ring readiness, HRV, sommeil, streak, synthèse) — tap → onglet Santé
+                                Button { onOpenHealth?() } label: {
+                                    DashboardHeroState(
+                                        readiness:   vm.readinessData,
+                                        hrvAnalysis: vm.hrvAnalysis,
+                                        recovery:    vm.todayRecovery,
+                                        streak:      vm.streakData?.currentStreak ?? 0,
+                                        userName:    dash.profile.name
+                                    )
                                 }
+                                .buttonStyle(.plain)
+                                .padding(.top, 8)
+                                .appearAnimation(delay: 0.08)
 
                                 // 4 — Séance du jour
                                 TodayCardView(
@@ -163,19 +158,24 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.07)
                                 }
 
-                                // 6 — Hero State (salutation, ring readiness, HRV, sommeil, streak, synthèse) — tap → onglet Santé
-                                Button { onOpenHealth?() } label: {
-                                    DashboardHeroState(
-                                        readiness:   vm.readinessData,
-                                        hrvAnalysis: vm.hrvAnalysis,
-                                        recovery:    vm.todayRecovery,
-                                        streak:      vm.streakData?.currentStreak ?? 0,
-                                        userName:    dash.profile.name
-                                    )
+                                // 2 — Grille domaines (Entraînement · Nutrition · Récupération · Finances)
+                                DashboardDomainGrid(
+                                    dash: dash,
+                                    hrvAnalysis: vm.hrvAnalysis,
+                                    budgetStatus: vm.budgetStatus,
+                                    onOpenSession: onOpenSession,
+                                    onOpenHealth:  onOpenHealth,
+                                    onOpenNutrition: { showNutritionAddSheet = true }
+                                )
+                                .appearAnimation(delay: 0.04)
+
+                                // 3 — Alerte critique
+                                if let signal = vm.criticalSignal(dash: dash) {
+                                    CriticalAlertCard(signal: signal) {
+                                        handleAlertAction(signal: signal, dash: dash)
+                                    }
+                                    .appearAnimation(delay: 0.05)
                                 }
-                                .buttonStyle(.plain)
-                                .padding(.top, 8)
-                                .appearAnimation(delay: 0.08)
 
                                 // 10 — Actions du jour
                                 DayActionsRow(
