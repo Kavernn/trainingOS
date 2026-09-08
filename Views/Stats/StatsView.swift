@@ -135,16 +135,13 @@ struct StatsView: View {
     @State var sleepScatter:       [ScatterPoint]              = []
     @State var rpeProgression:     RPEProgressionData?         = nil
     @State var rirByExercise:      [RIREntry]                  = []
-    @State var sorenessThreshold:  SorenessThreshold?          = nil
     @State var hrvAnalysis:        HRVAnalysis?                = nil
     @State var forceAccessoryTimeline: [ForceAccessoryPoint]  = []
     @State var recentPRs:              [RecentPR]              = []
 
     // ── New stats data ────────────────────────────────────────────────────
-    @State var adherenceData:    AdherenceData?         = nil
     @State var seasonComparison: SeasonComparisonData?  = nil
     @State var warRoomStats:     WarRoomSummaryStats?   = nil
-@State var deloadStatus:     DeloadStatusData?      = nil
     @State var intensityData:    IntensityData?         = nil
     // ── Streak — source serveur unique (/api/stats/streaks) ─────────────────
     @State var streakData: StreakResponse? = nil
@@ -543,22 +540,8 @@ struct StatsView: View {
         )
 
         Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/soreness_threshold"),
-               let d = try? await APIService.shared.fetchWithCache(url: url, key: "soreness_threshold"),
-               let r = try? APIService.decoder.decode(SorenessThreshold.self, from: d) {
-                await MainActor.run { sorenessThreshold = r }
-            }
-        }
-        Task {
             if let r = try? await APIService.shared.fetchHRVAnalysis() {
                 await MainActor.run { hrvAnalysis = r }
-            }
-        }
-        Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/adherence"),
-               let d = try? await APIService.shared.fetchWithCache(url: url, key: "adherence"),
-               let r = try? APIService.decoder.decode(AdherenceData.self, from: d) {
-                await MainActor.run { adherenceData = r }
             }
         }
         Task {
@@ -587,13 +570,6 @@ struct StatsView: View {
                let d = try? await APIService.shared.fetchWithCache(url: url, key: "war_room_summary"),
                let r = try? APIService.decoder.decode(WarRoomSummaryStats.self, from: d) {
                 await MainActor.run { warRoomStats = r }
-            }
-        }
-        Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/deload_status"),
-               let d = try? await APIService.shared.fetchWithCache(url: url, key: "deload_status"),
-               let r = try? APIService.decoder.decode(DeloadStatusData.self, from: d) {
-                await MainActor.run { deloadStatus = r }
             }
         }
         Task {
