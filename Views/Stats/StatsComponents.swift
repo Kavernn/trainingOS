@@ -1,5 +1,90 @@
 import SwiftUI
 
+// MARK: - Canonical regularity
+struct StatsRegularitySummary: View {
+    let trainingLoad: StatsCockpitTrainingLoad
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("ACTIVITÉ RÉCENTE")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            HStack(spacing: 12) {
+                metric(value: "\(trainingLoad.summary.activeDayCount)", label: "Jours actifs")
+                metric(value: "\(trainingLoad.summary.sessionCount)", label: "Séances avec activité")
+            }
+        }
+        .padding(.appCardInsetV).background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func metric(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value).font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
+            Text(label).font(.appCaption).foregroundColor(.appTextSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct StatsWeeklyRegularityChart: View {
+    let weekly: [StatsWeeklyTrainingLoad]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("RYTHME HEBDOMADAIRE")
+                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.appTextMuted)
+            Text("Historique récent")
+                .font(.appCaption).foregroundColor(.appTextSecondary)
+            if weekly.isEmpty {
+                Text("Pas encore de rythme hebdomadaire disponible.")
+                    .font(.appBody).foregroundColor(.appTextSecondary)
+            } else {
+                GeometryReader { geometry in
+                    HStack(alignment: .bottom, spacing: 5) {
+                        ForEach(weekly, id: \.weekStart) { bucket in
+                            bar(bucket, height: geometry.size.height)
+                        }
+                    }
+                }
+                .frame(height: 110)
+            }
+        }
+        .padding(.appCardInsetV).background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private var maxDays: Int { max(weekly.map(\.activeDayCount).max() ?? 0, 1) }
+
+    @ViewBuilder
+    private func bar(_ bucket: StatsWeeklyTrainingLoad, height: CGFloat) -> some View {
+        VStack(spacing: 4) {
+            if bucket.activeDayCount > 0 {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.domainAccent(.training))
+                    .frame(height: CGFloat(bucket.activeDayCount) / CGFloat(maxDays) * (height - 24))
+                    .accessibilityLabel(accessibilityLabel(for: bucket))
+            } else {
+                Circle()
+                    .fill(Color.appTextMuted)
+                    .frame(width: 4, height: 4)
+                    .accessibilityLabel(accessibilityLabel(for: bucket))
+            }
+            Text(String(bucket.weekStart.prefix(7)))
+                .font(.appMicro).foregroundColor(.appTextMuted).lineLimit(1).minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+    }
+
+    private func accessibilityLabel(for bucket: StatsWeeklyTrainingLoad) -> String {
+        let partial = bucket.isPartial ? " Semaine partielle." : ""
+        return "Semaine du \(bucket.weekStart). \(bucket.activeDayCount) jours actifs. \(bucket.sessionCount) séances avec activité.\(partial)"
+    }
+}
+
 // MARK: - Canonical muscle workload
 struct StatsMuscleWorkloadSection: View {
     let muscles: StatsCockpitMuscles

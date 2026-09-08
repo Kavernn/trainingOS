@@ -220,7 +220,7 @@ struct SessionHeatmapView: View {
                 }
             }
             HStack(spacing: 12) {
-                Text("\(activeDays) séances").font(.appCaption).foregroundColor(.gray)
+                Text("\(activeDays) jours actifs").font(.appCaption).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
                     Circle().fill(Color.forge).frame(width: 8, height: 8)

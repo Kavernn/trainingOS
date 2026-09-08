@@ -114,6 +114,10 @@ extension StatsView {
     // MARK: - Régularité Tab
     // Shell-only composition of the existing heatmap and server-provided streak.
     @ViewBuilder var consistencyTab: some View {
+        if let cockpit = cockpitData {
+            StatsRegularitySummary(trainingLoad: cockpit.trainingLoad)
+            StatsWeeklyRegularityChart(weekly: cockpit.trainingLoad.weekly)
+        }
         let daysActive = Set(sessions.keys).union(
             hiitLog.compactMap(\.date).map { String($0.prefix(10)) }
         ).count
