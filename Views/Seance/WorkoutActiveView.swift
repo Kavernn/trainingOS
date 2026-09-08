@@ -1534,33 +1534,27 @@ struct WorkoutSeanceView: View {
         ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 16) {
-                // Header
-                VStack(spacing: 8) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Button {
-                                showSessionPicker = true
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text(data.today.uppercased())
-                                        .font(.appLabel).fontWeight(.black)
-                                        .tracking(3)
-                                        .foregroundColor(Color.forge)
-                                    Image(systemName: "chevron.down")
-                                        .font(.appMicro).fontWeight(.bold)
-                                        .foregroundColor(Color.forge.opacity(0.6))
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            if let meso = data.mesocycle {
-                                MesocycleChip(info: meso)
-                            } else {
-                                Text("Semaine \(data.week)")
-                                    .font(.appCaption)
-                                    .foregroundColor(.gray)
+                // Session command strip
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
+                        Button {
+                            showSessionPicker = true
+                        } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text(data.today)
+                                    .font(.appTitle).fontWeight(.heavy)
+                                    .foregroundColor(Color.appTextPrimary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                                Image(systemName: "chevron.down")
+                                    .font(.appCaption).fontWeight(.bold)
+                                    .foregroundColor(Color.forge.opacity(0.7))
                             }
                         }
-                        Spacer()
+                        .buttonStyle(.plain)
+
+                        Spacer(minLength: 8)
+
                         if vm.sessionStarted {
                             SessionTimerView(chrono: vm.chrono)
                         }
@@ -1568,70 +1562,118 @@ struct WorkoutSeanceView: View {
                             withAnimation { showSummary.toggle() }
                         } label: {
                             Image(systemName: showSummary ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
-                                .font(.appTitle)
-                                .foregroundColor(showSummary ? Color.forge : Color.forge.opacity(0.5))
+                                .font(.appHeadline)
+                                .foregroundColor(showSummary ? Color.forge : Color.appTextMuted)
+                                .frame(width: 34, height: 34)
+                                .background(Color.appSurfaceInset)
+                                .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
                         }
-                        .padding(.leading, 8)
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(showSummary ? "Masquer le résumé" : "Afficher le résumé")
                         Button {
                             withAnimation { isEditMode.toggle() }
                         } label: {
                             Image(systemName: isEditMode ? "checkmark.circle.fill" : "pencil.circle")
-                                .font(.appTitle)
-                                .foregroundColor(isEditMode ? Color.appSuccess : .gray)
+                                .font(.appHeadline)
+                                .foregroundColor(isEditMode ? Color.appSuccess : Color.appTextMuted)
+                                .frame(width: 34, height: 34)
+                                .background(Color.appSurfaceInset)
+                                .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
                         }
-                        .padding(.leading, 8)
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(isEditMode ? "Terminer la modification" : "Modifier la séance")
                         // W-D11 — abandon session button
                         if vm.sessionStarted {
                             Button {
                                 showAbandonAlert = true
                             } label: {
                                 Image(systemName: "xmark.circle")
-                                    .font(.appTitle)
+                                    .font(.appHeadline)
                                     .foregroundColor(Color.appDanger.opacity(0.6))
+                                    .frame(width: 34, height: 34)
+                                    .background(Color.appSurfaceInset)
+                                    .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
                             }
-                            .padding(.leading, 8)
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Quitter la séance")
                         }
                     }
+
+                    HStack(spacing: 8) {
+                        Text("SEMAINE \(data.week)")
+                            .font(.appMicro).fontWeight(.bold).tracking(1)
+                            .foregroundColor(Color.appTextSecondary)
+                        if let meso = data.mesocycle {
+                            Rectangle()
+                                .fill(Color.appSeparatorStrong)
+                                .frame(width: .appHairline, height: 12)
+                            Text("\(meso.phaseLabel) · \(meso.phase)")
+                                .font(.appCaption).fontWeight(.semibold)
+                                .foregroundColor(Color.appTextSecondary)
+                                .lineLimit(1)
+                            Rectangle()
+                                .fill(Color.appSeparatorStrong)
+                                .frame(width: .appHairline, height: 12)
+                            Text("RPE \(meso.rpeTarget)")
+                                .font(.appCaption).fontWeight(.bold)
+                                .foregroundColor(Color.forge.opacity(0.8))
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                    }
+
                     // Progress bar — superset-aware
                     let done = progressDone
                     let total = progressTotal
                     let allDone = progressComplete
-                    HStack(spacing: 8) {
-                        Text(allDone ? "Tous les exercices loggés" : "\(done) / \(total) exercices")
-                            .font(.appCaption).fontWeight(.semibold)
-                            .foregroundColor(allDone ? Color.appSuccess : .secondary)
-                            .animation(.easeInOut(duration: 0.2), value: allDone)
-                        if allDone {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.appMicro).fontWeight(.bold)
-                                .foregroundColor(Color.appSuccess)
-                                .transition(.scale.combined(with: .opacity))
+                    VStack(spacing: 6) {
+                        HStack(spacing: 8) {
+                            Text(allDone ? "SÉANCE COMPLÈTE" : "PROGRESSION")
+                                .font(.appMicro).fontWeight(.bold).tracking(1.4)
+                                .foregroundColor(allDone ? Color.appSuccess : Color.appTextMuted)
+                                .animation(.easeInOut(duration: 0.2), value: allDone)
+                            Spacer()
+                            Text("\(done) / \(total)")
+                                .font(.appCaption).fontWeight(.bold)
+                                .foregroundColor(allDone ? Color.appSuccess : Color.appTextPrimary)
+                                .monospacedDigit()
+                            if allDone {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.appMicro).fontWeight(.bold)
+                                    .foregroundColor(Color.appSuccess)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
                         }
-                        Spacer()
-                    }
-                    .animation(.easeInOut(duration: 0.2), value: allDone)
-                    Capsule()
-                        .fill(Color.appSurfaceInset)
-                        .frame(height: 5)
-                        .overlay(
-                            GeometryReader { g in
-                                let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
-                                Capsule()
-                                    .fill(allDone ? Color.appSuccess : Color.forge)
-                                    .frame(width: g.size.width * fraction)
-                                    .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
-                            },
-                            alignment: .leading
-                        )
-                        .shadow(color: allDone ? Color.appSuccess.opacity(0.35) : .clear, radius: 5)
                         .animation(.easeInOut(duration: 0.3), value: allDone)
+                        Capsule()
+                            .fill(Color.appSurfaceInset)
+                            .frame(height: 4)
+                            .overlay(
+                                GeometryReader { g in
+                                    let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
+                                    Capsule()
+                                        .fill(allDone ? Color.appSuccess : Color.forge)
+                                        .frame(width: g.size.width * fraction)
+                                        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
+                                },
+                                alignment: .leading
+                            )
+                    }
 
                     contextToggleButton
                     if showContextPanel {
                         contextPanel
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, .appCardInsetH)
+                .padding(.vertical, .appCardInsetV)
+                .background(Color.appCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: .appCardRadius)
+                        .stroke(Color.appSeparator, lineWidth: .appHairline)
+                )
+                .cornerRadius(.appCardRadius)
+                .padding(.horizontal, .appPagePadding)
                 .padding(.top, 12)
 
                 exerciseSection
