@@ -79,6 +79,26 @@ struct TodayCardView: View {
         return .dayCompleted
     }
 
+    private func muscleMapping(for exerciseNames: [String]) -> MuscleMappingResult {
+        MuscleMapper.aggregate(
+            exerciseNames.compactMap { dash.exerciseMuscleMetadata[$0] }
+        )
+    }
+
+    @ViewBuilder
+    private func muscleMap(for exerciseNames: [String]) -> some View {
+        let result = muscleMapping(for: exerciseNames)
+        if !result.zones.isEmpty {
+            MuscleMapView(
+                zones: result.zones,
+                tint: Color.domainAccent(.training),
+                displayMode: .both
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: 104)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
@@ -154,6 +174,11 @@ struct TodayCardView: View {
                         totalWorkoutMin: dash.totalWorkoutMinToday,
                         presentation: recapPresentation
                     )
+                    if recapPresentation == .dayCompleted, dash.today != "Repos" {
+                        muscleMap(for: todaySession?.exos ?? [])
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 12)
+                    }
                 }
                 // Séance 2 non complétée ET (planifiée backend OU exos poussés localement)
                 // → CTA vers SeanceSoirView (flow evening, is_second=true).
@@ -167,6 +192,7 @@ struct TodayCardView: View {
                         if !eveningPreview.isEmpty {
                             TodayExercisePreview(exercises: eveningPreview, accent: Color.forge)
                         }
+                        muscleMap(for: eveningPreview.map(\.0))
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -201,6 +227,7 @@ struct TodayCardView: View {
                             icon: todayIcon
                         )
                         TodayExercisePreview(exercises: exercises, accent: todayColor)
+                        muscleMap(for: exercises.map(\.0))
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
