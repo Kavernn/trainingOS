@@ -1,13 +1,63 @@
 from flask import Blueprint, jsonify, request
 from collections import defaultdict
 from datetime import datetime, timedelta, date as _date
+from dataclasses import fields, is_dataclass
+from enum import Enum
+import math
+import re
 import logging
 import time
 from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
 
+from cockpit_analytics_service import CockpitAnalyticsConfig, build_cockpit_analytics
+from metric_semantics import DateWindow
+
 analytics_stats_bp = Blueprint("analytics_stats", __name__)
+
+
+def _serialize_cockpit(value):
+    """Convert typed cockpit DTOs to JSON-safe values without formatting facts."""
+    if isinstance(value, Enum):
+        return _serialize_cockpit(value.value)
+    if type(value) is _date:
+        return value.isoformat()
+    if is_dataclass(value):
+        return {field.name: _serialize_cockpit(getattr(value, field.name)) for field in fields(value)}
+    if isinstance(value, tuple) or isinstance(value, list):
+        return [_serialize_cockpit(item) for item in value]
+    if isinstance(value, dict):
+        if any(not isinstance(key, str) for key in value):
+            raise TypeError("cockpit dictionaries require string keys")
+        return {key: _serialize_cockpit(item) for key, item in value.items()}
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("non-finite cockpit float")
+        return value
+    if value is None or isinstance(value, (str, int, bool)):
+        return value
+    raise TypeError(f"unsupported cockpit value: {type(value).__name__}")
+
+
+def _strict_query_date(name: str) -> _date:
+    value = request.args.get(name)
+    if value is None or re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) is None:
+        raise ValueError(f"{name} must be YYYY-MM-DD")
+    try:
+        return _date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be YYYY-MM-DD") from exc
+
+
+def _strict_query_days(name: str) -> int:
+    value = request.args.get(name)
+    if value is None or re.fullmatch(r"[0-9]+", value) is None:
+        raise ValueError(f"{name} must be a positive integer")
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return parsed
 
 
 def _aggregate_sessions_by_date(rows: list[dict]) -> dict[str, dict]:
@@ -136,6 +186,36 @@ def api_stats_data():
         "macros_by_day_type":    macros_by_day_type,
         "protein_weight_ratio":  protein_weight_ratio,
     })
+
+
+@analytics_stats_bp.route("/api/stats/cockpit", methods=["GET"])
+def api_stats_cockpit():
+    """Return the typed Stats cockpit contract for explicit requested windows."""
+    from datetime import timedelta
+    import db as _db
+
+    try:
+        as_of = _strict_query_date("as_of")
+        progression_days = _strict_query_days("progression_days")
+        weekly_days = _strict_query_days("weekly_days")
+        muscle_days = _strict_query_days("muscle_days")
+        config = CockpitAnalyticsConfig(
+            as_of=as_of,
+            progression_days=progression_days,
+            weekly_period=DateWindow(as_of - timedelta(days=weekly_days - 1), as_of),
+            muscle_period=DateWindow(as_of - timedelta(days=muscle_days - 1), as_of),
+        )
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    cycle_start_raw = _db.get_cycle_start_date()
+    cycle_start = _date.fromisoformat(cycle_start_raw) if cycle_start_raw else None
+    response = build_cockpit_analytics(
+        _db._client,
+        config,
+        cycle_start_date=cycle_start,
+    )
+    return jsonify(_serialize_cockpit(response))
 
 
 @analytics_stats_bp.route("/api/stats/streaks")
