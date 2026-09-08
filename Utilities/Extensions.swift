@@ -101,10 +101,10 @@ static let pssBg           = Color(hex: "0C0C18")  // Fond de mood fixe — NE s
     // Couleurs sémantiques — desaturées en mode surgical (Sin City N&B)
     static var statusGreen:  Color { isSurgical ? Color(white: 0.68) : .green   }
     static var statusOrange: Color { isSurgical ? Color(white: 0.55) : .orange  }
-    static var statusBlue:   Color { isSurgical ? Color(white: 0.50) : isElectricLight ? Color(hex: "FFFF33") : .blue    }
+    static var statusBlue:   Color { isSurgical ? Color(white: 0.50) : isElectricLight ? Color.appInfo : .blue    }
     static var statusPurple: Color { isSurgical ? Color(white: 0.58) : .purple  }
     static var statusYellow: Color { isSurgical ? Color(white: 0.62) : .yellow  }
-    static var statusCyan:   Color { isSurgical ? Color(white: 0.52) : isElectricLight ? Color(hex: "FFFF33") : .cyan    }
+    static var statusCyan:   Color { isSurgical ? Color(white: 0.52) : isElectricLight ? AppTheme.shared.chartColor(1) : .cyan    }
     static var statusRed:    Color { isSurgical ? Color(white: 0.72) : .red     }
 
     private static var isSurgical: Bool {
