@@ -124,6 +124,123 @@ struct StatsBodyFatTrajectoryView: View {
     }
 }
 
+// MARK: - Body measurements history
+struct StatsBodyMeasurementsHistoryView: View {
+    let entries: [BodyWeightEntry]
+    @State private var selectedKind: StatsBodyMeasurementKind?
+
+    private var availableKinds: [StatsBodyMeasurementKind] {
+        StatsBodyMeasurementKind.allCases.filter { kind in
+            entries.contains { (kind.value(in: $0) ?? 0) > 0 }
+        }
+    }
+
+    private var effectiveKind: StatsBodyMeasurementKind? {
+        guard let selectedKind, availableKinds.contains(selectedKind) else { return availableKinds.first }
+        return selectedKind
+    }
+
+    private var points: [StatsBodyTrajectoryPoint] {
+        guard let kind = effectiveKind else { return [] }
+        return entries.reversed().compactMap { entry in
+            guard let value = kind.value(in: entry), value > 0,
+                  let date = DateFormatter.isoDate.date(from: entry.date) else { return nil }
+            return StatsBodyTrajectoryPoint(id: "\(entry.date)-\(kind.id)", date: date, value: value)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MENSURATIONS")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            if availableKinds.isEmpty {
+                Text("Pas de mensuration disponible sur la période.")
+                    .font(.appBody).foregroundColor(.appTextSecondary)
+            } else if let kind = effectiveKind {
+                Menu {
+                    ForEach(availableKinds) { option in
+                        Button(option.title) { selectedKind = option }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(kind.title).font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
+                        Image(systemName: "chevron.down").font(.appMicro).foregroundColor(.appTextSecondary)
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 7)
+                    .background(Color.appSurfaceInset)
+                    .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+                }
+                .accessibilityLabel("Mensuration sélectionnée : \(kind.title)")
+
+                if points.count == 1 {
+                    Text("Une seule mesure sur la période.")
+                        .font(.appBody).foregroundColor(.appTextSecondary)
+                } else if points.count >= 2 {
+                    Chart(points) { point in
+                        LineMark(x: .value("Date", point.date), y: .value(kind.title, point.value))
+                            .foregroundStyle(Color.appTextSecondary)
+                        PointMark(x: .value("Date", point.date), y: .value(kind.title, point.value))
+                            .foregroundStyle(Color.appTextSecondary)
+                    }
+                    .chartYAxisLabel("cm")
+                    .frame(height: 150)
+
+                    let first = points[0].value
+                    let last = points[points.count - 1].value
+                    Text("Variation sur la période · \(formatCentimeters(last - first))")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                }
+            }
+        }
+        .padding(16).background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private func formatCentimeters(_ value: Double) -> String {
+        value.rounded() == value ? String(format: "%.0f cm", value) : String(format: "%.1f cm", value)
+    }
+
+    private var accessibilityText: String {
+        guard let kind = effectiveKind, !points.isEmpty else {
+            return "Mensurations. Pas de mensuration disponible sur la période."
+        }
+        guard points.count > 1 else { return "\(kind.title). Une seule mesure sur la période." }
+        let first = points[0].value
+        let last = points[points.count - 1].value
+        return "\(kind.title). \(points.count) mesures sur la période. Première mesure \(formatCentimeters(first)). Dernière mesure \(formatCentimeters(last)). Variation \(formatCentimeters(last - first))."
+    }
+}
+
+private enum StatsBodyMeasurementKind: String, CaseIterable, Identifiable {
+    case waist, neck, arms, chest, thighs, hips
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .waist: return "Tour de taille"
+        case .neck: return "Cou"
+        case .arms: return "Bras"
+        case .chest: return "Poitrine"
+        case .thighs: return "Cuisses"
+        case .hips: return "Hanches"
+        }
+    }
+
+    func value(in entry: BodyWeightEntry) -> Double? {
+        switch self {
+        case .waist: return entry.waistCm
+        case .neck: return entry.neckCm
+        case .arms: return entry.armsCm
+        case .chest: return entry.chestCm
+        case .thighs: return entry.thighsCm
+        case .hips: return entry.hipsCm
+        }
+    }
+}
+
 // MARK: - Measurements Trend
 struct MeasurementsTrendView: View {
     let entries: [BodyWeightEntry]

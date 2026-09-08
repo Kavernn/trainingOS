@@ -403,19 +403,15 @@ extension StatsView {
         StatsWeightTrajectoryView(entries: filteredBW)
         StatsBodyFatTrajectoryView(entries: filteredBW)
 
+        StatsBodyMeasurementsHistoryView(entries: filteredBW)
+
         // Recovery composite
         if filteredRecovery.count >= 5 {
             RecoveryCompositeScoreView(log: Array(filteredRecovery.prefix(30).reversed()))
                 .padding(.horizontal, 16)
         }
 
-        // 3. Mensurations
-        if filteredBW.filter({ $0.waistCm != nil || $0.armsCm != nil }).count >= 2 {
-            MeasurementsTrendView(entries: Array(filteredBW.prefix(20).reversed()))
-                .padding(.horizontal, 16)
-        }
-
-        // 4. Soreness threshold
+        // Soreness threshold
         if let st = sorenessThreshold, st.thresholdVol != nil {
             SorenessThresholdCard(data: st)
                 .padding(.horizontal, 16)
