@@ -131,24 +131,26 @@ struct DashboardHeroState: View {
                             .frame(width: geometry.size.width, height: geometry.size.height)
                             .clipped()
 
-                        Color.appCard.opacity(0.18)
+                        Color.appCard.opacity(0.06)
 
                         LinearGradient(
-                            colors: [
-                                Color.appCard.opacity(0.76),
-                                Color.appCard.opacity(0.46),
-                                Color.appCard.opacity(0.12)
-                            ],
+                            gradient: Gradient(stops: [
+                                .init(color: Color.appCard.opacity(0.80), location: 0.00),
+                                .init(color: Color.appCard.opacity(0.56), location: 0.34),
+                                .init(color: Color.appCard.opacity(0.14), location: 0.68),
+                                .init(color: Color.appCard.opacity(0.04), location: 1.00)
+                            ]),
                             startPoint: .leading,
                             endPoint: .trailing
                         )
 
                         LinearGradient(
-                            colors: [
-                                Color.appCard.opacity(0.04),
-                                Color.appCard.opacity(0.18),
-                                Color.appCard.opacity(0.68)
-                            ],
+                            gradient: Gradient(stops: [
+                                .init(color: Color.appCard.opacity(0.02), location: 0.00),
+                                .init(color: Color.appCard.opacity(0.06), location: 0.45),
+                                .init(color: Color.appCard.opacity(0.34), location: 0.68),
+                                .init(color: Color.appCard.opacity(0.80), location: 1.00)
+                            ]),
                             startPoint: .top,
                             endPoint: .bottom
                         )
