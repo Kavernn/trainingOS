@@ -122,7 +122,14 @@ final class CardioSessionManager: NSObject, ObservableObject {
     }
 
     func start(type: String) {
-        guard sessionState == .idle else { return }
+        // Le UI garantit normalement sessionState == .idle avant d'afficher le bouton
+        // "Démarrer" (routage switch dans CardioActiveView.body). Si on y arrive avec
+        // un autre state (race, bug amont), on purge — un tap "Démarrer" doit
+        // toujours démarrer, jamais rester silencieux.
+        if sessionState != .idle {
+            clearPersistedSession()
+            reset()
+        }
         selectedType = type
         startTime = Date()
         legStartTime = startTime
