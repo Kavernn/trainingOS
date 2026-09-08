@@ -111,7 +111,6 @@ struct StatsView: View {
     @State var acwr:             ACWRData?               = nil
     @State var activeDeload:      DeloadStatus?           = nil
     @State var muscleStats:      [String: MuscleStatEntry]  = [:]
-    @State var muscleLandmarks:  [String: MuscleLandmark]   = [:]
     @State var inventoryTypes:   [String: String]            = [:]
     @State var isLoading    = true
     @State var fetchError   = false
@@ -125,8 +124,6 @@ struct StatsView: View {
 
     // ── Stats Expansion State ────────────────────────────────────────
     @State var weeklyTonnage:      [WeeklyTonnageEntry]        = []
-    @State var patternVolume:      PatternVolumeData?          = nil
-    @State var complianceWeeks:    [ComplianceWeek]            = []
     @State var oneRmTrend:         [String: [OneRMPoint]]      = [:]
     @State var macrosByDayType:    MacrosByDayType?            = nil
     @State var proteinWeightRatio: [ProteinWeightPoint]        = []
@@ -152,7 +149,6 @@ struct StatsView: View {
     // ── Streak — source serveur unique (/api/stats/streaks) ─────────────────
     @State var streakData: StreakResponse? = nil
     // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
-    @State var cachedWeeklyVolume: Double = 0
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
@@ -166,18 +162,8 @@ struct StatsView: View {
         }
     }
 
-    var avgRPE30: Double {
-        let cutoff = Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        let cutStr = DateFormatter.isoDate.string(from: cutoff)
-        let rpes = sessions.compactMap { date, e -> Double? in
-            date >= cutStr ? e.rpe : nil
-        }
-        return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
-    }
-
     var currentStreak: Int { streakData?.currentStreak ?? 0 }
     var bestStreak: Int    { streakData?.bestStreak    ?? 0 }
-    var weeklyVolume: Double { cachedWeeklyVolume }
 
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
 
@@ -210,14 +196,6 @@ struct StatsView: View {
         return (0..<8).reversed().map { i in
             (cal.date(byAdding: .weekOfYear, value: -i, to: Date()) ?? Date()).isoWeekKey
         }
-    }
-
-    var weeklyFrequency: [(String, Double)] {
-        var counts: [String: Double] = [:]
-        for (date, entry) in filteredSessions {
-            counts[isoWeekKey(date), default: 0] += Double(entry.sessionCount ?? 1)
-        }
-        return last8Weeks.map { ($0, counts[$0] ?? 0) }
     }
 
     var weeklyVolumeChart: [(String, Double)] {
@@ -635,20 +613,6 @@ struct StatsView: View {
     }
 
     func recalcKPIs() {
-        let fmt = DateFormatter.isoDate
-
-        let iso = Calendar.mtl
-        let daysSinceMonday = (iso.component(.weekday, from: Date()) + 5) % 7
-        let mondayDate = iso.date(byAdding: .day, value: -daysSinceMonday, to: Date()) ?? Date()
-        let mondayStr = fmt.string(from: mondayDate)
-        // Unique source de vérité : exercise history, identique à weeklyVolumeChart.
-        cachedWeeklyVolume = weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
-            guard let date = e.date, date >= mondayStr else { return nil }
-            if let vol = e.exerciseVolume, vol > 0 { return UnitSettings.shared.display(vol) }
-            guard let w = e.weight, let r = e.reps else { return nil }
-            return UnitSettings.shared.display(w * totalReps(r))
-        }.reduce(0, +)
-
     }
 
     func applyStats(_ r: StatsAPIResponse) {
@@ -661,10 +625,7 @@ struct StatsView: View {
         nutritionDays      = r.nutritionDays
         muscleStats        = r.muscleStats
         inventoryTypes     = r.inventoryTypes ?? [:]
-        muscleLandmarks    = r.muscleLandmarks ?? [:]
         weeklyTonnage      = r.weeklyTonnage ?? []
-        patternVolume      = r.patternVolume
-        complianceWeeks    = r.programmeCompliance ?? []
         oneRmTrend         = r.oneRmTrend ?? [:]
         macrosByDayType    = r.macrosByDayType
         proteinWeightRatio = r.proteinWeightRatio ?? []
