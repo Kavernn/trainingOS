@@ -5,6 +5,7 @@ struct DisplaySettingsView: View {
     @ObservedObject private var theme  = AppTheme.shared
     @AppStorage("steps_daily_goal")   private var stepsGoal: Int = 10000
     @AppStorage("hydration_goal_ml")  private var hydrationGoal: Int = 2500
+    @AppStorage(HeroMoodPreference.storageKey) private var heroMoodRawValue = HeroMoodPreference.currentRawValue
     @State private var pendingTheme: AppThemeOption = AppTheme.shared.selectedTheme
 
     private func syncPending() { pendingTheme = theme.selectedTheme }
@@ -42,6 +43,20 @@ struct DisplaySettingsView: View {
                 .listRowSeparatorTint(Color.appSeparator)
 
                 applySection
+
+                Section("Hero du tableau de bord") {
+                    Picker("Atmosphère", selection: heroMoodSelection) {
+                        Text(HeroMoodPreference.currentDisplayName)
+                            .tag(HeroMoodPreference.currentRawValue)
+                        ForEach(HeroMood.allCases) { mood in
+                            Text(mood.displayName)
+                                .tag(mood.rawValue)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+                .listRowBackground(Color.appCard)
+                .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Unités de mesure") {
                     HStack(spacing: 12) {
@@ -124,6 +139,13 @@ struct DisplaySettingsView: View {
     }
 
     private var hasChange: Bool { pendingTheme != theme.selectedTheme }
+
+    private var heroMoodSelection: Binding<String> {
+        Binding(
+            get: { HeroMoodPreference.normalizedRawValue(heroMoodRawValue) },
+            set: { heroMoodRawValue = HeroMoodPreference.normalizedRawValue($0) }
+        )
+    }
 
     @ViewBuilder
     private var applySection: some View {

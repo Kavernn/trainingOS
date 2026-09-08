@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		HM5A0002HM5A0002HM5A0002 /* HeroMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */; };
 		007B73D0E06243669AC645D8 /* CoachInsightModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621800FD5B1E4C5CA2A93753 /* CoachInsightModels.swift */; };
 		04DE878575732A6BDD77F956 /* EducationalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9311048858BF8ACFBBCE3B8 /* EducationalModels.swift */; };
 		068A26746FD34970A1D410BF /* DashboardBriefCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */; };
@@ -286,6 +287,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeroMood.swift; sourceTree = "<group>"; };
 		058BA2E35BCC575568655DDC /* ExerciseViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
 		07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorBannerView.swift; sourceTree = "<group>"; };
@@ -839,6 +841,7 @@
 		D665E4352F5D98B8002AE470 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */,
 				D665E4342F5D98B8002AE470 /* APIModels.swift */,
 				BC0000022F5D98BA002AE470 /* BodyCompEntry.swift */,
 				EAD9AC36E56041C996317086 /* ProactiveAlert.swift */,
@@ -1378,6 +1381,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				HM5A0002HM5A0002HM5A0002 /* HeroMood.swift in Sources */,
 				D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */,
 				D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */,
 				WAV00002WAV00002WAV00002 /* WorkoutActiveView.swift in Sources */,
