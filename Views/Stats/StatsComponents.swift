@@ -1,5 +1,39 @@
 import SwiftUI
 
+// MARK: - Activity streaks
+struct StatsActivityStreakSummary: View {
+    let currentStreak: Int
+    let bestStreak: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("SÉRIES D’ACTIVITÉ")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            HStack(spacing: 12) {
+                metric(value: "\(currentStreak) \(dayLabel(currentStreak))", title: "Série actuelle")
+                metric(value: "\(bestStreak) \(dayLabel(bestStreak))", title: "Meilleure série")
+            }
+            Text("Basé sur les jours d’activité enregistrée")
+                .font(.appMicro).foregroundColor(.appTextSecondary)
+        }
+        .padding(.appCardInsetV).background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func metric(value: String, title: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value).font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
+            Text(title).font(.appCaption).foregroundColor(.appTextSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func dayLabel(_ value: Int) -> String { value == 1 ? "jour" : "jours" }
+}
+
 // MARK: - Canonical regularity
 struct StatsRegularitySummary: View {
     let trainingLoad: StatsCockpitTrainingLoad

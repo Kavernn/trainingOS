@@ -204,23 +204,22 @@ struct SessionHeatmapView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("90 DERNIERS JOURS")
+                Text("CALENDRIER D’ACTIVITÉ")
                     .font(.appMicro).tracking(2).foregroundColor(.gray)
                 Spacer()
-                if bestStreak > 1 {
-                    Text("Best \(bestStreak)🔥")
-                        .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)
-                }
             }
+            Text("Musculation + HIIT · 90 derniers jours")
+                .font(.appCaption).foregroundColor(.gray)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 15), spacing: 3) {
-                ForEach(cells, id: \.0) { _, type in
+                ForEach(cells, id: \.0) { date, type in
                     RoundedRectangle(cornerRadius: 2) // shape inline
                         .fill(cellColor(type))
                         .frame(height: 16)
+                        .accessibilityLabel(cellAccessibilityLabel(date: date, type: type))
                 }
             }
             HStack(spacing: 12) {
-                Text("\(activeDays) jours actifs").font(.appCaption).foregroundColor(.gray)
+                Text("\(activeDays) jours avec activité").font(.appCaption).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
                     Circle().fill(Color.forge).frame(width: 8, height: 8)
@@ -237,6 +236,15 @@ struct SessionHeatmapView: View {
             }
         }
         .padding(16).glassCard()
+    }
+
+    private func cellAccessibilityLabel(date: String, type: CellType) -> String {
+        switch type {
+        case .none: return "\(date). Aucune activité musculation ou HIIT."
+        case .muscu: return "\(date). Musculation."
+        case .hiit: return "\(date). HIIT."
+        case .both: return "\(date). Musculation et HIIT."
+        }
     }
 }
 

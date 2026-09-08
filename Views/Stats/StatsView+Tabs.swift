@@ -118,9 +118,6 @@ extension StatsView {
             StatsRegularitySummary(trainingLoad: cockpit.trainingLoad)
             StatsWeeklyRegularityChart(weekly: cockpit.trainingLoad.weekly)
         }
-        let daysActive = Set(sessions.keys).union(
-            hiitLog.compactMap(\.date).map { String($0.prefix(10)) }
-        ).count
         SessionHeatmapView(
             sessions: sessions,
             hiitDates: Set(hiitLog.compactMap(\.date).map { String($0.prefix(10)) }),
@@ -128,12 +125,7 @@ extension StatsView {
         )
         .padding(.horizontal, 16)
 
-        HStack(spacing: 12) {
-            consistencyMetric(title: "JOURS ACTIFS", value: "\(daysActive)")
-            consistencyMetric(title: "STREAK ACTUEL", value: "\(currentStreak)")
-            consistencyMetric(title: "MEILLEUR STREAK", value: "\(bestStreak)")
-        }
-        .padding(.horizontal, 16)
+        StatsActivityStreakSummary(currentStreak: currentStreak, bestStreak: bestStreak)
 
         Spacer(minLength: 32)
     }
