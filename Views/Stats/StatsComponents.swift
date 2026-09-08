@@ -1,5 +1,70 @@
 import SwiftUI
 
+// MARK: - Canonical muscle workload
+struct StatsMuscleWorkloadSection: View {
+    let muscles: StatsCockpitMuscles
+
+    private var coverageMessage: String? {
+        let coverage = muscles.coverage
+        guard coverage.unmappedExposureCount > 0 else { return nil }
+        return "Mapping partiel · \(coverage.mappedExposureCount) / \(coverage.totalExposureCount) expositions mappées"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("TRAVAIL PAR MUSCLE")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            Text("Répartition du travail mesurable")
+                .font(.appCaption).foregroundColor(.appTextSecondary)
+
+            if let coverageMessage {
+                Text(coverageMessage)
+                    .font(.appMicro.weight(.semibold)).foregroundColor(.appTextMuted)
+            }
+
+            if muscles.workloads.isEmpty {
+                Text("Pas encore de travail musculaire mesurable.")
+                    .font(.appBody).foregroundColor(.appTextSecondary)
+            } else {
+                ForEach(muscles.workloads, id: \.muscle) { workload in
+                    StatsMuscleWorkloadRow(workload: workload)
+                    if workload.muscle != muscles.workloads.last?.muscle {
+                        Divider().overlay(Color.appSeparator)
+                    }
+                }
+            }
+        }
+        .padding(.appCardInsetV)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+    }
+}
+
+struct StatsMuscleWorkloadRow: View {
+    let workload: StatsMuscleWorkload
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(workload.muscle)
+                .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
+                .lineLimit(1)
+            HStack(spacing: 10) {
+                Text("\(workload.directSetCount) séries directes")
+                Text("\(workload.indirectSetCount) séries indirectes")
+            }
+            .font(.appCaption).foregroundColor(.appTextSecondary)
+            Text("\(workload.sessionCount) séances · \(workload.activeDayCount) jours actifs")
+                .font(.appMicro).foregroundColor(.appTextMuted)
+            Text("Dernière exposition · \(workload.lastExposureDate)")
+                .font(.appMicro).foregroundColor(.appTextMuted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(workload.muscle). \(workload.directSetCount) séries directes. \(workload.indirectSetCount) séries indirectes. \(workload.sessionCount) séances. \(workload.activeDayCount) jours actifs. Dernière exposition le \(workload.lastExposureDate).")
+    }
+}
+
 // MARK: - Canonical external load
 struct StatsExternalLoadSection: View {
     let trainingLoad: StatsCockpitTrainingLoad

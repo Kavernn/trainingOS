@@ -341,6 +341,10 @@ extension StatsView {
                 .padding(.horizontal, .appPagePadding)
         }
 
+        if let cockpit = cockpitData {
+            StatsMuscleWorkloadSection(muscles: cockpit.muscles)
+        }
+
         Spacer(minLength: 32)
     }
 
