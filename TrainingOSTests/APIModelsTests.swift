@@ -8,6 +8,47 @@ import XCTest
 
 final class APIModelsTests: XCTestCase {
 
+    // MARK: - Dashboard muscle metadata
+
+    func testDashboardMuscleMetadataDecoding() throws {
+        let json = dashboardJSON(extraFields: """
+            "exercise_muscle_metadata": {
+                "Bench Press": {
+                    "muscle_group": "Pectoraux",
+                    "muscle_specific": "Pectoral majeur — chef sternal",
+                    "secondary_muscles": ["Triceps", "Deltoïde antérieur"],
+                    "muscles": ["chest", "triceps", "front_delts"]
+                }
+            },
+            """)
+
+        let decoded = try JSONDecoder().decode(DashboardData.self, from: json)
+        let metadata = try XCTUnwrap(decoded.exerciseMuscleMetadata["Bench Press"])
+
+        XCTAssertEqual(metadata.muscleGroup, "Pectoraux")
+        XCTAssertEqual(metadata.muscleSpecific, "Pectoral majeur — chef sternal")
+        XCTAssertEqual(metadata.secondaryMuscles, ["Triceps", "Deltoïde antérieur"])
+        XCTAssertEqual(metadata.legacyMuscles, ["chest", "triceps", "front_delts"])
+        XCTAssertEqual(decoded.fullProgram["Push A"]?["Bench Press"]?.value, "4x5-7")
+    }
+
+    func testDashboardMuscleMetadataDefaultsWhenAbsent() throws {
+        let decoded = try JSONDecoder().decode(DashboardData.self, from: dashboardJSON())
+        XCTAssertTrue(decoded.exerciseMuscleMetadata.isEmpty)
+    }
+
+    func testExerciseMuscleMetadataDefaultsWhenInternalFieldsAreAbsent() throws {
+        let decoded = try JSONDecoder().decode(
+            ExerciseMuscleMetadata.self,
+            from: Data(#"{"muscle_group":"Dos"}"#.utf8)
+        )
+
+        XCTAssertEqual(decoded.muscleGroup, "Dos")
+        XCTAssertNil(decoded.muscleSpecific)
+        XCTAssertTrue(decoded.secondaryMuscles.isEmpty)
+        XCTAssertTrue(decoded.legacyMuscles.isEmpty)
+    }
+
     // MARK: - SeanceData
 
     func testSeanceDataDecoding() throws {
@@ -81,5 +122,22 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(decoded.nextOffset, 20)
         XCTAssertEqual(decoded.total, 42)
         XCTAssertTrue(decoded.items.isEmpty)
+    }
+
+    private func dashboardJSON(extraFields: String = "") -> Data {
+        Data("""
+        {
+            "today": "Push A",
+            "week": 1,
+            "today_date": "2026-03-15",
+            "schedule": {},
+            "sessions": {},
+            "goals": {},
+            "full_program": {"Push A": {"Bench Press": "4x5-7"}},
+            \(extraFields)
+            "nutrition_totals": {},
+            "profile": {}
+        }
+        """.utf8)
     }
 }

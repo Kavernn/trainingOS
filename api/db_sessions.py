@@ -1390,7 +1390,7 @@ def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
     def _do() -> dict[str, dict]:
         resp = (
             db_core._client.table("exercises")
-            .select("name, category, load_profile, default_scheme, muscles, muscle_group, muscle_specific, movement_pattern, weight_type")
+            .select("name, category, load_profile, default_scheme, muscles, muscle_group, muscle_specific, secondary_muscles, movement_pattern, weight_type")
             .in_("name", names)
             .is_("deleted_at", "null")
             .execute()

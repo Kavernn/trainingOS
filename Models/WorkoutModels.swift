@@ -45,6 +45,29 @@ struct LogExerciseResponse: Codable {
     }
 }
 
+// MARK: - Dashboard Exercise Muscle Metadata
+struct ExerciseMuscleMetadata: Codable, Equatable {
+    let muscleGroup: String?
+    let muscleSpecific: String?
+    let secondaryMuscles: [String]
+    let legacyMuscles: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case muscleGroup      = "muscle_group"
+        case muscleSpecific   = "muscle_specific"
+        case secondaryMuscles = "secondary_muscles"
+        case legacyMuscles    = "muscles"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        muscleGroup      = try? c.decode(String.self, forKey: .muscleGroup)
+        muscleSpecific   = try? c.decode(String.self, forKey: .muscleSpecific)
+        secondaryMuscles = (try? c.decode([String].self, forKey: .secondaryMuscles)) ?? []
+        legacyMuscles    = (try? c.decode([String].self, forKey: .legacyMuscles)) ?? []
+    }
+}
+
 // MARK: - Dashboard
 struct DashboardData: Codable {
     let today: String
@@ -59,6 +82,7 @@ struct DashboardData: Codable {
     let goals: [String: GoalProgress]
     let smartGoalsCount: Int
     let fullProgram: [String: [String: SafeString]]
+    let exerciseMuscleMetadata: [String: ExerciseMuscleMetadata]
     let nutritionTotals: NutritionTotals
     let nutritionSettings: NutritionSettings?
     /// Cible calorique adaptative (source unique : tdee.compute_target_calories()).
@@ -92,6 +116,7 @@ struct DashboardData: Codable {
         case schedule, sessions, goals
         case smartGoalsCount = "smart_goals_count"
         case fullProgram = "full_program"
+        case exerciseMuscleMetadata = "exercise_muscle_metadata"
         case nutritionTotals = "nutrition_totals"
         case nutritionSettings = "nutrition_settings"
         case targetCalories = "target_calories"
@@ -122,6 +147,7 @@ struct DashboardData: Codable {
         goals               = try c.decode([String: GoalProgress].self, forKey: .goals)
         smartGoalsCount     = (try? c.decode(Int.self, forKey: .smartGoalsCount)) ?? 0
         fullProgram         = try c.decode([String: [String: SafeString]].self, forKey: .fullProgram)
+        exerciseMuscleMetadata = (try? c.decode([String: ExerciseMuscleMetadata].self, forKey: .exerciseMuscleMetadata)) ?? [:]
         nutritionTotals     = try c.decode(NutritionTotals.self, forKey: .nutritionTotals)
         nutritionSettings   = try? c.decode(NutritionSettings.self, forKey: .nutritionSettings)
         targetCalories      = try? c.decode(Int.self, forKey: .targetCalories)

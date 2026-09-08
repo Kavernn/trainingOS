@@ -21,6 +21,7 @@ Routes covered:
   POST /api/delete_recovery
 """
 import sys, os
+from unittest.mock import patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 from conftest import BaseRouteTest
@@ -36,7 +37,8 @@ class TestDashboard(BaseRouteTest):
     def test_required_keys(self):
         data = self.json(self.get("/api/dashboard"))
         for key in ("today", "week", "today_date", "already_logged_today",
-                    "schedule", "suggestions", "full_program", "profile"):
+                    "schedule", "suggestions", "full_program",
+                    "exercise_muscle_metadata", "profile"):
             self.assertIn(key, data, f"Missing key: {key}")
 
     def test_full_program_is_flat(self):
@@ -45,6 +47,34 @@ class TestDashboard(BaseRouteTest):
             self.assertIsInstance(exos, dict)
             for ex, scheme in exos.items():
                 self.assertIsInstance(scheme, str)
+
+    def test_exercise_muscle_metadata_is_parallel_raw_and_best_effort(self):
+        self.store["inventory"]["Bench Press"].update({
+            "muscle_group": "Pectoraux",
+            "muscle_specific": "Pectoral majeur — chef sternal",
+            "secondary_muscles": ["Triceps", "Deltoïde antérieur"],
+            "muscles": ["chest", "triceps", "front_delts"],
+        })
+        self.store["program"]["Upper A"]["blocks"][0]["exercises"]["Unknown Exercise"] = "3x8"
+
+        data = self.json(self.get("/api/dashboard"))
+
+        self.assertEqual("4x5-7", data["full_program"]["Upper A"]["Bench Press"])
+        self.assertEqual("3x8", data["full_program"]["Upper A"]["Unknown Exercise"])
+        self.assertEqual({
+            "muscle_group": "Pectoraux",
+            "muscle_specific": "Pectoral majeur — chef sternal",
+            "secondary_muscles": ["Triceps", "Deltoïde antérieur"],
+            "muscles": ["chest", "triceps", "front_delts"],
+        }, data["exercise_muscle_metadata"]["Bench Press"])
+        self.assertNotIn("Unknown Exercise", data["exercise_muscle_metadata"])
+
+    def test_exercise_muscle_metadata_bulk_failure_is_best_effort(self):
+        with patch("db.get_exercises_info_bulk", side_effect=RuntimeError("unavailable")):
+            response = self.get("/api/dashboard")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({}, self.json(response)["exercise_muscle_metadata"])
 
     def test_not_already_logged_today(self):
         data = self.json(self.get("/api/dashboard"))

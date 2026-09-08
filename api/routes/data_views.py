@@ -200,6 +200,30 @@ def api_dashboard():
     except Exception:
         pass  # fallback template + liste vide si get_day_plan échoue
 
+    # Metadata musculaire parallèle au programme : transport brut et best-effort.
+    # Une seule requête bulk couvre le programme final + les exos loggés hors-plan.
+    # Aucun matching approché ni classification n'est effectué ici.
+    _dashboard_exercise_names = {
+        name
+        for session_exercises in _full_program_payload.values()
+        for name in session_exercises
+    } | _today_logged_names
+    _exercise_muscle_metadata: dict[str, dict] = {}
+    try:
+        _exercise_info = _db.get_exercises_info_bulk(sorted(_dashboard_exercise_names))
+        for name, info in _exercise_info.items():
+            if not isinstance(info, dict):
+                continue
+            metadata = {
+                key: info[key]
+                for key in ("muscle_group", "muscle_specific", "secondary_muscles", "muscles")
+                if info.get(key)
+            }
+            if metadata:
+                _exercise_muscle_metadata[name] = metadata
+    except Exception:
+        pass
+
     return jsonify({
         "today":               today_str,
         "week":                get_current_week(),
@@ -212,6 +236,7 @@ def api_dashboard():
         "goals":               goals_progress,
         "smart_goals_count":   smart_goals_count,
         "full_program":        _full_program_payload,
+        "exercise_muscle_metadata": _exercise_muscle_metadata,
         # Étape 3b — exos poussés matin→soir today. Consommé par iOS
         # DashboardData.pushedToEvening (remplace SeanceSplitStore local).
         "pushed_to_evening":   _pushed_to_evening,
