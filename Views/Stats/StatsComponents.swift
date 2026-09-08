@@ -1,5 +1,81 @@
 import SwiftUI
 
+// MARK: - Canonical Force progression
+struct StatsStrengthProgressionSection: View {
+    let comparisons: [StatsProgressionComparison]
+    var onSelectExercise: ((String) -> Void)? = nil
+    private var improving: [StatsProgressionComparison] { comparisons.filter { $0.status == .improving } }
+    private var stable: [StatsProgressionComparison] { comparisons.filter { $0.status == .stable } }
+    private var declining: [StatsProgressionComparison] { comparisons.filter { $0.status == .declining } }
+    private var insufficient: [StatsProgressionComparison] { comparisons.filter { $0.status == .insufficientData } }
+    private var other: [StatsProgressionComparison] {
+        comparisons.filter {
+            if case .unknown(_) = $0.status { return true }
+            return false
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("PROGRESSION PAR EXERCICE").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            Text("Comparaison des meilleures performances sur les deux périodes").font(.appCaption).foregroundColor(.appTextSecondary)
+            if comparisons.isEmpty {
+                Text("Pas encore assez de données comparables.").font(.appBody).foregroundColor(.appTextSecondary)
+            } else {
+                group("EN HAUSSE", comparisons: improving)
+                group("STABLE", comparisons: stable)
+                group("EN BAISSE", comparisons: declining)
+                group("DONNÉES INSUFFISANTES", comparisons: insufficient)
+                group("DONNÉES DISPONIBLES", comparisons: other)
+            }
+        }
+        .padding(.appCardInsetV).background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius)).padding(.horizontal, .appPagePadding)
+    }
+
+    @ViewBuilder private func group(_ title: String, comparisons: [StatsProgressionComparison]) -> some View {
+        if !comparisons.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title).font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.appTextMuted)
+                ForEach(comparisons, id: \.exerciseName) { comparison in
+                    StatsStrengthComparisonRow(comparison: comparison) { onSelectExercise?(comparison.exerciseName) }
+                    if comparison.exerciseName != comparisons.last?.exerciseName { Divider().overlay(Color.appSeparator) }
+                }
+            }
+        }
+    }
+}
+
+struct StatsStrengthComparisonRow: View {
+    let comparison: StatsProgressionComparison
+    var onSelect: (() -> Void)? = nil
+    private var statusLabel: String {
+        switch comparison.status { case .improving: return "En hausse"; case .stable: return "Stable"; case .declining: return "En baisse"; case .insufficientData: return "Données insuffisantes"; case .unknown: return "Données disponibles" }
+    }
+    private var statusColor: Color {
+        switch comparison.status { case .improving: return .appSuccess; case .declining: return .appDanger; case .stable: return .appTextSecondary; case .insufficientData, .unknown: return .appTextMuted }
+    }
+    private var reason: String? {
+        guard case .insufficientData = comparison.status, let reason = comparison.insufficiencyReason else { return nil }
+        switch reason { case .nonComparableTrackingType: return "Type de suivi non comparable"; case .noValidExposure: return "Aucune exposition valide"; case .insufficientBaselineExposures: return "Historique de référence insuffisant"; case .insufficientRecentExposures: return "Pas assez d’expositions récentes"; case .insufficientBothWindows: return "Historique insuffisant sur les deux périodes"; case .invalidBaseline: return "Référence non comparable"; case .unknown: return "Historique insuffisant" }
+    }
+    var body: some View {
+        Button(action: { onSelect?() }) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) { Text(comparison.exerciseName).font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary).lineLimit(1); Spacer(minLength: 6); Text(statusLabel).font(.appCaption.weight(.semibold)).foregroundColor(statusColor) }
+                HStack(spacing: 8) {
+                    if let recent = comparison.recentBestE1RM { Text(UnitSettings.shared.format(recent, decimals: 0)).font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary) }
+                    if let delta = comparison.relativeDelta { Text(String(format: "%+.1f", delta * 100).replacingOccurrences(of: ".", with: ",") + " %").font(.appCaption.weight(.semibold)).foregroundColor(statusColor) }
+                    Spacer(minLength: 0)
+                }
+                if let baseline = comparison.baselineBestE1RM, let recent = comparison.recentBestE1RM { Text("\(UnitSettings.shared.format(baseline, decimals: 0)) → \(UnitSettings.shared.format(recent, decimals: 0))").font(.appMicro).foregroundColor(.appTextSecondary) }
+                else if let reason { Text(reason).font(.appMicro).foregroundColor(.appTextSecondary) }
+                Text("\(comparison.baselineExposureCount) réf. · \(comparison.recentExposureCount) récentes").font(.appMicro).foregroundColor(.appTextMuted)
+            }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityElement(children: .combine)
+    }
+}
+
 // MARK: - Cockpit Overview
 struct StatsProgressionHero: View {
     let progression: StatsCockpitProgression

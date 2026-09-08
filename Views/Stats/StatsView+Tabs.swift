@@ -514,6 +514,13 @@ extension StatsView {
     // MARK: - Exercices Tab
     @ViewBuilder var exercicesTab: some View {
 
+        if let cockpit = cockpitData {
+            StatsStrengthProgressionSection(
+                comparisons: cockpit.progression.comparisons,
+                onSelectExercise: { selectedExercise = $0 }
+            )
+        }
+
         // 1. PRs actuels
         if !recentPRs.isEmpty {
             PersonalRecordsView(records: recentPRs.map { ($0.name, $0.est1RM) })
@@ -527,7 +534,7 @@ extension StatsView {
         }
 
         // 4. 1RM trend par exercice
-        if !oneRmTrend.isEmpty {
+        if cockpitData == nil && !oneRmTrend.isEmpty {
             OneRMTrendView(trend: oneRmTrend)
                 .padding(.horizontal, 16)
         }
