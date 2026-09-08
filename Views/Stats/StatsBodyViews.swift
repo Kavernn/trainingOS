@@ -1,6 +1,129 @@
 import SwiftUI
 import Charts
 
+// MARK: - Body trajectories
+private struct StatsBodyTrajectoryPoint: Identifiable {
+    let id: String
+    let date: Date
+    let value: Double
+}
+
+struct StatsWeightTrajectoryView: View {
+    let entries: [BodyWeightEntry]
+    @ObservedObject private var units = UnitSettings.shared
+
+    private var points: [StatsBodyTrajectoryPoint] {
+        entries.reversed().compactMap { entry in
+            guard entry.weight > 0, let date = DateFormatter.isoDate.date(from: entry.date) else { return nil }
+            return StatsBodyTrajectoryPoint(id: "\(entry.date)-weight", date: date, value: entry.weight)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("POIDS")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            if points.isEmpty {
+                Text("Pas de mesure de poids sur la période.")
+                    .font(.appBody).foregroundColor(.appTextSecondary)
+            } else if points.count == 1 {
+                Text("Une seule mesure de poids sur la période.")
+                    .font(.appBody).foregroundColor(.appTextSecondary)
+            } else {
+                Chart(points) { point in
+                    LineMark(x: .value("Date", point.date), y: .value("Poids", units.display(point.value)))
+                        .foregroundStyle(Color.appTextSecondary)
+                    PointMark(x: .value("Date", point.date), y: .value("Poids", units.display(point.value)))
+                        .foregroundStyle(Color.appTextSecondary)
+                }
+                .chartYAxisLabel(units.label)
+                .frame(height: 150)
+
+                let first = points[0].value
+                let last = points[points.count - 1].value
+                Text("Variation sur la période · \(units.format(last - first, decimals: 1))")
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+        }
+        .padding(16).background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var accessibilityText: String {
+        guard !points.isEmpty else { return "Poids. Pas de mesure sur la période." }
+        guard points.count > 1 else { return "Poids. Une seule mesure sur la période." }
+        let first = points[0].value
+        let last = points[points.count - 1].value
+        return "Poids. \(points.count) mesures sur la période. Première mesure \(units.format(first)). Dernière mesure \(units.format(last)). Variation \(units.format(last - first))."
+    }
+}
+
+struct StatsBodyFatTrajectoryView: View {
+    let entries: [BodyWeightEntry]
+
+    private var points: [StatsBodyTrajectoryPoint] {
+        entries.reversed().compactMap { entry in
+            guard let bodyFat = entry.bodyFat, bodyFat > 0,
+                  let date = DateFormatter.isoDate.date(from: entry.date) else { return nil }
+            return StatsBodyTrajectoryPoint(id: "\(entry.date)-body-fat", date: date, value: bodyFat)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("COMPOSITION CORPORELLE")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            Text("Masse grasse")
+                .font(.appCaption).foregroundColor(.appTextSecondary)
+            if points.isEmpty {
+                Text("Pas de valeur de masse grasse sur la période.")
+                    .font(.appBody).foregroundColor(.appTextSecondary)
+            } else if points.count == 1 {
+                Text("Une seule valeur sur la période.")
+                    .font(.appBody).foregroundColor(.appTextSecondary)
+            } else {
+                Chart(points) { point in
+                    LineMark(x: .value("Date", point.date), y: .value("Masse grasse", point.value))
+                        .foregroundStyle(Color.appTextSecondary)
+                    PointMark(x: .value("Date", point.date), y: .value("Masse grasse", point.value))
+                        .foregroundStyle(Color.appTextSecondary)
+                }
+                .chartYAxisLabel("%")
+                .frame(height: 150)
+
+                let first = points[0].value
+                let last = points[points.count - 1].value
+                Text("Variation sur la période · \(formatDelta(last - first))")
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+        }
+        .padding(16).background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private func formatDelta(_ value: Double) -> String {
+        value.rounded() == value ? String(format: "%.0f pt", value) : String(format: "%.1f pt", value)
+    }
+
+    private var accessibilityText: String {
+        guard !points.isEmpty else { return "Masse grasse. Pas de valeur sur la période." }
+        guard points.count > 1 else { return "Masse grasse. Une seule valeur sur la période." }
+        let first = points[0].value
+        let last = points[points.count - 1].value
+        return "Masse grasse. \(points.count) valeurs sur la période. Première valeur \(formatPercent(first)). Dernière valeur \(formatPercent(last)). Variation \(formatDelta(last - first))."
+    }
+
+    private func formatPercent(_ value: Double) -> String {
+        value.rounded() == value ? String(format: "%.0f pour cent", value) : String(format: "%.1f pour cent", value)
+    }
+}
+
 // MARK: - Measurements Trend
 struct MeasurementsTrendView: View {
     let entries: [BodyWeightEntry]
@@ -881,4 +1004,3 @@ struct DeloadStatusCard: View {
         return .appDanger
     }
 }
-

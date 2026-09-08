@@ -395,27 +395,15 @@ extension StatsView {
     // MARK: - Corps Tab
     @ViewBuilder var corpsTab: some View {
         let filteredBW = filteredBodyWeight
-        let bwWithFat  = filteredBW.filter { $0.bodyFat != nil && ($0.bodyFat ?? 0) > 0 }
 
         // Current measurements intentionally use the unfiltered history: each
         // metric keeps its own latest valid observation/date.
         StatsCurrentBodyMeasurements(entries: bodyWeight)
 
-        // 1. Body Recomposition Tracker (flagship — remplace les 2 courbes séparées)
-        if bwWithFat.count >= 3 {
-            BodyRecompView(entries: Array(filteredBW.reversed()))
-                .padding(.horizontal, 16)
-        } else if filteredBW.count >= 2 {
-            WeightChartView(entries: Array(filteredBW.prefix(20).reversed()))
-                .padding(.horizontal, 16)
-            EmptyChartPlaceholder(message: "Logge ton % de masse grasse pour activer le Body Recomp Tracker")
-                .padding(.horizontal, 16)
-        } else {
-            EmptyChartPlaceholder(message: "Logge au moins 2 pesées pour voir la courbe de poids")
-                .padding(.horizontal, 16)
-        }
+        StatsWeightTrajectoryView(entries: filteredBW)
+        StatsBodyFatTrajectoryView(entries: filteredBW)
 
-        // 2. Recovery composite
+        // Recovery composite
         if filteredRecovery.count >= 5 {
             RecoveryCompositeScoreView(log: Array(filteredRecovery.prefix(30).reversed()))
                 .padding(.horizontal, 16)
