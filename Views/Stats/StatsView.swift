@@ -148,7 +148,6 @@ struct StatsView: View {
     @State var intensityData:    IntensityData?         = nil
     // ── Streak — source serveur unique (/api/stats/streaks) ─────────────────
     @State var streakData: StreakResponse? = nil
-    // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
@@ -166,27 +165,6 @@ struct StatsView: View {
     var bestStreak: Int    { streakData?.bestStreak    ?? 0 }
 
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
-
-    var daysElapsedThisWeek: Int {
-        let cal = Calendar.mtl
-        let (mon, _) = weekBounds(weeksAgo: 0)
-        guard let monDate = DateFormatter.isoDate.date(from: mon) else { return 7 }
-        let today = cal.startOfDay(for: Date())
-        let days  = cal.dateComponents([.day], from: monDate, to: today).day ?? 0
-        return max(1, days + 1)
-    }
-
-    var avgSessionDuration: Double {
-        let durations = filteredSessions.values.compactMap(\.durationMin).filter { $0 > 0 }
-        guard !durations.isEmpty else { return 0 }
-        return durations.reduce(0, +) / Double(durations.count)
-    }
-
-    var volumeVelocityPct: Int? {
-        guard lastWeekVolume > 0 else { return nil }
-        let pct = (thisWeekVolume - lastWeekVolume) / lastWeekVolume * 100
-        return Int(round(pct))
-    }
 
     // ── Personal Records ─────────────────────────────────────────────
 
@@ -214,20 +192,6 @@ struct StatsView: View {
             }
         }
         return last8Weeks.map { ($0, vols[$0] ?? 0) }
-    }
-
-    // ── Top 5 volume ─────────────────────────────────────────────────
-    var top5Volume: [(String, Double)] {
-        weights.compactMap { name, data -> (String, Double)? in
-            let vol = data.history?.compactMap { e -> Double? in
-                if let ev = e.exerciseVolume, ev > 0 { return ev }
-                guard let w = e.weight, let r = e.reps else { return nil }
-                return w * totalReps(r)
-            }.reduce(0, +) ?? 0
-            return vol > 0 ? (name, vol) : nil
-        }
-        .sorted { $0.1 > $1.1 }
-        .prefix(5).map { $0 }
     }
 
     // ── RPE history ──────────────────────────────────────────────────
@@ -268,67 +232,6 @@ struct StatsView: View {
     // ── Week comparison ───────────────────────────────────────────────
     func weekBounds(weeksAgo: Int) -> (String, String) { Date().isoWeekBounds(weeksAgo: weeksAgo) }
 
-    var thisWeekSessions:   Int {
-        let (mon, sun) = weekBounds(weeksAgo: 0)
-        return sessions.reduce(0) { acc, kv in
-            (kv.key >= mon && kv.key <= sun) ? acc + (kv.value.sessionCount ?? 1) : acc
-        }
-    }
-    var lastWeekSessions:   Int {
-        let (mon, sun) = weekBounds(weeksAgo: 1)
-        return sessions.reduce(0) { acc, kv in
-            (kv.key >= mon && kv.key <= sun) ? acc + (kv.value.sessionCount ?? 1) : acc
-        }
-    }
-    var thisWeekVolume: Double {
-        let (mon, sun) = weekBounds(weeksAgo: 0)
-        return weights.values.flatMap { $0.history ?? [] }.filter {
-            guard let d = $0.date else { return false }; return d >= mon && d <= sun
-        }.compactMap { e -> Double? in
-            if let v = e.exerciseVolume, v > 0 { return UnitSettings.shared.display(v) }
-            guard let w = e.weight, let r = e.reps else { return nil }
-            return UnitSettings.shared.display(w * totalReps(r))
-        }.reduce(0, +)
-    }
-    var lastWeekVolume: Double {
-        let (mon, sun) = weekBounds(weeksAgo: 1)
-        return weights.values.flatMap { $0.history ?? [] }.filter {
-            guard let d = $0.date else { return false }; return d >= mon && d <= sun
-        }.compactMap { e -> Double? in
-            if let v = e.exerciseVolume, v > 0 { return UnitSettings.shared.display(v) }
-            guard let w = e.weight, let r = e.reps else { return nil }
-            return UnitSettings.shared.display(w * totalReps(r))
-        }.reduce(0, +)
-    }
-    var thisWeekAvgRPE: Double {
-        let (mon, sun) = weekBounds(weeksAgo: 0)
-        let rpes = sessions.filter { $0.key >= mon && $0.key <= sun }.compactMap { $0.value.rpe }
-        return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
-    }
-    var lastWeekAvgRPE: Double {
-        let (mon, sun) = weekBounds(weeksAgo: 1)
-        let rpes = sessions.filter { $0.key >= mon && $0.key <= sun }.compactMap { $0.value.rpe }
-        return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
-    }
-    var thisWeekAvgDuration: Double {
-        let (mon, sun) = weekBounds(weeksAgo: 0)
-        let d = sessions.compactMap { date, e -> Double? in
-            guard date >= mon, date <= sun else { return nil }
-            guard let dm = e.durationMin, dm > 0 else { return nil }
-            return dm
-        }
-        return d.isEmpty ? 0 : d.reduce(0, +) / Double(d.count)
-    }
-    var lastWeekAvgDuration: Double {
-        let (mon, sun) = weekBounds(weeksAgo: 1)
-        let d = sessions.compactMap { date, e -> Double? in
-            guard date >= mon, date <= sun else { return nil }
-            guard let dm = e.durationMin, dm > 0 else { return nil }
-            return dm
-        }
-        return d.isEmpty ? 0 : d.reduce(0, +) / Double(d.count)
-    }
-
     // ── Recovery Profile ──────────────────────────────────────────────
     var recoveryProfile: (avgDays: Double, sampleSize: Int)? {
         let heavy = sessions.filter { ($0.value.rpe ?? 0) >= 7.5 }
@@ -347,79 +250,6 @@ struct StatsView: View {
         guard days.count >= 3 else { return nil }
         let avg = Double(days.reduce(0, +)) / Double(days.count)
         return (avg, days.count)
-    }
-
-    // ── Smart Insights ────────────────────────────────────────────────
-    var smartInsights: [(icon: String, text: String, color: Color)] {
-        var insights: [(String, String, Color)] = []
-        let cal   = Calendar.mtl
-        let w4ago = cal.date(byAdding: .weekOfYear, value: -4, to: Date()) ?? Date()
-        let w8ago = cal.date(byAdding: .weekOfYear, value: -8, to: Date()) ?? Date()
-        let last4 = sessions.filter {
-            guard let d = DateFormatter.isoDate.date(from: $0.key) else { return false }
-            return d >= w4ago
-        }.count
-        let prev4 = sessions.filter {
-            guard let d = DateFormatter.isoDate.date(from: $0.key) else { return false }
-            return d >= w8ago && d < w4ago
-        }.count
-        if prev4 > 0 {
-            let pct = Int(round(Double(last4 - prev4) / Double(prev4) * 100))
-            if pct >= 10 {
-                insights.append(("arrow.up.circle.fill", "Fréquence +\(pct)% vs les 4 semaines précédentes. Tu accélères.", .appSuccess))
-            } else if pct <= -15 {
-                insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs les 4 semaines précédentes. Le rythme faiblit.", Color.forge))
-            }
-        }
-        if let a = acwr, ["caution", "danger"].contains(a.zone.code) {
-            insights.append(("exclamationmark.triangle.fill", "ACWR \(String(format: "%.2f", a.ratio)) — tu surcharges ta base. La fatigue s'accumule.", .appDanger))
-        }
-        if currentStreak > 0 && currentStreak < bestStreak && currentStreak >= bestStreak - 2 {
-            let gap = bestStreak - currentStreak
-            insights.append(("flame.fill", "Streak: \(currentStreak) jours — \(gap) de ton record. À portée.", Color.forge))
-        } else if currentStreak >= 7 {
-            insights.append(("flame.fill", "Streak: \(currentStreak) jours. Record: \(bestStreak). Reste en course.", Color.forge))
-        }
-        // Muscle gap: show the most overdue muscle if 7+ days without training
-        let todayStr = DateFormatter.isoDate.string(from: Date())
-        let todayDate = DateFormatter.isoDate.date(from: todayStr) ?? Date()
-        let overdueList = muscleStats
-            .compactMap { key, stat -> (String, Int)? in
-                guard let last = DateFormatter.isoDate.date(from: stat.lastDate) else { return nil }
-                let days = Int(todayDate.timeIntervalSince(last) / 86400)
-                return days >= 7 ? (key, days) : nil
-            }
-            .sorted { $0.1 > $1.1 }
-        if let overdue = overdueList.first {
-            insights.append(("exclamationmark.circle.fill",
-                             "\(overdue.0.localizedMuscleGroup) absent depuis \(overdue.1) jours. Le groupe régresse.",
-                             .appWarning))
-        }
-        return Array(insights.prefix(4))
-    }
-
-    // ── Badges ────────────────────────────────────────────────────────
-    struct Badge: Identifiable {
-        let id: String
-        let icon: String
-        let title: String
-        let desc: String
-        let earned: Bool
-        let color: Color
-    }
-    var earnedBadges: [Badge] {
-        [
-            Badge(id: "first_session",   icon: "🏋️", title: "Premier set",     desc: "1ère séance",             earned: totalSessions >= 1,       color: Color.forge),
-            Badge(id: "sessions_10",     icon: "💪", title: "10 séances",       desc: "10 séances au total",     earned: totalSessions >= 10,      color: Color.forge),
-            Badge(id: "sessions_30",     icon: "🏆", title: "30 séances",       desc: "30 séances au total",     earned: totalSessions >= 30,      color: Color.forge),
-            Badge(id: "sessions_100",    icon: "💎", title: "100 séances",      desc: "100 séances au total",    earned: totalSessions >= 100,     color: Color.forge),
-            Badge(id: "streak_7",        icon: "🔥", title: "Streak 7j",        desc: "7 jours consécutifs",     earned: bestStreak >= 7,          color: Color.forge),
-            Badge(id: "streak_14",       icon: "🔥", title: "Streak 14j",       desc: "14 jours consécutifs",    earned: bestStreak >= 14,         color: Color.forge),
-            Badge(id: "streak_30",       icon: "⚡", title: "Streak 30j",       desc: "30 jours consécutifs",    earned: bestStreak >= 30,         color: Color.forge),
-            Badge(id: "exercises_10",    icon: "📚", title: "10 exercices",     desc: "10 exercices différents", earned: exercisesCount >= 10,     color: Color.forge),
-            Badge(id: "perfect_month",   icon: "🌟", title: "Mois actif",       desc: "20 séances en 1 mois",   earned: sessionsThisMonth >= 20,  color: Color.forge),
-            Badge(id: "pr_5",            icon: "🥇", title: "5 records",        desc: "5 exercices avec PR",     earned: recentPRs.count >= 5, color: Color.forge),
-        ]
     }
 
     var tabAmbientColor: Color { .forge }
@@ -612,9 +442,6 @@ struct StatsView: View {
         }
     }
 
-    func recalcKPIs() {
-    }
-
     func applyStats(_ r: StatsAPIResponse) {
         weights            = r.weights
         sessions           = r.sessions
@@ -629,7 +456,6 @@ struct StatsView: View {
         oneRmTrend         = r.oneRmTrend ?? [:]
         macrosByDayType    = r.macrosByDayType
         proteinWeightRatio = r.proteinWeightRatio ?? []
-        recalcKPIs()
     }
 
     func applyWellness(_ r: WellnessAPIResponse) {
