@@ -20,7 +20,7 @@ enum AppThemeOption: String, CaseIterable {
 
     var preferredColorScheme: ColorScheme? {
         switch self {
-        case .electricLight: return .light
+        case .electricLight, .arctic: return .light
         default:             return nil
         }
     }
