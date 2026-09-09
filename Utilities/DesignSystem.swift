@@ -673,7 +673,7 @@ struct ChipButton: View {
                 .padding(.horizontal, hPadding)
                 .padding(.vertical, vPadding)
                 .background(isSelected ? color.opacity(0.2) : Color.appSurfaceInset)
-                .foregroundColor(isSelected ? color : .gray)
+                .foregroundColor(isSelected ? color : Color.appTextSecondary)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(isSelected ? color.opacity(0.5) : Color.clear, lineWidth: 1))
         }
