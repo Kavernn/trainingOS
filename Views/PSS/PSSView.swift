@@ -907,10 +907,10 @@ struct PSSResponseButton: View {
             VStack(spacing: 4) {
                 Text("\(val)")
                     .font(.appLabel.weight(.bold))
-                    .foregroundColor(isSelected ? .white : .gray.opacity(0.6))
+                    .foregroundColor(isSelected ? .white : Color.appTextSecondary)
                 Text(label)
                     .font(.system(size: 7, weight: .medium))
-                    .foregroundColor(isSelected ? Color.appOnSurface.opacity(0.8) : .gray.opacity(0.5))
+                    .foregroundColor(isSelected ? Color.appOnSurface.opacity(0.8) : Color.appTextSecondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
