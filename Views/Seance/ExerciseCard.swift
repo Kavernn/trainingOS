@@ -1523,9 +1523,9 @@ struct ExerciseCard: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: evm.showWarmup ? "chevron.down" : "flame")
-                        .font(.appCaption).foregroundColor(Color.gray.opacity(0.7))
+                        .font(.appCaption).foregroundColor(Color.appTextSecondary)
                     Text("Échauffement (\(Int(evm.currentWeight)) \(UnitSettings.shared.label))")
-                        .font(.appCaption).fontWeight(.medium).foregroundColor(Color.gray.opacity(0.7))
+                        .font(.appCaption).fontWeight(.medium).foregroundColor(Color.appTextSecondary)
                 }
             }
             .buttonStyle(.plain)
