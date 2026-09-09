@@ -1116,7 +1116,7 @@ struct InventoryFormSheet: View {
                         Text(label)
                             .font(.appCaption.weight(.semibold))
                             .multilineTextAlignment(.center)
-                            .foregroundColor(sel ? .black : .white)
+                            .foregroundColor(sel ? .black : Color.appTextSecondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 7)
                             .background(sel ? Color.forge : Color.appSurfaceInset)
@@ -1205,7 +1205,7 @@ struct InventoryFormSheet: View {
                             } label: {
                                 Text(eq)
                                     .font(.appCaption.weight(.medium))
-                                    .foregroundColor(sel ? .black : .white)
+                                    .foregroundColor(sel ? .black : Color.appTextSecondary)
                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                     .background(sel ? Color.forge : Color.appSurfaceInset)
                                     .cornerRadius(16)
@@ -1287,7 +1287,7 @@ struct InventoryFormSheet: View {
                                     .font(.appCaption.weight(.medium))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                     .background(defaultScheme == s ? Color.forge : Color.appSurfaceInset)
-                                    .foregroundColor(defaultScheme == s ? Color.onAccent : .white)
+                                    .foregroundColor(defaultScheme == s ? Color.onAccent : Color.appTextSecondary)
                                     .cornerRadius(16)
                             }
                         }
@@ -1359,7 +1359,7 @@ struct InventoryFormSheet: View {
                     Button { level = (level == key ? "" : key) } label: {
                         Text(label)
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(sel ? .black : .white)
+                            .foregroundColor(sel ? .black : Color.appTextSecondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                             .background(sel ? Color.forge : Color.appSurfaceInset)
@@ -1405,7 +1405,7 @@ struct InventoryFormSheet: View {
                         Button { restSecs = s } label: {
                             Text(formatDur(s))
                                 .font(.appLabel.weight(.semibold))
-                                .foregroundColor(restSecs == s ? .black : .white)
+                                .foregroundColor(restSecs == s ? .black : Color.appTextSecondary)
                                 .padding(.horizontal, 14).padding(.vertical, 7)
                                 .background(restSecs == s ? Color.forge : Color.appSurfaceInset)
                                 .clipShape(Capsule())
