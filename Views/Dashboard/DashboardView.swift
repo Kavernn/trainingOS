@@ -30,6 +30,8 @@ struct DashboardView: View {
     @State private var educationalLoadedDate: String? = nil
     @State private var lessonOfDay: EducationalCapsule? = nil
     @State private var lessonSheetCapsule: EducationalCapsule? = nil
+    @State private var lessonBypassAttemptedDate: String? = nil
+    @State private var lessonRefreshFailed: Bool = false
     // Mode Jour de Paie — sheet pré-remplie + célébration après log.
     @State private var budgetPrefill: PlannedTransfer? = nil
     @State private var pendingBudgetCelebration: BudgetCelebrationData? = nil
@@ -257,15 +259,39 @@ struct DashboardView: View {
 
                                         // 9 — Leçon du jour (registre calme)
                                         if let lesson = lessonOfDay {
-                                            LessonOfDayCard(capsule: lesson, exhausted: false) {
-                                                lessonSheetCapsule = lesson
-                                            }
+                                            LessonOfDayCard(
+                                                capsule: lesson,
+                                                exhausted: false,
+                                                refreshFailed: false,
+                                                onTap: { lessonSheetCapsule = lesson },
+                                                onRetry: { }
+                                            )
+                                            .frame(maxWidth: .infinity)
+                                            .appearAnimation(delay: 0.11)
+                                        } else if lessonRefreshFailedToday {
+                                            LessonOfDayCard(
+                                                capsule: nil,
+                                                exhausted: false,
+                                                refreshFailed: true,
+                                                onTap: { },
+                                                onRetry: {
+                                                    lessonBypassAttemptedDate = nil
+                                                    lessonRefreshFailed = false
+                                                    Task { await refreshEducationalLive() }
+                                                }
+                                            )
                                             .frame(maxWidth: .infinity)
                                             .appearAnimation(delay: 0.11)
                                         } else if lessonExhausted {
-                                            LessonOfDayCard(capsule: nil, exhausted: true) { }
-                                                .frame(maxWidth: .infinity)
-                                                .appearAnimation(delay: 0.11)
+                                            LessonOfDayCard(
+                                                capsule: nil,
+                                                exhausted: true,
+                                                refreshFailed: false,
+                                                onTap: { },
+                                                onRetry: { }
+                                            )
+                                            .frame(maxWidth: .infinity)
+                                            .appearAnimation(delay: 0.11)
                                         }
                                     }
 
@@ -497,17 +523,41 @@ struct DashboardView: View {
     }
 
     private func loadEducationalIfNeeded() async {
-        guard educationalLoadedDate != todayStr else {
-            resolveLessonOfDay()
-            return
+        if educationalLoadedDate != todayStr {
+            do {
+                educationalCapsules = try await api.fetchEducationalContent()
+                educationalLoadedDate = todayStr
+            } catch {
+                return  // carte absente si fetch initial KO (registre non-critique)
+            }
         }
+        resolveLessonOfDay()
+        // Épuisement présumé : le pool est celui du cache 24h. Avant d'afficher
+        // "tu as tout parcouru", on force un aller-retour réseau pour vérifier
+        // qu'aucune capsule neuve n'a été ajoutée côté DB.
+        if !educationalCapsules.isEmpty
+            && lessonOfDay == nil
+            && lessonBypassAttemptedDate != todayStr {
+            await refreshEducationalLive()
+        }
+    }
+
+    /// Bypass cache pour vérifier le pool live avant de conclure "épuisé".
+    /// Garde : un seul appel par jour astro. `lessonBypassAttemptedDate` est
+    /// marqué AVANT l'await pour verrouiller toute réentrance depuis un
+    /// re-render pendant que le fetch est en vol.
+    /// Erreur : pas de fallback silencieux — `lessonRefreshFailed = true`
+    /// bascule l'UI sur l'état "vérification impossible", jamais sur "épuisé".
+    private func refreshEducationalLive() async {
+        lessonBypassAttemptedDate = todayStr
         do {
-            let result = try await api.fetchEducationalContent()
-            educationalCapsules = result
-            educationalLoadedDate = todayStr
+            let live = try await api.fetchEducationalContent(bypassCache: true)
+            LessonOfDayStore.reconcileSeen(against: Set(live.map(\.id)))
+            educationalCapsules = live
+            lessonRefreshFailed = false
             resolveLessonOfDay()
         } catch {
-            // Silencieux : carte absente si fetch échoue (registre non-critique).
+            lessonRefreshFailed = true
         }
     }
 
@@ -516,7 +566,14 @@ struct DashboardView: View {
     }
 
     private var lessonExhausted: Bool {
-        !educationalCapsules.isEmpty && lessonOfDay == nil
+        !educationalCapsules.isEmpty
+            && lessonOfDay == nil
+            && lessonBypassAttemptedDate == todayStr
+            && !lessonRefreshFailed
+    }
+
+    private var lessonRefreshFailedToday: Bool {
+        lessonRefreshFailed && lessonBypassAttemptedDate == todayStr
     }
 }
 

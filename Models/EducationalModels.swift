@@ -45,6 +45,18 @@ enum LessonOfDayStore {
         return Set(raw)
     }
 
+    /// Purge de seenIds les IDs absents du pool live (capsules soft-deleted côté DB).
+    /// À appeler avant `todayLesson()` lors d'un refresh live pour éviter que
+    /// des IDs zombie gonflent artificiellement la couverture et déclenchent
+    /// un faux "épuisé".
+    static func reconcileSeen(against liveIds: Set<Int>) {
+        let seen = seenIds()
+        let cleaned = seen.intersection(liveIds)
+        if cleaned != seen {
+            UserDefaults.standard.set(Array(cleaned), forKey: seenKey)
+        }
+    }
+
     /// Renvoie la capsule du jour, ou nil si toutes vues (état "épuisé").
     /// - Si une capsule est déjà figée pour `todayStr` et toujours présente
     ///   dans `all` → la retourne (stable sur la journée).

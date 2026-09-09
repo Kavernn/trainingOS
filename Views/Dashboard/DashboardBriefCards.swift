@@ -116,13 +116,16 @@ struct MomentumStripView: View {
 // MARK: - Lesson of Day Card
 //
 // Registre calme : carte compacte dans le cluster secondaire du dashboard.
-// 2 états : capsule disponible (tap → sheet) | épuisé (message, pas de tap).
-// Carte absente si pas de données (fetch vide/échec).
+// 3 états : capsule disponible (tap → sheet) | vérification impossible
+// (tap → retry) | épuisé (message, pas de tap). Carte absente si pas de
+// données (fetch initial vide/échec).
 
 struct LessonOfDayCard: View {
     let capsule: EducationalCapsule?
     let exhausted: Bool
+    let refreshFailed: Bool
     let onTap: () -> Void
+    let onRetry: () -> Void
 
     private var previewLine: String? {
         guard let capsule = capsule else { return nil }
@@ -175,6 +178,29 @@ struct LessonOfDayCard: View {
                         .stroke(Color.statusPurple.opacity(0.16), lineWidth: 1)
                 )
                 .glassCard(cornerRadius: 14)
+            }
+            .buttonStyle(ScaleButtonStyle())
+        } else if refreshFailed {
+            Button(action: onRetry) {
+                VStack(alignment: .leading, spacing: 9) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.appLabel)
+                            .foregroundColor(Color.appTextMuted)
+                        Text("LEÇON DU JOUR")
+                            .font(.appMicro.weight(.black))
+                            .foregroundColor(Color.appTextMuted)
+                            .tracking(1.4)
+                    }
+                    Text("Vérification du pool impossible — tape pour réessayer.")
+                        .font(.appLabel)
+                        .foregroundColor(Color.appTextSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+                .glassCard(cornerRadius: 14)
+                .opacity(0.75)
             }
             .buttonStyle(ScaleButtonStyle())
         } else if exhausted {
