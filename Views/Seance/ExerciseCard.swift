@@ -1082,11 +1082,6 @@ struct ExerciseCard: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, isCompletedCompact ? 6 : (isUpcomingCompact ? 8 : 16))
-            .background(
-                isCompletedCompact
-                    ? Color.appSurfaceInset.opacity(0.32)
-                    : (isUpcomingCompact ? Color.appSurfaceInset.opacity(0.55) : Color.clear)
-            )
         }
         .buttonStyle(.plain)
     }
@@ -1235,7 +1230,6 @@ struct ExerciseCard: View {
             } else {
                 formView
                     .padding(isCurrentHero ? 12 : 0)
-                    .background(isCurrentHero ? Color.appSurfaceInset : Color.clear)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(isCurrentHero ? Color.appSeparatorStrong : Color.clear,
