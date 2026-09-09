@@ -33,7 +33,6 @@ struct ContentView: View {
         MacContentView(network: network, sync: sync)
 #else
         iOSContentView(network: network, sync: sync, selectedTab: $selectedTab)
-            .id(themeToken)
 #endif
     }
 }

@@ -4,6 +4,7 @@ import Combine
 struct MoreView: View {
     @ObservedObject private var api      = APIService.shared
     @ObservedObject private var appState = AppState.shared
+    @ObservedObject private var appTheme = AppTheme.shared
     @State private var showRitual = false
     @State private var showNutritionDirect = false
 

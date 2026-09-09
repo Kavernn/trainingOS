@@ -60,6 +60,48 @@ enum AppThemeOption: String, CaseIterable {
         case .liquidGlass:   return Color(hex: "5B9DFF")
         }
     }
+
+    /// Palette canonique du thème, sans modifier AppTheme.shared.
+    var colors: AppThemeColors {
+        switch self {
+        case .monochrome:    return .monochrome
+        case .sinCity:       return .sinCity
+        case .blood:         return .blood
+        case .electric:      return .electric
+        case .matrix:        return .matrix
+        case .tokyo:         return .tokyo
+        case .arctic:        return .arctic
+        case .goldNoir:      return .goldNoir
+        case .desert:        return .desert
+        case .electricLight: return .electricLight
+        case .aurora:        return .aurora
+        case .brutalist:     return .brutalist
+        case .liquidGlass:   return .liquidGlass
+        }
+    }
+
+    // Runtime-facing preview roles, resolved without mutating the active theme.
+    var resolvedPreviewAccent: Color {
+        self == .arctic || colors.accentDistribution != .surgical ? colors.accent : .white
+    }
+    var resolvedPreviewAccentLight: Color {
+        self == .arctic || colors.accentDistribution != .surgical ? colors.accentLight : .white.opacity(0.7)
+    }
+    var resolvedPreviewOnAccent: Color {
+        self == .arctic || colors.accentDistribution != .surgical ? colors.onAccent : .black
+    }
+    var resolvedPreviewSuccess: Color {
+        self == .arctic || colors.accentDistribution != .surgical ? colors.success : Color(white: 0.68)
+    }
+    var resolvedPreviewWarning: Color {
+        self == .arctic || colors.accentDistribution != .surgical ? colors.warning : Color(white: 0.55)
+    }
+    var resolvedPreviewInfo: Color {
+        self == .arctic || colors.accentDistribution != .surgical ? colors.info : Color(white: 0.50)
+    }
+    var resolvedPreviewDanger: Color {
+        self == .arctic || colors.accentDistribution != .surgical ? colors.danger : Color(white: 0.72)
+    }
 }
 
 // MARK: - Card Style

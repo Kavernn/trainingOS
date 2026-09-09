@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel(draftSessionType: "morning")
+    @ObservedObject private var appTheme = AppTheme.shared
 
     var body: some View {
         NavigationStack {

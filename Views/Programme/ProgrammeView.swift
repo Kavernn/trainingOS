@@ -140,6 +140,7 @@ struct ProgrammeView: View {
     // (sheets, alerts, drag transitoire, clipboard @AppStorage, undo, périodisation)
     // restent ici.
     @StateObject private var vm = ProgrammeViewModel()
+    @ObservedObject private var appTheme = AppTheme.shared
     // Sert au flush du delete-undo en attente si l'app quitte < 4 s
     // (cf. commitPendingDelete + .onChange(of: scenePhase)).
     @Environment(\.scenePhase) private var scenePhase

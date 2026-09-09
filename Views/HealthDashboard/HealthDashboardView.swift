@@ -7,6 +7,7 @@ struct HealthDashboardView: View {
     // Shell
     @State private var activeTab: Int = 0
     @State private var isLoading = true
+    @ObservedObject private var appTheme = AppTheme.shared
     @ObservedObject private var units = UnitSettings.shared
     @ObservedObject private var hk = HealthKitService.shared
     @ObservedObject private var watchSync = WatchSyncService.shared

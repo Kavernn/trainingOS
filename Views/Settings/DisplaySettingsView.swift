@@ -6,9 +6,6 @@ struct DisplaySettingsView: View {
     @AppStorage("steps_daily_goal")   private var stepsGoal: Int = 10000
     @AppStorage("hydration_goal_ml")  private var hydrationGoal: Int = 2500
     @AppStorage(HeroMoodPreference.storageKey) private var heroMoodRawValue = HeroMoodPreference.currentRawValue
-    @State private var pendingTheme: AppThemeOption = AppTheme.shared.selectedTheme
-
-    private func syncPending() { pendingTheme = theme.selectedTheme }
 
     private let stepsOptions = [5000, 7500, 8000, 10000, 12000, 15000]
 
@@ -25,24 +22,34 @@ struct DisplaySettingsView: View {
     var body: some View {
         ZStack {
             AmbientBackground(color: .statusCyan)
+                .id(theme.selectedTheme)
 
             List {
-                Section("Apparence") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(AppThemeOption.allCases, id: \.rawValue) { option in
-                                themeCard(option)
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Touchez un thème pour le prévisualiser instantanément.")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            LazyHStack(spacing: 12) {
+                                ForEach(AppThemeOption.allCases, id: \.rawValue) { option in
+                                    ThemePreviewCard(
+                                        option: option,
+                                        isSelected: theme.selectedTheme == option,
+                                        action: { theme.applyTheme(option) }
+                                    )
+                                }
                             }
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 2)
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 2)
                     }
-                    .animation(.easeInOut(duration: 0.2), value: pendingTheme)
                 }
-                .listRowBackground(Color.appCard)
+                header: {
+                    Text("Apparence")
+                }
+                .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
-
-                applySection
 
                 Section("Hero du tableau de bord") {
                     Picker("Atmosphère", selection: heroMoodSelection) {
@@ -55,7 +62,7 @@ struct DisplaySettingsView: View {
                     }
                     .pickerStyle(.menu)
                 }
-                .listRowBackground(Color.appCard)
+                .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Unités de mesure") {
@@ -78,7 +85,7 @@ struct DisplaySettingsView: View {
                     }
                     .padding(.vertical, 3)
                 }
-                .listRowBackground(Color.appCard)
+                .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Activité") {
@@ -104,7 +111,7 @@ struct DisplaySettingsView: View {
                     }
                     .padding(.vertical, 4)
                 }
-                .listRowBackground(Color.appCard)
+                .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
 
                 Section("Nutrition") {
@@ -127,7 +134,7 @@ struct DisplaySettingsView: View {
                     }
                     .padding(.vertical, 3)
                 }
-                .listRowBackground(Color.appCard)
+                .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)
@@ -135,10 +142,7 @@ struct DisplaySettingsView: View {
         }
         .navigationTitle("Affichage & Unités")
         .navigationBarTitleDisplayMode(.large)
-        .onAppear { syncPending() }
     }
-
-    private var hasChange: Bool { pendingTheme != theme.selectedTheme }
 
     private var heroMoodSelection: Binding<String> {
         Binding(
@@ -147,79 +151,6 @@ struct DisplaySettingsView: View {
         )
     }
 
-    @ViewBuilder
-    private var applySection: some View {
-        Section {
-            Button {
-                guard hasChange else { return }
-                theme.applyTheme(pendingTheme)
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: hasChange ? "paintpalette.fill" : "checkmark.circle.fill")
-                        .font(.appBody)
-                        .foregroundColor(hasChange ? pendingTheme.previewColor : .statusGreen)
-                    Text(hasChange ? "Appliquer « \(pendingTheme.displayName) »" : "Thème appliqué")
-                        .font(.appBody.weight(.semibold))
-                        .foregroundColor(hasChange ? .white : Color.appOnSurface.opacity(0.35))
-                    Spacer()
-                    if hasChange {
-                        Image(systemName: "chevron.right")
-                            .font(.appLabel.weight(.semibold))
-                            .foregroundColor(Color.appOnSurface.opacity(0.3))
-                    }
-                }
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-        .listRowBackground(hasChange ? pendingTheme.previewColor.opacity(0.14) : Color.appCard)
-        .listRowSeparatorTint(Color.appSeparator)
-    }
-
-    @ViewBuilder
-    private func themeCard(_ option: AppThemeOption) -> some View {
-        let isPending = pendingTheme == option
-        let isApplied = theme.selectedTheme == option && !hasChange
-        Button { pendingTheme = option } label: {
-            VStack(spacing: 7) {
-                ZStack(alignment: .bottomTrailing) {
-                    Circle()
-                        .fill(option.previewColor)
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Circle()
-                                .strokeBorder(Color.appOnSurface.opacity(isPending ? 0.9 : 0.15),
-                                              lineWidth: isPending ? 2.5 : 1)
-                        )
-                    if isApplied {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.appLabel)
-                            .foregroundColor(.appTextPrimary)
-                            .background(Circle().fill(option.previewColor).padding(1))
-                            .offset(x: 4, y: 4)
-                    }
-                }
-                .padding(.bottom, isApplied ? 4 : 0)
-
-                Text(option.displayName)
-                    .font(isPending ? .appCaption.weight(.bold) : .appCaption)
-                    .foregroundColor(isPending ? .white : Color.appOnSurface.opacity(0.4))
-            }
-            .frame(width: 64)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isPending ? Color.appSurfaceInset : Color.clear)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(isPending ? Color.appOnSurface.opacity(0.4) : Color.clear,
-                                          lineWidth: 1.5)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
 
     @ViewBuilder
     private func settingsIcon(_ icon: String, color: Color) -> some View {
@@ -232,5 +163,126 @@ struct DisplaySettingsView: View {
                 .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
         }
+    }
+}
+
+private struct ThemePreviewCard: View {
+    let option: AppThemeOption
+    let isSelected: Bool
+    let action: () -> Void
+
+    private var colors: AppThemeColors { option.colors }
+    private var chartColors: [Color] { colors.chartPalette }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                preview
+                Text(option.displayName)
+                    .font(.appCaption.weight(isSelected ? .bold : .medium))
+                    .foregroundColor(colors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(height: 28)
+                HStack(spacing: 5) {
+                    swatch(colors.background)
+                    swatch(option.resolvedPreviewAccent)
+                    swatch(chartColors.count > 1 ? chartColors[1] : option.resolvedPreviewAccentLight)
+                }
+            }
+            .frame(width: 118)
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(colors.surfaceCard)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        isSelected ? option.resolvedPreviewAccent : colors.cardBorderColor,
+                        lineWidth: isSelected ? 2 : max(0.5, colors.cardBorderWidth)
+                    )
+            )
+            .shadow(
+                color: isSelected ? option.resolvedPreviewAccent.opacity(0.22) : .clear,
+                radius: isSelected ? 5 : 0
+            )
+            .overlay(alignment: .topTrailing) {
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(option.resolvedPreviewOnAccent)
+                        .frame(width: 20, height: 20)
+                        .background(Circle().fill(option.resolvedPreviewAccent))
+                        .offset(x: -4, y: 4)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(option.displayName)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .animation(.easeInOut(duration: 0.18), value: isSelected)
+    }
+
+    private var preview: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(colors.background)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(option.resolvedPreviewAccent)
+                        .frame(width: 7, height: 7)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(colors.textPrimary)
+                        .frame(width: 42, height: 5)
+                    Spacer(minLength: 0)
+                    Circle()
+                        .fill(option.resolvedPreviewSuccess)
+                        .frame(width: 6, height: 6)
+                }
+                .padding(.horizontal, 7)
+
+                RoundedRectangle(cornerRadius: min(8, colors.cardCornerRadius))
+                    .fill(colors.surfaceCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: min(8, colors.cardCornerRadius))
+                            .stroke(colors.cardBorderColor, lineWidth: min(1.5, max(0.5, colors.cardBorderWidth)))
+                    )
+                    .overlay(alignment: .bottom) {
+                        HStack(alignment: .bottom, spacing: 3) {
+                            ForEach(Array(chartColors.prefix(4).enumerated()), id: \.offset) { index, color in
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(color)
+                                    .frame(width: 9, height: CGFloat(8 + index * 4))
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                        .padding(7)
+                    }
+                    .overlay(alignment: .topLeading) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(colors.textPrimary)
+                                .frame(width: 28, height: 4)
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(colors.textSecondary)
+                                .frame(width: 18, height: 3)
+                        }
+                        .padding(7)
+                    }
+                    .frame(height: 48)
+            }
+            .padding(7)
+        }
+        .frame(height: 82)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func swatch(_ color: Color) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: 10, height: 10)
+            .overlay(Circle().stroke(colors.textPrimary.opacity(0.18), lineWidth: 0.5))
     }
 }

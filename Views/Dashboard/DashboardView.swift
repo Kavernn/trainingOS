@@ -15,6 +15,7 @@ enum DashboardAccentRadiance {
 
 struct DashboardView: View {
     @StateObject private var vm = DashboardViewModel()
+    @ObservedObject private var appTheme = AppTheme.shared
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var loadingState = APILoadingState.shared
     @ObservedObject private var alertService = AlertService.shared
