@@ -57,7 +57,7 @@ struct StepperInput: View {
 
                 TextField("", text: $valueStr)
                     .font(.appTitle)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color.appTextPrimary)
                     .keyboardType(isInteger ? .numberPad : .decimalPad)
                     .focused($isManualFocused)
                     .frame(minWidth: isCompact ? 44 : 52)
