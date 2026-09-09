@@ -22,11 +22,12 @@ def row(
     muscle_group="Pectoraux",
     muscle_specific=None,
     secondary_muscles=None,
+    exercise_id=None,
 ):
     return {
         "id": log_id,
         "session_id": session_id,
-        "exercise_id": f"exercise-{name}",
+        "exercise_id": exercise_id or f"exercise-{name}",
         "weight": weight,
         "reps": reps,
         "sets_json": sets_json,
@@ -81,6 +82,65 @@ def test_legacy_muscles_are_not_used_when_modern_metadata_is_absent_or_present()
     )
     assert result.assignments == ()
     assert result.diagnostics.missing_muscle_mapping_count == 1
+
+
+def test_catalogue_metadata_maps_cable_pull_over_without_name_reclassification():
+    result = adapt_analytics_rows(
+        [row(name="Cable Pull Over", muscle_group="Dos", muscle_specific="Grand dorsal")],
+        period=PERIOD,
+    )
+    assert result.assignments[0].direct_muscles == ("Grand dorsal",)
+    assert result.diagnostics.missing_muscle_mapping_count == 0
+    assert result.diagnostics.unmapped_exercises == ()
+
+
+def test_unmapped_catalogue_row_is_instrumented_with_identity_and_reason():
+    result = adapt_analytics_rows(
+        [row(name="Mystery Exercise", muscle_group=None, muscle_specific=None, secondary_muscles=None)],
+        period=PERIOD,
+    )
+    assert result.assignments == ()
+    assert result.diagnostics.unmapped_exercises[0].exercise_id == "exercise-Mystery Exercise"
+    assert result.diagnostics.unmapped_exercises[0].exercise_name == "Mystery Exercise"
+    assert result.diagnostics.unmapped_exercises[0].reason == "missing_structured_muscle_metadata"
+    assert result.diagnostics.unmapped_exercises[0].unmapped_exposure_count == 1
+
+
+def test_repeated_unmapped_exposures_are_aggregated():
+    result = adapt_analytics_rows(
+        [
+            row(log_id="a", name="Mystery Exercise", muscle_group=None, muscle_specific=None),
+            row(log_id="b", name="Mystery Exercise", muscle_group=None, muscle_specific=None),
+        ],
+        period=PERIOD,
+    )
+    assert result.diagnostics.unmapped_exercises[0].unmapped_exposure_count == 2
+
+
+def test_same_name_different_ids_keep_mapped_and_unmapped_diagnostics_distinct():
+    result = adapt_analytics_rows(
+        [
+            row(log_id="a", name="Cable Pull Over", exercise_id="exercise-a", muscle_group="Dos", muscle_specific="Grand dorsal"),
+            row(log_id="b", name="Cable Pull Over", exercise_id="exercise-b", muscle_group=None, muscle_specific=None),
+        ],
+        period=PERIOD,
+    )
+    assert result.assignments[0].direct_muscles == ("Grand dorsal",)
+    assert [(item.exercise_id, item.exercise_name) for item in result.diagnostics.unmapped_exercises] == [
+        ("exercise-b", "Cable Pull Over")
+    ]
+
+
+def test_mixed_coverage_preserves_existing_counters_and_legacy_only_is_unmapped():
+    result = adapt_analytics_rows(
+        [
+            row(log_id="mapped", name="Cable Pull Over", muscle_group="Dos", muscle_specific="Grand dorsal"),
+            row(log_id="legacy", name="Legacy Only", muscle_group=None, muscle_specific=None, secondary_muscles=None),
+        ],
+        period=PERIOD,
+    )
+    assert result.diagnostics.missing_muscle_mapping_count == 1
+    assert result.diagnostics.unmapped_exercises[0].exercise_name == "Legacy Only"
 
 
 def test_only_proven_exact_glutes_normalization_is_applied_unknown_values_preserved():

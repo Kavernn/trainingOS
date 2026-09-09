@@ -18,6 +18,14 @@ from training_load_analytics import TrainingLoadExposure, TrainingLoadSet
 
 
 @dataclass(frozen=True)
+class UnmappedExerciseDiagnostic:
+    exercise_id: str
+    exercise_name: str
+    reason: str
+    unmapped_exposure_count: int
+
+
+@dataclass(frozen=True)
 class AnalyticsAdapterDiagnostics:
     queried_exposure_count: int
     analytics_exposure_count: int
@@ -26,6 +34,7 @@ class AnalyticsAdapterDiagnostics:
     missing_muscle_mapping_count: int
     legacy_strength_fallback_count: int
     known_deload_exposure_count: int
+    unmapped_exercises: tuple[UnmappedExerciseDiagnostic, ...]
 
 
 @dataclass(frozen=True)
@@ -213,6 +222,22 @@ def adapt_analytics_rows(
         for item in unique
         if item[2] is None
     )
+    unmapped_by_identity: dict[tuple[str, str], int] = {}
+    for _, load_exposure, assignment, exercise_id in unique:
+        if assignment is None:
+            # The load DTO retains the joined catalogue name.
+            exercise_name = load_exposure.exercise_name
+            key = (exercise_id, exercise_name)
+            unmapped_by_identity[key] = unmapped_by_identity.get(key, 0) + 1
+    unmapped_exercises = tuple(
+        UnmappedExerciseDiagnostic(
+            exercise_id=exercise_id,
+            exercise_name=exercise_name,
+            reason="missing_structured_muscle_metadata",
+            unmapped_exposure_count=count,
+        )
+        for (exercise_id, exercise_name), count in sorted(unmapped_by_identity.items())
+    )
     missing_tracking = sum(
         1
         for item in unique
@@ -255,6 +280,7 @@ def adapt_analytics_rows(
             missing_muscle_mapping_count=missing_mapping,
             legacy_strength_fallback_count=legacy_fallbacks,
             known_deload_exposure_count=known_deload_exposures,
+            unmapped_exercises=unmapped_exercises,
         ),
     )
 
