@@ -1176,8 +1176,8 @@ struct LogCardioSheet: View {
                                             Text(t.capitalized)
                                                 .font(.appLabel)
                                                 .padding(.horizontal, 14).padding(.vertical, 8)
-                                                .background(selectedType == t ? Color.statusCyan : Color.appSurfaceInset)
-                                                .foregroundColor(selectedType == t ? .white : .gray)
+                                                .background(selectedType == t ? Color.selectedControlBackground : Color.appSurfaceInset)
+                                                .foregroundColor(selectedType == t ? Color.selectedControlForeground : .gray)
                                                 .cornerRadius(20)
                                         }
                                     }
