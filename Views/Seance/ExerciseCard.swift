@@ -553,7 +553,7 @@ struct ExerciseCard: View {
             autoFocus: false,
             isCompact: evm.setBySetMode
         )
-        .frame(width: evm.setBySetMode ? 132 : 140)
+        .frame(width: evm.setBySetMode ? 152 : 140)
     }
 
     @ViewBuilder private func setRowRepsSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
@@ -577,7 +577,7 @@ struct ExerciseCard: View {
                 isDisabled: evm.setBySetMode && !isActive && !isDone,
                 isCompact: evm.setBySetMode
             )
-            .frame(width: evm.setBySetMode ? 132 : 140)
+            .frame(width: evm.setBySetMode ? 152 : 140)
         }
         // W-C2 — hide RIR tiles for time-based exercises
         if showRIRColumn && !isTimeBased {
