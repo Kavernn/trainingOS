@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 // MARK: - Current body measurements
 struct StatsCurrentBodyMeasurements: View {
@@ -205,6 +206,158 @@ struct StatsWeeklyRegularityChart: View {
     private func accessibilityLabel(for bucket: StatsWeeklyTrainingLoad) -> String {
         let partial = bucket.isPartial ? " Semaine partielle." : ""
         return "Semaine du \(bucket.weekStart). \(bucket.activeDayCount) jours actifs. \(bucket.sessionCount) séances avec activité.\(partial)"
+    }
+}
+
+// MARK: - Charge summary and muscle comparison
+struct StatsChargeHeroCard: View {
+    let trainingLoad: StatsCockpitTrainingLoad
+    let muscles: StatsCockpitMuscles
+
+    private var exposedMuscleCount: Int {
+        muscles.workloads.filter {
+            $0.directExposureCount > 0 || $0.indirectExposureCount > 0
+        }.count
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("CHARGE")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(.appTextMuted)
+                Spacer()
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                metric(value: "\(trainingLoad.summary.sessionCount)", label: "Séances", context: "12 semaines")
+                metric(value: "\(trainingLoad.summary.activeDayCount)", label: "Jours actifs", context: "12 semaines")
+                metric(value: "\(trainingLoad.summary.validRepsSetCount)", label: "Séries valides", context: "12 semaines")
+                metric(value: "\(exposedMuscleCount)", label: "Muscles exposés", context: "30 jours")
+            }
+        }
+        .padding(.appCardInsetV)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Charge. Sur 12 semaines : \(trainingLoad.summary.sessionCount) séances, \(trainingLoad.summary.activeDayCount) jours actifs et \(trainingLoad.summary.validRepsSetCount) séries valides. Sur 30 jours : \(exposedMuscleCount) muscles exposés.")
+    }
+
+    private func metric(value: String, label: String, context: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(value)
+                .font(.appHeadline.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+            Text(label)
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+            Text(context)
+                .font(.appMicro)
+                .foregroundColor(.appTextMuted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct StatsMuscleWorkloadComparisonChart: View {
+    let muscles: StatsCockpitMuscles
+
+    private var topWorkloads: [StatsMuscleWorkload] {
+        let direct = muscles.workloads
+            .filter { $0.directSetCount > 0 }
+            .sorted {
+                if $0.directSetCount != $1.directSetCount { return $0.directSetCount > $1.directSetCount }
+                if $0.indirectSetCount != $1.indirectSetCount { return $0.indirectSetCount > $1.indirectSetCount }
+                return $0.muscle.localizedCaseInsensitiveCompare($1.muscle) == .orderedAscending
+            }
+            .prefix(4)
+        let indirect = muscles.workloads
+            .filter { $0.indirectSetCount > 0 }
+            .sorted {
+                if $0.indirectSetCount != $1.indirectSetCount { return $0.indirectSetCount > $1.indirectSetCount }
+                if $0.directSetCount != $1.directSetCount { return $0.directSetCount > $1.directSetCount }
+                return $0.muscle.localizedCaseInsensitiveCompare($1.muscle) == .orderedAscending
+            }
+            .prefix(4)
+
+        var selectedByMuscle: [String: StatsMuscleWorkload] = [:]
+        for workload in direct { selectedByMuscle[workload.muscle] = workload }
+        for workload in indirect { selectedByMuscle[workload.muscle] = workload }
+
+        return selectedByMuscle.values.sorted {
+            let dominant0 = max($0.directSetCount, $0.indirectSetCount)
+            let dominant1 = max($1.directSetCount, $1.indirectSetCount)
+            if dominant0 != dominant1 { return dominant0 > dominant1 }
+            let combined0 = $0.directSetCount + $0.indirectSetCount
+            let combined1 = $1.directSetCount + $1.indirectSetCount
+            if combined0 != combined1 { return combined0 > combined1 }
+            if $0.directSetCount != $1.directSetCount { return $0.directSetCount > $1.directSetCount }
+            return $0.muscle.localizedCaseInsensitiveCompare($1.muscle) == .orderedAscending
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("TRAVAIL PAR MUSCLE")
+                .font(.appMicro.weight(.bold))
+                .tracking(1.5)
+                .foregroundColor(.appTextMuted)
+            Text("30 derniers jours")
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+
+            if topWorkloads.isEmpty {
+                Text("Pas encore assez de données musculaires.")
+                    .font(.appBody)
+                    .foregroundColor(.appTextSecondary)
+            } else {
+                HStack(spacing: 14) {
+                    legend(color: AppTheme.shared.chartColor(0), label: "Direct")
+                    legend(color: AppTheme.shared.chartColor(1), label: "Indirect")
+                    Spacer()
+                }
+
+                Chart {
+                    ForEach(topWorkloads, id: \.muscle) { workload in
+                        BarMark(x: .value("Séries", workload.directSetCount), y: .value("Muscle", displayLabel(workload.muscle)))
+                            .foregroundStyle(AppTheme.shared.chartColor(0))
+                            .position(by: .value("Type", "Direct"))
+                        BarMark(x: .value("Séries", workload.indirectSetCount), y: .value("Muscle", displayLabel(workload.muscle)))
+                            .foregroundStyle(AppTheme.shared.chartColor(1))
+                            .position(by: .value("Type", "Indirect"))
+                    }
+                }
+                .chartXAxis { AxisMarks { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(Color.appSeparatorSubtle)
+                    AxisValueLabel().foregroundStyle(Color.appTextMuted)
+                } }
+                .chartYAxis { AxisMarks { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(Color.appSeparatorSubtle)
+                    AxisValueLabel().foregroundStyle(Color.appTextMuted)
+                } }
+                .chartLegend(.hidden)
+                .frame(height: CGFloat(topWorkloads.count * 34 + 34))
+            }
+        }
+        .padding(.appCardInsetV)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Travail par muscle sur les 30 derniers jours. Séries directes et indirectes affichées séparément.")
+    }
+
+    private func legend(color: Color, label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label).font(.appMicro.weight(.semibold)).foregroundColor(.appTextSecondary)
+        }
+    }
+
+    private func displayLabel(_ value: String) -> String {
+        value.replacingOccurrences(of: "_", with: " ").capitalized
     }
 }
 
