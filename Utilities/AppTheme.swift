@@ -5,12 +5,16 @@ import Combine
 
 enum AppThemeOption: String, CaseIterable {
     case monochrome = "monochrome"
+    case titanium   = "titanium"
+    case oledBlack = "oledBlack"
     case sinCity    = "sinCity"
     case blood      = "blood"
     case electric   = "electric"
     case matrix     = "matrix"
+    case obsidianIce = "obsidianIce"
     case tokyo      = "tokyo"
     case arctic     = "arctic"
+    case pearl      = "pearl"
     case goldNoir      = "goldNoir"
     case desert        = "desert"
     case electricLight = "electricLight"
@@ -20,7 +24,7 @@ enum AppThemeOption: String, CaseIterable {
 
     var preferredColorScheme: ColorScheme? {
         switch self {
-        case .electricLight, .arctic: return .light
+        case .electricLight, .arctic, .pearl: return .light
         default:             return nil
         }
     }
@@ -28,12 +32,16 @@ enum AppThemeOption: String, CaseIterable {
     var displayName: String {
         switch self {
         case .monochrome:    return "Monochrome"
+        case .titanium:      return "Titanium"
+        case .oledBlack:     return "OLED Black"
         case .sinCity:       return "Sin City"
         case .blood:         return "Blood"
         case .electric:      return "Electric"
         case .matrix:        return "Matrix"
+        case .obsidianIce:   return "Obsidian Ice"
         case .tokyo:         return "Tokyo"
         case .arctic:        return "Arctic Frost"
+        case .pearl:         return "Pearl"
         case .goldNoir:      return "Gold Noir"
         case .desert:        return "Desert"
         case .electricLight: return "Electric Light"
@@ -46,12 +54,16 @@ enum AppThemeOption: String, CaseIterable {
     var previewColor: Color {
         switch self {
         case .monochrome:    return Color(hex: "1C1C1E")
+        case .titanium:      return Color(hex: "8EB6D9")
+        case .oledBlack:     return Color(hex: "7CFFB2")
         case .sinCity:       return Color(hex: "FF1E1E")
         case .blood:         return Color(hex: "C0392B")
         case .electric:      return Color(hex: "E8FF00")
         case .matrix:        return Color(hex: "00FF66")
+        case .obsidianIce:   return Color(hex: "7FDBFF")
         case .tokyo:         return Color(hex: "8B5CF6")
         case .arctic:        return Color(hex: "7DD3FC")
+        case .pearl:         return Color(hex: "7C8FA6")
         case .goldNoir:      return Color(hex: "D4AF37")
         case .desert:        return Color(hex: "E9C46A")
         case .electricLight: return Color(hex: "CBEA16")
@@ -65,12 +77,16 @@ enum AppThemeOption: String, CaseIterable {
     var colors: AppThemeColors {
         switch self {
         case .monochrome:    return .monochrome
+        case .titanium:      return .titanium
+        case .oledBlack:     return .oledBlack
         case .sinCity:       return .sinCity
         case .blood:         return .blood
         case .electric:      return .electric
         case .matrix:        return .matrix
+        case .obsidianIce:   return .obsidianIce
         case .tokyo:         return .tokyo
         case .arctic:        return .arctic
+        case .pearl:         return .pearl
         case .goldNoir:      return .goldNoir
         case .desert:        return .desert
         case .electricLight: return .electricLight
@@ -257,6 +273,150 @@ extension AppThemeColors {
         accentDistribution:      .surgical,
         heroNumberSize:        36,
         sectionTitleTracking:  2.0,
+        sectionTitleUppercased: true
+    )
+
+    // Titane — métal premium, automobile et précision.
+    static let titanium = AppThemeColors(
+        accent:          Color(hex: "8EB6D9"),
+        accentLight:     Color(hex: "D7DEE5"),
+        accentMuted:     Color(hex: "455564"),
+        onAccent:        Color(hex: "0B1117"),
+        selectedControlBackground: Color(hex: "8EB6D9"),
+        selectedControlForeground: Color(hex: "0B1117"),
+        background:      Color(hex: "111418"),
+        surfaceCard:     Color(hex: "1B2026"),
+        surfaceElevated: Color(hex: "252C34"),
+        surfaceInset:    Color(hex: "0D1014"),
+        textPrimary:     Color(hex: "EDF2F5"),
+        onBackground:    Color(hex: "EDF2F5"),
+        onSurface:       Color(hex: "EDF2F5"),
+        textSecondary:   Color(hex: "AAB8C2"),
+        textMuted:       Color(hex: "66737D"),
+        separator:       Color(hex: "8EB6D9").opacity(0.18),
+        separatorSubtle: Color(hex: "8EB6D9").opacity(0.09),
+        separatorStrong: Color(hex: "8EB6D9").opacity(0.30),
+        danger:          Color(hex: "FF5C5C"),
+        success:         Color(hex: "42D889"),
+        warning:         Color(hex: "E8A83E"),
+        info:            Color(hex: "78C9F5"),
+        cardCornerRadius: 14,
+        cardBorderWidth:  1,
+        cardBorderColor:  Color(hex: "8EB6D9").opacity(0.25),
+        cardShadowColor:  Color.black.opacity(0.55),
+        cardShadowRadius: 12,
+        cardShadowOffset: CGSize(width: 0, height: 4),
+        cardGlowColor:    Color(hex: "8EB6D9").opacity(0.10),
+        cardGlowRadius:   8,
+        chartPalette:     [Color(hex: "8EB6D9"), Color(hex: "D7DEE5"), Color(hex: "42D889"), Color(hex: "E8A83E"), Color(hex: "78C9F5")],
+        glassOpacity:     0.10,
+        accentGradientColors: [Color(hex: "8EB6D9"), Color(hex: "455564")],
+        identityLayer:    .none,
+        heroFontDesign:   .rounded,
+        titleFontDesign:  .rounded,
+        displayWeight:    .semibold,
+        cardAccentFillOpacity: 0.06,
+        cardAccentStrokeOpacity: 0.20,
+        cardStyle:        .raised,
+        accentDistribution: .pervasive,
+        heroNumberSize:   40,
+        sectionTitleTracking: 1.4,
+        sectionTitleUppercased: true
+    )
+
+    // Obsidienne glacée — verre noir et bleu froid haute technologie.
+    static let obsidianIce = AppThemeColors(
+        accent:          Color(hex: "7FDBFF"),
+        accentLight:     Color(hex: "A9F0FF"),
+        accentMuted:     Color(hex: "173A4A"),
+        onAccent:        Color(hex: "041018"),
+        selectedControlBackground: Color(hex: "7FDBFF"),
+        selectedControlForeground: Color(hex: "041018"),
+        background:      Color(hex: "05080C"),
+        surfaceCard:     Color(hex: "0D131A"),
+        surfaceElevated: Color(hex: "131E28"),
+        surfaceInset:    Color(hex: "030609"),
+        textPrimary:     Color(hex: "E8F7FF"),
+        onBackground:    Color(hex: "E8F7FF"),
+        onSurface:       Color(hex: "E8F7FF"),
+        textSecondary:   Color(hex: "8EB6C8"),
+        textMuted:       Color(hex: "496271"),
+        separator:       Color(hex: "7FDBFF").opacity(0.18),
+        separatorSubtle: Color(hex: "7FDBFF").opacity(0.08),
+        separatorStrong: Color(hex: "7FDBFF").opacity(0.32),
+        danger:          Color(hex: "FF5F56"),
+        success:         Color(hex: "43D17A"),
+        warning:         Color(hex: "F3B43F"),
+        info:            Color(hex: "7FDBFF"),
+        cardCornerRadius: 18,
+        cardBorderWidth:  1,
+        cardBorderColor:  Color(hex: "7FDBFF").opacity(0.28),
+        cardShadowColor:  Color.black.opacity(0.65),
+        cardShadowRadius: 18,
+        cardShadowOffset: CGSize(width: 0, height: 5),
+        cardGlowColor:    Color(hex: "7FDBFF").opacity(0.22),
+        cardGlowRadius:   16,
+        chartPalette:     [Color(hex: "7FDBFF"), Color(hex: "A9F0FF"), Color(hex: "43D17A"), Color(hex: "F3B43F"), Color(hex: "B18CFF")],
+        glassOpacity:     0.16,
+        accentGradientColors: [Color(hex: "7FDBFF"), Color(hex: "173A4A")],
+        identityLayer:    .none,
+        heroFontDesign:   .rounded,
+        titleFontDesign:  .rounded,
+        displayWeight:    .medium,
+        cardAccentFillOpacity: 0.08,
+        cardAccentStrokeOpacity: 0.24,
+        cardStyle:        .floating,
+        accentDistribution: .pervasive,
+        heroNumberSize:   40,
+        sectionTitleTracking: 1.1,
+        sectionTitleUppercased: false
+    )
+
+    // OLED Black — minimalisme noir absolu, sans glow.
+    static let oledBlack = AppThemeColors(
+        accent:          Color(hex: "7CFFB2"),
+        accentLight:     Color(hex: "B8FFD1"),
+        accentMuted:     Color(hex: "16452B"),
+        onAccent:        Color(hex: "001A0A"),
+        selectedControlBackground: Color(hex: "7CFFB2"),
+        selectedControlForeground: Color(hex: "001A0A"),
+        background:      Color.black,
+        surfaceCard:     Color(hex: "080808"),
+        surfaceElevated: Color(hex: "101010"),
+        surfaceInset:    Color(hex: "030303"),
+        textPrimary:     Color(hex: "F2F2F2"),
+        onBackground:    Color(hex: "F2F2F2"),
+        onSurface:       Color(hex: "F2F2F2"),
+        textSecondary:   Color(hex: "B8B8B8"),
+        textMuted:       Color(hex: "707070"),
+        separator:       Color.white.opacity(0.14),
+        separatorSubtle: Color.white.opacity(0.07),
+        separatorStrong: Color.white.opacity(0.24),
+        danger:          Color(hex: "FF5A5F"),
+        success:         Color(hex: "7CFFB2"),
+        warning:         Color(hex: "F0C75E"),
+        info:            Color(hex: "72CFFF"),
+        cardCornerRadius: 6,
+        cardBorderWidth:  1,
+        cardBorderColor:  Color.white.opacity(0.14),
+        cardShadowColor:  .clear,
+        cardShadowRadius: 0,
+        cardShadowOffset: .zero,
+        cardGlowColor:    .clear,
+        cardGlowRadius:   0,
+        chartPalette:     [Color(hex: "7CFFB2"), Color(hex: "72CFFF"), Color(hex: "F0C75E"), Color(hex: "FF6A5E"), Color(hex: "C0C0C0")],
+        glassOpacity:     0.04,
+        accentGradientColors: [Color(hex: "7CFFB2"), Color(hex: "16452B")],
+        identityLayer:    .none,
+        heroFontDesign:   .monospaced,
+        titleFontDesign:  .monospaced,
+        displayWeight:    .medium,
+        cardAccentFillOpacity: 0.02,
+        cardAccentStrokeOpacity: 0.10,
+        cardStyle:        .flat,
+        accentDistribution: .pervasive,
+        heroNumberSize:   38,
+        sectionTitleTracking: 1.8,
         sectionTitleUppercased: true
     )
 
@@ -559,6 +719,54 @@ extension AppThemeColors {
         accentDistribution:      .surgical,
         heroNumberSize:          40,
         sectionTitleTracking:    1.2,
+        sectionTitleUppercased: false
+    )
+
+    // Perle — luxe clair, doux et minéral.
+    static let pearl = AppThemeColors(
+        accent:          Color(hex: "7C8FA6"),
+        accentLight:     Color(hex: "AAB6C5"),
+        accentMuted:     Color(hex: "D7C9B5"),
+        onAccent:        .white,
+        selectedControlBackground: Color(hex: "61758F"),
+        selectedControlForeground: .white,
+        background:      Color(hex: "F6F5F2"),
+        surfaceCard:     .white,
+        surfaceElevated: Color(hex: "FBFAF8"),
+        surfaceInset:    Color(hex: "ECE9E3"),
+        textPrimary:     Color(hex: "20242A"),
+        onBackground:    Color(hex: "20242A"),
+        onSurface:       Color(hex: "20242A"),
+        textSecondary:   Color(hex: "59636E"),
+        textMuted:       Color(hex: "8C9298"),
+        separator:       Color(hex: "7C8FA6").opacity(0.20),
+        separatorSubtle: Color(hex: "7C8FA6").opacity(0.10),
+        separatorStrong: Color(hex: "7C8FA6").opacity(0.32),
+        danger:          Color(hex: "B83A3A"),
+        success:         Color(hex: "287A4D"),
+        warning:         Color(hex: "976000"),
+        info:            Color(hex: "356B9A"),
+        cardCornerRadius: 18,
+        cardBorderWidth:  1,
+        cardBorderColor:  Color(hex: "7C8FA6").opacity(0.18),
+        cardShadowColor:  Color(hex: "59636E").opacity(0.16),
+        cardShadowRadius: 10,
+        cardShadowOffset: CGSize(width: 0, height: 3),
+        cardGlowColor:    .clear,
+        cardGlowRadius:   0,
+        chartPalette:     [Color(hex: "7C8FA6"), Color(hex: "D7C9B5"), Color(hex: "287A4D"), Color(hex: "976000"), Color(hex: "356B9A")],
+        glassOpacity:     0.10,
+        accentGradientColors: [Color(hex: "7C8FA6"), Color(hex: "D7C9B5")],
+        identityLayer:    .none,
+        heroFontDesign:   .rounded,
+        titleFontDesign:  .rounded,
+        displayWeight:    .semibold,
+        cardAccentFillOpacity: 0.04,
+        cardAccentStrokeOpacity: 0.12,
+        cardStyle:        .raised,
+        accentDistribution: .pervasive,
+        heroNumberSize:   40,
+        sectionTitleTracking: 1.0,
         sectionTitleUppercased: false
     )
 
@@ -902,12 +1110,16 @@ final class AppTheme: ObservableObject {
     var colors: AppThemeColors {
         switch selectedTheme {
         case .monochrome: return .monochrome
+        case .titanium:   return .titanium
+        case .oledBlack:  return .oledBlack
         case .sinCity:    return .sinCity
         case .blood:      return .blood
         case .electric:   return .electric
         case .matrix:     return .matrix
+        case .obsidianIce: return .obsidianIce
         case .tokyo:      return .tokyo
         case .arctic:     return .arctic
+        case .pearl:      return .pearl
         case .goldNoir:      return .goldNoir
         case .desert:        return .desert
         case .electricLight: return .electricLight
