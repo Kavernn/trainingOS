@@ -1259,8 +1259,8 @@ struct InventoryFormSheet: View {
                                     Text(formatDur(d))
                                         .font(.appCaption.weight(.medium))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(timeDuration == d ? Color.statusCyan : Color.appSurfaceInset)
-                                        .foregroundColor(timeDuration == d ? .black : .white)
+                                        .background(timeDuration == d ? Color.selectedControlBackground : Color.appSurfaceInset)
+                                        .foregroundColor(timeDuration == d ? Color.selectedControlForeground : .white)
                                         .cornerRadius(16)
                                 }
                             }
