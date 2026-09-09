@@ -198,81 +198,165 @@ struct MoodLogSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Comment tu te sens ? (\(Int(score))/10)") {
-                    Slider(value: $score, in: 1...10, step: 1)
-                        .tint(sliderColor)
-                    HStack {
-                        Text("😞 Épuisé")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("5 — Neutre")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("✨ Top shape")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("MENTAL & ÂME")
+                            .font(.appMicro.weight(.semibold))
+                            .tracking(1.6)
+                            .foregroundColor(.forge)
+                        Text("Loguer l'humeur")
+                            .font(.appTitle)
+                            .foregroundColor(.appTextPrimary)
+                        Text("Prends quelques secondes pour faire le point.")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
                     }
-                }
 
-                Section(selectedEmotions.isEmpty ? "Émotions (optionnel)" : "Émotions (\(selectedEmotions.count))") {
-                    EmotionChipGrid(
-                        emotions: emotionList.isEmpty ? emotions : emotionList,
-                        selected: $selectedEmotions
-                    )
-                }
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(alignment: .firstTextBaseline) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Comment tu te sens aujourd'hui ?")
+                                    .font(.appHeadline)
+                                    .foregroundColor(.appTextPrimary)
+                                Text("Sur une échelle de 1 à 10")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                            }
+                            Spacer()
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                Text("\(Int(score))")
+                                    .font(.appCardHero)
+                                    .foregroundColor(.appTextPrimary)
+                                Text("/10")
+                                    .font(.appLabel.weight(.semibold))
+                                    .foregroundColor(.appTextMuted)
+                            }
+                        }
 
-                Section("Notes (optionnel)") {
-                    TextField("Qu'est-ce qui se passe ?", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
+                        Text(scoreDescriptor)
+                            .font(.appLabel.weight(.semibold))
+                            .foregroundColor(scoreSemanticColor)
 
-                Section {
-                    DisclosureGroup(isExpanded: $isCreuserExpanded) {
-                        creuserContent
-                    } label: {
-                        Text("Creuser")
-                            .font(.subheadline.weight(.semibold))
+                        Slider(value: $score, in: 1...10, step: 1)
+                            .tint(scoreSemanticColor)
+                            .accessibilityLabel("Humeur")
+                            .accessibilityValue("\(Int(score)) sur 10, \(scoreDescriptor)")
+
+                        HStack(spacing: 0) {
+                            ForEach(1...10, id: \.self) { marker in
+                                Text("\(marker)")
+                                    .font(.appMicro.weight(marker == Int(score) ? .bold : .regular))
+                                    .foregroundColor(marker == Int(score) ? .appTextPrimary : .appTextSecondary)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+
+                        HStack {
+                            Text("Très mal").foregroundColor(.appDanger)
+                            Spacer()
+                            Text("Neutre").foregroundColor(.appTextSecondary)
+                            Spacer()
+                            Text("Au top").foregroundColor(.appSuccess)
+                        }
+                        .font(.appCaption.weight(.medium))
                     }
-                }
+                    .padding(18)
+                    .glassCard()
 
-                Section {
-                    HStack {
-                        Spacer()
-                        Text(recapText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                        Spacer()
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(alignment: .firstTextBaseline) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Émotions")
+                                    .font(.appHeadline)
+                                    .foregroundColor(.appTextPrimary)
+                                Text("Qu'est-ce qui décrit le mieux ton état ?")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                            }
+                            Spacer()
+                            if !selectedEmotions.isEmpty {
+                                Text("\(selectedEmotions.count) sélectionnée\(selectedEmotions.count > 1 ? "s" : "")")
+                                    .font(.appMicro.weight(.semibold))
+                                    .foregroundColor(.appTextMuted)
+                            }
+                        }
+                        EmotionChipGrid(
+                            emotions: emotionList.isEmpty ? emotions : emotionList,
+                            selected: $selectedEmotions
+                        )
                     }
-                }
+                    .padding(18)
+                    .glassCard()
 
-                if let err = errorMsg {
-                    Section {
-                        Text(err).foregroundColor(.statusRed).font(.caption)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Notes")
+                            .font(.appHeadline)
+                            .foregroundColor(.appTextPrimary)
+                        Text("Qu'est-ce qui influence ton humeur ?")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                        TextField("Écris quelques mots…", text: $notes, axis: .vertical)
+                            .lineLimit(3...6)
+                            .font(.appBody)
+                            .foregroundColor(.appTextPrimary)
+                            .padding(12)
+                            .background(Color.appSurfaceInset)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
+                    .padding(18)
+                    .glassCard()
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        DisclosureGroup(isExpanded: $isCreuserExpanded) {
+                            creuserContent
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Creuser davantage")
+                                    .font(.appHeadline)
+                                    .foregroundColor(.appTextPrimary)
+                                Text("Ajoute du contexte si tu veux comprendre ta journée.")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                            }
+                        }
+                        .tint(.forge)
+                    }
+                    .padding(18)
+                    .glassCard()
+
+                    if let err = errorMsg {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.appDanger)
+                            Text(err)
+                                .font(.appCaption)
+                                .foregroundColor(.appTextPrimary)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.appSurfaceInset)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    PrimaryButton(title: "Enregistrer l'entrée", isLoading: isSubmitting, action: submit)
+                        .padding(.top, 6)
+                        .padding(.bottom, 8)
                 }
+                .padding(.horizontal, .appPagePadding)
+                .padding(.vertical, 20)
             }
+            .background(Color.appBg)
             .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("Loguer l'humeur")
-            .navigationBarTitleDisplayMode(.inline)
             .interactiveDismissDisabled()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(action: submit) {
-                        HStack(spacing: 6) {
-                            if isSubmitting {
-                                ProgressView().controlSize(.small)
-                            }
-                            Text("Enregistrer")
-                        }
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
-                    .disabled(isSubmitting)
+                    .accessibilityLabel("Annuler")
                 }
             }
             .task {
@@ -283,7 +367,26 @@ struct MoodLogSheet: View {
         }
     }
 
-    private var sliderColor: Color { Color.moodColor(for: Int(score)) }
+    private var scoreDescriptor: String {
+        switch Int(score) {
+        case 1...2: return "Très mal"
+        case 3...4: return "Difficile"
+        case 5:     return "Neutre"
+        case 6:     return "Correct"
+        case 7:     return "Plutôt bien"
+        case 8:     return "Bien"
+        case 9:     return "Très bien"
+        default:    return "Au top"
+        }
+    }
+
+    private var scoreSemanticColor: Color {
+        switch Int(score) {
+        case 1...4: return .appDanger
+        case 5...6: return .appWarning
+        default:    return .appSuccess
+        }
+    }
 
     // MARK: - Creuser content
 
@@ -294,7 +397,7 @@ struct MoodLogSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Tags")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.appTextSecondary)
 
                 if !tags.isEmpty {
                     FlowLayoutMH(spacing: 6) {
@@ -306,7 +409,7 @@ struct MoodLogSheet: View {
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
                                         .font(.system(size: 11))
-                                        .foregroundStyle(.secondary)
+                                        .foregroundColor(.appTextSecondary)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -427,18 +530,35 @@ private struct EmotionChipGrid: View {
     @Binding var selected: Set<String>
 
     var body: some View {
-        FlowLayoutMH(spacing: 8) {
-            ForEach(emotions) { emotion in
-                EmotionChip(emotion: emotion, isSelected: selected.contains(emotion.id)) {
-                    if selected.contains(emotion.id) {
-                        selected.remove(emotion.id)
-                    } else {
-                        selected.insert(emotion.id)
+        VStack(alignment: .leading, spacing: 8) {
+            emotionGroup(title: "Ressources", emotions: emotions.filter { $0.valence == 1 })
+            emotionGroup(title: "Neutres", emotions: emotions.filter { $0.valence == 0 })
+            emotionGroup(title: "Difficiles", emotions: emotions.filter { $0.valence == -1 })
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func emotionGroup(title: String, emotions: [MoodEmotion]) -> some View {
+        if !emotions.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title.uppercased())
+                    .font(.appMicro.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundColor(.appTextMuted)
+                FlowLayoutMH(spacing: 8) {
+                    ForEach(emotions) { emotion in
+                        EmotionChip(emotion: emotion, isSelected: selected.contains(emotion.id)) {
+                            if selected.contains(emotion.id) {
+                                selected.remove(emotion.id)
+                            } else {
+                                selected.insert(emotion.id)
+                            }
+                        }
                     }
                 }
             }
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -447,30 +567,28 @@ private struct EmotionChip: View {
     let isSelected: Bool
     let onTap: () -> Void
 
-    private var chipColor: Color {
-        switch emotion.valence {
-        case  1: return Color.appSuccess
-        case -1: return Color.appDanger
-        default: return Color.appTextTertiary
-        }
-    }
-
     var body: some View {
         Button(action: onTap) {
-            Text("\(emotion.emoji) \(emotion.label)")
-                .font(.caption)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(isSelected ? chipColor.opacity(0.25) : Color(.tertiarySystemFill))
-                .foregroundColor(isSelected ? chipColor : .primary)
-                .cornerRadius(20)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(isSelected ? chipColor : Color.clear, lineWidth: 1.5)
-                )
+            HStack(spacing: 6) {
+                Text(emotion.emoji)
+                Text(emotion.label)
+                    .font(.appLabel)
+            }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .background(isSelected ? Color.selectedControlBackground : Color.appSurfaceInset)
+            .foregroundColor(isSelected ? Color.selectedControlForeground : Color.appTextPrimary)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(isSelected ? Color.selectedControlBackground : Color.appSeparatorSubtle, lineWidth: isSelected ? 1.5 : 1)
+            )
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: isSelected)
+        .accessibilityLabel(emotion.label)
+        .accessibilityValue(isSelected ? "Sélectionnée" : "Non sélectionnée")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
