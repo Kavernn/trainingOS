@@ -89,7 +89,7 @@ struct CreateVariantSheet: View {
                                 } label: {
                                     Text(typeLabel(t))
                                         .font(.appLabel.weight(.semibold))
-                                        .foregroundColor(selectedType == t ? .black : .white)
+                                        .foregroundColor(selectedType == t ? .black : Color.appTextSecondary)
                                         .padding(.horizontal, 14).padding(.vertical, 8)
                                         .background(selectedType == t ? Color.forge : Color.appSurfaceInset)
                                         .clipShape(Capsule())
