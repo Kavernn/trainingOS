@@ -469,8 +469,13 @@ struct DashboardView: View {
                     prefill:    pt,
                     onSaved:    { entry, total in
                         let old = vm.budgetStatus
-                        if let fresh = try? await APIService.shared.fetchBudgetStatus() {
-                            vm.budgetStatus = fresh
+                        do {
+                            vm.budgetStatus = try await APIService.shared.fetchBudgetStatus()
+                        } catch {
+                            // logBudget a réussi côté serveur ; le refetch a échoué.
+                            // L'user doit savoir que l'écran affiche du stale, pas
+                            // croire que son log n'a rien fait (chip "à faire" trompeur).
+                            actionErrorMessage = "Log enregistré, actualisation du budget impossible — tire pour rafraîchir."
                         }
                         if let data = BudgetCelebrationData.build(
                             entry: entry, old: old, new: vm.budgetStatus, totalCents: total
