@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import date as date_cls, timedelta
 
-from mood       import _list_history as mood_history, get_weekly_avg, get_mood_trend, EMOTIONS
+from mood       import _list_history as mood_history, get_weekly_avg, get_mood_trend, _EMOTION_MAP
 from journal    import get_entry_count
 from breathwork import get_stats as bw_stats, get_session_dates
 from self_care  import get_completion_rate, get_streaks
@@ -64,7 +64,14 @@ def get_summary(days: int = 7) -> dict:
     emotion_counts: dict[str, int] = {}
     for e in all_emotions:
         emotion_counts[e] = emotion_counts.get(e, 0) + 1
-    top_emotions = sorted(emotion_counts, key=emotion_counts.get, reverse=True)[:4]
+    top_emotion_ids = sorted(emotion_counts, key=emotion_counts.get, reverse=True)[:4]
+    # Keep the existing [String] JSON shape while returning display-ready
+    # values. Unknown historical IDs remain visible as a safe raw-ID fallback.
+    top_emotions = [
+        (f"{_EMOTION_MAP[e]['emoji']} {_EMOTION_MAP[e]['label']}"
+         if e in _EMOTION_MAP else e)
+        for e in top_emotion_ids
+    ]
 
     insights     = _generate_insights(avg_mood, trend, bw, journal_n, self_care, pss)
     correlations = _compute_correlations(bw_corr)
