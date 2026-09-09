@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from analytics_adapter import AnalyticsAdapterDiagnostics, adapt_analytics_rows, fetch_raw_analytics_rows
+from analytics_adapter import AnalyticsAdapterDiagnostics, UnmappedExerciseDiagnostic, adapt_analytics_rows, fetch_raw_analytics_rows, unmapped_exercise_diagnostics
 from metric_semantics import ComparisonWindows, DateWindow, comparison_windows
 from muscle_workload_analytics import MuscleMappingCoverage, MuscleWorkload, summarize_muscle_workload
 from progression_comparison import AttentionObservation, ProgressionComparison, ProgressionStatus, compare_progression, no_recent_improvement, top_movers
@@ -88,6 +88,7 @@ class CockpitMuscles:
     period: DateWindow
     coverage: MuscleMappingCoverage
     workloads: tuple[MuscleWorkload, ...]
+    unmapped_exercises: tuple[UnmappedExerciseDiagnostic, ...]
 
 
 @dataclass(frozen=True)
@@ -141,6 +142,13 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
             summary=load_summary,
             weekly=tuple(weekly_training_load(adapted.training_load_exposures, period=config.weekly_period, include_empty=True)),
         ),
-        muscles=CockpitMuscles(period=config.muscle_period, coverage=muscle_summary.coverage, workloads=muscle_summary.muscles),
+        muscles=CockpitMuscles(
+            period=config.muscle_period,
+            coverage=muscle_summary.coverage,
+            workloads=muscle_summary.muscles,
+            unmapped_exercises=unmapped_exercise_diagnostics(
+                raw_rows, period=config.muscle_period, cycle_start_date=cycle_start_date
+            ),
+        ),
         data_quality=CockpitDataQuality(requested_raw_period=config.raw_period, adapter=adapted.diagnostics),
     )

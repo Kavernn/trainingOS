@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from analytics_adapter import adapt_analytics_rows, fetch_raw_analytics_rows
+from analytics_adapter import adapt_analytics_rows, fetch_raw_analytics_rows, unmapped_exercise_diagnostics
 from metric_semantics import DateWindow
 from progression_comparison import comparison_windows
 
@@ -141,6 +141,66 @@ def test_mixed_coverage_preserves_existing_counters_and_legacy_only_is_unmapped(
     )
     assert result.diagnostics.missing_muscle_mapping_count == 1
     assert result.diagnostics.unmapped_exercises[0].exercise_name == "Legacy Only"
+
+
+def test_muscle_window_diagnostics_exclude_raw_period_only_gap():
+    rows = [
+        row(log_id="inside", name="Inside Gap", day="2026-09-20", muscle_group=None),
+        row(log_id="outside", name="Outside Gap", day="2026-08-01", muscle_group=None),
+    ]
+    diagnostics = unmapped_exercise_diagnostics(
+        rows, period=DateWindow(date(2026, 9, 1), date(2026, 9, 30))
+    )
+    assert [item.exercise_name for item in diagnostics] == ["Inside Gap"]
+
+
+def test_muscle_window_diagnostics_empty_when_fully_mapped():
+    diagnostics = unmapped_exercise_diagnostics(
+        [row(name="Cable Pull Over", muscle_group="Dos", muscle_specific="Grand dorsal")],
+        period=DateWindow(date(2026, 9, 1), date(2026, 9, 30)),
+    )
+    assert diagnostics == ()
+
+
+def test_muscle_window_diagnostics_aggregates_repeated_unmapped_exposures():
+    diagnostics = unmapped_exercise_diagnostics(
+        [
+            row(log_id="a", name="Gap", muscle_group=None),
+            row(log_id="b", name="Gap", muscle_group=None),
+            row(log_id="c", name="Gap", muscle_group=None),
+            row(log_id="d", name="Gap", muscle_group=None),
+        ],
+        period=DateWindow(date(2026, 9, 1), date(2026, 9, 30)),
+    )
+    assert len(diagnostics) == 1
+    assert diagnostics[0].unmapped_exposure_count == 4
+
+
+def test_muscle_window_diagnostics_keep_same_name_different_ids_distinct():
+    diagnostics = unmapped_exercise_diagnostics(
+        [
+            row(log_id="a", name="Same Name", exercise_id="exercise-a", muscle_group=None),
+            row(log_id="b", name="Same Name", exercise_id="exercise-b", muscle_group=None),
+        ],
+        period=DateWindow(date(2026, 9, 1), date(2026, 9, 30)),
+    )
+    assert [(item.exercise_id, item.exercise_name) for item in diagnostics] == [
+        ("exercise-a", "Same Name"),
+        ("exercise-b", "Same Name"),
+    ]
+
+
+def test_muscle_window_partial_coverage_matches_muscle_workload_window():
+    rows = [
+        row(log_id="mapped-1", name="Mapped 1", muscle_group="Dos"),
+        row(log_id="mapped-2", name="Mapped 2", muscle_group="Dos"),
+        row(log_id="gap", name="Gap", muscle_group=None),
+    ]
+    diagnostics = unmapped_exercise_diagnostics(
+        rows, period=DateWindow(date(2026, 9, 1), date(2026, 9, 30))
+    )
+    assert len(diagnostics) == 1
+    assert diagnostics[0].exercise_name == "Gap"
 
 
 def test_only_proven_exact_glutes_normalization_is_applied_unknown_values_preserved():

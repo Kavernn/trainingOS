@@ -46,6 +46,42 @@ class AnalyticsAdapterResult:
     diagnostics: AnalyticsAdapterDiagnostics
 
 
+def _unmapped_diagnostics_from_unique(unique) -> tuple[UnmappedExerciseDiagnostic, ...]:
+    by_identity: dict[tuple[str, str], int] = {}
+    for _, load_exposure, assignment, exercise_id in unique:
+        if assignment is None:
+            key = (exercise_id, load_exposure.exercise_name)
+            by_identity[key] = by_identity.get(key, 0) + 1
+    return tuple(
+        UnmappedExerciseDiagnostic(
+            exercise_id=exercise_id,
+            exercise_name=exercise_name,
+            reason="missing_structured_muscle_metadata",
+            unmapped_exposure_count=count,
+        )
+        for (exercise_id, exercise_name), count in sorted(
+            by_identity.items(), key=lambda item: (-item[1], item[0][1].casefold(), item[0][0])
+        )
+    )
+
+
+def unmapped_exercise_diagnostics(
+    rows: Iterable[dict[str, Any]],
+    *,
+    period: DateWindow,
+    cycle_start_date: date | None = None,
+) -> tuple[UnmappedExerciseDiagnostic, ...]:
+    """Return catalogue metadata gaps for exactly the requested exposure window."""
+    adapted = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        item = _adapt_row(row, cycle_start_date)
+        if item is not None and period.contains(item[0].date):
+            adapted.append(item)
+    return _unmapped_diagnostics_from_unique(_dedupe_adapted(adapted))
+
+
 def _parse_date(value: object) -> date | None:
     if type(value) is date:
         return value
@@ -222,22 +258,7 @@ def adapt_analytics_rows(
         for item in unique
         if item[2] is None
     )
-    unmapped_by_identity: dict[tuple[str, str], int] = {}
-    for _, load_exposure, assignment, exercise_id in unique:
-        if assignment is None:
-            # The load DTO retains the joined catalogue name.
-            exercise_name = load_exposure.exercise_name
-            key = (exercise_id, exercise_name)
-            unmapped_by_identity[key] = unmapped_by_identity.get(key, 0) + 1
-    unmapped_exercises = tuple(
-        UnmappedExerciseDiagnostic(
-            exercise_id=exercise_id,
-            exercise_name=exercise_name,
-            reason="missing_structured_muscle_metadata",
-            unmapped_exposure_count=count,
-        )
-        for (exercise_id, exercise_name), count in sorted(unmapped_by_identity.items())
-    )
+    unmapped_exercises = _unmapped_diagnostics_from_unique(unique)
     missing_tracking = sum(
         1
         for item in unique

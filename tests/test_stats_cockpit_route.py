@@ -164,7 +164,8 @@ def test_rich_response_serializes_statuses_dates_coverage_zero_and_sections(app,
     assert set(payload["training_load"]) == {"period", "summary", "weekly"}
     assert payload["training_load"]["summary"]["tonnage"]["value"] == 1100.0
     assert payload["training_load"]["summary"]["tonnage"]["coverage"] == "complete"
-    assert set(payload["muscles"]) == {"period", "coverage", "workloads"}
+    assert set(payload["muscles"]) == {"period", "coverage", "workloads", "unmapped_exercises"}
+    assert payload["muscles"]["unmapped_exercises"] == []
     assert payload["muscles"]["coverage"]["mapped_exposure_count"] == 3
     assert payload["data_quality"]["requested_raw_period"]["end"] == "2026-09-30"
     assert not any(math.isnan(value) for value in [payload["training_load"]["summary"]["tonnage"]["value"]])
