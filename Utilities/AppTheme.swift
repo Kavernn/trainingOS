@@ -876,10 +876,19 @@ final class AppTheme: ObservableObject {
     }
 
     // Raccourcis directs
-    var accent:      Color { colors.accentDistribution == .surgical ? .white              : colors.accent }
-    var accentLight: Color { colors.accentDistribution == .surgical ? .white.opacity(0.7) : colors.accentLight }
+    var accent: Color {
+        if selectedTheme == .arctic { return colors.accent }
+        return colors.accentDistribution == .surgical ? .white : colors.accent
+    }
+    var accentLight: Color {
+        if selectedTheme == .arctic { return colors.accentLight }
+        return colors.accentDistribution == .surgical ? .white.opacity(0.7) : colors.accentLight
+    }
     var accentMuted:     Color { colors.accentMuted }
-    var onAccent:        Color { colors.accentDistribution == .surgical ? .black : colors.onAccent }
+    var onAccent: Color {
+        if selectedTheme == .arctic { return colors.onAccent }
+        return colors.accentDistribution == .surgical ? .black : colors.onAccent
+    }
     var selectedControlBackground: Color { colors.selectedControlBackground }
     var selectedControlForeground: Color { colors.selectedControlForeground }
 
