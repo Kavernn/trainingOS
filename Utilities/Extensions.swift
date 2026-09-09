@@ -91,9 +91,18 @@ extension Color {
     static var appSeparator:       Color { AppTheme.shared.separator }
     static var appSeparatorSubtle: Color { AppTheme.shared.separatorSubtle }
     static var appSeparatorStrong: Color { AppTheme.shared.separatorStrong }
-    static var trendPositive: Color { isSurgical ? Color(white: 0.68) : isElectricLight ? Color(hex: "FFFF33") : Color(hex: "34C759") }
-    static var trendNeutral:  Color { isSurgical ? Color(white: 0.50) : Color(hex: "FF9500") }
-    static var trendNegative: Color { isSurgical ? Color(white: 0.35) : Color(hex: "FF6B6B") }
+    static var trendPositive: Color {
+        if AppTheme.shared.selectedTheme == .arctic { return Color.appSuccess }
+        return isSurgical ? Color(white: 0.68) : isElectricLight ? Color(hex: "FFFF33") : Color(hex: "34C759")
+    }
+    static var trendNeutral: Color {
+        if AppTheme.shared.selectedTheme == .arctic { return Color.appWarning }
+        return isSurgical ? Color(white: 0.50) : Color(hex: "FF9500")
+    }
+    static var trendNegative: Color {
+        if AppTheme.shared.selectedTheme == .arctic { return Color.appDanger }
+        return isSurgical ? Color(white: 0.35) : Color(hex: "FF6B6B")
+    }
     static var accentOnSurface: Color { isElectricLight ? Color(hex: "FFFF33") : AppTheme.shared.accent }
     static var moonlight:     Color { isSurgical ? Color(white: 0.80) : Color(hex: "E8EDF5") }
     static let voidBg          = Color(red: 0.020, green: 0.031, blue: 0.063)  // Fond de mood fixe — NE suit pas le thème, intentionnel
@@ -101,13 +110,25 @@ static let pssBg           = Color(hex: "0C0C18")  // Fond de mood fixe — NE s
     static let ritualEveningBg = Color(hex: "0D0906")  // Fond de mood fixe — NE suit pas le thème, intentionnel (cf .voidBg)
 
     // Couleurs sémantiques — desaturées en mode surgical (Sin City N&B)
-    static var statusGreen:  Color { isSurgical ? Color(white: 0.68) : .green   }
-    static var statusOrange: Color { isSurgical ? Color(white: 0.55) : .orange  }
-    static var statusBlue:   Color { isSurgical ? Color(white: 0.50) : isElectricLight ? Color.appInfo : .blue    }
+    static var statusGreen: Color {
+        if AppTheme.shared.selectedTheme == .arctic { return Color.appSuccess }
+        return isSurgical ? Color(white: 0.68) : .green
+    }
+    static var statusOrange: Color {
+        if AppTheme.shared.selectedTheme == .arctic { return Color.appWarning }
+        return isSurgical ? Color(white: 0.55) : .orange
+    }
+    static var statusBlue: Color {
+        if AppTheme.shared.selectedTheme == .arctic { return Color.appInfo }
+        return isSurgical ? Color(white: 0.50) : isElectricLight ? Color.appInfo : .blue
+    }
     static var statusPurple: Color { isSurgical ? Color(white: 0.58) : .purple  }
     static var statusYellow: Color { isSurgical ? Color(white: 0.62) : .yellow  }
     static var statusCyan:   Color { isSurgical ? Color(white: 0.52) : isElectricLight ? AppTheme.shared.chartColor(1) : .cyan    }
-    static var statusRed:    Color { isSurgical ? Color(white: 0.72) : .red     }
+    static var statusRed: Color {
+        if AppTheme.shared.selectedTheme == .arctic { return Color.appDanger }
+        return isSurgical ? Color(white: 0.72) : .red
+    }
 
     private static var isSurgical: Bool {
         AppTheme.shared.colors.accentDistribution == .surgical

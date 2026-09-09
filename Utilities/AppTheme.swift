@@ -905,10 +905,22 @@ final class AppTheme: ObservableObject {
     var separator:       Color { colors.separator }
     var separatorSubtle: Color { colors.separatorSubtle }
     var separatorStrong: Color { colors.separatorStrong }
-    var danger:  Color { colors.accentDistribution == .surgical ? Color(white: 0.72) : colors.danger  }
-    var success: Color { colors.accentDistribution == .surgical ? Color(white: 0.68) : colors.success }
-    var warning: Color { colors.accentDistribution == .surgical ? Color(white: 0.55) : colors.warning }
-    var info:    Color { colors.accentDistribution == .surgical ? Color(white: 0.50) : colors.info    }
+    var danger: Color {
+        if selectedTheme == .arctic { return colors.danger }
+        return colors.accentDistribution == .surgical ? Color(white: 0.72) : colors.danger
+    }
+    var success: Color {
+        if selectedTheme == .arctic { return colors.success }
+        return colors.accentDistribution == .surgical ? Color(white: 0.68) : colors.success
+    }
+    var warning: Color {
+        if selectedTheme == .arctic { return colors.warning }
+        return colors.accentDistribution == .surgical ? Color(white: 0.55) : colors.warning
+    }
+    var info: Color {
+        if selectedTheme == .arctic { return colors.info }
+        return colors.accentDistribution == .surgical ? Color(white: 0.50) : colors.info
+    }
 
     var cardCornerRadius: CGFloat { colors.cardCornerRadius }
     var cardBorderWidth:  CGFloat { colors.cardBorderWidth }
