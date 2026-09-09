@@ -45,6 +45,7 @@ struct DashboardView: View {
         NavigationStack {
             ZStack {
                 AmbientBackground(color: dailyAccent)
+                    .id(appTheme.selectedTheme)
 
                 // Point 1 — Bande/halo accent en haut, ancre le type de jour dès l'ouverture.
                 // Réversible via DashboardAccentRadiance.topBandPeak.
@@ -321,6 +322,7 @@ struct DashboardView: View {
 
 
                             }
+                            .id(appTheme.selectedTheme)
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
                             .padding(.bottom, 8)
