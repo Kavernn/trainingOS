@@ -133,10 +133,10 @@ enum RPEHelper {
                             VStack(spacing: 3) {
                                 Text(opt.shortLabel)
                                     .font(.appBody.weight(.black))
-                                    .foregroundColor(selected ? .black : .white)
+                                    .foregroundColor(selected ? .black : (disabled ? .white : Color.appTextSecondary))
                                 Text(opt.label)
                                     .font(.system(size: 8, weight: .medium))
-                                    .foregroundColor(selected ? .black.opacity(0.65) : .gray.opacity(0.45))
+                                    .foregroundColor(selected ? .black.opacity(0.65) : (disabled ? .gray.opacity(0.45) : Color.appTextSecondary))
                                     .multilineTextAlignment(.center)
                                     .lineLimit(2)
                             }
@@ -147,7 +147,7 @@ enum RPEHelper {
                         } else {
                             Text(opt.shortLabel)
                                 .font(.appMicro.weight(.black))
-                                .foregroundColor(selected ? .black : .gray.opacity(0.5))
+                                .foregroundColor(selected ? .black : (disabled ? .gray.opacity(0.5) : Color.appTextSecondary))
                                 .frame(maxWidth: .infinity, minHeight: 32)
                                 .background(selected ? opt.color : Color.appSurfaceInset)
                                 .cornerRadius(5)
