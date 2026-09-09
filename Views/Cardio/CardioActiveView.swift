@@ -93,7 +93,7 @@ private struct CardioTypeCard: View {
             VStack(spacing: 10) {
                 Image(systemName: type.icon)
                     .font(.appTitle)
-                    .foregroundColor(isSelected ? Color.statusCyan : Color.appOnSurface.opacity(0.7))
+                    .foregroundColor(isSelected ? Color.forge : Color.appOnSurface.opacity(0.7))
                     .frame(height: 34)
 
                 Text(type.label)
@@ -110,10 +110,17 @@ private struct CardioTypeCard: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)
             .padding(.horizontal, 8)
-            .background(isSelected ? Color.statusCyan.opacity(0.15) : Color.appSurfaceInset)
+            .background(
+                Color.appSurfaceInset
+                    .overlay(
+                        isSelected
+                        ? Color.selectedControlBackground.opacity(0.15)
+                        : Color.clear
+                    )
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color.statusCyan : Color.appSurfaceInset, lineWidth: isSelected ? 1.5 : 1)
+                    .stroke(isSelected ? Color.forge : Color.appSurfaceInset, lineWidth: isSelected ? 1.5 : 1)
             )
             .cornerRadius(16)
         }
