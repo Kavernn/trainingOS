@@ -145,23 +145,10 @@ extension StatsView {
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
     }
 
-    private func tonnageCoverageLabel(_ coverage: StatsTonnageCoverage) -> String {
-        switch coverage {
-        case .complete: return "Complet"
-        case .partial: return "Partiel"
-        case .unavailable: return "Indisponible"
-        case .unknown: return "Données partielles"
-        }
-    }
-
     // MARK: - Vue Globale Tab
     @ViewBuilder var vueGlobaleTab: some View {
 
         if let cockpit = cockpitData {
-            let counts = cockpit.progression.statusCounts
-            let comparable = counts.improving + counts.stable + counts.declining
-            let tonnage = cockpit.trainingLoad.summary.tonnage
-
             if cockpitError != nil {
                 Text("Actualisation impossible · dernières données affichées")
                     .font(.appMicro.weight(.semibold))
@@ -176,31 +163,17 @@ extension StatsView {
                     .padding(.horizontal, .appPagePadding)
             }
 
-            StatsProgressionHero(progression: cockpit.progression)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                StatsOverviewMetric(
-                    value: "\(comparable)",
-                    label: "Comparables"
-                )
-                StatsOverviewMetric(
-                    value: "\(cockpit.trainingLoad.summary.sessionCount)",
-                    label: "Séances"
-                )
-                StatsOverviewMetric(
-                    value: "\(cockpit.trainingLoad.summary.activeDayCount)",
-                    label: "Jours actifs"
-                )
-                StatsOverviewMetric(
-                    value: tonnage.value.map { units.format($0, decimals: 0) } ?? "—",
-                    label: "Tonnage reps",
-                    detail: tonnageCoverageLabel(tonnage.coverage)
-                )
+            StatsProgressionHero(progression: cockpit.progression) {
+                selectedTab = .strength
             }
-            .padding(.appCardInsetV)
-            .background(Color.appCard)
-            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
-            .padding(.horizontal, .appPagePadding)
+
+            StatsOverviewActivityCard(trainingLoad: cockpit.trainingLoad) {
+                selectedTab = .consistency
+            }
+
+            StatsOverviewExternalLoadCard(trainingLoad: cockpit.trainingLoad) {
+                selectedTab = .load
+            }
 
             if !cockpit.progression.topMovers.isEmpty {
                 StatsTopMoversCard(

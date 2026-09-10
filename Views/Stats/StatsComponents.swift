@@ -1073,11 +1073,19 @@ struct StatsStrengthComparisonRow: View {
 // MARK: - Cockpit Overview
 struct StatsProgressionHero: View {
     let progression: StatsCockpitProgression
+    let onOpen: () -> Void
 
     private var improving: Int { progression.statusCounts.improving }
     private var stable: Int { progression.statusCounts.stable }
     private var declining: Int { progression.statusCounts.declining }
     private var comparable: Int { improving + stable + declining }
+
+    private var accessibilitySummary: String {
+        let improvingLabel = improving == 1 ? "1 exercice en hausse" : "\(improving) exercices en hausse"
+        let stableLabel = stable == 1 ? "1 exercice stable" : "\(stable) exercices stables"
+        let decliningLabel = declining == 1 ? "1 exercice en baisse" : "\(declining) exercices en baisse"
+        return "Trajectoire Force. \(improvingLabel), \(stableLabel), \(decliningLabel). Comparaison des \(progression.comparisonWindowDays) derniers jours aux \(progression.comparisonWindowDays) jours précédents."
+    }
 
     private var presentation: (eyebrow: String, headline: String, support: String) {
         if comparable == 0 {
@@ -1120,39 +1128,95 @@ struct StatsProgressionHero: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(presentation.eyebrow)
-                .font(.appMicro.weight(.bold))
-                .tracking(2)
-                .foregroundColor(Color.domainAccent(.training))
+        Button(action: onOpen) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("TRAJECTOIRE FORCE")
+                        .font(.appMicro.weight(.bold))
+                        .tracking(2)
+                        .foregroundColor(Color.domainAccent(.training))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(.appTextMuted)
+                        .accessibilityHidden(true)
+                }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(presentation.headline)
-                    .font(.appTitle.weight(.bold))
-                    .foregroundColor(.appTextPrimary)
-                Text(presentation.support)
-                    .font(.appBody)
-                    .foregroundColor(.appTextSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(presentation.headline)
+                        .font(.appTitle.weight(.bold))
+                        .foregroundColor(.appTextPrimary)
+                    Text("\(progression.comparisonWindowDays) derniers jours vs \(progression.comparisonWindowDays) jours précédents")
+                        .font(.appCaption)
+                        .foregroundColor(.appTextSecondary)
+                }
 
-            if comparable > 0 {
-                HStack(spacing: 8) {
-                    if improving > 0 { StatusChip(label: "\(improving) en hausse", color: .appSuccess) }
-                    if stable > 0 { StatusChip(label: "\(stable) stable\(stable == 1 ? "" : "s")", color: .appTextSecondary) }
-                    if declining > 0 { StatusChip(label: "\(declining) en baisse", color: .appDanger) }
+                if comparable > 0 {
+                    ForceDistributionBar(
+                        improving: improving,
+                        stable: stable,
+                        declining: declining
+                    )
+
+                    HStack(spacing: 8) {
+                        StatusChip(label: "\(improving) en hausse", color: .appSuccess)
+                        StatusChip(label: "\(stable) stable\(stable == 1 ? "" : "s")", color: .appTextSecondary)
+                        StatusChip(label: "\(declining) en baisse", color: .appDanger)
+                    }
+                } else {
+                    Text(presentation.support)
+                        .font(.appBody)
+                        .foregroundColor(.appTextSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.appCardInsetV)
+            .background(Color.appCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: .appCardRadius)
+                    .stroke(Color.appSeparator, lineWidth: CGFloat.appHairline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.appCardInsetV)
-        .background(Color.appCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: .appCardRadius)
-                .stroke(Color.appSeparator, lineWidth: CGFloat.appHairline)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .buttonStyle(.plain)
         .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+        .accessibilityHint("Ouvrir l’onglet Force")
+    }
+
+    private struct ForceDistributionBar: View {
+        let improving: Int
+        let stable: Int
+        let declining: Int
+
+        private var total: Int { improving + stable + declining }
+        private var visibleSegmentCount: Int { [improving, stable, declining].filter { $0 > 0 }.count }
+
+        var body: some View {
+            GeometryReader { geometry in
+                let spacing = CGFloat(max(visibleSegmentCount - 1, 0)) * 3
+                let availableWidth = max(geometry.size.width - spacing, 0)
+                HStack(spacing: 3) {
+                    segment(count: improving, color: .appSuccess, availableWidth: availableWidth)
+                    segment(count: stable, color: .appTextSecondary, availableWidth: availableWidth)
+                    segment(count: declining, color: .appDanger, availableWidth: availableWidth)
+                }
+            }
+            .frame(height: 8)
+            .clipShape(Capsule())
+            .accessibilityHidden(true)
+        }
+
+        @ViewBuilder
+        private func segment(count: Int, color: Color, availableWidth: CGFloat) -> some View {
+            if count > 0, total > 0 {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(color)
+                    .frame(width: availableWidth * CGFloat(count) / CGFloat(total))
+            }
+        }
     }
 
     private struct StatusChip: View {
@@ -1171,29 +1235,233 @@ struct StatsProgressionHero: View {
     }
 }
 
-struct StatsOverviewMetric: View {
-    let value: String
-    let label: String
-    var detail: String?
+struct StatsOverviewActivityCard: View {
+    let trainingLoad: StatsCockpitTrainingLoad
+    let onOpen: () -> Void
+    @EnvironmentObject private var theme: AppTheme
+
+    private var weekly: [StatsWeeklyTrainingLoad] { trainingLoad.weekly }
+    private var maxActiveDays: Int { max(weekly.map(\.activeDayCount).max() ?? 0, 1) }
+    private var hasPartialWeek: Bool { weekly.last?.isPartial == true }
+
+    private var accessibilitySummary: String {
+        let partial = hasPartialWeek ? " La semaine en cours est affichée comme partielle." : ""
+        let sessions = trainingLoad.summary.sessionCount == 1 ? "1 séance" : "\(trainingLoad.summary.sessionCount) séances"
+        let days = trainingLoad.summary.activeDayCount == 1 ? "1 jour actif" : "\(trainingLoad.summary.activeDayCount) jours actifs"
+        return "Activité sur 12 semaines. \(sessions), \(days). Rythme hebdomadaire.\(partial)"
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value)
-                .font(.appHeadline.weight(.semibold))
-                .foregroundColor(.appTextPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            Text(label)
-                .font(.appCaption)
-                .foregroundColor(.appTextSecondary)
-            if let detail {
-                Text(detail)
-                    .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appTextMuted)
+        Button(action: onOpen) {
+            VStack(alignment: .leading, spacing: 12) {
+                overviewHeader(title: "ACTIVITÉ", period: "12 SEMAINES")
+
+                HStack(spacing: 20) {
+                    metric(value: trainingLoad.summary.sessionCount, label: "Séances")
+                    metric(value: trainingLoad.summary.activeDayCount, label: "Jours actifs")
+                }
+
+                if weekly.isEmpty {
+                    Text("Pas encore de rythme hebdomadaire disponible.")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                } else {
+                    GeometryReader { geometry in
+                        HStack(alignment: .bottom, spacing: 5) {
+                            ForEach(weekly, id: \.weekStart) { bucket in
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(theme.chartColor(0))
+                                    .opacity(bucket.isPartial ? 0.4 : 1)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        minHeight: 2,
+                                        maxHeight: max(
+                                            CGFloat(bucket.activeDayCount) / CGFloat(maxActiveDays) * geometry.size.height,
+                                            2
+                                        )
+                                    )
+                            }
+                        }
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                    }
+                    .frame(height: 48)
+                    .accessibilityHidden(true)
+                }
+
+                if hasPartialWeek {
+                    Text("Semaine en cours")
+                        .font(.appMicro)
+                        .foregroundColor(.appTextMuted)
+                }
             }
+            .overviewCardStyle()
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+        .accessibilityHint("Ouvrir Régularité")
+    }
+
+    private func overviewHeader(title: String, period: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            Spacer()
+            Text(period)
+                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+            Image(systemName: "chevron.right")
+                .font(.appMicro.weight(.semibold)).foregroundColor(.appTextMuted)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func metric(value: Int, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("\(value)")
+                .font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
+            Text(label)
+                .font(.appCaption).foregroundColor(.appTextSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+    }
+}
+
+struct StatsOverviewExternalLoadCard: View {
+    let trainingLoad: StatsCockpitTrainingLoad
+    let onOpen: () -> Void
+    @EnvironmentObject private var theme: AppTheme
+
+    private var validPoints: [(index: Int, bucket: StatsWeeklyTrainingLoad, value: Double)] {
+        trainingLoad.weekly.enumerated().compactMap { index, bucket in
+            guard let value = bucket.tonnage.value else { return nil }
+            return (index, bucket, value)
+        }
+    }
+
+    private var completeBuckets: [(index: Int, bucket: StatsWeeklyTrainingLoad)] {
+        trainingLoad.weekly.enumerated().compactMap { index, bucket in
+            bucket.isPartial ? nil : (index, bucket)
+        }
+    }
+
+    private var latestComplete: (index: Int, bucket: StatsWeeklyTrainingLoad)? {
+        completeBuckets.last
+    }
+
+    private var relativeDelta: Double? {
+        guard completeBuckets.count >= 2,
+              let recent = completeBuckets[completeBuckets.count - 1].bucket.tonnage.value,
+              let previous = completeBuckets[completeBuckets.count - 2].bucket.tonnage.value else { return nil }
+        guard previous > 0 else { return nil }
+        return (recent - previous) / previous
+    }
+
+    private var latestTonnageLabel: String {
+        guard let value = latestComplete?.bucket.tonnage.value else { return "Indisponible" }
+        let displayValue = UnitSettings.shared.display(value)
+        let formatted = NumberFormatter.spaceGrouped.string(from: NSNumber(value: displayValue))
+            ?? String(format: "%.0f", displayValue)
+        return "\(formatted) \(UnitSettings.shared.label)"
+    }
+
+    private var deltaLabel: String? {
+        guard let relativeDelta else { return nil }
+        let value = abs(relativeDelta * 100)
+        if relativeDelta == 0 { return "Même niveau que la semaine précédente" }
+        let formatted = String(format: "%.1f", value).replacingOccurrences(of: ".", with: ",")
+        return "\(relativeDelta > 0 ? "+" : "−")\(formatted) % vs semaine précédente"
+    }
+
+    private var accessibilitySummary: String {
+        var summary = "Charge externe sur 12 semaines. Dernière semaine complète : \(latestTonnageLabel)."
+        if let relativeDelta {
+            let value = String(format: "%.1f", abs(relativeDelta * 100)).replacingOccurrences(of: ".", with: ",")
+            if relativeDelta == 0 {
+                summary += " Même niveau que la semaine précédente."
+            } else if relativeDelta > 0 {
+                summary += " Hausse de \(value) pour cent par rapport à la semaine précédente."
+            } else {
+                summary += " Baisse de \(value) pour cent par rapport à la semaine précédente."
+            }
+        }
+        return summary
+    }
+
+    var body: some View {
+        Button(action: onOpen) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("CHARGE EXTERNE")
+                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                    Spacer()
+                    Text("12 SEMAINES")
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.appMicro.weight(.semibold)).foregroundColor(.appTextMuted)
+                        .accessibilityHidden(true)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(latestTonnageLabel)
+                        .font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
+                    Text("Dernière semaine complète")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                    if let deltaLabel {
+                        Text(deltaLabel)
+                            .font(.appMicro.weight(.semibold)).foregroundColor(.appTextSecondary)
+                    }
+                }
+
+                if validPoints.isEmpty {
+                    Text("Pas encore de trajectoire de charge disponible.")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                } else {
+                    Chart {
+                        ForEach(validPoints, id: \.index) { point in
+                            LineMark(
+                                x: .value("Semaine", point.index),
+                                y: .value("Tonnage", UnitSettings.shared.display(point.value))
+                            )
+                            .foregroundStyle(theme.chartColor(1))
+                            .interpolationMethod(.catmullRom)
+
+                            if point.index == validPoints.last?.index {
+                                PointMark(
+                                    x: .value("Semaine", point.index),
+                                    y: .value("Tonnage", UnitSettings.shared.display(point.value))
+                                )
+                                .foregroundStyle(theme.chartColor(1))
+                                .symbolSize(42)
+                            }
+                        }
+                    }
+                    .chartXAxis(.hidden)
+                    .chartYAxis(.hidden)
+                    .frame(height: 54)
+                    .accessibilityHidden(true)
+                }
+            }
+            .overviewCardStyle()
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+        .accessibilityHint("Ouvrir Charge")
+    }
+}
+
+private extension View {
+    func overviewCardStyle() -> some View {
+        self
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.appCardInsetV)
+            .background(Color.appCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: .appCardRadius)
+                    .stroke(Color.appSeparator, lineWidth: CGFloat.appHairline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
     }
 }
 
