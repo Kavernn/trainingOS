@@ -81,17 +81,34 @@ struct EnergyRecoveryView: View {
     }
 
     private func loadData() async {
+        let tStart = Date()
         // sequential — iOS 26 beta async let LIFO crash
+        var t = Date()
         let e       = try? await APIService.shared.fetchEnergyDaily()
+        print(String(format: "⏱️ [EnergyRecovery energyDaily] %.2fs", Date().timeIntervalSince(t)))
+        t = Date()
         let h       = try? await APIService.shared.fetchEnergyHistory()
+        print(String(format: "⏱️ [EnergyRecovery energyHistory] %.2fs", Date().timeIntervalSince(t)))
+        t = Date()
         let rec     = try? await APIService.shared.fetchRecoveryData()
+        print(String(format: "⏱️ [EnergyRecovery recoveryData] %.2fs", Date().timeIntervalSince(t)))
         // fetchReadiness DOIT précéder fetchReadinessHistory : compute() persiste
         // readiness_daily du jour courant, l'history LIT cette table.
+        t = Date()
         let readiness  = try? await APIService.shared.fetchReadiness()
+        print(String(format: "⏱️ [EnergyRecovery readiness DEP-1/2] %.2fs", Date().timeIntervalSince(t)))
+        t = Date()
         let readinessH = try? await APIService.shared.fetchReadinessHistory(days: 14)
+        print(String(format: "⏱️ [EnergyRecovery readinessHistory DEP-2/2] %.2fs", Date().timeIntervalSince(t)))
+        t = Date()
         let hrv     = try? await APIService.shared.fetchHRVAnalysis()
+        print(String(format: "⏱️ [EnergyRecovery HRVAnalysis] %.2fs", Date().timeIntervalSince(t)))
+        t = Date()
         let sleepPg = try? await APIService.shared.fetchSleepHistory(limit: 10)
+        print(String(format: "⏱️ [EnergyRecovery sleepHistory] %.2fs", Date().timeIntervalSince(t)))
+        t = Date()
         let sstats  = try? await APIService.shared.fetchSleepStats()
+        print(String(format: "⏱️ [EnergyRecovery sleepStats] %.2fs", Date().timeIntervalSince(t)))
         await MainActor.run {
             energy       = e
             history      = h ?? []
@@ -103,6 +120,7 @@ struct EnergyRecoveryView: View {
             sleepStats   = sstats
             isLoading    = false
         }
+        print(String(format: "⏱️ [EnergyRecovery TOTAL] %.2fs", Date().timeIntervalSince(tStart)))
     }
 }
 
