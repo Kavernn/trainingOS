@@ -295,6 +295,24 @@ struct StatsChargeHeroCard: View {
 struct StatsMuscleWorkloadComparisonChart: View {
     let muscles: StatsCockpitMuscles
 
+    private var solicitedWorkloads: [StatsMuscleWorkload] {
+        muscles.workloads.filter {
+            $0.directExposureCount > 0 || $0.indirectExposureCount > 0
+        }
+    }
+
+    private var solicitedMuscleCount: Int { solicitedWorkloads.count }
+
+    private var directlyTargetedCount: Int {
+        solicitedWorkloads.filter { $0.directExposureCount > 0 }.count
+    }
+
+    private var indirectOnlyCount: Int {
+        solicitedWorkloads.filter {
+            $0.directExposureCount == 0 && $0.indirectExposureCount > 0
+        }.count
+    }
+
     private var topWorkloads: [StatsMuscleWorkload] {
         let direct = muscles.workloads
             .filter { $0.directSetCount > 0 }
@@ -331,24 +349,53 @@ struct StatsMuscleWorkloadComparisonChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("TRAVAIL PAR MUSCLE")
-                .font(.appMicro.weight(.bold))
-                .tracking(1.5)
-                .foregroundColor(.appTextMuted)
-            Text("30 derniers jours")
+            HStack(alignment: .firstTextBaseline) {
+                Text("MUSCLES")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(.appTextMuted)
+                Spacer()
+                Text("30 JOURS")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.appTextSecondary)
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 7) {
+                Text("\(solicitedMuscleCount)")
+                    .font(.appTitle.weight(.bold))
+                    .foregroundColor(.appTextPrimary)
+                Text("Muscles sollicités")
+                    .font(.appBody.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+            }
+            Text("\(directlyTargetedCount) ciblés directement · \(indirectOnlyCount) uniquement indirectement")
                 .font(.appCaption)
                 .foregroundColor(.appTextSecondary)
 
+            Divider().overlay(Color.appSeparatorSubtle)
+
+            Text("MUSCLES LES PLUS SOLLICITÉS")
+                .font(.appMicro.weight(.bold))
+                .tracking(1.5)
+                .foregroundColor(.appTextMuted)
+
             if topWorkloads.isEmpty {
-                Text("Pas encore assez de données musculaires.")
+                Text(emptyChartMessage)
                     .font(.appBody)
                     .foregroundColor(.appTextSecondary)
             } else {
+                Text("Jusqu’à 8 muscles, sélectionnés selon le travail direct et indirect")
+                    .font(.appMicro)
+                    .foregroundColor(.appTextMuted)
+
                 HStack(spacing: 14) {
                     legend(color: AppTheme.shared.chartColor(0), label: "Direct")
                     legend(color: AppTheme.shared.chartColor(1), label: "Indirect")
                     Spacer()
                 }
+                Text("Direct : muscle principal · Indirect : muscle secondaire")
+                    .font(.appMicro)
+                    .foregroundColor(.appTextSecondary)
 
                 Chart {
                     ForEach(topWorkloads, id: \.muscle) { workload in
@@ -377,7 +424,20 @@ struct StatsMuscleWorkloadComparisonChart: View {
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Travail par muscle sur les 30 derniers jours. Séries directes et indirectes affichées séparément.")
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var emptyChartMessage: String {
+        if solicitedMuscleCount > 0 {
+            return "Des muscles ont été enregistrés, mais aucune série exploitable n’est disponible sur les 30 derniers jours."
+        }
+        return "Aucun muscle sollicité sur les 30 derniers jours."
+    }
+
+    private var accessibilitySummary: String {
+        let summary = "Muscles sur 30 jours. \(solicitedMuscleCount) muscles sollicités : \(directlyTargetedCount) ciblés directement et \(indirectOnlyCount) uniquement indirectement."
+        guard !topWorkloads.isEmpty else { return "\(summary) \(emptyChartMessage)" }
+        return "\(summary) Direct signifie muscle principal. Indirect signifie muscle secondaire. Le graphique présente jusqu’à 8 muscles."
     }
 
     private func legend(color: Color, label: String) -> some View {
@@ -441,6 +501,22 @@ struct StatsMuscleWorkloadSection: View {
         isExpanded ? sortedWorkloads[...] : sortedWorkloads.prefix(6)
     }
 
+    private var remainingWorkloadCount: Int {
+        max(sortedWorkloads.count - 6, 0)
+    }
+
+    private var bicepsFemoralHasSets: Bool {
+        guard let workload = muscles.workloads.first(where: { $0.muscle == "Biceps fémoral" }) else {
+            return false
+        }
+        return workload.directSetCount > 0 || workload.indirectSetCount > 0
+    }
+
+    private var expandLabel: String {
+        if remainingWorkloadCount == 1 { return "Voir 1 autre muscle" }
+        return "Voir les \(remainingWorkloadCount) autres muscles"
+    }
+
     private var coverageMessage: String? {
         let coverage = muscles.coverage
         guard coverage.unmappedExposureCount > 0 else { return nil }
@@ -449,9 +525,14 @@ struct StatsMuscleWorkloadSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("DÉTAIL MUSCULAIRE")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            Text("Répartition du travail mesurable")
+            HStack(alignment: .firstTextBaseline) {
+                Text("DÉTAIL MUSCULAIRE")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                Spacer()
+                Text("30 JOURS")
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+            }
+            Text("Séries directes et indirectes · séances et récence")
                 .font(.appCaption).foregroundColor(.appTextSecondary)
 
             if let coverageMessage {
@@ -464,18 +545,21 @@ struct StatsMuscleWorkloadSection: View {
                     .font(.appBody).foregroundColor(.appTextSecondary)
             } else {
                 ForEach(visibleWorkloads, id: \.muscle) { workload in
-                    StatsMuscleWorkloadRow(workload: workload)
+                    StatsMuscleWorkloadRow(
+                        workload: workload,
+                        bicepsFemoralHasSets: bicepsFemoralHasSets
+                    )
                     if workload.muscle != visibleWorkloads.last?.muscle {
                         Divider().overlay(Color.appSeparatorSubtle)
                     }
                 }
 
-                if sortedWorkloads.count > 6 {
+                if remainingWorkloadCount > 0 {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
                     } label: {
                         HStack {
-                            Text(isExpanded ? "Réduire" : "Voir tous les muscles")
+                            Text(isExpanded ? "Réduire la liste" : expandLabel)
                                 .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.appTextPrimary)
                             Spacer()
@@ -485,7 +569,7 @@ struct StatsMuscleWorkloadSection: View {
                         .frame(minHeight: 44)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(isExpanded ? "Réduire les détails musculaires" : "Voir tous les muscles")
+                    .accessibilityLabel(isExpanded ? "Réduire la liste des détails musculaires" : expandLabel)
                 }
             }
         }
@@ -498,15 +582,52 @@ struct StatsMuscleWorkloadSection: View {
 
 struct StatsMuscleWorkloadRow: View {
     let workload: StatsMuscleWorkload
+    let bicepsFemoralHasSets: Bool
+
+    private var hasExposureWithoutValidSets: Bool {
+        workload.directSetCount == 0
+            && workload.indirectSetCount == 0
+            && (workload.directExposureCount > 0 || workload.indirectExposureCount > 0)
+    }
+
+    private var showsBicepsFemoralContext: Bool {
+        workload.muscle == "Ischio-jambiers"
+            && hasExposureWithoutValidSets
+            && bicepsFemoralHasSets
+    }
+
+    private var accessibilitySummary: String {
+        let muscle = statsMuscleDisplayName(workload.muscle)
+        let sets: String
+        if hasExposureWithoutValidSets {
+            sets = showsBicepsFemoralContext
+                ? "Aucune série exploitable. Séries comptées sous Biceps fémoral."
+                : "Aucune série exploitable."
+        } else {
+            sets = "Direct, \(workload.directSetCount) séries. Indirect, \(workload.indirectSetCount) séries."
+        }
+        return "\(muscle). \(sets) \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). \(workload.activeDayCount) jour actif\(workload.activeDayCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(statsMuscleDisplayName(workload.muscle))
                 .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 10) {
-                metricBadge(value: workload.directSetCount, label: "Direct", color: AppTheme.shared.chartColor(0))
-                metricBadge(value: workload.indirectSetCount, label: "Indirect", color: AppTheme.shared.chartColor(1))
+            if hasExposureWithoutValidSets {
+                Text("Aucune série exploitable")
+                    .font(.appMicro.weight(.semibold))
+                    .foregroundColor(.appTextSecondary)
+                if showsBicepsFemoralContext {
+                    Text("Séries comptées sous Biceps fémoral")
+                        .font(.appMicro)
+                        .foregroundColor(.appTextMuted)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    metricBadge(value: workload.directSetCount, label: "Direct", color: AppTheme.shared.chartColor(0))
+                    metricBadge(value: workload.indirectSetCount, label: "Indirect", color: AppTheme.shared.chartColor(1))
+                }
             }
             HStack {
                 Text("\(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s") · \(workload.activeDayCount) jour actif\(workload.activeDayCount == 1 ? "" : "s")")
@@ -517,7 +638,7 @@ struct StatsMuscleWorkloadRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(statsMuscleDisplayName(workload.muscle)). Direct, \(workload.directSetCount) séries. Indirect, \(workload.indirectSetCount) séries. \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). \(workload.activeDayCount) jour actif\(workload.activeDayCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate)).")
+        .accessibilityLabel(accessibilitySummary)
     }
 
     private func metricBadge(value: Int, label: String, color: Color) -> some View {

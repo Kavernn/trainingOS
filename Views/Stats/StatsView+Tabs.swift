@@ -309,6 +309,7 @@ extension StatsView {
             StatsChargeHeroCard(trainingLoad: cockpit.trainingLoad)
             StatsExternalLoadSection(trainingLoad: cockpit.trainingLoad)
             StatsMuscleWorkloadComparisonChart(muscles: cockpit.muscles)
+            StatsMuscleWorkloadSection(muscles: cockpit.muscles)
         }
 
         // Volume hebdomadaire legacy — fallback uniquement si le cockpit est indisponible
@@ -337,10 +338,6 @@ extension StatsView {
                 .font(.appBody).foregroundColor(.appTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, .appPagePadding)
-        }
-
-        if let cockpit = cockpitData {
-            StatsMuscleWorkloadSection(muscles: cockpit.muscles)
         }
 
         Spacer(minLength: 32)
