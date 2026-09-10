@@ -459,8 +459,10 @@ extension StatsView {
     @ViewBuilder var exercicesTab: some View {
 
         if let cockpit = cockpitData {
+            StatsForceProgressionHero(progression: cockpit.progression)
             StatsStrengthProgressionSection(
                 comparisons: cockpit.progression.comparisons,
+                comparisonWindowDays: cockpit.progression.comparisonWindowDays,
                 onSelectExercise: { selectedExercise = $0 }
             )
         }

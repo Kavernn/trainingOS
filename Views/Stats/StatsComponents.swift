@@ -816,8 +816,73 @@ struct StatsWeeklyTonnageChart: View {
 }
 
 // MARK: - Canonical Force progression
+struct StatsForceProgressionHero: View {
+    let progression: StatsCockpitProgression
+
+    private var improving: Int { progression.statusCounts.improving }
+    private var stable: Int { progression.statusCounts.stable }
+    private var declining: Int { progression.statusCounts.declining }
+    private var comparable: Int { improving + stable + declining }
+
+    private var comparableLabel: String {
+        comparable == 1 ? "1 exercice comparable" : "\(comparable) exercices comparables"
+    }
+
+    private var accessibilitySummary: String {
+        let stableSummary = stable == 1 ? "1 exercice stable" : "\(stable) exercices stables"
+        return "Trajectoire force. Comparaison des \(progression.comparisonWindowDays) derniers jours aux \(progression.comparisonWindowDays) jours précédents. \(improving) exercices en hausse. \(stableSummary). \(declining) en baisse. \(comparableLabel)."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("TRAJECTOIRE FORCE")
+                .font(.appMicro.weight(.bold))
+                .tracking(2)
+                .foregroundColor(Color.domainAccent(.training))
+
+            Text("\(progression.comparisonWindowDays) derniers jours vs \(progression.comparisonWindowDays) jours précédents")
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+
+            HStack(spacing: 12) {
+                metric(value: improving, label: "En hausse", color: .appSuccess)
+                metric(value: stable, label: "Stables", color: .appTextSecondary)
+                metric(value: declining, label: "En baisse", color: .appDanger)
+            }
+
+            Text(comparableLabel)
+                .font(.appMicro.weight(.semibold))
+                .foregroundColor(.appTextMuted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.appCardInsetV)
+        .background(Color.appCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: CGFloat.appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private func metric(value: Int, label: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("\(value)")
+                .font(.appTitle.weight(.bold))
+                .foregroundColor(color)
+            Text(label)
+                .font(.appCaption.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct StatsStrengthProgressionSection: View {
     let comparisons: [StatsProgressionComparison]
+    let comparisonWindowDays: Int
     var onSelectExercise: ((String) -> Void)? = nil
     private var improving: [StatsProgressionComparison] { comparisons.filter { $0.status == .improving } }
     private var stable: [StatsProgressionComparison] { comparisons.filter { $0.status == .stable } }
@@ -833,7 +898,7 @@ struct StatsStrengthProgressionSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("PROGRESSION PAR EXERCICE").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            Text("Comparaison des meilleures performances sur les deux périodes").font(.appCaption).foregroundColor(.appTextSecondary)
+            Text("Meilleur 1RM estimé · \(comparisonWindowDays) derniers jours vs \(comparisonWindowDays) jours précédents").font(.appCaption).foregroundColor(.appTextSecondary)
             if comparisons.isEmpty {
                 Text("Pas encore assez de données comparables.").font(.appBody).foregroundColor(.appTextSecondary)
             } else {
@@ -874,20 +939,86 @@ struct StatsStrengthComparisonRow: View {
         guard case .insufficientData = comparison.status, let reason = comparison.insufficiencyReason else { return nil }
         switch reason { case .nonComparableTrackingType: return "Type de suivi non comparable"; case .noValidExposure: return "Aucune exposition valide"; case .insufficientBaselineExposures: return "Historique de référence insuffisant"; case .insufficientRecentExposures: return "Pas assez d’expositions récentes"; case .insufficientBothWindows: return "Historique insuffisant sur les deux périodes"; case .invalidBaseline: return "Référence non comparable"; case .unknown: return "Historique insuffisant" }
     }
+    private var deltaLabel: String? {
+        guard let delta = comparison.relativeDelta else { return nil }
+        if abs(delta) < 0.0005 { return "0,0 %" }
+        return String(format: "%+.1f", delta * 100).replacingOccurrences(of: ".", with: ",") + " %"
+    }
+    private var exposureLabel: String {
+        let previous = comparison.baselineExposureCount == 1 ? "exposition précédente" : "expositions précédentes"
+        let recent = comparison.recentExposureCount == 1 ? "récente" : "récentes"
+        return "\(comparison.baselineExposureCount) \(previous) · \(comparison.recentExposureCount) \(recent)"
+    }
+    private var accessibilitySummary: String {
+        var parts = [comparison.exerciseName, statusLabel]
+        if let baseline = comparison.baselineBestE1RM, let recent = comparison.recentBestE1RM {
+            parts.append("1RM estimé, \(UnitSettings.shared.format(baseline, decimals: 0)) précédemment, \(UnitSettings.shared.format(recent, decimals: 0)) récemment")
+        } else if let recent = comparison.recentBestE1RM {
+            parts.append("1RM estimé récent, \(UnitSettings.shared.format(recent, decimals: 0))")
+        } else if let baseline = comparison.baselineBestE1RM {
+            parts.append("1RM estimé précédent, \(UnitSettings.shared.format(baseline, decimals: 0))")
+        }
+        if let delta = comparison.relativeDelta {
+            let value = String(format: "%.1f", abs(delta * 100)).replacingOccurrences(of: ".", with: ",")
+            if delta > 0 {
+                parts.append("Hausse de \(value) pour cent")
+            } else if delta < 0 {
+                parts.append("Baisse de \(value) pour cent")
+            } else {
+                parts.append("Aucun écart en pourcentage")
+            }
+        }
+        if let reason { parts.append(reason) }
+        parts.append(exposureLabel.replacingOccurrences(of: " · ", with: ", "))
+        return parts.joined(separator: ". ") + "."
+    }
     var body: some View {
         Button(action: { onSelect?() }) {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) { Text(comparison.exerciseName).font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary).lineLimit(1); Spacer(minLength: 6); Text(statusLabel).font(.appCaption.weight(.semibold)).foregroundColor(statusColor) }
-                HStack(spacing: 8) {
-                    if let recent = comparison.recentBestE1RM { Text(UnitSettings.shared.format(recent, decimals: 0)).font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary) }
-                    if let delta = comparison.relativeDelta { Text(String(format: "%+.1f", delta * 100).replacingOccurrences(of: ".", with: ",") + " %").font(.appCaption.weight(.semibold)).foregroundColor(statusColor) }
-                    Spacer(minLength: 0)
+
+                if let baseline = comparison.baselineBestE1RM, let recent = comparison.recentBestE1RM {
+                    Text("1RM ESTIMÉ")
+                        .font(.appMicro.weight(.semibold))
+                        .tracking(1)
+                        .foregroundColor(.appTextMuted)
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(UnitSettings.shared.format(baseline, decimals: 0)) → \(UnitSettings.shared.format(recent, decimals: 0))")
+                            .font(.appLabel.weight(.semibold))
+                            .foregroundColor(.appTextPrimary)
+                        Spacer(minLength: 6)
+                        if let deltaLabel {
+                            Text(deltaLabel)
+                                .font(.appCaption.weight(.semibold))
+                                .foregroundColor(statusColor)
+                        }
+                    }
+                } else if let recent = comparison.recentBestE1RM {
+                    estimatedValue(label: "1RM ESTIMÉ RÉCENT", value: recent)
+                } else if let baseline = comparison.baselineBestE1RM {
+                    estimatedValue(label: "1RM ESTIMÉ PRÉCÉDENT", value: baseline)
                 }
-                if let baseline = comparison.baselineBestE1RM, let recent = comparison.recentBestE1RM { Text("\(UnitSettings.shared.format(baseline, decimals: 0)) → \(UnitSettings.shared.format(recent, decimals: 0))").font(.appMicro).foregroundColor(.appTextSecondary) }
-                else if let reason { Text(reason).font(.appMicro).foregroundColor(.appTextSecondary) }
-                Text("\(comparison.baselineExposureCount) réf. · \(comparison.recentExposureCount) récentes").font(.appMicro).foregroundColor(.appTextMuted)
+
+                if let reason { Text(reason).font(.appMicro).foregroundColor(.appTextSecondary) }
+                Text(exposureLabel).font(.appMicro).foregroundColor(.appTextMuted)
             }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityElement(children: .combine)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+        .accessibilityHint("Ouvre l’historique de l’exercice")
+    }
+
+    private func estimatedValue(label: String, value: Double) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.appMicro.weight(.semibold))
+                .tracking(1)
+                .foregroundColor(.appTextMuted)
+            Text(UnitSettings.shared.format(value, decimals: 0))
+                .font(.appLabel.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+        }
     }
 }
 
