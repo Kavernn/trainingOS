@@ -884,6 +884,7 @@ struct StatsStrengthProgressionSection: View {
     let comparisons: [StatsProgressionComparison]
     let comparisonWindowDays: Int
     var onSelectExercise: ((String) -> Void)? = nil
+    @State private var isExpanded = false
     private var improving: [StatsProgressionComparison] { comparisons.filter { $0.status == .improving } }
     private var stable: [StatsProgressionComparison] { comparisons.filter { $0.status == .stable } }
     private var declining: [StatsProgressionComparison] { comparisons.filter { $0.status == .declining } }
@@ -897,16 +898,43 @@ struct StatsStrengthProgressionSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("PROGRESSION PAR EXERCICE").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            Text("Meilleur 1RM estimé · \(comparisonWindowDays) derniers jours vs \(comparisonWindowDays) jours précédents").font(.appCaption).foregroundColor(.appTextSecondary)
-            if comparisons.isEmpty {
-                Text("Pas encore assez de données comparables.").font(.appBody).foregroundColor(.appTextSecondary)
-            } else {
-                group("EN HAUSSE", comparisons: improving)
-                group("STABLE", comparisons: stable)
-                group("EN BAISSE", comparisons: declining)
-                group("DONNÉES INSUFFISANTES", comparisons: insufficient)
-                group("DONNÉES DISPONIBLES", comparisons: other)
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+            } label: {
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("PROGRESSION PAR EXERCICE")
+                            .font(.appMicro.weight(.bold))
+                            .tracking(2)
+                            .foregroundColor(.appTextMuted)
+                        Text("Meilleur 1RM estimé · \(comparisonWindowDays) derniers jours vs \(comparisonWindowDays) jours précédents")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .multilineTextAlignment(.leading)
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.appTextSecondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Progression par exercice, \(isExpanded ? "dépliée" : "repliée")")
+            .accessibilityHint(isExpanded ? "Réduire" : "Développer")
+
+            if isExpanded {
+                if comparisons.isEmpty {
+                    Text("Pas encore assez de données comparables.").font(.appBody).foregroundColor(.appTextSecondary)
+                } else {
+                    group("EN HAUSSE", comparisons: improving)
+                    group("STABLE", comparisons: stable)
+                    group("EN BAISSE", comparisons: declining)
+                    group("DONNÉES INSUFFISANTES", comparisons: insufficient)
+                    group("DONNÉES DISPONIBLES", comparisons: other)
+                }
             }
         }
         .padding(.appCardInsetV).background(Color.appCard)
