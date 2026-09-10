@@ -124,6 +124,22 @@ final class APIModelsTests: XCTestCase {
         XCTAssertTrue(decoded.items.isEmpty)
     }
 
+    func testMoodRPEResponseDecoding() throws {
+        let json = Data(#"{"rpe_by_date":{"2026-09-08":7.5,"2026-09-06":8.0}}"#.utf8)
+        let decoded = try JSONDecoder().decode(MoodRPEResponse.self, from: json)
+
+        XCTAssertEqual(decoded.rpeByDate["2026-09-08"], 7.5)
+        XCTAssertEqual(decoded.rpeByDate["2026-09-06"], 8.0)
+    }
+
+    func testMoodRPEHTTPFailureReturnsEmptyWithoutThrowing() async {
+        let session = makeMockURLSession(statusCode: 500, data: Data(#"{"error":"unavailable"}"#.utf8))
+
+        let result = await APIService.shared.fetchMoodRPE(session: session)
+
+        XCTAssertTrue(result.isEmpty)
+    }
+
     // MARK: - Stats cockpit contract
 
     func testStatsCockpitDecodesCompleteContractAndPreservesCivilDatesAndZero() throws {

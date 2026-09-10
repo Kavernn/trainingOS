@@ -1,4 +1,7 @@
 from flask import Blueprint, jsonify, request
+from datetime import date, timedelta
+
+from utils import _today_mtl
 
 wellness_mood_bp = Blueprint("wellness_mood", __name__)
 
@@ -40,6 +43,46 @@ def api_mood_history():
     except ValueError:
         days, limit, offset = 90, 20, 0
     return jsonify(mood_get_history(days, limit, offset))
+
+
+@wellness_mood_bp.route("/api/mood/rpe")
+def api_mood_rpe():
+    """Return mean daily session RPE for the requested recent window."""
+    try:
+        days = int(request.args.get("days", 90))
+    except (TypeError, ValueError):
+        return jsonify({"error": "days must be an integer between 1 and 365"}), 400
+    if not 1 <= days <= 365:
+        return jsonify({"error": "days must be an integer between 1 and 365"}), 400
+
+    import db as _db
+
+    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
+    rows: list[dict] = []
+    page_size = 500
+    offset = 0
+    while True:
+        page = _db.get_workout_sessions(limit=page_size, offset=offset, since=cutoff) or []
+        rows.extend(page)
+        if len(page) < page_size:
+            break
+        offset += page_size
+
+    totals: dict[str, tuple[float, int]] = {}
+    for row in rows:
+        day = str(row.get("date") or "")[:10]
+        raw_rpe = row.get("rpe")
+        if not day or raw_rpe is None:
+            continue
+        total, count = totals.get(day, (0.0, 0))
+        totals[day] = (total + float(raw_rpe), count + 1)
+
+    return jsonify({
+        "rpe_by_date": {
+            day: round(total / count, 1)
+            for day, (total, count) in sorted(totals.items())
+        }
+    })
 
 
 @wellness_mood_bp.route("/api/mood/today")

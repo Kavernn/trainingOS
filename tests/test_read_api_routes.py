@@ -4,6 +4,7 @@ Tests: read/aggregation APIs and profile/goals/body-weight/cardio/recovery CRUD.
 Routes covered:
   GET  /api/dashboard
   GET  /api/stats_data
+  GET  /api/mood/rpe
   GET  /api/nutrition_data
   GET  /api/programme_data
   GET  /api/inventaire_data
@@ -105,6 +106,60 @@ class TestStatsData(BaseRouteTest):
     def test_sessions_data_present(self):
         data = self.json(self.get("/api/stats_data"))
         self.assertIn("2026-03-10", data["sessions"])
+
+
+# ── /api/mood/rpe ────────────────────────────────────────────────────────────
+
+class TestMoodRPEEndpoint(BaseRouteTest):
+
+    def test_exact_payload_averages_non_null_rpe_and_omits_empty_dates(self):
+        rows = [
+            {"date": "2026-03-10", "rpe": 7.2},
+            {"date": "2026-03-10", "rpe": 8.0},
+            {"date": "2026-03-09", "rpe": None},
+        ]
+        import db
+
+        with patch.object(db, "get_workout_sessions", return_value=rows):
+            response = self.get("/api/mood/rpe?days=90")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"rpe_by_date": {"2026-03-10": 7.6}}, self.json(response))
+
+    def test_default_days_uses_90_day_cutoff(self):
+        import db
+
+        with patch("routes.wellness_mood._today_mtl", return_value="2026-03-14"), \
+             patch.object(db, "get_workout_sessions", return_value=[]) as get_sessions:
+            response = self.get("/api/mood/rpe")
+
+        self.assertEqual(200, response.status_code)
+        get_sessions.assert_called_once_with(limit=500, offset=0, since="2025-12-14")
+
+    def test_maximum_days_is_accepted(self):
+        import db
+
+        with patch("routes.wellness_mood._today_mtl", return_value="2026-03-14"), \
+             patch.object(db, "get_workout_sessions", return_value=[]) as get_sessions:
+            response = self.get("/api/mood/rpe?days=365")
+
+        self.assertEqual(200, response.status_code)
+        get_sessions.assert_called_once_with(limit=500, offset=0, since="2025-03-14")
+
+    def test_invalid_days_returns_400_without_querying_sessions(self):
+        import db
+
+        for value in ("abc", "0", "-1", "366"):
+            with self.subTest(value=value), \
+                 patch.object(db, "get_workout_sessions") as get_sessions:
+                response = self.get(f"/api/mood/rpe?days={value}")
+
+            self.assertEqual(400, response.status_code)
+            self.assertEqual(
+                {"error": "days must be an integer between 1 and 365"},
+                self.json(response),
+            )
+            get_sessions.assert_not_called()
 
 
 # ── /api/nutrition_data ───────────────────────────────────────────────────────

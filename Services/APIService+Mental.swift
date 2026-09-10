@@ -32,6 +32,17 @@ extension APIService {
         return try APIService.decoder.decode(PagedResponse<MoodEntry>.self, from: data)
     }
 
+    func fetchMoodRPE(days: Int = 90, session: URLSession = .authed) async -> [String: Double] {
+        guard let url = try? buildURL(path: "/api/mood/rpe", queryItems: [
+            URLQueryItem(name: "days", value: "\(days)")
+        ]),
+        let (data, response) = try? await session.data(from: url),
+        (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0),
+        let decoded = try? APIService.decoder.decode(MoodRPEResponse.self, from: data)
+        else { return [:] }
+        return decoded.rpeByDate
+    }
+
     func checkMoodDue() async throws -> MoodDueStatus {
         let url = try buildURL(path: "/api/mood/check_due")
         let data = try await fetchWithCache(url: url, key: "mood_check_due")

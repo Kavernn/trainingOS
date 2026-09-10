@@ -102,16 +102,9 @@ struct MoodTrackerView: View {
             }
             isLoading = false
         }
-        // Load RPE by date from stats cache
-        if let cached = CacheService.shared.load(for: "stats_data"),
-           let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any],
-           let sessions = json["sessions"] as? [String: [String: Any]] {
-            let map = Dictionary(uniqueKeysWithValues: sessions.compactMap { (date, s) -> (String, Double)? in
-                guard let rpe = s["rpe"] as? Double else { return nil }
-                return (date, rpe)
-            })
-            await MainActor.run { rpeByDate = map }
-        }
+        // Secondary data: never delays or blocks the mood journal.
+        let moodRPE = await APIService.shared.fetchMoodRPE()
+        await MainActor.run { rpeByDate = moodRPE }
     }
 
     private func loadMore() async {

@@ -119,6 +119,14 @@ struct MoodDueStatus: Codable {
     }
 }
 
+struct MoodRPEResponse: Codable, Equatable {
+    let rpeByDate: [String: Double]
+
+    enum CodingKeys: String, CodingKey {
+        case rpeByDate = "rpe_by_date"
+    }
+}
+
 // MARK: - Journal
 struct JournalEntry: Codable, Identifiable {
     let id: String
