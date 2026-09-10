@@ -75,24 +75,40 @@ def _require_api_key():
         return jsonify({"error": "Unauthorized"}), 401
 
 # ⚠️ TEMP SRV PROBE — REMOVE AFTER MEASURE
+# Défense : une sonde défaillante ne doit JAMAIS casser une vraie réponse.
+# Tous les hooks avalent leurs propres erreurs (try/except: pass).
+# after_request tourne même quand un before_request antérieur (_require_api_key)
+# court-circuite — donc _probe_g._probe_start peut ne pas exister.
 from flask import g as _probe_g, request as _probe_req
 
 @app.before_request
 def _probe_arrival():
     global _PROBE_REQ_COUNT
-    _PROBE_REQ_COUNT += 1
-    _probe_g._probe_cold = (_PROBE_REQ_COUNT == 1)
-    _probe_g._probe_start = _probe_time.monotonic()
-    _probe_g._probe_wall = _probe_time.time()
+    try:
+        _PROBE_REQ_COUNT += 1
+        _probe_g._probe_cold = (_PROBE_REQ_COUNT == 1)
+        _probe_g._probe_start = _probe_time.monotonic()
+        _probe_g._probe_wall = _probe_time.time()
+    except Exception:
+        pass
 
 @app.after_request
 def _probe_completion(response):
-    total_ms = (_probe_time.monotonic() - _probe_g._probe_start) * 1000
-    logger.info(
-        f"[SRV] endpoint={_probe_req.path} instance={_PROBE_INSTANCE_ID} "
-        f"cold={_probe_g._probe_cold} arrival={_probe_g._probe_wall:.3f} "
-        f"req_n={_PROBE_REQ_COUNT} total={total_ms:.0f}ms"
-    )
+    try:
+        start = getattr(_probe_g, "_probe_start", None)
+        if start is None:
+            # before_request court-circuité (ex : 401 sur _require_api_key)
+            return response
+        total_ms = (_probe_time.monotonic() - start) * 1000
+        cold = getattr(_probe_g, "_probe_cold", False)
+        wall = getattr(_probe_g, "_probe_wall", 0.0)
+        logger.info(
+            f"[SRV] endpoint={_probe_req.path} instance={_PROBE_INSTANCE_ID} "
+            f"cold={cold} arrival={wall:.3f} "
+            f"req_n={_PROBE_REQ_COUNT} total={total_ms:.0f}ms"
+        )
+    except Exception:
+        pass
     return response
 # ⚠️ END TEMP SRV PROBE
 
@@ -257,11 +273,14 @@ app.register_blueprint(deload_management_bp)
 app.register_blueprint(educational_bp)
 
 # ⚠️ TEMP SRV PROBE — REMOVE AFTER MEASURE
-_PROBE_BOOT_MS = (_probe_time.monotonic() - _PROBE_BOOT_START) * 1000
-logger.info(
-    f"[SRV boot] instance={_PROBE_INSTANCE_ID} boot_time={_PROBE_BOOT_MS:.0f}ms "
-    f"(includes all imports + db_core Supabase client init at db_core.py:56)"
-)
+try:
+    _PROBE_BOOT_MS = (_probe_time.monotonic() - _PROBE_BOOT_START) * 1000
+    logger.info(
+        f"[SRV boot] instance={_PROBE_INSTANCE_ID} boot_time={_PROBE_BOOT_MS:.0f}ms "
+        f"(includes all imports + db_core Supabase client init at db_core.py:56)"
+    )
+except Exception:
+    pass
 # ⚠️ END TEMP SRV PROBE
 
 
