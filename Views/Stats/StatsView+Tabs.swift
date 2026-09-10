@@ -306,9 +306,9 @@ extension StatsView {
     @ViewBuilder var chargeVolumeTab: some View {
 
         if let cockpit = cockpitData {
-            StatsChargeHeroCard(trainingLoad: cockpit.trainingLoad, muscles: cockpit.muscles)
-            StatsMuscleWorkloadComparisonChart(muscles: cockpit.muscles)
+            StatsChargeHeroCard(trainingLoad: cockpit.trainingLoad)
             StatsExternalLoadSection(trainingLoad: cockpit.trainingLoad)
+            StatsMuscleWorkloadComparisonChart(muscles: cockpit.muscles)
         }
 
         // Volume hebdomadaire legacy — fallback uniquement si le cockpit est indisponible

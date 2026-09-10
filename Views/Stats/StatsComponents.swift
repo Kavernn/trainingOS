@@ -212,29 +212,63 @@ struct StatsWeeklyRegularityChart: View {
 // MARK: - Charge summary and muscle comparison
 struct StatsChargeHeroCard: View {
     let trainingLoad: StatsCockpitTrainingLoad
-    let muscles: StatsCockpitMuscles
 
-    private var exposedMuscleCount: Int {
-        muscles.workloads.filter {
-            $0.directExposureCount > 0 || $0.indirectExposureCount > 0
-        }.count
+    private var weeklySetDelta: Int? {
+        let completeWeeks = trainingLoad.weekly
+            .filter { !$0.isPartial }
+            .sorted { $0.weekStart < $1.weekStart }
+        guard completeWeeks.count >= 2 else { return nil }
+        return completeWeeks[completeWeeks.count - 1].validRepsSetCount
+            - completeWeeks[completeWeeks.count - 2].validRepsSetCount
+    }
+
+    private var weeklyDeltaLabel: String? {
+        guard let weeklySetDelta else { return nil }
+        guard weeklySetDelta != 0 else {
+            return "Même nombre de séries que la semaine précédente"
+        }
+        let sign = weeklySetDelta > 0 ? "+" : "−"
+        let count = abs(weeklySetDelta)
+        let unit = count == 1 ? "série" : "séries"
+        return "\(sign)\(count) \(unit) vs semaine précédente"
+    }
+
+    private var accessibilitySummary: String {
+        let summary = "Activité sur 12 semaines. \(trainingLoad.summary.sessionCount) séances, \(trainingLoad.summary.activeDayCount) jours actifs et \(trainingLoad.summary.validRepsSetCount) séries valides."
+        guard let weeklyDeltaLabel else { return summary }
+        return "\(summary) Dernière semaine complète : \(weeklyDeltaLabel)."
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("CHARGE")
+                Text("ACTIVITÉ")
                     .font(.appMicro.weight(.bold))
                     .tracking(2)
                     .foregroundColor(.appTextMuted)
                 Spacer()
+                Text("12 SEMAINES")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.appTextSecondary)
             }
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                metric(value: "\(trainingLoad.summary.sessionCount)", label: "Séances", context: "12 semaines")
-                metric(value: "\(trainingLoad.summary.activeDayCount)", label: "Jours actifs", context: "12 semaines")
-                metric(value: "\(trainingLoad.summary.validRepsSetCount)", label: "Séries valides", context: "12 semaines")
-                metric(value: "\(exposedMuscleCount)", label: "Muscles exposés", context: "30 jours")
+            HStack(spacing: 12) {
+                metric(value: "\(trainingLoad.summary.sessionCount)", label: "Séances")
+                metric(value: "\(trainingLoad.summary.activeDayCount)", label: "Jours actifs")
+                metric(value: "\(trainingLoad.summary.validRepsSetCount)", label: "Séries valides")
+            }
+
+            if let weeklyDeltaLabel {
+                Divider().overlay(Color.appSeparatorSubtle)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("DERNIÈRE SEMAINE COMPLÈTE")
+                        .font(.appMicro.weight(.bold))
+                        .tracking(1)
+                        .foregroundColor(.appTextMuted)
+                    Text(weeklyDeltaLabel)
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.appTextSecondary)
+                }
             }
         }
         .padding(.appCardInsetV)
@@ -242,20 +276,17 @@ struct StatsChargeHeroCard: View {
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Charge. Sur 12 semaines : \(trainingLoad.summary.sessionCount) séances, \(trainingLoad.summary.activeDayCount) jours actifs et \(trainingLoad.summary.validRepsSetCount) séries valides. Sur 30 jours : \(exposedMuscleCount) muscles exposés.")
+        .accessibilityLabel(accessibilitySummary)
     }
 
-    private func metric(value: String, label: String, context: String) -> some View {
+    private func metric(value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(value)
                 .font(.appHeadline.weight(.semibold))
                 .foregroundColor(.appTextPrimary)
             Text(label)
-                .font(.appCaption)
-                .foregroundColor(.appTextSecondary)
-            Text(context)
                 .font(.appMicro)
-                .foregroundColor(.appTextMuted)
+                .foregroundColor(.appTextSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -508,17 +539,18 @@ struct StatsExternalLoadSection: View {
     let trainingLoad: StatsCockpitTrainingLoad
 
     private var tonnageLabel: String {
-        trainingLoad.summary.tonnage.value.map { UnitSettings.shared.format($0, decimals: 0) } ?? "—"
+        guard let tonnage = trainingLoad.summary.tonnage.value else { return "—" }
+        let displayValue = UnitSettings.shared.display(tonnage)
+        let formatted = NumberFormatter.spaceGrouped.string(from: NSNumber(value: displayValue))
+            ?? String(format: "%.0f", displayValue)
+        return "\(formatted) \(UnitSettings.shared.label)"
     }
 
     private var coverageLabel: String {
         let tonnage = trainingLoad.summary.tonnage
         switch tonnage.coverage {
         case .complete: return "Complet"
-        case .partial:
-            return tonnage.applicableExposureCount > 0
-                ? "Partiel · \(tonnage.calculableExposureCount)/\(tonnage.applicableExposureCount) expositions calculables"
-                : "Partiel"
+        case .partial: return "Couverture partielle"
         case .unavailable: return "Indisponible"
         case .unknown: return "Données partielles"
         }
@@ -526,17 +558,22 @@ struct StatsExternalLoadSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("CHARGE EXTERNE")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            Text("Tonnage reps sur la période")
+            HStack(alignment: .firstTextBaseline) {
+                Text("CHARGE EXTERNE")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                Spacer()
+                Text("12 SEMAINES")
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+            }
+            Text("Tonnage · poids × reps")
                 .font(.appCaption).foregroundColor(.appTextSecondary)
 
             HStack(spacing: 12) {
-                metric(value: tonnageLabel, label: "Tonnage reps", detail: coverageLabel)
+                metric(value: tonnageLabel, label: "Tonnage", detail: coverageLabel)
                 metric(value: "\(trainingLoad.summary.validRepsSetCount)", label: "Séries valides", detail: nil)
                 metric(
                     value: "\(trainingLoad.summary.tonnage.calculableExposureCount) / \(trainingLoad.summary.tonnage.applicableExposureCount)",
-                    label: "Expositions calculables",
+                    label: "Expositions avec tonnage",
                     detail: nil
                 )
             }
@@ -548,7 +585,7 @@ struct StatsExternalLoadSection: View {
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Charge externe. Tonnage reps \(tonnageLabel). \(coverageLabel). \(trainingLoad.summary.validRepsSetCount) séries valides.")
+        .accessibilityLabel("Charge externe sur 12 semaines. Tonnage poids fois répétitions, \(tonnageLabel). \(coverageLabel). \(trainingLoad.summary.validRepsSetCount) séries valides.")
     }
 
     private func metric(value: String, label: String, detail: String?) -> some View {
@@ -568,7 +605,7 @@ struct StatsWeeklyTonnageChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("TONNAGE REPS / SEMAINE")
+            Text("TONNAGE / SEMAINE")
                 .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.appTextMuted)
             if weekly.isEmpty {
                 Text("Pas encore de trajectoire hebdomadaire disponible.")
@@ -576,8 +613,13 @@ struct StatsWeeklyTonnageChart: View {
             } else {
                 GeometryReader { geometry in
                     HStack(alignment: .bottom, spacing: 5) {
-                        ForEach(weekly, id: \.weekStart) { bucket in
-                            weeklyBar(bucket, maxValue: maxValue, height: geometry.size.height)
+                        ForEach(weekly.indices, id: \.self) { index in
+                            weeklyBar(
+                                weekly[index],
+                                maxValue: maxValue,
+                                height: geometry.size.height,
+                                showLabel: shouldShowLabel(at: index)
+                            )
                         }
                     }
                 }
@@ -598,7 +640,12 @@ struct StatsWeeklyTonnageChart: View {
     }
 
     @ViewBuilder
-    private func weeklyBar(_ bucket: StatsWeeklyTrainingLoad, maxValue: Double, height: CGFloat) -> some View {
+    private func weeklyBar(
+        _ bucket: StatsWeeklyTrainingLoad,
+        maxValue: Double,
+        height: CGFloat,
+        showLabel: Bool
+    ) -> some View {
         let tonnage = bucket.tonnage.value
         VStack(spacing: 4) {
             if let tonnage {
@@ -613,10 +660,31 @@ struct StatsWeeklyTonnageChart: View {
                     .overlay(Rectangle().fill(Color.appTextMuted).frame(width: 10, height: 1))
                     .accessibilityLabel(weeklyAccessibilityLabel(bucket, tonnage: nil))
             }
-            Text(String(bucket.weekStart.prefix(7)))
-                .font(.appMicro).foregroundColor(.appTextMuted).lineLimit(1).minimumScaleFactor(0.6)
+            Color.clear
+                .frame(height: 12)
+                .overlay {
+                    if showLabel {
+                        Text(weekLabel(bucket.weekStart))
+                            .font(.appMicro)
+                            .foregroundColor(.appTextMuted)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .accessibilityHidden(true)
+                    }
+                }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+    }
+
+    private func shouldShowLabel(at index: Int) -> Bool {
+        guard weekly.count > 7 else { return true }
+        let lastIndex = weekly.count - 1
+        return index == lastIndex || (index.isMultiple(of: 2) && index != lastIndex - 1)
+    }
+
+    private func weekLabel(_ rawDate: String) -> String {
+        guard let date = DateFormatter.isoDate.date(from: rawDate) else { return rawDate }
+        return DateFormatter.shortDateFRCA.string(from: date)
     }
 
     private func weeklyAccessibilityLabel(_ bucket: StatsWeeklyTrainingLoad, tonnage: Double?) -> String {
