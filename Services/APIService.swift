@@ -9,9 +9,10 @@ extension URLSession {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = ["Authorization": "Bearer \(APIConfig.apiKey)"]
         config.timeoutIntervalForRequest = 15
-        // ⚠️ TEMP H3 TEST — REMOVE AFTER MEASURE
+        // Défaut Apple iOS = 4 connexions/host — trop bas pour le dashboard Santé
+        // qui charge 12 endpoints en parallèle. Bumped à 12 pour libérer le
+        // parallélisme réel côté client (gain mesuré : 2.17s → 1.69s).
         config.httpMaximumConnectionsPerHost = 12
-        // ⚠️ END TEMP H3 TEST
         return URLSession(configuration: config)
     }()
 }

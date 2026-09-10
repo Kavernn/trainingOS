@@ -46,6 +46,20 @@ struct HealthDashboardView: View {
         readiness.map { DailySummary(recoveryScore: Double($0.score)) }
     }
 
+    /// True dès qu'un endpoint principal a rendu un résultat (cache hit ou live).
+    /// Utilisé pour ne montrer AppLoadingView qu'au vrai cold pur (aucun cache
+    /// nulle part). Si UN endpoint parmi ces 7 revient, la vue affiche ses
+    /// sections — chacune gère déjà nil/vide indépendamment.
+    private var hasAnyData: Bool {
+        !week.isEmpty
+        || readiness != nil
+        || !recoveryLog.isEmpty
+        || sleepStats != nil
+        || lifeStress != nil
+        || energy != nil
+        || hrvAnalysis != nil
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -56,7 +70,7 @@ struct HealthDashboardView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
 
-                    if isLoading {
+                    if isLoading && !hasAnyData {
                         Spacer()
                         AppLoadingView()
                         Spacer()
@@ -256,12 +270,8 @@ struct HealthDashboardView: View {
     // MARK: - Data
 
     private func loadData() async {
-        let tStart = Date()
         isLoading = true
-        // parallel — 12 async let indépendants (aucune dépendance de valeur entre eux).
-        // Le bug LIFO iOS 26 beta (commit 5a6a976) est corrigé en 26.6.1 GA — vérifié
-        // par ConcurrencyProbeView (30+ itérations sans crash). Portée réactivée
-        // ici uniquement ; les 19 autres fichiers séquentiels seront traités à part.
+        // 12 async let indépendants — aucune dépendance de valeur entre eux.
         async let weekTask             = APIService.shared.fetchWeeklyHealthSummary(days: 7)
         async let lifeStressTask       = APIService.shared.fetchLifeStressScore(forceRefresh: true)
         async let lifeStressTrendTask  = APIService.shared.fetchLifeStressTrend(days: 7)
@@ -287,36 +297,18 @@ struct HealthDashboardView: View {
         let sleepPg      = try? await sleepHistoryTask
         sleepHistory     = sleepPg?.items ?? []
         readinessHistory = (try? await readinessHistoryTask) ?? []
-        let tBackend = Date().timeIntervalSince(tStart)
-        print(String(format: "⏱️ [loadData backend] %.2fs (12 calls, parallel)", tBackend))
         isLoading = false
-        let tHKStart = Date()
         await fetchHKLive()
-        print(String(format: "⏱️ [loadData HK total] %.2fs", Date().timeIntervalSince(tHKStart)))
-        print(String(format: "⏱️ [loadData TOTAL] %.2fs", Date().timeIntervalSince(tStart)))
     }
 
     private func fetchHKLive() async {
-        let tAuth = Date()
-        let authorized = await hk.requestAuthorization()
-        print(String(format: "⏱️ [HK authorization] %.2fs (granted=%@)", Date().timeIntervalSince(tAuth), authorized ? "true" : "false"))
-        guard authorized else { return }
+        guard await hk.requestAuthorization() else { return }
         // sequential — async let LIFO crash on iOS 26 beta
-        var t = Date()
-        hkRestingHR = await hk.fetchLatestRestingHR()
-        print(String(format: "⏱️ [HK restingHR] %.2fs (limit=1, range: all history)", Date().timeIntervalSince(t)))
-        t = Date()
-        hkHRV = await hk.fetchLatestHRV()
-        print(String(format: "⏱️ [HK HRV] %.2fs (limit=1, range: all history)", Date().timeIntervalSince(t)))
-        t = Date()
-        hkSpO2 = await hk.fetchLatestSpO2()
-        print(String(format: "⏱️ [HK SpO2] %.2fs (limit=1, range: all history)", Date().timeIntervalSince(t)))
-        t = Date()
-        hkWristTemp = await hk.fetchLatestWristTemperature()
-        print(String(format: "⏱️ [HK wristTemp] %.2fs (limit=1, range: all history)", Date().timeIntervalSince(t)))
-        t = Date()
+        hkRestingHR    = await hk.fetchLatestRestingHR()
+        hkHRV          = await hk.fetchLatestHRV()
+        hkSpO2         = await hk.fetchLatestSpO2()
+        hkWristTemp    = await hk.fetchLatestWristTemperature()
         hkActiveEnergy = await hk.fetchTodayActiveEnergy()
-        print(String(format: "⏱️ [HK activeEnergy] %.2fs (statistics sum, range: today)", Date().timeIntervalSince(t)))
     }
 
     // MARK: - HK sync (copié en local depuis EnergyRecoveryView post Lot 2)
