@@ -5,6 +5,10 @@ import Charts
 struct ACWRCardView: View {
     let data: ACWRData
 
+    private var formattedRatio: String {
+        String(format: "%.2f", locale: Locale(identifier: "fr_CA"), data.ratio)
+    }
+
     private var zoneColor: Color {
         switch data.zone.code {
         case "optimal":  return .appSuccess
@@ -18,10 +22,10 @@ struct ACWRCardView: View {
     private var hasIncompleteHistory: Bool { data.daysOfData < 28 }
     private var factualZoneLabel: String {
         switch data.zone.code {
-        case "under": return "Sous la plage de référence"
-        case "optimal": return "Dans la plage de référence"
-        case "caution": return "Au-dessus de la plage de référence"
-        case "danger": return "Charge interne élevée"
+        case "under": return "Sous la plage 0,8–1,3"
+        case "optimal": return "Dans la plage 0,8–1,3"
+        case "caution": return "Au-dessus de la plage 0,8–1,3"
+        case "danger": return "Au-dessus du seuil 1,5"
         default: return "Données insuffisantes"
         }
     }
@@ -29,14 +33,51 @@ struct ACWRCardView: View {
     private var relativeLoadText: String {
         guard data.chronicLoad > 0 else { return "" }
         let pct = Int(round((data.ratio - 1.0) * 100))
-        let sign = pct >= 0 ? "+" : ""
-        return "\(sign)\(pct)% vs ta moyenne 28j"
+        if pct == 0 {
+            return "Charge récente au niveau de la référence 28 j"
+        }
+        let direction = pct > 0 ? "au-dessus de" : "sous"
+        return "Charge récente : \(abs(pct)) % \(direction) la référence 28 j"
+    }
+
+    private var accessibilityZoneLabel: String {
+        switch data.zone.code {
+        case "under": return "Sous la plage de référence de 0,8 à 1,3."
+        case "optimal": return "Dans la plage de référence de 0,8 à 1,3."
+        case "caution": return "Au-dessus de la plage de référence de 0,8 à 1,3."
+        case "danger": return "Au-dessus du seuil de 1,5."
+        default: return ""
+        }
+    }
+
+    private var accessibilitySummary: String {
+        if hasIncompleteHistory {
+            return "Charge interne. Historique de charge en construction. \(data.daysOfData) jours sur les 28 requis."
+        }
+
+        var parts = [
+            "Charge interne.",
+            "Ratio charge récente sur référence 28 jours : \(formattedRatio).",
+            accessibilityZoneLabel
+        ]
+        if !relativeLoadText.isEmpty {
+            parts.append("\(relativeLoadText).")
+        }
+        if data.trend.count > 1 {
+            let current = data.trend.last.map { formattedRatio($0.ratio) } ?? formattedRatio
+            parts.append("Tendance sur huit semaines. Valeur actuelle \(current).")
+        }
+        return parts.filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    private func formattedRatio(_ value: Double) -> String {
+        String(format: "%.2f", locale: Locale(identifier: "fr_CA"), value)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("ACWR — CHARGE AIGUË/CHRONIQUE")
+                Text("RATIO CHARGE RÉCENTE / RÉFÉRENCE")
                     .font(.appMicro).tracking(2).foregroundColor(.appTextMuted)
                 Spacer()
             }
@@ -44,34 +85,29 @@ struct ACWRCardView: View {
             if hasIncompleteHistory {
                 // Pas assez d'historique — ne pas afficher le ratio
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Données insuffisantes")
+                    Text("Historique en construction")
                         .font(.system(size: 22, weight: .bold)).foregroundColor(.appTextMuted)
-                    Text("\(data.daysOfData) / 28 jours de données")
+                    Text("\(data.daysOfData) / 28 jours depuis la première charge enregistrée")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
                     ProgressView(value: Double(data.daysOfData), total: 28)
                         .tint(.appTextMuted).frame(maxWidth: 160)
                 }
             } else {
-                HStack(alignment: .top, spacing: 16) {
-                    // Ratio
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(String(format: "%.2f", data.ratio))
-                            .font(.system(size: 42, weight: .black))
-                            .foregroundColor(zoneColor)
-                        Text(factualZoneLabel)
-                            .font(.appCaption.weight(.bold))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(zoneColor.opacity(0.2))
-                            .foregroundColor(zoneColor)
-                            .clipShape(Capsule())
-                    }
-
-                    Spacer()
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(formattedRatio)
+                        .font(.system(size: 42, weight: .black))
+                        .foregroundColor(.appTextPrimary)
+                    Text(factualZoneLabel)
+                        .font(.appCaption.weight(.bold))
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(zoneColor.opacity(0.2))
+                        .foregroundColor(zoneColor)
+                        .clipShape(Capsule())
 
                     if !relativeLoadText.isEmpty {
                         Text(relativeLoadText)
                             .font(.appLabel.weight(.semibold))
-                            .foregroundColor(zoneColor)
+                            .foregroundColor(.appTextSecondary)
                     }
                 }
             }
@@ -82,6 +118,8 @@ struct ACWRCardView: View {
             }
         }
         .padding(16).glassCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 }
 
@@ -94,8 +132,23 @@ private struct ACWRSparkline: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("TENDANCE 8 SEMAINES")
-                .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextMuted)
+            HStack(alignment: .firstTextBaseline) {
+                Text("ÉVOLUTION DU RATIO")
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.appTextMuted)
+                Spacer()
+                Text("8 SEMAINES")
+                    .font(.appMicro.weight(.semibold)).foregroundColor(.appTextSecondary)
+            }
+
+            HStack(alignment: .firstTextBaseline) {
+                Text("Plage de référence : 0,8–1,3")
+                    .font(.appMicro).foregroundColor(.appTextSecondary)
+                Spacer()
+                if let currentRatio = trend.last?.ratio {
+                    Text("Actuel · \(formattedRatio(currentRatio))")
+                        .font(.appMicro.weight(.semibold)).foregroundColor(.appTextPrimary)
+                }
+            }
 
             GeometryReader { geo in
                 let w = geo.size.width
@@ -105,11 +158,11 @@ private struct ACWRSparkline: View {
                 let step = w / CGFloat(trend.count - 1)
 
                 ZStack(alignment: .topLeading) {
-                    // Optimal zone band (0.8–1.3)
+                    // Reference zone band (0.8–1.3)
                     let bandTop  = h * (1 - CGFloat(1.3 / maxVal))
                     let bandBot  = h * (1 - CGFloat(0.8 / maxVal))
                     Rectangle()
-                        .fill(Color.appSuccess.opacity(0.07))
+                        .fill(Color.appTextMuted.opacity(0.07))
                         .frame(width: w, height: max(0, bandBot - bandTop))
                         .offset(x: 0, y: bandTop)
 
@@ -141,7 +194,8 @@ private struct ACWRSparkline: View {
                                 let x = CGFloat(i) * step
                                 let y = h * (1 - CGFloat(week.ratio / maxVal))
                                 let dot = dotColor(week.ratio)
-                                Circle().fill(dot).frame(width: 5, height: 5).position(x: x, y: y)
+                                let size: CGFloat = i == trend.count - 1 ? 8 : 5
+                                Circle().fill(dot).frame(width: size, height: size).position(x: x, y: y)
                             }
                         }
                     }
@@ -149,20 +203,31 @@ private struct ACWRSparkline: View {
             }
             .frame(height: 70)
 
-            // X-axis labels (first, mid, last)
+            // Relative labels only: the endpoint does not expose bucket dates.
             HStack {
-                Text(trend.first?.week ?? "").font(.appMicro).foregroundColor(.gray.opacity(0.6))
+                Text(relativeLabel(at: 0)).font(.appMicro).foregroundColor(.appTextMuted)
                 Spacer()
-                Text(trend[trend.count / 2].week).font(.appMicro).foregroundColor(.gray.opacity(0.6))
-                Spacer()
-                Text(trend.last?.week ?? "").font(.appMicro).foregroundColor(.gray.opacity(0.6))
+                if trend.count > 2 {
+                    Text(relativeLabel(at: trend.count / 2)).font(.appMicro).foregroundColor(.appTextMuted)
+                    Spacer()
+                }
+                Text("Aujourd’hui").font(.appMicro).foregroundColor(.appTextMuted)
             }
         }
     }
 
+    private func formattedRatio(_ value: Double) -> String {
+        String(format: "%.2f", locale: Locale(identifier: "fr_CA"), value)
+    }
+
+    private func relativeLabel(at index: Int) -> String {
+        let weeksAgo = max(trend.count - 1 - index, 0)
+        return weeksAgo == 1 ? "−1 sem." : "−\(weeksAgo) sem."
+    }
+
     private func dotColor(_ ratio: Double) -> Color {
-        if ratio == 0   { return .gray }
-        if ratio < 0.8  { return Color.gray }
+        if ratio == 0   { return .appTextMuted }
+        if ratio < 0.8  { return .appTextSecondary }
         if ratio <= 1.3 { return Color.appSuccess }
         if ratio <= 1.5 { return Color.appWarning }
         return .appDanger

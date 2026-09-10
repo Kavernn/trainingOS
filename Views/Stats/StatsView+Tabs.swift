@@ -323,10 +323,15 @@ extension StatsView {
             .padding(.horizontal, 16)
         }
 
-        Text("CHARGE INTERNE")
-            .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            .padding(.horizontal, .appPagePadding)
-        Text("Effort perçu × durée · ACWR aiguë 7 j / chronique 28 j")
+        HStack(alignment: .firstTextBaseline) {
+            Text("CHARGE INTERNE")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            Spacer()
+            Text("7 J / 28 J")
+                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+        }
+        .padding(.horizontal, .appPagePadding)
+        Text("Charge récente comparée à ta référence")
             .font(.appCaption).foregroundColor(.appTextSecondary)
             .padding(.horizontal, .appPagePadding)
 
