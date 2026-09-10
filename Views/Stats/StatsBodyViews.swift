@@ -408,20 +408,22 @@ struct TransformationMarkersCard: View {
 // MARK: - Force Hero Card
 // MARK: - Strength Curve Chart (1RM over time)
 struct StrengthCurveChart: View {
+    let exerciseName: String
     let history: [WeightHistoryEntry]
     @ObservedObject private var units = UnitSettings.shared
     @State private var metric: ChartMetric = .oneRM
 
     enum ChartMetric: String, CaseIterable {
         case oneRM = "1RM estimé"
-        case weight = "Poids"
+        case weight = "Charge"
     }
 
     private struct DataPoint: Identifiable {
         let id: String
         let date: Date
         let value: Double
-        let isPR: Bool
+        let isWindowMaximum: Bool
+        let isCurrent: Bool
     }
 
     private var points: [DataPoint] {
@@ -441,31 +443,79 @@ struct StrengthCurveChart: View {
         }.sorted { $0.0 < $1.0 }
 
         guard !entries.isEmpty else { return [] }
-        let prValue = entries.map(\.1).max() ?? 0
-        return entries.map { date, val in
-            DataPoint(id: date.description, date: date, value: val, isPR: val >= prValue)
+        let maximumValue = entries.map(\.1).max() ?? 0
+        return entries.enumerated().map { index, entry in
+            DataPoint(
+                id: entry.0.description,
+                date: entry.0,
+                value: entry.1,
+                isWindowMaximum: entry.1 >= maximumValue,
+                isCurrent: index == entries.count - 1
+            )
         }
+    }
+
+    private var currentPoint: DataPoint? { points.last }
+    private var windowMaximum: DataPoint? { points.last(where: \.isWindowMaximum) }
+    private var currentValueLabel: String? {
+        guard let currentPoint else { return nil }
+        switch metric {
+        case .oneRM:
+            return "Actuel · 1RM estimé \(formattedDisplayValue(currentPoint.value))"
+        case .weight:
+            return "Actuel · \(formattedDisplayValue(currentPoint.value))"
+        }
+    }
+    private var lowDataMessage: String {
+        if points.count == 1 { return "Encore une valeur nécessaire pour afficher la courbe." }
+        switch metric {
+        case .oneRM:
+            return "La courbe apparaîtra avec au moins deux valeurs de 1RM estimé."
+        case .weight:
+            return "La courbe apparaîtra avec au moins deux valeurs de charge."
+        }
+    }
+    private var accessibilitySummary: String {
+        var parts = [exerciseName, "Évolution sur 180 jours", "Mode \(metric.rawValue)"]
+        if let currentPoint {
+            parts.append("Valeur actuelle \(formattedDisplayValue(currentPoint.value))")
+        }
+        if let windowMaximum {
+            parts.append("Meilleur sur 180 jours \(formattedDisplayValue(windowMaximum.value))")
+        }
+        return parts.joined(separator: ". ") + "."
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("COURBE DE FORCE")
-                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
+            HStack(alignment: .firstTextBaseline) {
+                Text("ÉVOLUTION DE L’EXERCICE")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
                 Spacer()
-                Picker("", selection: $metric) {
-                    ForEach(ChartMetric.allCases, id: \.self) { m in
-                        Text(m.rawValue).tag(m)
-                    }
+                Text("180 JOURS")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.appTextSecondary)
+            }
+
+            Picker("Mode", selection: $metric) {
+                ForEach(ChartMetric.allCases, id: \.self) { m in
+                    Text(m.rawValue).tag(m)
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 200)
+            }
+            .pickerStyle(.segmented)
+
+            if let currentValueLabel {
+                Text(currentValueLabel)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
             }
 
             if points.count < 2 {
-                Text("Données insuffisantes — continue à logger.")
-                    .font(.appLabel).foregroundColor(.gray)
+                Text(lowDataMessage)
+                    .font(.appLabel).foregroundColor(.appTextSecondary)
                     .frame(maxWidth: .infinity, minHeight: 140, alignment: .center)
+                    .multilineTextAlignment(.center)
+                    .accessibilityLabel("\(accessibilitySummary) \(lowDataMessage)")
             } else {
                 Chart {
                     ForEach(points) { p in
@@ -480,16 +530,16 @@ struct StrengthCurveChart: View {
                             x: .value("Date", p.date),
                             y: .value(metric.rawValue, p.value)
                         )
-                        .foregroundStyle(p.isPR ? Color.forge : Color.forge.opacity(0.4))
-                        .symbolSize(p.isPR ? 80 : 30)
+                        .foregroundStyle(p.isWindowMaximum || p.isCurrent ? Color.forge : Color.forge.opacity(0.4))
+                        .symbolSize(p.isCurrent ? 80 : (p.isWindowMaximum ? 55 : 30))
                     }
 
-                    if let pr = points.last(where: \.isPR) {
-                        RuleMark(y: .value("PR", pr.value))
+                    if let maximum = windowMaximum {
+                        RuleMark(y: .value("Max. 180 j", maximum.value))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             .foregroundStyle(Color.forge.opacity(0.3))
                             .annotation(position: .top, alignment: .trailing) {
-                                Text("PR \(units.format(pr.value))")
+                                Text("Max. 180 j · \(formattedDisplayValue(maximum.value))")
                                     .font(.appMicro.weight(.semibold))
                                     .foregroundColor(Color.forge)
                             }
@@ -513,9 +563,15 @@ struct StrengthCurveChart: View {
                     plot.background(Color.clear)
                 }
                 .frame(height: 180)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilitySummary)
             }
         }
         .padding(16).background(Color.appCard).cornerRadius(14)
+    }
+
+    private func formattedDisplayValue(_ value: Double) -> String {
+        String(format: "%.0f \(units.label)", value)
     }
 }
 

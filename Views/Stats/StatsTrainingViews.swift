@@ -577,8 +577,8 @@ struct ExerciseDetailView: View {
                         }
                         .padding()
 
-                        if let history = data?.history, history.count >= 2 {
-                            StrengthCurveChart(history: history)
+                        if let history = data?.history, !history.isEmpty {
+                            StrengthCurveChart(exerciseName: name, history: history)
                                 .padding(.horizontal, 16)
                         }
 
