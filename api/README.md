@@ -216,7 +216,9 @@ Dérivé du `session_name` de la séance démarrée aujourd'hui (`workout_sessio
 | GET | `/api/coach/morning_brief` | Morning brief data |
 | GET | `/api/peak_prediction` | Peak performance prediction |
 | GET | `/api/insights/correlations` | Training–wellness correlations |
-| GET | `/api/stats_data` | Full stats payload (weights, sessions, muscle stats) |
+| GET | `/api/stats_data` | **LEGACY / DEPRECATED** — monolithic stats payload kept for active consumer compatibility |
+
+`/api/stats_data` remains available because several active consumers still depend on parts of its payload. New muscle Stats development should use `/api/stats/cockpit`; use targeted endpoints for other domains. The cockpit is not yet a complete replacement for body, nutrition, recovery, workout ghost, or every MCP requirement.
 
 ### `GET /api/acwr` — Détail
 

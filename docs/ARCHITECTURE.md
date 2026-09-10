@@ -203,9 +203,11 @@ Clés importantes :
 | `dashboard` | DashboardData | logExercise, logSession |
 | `seance_data` | SeanceData | logExercise (matin) |
 | `seance_soir_data` | SeanceData | logExercise (soir) |
-| `stats_data` | StatsData | logSession |
+| `stats_data` | Legacy `/api/stats_data` compatibility payload | logSession |
 | `historique_data` | HistoriqueData | logSession, deleteSession |
 | `peak_prediction` | [PeakDay] | 24h TTL |
+
+`stats_data` reste un endpoint et un cache legacy actifs, nécessaires aux consumers historiques actuels. Leur migration vers le cockpit ou des endpoints ciblés sera progressive ; le cockpit ne remplace pas encore l'ensemble du payload.
 
 ### SyncManager (offline-first)
 

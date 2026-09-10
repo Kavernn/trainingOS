@@ -112,6 +112,12 @@ def _aggregate_sessions_by_date(rows: list[dict]) -> dict[str, dict]:
 
 @analytics_stats_bp.route("/api/stats_data")
 def api_stats_data():
+    """LEGACY / DEPRECATED aggregate kept temporarily for existing consumers.
+
+    Do not extend this payload for new features. Prefer targeted endpoints, or
+    /api/stats/cockpit for modern Stats domains; the cockpit is not a complete
+    replacement for this compatibility endpoint.
+    """
     from weights import load_weights
     from body_weight import load_body_weight
     from nutrition import (load_settings as load_nutrition_settings)
