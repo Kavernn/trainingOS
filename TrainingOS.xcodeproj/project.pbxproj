@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6C6C00026C6C00026C6C0002 /* MuscleMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6C00016C6C00016C6C0001 /* MuscleMapping.swift */; };
-		6C6C00046C6C00046C6C0004 /* MuscleMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6C00036C6C00036C6C0003 /* MuscleMapView.swift */; };
-		HM5A0002HM5A0002HM5A0002 /* HeroMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */; };
 		007B73D0E06243669AC645D8 /* CoachInsightModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621800FD5B1E4C5CA2A93753 /* CoachInsightModels.swift */; };
 		04DE878575732A6BDD77F956 /* EducationalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9311048858BF8ACFBBCE3B8 /* EducationalModels.swift */; };
 		068A26746FD34970A1D410BF /* DashboardBriefCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */; };
@@ -45,6 +42,8 @@
 		663379608FE0A821EC0F7D89 /* CardioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD71080385415CDA19C0F0A /* CardioView.swift */; };
 		67BBB69F927BC316802B8758 /* APIService+TimeCapsule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */; };
 		6A57E6367D6A25E6E1B45D1A /* SmartAlarmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3476FF4AE031CEC01F988B5C /* SmartAlarmSettingsView.swift */; };
+		6C6C00026C6C00026C6C0002 /* MuscleMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6C00016C6C00016C6C0001 /* MuscleMapping.swift */; };
+		6C6C00046C6C00046C6C0004 /* MuscleMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6C00036C6C00036C6C0003 /* MuscleMapView.swift */; };
 		705B79D28FFF46C74C20E3BE /* RoundedCorner.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28DFDE63827E1A91C5C5B5D /* RoundedCorner.swift */; };
 		70E26038CD13489F7EAACB56 /* SmartAlarmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C3EB4A6651A37E8770B3DD /* SmartAlarmService.swift */; };
 		7674B3B36F2A226C98AE4815 /* TrainingOSUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D883D22AF81F48D1A03A9157 /* TrainingOSUITests.swift */; };
@@ -133,6 +132,7 @@
 		D68A5C8D2FD0D0B900B824DF /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */; };
 		D69570D6304F75060008F1A2 /* DashboardDomainGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69570D5304F75060008F1A2 /* DashboardDomainGrid.swift */; };
 		D69570D8304F77C20008F1A2 /* DashboardHeroState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69570D7304F77C20008F1A2 /* DashboardHeroState.swift */; };
+		D695717A305333A60008F1A2 /* ConcurrencyProbeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6957178305333A60008F1A2 /* ConcurrencyProbeView.swift */; };
 		D69D3EEF2F85895800553153 /* SessionDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69D3EEE2F85895800553153 /* SessionDraftStore.swift */; };
 		DA26223185CE48C094B9CA75 /* PlateCalculatorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */; };
 		DC73018555BF2F8EE84E78C2 /* APIService+Plateau.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955D6FDBE3CAB80990772A49 /* APIService+Plateau.swift */; };
@@ -166,6 +166,7 @@
 		GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */; };
 		GF006001AA00300B2F5DEEEE /* GymFinderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */; };
 		GF007001AA00300B2F5DEEEE /* GymFinderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF007000AA00300B2F5DEEEE /* GymFinderService.swift */; };
+		HM5A0002HM5A0002HM5A0002 /* HeroMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */; };
 		MC000002MC000002MC000002 /* MetricCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = MC000001MC000001MC000001 /* MetricCell.swift */; };
 		NA0001NA0001NA0001NA0001 /* NutritionActionMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */; };
 		NA0002NA0002NA0002NA0002 /* ProteinProgressCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */; };
@@ -208,8 +209,8 @@
 		SM001001AA00300B2F5DFFFF /* StatsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SM001000AA00300B2F5DFFFF /* StatsModels.swift */; };
 		SPK0002SPK0002SPK0002SP2 /* SessionPreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */; };
 		SR000002SR000002SR000002 /* StatRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = SR000001SR000001SR000001 /* StatRow.swift */; };
-		SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */; };
 		SRP00002SRP00002SRP00002 /* SessionReportComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = SRP00001SRP00001SRP00001 /* SessionReportComponents.swift */; };
+		SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */; };
 		STNA0001STNA0001STNA0001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0001STNR0001STNR0001 /* SettingsView.swift */; };
 		STNA0002STNA0002STNA0002 /* TrainingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */; };
 		STNA0003STNA0003STNA0003 /* RecoverySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */; };
@@ -290,9 +291,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		6C6C00016C6C00016C6C0001 /* MuscleMapping.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MuscleMapping.swift; sourceTree = "<group>"; };
-		6C6C00036C6C00036C6C0003 /* MuscleMapView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MuscleMapView.swift; sourceTree = "<group>"; };
-		HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeroMood.swift; sourceTree = "<group>"; };
 		058BA2E35BCC575568655DDC /* ExerciseViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
 		07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorBannerView.swift; sourceTree = "<group>"; };
@@ -325,6 +323,8 @@
 		6186E51D3E2986E22EC27AC3 /* PlateauModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlateauModels.swift; sourceTree = "<group>"; };
 		621800FD5B1E4C5CA2A93753 /* CoachInsightModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CoachInsightModels.swift; sourceTree = "<group>"; };
 		64709C7BAEA141594DB92A70 /* EmptyStateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		6C6C00016C6C00016C6C0001 /* MuscleMapping.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MuscleMapping.swift; sourceTree = "<group>"; };
+		6C6C00036C6C00036C6C0003 /* MuscleMapView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MuscleMapView.swift; sourceTree = "<group>"; };
 		6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRitualCards.swift; sourceTree = "<group>"; };
 		6F23DF3AC9E04EDBAF93E561 /* DNAEvolutionSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DNAEvolutionSheet.swift; sourceTree = "<group>"; };
 		75D8C0C8FD9FF73633DCBF7C /* APIService+Educational.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Educational.swift"; sourceTree = "<group>"; };
@@ -416,6 +416,7 @@
 		D68B8535D55F4B109509F146 /* MorningRevealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningRevealView.swift; sourceTree = "<group>"; };
 		D69570D5304F75060008F1A2 /* DashboardDomainGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardDomainGrid.swift; sourceTree = "<group>"; };
 		D69570D7304F77C20008F1A2 /* DashboardHeroState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeroState.swift; sourceTree = "<group>"; };
+		D6957178305333A60008F1A2 /* ConcurrencyProbeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConcurrencyProbeView.swift; sourceTree = "<group>"; };
 		D69D3EEE2F85895800553153 /* SessionDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDraftStore.swift; sourceTree = "<group>"; };
 		D69FB9052F666F3F0091BDD2 /* TrainingOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBriefCards.swift; sourceTree = "<group>"; };
@@ -456,6 +457,7 @@
 		GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderViewModel.swift; sourceTree = "<group>"; };
 		GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderModels.swift; sourceTree = "<group>"; };
 		GF007000AA00300B2F5DEEEE /* GymFinderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderService.swift; sourceTree = "<group>"; };
+		HM5A0001HM5A0001HM5A0001 /* HeroMood.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeroMood.swift; sourceTree = "<group>"; };
 		MC000001MC000001MC000001 /* MetricCell.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetricCell.swift; sourceTree = "<group>"; };
 		NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
 		NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionActionMessage.swift; sourceTree = "<group>"; };
@@ -498,8 +500,8 @@
 		SM001000AA00300B2F5DFFFF /* StatsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatsModels.swift; sourceTree = "<group>"; };
 		SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPreferenceKeys.swift; sourceTree = "<group>"; };
 		SR000001SR000001SR000001 /* StatRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatRow.swift; sourceTree = "<group>"; };
-		SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupportViews.swift; sourceTree = "<group>"; };
 		SRP00001SRP00001SRP00001 /* SessionReportComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionReportComponents.swift; sourceTree = "<group>"; };
+		SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupportViews.swift; sourceTree = "<group>"; };
 		STNR0001STNR0001STNR0001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsView.swift; sourceTree = "<group>"; };
 		STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySettingsView.swift; sourceTree = "<group>"; };
@@ -1025,6 +1027,7 @@
 		D665E4462F5D98B8002AE470 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				D6957179305333A60008F1A2 /* _Scratch */,
 				D665E43D2F5D98B8002AE470 /* Dashboard */,
 				D665E43F2F5D98B8002AE470 /* Historique */,
 				D665E4412F5D98B8002AE470 /* Profile */,
@@ -1058,6 +1061,14 @@
 				0C957A3221EBA73955159C75 /* Budget */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		D6957179305333A60008F1A2 /* _Scratch */ = {
+			isa = PBXGroup;
+			children = (
+				D6957178305333A60008F1A2 /* ConcurrencyProbeView.swift */,
+			);
+			path = _Scratch;
 			sourceTree = "<group>";
 		};
 		DD44000F2F5D98BA002AE473 /* MentalHealth */ = {
@@ -1505,6 +1516,7 @@
 				FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */,
 				BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */,
 				CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */,
+				D695717A305333A60008F1A2 /* ConcurrencyProbeView.swift in Sources */,
 				DD4400012F5D98BA002AE473 /* MentalHealthView.swift in Sources */,
 				DD4400032F5D98BA002AE473 /* MoodTrackerView.swift in Sources */,
 				DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */,

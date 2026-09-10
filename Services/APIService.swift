@@ -9,6 +9,9 @@ extension URLSession {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = ["Authorization": "Bearer \(APIConfig.apiKey)"]
         config.timeoutIntervalForRequest = 15
+        // ⚠️ TEMP H3 TEST — REMOVE AFTER MEASURE
+        config.httpMaximumConnectionsPerHost = 12
+        // ⚠️ END TEMP H3 TEST
         return URLSession(configuration: config)
     }()
 }

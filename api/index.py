@@ -1,5 +1,12 @@
 # api/index.py — app factory
 from __future__ import annotations
+# ⚠️ TEMP SRV PROBE — REMOVE AFTER MEASURE
+import time as _probe_time
+import uuid as _probe_uuid
+_PROBE_INSTANCE_ID = _probe_uuid.uuid4().hex[:8]
+_PROBE_BOOT_START = _probe_time.monotonic()
+_PROBE_REQ_COUNT = 0
+# ⚠️ END TEMP SRV PROBE
 import os, sys, socket, logging
 from pathlib import Path
 
@@ -66,6 +73,28 @@ def _require_api_key():
     auth = request.headers.get("Authorization", "")
     if auth != f"Bearer {_API_KEY}":
         return jsonify({"error": "Unauthorized"}), 401
+
+# ⚠️ TEMP SRV PROBE — REMOVE AFTER MEASURE
+from flask import g as _probe_g, request as _probe_req
+
+@app.before_request
+def _probe_arrival():
+    global _PROBE_REQ_COUNT
+    _PROBE_REQ_COUNT += 1
+    _probe_g._probe_cold = (_PROBE_REQ_COUNT == 1)
+    _probe_g._probe_start = _probe_time.monotonic()
+    _probe_g._probe_wall = _probe_time.time()
+
+@app.after_request
+def _probe_completion(response):
+    total_ms = (_probe_time.monotonic() - _probe_g._probe_start) * 1000
+    logger.info(
+        f"[SRV] endpoint={_probe_req.path} instance={_PROBE_INSTANCE_ID} "
+        f"cold={_probe_g._probe_cold} arrival={_probe_g._probe_wall:.3f} "
+        f"req_n={_PROBE_REQ_COUNT} total={total_ms:.0f}ms"
+    )
+    return response
+# ⚠️ END TEMP SRV PROBE
 
 # ── Wearable / Apple Watch routes ───────────────────────────
 wearable.register_routes(app)
@@ -226,6 +255,14 @@ app.register_blueprint(smart_alarm_bp)
 app.register_blueprint(session_progression_bp)
 app.register_blueprint(deload_management_bp)
 app.register_blueprint(educational_bp)
+
+# ⚠️ TEMP SRV PROBE — REMOVE AFTER MEASURE
+_PROBE_BOOT_MS = (_probe_time.monotonic() - _PROBE_BOOT_START) * 1000
+logger.info(
+    f"[SRV boot] instance={_PROBE_INSTANCE_ID} boot_time={_PROBE_BOOT_MS:.0f}ms "
+    f"(includes all imports + db_core Supabase client init at db_core.py:56)"
+)
+# ⚠️ END TEMP SRV PROBE
 
 
 # ── Dev server ───────────────────────────────────────────────

@@ -256,33 +256,67 @@ struct HealthDashboardView: View {
     // MARK: - Data
 
     private func loadData() async {
+        let tStart = Date()
         isLoading = true
-        // sequential — async let LIFO crash on iOS 26 beta
-        week            = (try? await APIService.shared.fetchWeeklyHealthSummary(days: 7)) ?? []
-        lifeStress      = try? await APIService.shared.fetchLifeStressScore(forceRefresh: true)
-        lifeStressTrend = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? []
-        pssDueStatus    = try? await APIService.shared.checkPSSDue(type: "full")
-        readiness       = try? await APIService.shared.fetchReadiness()
-        recoveryLog     = (try? await APIService.shared.fetchRecoveryData()) ?? []
-        sleepStats      = try? await APIService.shared.fetchSleepStats()
-        energy          = try? await APIService.shared.fetchEnergyDaily()
-        energyHistory   = (try? await APIService.shared.fetchEnergyHistory()) ?? []
-        hrvAnalysis     = try? await APIService.shared.fetchHRVAnalysis()
-        let sleepPg     = try? await APIService.shared.fetchSleepHistory(limit: 10)
-        sleepHistory    = sleepPg?.items ?? []
-        readinessHistory = (try? await APIService.shared.fetchReadinessHistory(days: 14)) ?? []
+        // parallel — 12 async let indépendants (aucune dépendance de valeur entre eux).
+        // Le bug LIFO iOS 26 beta (commit 5a6a976) est corrigé en 26.6.1 GA — vérifié
+        // par ConcurrencyProbeView (30+ itérations sans crash). Portée réactivée
+        // ici uniquement ; les 19 autres fichiers séquentiels seront traités à part.
+        async let weekTask             = APIService.shared.fetchWeeklyHealthSummary(days: 7)
+        async let lifeStressTask       = APIService.shared.fetchLifeStressScore(forceRefresh: true)
+        async let lifeStressTrendTask  = APIService.shared.fetchLifeStressTrend(days: 7)
+        async let pssDueTask           = APIService.shared.checkPSSDue(type: "full")
+        async let readinessTask        = APIService.shared.fetchReadiness()
+        async let recoveryLogTask      = APIService.shared.fetchRecoveryData()
+        async let sleepStatsTask       = APIService.shared.fetchSleepStats()
+        async let energyTask           = APIService.shared.fetchEnergyDaily()
+        async let energyHistoryTask    = APIService.shared.fetchEnergyHistory()
+        async let hrvAnalysisTask      = APIService.shared.fetchHRVAnalysis()
+        async let sleepHistoryTask     = APIService.shared.fetchSleepHistory(limit: 10)
+        async let readinessHistoryTask = APIService.shared.fetchReadinessHistory(days: 14)
+        week             = (try? await weekTask) ?? []
+        lifeStress       = try? await lifeStressTask
+        lifeStressTrend  = (try? await lifeStressTrendTask) ?? []
+        pssDueStatus     = try? await pssDueTask
+        readiness        = try? await readinessTask
+        recoveryLog      = (try? await recoveryLogTask) ?? []
+        sleepStats       = try? await sleepStatsTask
+        energy           = try? await energyTask
+        energyHistory    = (try? await energyHistoryTask) ?? []
+        hrvAnalysis      = try? await hrvAnalysisTask
+        let sleepPg      = try? await sleepHistoryTask
+        sleepHistory     = sleepPg?.items ?? []
+        readinessHistory = (try? await readinessHistoryTask) ?? []
+        let tBackend = Date().timeIntervalSince(tStart)
+        print(String(format: "⏱️ [loadData backend] %.2fs (12 calls, parallel)", tBackend))
         isLoading = false
+        let tHKStart = Date()
         await fetchHKLive()
+        print(String(format: "⏱️ [loadData HK total] %.2fs", Date().timeIntervalSince(tHKStart)))
+        print(String(format: "⏱️ [loadData TOTAL] %.2fs", Date().timeIntervalSince(tStart)))
     }
 
     private func fetchHKLive() async {
-        guard await hk.requestAuthorization() else { return }
+        let tAuth = Date()
+        let authorized = await hk.requestAuthorization()
+        print(String(format: "⏱️ [HK authorization] %.2fs (granted=%@)", Date().timeIntervalSince(tAuth), authorized ? "true" : "false"))
+        guard authorized else { return }
         // sequential — async let LIFO crash on iOS 26 beta
-        hkRestingHR    = await hk.fetchLatestRestingHR()
-        hkHRV          = await hk.fetchLatestHRV()
-        hkSpO2         = await hk.fetchLatestSpO2()
-        hkWristTemp    = await hk.fetchLatestWristTemperature()
+        var t = Date()
+        hkRestingHR = await hk.fetchLatestRestingHR()
+        print(String(format: "⏱️ [HK restingHR] %.2fs (limit=1, range: all history)", Date().timeIntervalSince(t)))
+        t = Date()
+        hkHRV = await hk.fetchLatestHRV()
+        print(String(format: "⏱️ [HK HRV] %.2fs (limit=1, range: all history)", Date().timeIntervalSince(t)))
+        t = Date()
+        hkSpO2 = await hk.fetchLatestSpO2()
+        print(String(format: "⏱️ [HK SpO2] %.2fs (limit=1, range: all history)", Date().timeIntervalSince(t)))
+        t = Date()
+        hkWristTemp = await hk.fetchLatestWristTemperature()
+        print(String(format: "⏱️ [HK wristTemp] %.2fs (limit=1, range: all history)", Date().timeIntervalSince(t)))
+        t = Date()
         hkActiveEnergy = await hk.fetchTodayActiveEnergy()
+        print(String(format: "⏱️ [HK activeEnergy] %.2fs (statistics sum, range: today)", Date().timeIntervalSince(t)))
     }
 
     // MARK: - HK sync (copié en local depuis EnergyRecoveryView post Lot 2)
