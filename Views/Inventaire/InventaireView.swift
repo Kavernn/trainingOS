@@ -1088,7 +1088,7 @@ struct InventoryFormSheet: View {
                         }
                     }
                 } else {
-                    Text("Optionnel — max 3, ne comptent pas dans les stats")
+                    Text("Optionnel — max 3, comptés comme travail indirect dans Stats Charge")
                         .font(.appMicro).foregroundColor(.gray.opacity(0.55))
                 }
             }
