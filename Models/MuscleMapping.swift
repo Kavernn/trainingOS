@@ -129,6 +129,7 @@ enum MuscleMapper {
         ],
         .traps: [
             "trapèzes", "traps", "trap", "trapezius", "trapèze supérieur",
+            "trapèze moyen",
             "trapèze — chef supérieur", "trapèze — chef moyen", "trapèze — chef inférieur",
             "mid_traps"
         ],

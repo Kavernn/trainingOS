@@ -28,12 +28,10 @@ _LOWER_KEYWORDS = (
     "hip thrust", "leg press", "leg curl", "leg extension",
 )
 
-# Valeurs relevées en base le 16 juillet 2026 (SELECT DISTINCT muscle_group
-# FROM exercises) — colonne incohérente (français partout sauf 'glutes' en
-# anglais), harmonisation au backlog. Ne PAS "corriger" ce set sans re-lancer
-# le SELECT DISTINCT — le fallback logger.warning ci-dessous surfacera tout
+# "Fessiers" est le libellé canonique ; "glutes" reste accepté pour les
+# données historiques. Le fallback logger.warning ci-dessous surfacera tout
 # drift futur.
-_LOWER_MUSCLE_GROUPS = {"Quadriceps", "Ischio-jambiers", "glutes", "Mollets"}
+_LOWER_MUSCLE_GROUPS = {"Quadriceps", "Ischio-jambiers", "Fessiers", "glutes", "Mollets"}
 _CAP_LBS_PER_WEEK_LOWER = 5.0
 _CAP_LBS_PER_WEEK_UPPER = 2.5
 

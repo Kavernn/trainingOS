@@ -91,8 +91,8 @@ enum TrainingDoctrine {
     // Épaules(20), Dos(16), Quadriceps(16), Pectoraux(15), Biceps(11),
     // Ischio-jambiers(8), Triceps(8), Abdominaux(5), Avant-bras(5), glutes(5),
     // Mollets(4), Core(3), Trapèzes(3), Cou(2).
-    // L'anomalie "glutes" (anglais dans une colonne française) est absorbée
-    // par le mapping ici — harmonisation de la colonne au backlog.
+    // "Fessiers" est canonique ; l'ancien libellé anglais "glutes" reste
+    // absorbé par le mapping pour la rétrocompatibilité.
     // Fusions doctrinales : Biceps+Avant-bras (avant-bras stimulés indirectement,
     // pas de MEV RP propre) ; Abdominaux+Core (redondance sémantique).
 
@@ -106,6 +106,7 @@ enum TrainingDoctrine {
         "Triceps":           "Triceps",
         "Quadriceps":        "Quadriceps",
         "Ischio-jambiers":   "Ischio-jambiers",
+        "Fessiers":          "Fessiers",
         "glutes":            "Fessiers",
         "Mollets":           "Mollets",
         "Trapèzes":          "Trapèzes",

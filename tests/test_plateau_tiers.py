@@ -110,6 +110,18 @@ def test_5_squat_quadriceps_true_plateau(monkeypatch):
     assert info["score"] >= 40, f"vrai plateau lower raté : {info}"
 
 
+def test_fessiers_and_legacy_glutes_share_lower_body_classification(monkeypatch):
+    _freeze(monkeypatch)
+    sessions = _sessions([
+        (21, 200, 5), (14, 200, 5), (3, 200, 5),
+    ])
+
+    assert "Fessiers" in plateau._LOWER_MUSCLE_GROUPS
+    assert "glutes" in plateau._LOWER_MUSCLE_GROUPS
+    assert plateau._score(sessions, "Hip Thrust", "compound_heavy", "Fessiers") == \
+        plateau._score(sessions, "Hip Thrust", "compound_heavy", "glutes")
+
+
 # ── 6. cas frontière : Bench figé 21j, doit déclencher à 40 pile ──────────────
 def test_6_bench_frozen_hits_advisory_threshold(monkeypatch):
     """Bench compound_heavy Pectoraux (155,5)×9 sur 21j — verrou pour vérifier

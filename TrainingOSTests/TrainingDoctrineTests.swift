@@ -102,6 +102,12 @@ final class TrainingDoctrineTests: XCTestCase {
         XCTAssertNotNil(TrainingDoctrine.muscleMEV[key!])
     }
 
+    func testFessiersMapsToFessiers() {
+        let key = TrainingDoctrine.doctrinalMuscleGroup(for: "Fessiers")
+        XCTAssertEqual(key, "Fessiers")
+        XCTAssertNotNil(TrainingDoctrine.muscleMEV[key!])
+    }
+
     func testMolletsMapsToSeuil() {
         let key = TrainingDoctrine.doctrinalMuscleGroup(for: "Mollets")
         XCTAssertEqual(key, "Mollets")
@@ -180,7 +186,7 @@ final class TrainingDoctrineTests: XCTestCase {
         // exactement le bug qu'on corrige.
         let dbValues = ["Pectoraux", "Dos", "Épaules", "Biceps",
                         "Biceps+Avant-bras", "Avant-bras", "Triceps",
-                        "Quadriceps", "Ischio-jambiers", "glutes", "Mollets",
+                        "Quadriceps", "Ischio-jambiers", "Fessiers", "glutes", "Mollets",
                         "Trapèzes", "Abdominaux", "Core"]
         for db in dbValues {
             guard let doctrinal = TrainingDoctrine.doctrinalMuscleGroup(for: db) else {

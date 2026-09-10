@@ -32,6 +32,11 @@ final class MuscleMapperTests: XCTestCase {
         XCTAssertEqual(MuscleMapper.zone(for: "E\u{301}PAULES"), .shoulders)
     }
 
+    func testCanonicalAndLegacyMiddleTrapeziusLabelsMapToTraps() {
+        XCTAssertEqual(MuscleMapper.zone(for: "Trapèze moyen"), .traps)
+        XCTAssertEqual(MuscleMapper.zone(for: "mid_traps"), .traps)
+    }
+
     func testRecognizedSpecificIsPrimaryBeforeGroup() throws {
         let result = MuscleMapper.map(try metadata(
             group: "Dos",
