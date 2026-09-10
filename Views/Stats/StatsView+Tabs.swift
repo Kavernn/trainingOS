@@ -467,9 +467,9 @@ extension StatsView {
             )
         }
 
-        // 1. PRs actuels
+        // 1. PRs récents
         if !recentPRs.isEmpty {
-            PersonalRecordsView(records: recentPRs.map { ($0.name, $0.est1RM) })
+            PersonalRecordsView(records: recentPRs)
                 .padding(.horizontal, 16)
         }
 

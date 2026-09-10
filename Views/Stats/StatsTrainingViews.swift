@@ -317,32 +317,56 @@ struct SessionHeatmapView: View {
 // MARK: - Week Comparison Card
 // MARK: - Personal Records
 struct PersonalRecordsView: View {
-    let records: [(String, Double)]
+    let records: [RecentPR]
     @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("RECORDS ACTUELS")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            HStack(alignment: .firstTextBaseline) {
+                Text("RECORDS RÉCENTS")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                Spacer()
+                Text("30 JOURS")
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Records récents, 30 jours")
 
             VStack(spacing: 8) {
-                ForEach(Array(records.enumerated()), id: \.0) { _, record in
-                    HStack(spacing: 12) {
-                        Text(record.0)
-                            .font(.appLabel)
-                            .foregroundColor(.appTextPrimary)
-                            .lineLimit(1)
-                        Spacer()
-                        Text(units.format(record.1, decimals: 0))
-                            .font(.appLabel.weight(.bold))
+                ForEach(records) { record in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(record.name)
+                                .font(.appLabel)
+                                .foregroundColor(.appTextPrimary)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(formattedDate(record.date))
+                                .font(.appCaption)
+                                .foregroundColor(.appTextSecondary)
+                                .lineLimit(1)
+                        }
+
+                        Text("1RM estimé · \(units.format(record.est1RM, decimals: 0))")
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(Color.domainAccent(.training))
-                            .frame(alignment: .trailing)
                     }
-                    .accessibilityElement(children: .combine)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(
+                        "\(record.name). Record récent. 1RM estimé \(units.format(record.est1RM, decimals: 0)). \(formattedDate(record.date))."
+                    )
                 }
             }
         }
         .padding(16).glassCard()
+    }
+
+    private func formattedDate(_ rawDate: String) -> String {
+        guard let date = DateFormatter.isoDate.date(from: rawDate) else { return rawDate }
+        let calendar = Calendar.mtl
+        if calendar.isDateInToday(date) { return "Aujourd’hui" }
+        if calendar.isDateInYesterday(date) { return "Hier" }
+        return DateFormatter.shortDateFRCA.string(from: date)
     }
 }
 
