@@ -559,6 +559,8 @@ struct ExerciseDetailView: View {
     let data: WeightData?
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var units = UnitSettings.shared
+    @State private var isShowingAllHistory = false
+    private let compactHistoryLimit = 10
 
     var body: some View {
         NavigationStack {
@@ -584,22 +586,43 @@ struct ExerciseDetailView: View {
 
                         if let history = data?.history, !history.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("HISTORIQUE")
-                                    .font(.appMicro).tracking(2).foregroundColor(.gray)
-                                ForEach(history, id: \.date) { entry in
-                                    HStack {
-                                        Text(entry.date ?? "—").font(.appLabel).foregroundColor(.gray)
-                                        Spacer()
-                                        Text(units.format(entry.weight ?? 0))
-                                            .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
-                                        Text(entry.reps ?? "").font(.appLabel).foregroundColor(.gray)
-                                        if let note = entry.note, !note.isEmpty {
-                                            Text(note).font(.appCaption.weight(.semibold))
-                                                .foregroundColor(note.hasPrefix("+") ? .appSuccess : .appWarning)
-                                        }
-                                    }
-                                    .padding(.vertical, 8)
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text("HISTORIQUE")
+                                        .font(.appMicro.weight(.bold))
+                                        .tracking(2)
+                                        .foregroundColor(.appTextMuted)
+                                    Spacer()
+                                    Text("180 JOURS")
+                                        .font(.appCaption.weight(.semibold))
+                                        .foregroundColor(.appTextSecondary)
+                                }
+
+                                ForEach(visibleHistory(history), id: \.date) { entry in
+                                    historyRow(entry)
                                     Divider().background(Color.appSeparator)
+                                }
+
+                                if history.count > compactHistoryLimit {
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            isShowingAllHistory.toggle()
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(historyExpansionLabel(totalCount: history.count))
+                                                .font(.appCaption.weight(.semibold))
+                                                .foregroundColor(.appTextSecondary)
+                                            Spacer()
+                                        }
+                                        .frame(minHeight: 44)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(
+                                        isShowingAllHistory
+                                            ? "Réduire l’historique aux 10 séances les plus récentes"
+                                            : "Afficher \(history.count - compactHistoryLimit) séance\(history.count - compactHistoryLimit == 1 ? "" : "s") supplémentaire\(history.count - compactHistoryLimit == 1 ? "" : "s")"
+                                    )
                                 }
                             }
                             .padding(16).background(Color.appCard).cornerRadius(14)
@@ -623,6 +646,154 @@ struct ExerciseDetailView: View {
                 }
             }
         }
+    }
+
+    private func visibleHistory(_ history: [WeightHistoryEntry]) -> ArraySlice<WeightHistoryEntry> {
+        isShowingAllHistory ? history[...] : history.prefix(compactHistoryLimit)
+    }
+
+    private func historyExpansionLabel(totalCount: Int) -> String {
+        if isShowingAllHistory { return "Réduire la liste" }
+        let remaining = totalCount - compactHistoryLimit
+        return remaining == 1 ? "Voir 1 autre séance" : "Voir les \(remaining) autres séances"
+    }
+
+    private func formattedHistoryDate(_ rawDate: String?) -> String {
+        guard let rawDate, let date = DateFormatter.isoDate.date(from: rawDate) else {
+            return rawDate ?? "Date indisponible"
+        }
+        let calendar = Calendar.mtl
+        if calendar.isDateInToday(date) { return "Aujourd’hui" }
+        if calendar.isDateInYesterday(date) { return "Hier" }
+        if calendar.component(.year, from: date) == calendar.component(.year, from: Date()) {
+            return DateFormatter.shortDateFRCA.string(from: date)
+        }
+        return DateFormatter.longDateFR.string(from: date)
+    }
+
+    private func usableSets(for entry: WeightHistoryEntry) -> [WeightHistoryEntry.SetEntry] {
+        (entry.sets ?? []).filter { !$0.reps.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    private func formattedWeight(_ weight: Double) -> String {
+        "\(units.inputStr(weight)) \(units.label)"
+    }
+
+    private func primaryWeightLabel(for entry: WeightHistoryEntry) -> String? {
+        let sets = usableSets(for: entry)
+        if !sets.isEmpty {
+            let weights = Set(sets.map(\.weight))
+            guard weights.count == 1, let weight = weights.first, weight > 0 else { return nil }
+            return formattedWeight(weight)
+        }
+        guard let weight = entry.weight, weight > 0 else { return nil }
+        return formattedWeight(weight)
+    }
+
+    private func sessionDetailLabel(for entry: WeightHistoryEntry) -> String? {
+        let sets = usableSets(for: entry)
+        if !sets.isEmpty {
+            if Set(sets.map(\.weight)).count == 1 {
+                return formattedRepetitionSequence(sets.map(\.reps))
+            }
+            return sets.map { set in
+                set.weight > 0
+                    ? "\(formattedWeight(set.weight)) × \(set.reps)"
+                    : set.reps
+            }.joined(separator: " · ")
+        }
+        guard let reps = entry.reps?.trimmingCharacters(in: .whitespacesAndNewlines), !reps.isEmpty else {
+            return nil
+        }
+        let values = reps.split(separator: ",", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard !values.isEmpty, values.allSatisfy({ Double($0) != nil }) else { return reps }
+        return formattedRepetitionSequence(values)
+    }
+
+    private func formattedRepetitionSequence(_ values: [String]) -> String {
+        guard values.allSatisfy({ Double($0) != nil }) else {
+            return values.joined(separator: " · ")
+        }
+        let suffix = values.count == 1 && Double(values[0]) == 1 ? "rep" : "reps"
+        return values.joined(separator: " · ") + " \(suffix)"
+    }
+
+    private func accessibilityWeight(_ weight: Double) -> String {
+        "\(units.inputStr(weight)) \(units.isKg ? "kilogrammes" : "livres")"
+    }
+
+    private func joinedForSpeech(_ values: [String]) -> String {
+        guard let last = values.last else { return "" }
+        if values.count == 1 { return last }
+        return values.dropLast().joined(separator: ", ") + " et " + last
+    }
+
+    private func historyAccessibilityLabel(for entry: WeightHistoryEntry) -> String {
+        var parts = [formattedHistoryDate(entry.date)]
+        let sets = usableSets(for: entry)
+
+        if !sets.isEmpty {
+            let weights = Set(sets.map(\.weight))
+            if weights.count == 1, let weight = weights.first, weight > 0 {
+                parts.append("Charge \(accessibilityWeight(weight))")
+                let reps = sets.map(\.reps)
+                let suffix = reps.allSatisfy({ Double($0) != nil }) ? " répétitions" : ""
+                parts.append("\(sets.count == 1 ? "Une série" : "\(sets.count) séries") : \(joinedForSpeech(reps))\(suffix)")
+            } else {
+                let descriptions = sets.map { set in
+                    let suffix = Double(set.reps) != nil ? " répétitions" : ""
+                    return set.weight > 0
+                        ? "\(accessibilityWeight(set.weight)) pour \(set.reps)\(suffix)"
+                        : "\(set.reps)\(suffix)"
+                }
+                parts.append("\(sets.count == 1 ? "Une série" : "\(sets.count) séries") : \(joinedForSpeech(descriptions))")
+            }
+        } else {
+            if let weight = entry.weight, weight > 0 {
+                parts.append("Charge \(accessibilityWeight(weight))")
+            }
+            if let reps = entry.reps?.trimmingCharacters(in: .whitespacesAndNewlines), !reps.isEmpty {
+                let values = reps.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                let suffix = values.allSatisfy({ Double($0) != nil }) ? " répétitions" : ""
+                parts.append("Séries : \(joinedForSpeech(values))\(suffix)")
+            }
+        }
+
+        if let note = entry.note, !note.isEmpty { parts.append(note) }
+        return parts.joined(separator: ". ") + "."
+    }
+
+    private func historyRow(_ entry: WeightHistoryEntry) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(formattedHistoryDate(entry.date))
+                    .font(.appLabel)
+                    .foregroundColor(.appTextSecondary)
+                Spacer()
+                if let weight = primaryWeightLabel(for: entry) {
+                    Text(weight)
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(.appTextPrimary)
+                }
+            }
+
+            if let detail = sessionDetailLabel(for: entry) {
+                Text(detail)
+                    .font(.appLabel)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let note = entry.note, !note.isEmpty {
+                Text(note)
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(note.hasPrefix("+") ? .appSuccess : .appWarning)
+            }
+        }
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(historyAccessibilityLabel(for: entry))
     }
 }
 
