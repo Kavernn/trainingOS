@@ -884,7 +884,8 @@ struct StatsStrengthProgressionSection: View {
     let comparisons: [StatsProgressionComparison]
     let comparisonWindowDays: Int
     var onSelectExercise: ((String) -> Void)? = nil
-    @State private var isExpanded = false
+    @State private var isShowingAllProgressionRows = false
+    private let compactRowLimit = 10
     private var improving: [StatsProgressionComparison] { comparisons.filter { $0.status == .improving } }
     private var stable: [StatsProgressionComparison] { comparisons.filter { $0.status == .stable } }
     private var declining: [StatsProgressionComparison] { comparisons.filter { $0.status == .declining } }
@@ -895,50 +896,69 @@ struct StatsStrengthProgressionSection: View {
             return false
         }
     }
+    private var totalRowCount: Int {
+        improving.count + stable.count + declining.count + insufficient.count + other.count
+    }
+    private var remainingRowCount: Int { max(totalRowCount - compactRowLimit, 0) }
+    private var expansionLabel: String {
+        if isShowingAllProgressionRows { return "Réduire la liste" }
+        if remainingRowCount == 1 { return "Voir 1 autre exercice" }
+        return "Voir les \(remainingRowCount) autres exercices"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
-            } label: {
-                HStack(alignment: .center, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("PROGRESSION PAR EXERCICE")
-                            .font(.appMicro.weight(.bold))
-                            .tracking(2)
-                            .foregroundColor(.appTextMuted)
-                        Text("Meilleur 1RM estimé · \(comparisonWindowDays) derniers jours vs \(comparisonWindowDays) jours précédents")
-                            .font(.appCaption)
-                            .foregroundColor(.appTextSecondary)
-                            .multilineTextAlignment(.leading)
-                    }
-                    Spacer(minLength: 8)
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.appTextSecondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Progression par exercice, \(isExpanded ? "dépliée" : "repliée")")
-            .accessibilityHint(isExpanded ? "Réduire" : "Développer")
+            Text("PROGRESSION PAR EXERCICE")
+                .font(.appMicro.weight(.bold))
+                .tracking(2)
+                .foregroundColor(.appTextMuted)
+            Text("Meilleur 1RM estimé · \(comparisonWindowDays) derniers jours vs \(comparisonWindowDays) jours précédents")
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
 
-            if isExpanded {
-                if comparisons.isEmpty {
-                    Text("Pas encore assez de données comparables.").font(.appBody).foregroundColor(.appTextSecondary)
-                } else {
-                    group("EN HAUSSE", comparisons: improving)
-                    group("STABLE", comparisons: stable)
-                    group("EN BAISSE", comparisons: declining)
-                    group("DONNÉES INSUFFISANTES", comparisons: insufficient)
-                    group("DONNÉES DISPONIBLES", comparisons: other)
+            if comparisons.isEmpty {
+                Text("Pas encore assez de données comparables.").font(.appBody).foregroundColor(.appTextSecondary)
+            } else {
+                group("EN HAUSSE", comparisons: visibleRows(in: improving, after: 0))
+                group("STABLE", comparisons: visibleRows(in: stable, after: improving.count))
+                group("EN BAISSE", comparisons: visibleRows(in: declining, after: improving.count + stable.count))
+                group("DONNÉES INSUFFISANTES", comparisons: visibleRows(in: insufficient, after: improving.count + stable.count + declining.count))
+                group("DONNÉES DISPONIBLES", comparisons: visibleRows(in: other, after: improving.count + stable.count + declining.count + insufficient.count))
+
+                if remainingRowCount > 0 {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isShowingAllProgressionRows.toggle()
+                        }
+                    } label: {
+                        HStack {
+                            Text(expansionLabel)
+                                .font(.appCaption.weight(.semibold))
+                                .foregroundColor(.appTextSecondary)
+                            Spacer()
+                        }
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        isShowingAllProgressionRows
+                            ? "Réduire la progression par exercice aux 10 premiers exercices"
+                            : "Afficher \(remainingRowCount) exercice\(remainingRowCount == 1 ? "" : "s") supplémentaire\(remainingRowCount == 1 ? "" : "s")"
+                    )
                 }
             }
         }
         .padding(.appCardInsetV).background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius)).padding(.horizontal, .appPagePadding)
+    }
+
+    private func visibleRows(
+        in group: [StatsProgressionComparison],
+        after precedingRowCount: Int
+    ) -> [StatsProgressionComparison] {
+        guard !isShowingAllProgressionRows else { return group }
+        return Array(group.prefix(max(compactRowLimit - precedingRowCount, 0)))
     }
 
     @ViewBuilder private func group(_ title: String, comparisons: [StatsProgressionComparison]) -> some View {
