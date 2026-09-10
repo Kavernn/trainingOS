@@ -132,7 +132,6 @@
 		D68A5C8D2FD0D0B900B824DF /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */; };
 		D69570D6304F75060008F1A2 /* DashboardDomainGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69570D5304F75060008F1A2 /* DashboardDomainGrid.swift */; };
 		D69570D8304F77C20008F1A2 /* DashboardHeroState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69570D7304F77C20008F1A2 /* DashboardHeroState.swift */; };
-		D695717A305333A60008F1A2 /* ConcurrencyProbeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6957178305333A60008F1A2 /* ConcurrencyProbeView.swift */; };
 		D69D3EEF2F85895800553153 /* SessionDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69D3EEE2F85895800553153 /* SessionDraftStore.swift */; };
 		DA26223185CE48C094B9CA75 /* PlateCalculatorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */; };
 		DC73018555BF2F8EE84E78C2 /* APIService+Plateau.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955D6FDBE3CAB80990772A49 /* APIService+Plateau.swift */; };
@@ -416,7 +415,6 @@
 		D68B8535D55F4B109509F146 /* MorningRevealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningRevealView.swift; sourceTree = "<group>"; };
 		D69570D5304F75060008F1A2 /* DashboardDomainGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardDomainGrid.swift; sourceTree = "<group>"; };
 		D69570D7304F77C20008F1A2 /* DashboardHeroState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeroState.swift; sourceTree = "<group>"; };
-		D6957178305333A60008F1A2 /* ConcurrencyProbeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConcurrencyProbeView.swift; sourceTree = "<group>"; };
 		D69D3EEE2F85895800553153 /* SessionDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDraftStore.swift; sourceTree = "<group>"; };
 		D69FB9052F666F3F0091BDD2 /* TrainingOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBriefCards.swift; sourceTree = "<group>"; };
@@ -550,21 +548,29 @@
 		};
 		D68A5C452FD0CE6600B824DF /* VinceSeven Watch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "VinceSeven Watch Watch App";
 			sourceTree = "<group>";
 		};
 		D68A5C532FD0CE6800B824DF /* VinceSeven Watch Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "VinceSeven Watch Watch AppTests";
 			sourceTree = "<group>";
 		};
 		D68A5C5D2FD0CE6800B824DF /* VinceSeven Watch Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "VinceSeven Watch Watch AppUITests";
 			sourceTree = "<group>";
 		};
 		D69FB9062F666F3F0091BDD2 /* TrainingOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = TrainingOSTests;
 			sourceTree = "<group>";
 		};
@@ -1027,7 +1033,6 @@
 		D665E4462F5D98B8002AE470 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				D6957179305333A60008F1A2 /* _Scratch */,
 				D665E43D2F5D98B8002AE470 /* Dashboard */,
 				D665E43F2F5D98B8002AE470 /* Historique */,
 				D665E4412F5D98B8002AE470 /* Profile */,
@@ -1061,14 +1066,6 @@
 				0C957A3221EBA73955159C75 /* Budget */,
 			);
 			path = Views;
-			sourceTree = "<group>";
-		};
-		D6957179305333A60008F1A2 /* _Scratch */ = {
-			isa = PBXGroup;
-			children = (
-				D6957178305333A60008F1A2 /* ConcurrencyProbeView.swift */,
-			);
-			path = _Scratch;
 			sourceTree = "<group>";
 		};
 		DD44000F2F5D98BA002AE473 /* MentalHealth */ = {
@@ -1516,7 +1513,6 @@
 				FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */,
 				BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */,
 				CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */,
-				D695717A305333A60008F1A2 /* ConcurrencyProbeView.swift in Sources */,
 				DD4400012F5D98BA002AE473 /* MentalHealthView.swift in Sources */,
 				DD4400032F5D98BA002AE473 /* MoodTrackerView.swift in Sources */,
 				DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */,

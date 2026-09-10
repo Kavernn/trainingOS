@@ -48,9 +48,6 @@ struct ProfileView: View {
     @State private var warRoomEnabled           = false
     @AppStorage("hrv_onboarding_done") private var hrvOnboardingDone = false
     @State private var showHRVOnboarding        = false
-    // ⚠️ TEMP PROBE — REMOVE AFTER CONCURRENCY TEST
-    @State private var showConcurrencyProbe     = false
-    // ⚠️ END TEMP PROBE
 
     var profile: UserProfile? { api.dashboard?.profile }
 
@@ -169,11 +166,6 @@ struct ProfileView: View {
             .sheet(isPresented: $showHRVOnboarding) {
                 HRVOnboardingView(onDone: { showHRVOnboarding = false })
             }
-            // ⚠️ TEMP PROBE — REMOVE AFTER CONCURRENCY TEST
-            .sheet(isPresented: $showConcurrencyProbe) {
-                ConcurrencyProbeView()
-            }
-            // ⚠️ END TEMP PROBE
         }
         .task { await loadData() }
     }
@@ -752,11 +744,6 @@ struct ProfileView: View {
                 Task { await exportData() }
             })
             settingsDivider
-            // ⚠️ TEMP PROBE — REMOVE AFTER CONCURRENCY TEST
-            settingsRow(icon: "bolt.trianglebadge.exclamationmark", color: Color.statusRed, label: "Concurrency Probe", detail: "iOS 26 LIFO test",
-                        action: { showConcurrencyProbe = true })
-            settingsDivider
-            // ⚠️ END TEMP PROBE
             NavigationLink(destination: SeasonView()) {
                 HStack(spacing: 12) {
                     ZStack {
