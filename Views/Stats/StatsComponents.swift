@@ -1074,6 +1074,8 @@ struct StatsStrengthComparisonRow: View {
 struct StatsProgressionHero: View {
     let progression: StatsCockpitProgression
     let onOpen: () -> Void
+    @State private var isShowingExplanation = false
+    @State private var shouldOpenForceAfterDismiss = false
 
     private var improving: Int { progression.statusCounts.improving }
     private var stable: Int { progression.statusCounts.stable }
@@ -1084,7 +1086,7 @@ struct StatsProgressionHero: View {
         let improvingLabel = improving == 1 ? "1 exercice en hausse" : "\(improving) exercices en hausse"
         let stableLabel = stable == 1 ? "1 exercice stable" : "\(stable) exercices stables"
         let decliningLabel = declining == 1 ? "1 exercice en baisse" : "\(declining) exercices en baisse"
-        return "Trajectoire Force. \(improvingLabel), \(stableLabel), \(decliningLabel). Comparaison des \(progression.comparisonWindowDays) derniers jours aux \(progression.comparisonWindowDays) jours précédents."
+        return "Trajectoire Force. \(presentation.headline). \(improvingLabel), \(stableLabel), \(decliningLabel). Comparaison des \(progression.comparisonWindowDays) derniers jours aux \(progression.comparisonWindowDays) jours précédents."
     }
 
     private var presentation: (eyebrow: String, headline: String, support: String) {
@@ -1128,7 +1130,7 @@ struct StatsProgressionHero: View {
     }
 
     var body: some View {
-        Button(action: onOpen) {
+        Button(action: { isShowingExplanation = true }) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("TRAJECTOIRE FORCE")
@@ -1183,7 +1185,145 @@ struct StatsProgressionHero: View {
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
-        .accessibilityHint("Ouvrir l’onglet Force")
+        .accessibilityHint("Touchez pour comprendre")
+        .sheet(isPresented: $isShowingExplanation, onDismiss: {
+            guard shouldOpenForceAfterDismiss else { return }
+            shouldOpenForceAfterDismiss = false
+            onOpen()
+        }) {
+            ForceTrajectoryExplanationSheet(
+                windowDays: progression.comparisonWindowDays,
+                improving: improving,
+                stable: stable,
+                declining: declining,
+                isMixed: [improving, stable, declining].filter { $0 > 0 }.count > 1,
+                onOpenForce: {
+                    shouldOpenForceAfterDismiss = true
+                    isShowingExplanation = false
+                }
+            )
+        }
+    }
+
+    private struct ForceTrajectoryExplanationSheet: View {
+        let windowDays: Int
+        let improving: Int
+        let stable: Int
+        let declining: Int
+        let isMixed: Bool
+        let onOpenForce: () -> Void
+
+        @Environment(\.dismiss) private var dismiss
+
+        private var comparable: Int { improving + stable + declining }
+
+        private var resultSummary: String {
+            guard comparable > 0 else {
+                return "Aucun exercice comparable n’est disponible sur ces deux périodes."
+            }
+            let exerciseLabel = comparable == 1 ? "exercice comparable" : "exercices comparables"
+            return "Sur \(comparable) \(exerciseLabel) : \(statusClause(improving, singular: "est en hausse", plural: "sont en hausse", none: "aucun n’est en hausse")), \(statusClause(stable, singular: "est stable", plural: "sont stables", none: "aucun n’est stable")), \(statusClause(declining, singular: "est en baisse", plural: "sont en baisse", none: "aucun n’est en baisse"))."
+        }
+
+        private func statusClause(_ count: Int, singular: String, plural: String, none: String) -> String {
+            if count == 0 { return none }
+            return count == 1 ? "1 \(singular)" : "\(count) \(plural)"
+        }
+
+        var body: some View {
+            NavigationStack {
+                ZStack {
+                    Color.appBg.ignoresSafeArea()
+
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("Cette vue compare ton meilleur 1RM estimé pour chaque exercice sur les \(windowDays) derniers jours avec les \(windowDays) jours précédents.")
+                                .font(.appBody)
+                                .foregroundColor(.appTextPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                category(
+                                    title: "En hausse",
+                                    definition: "Meilleur 1RM estimé en progression de 5 % ou plus."
+                                )
+                                category(
+                                    title: "Stable",
+                                    definition: "Variation de moins de 5 % dans un sens ou dans l’autre."
+                                )
+                                category(
+                                    title: "En baisse",
+                                    definition: "Meilleur 1RM estimé en recul de 5 % ou plus."
+                                )
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("RÉSULTAT ACTUEL")
+                                    .font(.appMicro.weight(.bold))
+                                    .tracking(1.5)
+                                    .foregroundColor(.appTextMuted)
+                                Text(resultSummary)
+                                    .font(.appBody.weight(.semibold))
+                                    .foregroundColor(.appTextPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if isMixed {
+                                    Text("Progression mixte signifie que tous tes exercices n’évoluent pas dans la même direction.")
+                                        .font(.appCaption)
+                                        .foregroundColor(.appTextSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .accessibilityElement(children: .combine)
+
+                            Text("Le 1RM estimé est une estimation de ta force maximale à partir de tes séries enregistrées. Ce n’est pas nécessairement un vrai essai à 1 répétition.")
+                                .font(.appCaption)
+                                .foregroundColor(.appTextSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.appPagePadding)
+                    }
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    VStack(spacing: 0) {
+                        Divider()
+                        Button(action: onOpenForce) {
+                            Text("Voir le détail Force")
+                                .font(.appLabel.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.domainAccent(.training))
+                        .accessibilityLabel("Voir le détail Force")
+                        .padding(.horizontal, .appPagePadding)
+                        .padding(.vertical, 12)
+                    }
+                    .background(Color.appBg)
+                }
+                .navigationTitle("Trajectoire Force")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Fermer") { dismiss() }
+                            .foregroundColor(Color.domainAccent(.training))
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+
+        private func category(title: String, definition: String) -> some View {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                Text(definition)
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+        }
     }
 
     private struct ForceDistributionBar: View {
