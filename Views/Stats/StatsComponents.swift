@@ -1379,20 +1379,31 @@ struct StatsOverviewActivityCard: View {
     let trainingLoad: StatsCockpitTrainingLoad
     let onOpen: () -> Void
     @EnvironmentObject private var theme: AppTheme
+    @State private var isShowingExplanation = false
+    @State private var shouldOpenRegularityAfterDismiss = false
 
     private var weekly: [StatsWeeklyTrainingLoad] { trainingLoad.weekly }
     private var maxActiveDays: Int { max(weekly.map(\.activeDayCount).max() ?? 0, 1) }
     private var hasPartialWeek: Bool { weekly.last?.isPartial == true }
+    private var hasAnyPartialWeek: Bool { weekly.contains(where: \.isPartial) }
+
+    private var currentResultSummary: String {
+        let sessionCount = trainingLoad.summary.sessionCount
+        let activeDayCount = trainingLoad.summary.activeDayCount
+        let sessions = sessionCount == 1 ? "1 séance répartie" : "\(sessionCount) séances réparties"
+        let days = activeDayCount == 1 ? "1 jour actif" : "\(activeDayCount) jours actifs"
+        return "Sur cette période, tu as enregistré \(sessions) sur \(days)."
+    }
 
     private var accessibilitySummary: String {
-        let partial = hasPartialWeek ? " La semaine en cours est affichée comme partielle." : ""
+        let partial = hasPartialWeek ? " La dernière barre représente la semaine en cours." : ""
         let sessions = trainingLoad.summary.sessionCount == 1 ? "1 séance" : "\(trainingLoad.summary.sessionCount) séances"
         let days = trainingLoad.summary.activeDayCount == 1 ? "1 jour actif" : "\(trainingLoad.summary.activeDayCount) jours actifs"
-        return "Activité sur 12 semaines. \(sessions), \(days). Rythme hebdomadaire.\(partial)"
+        return "Activité. \(sessions) sur \(days). Évolution hebdomadaire sur 12 semaines.\(partial)"
     }
 
     var body: some View {
-        Button(action: onOpen) {
+        Button(action: { isShowingExplanation = true }) {
             VStack(alignment: .leading, spacing: 12) {
                 overviewHeader(title: "ACTIVITÉ", period: "12 SEMAINES")
 
@@ -1439,7 +1450,22 @@ struct StatsOverviewActivityCard: View {
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
-        .accessibilityHint("Ouvrir Régularité")
+        .accessibilityHint("Touchez pour comprendre")
+        .sheet(isPresented: $isShowingExplanation, onDismiss: {
+            guard shouldOpenRegularityAfterDismiss else { return }
+            shouldOpenRegularityAfterDismiss = false
+            onOpen()
+        }) {
+            ActivityExplanationSheet(
+                currentResultSummary: currentResultSummary,
+                hasAnyPartialWeek: hasAnyPartialWeek,
+                hasPartialCurrentWeek: hasPartialWeek,
+                onOpenRegularity: {
+                    shouldOpenRegularityAfterDismiss = true
+                    isShowingExplanation = false
+                }
+            )
+        }
     }
 
     private func overviewHeader(title: String, period: String) -> some View {
@@ -1463,6 +1489,113 @@ struct StatsOverviewActivityCard: View {
                 .font(.appCaption).foregroundColor(.appTextSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private struct ActivityExplanationSheet: View {
+        let currentResultSummary: String
+        let hasAnyPartialWeek: Bool
+        let hasPartialCurrentWeek: Bool
+        let onOpenRegularity: () -> Void
+
+        @Environment(\.dismiss) private var dismiss
+
+        var body: some View {
+            NavigationStack {
+                ZStack {
+                    Color.appBg.ignoresSafeArea()
+
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 18) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Une séance correspond à une session d’entraînement enregistrée avec au moins une activité.")
+                                    .font(.appBody)
+                                    .foregroundColor(.appTextPrimary)
+                                Text("Deux séances distinctes le même jour comptent comme deux séances.")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityElement(children: .combine)
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Un jour actif correspond à une journée où au moins une séance est enregistrée.")
+                                    .font(.appBody)
+                                    .foregroundColor(.appTextPrimary)
+                                Text("Plusieurs séances dans la même journée augmentent le nombre de séances, mais ce jour ne compte qu’une fois parmi les jours actifs.")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityElement(children: .combine)
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("RÉSULTAT ACTUEL")
+                                    .font(.appMicro.weight(.bold))
+                                    .tracking(1.5)
+                                    .foregroundColor(.appTextMuted)
+                                Text(currentResultSummary)
+                                    .font(.appBody.weight(.semibold))
+                                    .foregroundColor(.appTextPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .accessibilityElement(children: .combine)
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("RYTHME HEBDOMADAIRE")
+                                    .font(.appMicro.weight(.bold))
+                                    .tracking(1.5)
+                                    .foregroundColor(.appTextMuted)
+                                Text("Chaque barre représente le nombre de jours actifs d’une semaine.")
+                                    .font(.appBody)
+                                    .foregroundColor(.appTextPrimary)
+                                Text("La hauteur est comparée à la semaine la plus active de la période.")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                                if hasAnyPartialWeek {
+                                    Text("Une barre atténuée indique qu’une partie seulement de cette semaine se trouve dans la fenêtre de 84 jours.")
+                                        .font(.appCaption)
+                                        .foregroundColor(.appTextSecondary)
+                                }
+                                if hasPartialCurrentWeek {
+                                    Text("La dernière barre atténuée correspond à la semaine en cours. Les totaux incluent les jours déjà enregistrés cette semaine.")
+                                        .font(.appCaption)
+                                        .foregroundColor(.appTextSecondary)
+                                }
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityElement(children: .combine)
+                        }
+                        .padding(.appPagePadding)
+                    }
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    VStack(spacing: 0) {
+                        Divider()
+                        Button(action: onOpenRegularity) {
+                            Text("Voir le détail Régularité")
+                                .font(.appLabel.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.domainAccent(.training))
+                        .accessibilityLabel("Voir le détail Régularité")
+                        .padding(.horizontal, .appPagePadding)
+                        .padding(.vertical, 12)
+                    }
+                    .background(Color.appBg)
+                }
+                .navigationTitle("Activité")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Fermer") { dismiss() }
+                            .foregroundColor(Color.domainAccent(.training))
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
     }
 }
 
