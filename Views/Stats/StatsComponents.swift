@@ -1190,7 +1190,7 @@ struct StatsProgressionHero: View {
                             .tracking(2)
                             .foregroundColor(Color.domainAccent(.training))
                         Spacer()
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "info.circle")
                             .font(.appMicro.weight(.semibold))
                             .foregroundColor(.appTextMuted)
                             .accessibilityHidden(true)
@@ -1231,7 +1231,7 @@ struct StatsProgressionHero: View {
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilitySummary)
-            .accessibilityHint("Touchez pour comprendre")
+            .accessibilityHint("Ouvre une explication.")
 
             if !strongestDeclines.isEmpty {
                 Divider().overlay(Color.appSeparator)
@@ -1300,7 +1300,7 @@ struct StatsProgressionHero: View {
                     .foregroundColor(.appTextMuted)
                     .accessibilityHidden(true)
             }
-            .frame(minHeight: 40)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -1567,7 +1567,7 @@ struct StatsOverviewActivityCard: View {
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
-        .accessibilityHint("Touchez pour comprendre")
+        .accessibilityHint("Ouvre une explication.")
         .sheet(isPresented: $isShowingExplanation, onDismiss: {
             guard shouldOpenRegularityAfterDismiss else { return }
             shouldOpenRegularityAfterDismiss = false
@@ -1592,7 +1592,7 @@ struct StatsOverviewActivityCard: View {
             Spacer()
             Text(period)
                 .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
-            Image(systemName: "chevron.right")
+            Image(systemName: "info.circle")
                 .font(.appMicro.weight(.semibold)).foregroundColor(.appTextMuted)
                 .accessibilityHidden(true)
         }
@@ -1816,7 +1816,7 @@ struct StatsOverviewExternalLoadCard: View {
                     Spacer()
                     Text("12 SEMAINES")
                         .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
-                    Image(systemName: "chevron.right")
+                    Image(systemName: "info.circle")
                         .font(.appMicro.weight(.semibold)).foregroundColor(.appTextMuted)
                         .accessibilityHidden(true)
                 }
@@ -1867,7 +1867,7 @@ struct StatsOverviewExternalLoadCard: View {
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
-        .accessibilityHint("Touchez pour comprendre")
+        .accessibilityHint("Ouvre une explication.")
         .sheet(isPresented: $isShowingExplanation, onDismiss: {
             guard shouldOpenLoadAfterDismiss else { return }
             shouldOpenLoadAfterDismiss = false
@@ -2104,11 +2104,13 @@ struct StatsOverviewNotableCard: View {
                                 .foregroundColor(.appTextMuted)
                                 .accessibilityHidden(true)
                         }
+                        .frame(minHeight: 44)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(accessibilityLabel(for: fact))
+                    .accessibilityHint("Ouvre le détail de l’exercice.")
 
                     if index < facts.count - 1 {
                         Divider().overlay(Color.appSeparator)

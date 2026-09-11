@@ -46,7 +46,10 @@ private struct ActiveDeloadOverviewCard: View {
                 Text("Terminer la décharge")
                     .font(.appCaption.weight(.semibold))
                     .foregroundColor(.appDanger)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .disabled(isLoading)
         }
         .padding(.appCardInsetV)
@@ -135,7 +138,7 @@ private struct StatsOverviewExplorerSection: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(isActivatingDeload)
-                    .accessibilityLabel("Semaine de décharge. Suspend temporairement les alertes")
+                    .accessibilityLabel("Activer la semaine de décharge. Suspend temporairement les alertes")
                     .accessibilityAddTraits(.isButton)
                 }
             }
