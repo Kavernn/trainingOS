@@ -1,53 +1,47 @@
 import SwiftUI
 import Charts
 
-// MARK: - Deload Card
+// MARK: - Active Deload Signal
 
-private struct DeloadCard: View {
-    let status: DeloadStatus?
+private struct ActiveDeloadOverviewCard: View {
+    let status: DeloadStatus
     let onUpdate: (DeloadStatus?) -> Void
 
     @State private var isLoading = false
     @State private var showConfirmDeactivate = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let s = status, s.active {
-                activeView(s)
-            } else {
-                inactiveView
-            }
-        }
-        .padding(16)
-        .background(Color(white: 0.07))
-        .cornerRadius(14)
-    }
-
-    private func activeView(_ s: DeloadStatus) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "bed.double.fill")
-                    .foregroundColor(.forge)
-                Text("DÉCHARGE VOLONTAIRE")
-                    .font(.appCaption.weight(.bold))
-                    .foregroundColor(.forge)
-                Spacer()
-                if let days = s.daysRemaining {
-                    Text("\(days)j restant\(days > 1 ? "s" : "")")
+        VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "bed.double.fill")
+                        .foregroundColor(.forge)
+                        .accessibilityHidden(true)
+                    Text("DÉCHARGE VOLONTAIRE")
+                        .font(.appCaption.weight(.bold))
+                        .foregroundColor(.forge)
+                    Spacer()
+                    if let days = status.daysRemaining {
+                        Text("\(days)j restant\(days > 1 ? "s" : "")")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                    }
+                }
+                if let reason = status.reason {
+                    Text(reason)
                         .font(.appCaption)
-                        .foregroundColor(Color(white: 0.4))
+                        .foregroundColor(.appTextSecondary)
+                        .lineLimit(1)
+                }
+                if let ends = status.endsAt {
+                    Text("Reprise prévue le \(ends)")
+                        .font(.appCaption)
+                        .foregroundColor(.appTextMuted)
                 }
             }
-            if let reason = s.reason {
-                Text(reason)
-                    .font(.appLabel)
-                    .foregroundColor(Color(white: 0.55))
-            }
-            if let ends = s.endsAt {
-                Text("Reprise prévue le \(ends)")
-                    .font(.appCaption)
-                    .foregroundColor(Color(white: 0.4))
-            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityLabel)
+
             Button(action: { showConfirmDeactivate = true }) {
                 Text("Terminer la décharge")
                     .font(.appCaption.weight(.semibold))
@@ -55,47 +49,25 @@ private struct DeloadCard: View {
             }
             .disabled(isLoading)
         }
+        .padding(.appCardInsetV)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .confirmationDialog("Terminer la décharge ?", isPresented: $showConfirmDeactivate, titleVisibility: .visible) {
             Button("Confirmer", role: .destructive) { deactivate() }
             Button("Annuler", role: .cancel) { }
         }
     }
 
-    private var inactiveView: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "moon.zzz.fill")
-                .font(.appTitle)
-                .foregroundColor(Color(white: 0.35))
-            // collage titre/sous-titre, micro-optique
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Semaine de décharge")
-                    .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.appTextPrimary)
-                Text("Déclare un repos volontaire — les alertes seront suspendues")
-                    .font(.appCaption)
-                    .foregroundColor(Color(white: 0.4))
-            }
-            Spacer()
-            Button(action: activate) {
-                if isLoading {
-                    ProgressView().scaleEffect(0.8)
-                } else {
-                    Text("Activer")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.forge)
-                }
-            }
-            .disabled(isLoading)
+    private var accessibilityLabel: String {
+        var parts = ["Décharge volontaire active"]
+        if let days = status.daysRemaining {
+            parts.append("\(days) jour\(days > 1 ? "s" : "") restant\(days > 1 ? "s" : "")")
         }
-    }
-
-    private func activate() {
-        isLoading = true
-        Task {
-            try? await APIService.shared.activateDeload()
-            let fresh = try? await APIService.shared.fetchDeloadStatus()
-            await MainActor.run { onUpdate(fresh); isLoading = false }
+        if let ends = status.endsAt {
+            parts.append("Reprise prévue le \(ends)")
         }
+        return parts.joined(separator: ". ")
     }
 
     private func deactivate() {
@@ -104,6 +76,130 @@ private struct DeloadCard: View {
             try? await APIService.shared.deactivateDeload()
             let fresh = try? await APIService.shared.fetchDeloadStatus()
             await MainActor.run { onUpdate(fresh); isLoading = false }
+        }
+    }
+}
+
+// MARK: - Overview Explorer
+
+private struct StatsOverviewExplorerSection: View {
+    let showsDeloadActivation: Bool
+    let onDeloadUpdate: (DeloadStatus?) -> Void
+
+    @State private var isActivatingDeload = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("EXPLORER")
+                .font(.appMicro.weight(.bold))
+                .tracking(2)
+                .foregroundColor(.appTextMuted)
+                .accessibilityAddTraits(.isHeader)
+
+            VStack(spacing: 0) {
+                NavigationLink { WorkoutDNASection() } label: {
+                    explorerRow(
+                        icon: "staroflife.fill",
+                        title: "Workout DNA",
+                        subtitle: "Archétype · patterns · intensité"
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Workout DNA. Archétype, patterns et intensité")
+                .accessibilityAddTraits(.isButton)
+
+                Divider().overlay(Color.appSeparator)
+
+                NavigationLink { SeasonView() } label: {
+                    explorerRow(
+                        icon: "calendar.badge.clock",
+                        title: "Mes chapitres",
+                        subtitle: "Compare tes périodes d’entraînement"
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Mes chapitres. Compare tes périodes d’entraînement")
+                .accessibilityAddTraits(.isButton)
+
+                if showsDeloadActivation {
+                    Divider().overlay(Color.appSeparator)
+
+                    Button(action: activateDeload) {
+                        explorerRow(
+                            icon: "moon.zzz.fill",
+                            title: "Semaine de décharge",
+                            subtitle: "Suspend temporairement les alertes",
+                            trailingLabel: isActivatingDeload ? nil : "Activer",
+                            showsProgress: isActivatingDeload
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isActivatingDeload)
+                    .accessibilityLabel("Semaine de décharge. Suspend temporairement les alertes")
+                    .accessibilityAddTraits(.isButton)
+                }
+            }
+            .background(Color.appCard)
+            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        }
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    private func explorerRow(
+        icon: String,
+        title: String,
+        subtitle: String,
+        trailingLabel: String? = nil,
+        showsProgress: Bool = false
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.appLabel)
+                .foregroundColor(.appTextSecondary)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                Text(subtitle)
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            if showsProgress {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .accessibilityHidden(true)
+            } else if let trailingLabel {
+                Text(trailingLabel)
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.forge)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.appTextMuted)
+                    .accessibilityHidden(true)
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 58)
+        .contentShape(Rectangle())
+    }
+
+    private func activateDeload() {
+        isActivatingDeload = true
+        Task {
+            try? await APIService.shared.activateDeload()
+            let fresh = try? await APIService.shared.fetchDeloadStatus()
+            await MainActor.run {
+                onDeloadUpdate(fresh)
+                isActivatingDeload = false
+            }
         }
     }
 }
@@ -201,52 +297,18 @@ extension StatsView {
             .padding(.horizontal, .appPagePadding)
         }
 
-        // 0. Workout DNA — accès à la synthèse (archétype · patterns · intensité)
-        NavigationLink { WorkoutDNASection() } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "staroflife.fill")
-                    .font(.appHeadline)
-                    .foregroundColor(.gray)
-                    .frame(width: 30)
-                // collage titre/sous-titre, micro-optique
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Workout DNA")
-                        .font(.appHeadline)
-                        .foregroundColor(.appTextPrimary)
-                    Text("Archétype · patterns · intensité")
-                        .font(.appCaption)
-                        .foregroundColor(Color(white: 0.55))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.appCaption)
-                    .foregroundColor(Color(white: 0.45))
+        if let deload = activeDeload, deload.active {
+            ActiveDeloadOverviewCard(status: deload) { newStatus in
+                activeDeload = newStatus
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.appCard)
-            .cornerRadius(14)
+            .padding(.horizontal, .appPagePadding)
         }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 16)
 
-        // 2. Décharge volontaire (si active ou à déclarer)
-        DeloadCard(status: activeDeload) { newStatus in
+        StatsOverviewExplorerSection(
+            showsDeloadActivation: activeDeload?.active != true
+        ) { newStatus in
             activeDeload = newStatus
         }
-        .padding(.horizontal, 16)
-
-        // Season Comparison
-        if let comp = seasonComparison {
-            SeasonComparisonCard(data: comp)
-                .padding(.horizontal, 16)
-                .appearAnimation(delay: 0.08)
-        }
-
-        // 7. Marqueurs de transformation
-        TransformationMarkersCard(warRoomStats: warRoomStats)
-            .padding(.horizontal, 16)
-            .appearAnimation(delay: 0.10)
 
         Spacer(minLength: 32)
     }
