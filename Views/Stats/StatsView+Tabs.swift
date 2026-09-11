@@ -175,36 +175,12 @@ extension StatsView {
                 selectedTab = .load
             }
 
-            if !cockpit.progression.topMovers.isEmpty {
-                StatsTopMoversCard(
-                    movers: cockpit.progression.topMovers,
-                    onSelectExercise: { selectedExercise = $0 }
-                )
-            }
-
-            if !cockpit.progression.attention.isEmpty {
-                StatsAttentionCard(attention: cockpit.progression.attention)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("RÉGULARITÉ")
-                    .font(.appMicro.weight(.bold))
-                    .tracking(2)
-                    .foregroundColor(.appTextMuted)
-                Text("\(cockpit.trainingLoad.summary.sessionCount) séances · \(cockpit.trainingLoad.summary.activeDayCount) jours actifs")
-                    .font(.appBody.weight(.medium))
-                    .foregroundColor(.appTextPrimary)
-                Button("Voir la régularité") {
-                    selectedTab = .consistency
-                }
-                .font(.appCaption.weight(.semibold))
-                .foregroundColor(Color.domainAccent(.training))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.appCardInsetV)
-            .background(Color.appCard)
-            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
-            .padding(.horizontal, .appPagePadding)
+            StatsOverviewNotableCard(
+                recentPRs: recentPRs,
+                movers: cockpit.progression.topMovers,
+                attention: cockpit.progression.attention,
+                onSelectExercise: { selectedExercise = $0 }
+            )
         } else if cockpitError != nil {
             VStack(alignment: .leading, spacing: 6) {
                 Text("PROGRESSION")

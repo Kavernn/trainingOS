@@ -1465,126 +1465,174 @@ private extension View {
     }
 }
 
-struct StatsTopMoversCard: View {
+struct StatsOverviewNotableCard: View {
+    let recentPRs: [RecentPR]
     let movers: [StatsProgressionComparison]
-    var onSelectExercise: ((String) -> Void)? = nil
-
-    private var visibleMovers: [StatsProgressionComparison] {
-        Array(movers.prefix(3))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("TOP MOVERS")
-                .font(.appMicro.weight(.bold))
-                .tracking(2)
-                .foregroundColor(.appTextMuted)
-
-            ForEach(visibleMovers, id: \.exerciseName) { mover in
-                Button {
-                    onSelectExercise?(mover.exerciseName)
-                } label: {
-                    HStack(alignment: .top, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(mover.exerciseName)
-                                .font(.appBody.weight(.semibold))
-                                .foregroundColor(.appTextPrimary)
-                                .lineLimit(1)
-                            if let baseline = mover.baselineBestE1RM,
-                               let recent = mover.recentBestE1RM {
-                                Text("\(UnitSettings.shared.format(baseline, decimals: 0)) → \(UnitSettings.shared.format(recent, decimals: 0)) e1RM")
-                                    .font(.appMicro)
-                                    .foregroundColor(.appTextSecondary)
-                            }
-                        }
-                        Spacer(minLength: 8)
-                        Text(formatRelativeDelta(mover.relativeDelta))
-                            .font(.appBody.weight(.bold))
-                            .foregroundColor(.appSuccess)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(accessibilityLabel(for: mover))
-
-                if mover.exerciseName != visibleMovers.last?.exerciseName {
-                    Divider().overlay(Color.appSeparator)
-                }
-            }
-        }
-        .padding(.appCardInsetV)
-        .background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
-        .padding(.horizontal, .appPagePadding)
-    }
-
-    private func formatRelativeDelta(_ value: Double?) -> String {
-        guard let value else { return "—" }
-        let formatted = String(format: "%+.1f", value * 100)
-            .replacingOccurrences(of: ".", with: ",")
-        return "\(formatted) %"
-    }
-
-    private func accessibilityLabel(for mover: StatsProgressionComparison) -> String {
-        guard let delta = mover.relativeDelta else {
-            return "\(mover.exerciseName), progression disponible"
-        }
-        let formatted = String(format: "%.1f", abs(delta * 100))
-            .replacingOccurrences(of: ".", with: ",")
-        return "\(mover.exerciseName), en hausse de \(formatted) pour cent"
-    }
-}
-
-struct StatsAttentionCard: View {
     let attention: [StatsAttentionObservation]
+    let onSelectExercise: (String) -> Void
+    @ObservedObject private var units = UnitSettings.shared
 
-    private var visibleAttention: [StatsAttentionObservation] {
-        Array(attention.prefix(3))
+    private enum Fact: Identifiable {
+        case recentPR(RecentPR)
+        case mover(StatsProgressionComparison)
+        case attention(StatsAttentionObservation)
+
+        var exerciseName: String {
+            switch self {
+            case .recentPR(let record): return record.name
+            case .mover(let mover): return mover.exerciseName
+            case .attention(let observation): return observation.exerciseName
+            }
+        }
+
+        var id: String {
+            switch self {
+            case .recentPR: return "pr-\(exerciseName)"
+            case .mover: return "mover-\(exerciseName)"
+            case .attention: return "attention-\(exerciseName)"
+            }
+        }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("À REVOIR")
-                .font(.appMicro.weight(.bold))
-                .tracking(2)
-                .foregroundColor(.appTextMuted)
+    private var facts: [Fact] {
+        let prFacts = recentPRs
+            .sorted { $0.date > $1.date }
+            .map(Fact.recentPR)
+        let moverFacts = movers.compactMap { mover -> Fact? in
+            guard mover.baselineBestE1RM != nil,
+                  mover.recentBestE1RM != nil,
+                  mover.relativeDelta != nil else { return nil }
+            return .mover(mover)
+        }
+        let attentionFacts = attention.compactMap { observation -> Fact? in
+            guard observation.kind == .noRecentImprovement else { return nil }
+            return .attention(observation)
+        }
 
-            ForEach(visibleAttention, id: \.exerciseName) { observation in
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "circle.dotted")
-                        .font(.appLabel)
-                        .foregroundColor(.appWarning)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(observation.exerciseName)
-                            .font(.appBody.weight(.semibold))
-                            .foregroundColor(.appTextPrimary)
-                        Text(detail(for: observation))
-                            .font(.appCaption)
-                            .foregroundColor(.appTextSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .accessibilityElement(children: .combine)
-                if observation.exerciseName != visibleAttention.last?.exerciseName {
-                    Divider().overlay(Color.appSeparator)
+        var selected: [Fact] = []
+        var seenExercises = Set<String>()
+
+        func appendFirstAvailable(from candidates: [Fact]) {
+            guard selected.count < 3 else { return }
+            for candidate in candidates {
+                let key = normalizedExerciseName(candidate.exerciseName)
+                if seenExercises.insert(key).inserted {
+                    selected.append(candidate)
+                    return
                 }
             }
         }
-        .padding(.appCardInsetV)
-        .background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
-        .padding(.horizontal, .appPagePadding)
+
+        appendFirstAvailable(from: prFacts)
+        appendFirstAvailable(from: moverFacts)
+        appendFirstAvailable(from: attentionFacts)
+
+        if selected.count < 3 {
+            for candidates in [prFacts, moverFacts, attentionFacts] {
+                for candidate in candidates where selected.count < 3 {
+                    let key = normalizedExerciseName(candidate.exerciseName)
+                    if seenExercises.insert(key).inserted {
+                        selected.append(candidate)
+                    }
+                }
+            }
+        }
+
+        return selected
     }
 
-    private func detail(for observation: StatsAttentionObservation) -> String {
-        switch observation.kind {
-        case .noRecentImprovement:
-            return "Aucun nouveau meilleur e1RM sur les dernières expositions comparables."
-        case .unknown:
-            return "Observation disponible"
+    var body: some View {
+        if !facts.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("À NOTER")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(.appTextMuted)
+
+                ForEach(Array(facts.enumerated()), id: \.element.id) { index, fact in
+                    Button {
+                        onSelectExercise(fact.exerciseName)
+                    } label: {
+                        HStack(alignment: .center, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(fact.exerciseName)
+                                    .font(.appBody.weight(.semibold))
+                                    .foregroundColor(.appTextPrimary)
+                                    .lineLimit(1)
+                                Text(detail(for: fact))
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.right")
+                                .font(.appMicro.weight(.semibold))
+                                .foregroundColor(.appTextMuted)
+                                .accessibilityHidden(true)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(accessibilityLabel(for: fact))
+
+                    if index < facts.count - 1 {
+                        Divider().overlay(Color.appSeparator)
+                    }
+                }
+            }
+            .overviewCardStyle()
+            .padding(.horizontal, .appPagePadding)
         }
+    }
+
+    private func normalizedExerciseName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "fr_CA"))
+    }
+
+    private func detail(for fact: Fact) -> String {
+        switch fact {
+        case .recentPR(let record):
+            return "Record récent · 1RM estimé \(units.format(record.est1RM, decimals: 0)) · \(formattedDate(record.date))"
+        case .mover(let mover):
+            guard let baseline = mover.baselineBestE1RM,
+                  let recent = mover.recentBestE1RM,
+                  let delta = mover.relativeDelta else { return "Hausse du meilleur 1RM estimé" }
+            return "Meilleur 1RM estimé : \(units.format(baseline, decimals: 0)) → \(units.format(recent, decimals: 0)) · \(formattedPercent(delta))"
+        case .attention:
+            return "Aucun nouveau meilleur 1RM estimé sur les expositions comparables"
+        }
+    }
+
+    private func accessibilityLabel(for fact: Fact) -> String {
+        switch fact {
+        case .recentPR(let record):
+            return "\(record.name). Record récent. 1RM estimé \(units.format(record.est1RM, decimals: 0)). \(formattedDate(record.date))."
+        case .mover(let mover):
+            guard let baseline = mover.baselineBestE1RM,
+                  let recent = mover.recentBestE1RM,
+                  let delta = mover.relativeDelta else {
+                return "\(mover.exerciseName). Hausse du meilleur 1RM estimé."
+            }
+            let percentage = String(format: "%.1f", abs(delta * 100)).replacingOccurrences(of: ".", with: ",")
+            return "\(mover.exerciseName). Meilleur 1RM estimé de \(units.format(baseline, decimals: 0)) à \(units.format(recent, decimals: 0)). Hausse de \(percentage) pour cent."
+        case .attention(let observation):
+            return "\(observation.exerciseName). Aucun nouveau meilleur 1RM estimé sur les expositions comparables."
+        }
+    }
+
+    private func formattedDate(_ rawDate: String) -> String {
+        guard let date = DateFormatter.isoDate.date(from: rawDate) else { return rawDate }
+        let calendar = Calendar.mtl
+        if calendar.isDateInToday(date) { return "Aujourd’hui" }
+        if calendar.isDateInYesterday(date) { return "Hier" }
+        return DateFormatter.shortDateFRCA.string(from: date)
+    }
+
+    private func formattedPercent(_ value: Double) -> String {
+        let formatted = String(format: "%+.1f", value * 100).replacingOccurrences(of: ".", with: ",")
+        return "\(formatted) %"
     }
 }
 
