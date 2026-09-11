@@ -1074,6 +1074,7 @@ struct StatsStrengthComparisonRow: View {
 struct StatsProgressionHero: View {
     let progression: StatsCockpitProgression
     let onOpen: () -> Void
+    let onSelectExercise: (String) -> Void
     @State private var isShowingExplanation = false
     @State private var shouldOpenForceAfterDismiss = false
 
@@ -1081,6 +1082,61 @@ struct StatsProgressionHero: View {
     private var stable: Int { progression.statusCounts.stable }
     private var declining: Int { progression.statusCounts.declining }
     private var comparable: Int { improving + stable + declining }
+    private var conclusion: TrajectoryConclusion {
+        guard comparable > 0 else { return .noComparables }
+        if improving > comparable / 2 { return .majorityImproving }
+        if declining > comparable / 2 { return .majorityDeclining }
+        if stable > comparable / 2 { return .majorityStable }
+        return .mixed
+    }
+    private var strongestDeclines: [StatsProgressionComparison] {
+        Array(
+            progression.comparisons
+                .filter { $0.status == .declining }
+                .sorted { lhs, rhs in
+                    let lhsDelta = lhs.relativeDelta ?? .infinity
+                    let rhsDelta = rhs.relativeDelta ?? .infinity
+                    if lhsDelta != rhsDelta { return lhsDelta < rhsDelta }
+                    let localizedOrder = lhs.exerciseName.localizedCaseInsensitiveCompare(rhs.exerciseName)
+                    if localizedOrder != .orderedSame { return localizedOrder == .orderedAscending }
+                    return lhs.exerciseName < rhs.exerciseName
+                }
+                .prefix(2)
+        )
+    }
+
+    private enum TrajectoryConclusion {
+        case noComparables
+        case majorityImproving
+        case majorityDeclining
+        case majorityStable
+        case mixed
+
+        var headline: String {
+            switch self {
+            case .noComparables: return "En construction"
+            case .majorityImproving: return "Majorité des exercices en hausse"
+            case .majorityDeclining: return "Majorité des exercices en baisse"
+            case .majorityStable: return "Majorité des exercices stables"
+            case .mixed: return "Progression mixte"
+            }
+        }
+
+        var explanation: String? {
+            switch self {
+            case .noComparables:
+                return nil
+            case .majorityImproving:
+                return "La majorité de tes exercices comparables sont en hausse sur cette comparaison."
+            case .majorityDeclining:
+                return "La majorité de tes exercices comparables sont en baisse sur cette comparaison."
+            case .majorityStable:
+                return "La majorité de tes exercices comparables restent dans la zone considérée stable."
+            case .mixed:
+                return "Progression mixte signifie qu’aucune catégorie ne représente à elle seule la majorité des exercices comparables."
+            }
+        }
+    }
 
     private var accessibilitySummary: String {
         let improvingLabel = improving == 1 ? "1 exercice en hausse" : "\(improving) exercices en hausse"
@@ -1090,102 +1146,123 @@ struct StatsProgressionHero: View {
     }
 
     private var presentation: (eyebrow: String, headline: String, support: String) {
-        if comparable == 0 {
+        switch conclusion {
+        case .noComparables:
             return (
                 "TRAJECTOIRE",
-                "En construction",
+                conclusion.headline,
                 "Pas encore assez d’expositions comparables pour conclure."
             )
-        }
-        if improving > 0 && stable == 0 && declining == 0 {
-            let movement = improving == 1 ? "1 mouvement en progression" : "\(improving) mouvements en progression"
-            return (
-                "PROGRESSION SUR \(progression.comparisonWindowDays) JOURS",
-                movement,
-                "\(improving) sur \(comparable) exercices comparables ont amélioré leur meilleur e1RM."
-            )
-        }
-        if improving == 0 && stable > 0 && declining == 0 {
+        case .majorityImproving:
             return (
                 "TRAJECTOIRE SUR \(progression.comparisonWindowDays) JOURS",
-                "Stable",
-                "\(stable) mouvements comparables sans changement matériel détecté."
+                conclusion.headline,
+                "\(improving) exercices sur \(comparable) sont en hausse."
             )
-        }
-        if improving == 0 && stable == 0 && declining > 0 {
-            let movement = declining == 1
-                ? "1 mouvement comparable est en baisse sur la période."
-                : "\(declining) mouvements comparables sont en baisse sur la période."
+        case .majorityDeclining:
             return (
                 "TRAJECTOIRE SUR \(progression.comparisonWindowDays) JOURS",
-                "En baisse",
-                movement
+                conclusion.headline,
+                "\(declining) exercices sur \(comparable) sont en baisse."
+            )
+        case .majorityStable:
+            return (
+                "TRAJECTOIRE SUR \(progression.comparisonWindowDays) JOURS",
+                conclusion.headline,
+                "\(stable) exercices sur \(comparable) sont stables."
+            )
+        case .mixed:
+            return (
+                "TRAJECTOIRE SUR \(progression.comparisonWindowDays) JOURS",
+                conclusion.headline,
+                "\(improving) en hausse · \(stable) stables · \(declining) en baisse"
             )
         }
-        return (
-            "TRAJECTOIRE SUR \(progression.comparisonWindowDays) JOURS",
-            "Progression mixte",
-            "\(improving) en hausse · \(stable) stables · \(declining) en baisse"
-        )
     }
 
     var body: some View {
-        Button(action: { isShowingExplanation = true }) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("TRAJECTOIRE FORCE")
-                        .font(.appMicro.weight(.bold))
-                        .tracking(2)
-                        .foregroundColor(Color.domainAccent(.training))
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.appMicro.weight(.semibold))
-                        .foregroundColor(.appTextMuted)
-                        .accessibilityHidden(true)
-                }
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(presentation.headline)
-                        .font(.appTitle.weight(.bold))
-                        .foregroundColor(.appTextPrimary)
-                    Text("\(progression.comparisonWindowDays) derniers jours vs \(progression.comparisonWindowDays) jours précédents")
-                        .font(.appCaption)
-                        .foregroundColor(.appTextSecondary)
-                }
-
-                if comparable > 0 {
-                    ForceDistributionBar(
-                        improving: improving,
-                        stable: stable,
-                        declining: declining
-                    )
-
-                    HStack(spacing: 8) {
-                        StatusChip(label: "\(improving) en hausse", color: .appSuccess)
-                        StatusChip(label: "\(stable) stable\(stable == 1 ? "" : "s")", color: .appTextSecondary)
-                        StatusChip(label: "\(declining) en baisse", color: .appDanger)
+        VStack(spacing: 0) {
+            Button(action: { isShowingExplanation = true }) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("TRAJECTOIRE FORCE")
+                            .font(.appMicro.weight(.bold))
+                            .tracking(2)
+                            .foregroundColor(Color.domainAccent(.training))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.appMicro.weight(.semibold))
+                            .foregroundColor(.appTextMuted)
+                            .accessibilityHidden(true)
                     }
-                } else {
-                    Text(presentation.support)
-                        .font(.appBody)
-                        .foregroundColor(.appTextSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(presentation.headline)
+                            .font(.appTitle.weight(.bold))
+                            .foregroundColor(.appTextPrimary)
+                        Text("\(progression.comparisonWindowDays) derniers jours vs \(progression.comparisonWindowDays) jours précédents")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                    }
+
+                    if comparable > 0 {
+                        ForceDistributionBar(
+                            improving: improving,
+                            stable: stable,
+                            declining: declining
+                        )
+
+                        HStack(spacing: 8) {
+                            StatusChip(label: "\(improving) en hausse", color: .appSuccess)
+                            StatusChip(label: "\(stable) stable\(stable == 1 ? "" : "s")", color: .appTextSecondary)
+                            StatusChip(label: "\(declining) en baisse", color: .appDanger)
+                        }
+                    } else {
+                        Text(presentation.support)
+                            .font(.appBody)
+                            .foregroundColor(.appTextSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.appCardInsetV)
+                .contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.appCardInsetV)
-            .background(Color.appCard)
-            .overlay(
-                RoundedRectangle(cornerRadius: .appCardRadius)
-                    .stroke(Color.appSeparator, lineWidth: CGFloat.appHairline)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilitySummary)
+            .accessibilityHint("Touchez pour comprendre")
+
+            if !strongestDeclines.isEmpty {
+                Divider().overlay(Color.appSeparator)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("EXERCICES EN BAISSE")
+                        .font(.appMicro.weight(.bold))
+                        .tracking(1.5)
+                        .foregroundColor(.appTextMuted)
+                        .padding(.bottom, 4)
+                        .accessibilityAddTraits(.isHeader)
+
+                    ForEach(strongestDeclines, id: \.exerciseName) { comparison in
+                        decliningRow(comparison)
+                        if comparison.exerciseName != strongestDeclines.last?.exerciseName {
+                            Divider().overlay(Color.appSeparator)
+                        }
+                    }
+                }
+                .padding(.horizontal, .appCardInsetV)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+            }
         }
-        .buttonStyle(.plain)
+        .background(Color.appCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: CGFloat.appHairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilitySummary)
-        .accessibilityHint("Touchez pour comprendre")
         .sheet(isPresented: $isShowingExplanation, onDismiss: {
             guard shouldOpenForceAfterDismiss else { return }
             shouldOpenForceAfterDismiss = false
@@ -1196,7 +1273,7 @@ struct StatsProgressionHero: View {
                 improving: improving,
                 stable: stable,
                 declining: declining,
-                isMixed: [improving, stable, declining].filter { $0 > 0 }.count > 1,
+                conclusion: conclusion,
                 onOpenForce: {
                     shouldOpenForceAfterDismiss = true
                     isShowingExplanation = false
@@ -1205,12 +1282,52 @@ struct StatsProgressionHero: View {
         }
     }
 
+    private func decliningRow(_ comparison: StatsProgressionComparison) -> some View {
+        Button(action: { onSelectExercise(comparison.exerciseName) }) {
+            HStack(spacing: 8) {
+                Text(comparison.exerciseName)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                if let delta = comparison.relativeDelta {
+                    Text(formattedDecline(delta))
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.appDanger)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.appMicro.weight(.semibold))
+                    .foregroundColor(.appTextMuted)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: 40)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(decliningAccessibilityLabel(comparison))
+        .accessibilityHint("Ouvre le détail de l’exercice")
+    }
+
+    private func formattedDecline(_ delta: Double) -> String {
+        let value = String(format: "%.1f", abs(delta * 100)).replacingOccurrences(of: ".", with: ",")
+        return "−\(value) %"
+    }
+
+    private func decliningAccessibilityLabel(_ comparison: StatsProgressionComparison) -> String {
+        guard let delta = comparison.relativeDelta else {
+            return "\(comparison.exerciseName). Exercice en baisse"
+        }
+        let value = String(format: "%.1f", abs(delta * 100)).replacingOccurrences(of: ".", with: ",")
+        return "\(comparison.exerciseName). En baisse de \(value) pour cent"
+    }
+
     private struct ForceTrajectoryExplanationSheet: View {
         let windowDays: Int
         let improving: Int
         let stable: Int
         let declining: Int
-        let isMixed: Bool
+        let conclusion: TrajectoryConclusion
         let onOpenForce: () -> Void
 
         @Environment(\.dismiss) private var dismiss
@@ -1266,8 +1383,8 @@ struct StatsProgressionHero: View {
                                     .font(.appBody.weight(.semibold))
                                     .foregroundColor(.appTextPrimary)
                                     .fixedSize(horizontal: false, vertical: true)
-                                if isMixed {
-                                    Text("Progression mixte signifie que tous tes exercices n’évoluent pas dans la même direction.")
+                                if let explanation = conclusion.explanation {
+                                    Text(explanation)
                                         .font(.appCaption)
                                         .foregroundColor(.appTextSecondary)
                                         .fixedSize(horizontal: false, vertical: true)

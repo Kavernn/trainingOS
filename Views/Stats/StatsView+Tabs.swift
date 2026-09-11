@@ -259,9 +259,11 @@ extension StatsView {
                     .padding(.horizontal, .appPagePadding)
             }
 
-            StatsProgressionHero(progression: cockpit.progression) {
-                selectedTab = .strength
-            }
+            StatsProgressionHero(
+                progression: cockpit.progression,
+                onOpen: { selectedTab = .strength },
+                onSelectExercise: { selectedExercise = $0 }
+            )
 
             StatsOverviewActivityCard(trainingLoad: cockpit.trainingLoad) {
                 selectedTab = .consistency
