@@ -1470,6 +1470,8 @@ struct StatsOverviewExternalLoadCard: View {
     let trainingLoad: StatsCockpitTrainingLoad
     let onOpen: () -> Void
     @EnvironmentObject private var theme: AppTheme
+    @State private var isShowingExplanation = false
+    @State private var shouldOpenLoadAfterDismiss = false
 
     private var validPoints: [(index: Int, bucket: StatsWeeklyTrainingLoad, value: Double)] {
         trainingLoad.weekly.enumerated().compactMap { index, bucket in
@@ -1504,6 +1506,29 @@ struct StatsOverviewExternalLoadCard: View {
         return "\(formatted) \(UnitSettings.shared.label)"
     }
 
+    private var currentResultSummary: String {
+        guard latestComplete?.bucket.tonnage.value != nil else {
+            return "Le tonnage de la dernière semaine complète n’est pas disponible."
+        }
+        let base = "Ta dernière semaine complète totalise \(latestTonnageLabel) de charge externe"
+        guard let relativeDelta else { return "\(base)." }
+        guard relativeDelta != 0 else {
+            return "\(base), au même niveau que la semaine complète précédente."
+        }
+        let formatted = String(format: "%.1f", abs(relativeDelta * 100))
+            .replacingOccurrences(of: ".", with: ",")
+        let direction = relativeDelta > 0 ? "de plus" : "de moins"
+        return "\(base), soit \(formatted) % \(direction) que la semaine complète précédente."
+    }
+
+    private var hasPartialCurrentWeek: Bool {
+        trainingLoad.weekly.last?.isPartial == true
+    }
+
+    private var hasPartialLatestCoverage: Bool {
+        latestComplete?.bucket.tonnage.coverage == .partial
+    }
+
     private var deltaLabel: String? {
         guard let relativeDelta else { return nil }
         let value = abs(relativeDelta * 100)
@@ -1513,22 +1538,27 @@ struct StatsOverviewExternalLoadCard: View {
     }
 
     private var accessibilitySummary: String {
-        var summary = "Charge externe sur 12 semaines. Dernière semaine complète : \(latestTonnageLabel)."
+        var summary: String
+        if latestComplete?.bucket.tonnage.value == nil {
+            summary = "Charge externe. Le tonnage de la dernière semaine complète n’est pas disponible."
+        } else {
+            summary = "Charge externe. \(latestTonnageLabel) sur la dernière semaine complète."
+        }
         if let relativeDelta {
             let value = String(format: "%.1f", abs(relativeDelta * 100)).replacingOccurrences(of: ".", with: ",")
             if relativeDelta == 0 {
-                summary += " Même niveau que la semaine précédente."
+                summary += " Même niveau que la semaine complète précédente."
             } else if relativeDelta > 0 {
-                summary += " Hausse de \(value) pour cent par rapport à la semaine précédente."
+                summary += " Hausse de \(value) pour cent par rapport à la semaine complète précédente."
             } else {
-                summary += " Baisse de \(value) pour cent par rapport à la semaine précédente."
+                summary += " Baisse de \(value) pour cent par rapport à la semaine complète précédente."
             }
         }
-        return summary
+        return summary + " Évolution sur 12 semaines."
     }
 
     var body: some View {
-        Button(action: onOpen) {
+        Button(action: { isShowingExplanation = true }) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("CHARGE EXTERNE")
@@ -1587,7 +1617,121 @@ struct StatsOverviewExternalLoadCard: View {
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
-        .accessibilityHint("Ouvrir Charge")
+        .accessibilityHint("Touchez pour comprendre")
+        .sheet(isPresented: $isShowingExplanation, onDismiss: {
+            guard shouldOpenLoadAfterDismiss else { return }
+            shouldOpenLoadAfterDismiss = false
+            onOpen()
+        }) {
+            ExternalLoadExplanationSheet(
+                currentResultSummary: currentResultSummary,
+                hasPartialCurrentWeek: hasPartialCurrentWeek,
+                hasPartialLatestCoverage: hasPartialLatestCoverage,
+                onOpenLoad: {
+                    shouldOpenLoadAfterDismiss = true
+                    isShowingExplanation = false
+                }
+            )
+        }
+    }
+
+    private struct ExternalLoadExplanationSheet: View {
+        let currentResultSummary: String
+        let hasPartialCurrentWeek: Bool
+        let hasPartialLatestCoverage: Bool
+        let onOpenLoad: () -> Void
+
+        @Environment(\.dismiss) private var dismiss
+
+        var body: some View {
+            NavigationStack {
+                ZStack {
+                    Color.appBg.ignoresSafeArea()
+
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Le tonnage additionne le poids déplacé sur tes séries enregistrées : poids × répétitions.")
+                                    .font(.appBody)
+                                    .foregroundColor(.appTextPrimary)
+                                Text("Seules les séries avec des données de poids et de répétitions utilisables sont comptées.")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityElement(children: .combine)
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("RÉSULTAT ACTUEL")
+                                    .font(.appMicro.weight(.bold))
+                                    .tracking(1.5)
+                                    .foregroundColor(.appTextMuted)
+                                Text(currentResultSummary)
+                                    .font(.appBody.weight(.semibold))
+                                    .foregroundColor(.appTextPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if hasPartialLatestCoverage {
+                                    Text("Calcul basé sur les séries exploitables disponibles.")
+                                        .font(.appCaption)
+                                        .foregroundColor(.appTextSecondary)
+                                }
+                            }
+                            .accessibilityElement(children: .combine)
+
+                            Text("Une hausse ou une baisse décrit uniquement un changement de volume chargé. Elle ne signifie pas à elle seule que l’entraînement est meilleur ou moins bon.")
+                                .font(.appCaption)
+                                .foregroundColor(.appTextSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("ÉVOLUTION · 12 SEMAINES")
+                                    .font(.appMicro.weight(.bold))
+                                    .tracking(1.5)
+                                    .foregroundColor(.appTextMuted)
+                                Text("La courbe montre l’évolution hebdomadaire du tonnage sur les 84 derniers jours.")
+                                    .font(.appBody)
+                                    .foregroundColor(.appTextPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if hasPartialCurrentWeek {
+                                    Text("La semaine en cours peut apparaître dans la courbe, mais elle n’est pas utilisée pour calculer la comparaison avec la semaine précédente.")
+                                        .font(.appCaption)
+                                        .foregroundColor(.appTextSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .accessibilityElement(children: .combine)
+                        }
+                        .padding(.appPagePadding)
+                    }
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    VStack(spacing: 0) {
+                        Divider()
+                        Button(action: onOpenLoad) {
+                            Text("Voir le détail Charge")
+                                .font(.appLabel.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.domainAccent(.training))
+                        .accessibilityLabel("Voir le détail Charge")
+                        .padding(.horizontal, .appPagePadding)
+                        .padding(.vertical, 12)
+                    }
+                    .background(Color.appBg)
+                }
+                .navigationTitle("Charge externe")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Fermer") { dismiss() }
+                            .foregroundColor(Color.domainAccent(.training))
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
     }
 }
 
