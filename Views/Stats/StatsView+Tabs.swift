@@ -214,8 +214,7 @@ extension StatsView {
     // Shell-only composition of the existing heatmap and server-provided streak.
     @ViewBuilder var consistencyTab: some View {
         if let cockpit = cockpitData {
-            StatsRegularitySummary(trainingLoad: cockpit.trainingLoad)
-            StatsWeeklyRegularityChart(weekly: cockpit.trainingLoad.weekly)
+            StatsRegularityHero(trainingLoad: cockpit.trainingLoad)
         }
         SessionHeatmapView(
             sessions: sessions,

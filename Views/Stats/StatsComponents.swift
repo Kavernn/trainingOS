@@ -125,43 +125,53 @@ struct StatsActivityStreakSummary: View {
 }
 
 // MARK: - Canonical regularity
-struct StatsRegularitySummary: View {
+struct StatsRegularityHero: View {
     let trainingLoad: StatsCockpitTrainingLoad
+
+    private var weekly: [StatsWeeklyTrainingLoad] { trainingLoad.weekly }
+    private var maxDays: Int { max(weekly.map(\.activeDayCount).max() ?? 0, 1) }
+    private var hasPartialCurrentWeek: Bool { weekly.last?.isPartial == true }
+
+    private var anchorIndices: [Int] {
+        guard !weekly.isEmpty else { return [] }
+        let last = weekly.count - 1
+        return Array(Set([0, last / 3, last * 2 / 3, last])).sorted()
+    }
+
+    private var accessibilitySummary: String {
+        let activeDays = countLabel(
+            trainingLoad.summary.activeDayCount,
+            singular: "jour actif",
+            plural: "jours actifs"
+        )
+        let sessions = countLabel(
+            trainingLoad.summary.sessionCount,
+            singular: "séance",
+            plural: "séances"
+        )
+        let currentWeek = hasPartialCurrentWeek
+            ? " La dernière barre représente la semaine en cours."
+            : ""
+        guard !weekly.isEmpty else {
+            return "Rythme d’entraînement sur 84 jours. \(activeDays) et \(sessions). Pas encore de rythme hebdomadaire disponible."
+        }
+        let weeklyValues = weekly.map { String($0.activeDayCount) }.joined(separator: ", ")
+        return "Rythme d’entraînement sur 84 jours. \(activeDays) et \(sessions). Jours actifs par semaine, du plus ancien au plus récent : \(weeklyValues).\(currentWeek)"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("ACTIVITÉ RÉCENTE")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            HStack(spacing: 12) {
-                metric(value: "\(trainingLoad.summary.activeDayCount)", label: "Jours actifs")
-                metric(value: "\(trainingLoad.summary.sessionCount)", label: "Séances avec activité")
+            HStack(alignment: .firstTextBaseline) {
+                Text("RYTHME D’ENTRAÎNEMENT")
+                    .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.appTextMuted)
+                Spacer()
+                Text("84 JOURS")
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
             }
-        }
-        .padding(.appCardInsetV).background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
-        .padding(.horizontal, .appPagePadding)
-        .accessibilityElement(children: .contain)
-    }
 
-    private func metric(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value).font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
-            Text(label).font(.appCaption).foregroundColor(.appTextSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-struct StatsWeeklyRegularityChart: View {
-    let weekly: [StatsWeeklyTrainingLoad]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("RYTHME HEBDOMADAIRE")
-                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.appTextMuted)
-            Text("Historique récent")
+            Text("Jours actifs par semaine")
                 .font(.appCaption).foregroundColor(.appTextSecondary)
+
             if weekly.isEmpty {
                 Text("Pas encore de rythme hebdomadaire disponible.")
                     .font(.appBody).foregroundColor(.appTextSecondary)
@@ -174,38 +184,86 @@ struct StatsWeeklyRegularityChart: View {
                     }
                 }
                 .frame(height: 110)
+
+                timeAnchors
+
+                if hasPartialCurrentWeek {
+                    Text("Semaine en cours")
+                        .font(.appMicro).foregroundColor(.appTextMuted)
+                }
+            }
+
+            HStack(alignment: .firstTextBaseline) {
+                Text(countLabel(
+                    trainingLoad.summary.activeDayCount,
+                    singular: "jour actif",
+                    plural: "jours actifs"
+                ))
+                .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
+                Spacer(minLength: 16)
+                Text(countLabel(
+                    trainingLoad.summary.sessionCount,
+                    singular: "séance",
+                    plural: "séances"
+                ))
+                .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
             }
         }
         .padding(.appCardInsetV).background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
-
-    private var maxDays: Int { max(weekly.map(\.activeDayCount).max() ?? 0, 1) }
 
     @ViewBuilder
     private func bar(_ bucket: StatsWeeklyTrainingLoad, height: CGFloat) -> some View {
-        VStack(spacing: 4) {
+        VStack {
             if bucket.activeDayCount > 0 {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color.domainAccent(.training))
-                    .frame(height: CGFloat(bucket.activeDayCount) / CGFloat(maxDays) * (height - 24))
-                    .accessibilityLabel(accessibilityLabel(for: bucket))
+                    .frame(height: CGFloat(bucket.activeDayCount) / CGFloat(maxDays) * height)
             } else {
                 Circle()
                     .fill(Color.appTextMuted)
                     .frame(width: 4, height: 4)
-                    .accessibilityLabel(accessibilityLabel(for: bucket))
             }
-            Text(String(bucket.weekStart.prefix(7)))
-                .font(.appMicro).foregroundColor(.appTextMuted).lineLimit(1).minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .opacity(bucket.isPartial ? 0.4 : 1)
+        .accessibilityHidden(true)
     }
 
-    private func accessibilityLabel(for bucket: StatsWeeklyTrainingLoad) -> String {
-        let partial = bucket.isPartial ? " Semaine partielle." : ""
-        return "Semaine du \(bucket.weekStart). \(bucket.activeDayCount) jours actifs. \(bucket.sessionCount) séances avec activité.\(partial)"
+    private var timeAnchors: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            ForEach(Array(anchorIndices.enumerated()), id: \.offset) { offset, index in
+                Text(anchorLabel(at: index))
+                    .font(.appMicro)
+                    .foregroundColor(.appTextMuted)
+                    .lineLimit(1)
+                if offset < anchorIndices.count - 1 {
+                    Spacer(minLength: 4)
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func anchorLabel(at index: Int) -> String {
+        let rawDate: String
+        if index == 0 {
+            rawDate = weekly[index].coveredWindow.start
+        } else if index == weekly.count - 1 {
+            rawDate = weekly[index].coveredWindow.end
+        } else {
+            rawDate = weekly[index].weekStart
+        }
+        guard let date = DateFormatter.isoDate.date(from: rawDate) else { return rawDate }
+        return DateFormatter.shortDateFRCA.string(from: date)
+    }
+
+    private func countLabel(_ value: Int, singular: String, plural: String) -> String {
+        "\(value) \(value == 1 ? singular : plural)"
     }
 }
 
