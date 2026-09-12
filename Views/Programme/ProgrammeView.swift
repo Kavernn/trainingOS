@@ -168,6 +168,7 @@ struct ProgrammeView: View {
     private var periodisationStart: String { vm.cycleStartDate ?? "" }
     @State private var showResetMesocycle = false
     @State private var showApplyPhaseConfirm = false
+    @State private var expandedWeekSlot: String? = nil
 
     private var clipboard: [String: String] {
         (try? JSONDecoder().decode([String: String].self, from: Data(clipboardData.utf8))) ?? [:]
@@ -987,20 +988,24 @@ struct ProgrammeView: View {
         .padding(.vertical, 40)
     }
 
-    // MARK: - Tab Semaine (14 cartes AM/PM ouvrables + volume + mésocycle)
-    // Consultation pure : chaque carte est repliée par défaut, dépli local
-    // pour voir les exos, bouton "Modifier →" qui bascule vers Structure et
-    // déplie la bonne séance (expandedSeance + selectedTab).
+    // MARK: - Tab Semaine (7 groupes de jour + volume + mésocycle)
+    // Consultation pure : AM et PM sont comparables dans un même groupe,
+    // un seul créneau peut dévoiler sa preview, puis « Modifier » bascule vers
+    // Structure et déplie la bonne séance (expandedSeance + selectedTab).
 
     private var weekContent: some View {
         ScrollView {
-            VStack(spacing: .appSectionSpacing) {
-                weekAgendaSection
-                volumeSection
-                mesocycleSection
+            if vm.fullProgram.isEmpty {
+                emptyProgrammePlaceholder
+            } else {
+                VStack(spacing: .appSectionSpacing) {
+                    weekAgendaSection
+                    volumeSection
+                    mesocycleSection
+                }
+                .padding(.vertical, 16)
+                .padding(.horizontal, .appPagePadding)
             }
-            .padding(.vertical, 16)
-            .padding(.horizontal, .appPagePadding)
         }
     }
 
@@ -1020,27 +1025,19 @@ struct ProgrammeView: View {
     private var weekAgendaSection: some View {
         VStack(spacing: 10) {
             ForEach(TrainingDoctrine.dayNames, id: \.self) { day in
-                let am = vm.schedule[day]
-                let pm = vm.eveningSchedule[day]
-                DaySessionCard(
-                    moment: .am,
+                let scheduledAM = vm.schedule[day]
+                let scheduledPM = vm.eveningSchedule[day]
+                let am = scheduledAM == "Repos" ? nil : scheduledAM
+                let pm = scheduledPM == "Repos" ? nil : scheduledPM
+                WeekDayGroup(
                     day: day,
                     isToday: day == todayDayName,
-                    seance: am,
-                    exercises: vm.fullProgram[am ?? ""] ?? [:],
-                    sessionsList: sessionsList,
-                    onPick: { _ in },
-                    onEdit: { openInStructure(am) }
-                )
-                DaySessionCard(
-                    moment: .pm,
-                    day: day,
-                    isToday: day == todayDayName,
-                    seance: pm,
-                    exercises: vm.fullProgram[pm ?? ""] ?? [:],
-                    sessionsList: sessionsList,
-                    onPick: { _ in },
-                    onEdit: { openInStructure(pm) }
+                    amSession: am,
+                    pmSession: pm,
+                    amExercises: vm.fullProgram[am ?? ""] ?? [:],
+                    pmExercises: vm.fullProgram[pm ?? ""] ?? [:],
+                    expandedSlot: $expandedWeekSlot,
+                    onEdit: openInStructure
                 )
             }
         }
@@ -2498,6 +2495,253 @@ private enum DayMoment {
     var color: Color { self == .am ? .forge : .statusBlue }
     var label: String { self == .am ? "AM" : "PM" }
     var icon: String  { self == .am ? "sun.max.fill" : "moon.stars.fill" }
+    var spokenLabel: String { self == .am ? "Matin" : "Soir" }
+}
+
+/// Lecture compacte du template hebdomadaire. Chaque jour n'apparaît qu'une
+/// fois, avec ses créneaux AM/PM côte à côte. Les mutations restent dans
+/// Structure : un créneau vide est descriptif et « Modifier » ne fait que
+/// naviguer vers l'éditeur existant.
+private struct WeekDayGroup: View {
+    let day: String
+    let isToday: Bool
+    let amSession: String?
+    let pmSession: String?
+    let amExercises: [String: String]
+    let pmExercises: [String: String]
+    @Binding var expandedSlot: String?
+    let onEdit: (String?) -> Void
+
+    private static let fullDayNames: [String: String] = [
+        "Lun": "LUNDI", "Mar": "MARDI", "Mer": "MERCREDI", "Jeu": "JEUDI",
+        "Ven": "VENDREDI", "Sam": "SAMEDI", "Dim": "DIMANCHE"
+    ]
+
+    private static let historicalSessionPrefixes: [String] = [
+        "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
+    ].flatMap { day in
+        ["\(day) AM — ", "\(day) PM — "]
+    }
+
+    private var fullDayName: String {
+        Self.fullDayNames[day] ?? day.uppercased()
+    }
+
+    private var amSlotID: String { "\(day)-am" }
+    private var pmSlotID: String { "\(day)-pm" }
+
+    private var dayAccessibilitySummary: String {
+        let today = isToday ? ", aujourd’hui" : ""
+        return "\(fullDayName.capitalized)\(today). \(slotSummary(moment: .am, session: amSession, exercises: amExercises)) \(slotSummary(moment: .pm, session: pmSession, exercises: pmExercises))"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(fullDayName)
+                    .font(.appCaption.weight(.bold))
+                    .tracking(1)
+                    .foregroundColor(isToday ? .forge : .appTextPrimary)
+                if isToday {
+                    Text("AUJOURD'HUI")
+                        .font(.appMicro.weight(.black))
+                        .tracking(1)
+                        .foregroundColor(.forge)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color.forge.opacity(0.12))
+                        .cornerRadius(5)
+                }
+                Spacer()
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(dayAccessibilitySummary)
+
+            HStack(alignment: .top, spacing: 8) {
+                slot(
+                    moment: .am,
+                    session: amSession,
+                    exercises: amExercises,
+                    slotID: amSlotID
+                )
+                slot(
+                    moment: .pm,
+                    session: pmSession,
+                    exercises: pmExercises,
+                    slotID: pmSlotID
+                )
+            }
+
+            if expandedSlot == amSlotID, let amSession {
+                preview(moment: .am, session: amSession, exercises: amExercises)
+            } else if expandedSlot == pmSlotID, let pmSession {
+                preview(moment: .pm, session: pmSession, exercises: pmExercises)
+            }
+        }
+        .padding(12)
+        .background(Color.appCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(isToday ? Color.forge.opacity(0.45) : Color.appSeparatorSubtle, lineWidth: 1)
+        )
+        .cornerRadius(.appCardRadius)
+    }
+
+    @ViewBuilder
+    private func slot(
+        moment: DayMoment,
+        session: String?,
+        exercises: [String: String],
+        slotID: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let session {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        expandedSlot = expandedSlot == slotID ? nil : slotID
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            momentLabel(moment)
+                            Spacer()
+                            Image(systemName: expandedSlot == slotID ? "chevron.up" : "chevron.down")
+                                .font(.appMicro.weight(.semibold))
+                                .foregroundColor(.appTextSecondary)
+                                .accessibilityHidden(true)
+                        }
+                        Text(displaySessionName(session))
+                            .font(.appLabel.weight(.semibold))
+                            .foregroundColor(.appTextPrimary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        Text(exercisesCountLabel(exercises.count))
+                            .font(.appMicro)
+                            .foregroundColor(.appTextSecondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(slotAccessibilityLabel(moment: moment, session: session, exercises: exercises))
+                .accessibilityValue(expandedSlot == slotID ? "Déplié" : "Replié")
+                .accessibilityHint("Affiche les exercices de la séance.")
+            } else {
+                VStack(alignment: .leading, spacing: 5) {
+                    momentLabel(moment)
+                    Text("Repos")
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(.appTextSecondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+                .accessibilityHidden(true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(10)
+        .background(moment.color.opacity(session == nil ? 0.04 : 0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(moment.color.opacity(session == nil ? 0.12 : 0.25), lineWidth: 1)
+        )
+        .cornerRadius(10)
+    }
+
+    private func momentLabel(_ moment: DayMoment) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: moment.icon)
+                .font(.appMicro.weight(.regular))
+            Text(moment.label)
+                .font(.appMicro.weight(.bold))
+                .tracking(1)
+        }
+        .foregroundColor(moment.color)
+    }
+
+    private func modifyButton(session: String, moment: DayMoment) -> some View {
+        Button {
+            onEdit(session)
+        } label: {
+            HStack(spacing: 4) {
+                Text("Modifier")
+                    .font(.appMicro.weight(.semibold))
+                Image(systemName: "arrow.right")
+                    .font(.appMicro.weight(.semibold))
+            }
+            .foregroundColor(moment.color)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(modifyAccessibilityLabel(session: session, moment: moment))
+        .accessibilityHint("Ouvre cette séance dans Structure.")
+    }
+
+    private func preview(moment: DayMoment, session: String, exercises: [String: String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("\(moment.label) · \(displaySessionName(session))")
+                .font(.appMicro.weight(.bold))
+                .tracking(0.5)
+                .foregroundColor(moment.color)
+            if exercises.isEmpty {
+                Text("Aucun exercice programmé.")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+            } else {
+                ForEach(Array(exercises.sorted(by: { $0.key < $1.key }).prefix(6)), id: \.key) { exercise, scheme in
+                    HStack(spacing: 8) {
+                        Text(exercise)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer()
+                        Text(scheme)
+                            .font(.appMicro.weight(.semibold))
+                            .foregroundColor(moment.color)
+                    }
+                }
+                if exercises.count > 6 {
+                    Text("+ \(exercises.count - 6) autres")
+                        .font(.appMicro)
+                        .foregroundColor(.appTextSecondary)
+                }
+            }
+            modifyButton(session: session, moment: moment)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appSurfaceInset)
+        .cornerRadius(10)
+    }
+
+    private func exercisesCountLabel(_ count: Int) -> String {
+        count == 0 ? "Aucun exercice" : "\(count) exercice\(count > 1 ? "s" : "")"
+    }
+
+    private func displaySessionName(_ session: String) -> String {
+        for prefix in Self.historicalSessionPrefixes where session.hasPrefix(prefix) {
+            let name = String(session.dropFirst(prefix.count))
+            if !name.isEmpty {
+                return name
+            }
+        }
+        return session
+    }
+
+    private func slotSummary(moment: DayMoment, session: String?, exercises: [String: String]) -> String {
+        guard let session else { return "\(moment.spokenLabel), repos." }
+        return "\(moment.spokenLabel), \(displaySessionName(session)), \(exercisesCountLabel(exercises.count))."
+    }
+
+    private func slotAccessibilityLabel(moment: DayMoment, session: String, exercises: [String: String]) -> String {
+        "\(moment.spokenLabel), \(displaySessionName(session)), \(exercisesCountLabel(exercises.count))."
+    }
+
+    private func modifyAccessibilityLabel(session: String, moment: DayMoment) -> String {
+        "Modifier \(displaySessionName(session)), \(moment.spokenLabel.lowercased()) de \(fullDayName.lowercased())"
+    }
 }
 
 /// Barre semaine unifiée : 7 pills en une seule rangée, 2 indicateurs
