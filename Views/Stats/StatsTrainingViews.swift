@@ -241,7 +241,7 @@ struct SessionHeatmapView: View {
     var bestStreak: Int = 0
     private let days = 90
 
-    enum CellType { case none, muscu, hiit, both }
+    enum CellType: Equatable { case none, muscu, hiit, both }
 
     private var cells: [(String, CellType)] {
         let base = Date().timeIntervalSince1970
@@ -255,14 +255,28 @@ struct SessionHeatmapView: View {
         }
     }
 
-    var activeDays: Int { cells.filter { $0.1 != .none }.count }
+    private var muscuDayCount: Int { cells.filter { $0.1 == .muscu }.count }
+    private var hiitDayCount: Int { cells.filter { $0.1 == .hiit }.count }
+    private var combinedDayCount: Int { cells.filter { $0.1 == .both }.count }
+
+    private var oldestDateLabel: String {
+        guard let rawDate = cells.first?.0,
+              let date = DateFormatter.isoDate.date(from: rawDate) else {
+            return cells.first?.0 ?? ""
+        }
+        return DateFormatter.shortDateFRCA.string(from: date)
+    }
+
+    private var accessibilitySummary: String {
+        "Calendrier d’activité sur 90 jours, du \(oldestDateLabel) à aujourd’hui. \(dayCountLabel(muscuDayCount, singular: "jour avec musculation seulement", plural: "jours avec musculation seulement")), \(dayCountLabel(hiitDayCount, singular: "jour avec HIIT seulement", plural: "jours avec HIIT seulement")) et \(dayCountLabel(combinedDayCount, singular: "jour avec musculation et HIIT", plural: "jours avec musculation et HIIT"))."
+    }
 
     private func cellColor(_ t: CellType) -> Color {
         switch t {
         case .none:  return Color.appSurfaceInset
         case .muscu: return Color.forge
-        case .hiit:  return Color.gray
-        case .both:  return Color.gray.opacity(0.5)
+        case .hiit:  return Color.appTextSecondary
+        case .both:  return Color.appTextSecondary.opacity(0.5)
         }
     }
 
@@ -270,46 +284,60 @@ struct SessionHeatmapView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("CALENDRIER D’ACTIVITÉ")
-                    .font(.appMicro).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
                 Spacer()
+                Text("90 JOURS")
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
             }
-            Text("Musculation + HIIT · 90 derniers jours")
-                .font(.appCaption).foregroundColor(.gray)
+            Text("Musculation + HIIT")
+                .font(.appCaption).foregroundColor(.appTextSecondary)
+            Text("\(oldestDateLabel) → Aujourd’hui")
+                .font(.appMicro).foregroundColor(.appTextMuted)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 15), spacing: 3) {
-                ForEach(cells, id: \.0) { date, type in
-                    RoundedRectangle(cornerRadius: 2) // shape inline
-                        .fill(cellColor(type))
-                        .frame(height: 16)
-                        .accessibilityLabel(cellAccessibilityLabel(date: date, type: type))
+                ForEach(cells, id: \.0) { _, type in
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(cellColor(type))
+                        if type == .both {
+                            Circle()
+                                .fill(Color.appTextPrimary)
+                                .frame(width: 4, height: 4)
+                        }
+                    }
+                    .frame(height: 16)
+                    .accessibilityHidden(true)
                 }
             }
             HStack(spacing: 12) {
-                Text("\(activeDays) jours avec activité").font(.appCaption).foregroundColor(.gray)
-                Spacer()
-                HStack(spacing: 4) {
-                    Circle().fill(Color.forge).frame(width: 8, height: 8)
-                    Text("Muscu").font(.appCaption).foregroundColor(.gray)
-                }
-                HStack(spacing: 4) {
-                    Circle().fill(Color.gray).frame(width: 8, height: 8)
-                    Text("HIIT").font(.appCaption).foregroundColor(.gray)
-                }
-                HStack(spacing: 4) {
-                    Circle().fill(Color.gray.opacity(0.5)).frame(width: 8, height: 8)
-                    Text("Les 2").font(.appCaption).foregroundColor(.gray)
-                }
+                legend(type: .muscu, label: "Muscu")
+                legend(type: .hiit, label: "HIIT")
+                legend(type: .both, label: "Muscu + HIIT")
             }
         }
         .padding(16).glassCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 
-    private func cellAccessibilityLabel(date: String, type: CellType) -> String {
-        switch type {
-        case .none: return "\(date). Aucune activité musculation ou HIIT."
-        case .muscu: return "\(date). Musculation."
-        case .hiit: return "\(date). HIIT."
-        case .both: return "\(date). Musculation et HIIT."
+    private func legend(type: CellType, label: String) -> some View {
+        HStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .fill(cellColor(type))
+                    .frame(width: 8, height: 8)
+                if type == .both {
+                    Circle()
+                        .fill(Color.appTextPrimary)
+                        .frame(width: 3, height: 3)
+                }
+            }
+            Text(label)
+                .font(.appCaption).foregroundColor(.appTextSecondary)
         }
+    }
+
+    private func dayCountLabel(_ value: Int, singular: String, plural: String) -> String {
+        "\(value) \(value == 1 ? singular : plural)"
     }
 }
 

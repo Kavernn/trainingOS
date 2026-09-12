@@ -216,14 +216,18 @@ extension StatsView {
         if let cockpit = cockpitData {
             StatsRegularityHero(trainingLoad: cockpit.trainingLoad)
         }
+
+        StatsActivityStreakSummary(
+            currentStreak: streakData?.currentStreak,
+            bestStreak: streakData?.bestStreak
+        )
+
         SessionHeatmapView(
             sessions: sessions,
             hiitDates: Set(hiitLog.compactMap(\.date).map { String($0.prefix(10)) }),
             bestStreak: bestStreak
         )
         .padding(.horizontal, 16)
-
-        StatsActivityStreakSummary(currentStreak: currentStreak, bestStreak: bestStreak)
 
         Spacer(minLength: 32)
     }
