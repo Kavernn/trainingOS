@@ -419,14 +419,22 @@ extension StatsView {
     @ViewBuilder var corpsTab: some View {
         let filteredBW = filteredBodyWeight
 
-        // Current measurements intentionally use the unfiltered history: each
-        // metric keeps its own latest valid observation/date.
-        StatsCurrentBodyMeasurements(entries: bodyWeight)
+        StatsBodyOverviewHero(entries: bodyWeight, filteredEntries: filteredBW, period: period)
 
-        StatsWeightTrajectoryView(entries: filteredBW)
-        StatsBodyFatTrajectoryView(entries: filteredBW)
+        if filteredBW.contains(where: { ($0.bodyFat ?? 0) > 0 }) {
+            StatsBodyFatTrajectoryView(entries: filteredBW)
+        }
 
-        StatsBodyMeasurementsHistoryView(entries: filteredBW)
+        if filteredBW.contains(where: {
+            ($0.waistCm ?? 0) > 0
+                || ($0.neckCm ?? 0) > 0
+                || ($0.armsCm ?? 0) > 0
+                || ($0.chestCm ?? 0) > 0
+                || ($0.thighsCm ?? 0) > 0
+                || ($0.hipsCm ?? 0) > 0
+        }) {
+            StatsBodyMeasurementsHistoryView(entries: filteredBW)
+        }
 
         Spacer(minLength: 32)
     }

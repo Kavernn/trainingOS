@@ -8,57 +8,247 @@ private struct StatsBodyTrajectoryPoint: Identifiable {
     let value: Double
 }
 
-struct StatsWeightTrajectoryView: View {
+struct StatsBodyOverviewHero: View {
     let entries: [BodyWeightEntry]
+    let filteredEntries: [BodyWeightEntry]
+    let period: StatsPeriod
     @ObservedObject private var units = UnitSettings.shared
 
+    private var weightEntry: BodyWeightEntry? {
+        entries.first(where: { $0.weight > 0 })
+    }
+
+    private var waistEntry: BodyWeightEntry? {
+        entries.first(where: { ($0.waistCm ?? 0) > 0 })
+    }
+
+    private var bodyFatEntry: BodyWeightEntry? {
+        entries.first(where: { ($0.bodyFat ?? 0) > 0 })
+    }
+
+    private var hasBodyMetric: Bool {
+        weightEntry != nil || waistEntry != nil || bodyFatEntry != nil
+    }
+
+    private var secondaryDatesDiffer: Bool {
+        guard let waistEntry, let bodyFatEntry else { return false }
+        return waistEntry.date != bodyFatEntry.date
+    }
+
     private var points: [StatsBodyTrajectoryPoint] {
-        entries.reversed().compactMap { entry in
+        filteredEntries.reversed().compactMap { entry in
             guard entry.weight > 0, let date = DateFormatter.isoDate.date(from: entry.date) else { return nil }
             return StatsBodyTrajectoryPoint(id: "\(entry.date)-weight", date: date, value: entry.weight)
         }
     }
 
+    private var weightDelta: Double? {
+        guard points.count >= 2 else { return nil }
+        return points[points.count - 1].value - points[0].value
+    }
+
+    private var periodLabel: String {
+        switch period {
+        case .month1: return "1 MOIS"
+        case .month3: return "3 MOIS"
+        case .month6: return "6 MOIS"
+        case .all: return "TOUT"
+        }
+    }
+
+    private var accessibilitySummary: String {
+        guard hasBodyMetric else {
+            return "Évolution corporelle, période \(periodLabel.lowercased()). Aucune mesure corporelle disponible."
+        }
+
+        var parts = ["Évolution corporelle, période \(periodLabel.lowercased())."]
+        if let weightEntry {
+            parts.append("Poids \(units.format(weightEntry.weight, decimals: 1)), mesuré \(spokenDate(weightEntry.date)).")
+        }
+        if let weightDelta {
+            parts.append("Variation de la première à la dernière mesure : \(formattedWeightDelta(weightDelta)).")
+        } else if points.count == 1 {
+            parts.append("Une seule mesure de poids sur cette période.")
+        } else if weightEntry != nil {
+            parts.append("Aucune mesure de poids sur cette période.")
+        }
+        if let waistEntry, let waist = waistEntry.waistCm {
+            parts.append("Tour de taille \(formattedDecimal(waist)) centimètres, mesuré \(spokenDate(waistEntry.date)).")
+        }
+        if let bodyFatEntry, let bodyFat = bodyFatEntry.bodyFat {
+            parts.append("Masse grasse \(formattedDecimal(bodyFat)) pour cent, mesurée \(spokenDate(bodyFatEntry.date)).")
+        }
+        if secondaryDatesDiffer {
+            parts.append("Les dernières valeurs peuvent provenir de dates différentes.")
+        }
+        return parts.joined(separator: " ")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("POIDS")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            if points.isEmpty {
-                Text("Pas de mesure de poids sur la période.")
-                    .font(.appBody).foregroundColor(.appTextSecondary)
-            } else if points.count == 1 {
-                Text("Une seule mesure de poids sur la période.")
-                    .font(.appBody).foregroundColor(.appTextSecondary)
-            } else {
-                Chart(points) { point in
-                    LineMark(x: .value("Date", point.date), y: .value("Poids", units.display(point.value)))
-                        .foregroundStyle(Color.appTextSecondary)
-                    PointMark(x: .value("Date", point.date), y: .value("Poids", units.display(point.value)))
-                        .foregroundStyle(Color.appTextSecondary)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("ÉVOLUTION CORPORELLE")
+                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                    Spacer()
+                    Text(periodLabel)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
                 }
-                .chartYAxisLabel(units.label)
-                .frame(height: 150)
 
-                let first = points[0].value
-                let last = points[points.count - 1].value
-                Text("Variation sur la période · \(units.format(last - first, decimals: 1))")
-                    .font(.appCaption).foregroundColor(.appTextSecondary)
+                if !hasBodyMetric {
+                    Text("Aucune mesure corporelle disponible.")
+                        .font(.appBody).foregroundColor(.appTextSecondary)
+                } else {
+                    weightSection
+
+                    if waistEntry != nil || bodyFatEntry != nil {
+                        secondaryMetrics
+                    }
+
+                    if secondaryDatesDiffer {
+                        Text("Les dernières valeurs peuvent provenir de dates différentes.")
+                            .font(.appMicro).foregroundColor(.appTextMuted)
+                    }
+                }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilitySummary)
+
+            Divider().overlay(Color.appSeparatorSubtle)
+
+            NavigationLink {
+                BodyCompView()
+            } label: {
+                HStack {
+                    Text("Gérer les mesures")
+                        .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Ouvre la gestion des mesures corporelles.")
         }
         .padding(16).background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(accessibilityText)
     }
 
-    private var accessibilityText: String {
-        guard !points.isEmpty else { return "Poids. Pas de mesure sur la période." }
-        guard points.count > 1 else { return "Poids. Une seule mesure sur la période." }
-        let first = points[0].value
-        let last = points[points.count - 1].value
-        return "Poids. \(points.count) mesures sur la période. Première mesure \(units.format(first)). Dernière mesure \(units.format(last)). Variation \(units.format(last - first))."
+    @ViewBuilder
+    private var weightSection: some View {
+        if let weightEntry {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("POIDS")
+                    .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.appTextMuted)
+                Text(units.format(weightEntry.weight, decimals: 1))
+                    .font(.appTitle.weight(.bold)).foregroundColor(.appTextPrimary)
+                Text(displayDate(weightEntry.date))
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+
+            if points.count >= 2 {
+                Chart(points) { point in
+                    LineMark(x: .value("Date", point.date), y: .value("Poids", units.display(point.value)))
+                        .foregroundStyle(Color.appTextSecondary)
+                    PointMark(x: .value("Date", point.date), y: .value("Poids", units.display(point.value)))
+                        .foregroundStyle(
+                            point.id == points.last?.id
+                                ? Color.domainAccent(.training)
+                                : Color.appTextSecondary
+                        )
+                        .symbolSize(point.id == points.last?.id ? 55 : 20)
+                }
+                .chartYAxisLabel(units.label)
+                .frame(height: 130)
+                .accessibilityHidden(true)
+
+                if let weightDelta {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Première → dernière mesure")
+                            .font(.appCaption).foregroundColor(.appTextSecondary)
+                        Spacer()
+                        Text(formattedWeightDelta(weightDelta))
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
+                    }
+                }
+            } else if points.count == 1 {
+                Text("Une seule mesure sur cette période.")
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
+            } else {
+                Text("Aucune mesure de poids sur cette période.")
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+        }
     }
+
+    private var secondaryMetrics: some View {
+        HStack(alignment: .top, spacing: 12) {
+            if let waistEntry, let waist = waistEntry.waistCm {
+                secondaryMetric(
+                    title: "TOUR DE TAILLE",
+                    value: "\(formattedDecimal(waist)) cm",
+                    date: waistEntry.date
+                )
+            }
+            if let bodyFatEntry, let bodyFat = bodyFatEntry.bodyFat {
+                secondaryMetric(
+                    title: "MASSE GRASSE",
+                    value: "\(formattedDecimal(bodyFat)) %",
+                    date: bodyFatEntry.date
+                )
+            }
+        }
+    }
+
+    private func secondaryMetric(title: String, value: String, date: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.appMicro.weight(.bold)).foregroundColor(.appTextMuted)
+            Text(value)
+                .font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
+            Text(displayDate(date))
+                .font(.appMicro).foregroundColor(.appTextSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func formattedWeightDelta(_ value: Double) -> String {
+        let formatted = units.format(abs(value), decimals: 1)
+        if value > 0 { return "+\(formatted)" }
+        if value < 0 { return "−\(formatted)" }
+        return units.format(0, decimals: 1)
+    }
+
+    private func formattedDecimal(_ value: Double) -> String {
+        let decimals = value.rounded() == value ? 0 : 1
+        return String(format: "%.\(decimals)f", locale: Locale(identifier: "fr_CA"), value)
+    }
+
+    private func displayDate(_ rawDate: String) -> String {
+        guard let date = DateFormatter.isoDate.date(from: rawDate) else { return rawDate }
+        let calendar = Calendar.mtl
+        if calendar.isDateInToday(date) { return "Aujourd’hui" }
+        if calendar.isDateInYesterday(date) { return "Hier" }
+        if calendar.component(.year, from: date) == calendar.component(.year, from: Date()) {
+            return DateFormatter.shortDateFRCA.string(from: date)
+        }
+        return Self.longDateFormatter.string(from: date)
+    }
+
+    private func spokenDate(_ rawDate: String) -> String {
+        displayDate(rawDate).lowercased()
+    }
+
+    private static let longDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM yyyy"
+        formatter.locale = Locale(identifier: "fr_CA")
+        formatter.timeZone = TimeZone(identifier: "America/Montreal") ?? .current
+        return formatter
+    }()
 }
 
 struct StatsBodyFatTrajectoryView: View {
@@ -100,7 +290,9 @@ struct StatsBodyFatTrajectoryView: View {
                     .font(.appCaption).foregroundColor(.appTextSecondary)
             }
         }
-        .padding(16).background(Color.appCard)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .contain)
@@ -192,7 +384,9 @@ struct StatsBodyMeasurementsHistoryView: View {
                 }
             }
         }
-        .padding(16).background(Color.appCard)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .contain)
