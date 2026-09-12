@@ -1698,13 +1698,6 @@ struct WorkoutSeanceView: View {
                 // Resume banner — shown when exercises were already logged (partial prior session)
                 resumeBanner
 
-                // Start banner — shown on fresh session before first log
-                if !vm.sessionStarted && !vm.isResuming {
-                    StartSessionBanner { vm.startSession() }
-                        .padding(.horizontal, 16)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-
                 // Ghost mode banner — suppressed while resume banner is active to avoid header clutter
                 ghostBanner
 
@@ -1999,6 +1992,16 @@ struct WorkoutSeanceView: View {
         }
         .toast($toast)
         .scrollDismissesKeyboard(.immediately)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if !vm.sessionStarted && !vm.isResuming {
+                StartSessionBanner { vm.startSession() }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             if showStickyHeader {
                 stickyHeader
