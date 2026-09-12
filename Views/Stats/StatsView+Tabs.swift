@@ -422,7 +422,7 @@ extension StatsView {
         StatsBodyOverviewHero(entries: bodyWeight, filteredEntries: filteredBW, period: period)
 
         if filteredBW.contains(where: { ($0.bodyFat ?? 0) > 0 }) {
-            StatsBodyFatTrajectoryView(entries: filteredBW)
+            StatsBodyFatTrajectoryView(entries: filteredBW, period: period)
         }
 
         if filteredBW.contains(where: {
@@ -433,7 +433,7 @@ extension StatsView {
                 || ($0.thighsCm ?? 0) > 0
                 || ($0.hipsCm ?? 0) > 0
         }) {
-            StatsBodyMeasurementsHistoryView(entries: filteredBW)
+            StatsBodyMeasurementsHistoryView(entries: filteredBW, period: period)
         }
 
         Spacer(minLength: 32)

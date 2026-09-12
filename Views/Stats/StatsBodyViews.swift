@@ -253,6 +253,7 @@ struct StatsBodyOverviewHero: View {
 
 struct StatsBodyFatTrajectoryView: View {
     let entries: [BodyWeightEntry]
+    let period: StatsPeriod
 
     private var points: [StatsBodyTrajectoryPoint] {
         entries.reversed().compactMap { entry in
@@ -264,30 +265,45 @@ struct StatsBodyFatTrajectoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("COMPOSITION CORPORELLE")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            Text("Masse grasse")
-                .font(.appCaption).foregroundColor(.appTextSecondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("MASSE GRASSE")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                Spacer()
+                Text(StatsBodyDetailFormatting.periodLabel(period))
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+            }
+
             if points.isEmpty {
                 Text("Pas de valeur de masse grasse sur la période.")
                     .font(.appBody).foregroundColor(.appTextSecondary)
             } else if points.count == 1 {
-                Text("Une seule valeur sur la période.")
+                Text("Une seule mesure sur cette période.")
                     .font(.appBody).foregroundColor(.appTextSecondary)
             } else {
                 Chart(points) { point in
                     LineMark(x: .value("Date", point.date), y: .value("Masse grasse", point.value))
                         .foregroundStyle(Color.appTextSecondary)
                     PointMark(x: .value("Date", point.date), y: .value("Masse grasse", point.value))
-                        .foregroundStyle(Color.appTextSecondary)
+                        .foregroundStyle(
+                            point.id == points.last?.id
+                                ? Color.domainAccent(.training)
+                                : Color.appTextSecondary
+                        )
+                        .symbolSize(point.id == points.last?.id ? 55 : 20)
                 }
                 .chartYAxisLabel("%")
                 .frame(height: 150)
+                .accessibilityHidden(true)
 
                 let first = points[0].value
                 let last = points[points.count - 1].value
-                Text("Variation sur la période · \(formatDelta(last - first))")
-                    .font(.appCaption).foregroundColor(.appTextSecondary)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Première → dernière mesure")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                    Spacer()
+                    Text(formatDelta(last - first))
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
+                }
             }
         }
         .padding(16)
@@ -295,30 +311,91 @@ struct StatsBodyFatTrajectoryView: View {
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
     }
 
     private func formatDelta(_ value: Double) -> String {
-        value.rounded() == value ? String(format: "%.0f pt", value) : String(format: "%.1f pt", value)
+        let magnitude = StatsBodyDetailFormatting.decimal(abs(value))
+        let unit = StatsBodyDetailFormatting.isDisplayedAsOne(value) ? "point" : "points"
+        if value > 0 { return "+\(magnitude) \(unit)" }
+        if value < 0 { return "−\(magnitude) \(unit)" }
+        return "0 point"
     }
 
     private var accessibilityText: String {
-        guard !points.isEmpty else { return "Masse grasse. Pas de valeur sur la période." }
-        guard points.count > 1 else { return "Masse grasse. Une seule valeur sur la période." }
-        let first = points[0].value
-        let last = points[points.count - 1].value
-        return "Masse grasse. \(points.count) valeurs sur la période. Première valeur \(formatPercent(first)). Dernière valeur \(formatPercent(last)). Variation \(formatDelta(last - first))."
+        let periodText = StatsBodyDetailFormatting.spokenPeriodLabel(period)
+        guard let first = points.first else {
+            return "Masse grasse, période \(periodText). Pas de valeur sur cette période."
+        }
+        guard let last = points.last, points.count > 1 else {
+            return "Masse grasse, période \(periodText). Une seule mesure, \(formatPercent(first.value)), \(StatsBodyDetailFormatting.spokenDate(first.date))."
+        }
+        let delta = last.value - first.value
+        return "Masse grasse, période \(periodText). Première mesure \(formatPercent(first.value)) \(StatsBodyDetailFormatting.spokenDate(first.date)). Dernière mesure \(formatPercent(last.value)) \(StatsBodyDetailFormatting.spokenDate(last.date)). Variation de la première à la dernière mesure : \(spokenDelta(delta))."
+    }
+
+    private func spokenDelta(_ value: Double) -> String {
+        let magnitude = StatsBodyDetailFormatting.decimal(abs(value))
+        let unit = StatsBodyDetailFormatting.isDisplayedAsOne(value)
+            ? "point de pourcentage"
+            : "points de pourcentage"
+        if value > 0 { return "plus \(magnitude) \(unit)" }
+        if value < 0 { return "moins \(magnitude) \(unit)" }
+        return "0 point de pourcentage"
     }
 
     private func formatPercent(_ value: Double) -> String {
-        value.rounded() == value ? String(format: "%.0f pour cent", value) : String(format: "%.1f pour cent", value)
+        "\(StatsBodyDetailFormatting.decimal(value)) pour cent"
     }
+}
+
+private enum StatsBodyDetailFormatting {
+    static func periodLabel(_ period: StatsPeriod) -> String {
+        switch period {
+        case .month1: return "1 MOIS"
+        case .month3: return "3 MOIS"
+        case .month6: return "6 MOIS"
+        case .all: return "TOUT"
+        }
+    }
+
+    static func spokenPeriodLabel(_ period: StatsPeriod) -> String {
+        periodLabel(period).lowercased()
+    }
+
+    static func decimal(_ value: Double) -> String {
+        let decimals = value.rounded() == value ? 0 : 1
+        return String(format: "%.\(decimals)f", locale: Locale(identifier: "fr_CA"), value)
+    }
+
+    static func isDisplayedAsOne(_ value: Double) -> Bool {
+        (abs(value) * 10).rounded() / 10 == 1
+    }
+
+    static func spokenDate(_ date: Date) -> String {
+        let calendar = Calendar.mtl
+        if calendar.isDateInToday(date) { return "aujourd’hui" }
+        if calendar.isDateInYesterday(date) { return "hier" }
+        if calendar.component(.year, from: date) == calendar.component(.year, from: Date()) {
+            return "le \(DateFormatter.shortDateFRCA.string(from: date))"
+        }
+        return "le \(longDateFormatter.string(from: date))"
+    }
+
+    private static let longDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM yyyy"
+        formatter.locale = Locale(identifier: "fr_CA")
+        formatter.timeZone = TimeZone(identifier: "America/Montreal") ?? .current
+        return formatter
+    }()
 }
 
 // MARK: - Body measurements history
 struct StatsBodyMeasurementsHistoryView: View {
     let entries: [BodyWeightEntry]
+    let period: StatsPeriod
     @State private var selectedKind: StatsBodyMeasurementKind?
 
     private var availableKinds: [StatsBodyMeasurementKind] {
@@ -343,11 +420,20 @@ struct StatsBodyMeasurementsHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("MENSURATIONS")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            HStack(alignment: .firstTextBaseline) {
+                Text("MENSURATIONS")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                Spacer()
+                Text(StatsBodyDetailFormatting.periodLabel(period))
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityText)
+
             if availableKinds.isEmpty {
                 Text("Pas de mensuration disponible sur la période.")
                     .font(.appBody).foregroundColor(.appTextSecondary)
+                    .accessibilityHidden(true)
             } else if let kind = effectiveKind {
                 Menu {
                     ForEach(availableKinds) { option in
@@ -363,24 +449,38 @@ struct StatsBodyMeasurementsHistoryView: View {
                     .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
                 }
                 .accessibilityLabel("Mensuration sélectionnée : \(kind.title)")
+                .accessibilityHint("Choisir la mensuration affichée.")
 
                 if points.count == 1 {
-                    Text("Une seule mesure sur la période.")
+                    Text("Une seule mesure sur cette période.")
                         .font(.appBody).foregroundColor(.appTextSecondary)
+                        .accessibilityHidden(true)
                 } else if points.count >= 2 {
                     Chart(points) { point in
                         LineMark(x: .value("Date", point.date), y: .value(kind.title, point.value))
                             .foregroundStyle(Color.appTextSecondary)
                         PointMark(x: .value("Date", point.date), y: .value(kind.title, point.value))
-                            .foregroundStyle(Color.appTextSecondary)
+                            .foregroundStyle(
+                                point.id == points.last?.id
+                                    ? Color.domainAccent(.training)
+                                    : Color.appTextSecondary
+                            )
+                            .symbolSize(point.id == points.last?.id ? 55 : 20)
                     }
                     .chartYAxisLabel("cm")
                     .frame(height: 150)
+                    .accessibilityHidden(true)
 
                     let first = points[0].value
                     let last = points[points.count - 1].value
-                    Text("Variation sur la période · \(formatCentimeters(last - first))")
-                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Première → dernière mesure")
+                            .font(.appCaption).foregroundColor(.appTextSecondary)
+                        Spacer()
+                        Text(formatDelta(last - first))
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.appTextPrimary)
+                    }
+                    .accessibilityHidden(true)
                 }
             }
         }
@@ -389,22 +489,40 @@ struct StatsBodyMeasurementsHistoryView: View {
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(accessibilityText)
     }
 
     private func formatCentimeters(_ value: Double) -> String {
-        value.rounded() == value ? String(format: "%.0f cm", value) : String(format: "%.1f cm", value)
+        "\(StatsBodyDetailFormatting.decimal(value)) cm"
+    }
+
+    private func formatDelta(_ value: Double) -> String {
+        let magnitude = formatCentimeters(abs(value))
+        if value > 0 { return "+\(magnitude)" }
+        if value < 0 { return "−\(magnitude)" }
+        return formatCentimeters(0)
     }
 
     private var accessibilityText: String {
-        guard let kind = effectiveKind, !points.isEmpty else {
-            return "Mensurations. Pas de mensuration disponible sur la période."
+        let periodText = StatsBodyDetailFormatting.spokenPeriodLabel(period)
+        guard let kind = effectiveKind, let first = points.first else {
+            return "Mensurations, période \(periodText). Pas de mensuration disponible sur cette période."
         }
-        guard points.count > 1 else { return "\(kind.title). Une seule mesure sur la période." }
-        let first = points[0].value
-        let last = points[points.count - 1].value
-        return "\(kind.title). \(points.count) mesures sur la période. Première mesure \(formatCentimeters(first)). Dernière mesure \(formatCentimeters(last)). Variation \(formatCentimeters(last - first))."
+        guard let last = points.last, points.count > 1 else {
+            return "Mensurations. \(kind.title). Période \(periodText). Une seule mesure, \(spokenCentimeters(first.value)), \(StatsBodyDetailFormatting.spokenDate(first.date))."
+        }
+        let delta = last.value - first.value
+        return "Mensurations. \(kind.title). Période \(periodText). Première mesure \(spokenCentimeters(first.value)) \(StatsBodyDetailFormatting.spokenDate(first.date)). Dernière mesure \(spokenCentimeters(last.value)) \(StatsBodyDetailFormatting.spokenDate(last.date)). Variation de la première à la dernière mesure : \(spokenDelta(delta))."
+    }
+
+    private func spokenCentimeters(_ value: Double) -> String {
+        "\(StatsBodyDetailFormatting.decimal(value)) centimètres"
+    }
+
+    private func spokenDelta(_ value: Double) -> String {
+        let magnitude = spokenCentimeters(abs(value))
+        if value > 0 { return "plus \(magnitude)" }
+        if value < 0 { return "moins \(magnitude)" }
+        return spokenCentimeters(0)
     }
 }
 
