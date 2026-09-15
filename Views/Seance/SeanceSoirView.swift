@@ -129,6 +129,7 @@ struct SeanceSoirView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm: SeanceSoirViewModel
     private let hasOverride: Bool
+    @State private var showCloseConfirm = false
 
     init(sessionName: String? = nil) {
         self.hasOverride = sessionName != nil
@@ -166,6 +167,33 @@ struct SeanceSoirView: View {
             }
             .navigationTitle(seanceTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        // fullScreenCover n'a pas de swipe-dismiss : bouton = seule sortie non-terminale.
+                        // Les résultats loggués sont déjà conservés dans SessionDraftStore →
+                        // dismiss() suffit pour permettre une reprise ultérieure.
+                        if vm.logResults.isEmpty {
+                            dismiss()
+                        } else {
+                            showCloseConfirm = true
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel("Fermer la séance")
+                }
+            }
+            .confirmationDialog(
+                "Quitter la séance ?",
+                isPresented: $showCloseConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Quitter", role: .destructive) { dismiss() }
+                Button("Annuler", role: .cancel) {}
+            } message: {
+                Text("Les exercices déjà loggués restent enregistrés. Tu pourras reprendre plus tard.")
+            }
         }
         .task { await vm.load() }
     }

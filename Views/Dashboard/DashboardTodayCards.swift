@@ -302,7 +302,7 @@ struct TodayCardView: View {
         }
         // Ancre stable (hors du if secondSessionCompleted L119) : sinon fetchDashboard
         // post-log soir démonte le sheet host avant que le récap ne se présente.
-        .sheet(isPresented: $showSeance2Sheet) { SeanceSoirView() }
+        .fullScreenCover(isPresented: $showSeance2Sheet) { SeanceSoirView() }
         // Ancre stable symétrique au soir : Seance3BonusStrip.body prend EmptyView
         // quand bonusCompleted flippe post-log → démonterait le sheet + son @State
         // s'ils vivaient dans le strip. Le showBonusSheet est ici, passé en binding.

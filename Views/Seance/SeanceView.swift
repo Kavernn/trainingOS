@@ -302,7 +302,7 @@ struct AlreadyLoggedSeanceView: View {
                 await vm.load()
             }
         }
-        .sheet(isPresented: $showSeanceSoir) {
+        .fullScreenCover(isPresented: $showSeanceSoir) {
             // nil = pas d'override → fetchSeanceSoirData() → plan evening seedé.
             // data.eveningSessionName est le nom seedé (get_today_evening), pas un
             // override utilisateur — le passer forçait le chemin matin (bug d26373c).

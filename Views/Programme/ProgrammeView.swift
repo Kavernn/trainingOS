@@ -418,9 +418,9 @@ struct ProgrammeView: View {
                     }
                 }
             }
-            // Doctrine SeanceSoirView : toujours .sheet, jamais push
-            // (SeanceSoirView.swift:97-102).
-            .sheet(isPresented: $showSeanceSoirSheet) {
+            // Doctrine SeanceSoirView : toujours .fullScreenCover, jamais push
+            // (voir la contrainte de présentation dans SeanceSoirView.swift).
+            .fullScreenCover(isPresented: $showSeanceSoirSheet) {
                 SeanceSoirView(sessionName: manualEveningSessionName)
             }
             .sheet(item: $addTarget) { sn in

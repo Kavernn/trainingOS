@@ -1795,7 +1795,7 @@ struct WorkoutSeanceView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange),
                    perform: handlePlanOverridesChanged)
-        .sheet(isPresented: $showSeanceSoir) {
+        .fullScreenCover(isPresented: $showSeanceSoir) {
             SeanceSoirView()
         }
         .onChange(of: showSeanceSoir) { isPresented in
