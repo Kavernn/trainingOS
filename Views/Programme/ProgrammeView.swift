@@ -152,6 +152,7 @@ struct ProgrammeView: View {
         var id: String { rawValue }
     }
     @State private var selectedTab: ProgrammeTab = .today
+    @State private var expandedTodayCard: String? = nil
     @State private var showSeanceSoirSheet = false
     @State private var seance2ExosToday: Set<String> = []
     @State private var addTarget: SeanceName?
@@ -761,6 +762,7 @@ struct ProgrammeView: View {
                     heroCTA
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Commencer la séance du matin, \(name).")
             }
         } else {
             restCard(text: "Repos aujourd'hui")
@@ -780,6 +782,7 @@ struct ProgrammeView: View {
                         heroCTA
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Commencer la séance du soir, \(resolved.name).")
                 }
             }
         } else {
@@ -799,17 +802,22 @@ struct ProgrammeView: View {
             ? "\(n) exercice\(n > 1 ? "s" : "") envoyé\(n > 1 ? "s" : "") ce matin"
             : "Rien d'envoyé pour l'instant"
         VStack(alignment: .leading, spacing: 16) {
-            AppBadge("SOIR", role: .evening)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(morningName) (suite)").font(.appHero).foregroundColor(.appTextPrimary)
-                Text(subtitle).font(.appLabel).foregroundColor(.appTextSecondary)
+            VStack(alignment: .leading, spacing: 16) {
+                AppBadge("SOIR", role: .evening)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(morningName) (suite)").font(.appHero).foregroundColor(.appTextPrimary)
+                    Text(subtitle).font(.appLabel).foregroundColor(.appTextSecondary)
+                }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Soir. \(morningName) suite. \(subtitle).")
             Button {
                 showSeanceSoirSheet = true
             } label: {
                 heroCTA
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Commencer la séance du soir, \(morningName) suite.")
         }
         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
         .glassCard()
@@ -839,16 +847,24 @@ struct ProgrammeView: View {
     ) -> some View {
         let exercises = vm.fullProgram[sessionName] ?? [:]
         let ordered = vm.exerciseOrder[sessionName] ?? exercises.keys.sorted()
+        let isExpanded = expandedTodayCard == badge
+        let visibleExercises = isExpanded ? ordered : Array(ordered.prefix(3))
+        let remainingCount = max(exercises.count - 3, 0)
         VStack(alignment: .leading, spacing: 16) {
-            AppBadge(badge, role: role)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sessionName).font(.appHero).foregroundColor(.appTextPrimary)
-                Text(exercisesCountLabel(exercises.count))
-                    .font(.appLabel).foregroundColor(.appTextSecondary)
+            VStack(alignment: .leading, spacing: 16) {
+                AppBadge(badge, role: role)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(sessionName).font(.appHero).foregroundColor(.appTextPrimary)
+                    Text(exercisesCountLabel(exercises.count))
+                        .font(.appLabel).foregroundColor(.appTextSecondary)
+                }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(badge.capitalized). \(sessionName). \(exercisesCountLabel(exercises.count)).")
             if exercises.isEmpty {
                 Text("Aucun exercice programmé.")
                     .font(.appLabel).foregroundColor(.appTextSecondary)
+                    .accessibilityHidden(true)
                 Button {
                     withAnimation { selectedTab = .structure }
                 } label: {
@@ -861,8 +877,9 @@ struct ProgrammeView: View {
                 }
                 .buttonStyle(.plain)
             } else {
+                cta()
                 VStack(spacing: 10) {
-                    ForEach(ordered, id: \.self) { ex in
+                    ForEach(visibleExercises, id: \.self) { ex in
                         if let scheme = exercises[ex] {
                             HStack {
                                 Text(ex).font(.appBody).foregroundColor(.appTextPrimary)
@@ -872,7 +889,32 @@ struct ProgrammeView: View {
                         }
                     }
                 }
-                cta()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(exercisePreviewAccessibilityLabel(visibleExercises, exercises: exercises))
+                if exercises.count > 3 {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            expandedTodayCard = isExpanded ? nil : badge
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(isExpanded ? "Réduire" : "Voir les \(remainingCount) autres")
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .accessibilityHidden(true)
+                        }
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(.appTextSecondary)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        isExpanded
+                            ? "Réduire la liste des exercices."
+                            : "Voir les \(remainingCount) autres exercices."
+                    )
+                    .accessibilityValue(isExpanded ? "Développé" : "Réduit")
+                }
             }
         }
         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
@@ -893,6 +935,16 @@ struct ProgrammeView: View {
 
     private func exercisesCountLabel(_ count: Int) -> String {
         count == 0 ? "Aucun exercice" : "\(count) exercice\(count > 1 ? "s" : "")"
+    }
+
+    private func exercisePreviewAccessibilityLabel(
+        _ exerciseNames: [String],
+        exercises: [String: String]
+    ) -> String {
+        let details = exerciseNames.compactMap { name in
+            exercises[name].map { "\(name), \($0)" }
+        }
+        return "Exercices. \(details.joined(separator: ". "))."
     }
 
     private var volumeRow: some View {
