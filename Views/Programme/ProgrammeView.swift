@@ -612,6 +612,7 @@ struct ProgrammeView: View {
             },
             onCopy:  { copySeance(name: seance, exercises: vm.fullProgram[seance] ?? [:]) },
             onPaste: pasteAction,
+            isScheduled: isScheduledThisWeek(seance),
             isToday: seance == todaySessionName,
             seance2ExosToday: seance == todaySessionName ? seance2ExosToday : [],
             supersets:        vm.exerciseSupersets[seance] ?? [:],
@@ -622,7 +623,6 @@ struct ProgrammeView: View {
             inventoryOneRM:    vm.inventoryOneRM
         )
         .padding(.horizontal, .appPagePadding)
-        .opacity(isScheduledThisWeek(seance) ? 1.0 : 0.55)
     }
 
     // MARK: – Undo delete (UI)
@@ -1686,6 +1686,7 @@ struct EditableSeanceProgramCard: View {
     var onDeleteSeance:       (() -> Void)? = nil
     var onCopy:               (() -> Void)? = nil
     var onPaste:              (() -> Void)? = nil
+    var isScheduled:          Bool = true
     var isToday:              Bool = false
     var seance2ExosToday:     Set<String> = []
     var supersets: [String: SupersetEntry] = [:]
@@ -1714,12 +1715,41 @@ struct EditableSeanceProgramCard: View {
         return seen.prefix(2).joined(separator: " · ") + " +\(seen.count - 2)"
     }
 
-    /// Split "Mardi PM — Puissance + bras + pelvien" en préfixe contextuel
-    /// (jour+moment, gris caption) + focus (bold pleine largeur). Nom sans " — "
-    /// (ex héritages "Push A") → prefix nil, focus = seance.
-    private var titleParts: (prefix: String?, focus: String) {
-        guard let r = seance.range(of: " — ") else { return (nil, seance) }
-        return (String(seance[..<r.lowerBound]), String(seance[r.upperBound...]))
+    private static let historicalSessionPrefixes: [String] = [
+        "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
+    ].flatMap { day in
+        ["\(day) AM — ", "\(day) PM — "]
+    }
+
+    /// Normalisation d'affichage uniquement. Le nom stocké et les clés du
+    /// programme restent inchangés.
+    private var displayedSessionName: String {
+        for prefix in Self.historicalSessionPrefixes where seance.hasPrefix(prefix) {
+            let name = String(seance.dropFirst(prefix.count))
+            if !name.isEmpty { return name }
+        }
+        return seance
+    }
+
+    private var exerciseCountLabel: String {
+        exercises.count == 1 ? "1 exercice" : "\(exercises.count) exercices"
+    }
+
+    private var secondarySummary: String {
+        var parts: [String] = []
+        if !isScheduled { parts.append("Non planifiée") }
+        if !muscleSummary.isEmpty { parts.append(muscleSummary) }
+        return parts.joined(separator: " · ")
+    }
+
+    private var disclosureAccessibilityLabel: String {
+        var parts = [displayedSessionName]
+        if !isScheduled { parts.append("Non planifiée") }
+        if !muscleSummary.isEmpty {
+            parts.append(muscleSummary.replacingOccurrences(of: " · ", with: ", "))
+        }
+        parts.append(exerciseCountLabel)
+        return parts.joined(separator: ". ") + "."
     }
 
     var color: Color { SessionType(seance).color }
@@ -1816,52 +1846,49 @@ struct EditableSeanceProgramCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(color.opacity(0.15))
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text(String(seance.prefix(1)))
-                            .font(.appLabel.weight(.black))
-                            .foregroundColor(color)
-                    )
-                VStack(alignment: .leading, spacing: 2) {
-                    if let prefix = titleParts.prefix {
-                        Text(prefix)
+            HStack(spacing: 4) {
+                Button {
+                    isExpanded.toggle()
+                } label: {
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(displayedSessionName)
+                                .font(.appBody.weight(.bold))
+                                .foregroundColor(color)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            if !secondarySummary.isEmpty {
+                                Text(secondarySummary)
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            }
+                        }
+                        .layoutPriority(1)
+                        Spacer(minLength: 4)
+                        Text(exerciseCountLabel)
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(.appTextSecondary)
+                            .fixedSize(horizontal: true, vertical: false)
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.appCaption)
-                            .foregroundColor(.gray)
-                            .lineLimit(1)
+                            .foregroundColor(.appTextSecondary)
+                            .accessibilityHidden(true)
                     }
-                    Text(titleParts.focus)
-                        .font(.appBody.weight(.bold))
-                        .foregroundColor(color)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    if !muscleSummary.isEmpty {
-                        Text(muscleSummary)
-                            .font(.appCaption)
-                            .foregroundColor(.gray)
-                            .lineLimit(1)
-                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
-                .layoutPriority(1)
-                if isToday {
-                    Text("AUJOURD'HUI")
-                        .font(.appMicro.weight(.black)).tracking(1)
-                        .foregroundColor(Color.forge)
-                        .padding(.horizontal, 7).padding(.vertical, 3)
-                        .background(Color.forge.opacity(0.12))
-                        .cornerRadius(5)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-                Spacer()
-                Text("\(exercises.count)")
-                    .font(.appCaption.weight(.bold))
-                    .foregroundColor(color)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(color.opacity(0.12))
-                    .cornerRadius(8)
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(disclosureAccessibilityLabel)
+                .accessibilityValue(isExpanded ? "Déplié" : "Replié")
+                .accessibilityHint(
+                    isExpanded
+                        ? "Ferme l’éditeur de cette séance."
+                        : "Ouvre l’éditeur de cette séance."
+                )
+
                 if onCopy != nil || onPaste != nil || onDeleteSeance != nil {
                     Menu {
                         if let copy = onCopy {
@@ -1889,15 +1916,12 @@ struct EditableSeanceProgramCard: View {
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Options de la séance \(displayedSessionName)")
                 }
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.appCaption)
-                    .foregroundColor(.gray)
-                    .padding(.leading, 2)
             }
-            .padding(.horizontal, .appPagePadding).padding(.vertical, 12)
-            .contentShape(Rectangle())
-            .onTapGesture { isExpanded.toggle() }
+            .padding(.leading, .appPagePadding)
+            .padding(.trailing, 4)
+            .padding(.vertical, 8)
 
             if isExpanded {
                 Divider().background(Color.appSeparator)
