@@ -1299,7 +1299,10 @@ struct ProgrammeView: View {
     }
 
     private var deletableProgram: ProgramInfo? {
-        vm.programs.first { $0.id == vm.activeProgramId } ?? vm.programs.first
+        if let selectedProgram = vm.programs.first(where: { $0.id == vm.selectedProgramId }) {
+            return selectedProgram
+        }
+        return vm.programs.first { $0.id == vm.activeProgramId }
     }
 
     @ViewBuilder
