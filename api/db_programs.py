@@ -7,6 +7,9 @@ from utils import _today_mtl
 from blocks import REPS_BLOCKS  # source unique — définie dans blocks.py
 
 
+WEEKDAY_KEYS = ("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim")
+
+
 def get_all_programs() -> list:
     """Return [{id, name, created_at}, ...] ordered by created_at ASC."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
@@ -731,12 +734,41 @@ def get_evening_week_schedule() -> dict:
 
 
 def set_evening_week_schedule(schedule: dict) -> bool:
-    """Upsert weekly_schedule for slot='evening'. None clears the day."""
+    """Replace the complete evening schedule snapshot.
+
+    Present canonical days are upserted; persisted evening rows absent from the
+    snapshot are deleted. Morning rows are never touched.
+    """
     if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+
+    if not isinstance(schedule, dict) or any(day not in WEEKDAY_KEYS for day in schedule):
+        db_core.logger.error("set_evening_week_schedule: invalid day keys")
         return False
 
     def _do() -> bool:
         active_pid = get_active_program_id()
+
+        persisted = (
+            db_core._client.table("weekly_schedule")
+            .select("day_name")
+            .eq("slot", "evening")
+            .execute()
+        )
+        persisted_days = {
+            row["day_name"]
+            for row in (persisted.data or [])
+            if row.get("day_name") in WEEKDAY_KEYS
+        }
+        for day_name in persisted_days - set(schedule):
+            (
+                db_core._client.table("weekly_schedule")
+                .delete()
+                .eq("day_name", day_name)
+                .eq("slot", "evening")
+                .execute()
+            )
+
         for day_name, session_name in schedule.items():
             session_id = None
             if session_name:

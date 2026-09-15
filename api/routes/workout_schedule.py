@@ -388,7 +388,9 @@ def api_evening_schedule():
     if request.method == "POST":
         schedule = request.get_json() or {}
         success = _db.set_evening_week_schedule(schedule)
-        return jsonify({"success": success})
+        if not success:
+            return jsonify({"success": False, "error": "evening_schedule_persistence_failed"}), 500
+        return jsonify({"success": True})
     return jsonify(_db.get_evening_week_schedule())
 
 
