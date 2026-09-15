@@ -171,6 +171,7 @@ def make_store():
         "self_care_log":       {},
         "pss_records":         [],
         "coach_history":       [],
+        "cycle_start_dates":  {"test-program-id": None},
     }
 
     def get_json(key, default=None):
@@ -732,13 +733,22 @@ def make_store():
         store["active_program_id"] = program_id
         return True
 
-    def get_cycle_start_date():
-        # None par défaut (cycle non démarré) — les tests qui veulent une valeur
-        # override via db_mod.get_cycle_start_date = MagicMock(return_value=...).
-        return store.get("cycle_start_date")
+    def get_cycle_start_date(program_id=None):
+        # Sans ID : compatibilité historique globale. Avec ID : état réellement
+        # isolé par programme, comme programs.cycle_start_date en production.
+        if program_id is None:
+            return store.get("cycle_start_date")
+        return store.get("cycle_start_dates", {}).get(program_id)
 
-    def set_cycle_start_date(date_str):
-        store["cycle_start_date"] = date_str
+    def set_cycle_start_date(date_str, program_id=None):
+        if program_id is None:
+            store["cycle_start_date"] = date_str
+            return True
+        dates = store.get("cycle_start_dates", {})
+        if program_id not in dates:
+            return False
+        dates[program_id] = date_str
+        store["cycle_start_dates"] = dates
         return True
 
     def get_macros_by_day_type(days=60, nutr_days=None, sessions_raw=None):

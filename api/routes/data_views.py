@@ -366,7 +366,7 @@ def api_programme_data():
         "all_sessions":        all_sessions,
         # Miroir du champ dashboard — ProgrammeVM charge programme_data et lit ici,
         # évite un fetch dashboard séparé pour la card Mésocycle.
-        "cycle_start_date":    _db.get_cycle_start_date(),
+        "cycle_start_date":    _db.get_cycle_start_date(program_id),
     })
 
 

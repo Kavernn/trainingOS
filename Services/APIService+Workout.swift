@@ -82,13 +82,21 @@ extension APIService {
 
     /// POST programs.cycle_start_date. Structure = throw, jamais offlinePost
     /// (pas de replay silencieux d'une date fantôme au réseau).
-    func saveCycleStartDate(_ date: String) async throws {
+    func saveCycleStartDate(_ date: String, programId: String? = nil) async throws {
         let url = try buildURL(path: "/api/cycle_start_date")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["date": date])
-        _ = try await URLSession.authed.data(for: req)
+        var payload: [String: Any] = ["date": date]
+        if let programId { payload["program_id"] = programId }
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        let (data, response) = try await URLSession.authed.data(for: req)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+                ?? "Impossible d'enregistrer le mésocycle."
+            throw APIError.serverError(code, message)
+        }
         CacheService.shared.clear(for: "programme_data")
         CacheService.shared.clear(for: "dashboard")
     }

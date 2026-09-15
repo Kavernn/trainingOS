@@ -397,8 +397,8 @@ def api_evening_schedule():
 @workout_schedule_bp.route("/api/cycle_start_date", methods=["GET", "POST"])
 def api_cycle_start_date():
     """Source serveur unique du mésocycle (programs.cycle_start_date).
-    GET  → {"date": "YYYY-MM-DD" | null}
-    POST → {"date": "YYYY-MM-DD"} définit la date, retourne {"success": bool}.
+    GET  → {"date": "YYYY-MM-DD" | null}, avec program_id query optionnel.
+    POST → {"date": "YYYY-MM-DD", "program_id"?: str} définit la date.
     Remplace le @AppStorage iOS qui divergeait au reset/réinstall.
     """
     import db as _db
@@ -407,9 +407,22 @@ def api_cycle_start_date():
         date_str = (payload.get("date") or "").strip()
         if not date_str:
             return jsonify({"success": False, "error": "date_required"}), 400
-        success = _db.set_cycle_start_date(date_str)
-        return jsonify({"success": success})
-    return jsonify({"date": _db.get_cycle_start_date()})
+        has_program_id = "program_id" in payload
+        program_id = payload.get("program_id") if has_program_id else None
+        if has_program_id:
+            if not isinstance(program_id, str) or not program_id.strip():
+                return jsonify({"success": False, "error": "invalid_program_id"}), 400
+            program_id = program_id.strip()
+        success = (_db.set_cycle_start_date(date_str, program_id)
+                   if has_program_id else _db.set_cycle_start_date(date_str))
+        if not success:
+            return jsonify({"success": False, "error": "cycle_start_date_persistence_failed"}), 500
+        return jsonify({"success": True})
+
+    program_id = request.args.get("program_id")
+    cycle_start_date = (_db.get_cycle_start_date(program_id.strip())
+                        if program_id is not None else _db.get_cycle_start_date())
+    return jsonify({"date": cycle_start_date})
 
 
 @workout_schedule_bp.route("/api/morning_schedule", methods=["POST"])

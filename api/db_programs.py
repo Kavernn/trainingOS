@@ -194,21 +194,23 @@ def delete_program(program_id: str) -> bool:
         return False
 
 
-def get_cycle_start_date() -> str | None:
-    """Return cycle_start_date (YYYY-MM-DD) of the default program, or None."""
+def get_cycle_start_date(program_id: str | None = None) -> str | None:
+    """Return a program's cycle_start_date, falling back to the default only when omitted."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return None
 
     def _do() -> str | None:
-        program_id = get_default_program_id()
-        if not program_id:
+        target_program_id = program_id if program_id is not None else get_default_program_id()
+        if not target_program_id:
             return None
         resp = (db_core._client.table("programs")
                 .select("cycle_start_date")
-                .eq("id", program_id)
-                .single()
+                .eq("id", target_program_id)
                 .execute())
-        val = (resp.data or {}).get("cycle_start_date")
+        rows = resp.data or []
+        if not rows:
+            return None
+        val = rows[0].get("cycle_start_date")
         return str(val)[:10] if val else None
 
     try:
@@ -224,17 +226,20 @@ def get_cycle_start_date() -> str | None:
         return None
 
 
-def set_cycle_start_date(date_str: str) -> bool:
-    """Set cycle_start_date on the default program. date_str = 'YYYY-MM-DD'."""
+def set_cycle_start_date(date_str: str, program_id: str | None = None) -> bool:
+    """Set a program's cycle date, falling back to the default only when omitted."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
 
     def _do() -> bool:
-        program_id = get_default_program_id()
-        if not program_id:
+        target_program_id = program_id if program_id is not None else get_default_program_id()
+        if not target_program_id:
             return False
-        db_core._client.table("programs").update({"cycle_start_date": date_str}).eq("id", program_id).execute()
-        return True
+        resp = (db_core._client.table("programs")
+                .update({"cycle_start_date": date_str})
+                .eq("id", target_program_id)
+                .execute())
+        return bool(resp.data)
 
     try:
         return _do()

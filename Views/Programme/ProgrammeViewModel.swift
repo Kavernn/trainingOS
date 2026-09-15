@@ -414,7 +414,8 @@ final class ProgrammeViewModel: ObservableObject {
         let previous = cycleStartDate
         cycleStartDate = date
         do {
-            try await APIService.shared.saveCycleStartDate(date)
+            let programId = selectedProgramId.isEmpty ? nil : selectedProgramId
+            try await APIService.shared.saveCycleStartDate(date, programId: programId)
         } catch {
             cycleStartDate = previous
             lastSaveError = true
