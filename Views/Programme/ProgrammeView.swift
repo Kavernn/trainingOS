@@ -347,10 +347,15 @@ struct ProgrammeView: View {
                                     .font(.appCaption)
                                     .foregroundColor(.gray)
                             }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(item.name) retiré du programme. Annuler disponible.")
                             Spacer()
                             Button("Annuler") { undoDelete() }
                                 .font(.appLabel.weight(.bold))
                                 .foregroundColor(Color.forge)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
+                                .accessibilityLabel("Annuler la suppression de \(item.name)")
                         }
                         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
                         .glassCard()
@@ -1906,6 +1911,18 @@ struct EditableSeanceProgramCard: View {
             }
     }
 
+    /// Déplacement accessible d'un cran. Utilise le même ordre local complet et
+    /// la même callback persistante que le drag, sans introduire de mutation parallèle.
+    private func moveExercise(_ name: String, by offset: Int) {
+        var order = orderedPairs.map { $0.0 }
+        guard let from = order.firstIndex(of: name) else { return }
+        let to = from + offset
+        guard order.indices.contains(to) else { return }
+        order.swapAt(from, to)
+        orderedNames = order
+        onReorder(order)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -1992,17 +2009,22 @@ struct EditableSeanceProgramCard: View {
                 if orderedPairs.isEmpty {
                     addExerciseFooter
                 } else {
-                    ForEach(orderedPairs, id: \.0) { name, scheme in
+                    ForEach(Array(orderedPairs.enumerated()), id: \.element.0) { entry in
+                        let index = entry.offset
+                        let name = entry.element.0
+                        let scheme = entry.element.1
+                        let total = orderedPairs.count
                         let isDragging = dragging == name
                         SwipeToDeleteRow(onDelete: { onDelete(name) }) {
                             HStack(spacing: 0) {
-                                // ≡ Drag handle (reorder vertical — zone dédiée 40pt)
+                                // ≡ Drag handle (reorder vertical — zone dédiée 44pt)
                                 Image(systemName: "line.3.horizontal")
                                     .font(.appLabel.weight(.regular))
                                     .foregroundColor(.gray.opacity(0.5))
-                                    .frame(width: 40)
+                                    .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
                                     .gesture(dragGesture(for: name))
+                                    .accessibilityHidden(true)
 
                                 ExerciseRow(
                                     name:          name,
@@ -2014,7 +2036,12 @@ struct EditableSeanceProgramCard: View {
                                     suggestion:    suggestions[name],
                                     isCompound:    name == firstCompoundName,
                                     e1rm:          inventoryOneRM[name],
-                                    isSeance2:     seance2ExosToday.contains(name)
+                                    isSeance2:     seance2ExosToday.contains(name),
+                                    position:      index + 1,
+                                    totalCount:    total,
+                                    onMoveUp:      index > 0 ? { moveExercise(name, by: -1) } : nil,
+                                    onMoveDown:    index < total - 1 ? { moveExercise(name, by: 1) } : nil,
+                                    onDelete:      { onDelete(name) }
                                 )
                             }
                         }
@@ -2054,7 +2081,7 @@ struct EditableSeanceProgramCard: View {
 /// Wrap une row d'exercice avec swipe-to-delete horizontal. La zone du swipe
 /// est le CONTENU (donc le corps de la row + son handle ≡), pas les zones
 /// filles avec gestures déjà attachées : la dragGesture(for:) du handle vit
-/// sur l'Image intérieure et reste prioritaire sur son 40pt (résolution
+/// sur l'Image intérieure et reste prioritaire sur ses 44pt (résolution
 /// SwiftUI : geste enfant gagne le touch qui démarre sur lui). Résultat :
 ///  - Touch sur ≡ → reorder vertical (dragGesture handle)
 ///  - Touch ailleurs sur la row → swipe horizontal (ce composant)
@@ -2116,6 +2143,8 @@ struct SwipeToDeleteRow<Content: View>: View {
             .background(Color.appDanger)
             .opacity(visualOffset < -10 ? min(1, -visualOffset / 40) : 0)
             .allowsHitTesting(restingOffset != 0)
+            .accessibilityLabel("Supprimer")
+            .accessibilityHidden(restingOffset == 0)
 
             content
                 .background(Color.appCard)
@@ -2178,6 +2207,11 @@ struct ExerciseRow: View {
     var isCompound: Bool = false
     var e1rm: Double? = nil
     var isSeance2: Bool = false
+    var position: Int = 1
+    var totalCount: Int = 1
+    var onMoveUp: (() -> Void)? = nil
+    var onMoveDown: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
 
     @ObservedObject private var units = UnitSettings.shared
 
@@ -2196,6 +2230,54 @@ struct ExerciseRow: View {
         if isSupersetted { parts.append("SS") }
         if let e = e1rm  { parts.append("~\(units.format(e, decimals: 0)) max") }
         return parts.joined(separator: " · ")
+    }
+
+    private var accessibleScheme: String {
+        let normalized = scheme
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "×", with: "x")
+        let components = normalized.split(separator: "x", maxSplits: 1, omittingEmptySubsequences: false)
+        guard components.count == 2,
+              let sets = Int(components[0].trimmingCharacters(in: .whitespaces)) else {
+            return scheme
+        }
+
+        let repsText = String(components[1]).trimmingCharacters(in: .whitespaces)
+        let range = repsText.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+        guard let minimum = range.first.flatMap({ Int($0.trimmingCharacters(in: .whitespaces)) }) else {
+            return scheme
+        }
+
+        let seriesLabel = sets == 1 ? "1 série" : "\(sets) séries"
+        if range.count == 1 {
+            let repetitions = minimum == 1 ? "1 répétition" : "\(minimum) répétitions"
+            return "\(seriesLabel) de \(repetitions)"
+        }
+        guard let maximum = Int(range[1].trimmingCharacters(in: .whitespaces)) else {
+            return scheme
+        }
+        return "\(seriesLabel) de \(minimum) à \(maximum) répétitions"
+    }
+
+    private func accessibleWeight(_ storedWeight: Double) -> String {
+        units.format(storedWeight, decimals: 0)
+            .replacingOccurrences(of: " kg", with: " kilogrammes")
+            .replacingOccurrences(of: " lbs", with: " livres")
+    }
+
+    private var accessibleSummary: String {
+        var parts = [name]
+        if isSeance2 { parts.append("Séance 2") }
+        parts.append(accessibleScheme)
+        if isSupersetted { parts.append("Superset") }
+        if let e1rm { parts.append("Maximum estimé \(accessibleWeight(e1rm))") }
+        if let suggestion,
+           suggestion.suggestionType == "increase_weight",
+           let suggestedWeight = suggestion.suggestedWeight {
+            parts.append("Charge suggérée \(accessibleWeight(suggestedWeight))")
+        }
+        parts.append("Exercice \(position) sur \(totalCount)")
+        return parts.joined(separator: ". ") + "."
     }
 
     var body: some View {
@@ -2259,6 +2341,20 @@ struct ExerciseRow: View {
             .padding(.horizontal, .appPagePadding).padding(.vertical, 12)
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibleSummary)
+        .accessibilityHint("Modifie cet exercice.")
+        .accessibilityActions {
+            if let onMoveUp {
+                Button("Monter", action: onMoveUp)
+            }
+            if let onMoveDown {
+                Button("Descendre", action: onMoveDown)
+            }
+            if let onDelete {
+                Button("Supprimer", role: .destructive, action: onDelete)
+            }
+        }
     }
 }
 
