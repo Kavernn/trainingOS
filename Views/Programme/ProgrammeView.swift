@@ -729,9 +729,13 @@ struct ProgrammeView: View {
                             .frame(height: 2)
                             .foregroundColor(selectedTab == tab ? .forge : .clear)
                     }
+                    .frame(minHeight: 44)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(tab.rawValue)
+                .accessibilityValue(selectedTab == tab ? "Sélectionné" : "Non sélectionné")
+                .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
             }
         }
         .padding(.horizontal, .appPagePadding)
@@ -765,12 +769,13 @@ struct ProgrammeView: View {
     @ViewBuilder
     private var heroMatin: some View {
         if let name = todaySessionName {
+            let displayedName = displaySessionName(name)
             heroCard(sessionName: name, badge: "MATIN", role: .info) {
                 NavigationLink(destination: SeanceView()) {
                     heroCTA
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Commencer la séance du matin, \(name).")
+                .accessibilityLabel("Commencer la séance du matin, \(displayedName).")
             }
         } else {
             restCard(text: "Repos aujourd'hui")
@@ -783,6 +788,7 @@ struct ProgrammeView: View {
             if resolved.isInherited {
                 inheritedHeroSoir(morningName: resolved.name)
             } else {
+                let displayedName = displaySessionName(resolved.name)
                 heroCard(sessionName: resolved.name, badge: "SOIR", role: .evening) {
                     Button {
                         showSeanceSoirSheet = true
@@ -790,7 +796,7 @@ struct ProgrammeView: View {
                         heroCTA
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Commencer la séance du soir, \(resolved.name).")
+                    .accessibilityLabel("Commencer la séance du soir, \(displayedName).")
                 }
             }
         } else {
@@ -805,6 +811,7 @@ struct ProgrammeView: View {
     // matin OU soir, jamais les deux" — le soir hérite du NOM, pas du CONTENU.
     @ViewBuilder
     private func inheritedHeroSoir(morningName: String) -> some View {
+        let displayedName = displaySessionName(morningName)
         let n = seance2ExosToday.count
         let subtitle = n > 0
             ? "\(n) exercice\(n > 1 ? "s" : "") envoyé\(n > 1 ? "s" : "") ce matin"
@@ -813,19 +820,19 @@ struct ProgrammeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 AppBadge("SOIR", role: .evening)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(morningName) (suite)").font(.appHero).foregroundColor(.appTextPrimary)
+                    Text("\(displayedName) (suite)").font(.appHero).foregroundColor(.appTextPrimary)
                     Text(subtitle).font(.appLabel).foregroundColor(.appTextSecondary)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Soir. \(morningName) suite. \(subtitle).")
+            .accessibilityLabel("Soir. \(displayedName) suite. \(subtitle).")
             Button {
                 showSeanceSoirSheet = true
             } label: {
                 heroCTA
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Commencer la séance du soir, \(morningName) suite.")
+            .accessibilityLabel("Commencer la séance du soir, \(displayedName) suite.")
         }
         .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
         .glassCard()
@@ -854,6 +861,7 @@ struct ProgrammeView: View {
         @ViewBuilder cta: () -> Cta
     ) -> some View {
         let exercises = vm.fullProgram[sessionName] ?? [:]
+        let displayedName = displaySessionName(sessionName)
         let ordered = vm.exerciseOrder[sessionName] ?? exercises.keys.sorted()
         let isExpanded = expandedTodayCard == badge
         let visibleExercises = isExpanded ? ordered : Array(ordered.prefix(3))
@@ -862,13 +870,13 @@ struct ProgrammeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 AppBadge(badge, role: role)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(sessionName).font(.appHero).foregroundColor(.appTextPrimary)
+                    Text(displayedName).font(.appHero).foregroundColor(.appTextPrimary)
                     Text(exercisesCountLabel(exercises.count))
                         .font(.appLabel).foregroundColor(.appTextSecondary)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(badge.capitalized). \(sessionName). \(exercisesCountLabel(exercises.count)).")
+            .accessibilityLabel("\(badge.capitalized). \(displayedName). \(exercisesCountLabel(exercises.count)).")
             if exercises.isEmpty {
                 Text("Aucun exercice programmé.")
                     .font(.appLabel).foregroundColor(.appTextSecondary)
@@ -882,6 +890,8 @@ struct ProgrammeView: View {
                     }
                     .font(.appLabel.weight(.semibold))
                     .foregroundColor(.forge)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             } else {
@@ -921,7 +931,12 @@ struct ProgrammeView: View {
                             ? "Réduire la liste des exercices."
                             : "Voir les \(remainingCount) autres exercices."
                     )
-                    .accessibilityValue(isExpanded ? "Développé" : "Réduit")
+                    .accessibilityValue(isExpanded ? "Déplié" : "Replié")
+                    .accessibilityHint(
+                        isExpanded
+                            ? "Réduit le détail des exercices."
+                            : "Ouvre le détail des exercices."
+                    )
                 }
             }
         }
@@ -945,6 +960,22 @@ struct ProgrammeView: View {
         count == 0 ? "Aucun exercice" : "\(count) exercice\(count > 1 ? "s" : "")"
     }
 
+    private static let historicalSessionPrefixes: [String] = [
+        "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
+    ].flatMap { day in
+        ["\(day) AM — ", "\(day) PM — "]
+    }
+
+    /// Normalisation d'affichage Today uniquement. Les clés et valeurs stockées
+    /// restent inchangées pour les lookups, mutations et navigations existants.
+    private func displaySessionName(_ session: String) -> String {
+        for prefix in Self.historicalSessionPrefixes where session.hasPrefix(prefix) {
+            let name = String(session.dropFirst(prefix.count))
+            if !name.isEmpty { return name }
+        }
+        return session
+    }
+
     private func exercisePreviewAccessibilityLabel(
         _ exerciseNames: [String],
         exercises: [String: String]
@@ -964,7 +995,7 @@ struct ProgrammeView: View {
                 Text("Volume").font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
                 Spacer()
                 if vm.volumeAlerts.isEmpty {
-                    Text("Ok").font(.appLabel).foregroundColor(.appTextSecondary)
+                    Text("OK").font(.appLabel).foregroundColor(.appTextSecondary)
                     Image(systemName: "checkmark").foregroundColor(.appSuccess)
                 } else {
                     AppBadge("\(vm.volumeAlerts.count) sous MEV", role: .warning)
@@ -1384,22 +1415,29 @@ struct ProgrammeView: View {
 
                 // ── Clipboard (si non-vide) ───────────────────────
                 if !clipboard.isEmpty {
+                    let clipboardCount = clipboard.count == 1
+                        ? "1 exercice"
+                        : "\(clipboard.count) exercices"
                     let clipboardLabel: String = clipboardName.isEmpty
-                        ? "\(clipboard.count) exos"
-                        : "\(clipboardName) · \(clipboard.count) exos"
+                        ? clipboardCount
+                        : "\(clipboardName) · \(clipboardCount)"
                     HStack(spacing: 10) {
-                        Image(systemName: "doc.on.clipboard.fill")
-                            .font(.appLabel.weight(.regular))
-                            .foregroundColor(Color.forge)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Clipboard")
-                                .font(.appCaption.weight(.bold))
-                                .tracking(1)
-                                .foregroundColor(.gray)
-                            Text(clipboardLabel)
-                                .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.appTextPrimary)
+                        HStack(spacing: 10) {
+                            Image(systemName: "doc.on.clipboard.fill")
+                                .font(.appLabel.weight(.regular))
+                                .foregroundColor(Color.forge)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("Clipboard")
+                                    .font(.appCaption.weight(.bold))
+                                    .tracking(1)
+                                    .foregroundColor(.gray)
+                                Text(clipboardLabel)
+                                    .font(.appLabel.weight(.semibold))
+                                    .foregroundColor(.appTextPrimary)
+                            }
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Clipboard. \(clipboardLabel).")
                         Spacer()
                         Button {
                             clipboardData = "{}"
@@ -1408,8 +1446,11 @@ struct ProgrammeView: View {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.appBody)
                                 .foregroundColor(.gray.opacity(0.5))
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Effacer le clipboard")
                     }
                     .padding(.horizontal, .appCardInsetH).padding(.vertical, .appCardInsetV)
                     .background(Color.forge.opacity(0.07))
@@ -1609,27 +1650,43 @@ private struct ProgramTabsView: View {
                     let isSelected = selectedId == prog.id
                     let isActive   = prog.id == activeId
 
-                    HStack(spacing: 5) {
-                        if isActive {
-                            Circle()
-                                .fill(Color.appSuccess)
-                                .frame(width: 6, height: 6)
+                    Button {
+                        onSelect()
+                        selectedId = prog.id
+                    } label: {
+                        HStack(spacing: 5) {
+                            if isActive {
+                                Circle()
+                                    .fill(Color.appSuccess)
+                                    .frame(width: 6, height: 6)
+                                    .accessibilityHidden(true)
+                            }
+                            Text(prog.name)
+                                .font(.appLabel.weight(isSelected ? .semibold : .regular))
+                                .foregroundColor(
+                                    isSelected ? .onAccent
+                                    : isActive  ? .appOnSurface
+                                                : Color.appOnSurface.opacity(0.55)
+                                )
+                                .lineLimit(1)
                         }
-                        Text(prog.name)
-                            .font(.appLabel.weight(isSelected ? .semibold : .regular))
-                            .foregroundColor(
-                                isSelected ? .onAccent
-                                : isActive  ? .appOnSurface
-                                            : Color.appOnSurface.opacity(0.55)
-                            )
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(isSelected ? Color.forge : Color.appSurfaceInset)
+                        )
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(isSelected ? Color.forge : Color.appSurfaceInset)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(prog.name)
+                    .accessibilityValue(
+                        [isSelected ? "Sélectionné" : "Non sélectionné", isActive ? "Actif" : nil]
+                            .compactMap { $0 }
+                            .joined(separator: ". ")
                     )
-                    .onTapGesture { onSelect(); selectedId = prog.id }
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                     .contextMenu {
                         Button("Renommer") { onRename(prog) }
                         Button("Supprimer", role: .destructive) { onDelete(prog) }
@@ -1645,7 +1702,10 @@ private struct ProgramTabsView: View {
                             RoundedRectangle(cornerRadius: 20)
                                 .stroke(Color.forge.opacity(0.5), lineWidth: 1)
                         )
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
+                .accessibilityLabel("Ajouter un programme")
             }
             .padding(.vertical, 4)
         }
