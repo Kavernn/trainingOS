@@ -260,7 +260,7 @@ struct ProgrammeView: View {
 
     private func isScheduledThisWeek(_ s: String) -> Bool {
         guard vm.selectedProgramId == vm.activeProgramId else { return false }
-        vm.schedule.values.contains(s) || vm.eveningSchedule.values.contains(s)
+        return vm.schedule.values.contains(s) || vm.eveningSchedule.values.contains(s)
     }
 
     private var isSelectedProgramActive: Bool {
