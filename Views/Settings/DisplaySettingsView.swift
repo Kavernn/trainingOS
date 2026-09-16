@@ -51,16 +51,25 @@ struct DisplaySettingsView: View {
                 .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
 
-                Section("Hero du tableau de bord") {
-                    Picker("Atmosphère", selection: heroMoodSelection) {
-                        Text(HeroMoodPreference.currentDisplayName)
-                            .tag(HeroMoodPreference.currentRawValue)
-                        ForEach(HeroMood.allCases) { mood in
-                            Text(mood.displayName)
-                                .tag(mood.rawValue)
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Choisis l’ambiance de ton tableau de bord.")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+
+                        ForEach(displayBackgroundCategories) { category in
+                            DisplayBackgroundCategoryCard(
+                                category: category,
+                                selection: heroMoodSelection
+                            )
                         }
+
+                        ClassicHeroMoodsCard(selection: heroMoodSelection)
                     }
-                    .pickerStyle(.menu)
+                    .padding(.vertical, 4)
+                }
+                header: {
+                    Text("Hero du tableau de bord")
                 }
                 .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
@@ -284,5 +293,382 @@ private struct ThemePreviewCard: View {
             .fill(color)
             .frame(width: 10, height: 10)
             .overlay(Circle().stroke(colors.textPrimary.opacity(0.18), lineWidth: 0.5))
+    }
+}
+
+// MARK: - Dashboard hero gallery
+
+private struct DisplayBackgroundOption: Identifiable {
+    let mood: HeroMood
+    let title: String
+    let subtitle: String
+
+    var id: String { mood.rawValue }
+    var assetName: String { mood.assetName }
+}
+
+private struct DisplayBackgroundCategory: Identifiable {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let options: [DisplayBackgroundOption]
+
+    var id: String { title }
+}
+
+private let displayBackgroundCategories: [DisplayBackgroundCategory] = [
+    DisplayBackgroundCategory(
+        title: "Atmosphère",
+        subtitle: "Des ambiances qui font voyager",
+        icon: "sun.max.fill",
+        options: [
+            DisplayBackgroundOption(
+                mood: .atmosphereParis,
+                title: "Soirée parisienne",
+                subtitle: "Lumières et reflets"
+            ),
+            DisplayBackgroundOption(
+                mood: .atmosphereRome,
+                title: "Rome au coucher du soleil",
+                subtitle: "Éternelle et lumineuse"
+            )
+        ]
+    ),
+    DisplayBackgroundCategory(
+        title: "Arts",
+        subtitle: "L’art sous toutes ses formes",
+        icon: "paintpalette.fill",
+        options: [
+            DisplayBackgroundOption(
+                mood: .artsMural,
+                title: "Murales et couleurs",
+                subtitle: "L’art dans la rue"
+            ),
+            DisplayBackgroundOption(
+                mood: .artsGallery,
+                title: "Galerie contemporaine",
+                subtitle: "Élégance intemporelle"
+            )
+        ]
+    ),
+    DisplayBackgroundCategory(
+        title: "Culture",
+        subtitle: "Des traditions qui inspirent",
+        icon: "leaf.fill",
+        options: [
+            DisplayBackgroundOption(
+                mood: .culturePottery,
+                title: "Savoir-faire artisanal",
+                subtitle: "Des mains qui créent"
+            ),
+            DisplayBackgroundOption(
+                mood: .cultureDance,
+                title: "Danse traditionnelle",
+                subtitle: "Grâce et spiritualité"
+            )
+        ]
+    ),
+    DisplayBackgroundCategory(
+        title: "Histoire",
+        subtitle: "Sur les traces du passé",
+        icon: "building.columns.fill",
+        options: [
+            DisplayBackgroundOption(
+                mood: .historyRuins,
+                title: "Ruines antiques",
+                subtitle: "Témoins d’une grande histoire"
+            ),
+            DisplayBackgroundOption(
+                mood: .historyCastle,
+                title: "Château médiéval",
+                subtitle: "Légendes et panoramas"
+            )
+        ]
+    ),
+    DisplayBackgroundCategory(
+        title: "Sports",
+        subtitle: "Passion, énergie, dépassement",
+        icon: "football.fill",
+        options: [
+            DisplayBackgroundOption(
+                mood: .sportsBroncosGame,
+                title: "Broncos — Jour de match",
+                subtitle: "Intensité et stratégie"
+            ),
+            DisplayBackgroundOption(
+                mood: .sportsBroncosTailgate,
+                title: "Broncos — Esprit de match",
+                subtitle: "Une même passion"
+            )
+        ]
+    )
+]
+
+private let classicHeroMoods: [HeroMood] = [
+    .mountainDiscipline,
+    .stormAttack,
+    .oceanCalm,
+    .forestReset,
+    .cityNightExecute,
+    .desertResilience,
+    .auroraElevated,
+    .minimalDark
+]
+
+private struct DisplayBackgroundCategoryCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    let category: DisplayBackgroundCategory
+    @Binding var selection: String
+
+    private var columns: [GridItem] {
+        Array(
+            repeating: GridItem(.flexible(), spacing: 10, alignment: .top),
+            count: dynamicTypeSize.isAccessibilitySize ? 1 : 2
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: category.icon)
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(.forge)
+                        .accessibilityHidden(true)
+
+                    Text(category.title)
+                        .font(.appHeadline)
+                        .foregroundColor(.appTextPrimary)
+
+                    Spacer(minLength: 8)
+
+                    Text("2 photos")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.appTextSecondary)
+                }
+
+                Text(category.subtitle)
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(category.title). \(category.subtitle). 2 photos.")
+
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
+                ForEach(category.options) { option in
+                    DisplayBackgroundTile(
+                        option: option,
+                        categoryTitle: category.title,
+                        isSelected: selection == option.mood.rawValue,
+                        action: { selection = option.mood.rawValue }
+                    )
+                }
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .fill(Color.appSurfaceInset)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: .appHairline)
+        )
+    }
+}
+
+private struct DisplayBackgroundTile: View {
+    let option: DisplayBackgroundOption
+    let categoryTitle: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 7) {
+                GeometryReader { geometry in
+                    Image(option.assetName)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                }
+                .aspectRatio(4.0 / 3.0, contentMode: .fit)
+                    .overlay(alignment: .topTrailing) {
+                        if isSelected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.appHeadline)
+                                .foregroundColor(.selectedControlForeground)
+                                .padding(7)
+                                .background(
+                                    Circle()
+                                        .fill(Color.selectedControlBackground)
+                                        .padding(4)
+                                )
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(
+                                isSelected ? Color.forge : Color.appSeparator,
+                                lineWidth: isSelected ? 2 : .appHairline
+                            )
+                    )
+                    .accessibilityHidden(true)
+
+                Text(option.title)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+
+                Text(option.subtitle)
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SpringButtonStyle(scale: 0.98))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(option.title). \(categoryTitle).")
+        .accessibilityValue(isSelected ? "Sélectionné" : "Non sélectionné")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint("Applique cette ambiance au tableau de bord.")
+    }
+}
+
+private struct ClassicHeroMoodsCard: View {
+    @Binding var selection: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Classiques")
+                    .font(.appHeadline)
+                    .foregroundColor(.appTextPrimary)
+                Text("Retrouve les ambiances historiques de l’app")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+            }
+            .accessibilityElement(children: .combine)
+
+            Button {
+                selection = HeroMoodPreference.currentRawValue
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "rectangle.stack.fill")
+                        .foregroundColor(.forge)
+                        .accessibilityHidden(true)
+                    Text(HeroMoodPreference.currentDisplayName)
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(.appTextPrimary)
+                    Spacer()
+                    if selection == HeroMoodPreference.currentRawValue {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.forge)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .frame(minHeight: 44)
+                .padding(.horizontal, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.appCard)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(
+                            selection == HeroMoodPreference.currentRawValue ? Color.forge : Color.appSeparator,
+                            lineWidth: selection == HeroMoodPreference.currentRawValue ? 2 : .appHairline
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(HeroMoodPreference.currentDisplayName)
+            .accessibilityValue(selection == HeroMoodPreference.currentRawValue ? "Sélectionné" : "Non sélectionné")
+            .accessibilityAddTraits(selection == HeroMoodPreference.currentRawValue ? .isSelected : [])
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 10) {
+                    ForEach(classicHeroMoods) { mood in
+                        ClassicHeroMoodTile(
+                            mood: mood,
+                            isSelected: selection == mood.rawValue,
+                            action: { selection = mood.rawValue }
+                        )
+                    }
+                }
+                .padding(.horizontal, 1)
+                .padding(.bottom, 2)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .fill(Color.appSurfaceInset)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: .appHairline)
+        )
+    }
+}
+
+private struct ClassicHeroMoodTile: View {
+    let mood: HeroMood
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                Image(mood.assetName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 112, height: 74)
+                    .clipped()
+                    .overlay(alignment: .topTrailing) {
+                        if isSelected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.appLabel)
+                                .foregroundColor(.selectedControlForeground)
+                                .padding(6)
+                                .background(
+                                    Circle()
+                                        .fill(Color.selectedControlBackground)
+                                        .padding(3)
+                                )
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9)
+                            .stroke(
+                                isSelected ? Color.forge : Color.appSeparator,
+                                lineWidth: isSelected ? 2 : .appHairline
+                            )
+                    )
+                    .accessibilityHidden(true)
+
+                Text(mood.displayName)
+                    .font(.appCaption.weight(.medium))
+                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(2)
+                    .frame(width: 112, alignment: .leading)
+            }
+        }
+        .buttonStyle(SpringButtonStyle(scale: 0.98))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(mood.displayName)
+        .accessibilityValue(isSelected ? "Sélectionné" : "Non sélectionné")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint("Applique cette ambiance au tableau de bord.")
     }
 }
