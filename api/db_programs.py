@@ -585,13 +585,16 @@ def save_full_program(program: dict, program_id: str | None = None,
         return False
 
 
-def delete_program_session(name: str) -> bool:
+def delete_program_session(name: str, program_id: str | None = None) -> bool:
     """Delete a programme session and all its data (blocks, exercises, schedule refs)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
 
     def _do() -> bool:
-        resp = db_core._client.table("program_sessions").select("id").eq("name", name).limit(1).execute()
+        query = db_core._client.table("program_sessions").select("id").eq("name", name)
+        if program_id:
+            query = query.eq("program_id", program_id)
+        resp = query.limit(1).execute()
         if not resp.data:
             return True  # already gone
         session_id = resp.data[0]["id"]

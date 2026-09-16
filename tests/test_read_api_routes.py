@@ -188,7 +188,10 @@ class TestProgrammeData(BaseRouteTest):
 
     def test_required_keys(self):
         data = self.json(self.get("/api/programme_data"))
-        for key in ("full_program", "schedule", "inventory_types", "inventory_schemes"):
+        for key in (
+            "full_program", "schedule", "inventory_types", "inventory_schemes",
+            "current_program_id", "active_program_id",
+        ):
             self.assertIn(key, data, f"Missing key: {key}")
 
     def test_full_program_is_flat(self):

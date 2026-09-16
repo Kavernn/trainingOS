@@ -42,6 +42,9 @@ final class ProgrammeViewModel: ObservableObject {
     // MARK: - Multi-programmes (SERVEUR)
 
     @Published var programs: [ProgramInfo] = []
+    /// Programme dont le contenu est actuellement hydraté dans fullProgram.
+    /// Distinct de l'actif backend et de la sélection Structure.
+    @Published private(set) var loadedProgramId: String = ""
     @Published var selectedProgramId: String = ""
     @Published var activeProgramId: String = ""
     @Published var allSessions: [String] = []
@@ -68,6 +71,8 @@ final class ProgrammeViewModel: ObservableObject {
     @Published var isSettingActive: Bool = false
     /// Toast success 1.5s — muté par showSaveSuccess.
     @Published var saveSuccessMsg: String?
+    /// Invalide les réponses tardives lors d'un switch rapide d'onglet/programme.
+    private var loadGeneration = 0
 
     // MARK: - Doctrine dérivée
 
@@ -81,6 +86,12 @@ final class ProgrammeViewModel: ObservableObject {
     /// planning devient la vérité — plus de double source à réconcilier. Un
     /// utilisateur qui veut réordonner ses séances déplace le planning.
     var orderedSeances: [String] {
+        // Le planning est global et appartient uniquement au programme actif.
+        // Un programme consulté non actif expose donc toutes ses séances comme
+        // non planifiées, sans emprunter l'ordre du planning actif.
+        guard selectedProgramId == activeProgramId else {
+            return fullProgram.keys.sorted()
+        }
         var scheduled: [String] = []
         var seen = Set<String>()
         for day in TrainingDoctrine.dayNames {
@@ -152,10 +163,10 @@ final class ProgrammeViewModel: ObservableObject {
     /// séquence de mutations groupées. Clés absentes = valeurs par défaut, jamais
     /// crash. Testé par ProgrammeViewModelTests.
     func applyJSON(_ json: [String: Any]) {
+        let incomingSchedule = (json["schedule"] as? [String: String]) ?? [:]
         if let raw = json["full_program"] as? [String: [String: Any]] {
             fullProgram = raw.mapValues { $0.compactMapValues { $0 as? String } }
         }
-        schedule              = (json["schedule"] as? [String: String]) ?? [:]
         inventory             = (json["inventory"] as? [String]) ?? []
         inventorySchemes      = (json["inventory_schemes"]  as? [String: String]) ?? [:]
         inventoryMuscleGroups = (json["inventory_muscle_groups"] as? [String: String]) ?? [:]
@@ -189,10 +200,31 @@ final class ProgrammeViewModel: ObservableObject {
                 return ProgramInfo(id: id, name: name)
             }
         }
-        if let pid = json["current_program_id"] as? String, !pid.isEmpty {
-            if !userDidSelect { selectedProgramId = pid }
-            activeProgramId = pid
+        if json["current_program_id"] != nil {
+            let loadedId = json["current_program_id"] as? String ?? ""
+            loadedProgramId = loadedId
+            if !userDidSelect { selectedProgramId = loadedId }
         }
+        if json["active_program_id"] != nil {
+            activeProgramId = json["active_program_id"] as? String ?? ""
+        }
+        if json["programs"] != nil, programs.isEmpty {
+            selectedProgramId = ""
+            userDidSelect = false
+        } else if !programs.isEmpty,
+           !programs.contains(where: { $0.id == selectedProgramId }),
+           programs.contains(where: { $0.id == activeProgramId }) {
+            selectedProgramId = activeProgramId
+            userDidSelect = false
+        }
+        // Le planning global peut encore référencer les sessions de l'ancien
+        // actif juste après un changement. Dans le contexte actif chargé, ces
+        // références étrangères ne doivent jamais apparaître comme exécutables.
+        schedule = loadedProgramId == activeProgramId
+            ? incomingSchedule.mapValues { session in
+                session == "Repos" || fullProgram[session] != nil ? session : "Repos"
+            }
+            : incomingSchedule
         if let sessions = json["all_sessions"] as? [String] {
             allSessions = sessions
         }
@@ -207,35 +239,57 @@ final class ProgrammeViewModel: ObservableObject {
     /// /api/evening_schedule et /api/seance_data. Séquentiel : async let LIFO crash
     /// sur iOS 26 beta (lessons.md).
     func loadData(programId: String? = nil) async {
+        loadGeneration += 1
+        let generation = loadGeneration
+        isLoading = true
         // Switch explicite de programme → suggestions du programme précédent
         // sont stale (autres séances). Reset le guard de loadSuggestions.
         if programId != nil { programSuggestions = [:] }
         var urlStr = "\(APIConfig.base)/api/programme_data"
-        let pid = programId ?? (selectedProgramId.isEmpty ? nil : selectedProgramId)
+        // nil signifie désormais réellement « programme actif backend ».
+        // Les chargements Structure passent toujours leur sélection explicitement.
+        let pid = programId
         if let pid = pid { urlStr += "?program_id=\(pid)" }
         guard let url = URL(string: urlStr) else { isLoading = false; return }
-        if let cached = CacheService.shared.load(for: "programme_data"),
-           let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
-            applyJSON(json); isLoading = false
+        if pid == nil,
+           let cached = CacheService.shared.load(for: "programme_data"),
+           let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any],
+           let currentId = json["current_program_id"] as? String,
+           let activeId = json["active_program_id"] as? String,
+           currentId == activeId {
+            applyJSON(json)
+            isLoading = false
         }
         if let (data, _) = try? await URLSession.authed.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            CacheService.shared.save(data, for: "programme_data")
+            guard generation == loadGeneration else { return }
+            if let currentId = json["current_program_id"] as? String,
+               let activeId = json["active_program_id"] as? String,
+               currentId == activeId {
+                CacheService.shared.save(data, for: "programme_data")
+            }
             applyJSON(json); isLoading = false
         } else {
+            guard generation == loadGeneration else { return }
             isLoading = false
         }
         await migrateLegacyCycleStartDateIfNeeded()
+        guard generation == loadGeneration else { return }
         if let eURL = URL(string: "\(APIConfig.base)/api/evening_schedule") {
             do {
                 let (eData, _) = try await URLSession.authed.data(from: eURL)
-                eveningSchedule = try JSONDecoder().decode([String: String].self, from: eData)
+                guard generation == loadGeneration else { return }
+                let incomingEvening = try JSONDecoder().decode([String: String].self, from: eData)
+                eveningSchedule = loadedProgramId == activeProgramId
+                    ? incomingEvening.filter { fullProgram[$0.value] != nil }
+                    : incomingEvening
             } catch {
                 print("⚠️ evening_schedule decode failed: \(error)")
             }
         }
         if let wURL = URL(string: "\(APIConfig.base)/api/seance_data"),
            let (wData, _) = try? await URLSession.authed.data(from: wURL),
+           generation == loadGeneration,
            let wJson = try? JSONSerialization.jsonObject(with: wData) as? [String: Any],
            let weights = wJson["weights"] as? [String: [String: Any]] {
             exerciseWeights = weights.compactMapValues { d in
@@ -248,6 +302,9 @@ final class ProgrammeViewModel: ObservableObject {
     }
 
     func loadSuggestions() async {
+        // Les suggestions backend suivent le programme actif. Ne jamais les
+        // présenter dans l'éditeur d'un programme seulement consulté.
+        guard loadedProgramId == activeProgramId else { return }
         // Guard anti-rafale : .task + onChange peuvent firer quasi-simultanément
         // à l'ouverture. Le remplissage progressif ci-dessous fait office de
         // sémaphore — dès la 1ère séance écrite, un loadSuggestions concurrent
@@ -414,7 +471,7 @@ final class ProgrammeViewModel: ObservableObject {
         let previous = cycleStartDate
         cycleStartDate = date
         do {
-            let programId = selectedProgramId.isEmpty ? nil : selectedProgramId
+            let programId = loadedProgramId.isEmpty ? nil : loadedProgramId
             try await APIService.shared.saveCycleStartDate(date, programId: programId)
         } catch {
             cycleStartDate = previous
@@ -490,6 +547,10 @@ final class ProgrammeViewModel: ObservableObject {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 activeProgramId = selectedProgramId
             }
+            // Réhydrate immédiatement le contenu actif et filtre les anciennes
+            // références du planning global qui appartenaient à l'actif précédent.
+            await loadData(programId: selectedProgramId)
+            await loadSuggestions()
         } catch {
             lastSaveError = true
         }

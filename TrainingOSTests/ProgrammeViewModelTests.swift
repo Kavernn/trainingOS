@@ -20,6 +20,7 @@ final class ProgrammeViewModelTests: XCTestCase {
             "session_order": ["Push A", "Legs"],
             "programs": [["id": "p1", "name": "Prog A"]],
             "current_program_id": "p1",
+            "active_program_id": "p1",
             "all_sessions": ["Push A", "Legs"],
         ]
 
@@ -35,6 +36,7 @@ final class ProgrammeViewModelTests: XCTestCase {
         XCTAssertEqual(vm.exerciseOrder["Push A"], ["Bench"])
         XCTAssertEqual(vm.programs.first?.id, "p1")
         XCTAssertEqual(vm.selectedProgramId, "p1")
+        XCTAssertEqual(vm.loadedProgramId, "p1")
         XCTAssertEqual(vm.activeProgramId, "p1")
         XCTAssertEqual(vm.allSessions, ["Push A", "Legs"])
     }
@@ -58,10 +60,35 @@ final class ProgrammeViewModelTests: XCTestCase {
         let vm = ProgrammeViewModel()
         vm.selectedProgramId = "user-pick"
 
-        vm.applyJSON(["current_program_id": "p1"])
+        vm.applyJSON([
+            "current_program_id": "p1",
+            "active_program_id": "active-program",
+        ])
 
         XCTAssertEqual(vm.selectedProgramId, "user-pick")
-        XCTAssertEqual(vm.activeProgramId, "p1")
+        XCTAssertEqual(vm.loadedProgramId, "p1")
+        XCTAssertEqual(vm.activeProgramId, "active-program")
+    }
+
+    func test_applyJSON_separatesLoadedSelectedAndActivePrograms() {
+        let vm = ProgrammeViewModel()
+        vm.selectedProgramId = "program-b"
+        vm.userDidSelect = true
+
+        vm.applyJSON([
+            "programs": [
+                ["id": "program-a", "name": "A"],
+                ["id": "program-b", "name": "B"],
+            ],
+            "current_program_id": "program-b",
+            "active_program_id": "program-a",
+            "full_program": ["B Session": ["Curl": "3x10"]],
+        ])
+
+        XCTAssertEqual(vm.selectedProgramId, "program-b")
+        XCTAssertEqual(vm.loadedProgramId, "program-b")
+        XCTAssertEqual(vm.activeProgramId, "program-a")
+        XCTAssertEqual(vm.orderedSeances, ["B Session"])
     }
 
     // MARK: - Doctrine dérivée : orderedSeances (D5, planning = source unique)
@@ -101,6 +128,16 @@ final class ProgrammeViewModelTests: XCTestCase {
         let vm = ProgrammeViewModel()
         vm.fullProgram = ["Push A": [:], "Aardvark": [:], "Legs": [:]]
         XCTAssertEqual(vm.orderedSeances, ["Aardvark", "Legs", "Push A"])
+    }
+
+    func test_orderedSeances_nonActiveSelectionIgnoresActivePlanning() {
+        let vm = ProgrammeViewModel()
+        vm.selectedProgramId = "program-b"
+        vm.activeProgramId = "program-a"
+        vm.fullProgram = ["B Two": [:], "B One": [:]]
+        vm.schedule = ["Lun": "Session A"]
+
+        XCTAssertEqual(vm.orderedSeances, ["B One", "B Two"])
     }
 
     /// Réactivité : createSeance ajoute une clé à fullProgram — sans schedule,

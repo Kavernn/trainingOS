@@ -111,7 +111,7 @@ def make_db_store():
         store["inventory"] = inv
         return True
 
-    def delete_program_session(name):
+    def delete_program_session(name, program_id=None):
         prog = store.get("program", {})
         prog.pop(name, None)
         store["program"] = prog

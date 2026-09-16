@@ -874,7 +874,7 @@ def make_store():
                 result.setdefault(d, []).append(row)
         return result
 
-    def delete_program_session(seance):
+    def delete_program_session(seance, program_id=None):
         program = store.get("program", {})
         if seance in program:
             del program[seance]

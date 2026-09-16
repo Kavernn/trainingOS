@@ -4,9 +4,9 @@ import logging
 logger = logging.getLogger("trainingos")
 workout_programs_bp = Blueprint("workout_programs", __name__)
 
-# Actions mutantes de POST /api/programme. Un payload ciblant un program_id !=
-# actif est refusé 409 par le garde en tête d'api_programme — évite qu'un client
-# cache-stale corrompe silencieusement le mauvais programme.
+# Actions mutantes de POST /api/programme. Un `program_id` explicite cible le
+# programme consulté dans Structure ; en son absence, compatibilité historique
+# sur le programme actif.
 MUTATING_ACTIONS = frozenset({
     "create_seance", "delete_seance", "rename", "reorder_sessions",
     "add", "remove", "scheme", "replace", "reorder",
@@ -74,21 +74,17 @@ def api_programme():
     jour       = data.get("jour")
     program_id = data.get("program_id") or None
 
-    # Garde fail-fast unique : toute mutation cible le programme actif, ou 409.
-    # Sortie garantie : program_id == active_pid (validé ou défaut). Aucun
-    # fallback get_default_program_id silencieux atteint depuis les branches
-    # mutantes en aval.
+    # Structure peut éditer le contenu d'un programme non actif. Un ID explicite
+    # est donc autoritaire ; seul un appel legacy sans ID retombe sur l'actif.
+    # Le planning hebdomadaire reste, lui, global et actif-only via ses routes
+    # dédiées — ce endpoint ne modifie jamais weekly_schedule directement.
     if action in MUTATING_ACTIONS:
-        active_pid = _db.get_active_program_id()
-        if program_id is not None and program_id != active_pid:
-            return jsonify({
-                "error": "program_inactive",
-                "detail": "Mutation refusée : le programme ciblé n'est pas le programme actif.",
-                "active_program_id": active_pid,
-                "requested_program_id": program_id,
-            }), 409
         if program_id is None:
-            program_id = active_pid
+            program_id = _db.get_active_program_id()
+        else:
+            known_programs = _db.get_all_programs()
+            if known_programs and not any(p.get("id") == program_id for p in known_programs):
+                return jsonify({"error": "program_not_found"}), 404
 
     if action == "create_seance":
         seance_name = (jour or "").strip()
@@ -116,7 +112,7 @@ def api_programme():
     if action == "delete_seance":
         if not jour:
             return jsonify({"error": "jour manquant"}), 400
-        ok = _db.delete_program_session(jour)
+        ok = _db.delete_program_session(jour, program_id)
         return jsonify({"success": ok})
 
     if action == "rename":

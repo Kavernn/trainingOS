@@ -304,8 +304,13 @@ def api_programme_data():
     from inventory import load_inventory, add_exercise
     from blocks import get_strength_exercises
 
-    program_id = request.args.get("program_id") or _db.get_active_program_id()
-    full_program = _db.get_full_program(program_id) or load_program()
+    active_program_id = _db.get_active_program_id()
+    program_id = request.args.get("program_id") or active_program_id
+    relational_program = _db.get_full_program(program_id)
+    # Un programme valide peut être vide. Seule l'indisponibilité relationnelle
+    # (`None`) autorise le fallback legacy ; `{}` ne doit jamais charger l'actif
+    # à la place d'un programme explicitement consulté.
+    full_program = relational_program if relational_program is not None else load_program()
     schedule     = get_week_schedule()
     inventory    = load_inventory()
     programs     = _db.get_all_programs()
@@ -362,7 +367,11 @@ def api_programme_data():
         "inventory_1rm":       inventory_1rm,
         "exercise_order":      exercise_order,
         "programs":            programs,
+        # `current_program_id` reste l'identifiant du programme chargé pour
+        # compatibilité. L'actif réel est exposé séparément : une consultation
+        # explicite ne doit jamais ressembler à une activation.
         "current_program_id":  program_id,
+        "active_program_id":   active_program_id,
         "all_sessions":        all_sessions,
         # Miroir du champ dashboard — ProgrammeVM charge programme_data et lit ici,
         # évite un fetch dashboard séparé pour la card Mésocycle.

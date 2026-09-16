@@ -259,7 +259,16 @@ struct ProgrammeView: View {
     // (dayNames, canonicalSeanceOrder, muscleMEV/MAV) dans TrainingDoctrine.swift.
 
     private func isScheduledThisWeek(_ s: String) -> Bool {
+        guard vm.selectedProgramId == vm.activeProgramId else { return false }
         vm.schedule.values.contains(s) || vm.eveningSchedule.values.contains(s)
+    }
+
+    private var isSelectedProgramActive: Bool {
+        !vm.selectedProgramId.isEmpty && vm.selectedProgramId == vm.activeProgramId
+    }
+
+    private var expectedVisibleProgramId: String {
+        selectedTab == .structure ? vm.selectedProgramId : vm.activeProgramId
     }
 
     private var todaySessionName: String? {
@@ -306,10 +315,12 @@ struct ProgrammeView: View {
     // Assignation AM/PM depuis les rows Structure. nil = vider le créneau.
     // AM : "Repos" est la convention "pas de séance" côté schedule ; PM : suppression clé.
     private func assignAM(seance: String?) {
+        guard isSelectedProgramActive else { return }
         vm.schedule[selectedDay] = seance ?? "Repos"
         Task { await vm.saveSchedule() }
     }
     private func assignPM(seance: String?) {
+        guard isSelectedProgramActive else { return }
         if let s = seance { vm.eveningSchedule[selectedDay] = s }
         else { vm.eveningSchedule.removeValue(forKey: selectedDay) }
         Task { await vm.saveEveningSchedule() }
@@ -326,10 +337,15 @@ struct ProgrammeView: View {
                 } else {
                     VStack(spacing: 0) {
                         segmentedControl
-                        switch selectedTab {
-                        case .today:     todayContent
-                        case .week:      weekContent
-                        case .structure: structureContent
+                        if !expectedVisibleProgramId.isEmpty,
+                           vm.loadedProgramId != expectedVisibleProgramId {
+                            programmeContextLoadError
+                        } else {
+                            switch selectedTab {
+                            case .today:     todayContent
+                            case .week:      weekContent
+                            case .structure: structureContent
+                            }
                         }
                     }
                 }
@@ -527,8 +543,18 @@ struct ProgrammeView: View {
             if phase != .active { commitPendingDelete() }
         }
         .onChange(of: vm.selectedProgramId) { _, newId in
-            guard !newId.isEmpty else { return }
+            guard selectedTab == .structure, !newId.isEmpty else { return }
+            vm.isLoading = true
             Task { await vm.loadData(programId: newId); await vm.loadSuggestions() }
+        }
+        .onChange(of: selectedTab) { _, newTab in
+            let targetId = newTab == .structure ? vm.selectedProgramId : vm.activeProgramId
+            guard !targetId.isEmpty, targetId != vm.loadedProgramId else { return }
+            vm.isLoading = true
+            Task {
+                await vm.loadData(programId: targetId)
+                await vm.loadSuggestions()
+            }
         }
         // Rafraîchit inventory/inventorySchemes à l'ouverture d'AddExerciseSheet.
         // Résout le cas "exo fraîchement créé au catalogue absent du mapping local"
@@ -536,7 +562,9 @@ struct ProgrammeView: View {
         // Pattern budget : refresh au call site du bouton, pas d'infra de publisher.
         .onChange(of: addTarget?.id) { _, newId in
             guard newId != nil else { return }
-            Task { await vm.loadData() }
+            Task {
+                await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
+            }
         }
     }
 
@@ -747,6 +775,26 @@ struct ProgrammeView: View {
         .padding(.top, 4)
     }
 
+    private var programmeContextLoadError: some View {
+        VStack(spacing: 12) {
+            Text("Impossible de charger ce programme.")
+                .font(.appBody.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+            Button("Réessayer") {
+                Task {
+                    await vm.loadData(programId: expectedVisibleProgramId.isEmpty ? nil : expectedVisibleProgramId)
+                    await vm.loadSuggestions()
+                }
+            }
+            .font(.appLabel.weight(.semibold))
+            .foregroundColor(.forge)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .padding(.horizontal, .appPagePadding)
+        .accessibilityElement(children: .contain)
+    }
+
     // MARK: - Tab Aujourd'hui
 
     private var todayContent: some View {
@@ -767,7 +815,7 @@ struct ProgrammeView: View {
         .refreshable {
             CacheService.shared.clear(for: "programme_data")
             seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? []
-            await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
+            await vm.loadData(programId: vm.activeProgramId.isEmpty ? nil : vm.activeProgramId)
         }
     }
 
@@ -887,6 +935,10 @@ struct ProgrammeView: View {
                     .font(.appLabel).foregroundColor(.appTextSecondary)
                     .accessibilityHidden(true)
                 Button {
+                    if !vm.activeProgramId.isEmpty {
+                        vm.userDidSelect = true
+                        vm.selectedProgramId = vm.activeProgramId
+                    }
                     withAnimation { selectedTab = .structure }
                 } label: {
                     HStack(spacing: 6) {
@@ -1114,6 +1166,10 @@ struct ProgrammeView: View {
 
     private func openInStructure(_ seance: String?) {
         guard let s = seance else { return }
+        if !vm.activeProgramId.isEmpty {
+            vm.userDidSelect = true
+            vm.selectedProgramId = vm.activeProgramId
+        }
         expandedSeance = s
         withAnimation { selectedTab = .structure }
     }
@@ -1367,6 +1423,88 @@ struct ProgrammeView: View {
         }
     }
 
+    private var activateSelectedProgramButton: some View {
+        Button {
+            Task { await vm.setActiveProgramme() }
+        } label: {
+            HStack(spacing: 8) {
+                if vm.isSettingActive {
+                    ProgressView().tint(.appSuccess).scaleEffect(0.8)
+                } else {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.appLabel.weight(.regular))
+                }
+                Text("Définir comme programme actif")
+                    .font(.appLabel.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(Color.appSuccess.opacity(0.15))
+            .foregroundColor(.appSuccess)
+            .cornerRadius(.appCardRadius)
+            .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.appSuccess.opacity(0.3), lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(vm.isSettingActive)
+        .accessibilityHint("Active ce programme et permet de modifier son planning.")
+    }
+
+    private var activePlanningEditor: some View {
+        Group {
+            WeekPillsCard(
+                schedule: vm.schedule,
+                eveningSchedule: vm.eveningSchedule,
+                dayNames: TrainingDoctrine.dayNames,
+                todayDayName: todayDayName,
+                selectedDay: $selectedDay
+            )
+            .padding(.horizontal, .appPagePadding)
+
+            HStack(spacing: 8) {
+                Text(selectedDayDisplayName)
+                    .font(.appCaption.weight(.bold))
+                    .tracking(1)
+                    .foregroundColor(selectedDay == todayDayName ? .forge : .appTextPrimary)
+                if selectedDay == todayDayName {
+                    Text("AUJOURD'HUI")
+                        .font(.appMicro.weight(.black))
+                        .tracking(1)
+                        .foregroundColor(.forge)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color.forge.opacity(0.12))
+                        .cornerRadius(5)
+                }
+                Spacer()
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                selectedDay == todayDayName
+                    ? "\(selectedDayDisplayName.capitalized), aujourd’hui."
+                    : "\(selectedDayDisplayName.capitalized)."
+            )
+            .padding(.horizontal, .appPagePadding)
+
+            StructurePlanningSlotRow(
+                moment: .am,
+                seance: amSeanceForSelectedDay,
+                exerciseCount: amExercisesForSelectedDay.count,
+                sessionsList: sessionsList,
+                onPick: { assignAM(seance: $0) }
+            )
+            .padding(.horizontal, .appPagePadding)
+
+            StructurePlanningSlotRow(
+                moment: .pm,
+                seance: pmSeanceForSelectedDay,
+                exerciseCount: pmExercisesForSelectedDay.count,
+                sessionsList: sessionsList,
+                onPick: { assignPM(seance: $0) }
+            )
+            .padding(.horizontal, .appPagePadding)
+        }
+    }
+
     private var structureContent: some View {
         ScrollViewReader { proxy in
         ScrollView {
@@ -1390,32 +1528,6 @@ struct ProgrammeView: View {
                     )
                     .padding(.horizontal, .appPagePadding)
 
-                    if !vm.selectedProgramId.isEmpty, vm.selectedProgramId != vm.activeProgramId {
-                        Button {
-                            Task { await vm.setActiveProgramme() }
-                        } label: {
-                            HStack(spacing: 8) {
-                                if vm.isSettingActive {
-                                    ProgressView().tint(.appSuccess).scaleEffect(0.8)
-                                } else {
-                                    Image(systemName: "checkmark.seal.fill")
-                                        .font(.appLabel.weight(.regular))
-                                }
-                                Text("Définir comme programme actif")
-                                    .font(.appLabel.weight(.semibold))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.appSuccess.opacity(0.15))
-                            .foregroundColor(.appSuccess)
-                            .cornerRadius(.appCardRadius)
-                            .overlay(RoundedRectangle(cornerRadius: .appCardRadius).stroke(Color.appSuccess.opacity(0.3), lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(vm.isSettingActive)
-                        .padding(.horizontal, .appPagePadding)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    }
                 }
 
                 // ── Clipboard (si non-vide) ───────────────────────
@@ -1474,57 +1586,22 @@ struct ProgrammeView: View {
                             .foregroundColor(.appTextSecondary)
                     }
                     .padding(.horizontal, .appPagePadding)
-                    WeekPillsCard(
-                        schedule: vm.schedule,
-                        eveningSchedule: vm.eveningSchedule,
-                        dayNames: TrainingDoctrine.dayNames,
-                        todayDayName: todayDayName,
-                        selectedDay: $selectedDay
-                    )
-                    .padding(.horizontal, .appPagePadding)
-
-                    HStack(spacing: 8) {
-                        Text(selectedDayDisplayName)
-                            .font(.appCaption.weight(.bold))
-                            .tracking(1)
-                            .foregroundColor(selectedDay == todayDayName ? .forge : .appTextPrimary)
-                        if selectedDay == todayDayName {
-                            Text("AUJOURD'HUI")
-                                .font(.appMicro.weight(.black))
-                                .tracking(1)
-                                .foregroundColor(.forge)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(Color.forge.opacity(0.12))
-                                .cornerRadius(5)
+                    if isSelectedProgramActive {
+                        activePlanningEditor
+                    } else {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label("Active ce programme pour modifier son planning.",
+                                  systemImage: "lock.fill")
+                                .font(.appLabel)
+                                .foregroundColor(.appTextSecondary)
+                                .accessibilityLabel("Planning non modifiable. Active ce programme pour modifier son planning.")
+                            activateSelectedProgramButton
                         }
-                        Spacer()
+                        .padding(.horizontal, .appCardInsetH)
+                        .padding(.vertical, .appCardInsetV)
+                        .glassCard()
+                        .padding(.horizontal, .appPagePadding)
                     }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(
-                        selectedDay == todayDayName
-                            ? "\(selectedDayDisplayName.capitalized), aujourd’hui."
-                            : "\(selectedDayDisplayName.capitalized)."
-                    )
-                    .padding(.horizontal, .appPagePadding)
-
-                    StructurePlanningSlotRow(
-                        moment: .am,
-                        seance: amSeanceForSelectedDay,
-                        exerciseCount: amExercisesForSelectedDay.count,
-                        sessionsList: sessionsList,
-                        onPick: { assignAM(seance: $0) }
-                    )
-                    .padding(.horizontal, .appPagePadding)
-
-                    StructurePlanningSlotRow(
-                        moment: .pm,
-                        seance: pmSeanceForSelectedDay,
-                        exerciseCount: pmExercisesForSelectedDay.count,
-                        sessionsList: sessionsList,
-                        onPick: { assignPM(seance: $0) }
-                    )
-                    .padding(.horizontal, .appPagePadding)
                 }
 
                 // ── SÉANCES ───────────────────────────────────────
