@@ -3,21 +3,7 @@ import SwiftUI
 struct DisplaySettingsView: View {
     @ObservedObject private var units  = UnitSettings.shared
     @ObservedObject private var theme  = AppTheme.shared
-    @AppStorage("steps_daily_goal")   private var stepsGoal: Int = 10000
-    @AppStorage("hydration_goal_ml")  private var hydrationGoal: Int = 2500
     @AppStorage(HeroMoodPreference.storageKey) private var heroMoodRawValue = HeroMoodPreference.currentRawValue
-
-    private let stepsOptions = [5000, 7500, 8000, 10000, 12000, 15000]
-
-    private var hydrationLabel: String {
-        if hydrationGoal >= 1000 {
-            let l = Double(hydrationGoal) / 1000.0
-            return l.truncatingRemainder(dividingBy: 1) == 0
-                ? "\(Int(l)) L"
-                : String(format: "%.1f L", l)
-        }
-        return "\(hydrationGoal) mL"
-    }
 
     var body: some View {
         ZStack {
@@ -69,7 +55,7 @@ struct DisplaySettingsView: View {
                     .padding(.vertical, 4)
                 }
                 header: {
-                    Text("Hero du tableau de bord")
+                    Text("Atmosphère du tableau de bord")
                 }
                 .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
@@ -96,60 +82,11 @@ struct DisplaySettingsView: View {
                 }
                 .listRowBackground(Color.appCard.id(theme.selectedTheme))
                 .listRowSeparatorTint(Color.appSeparator)
-
-                Section("Activité") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 12) {
-                            settingsIcon("figure.walk", color: .statusGreen)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Objectif de pas quotidien").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
-                                Text("Affiché dans le tableau de bord santé").font(.appCaption).foregroundColor(.gray.opacity(0.55))
-                            }
-                            Spacer()
-                            Text(stepsGoal.formatted())
-                                .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.statusGreen)
-                        }
-
-                        Picker("Objectif de pas", selection: $stepsGoal) {
-                            ForEach(stepsOptions, id: \.self) { n in
-                                Text(n.formatted()).tag(n)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                    .padding(.vertical, 4)
-                }
-                .listRowBackground(Color.appCard.id(theme.selectedTheme))
-                .listRowSeparatorTint(Color.appSeparator)
-
-                Section("Nutrition") {
-                    HStack(spacing: 12) {
-                        settingsIcon("drop.fill", color: .statusBlue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Objectif d'hydratation").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
-                            Text("Non encore connecté au suivi — disponible bientôt").font(.appCaption).foregroundColor(.gray.opacity(0.55))
-                        }
-                        Spacer()
-                        Stepper(
-                            value: $hydrationGoal,
-                            in: 1000...5000,
-                            step: 250
-                        ) {
-                            Text(hydrationLabel)
-                                .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.appTextPrimary)
-                        }
-                    }
-                    .padding(.vertical, 3)
-                }
-                .listRowBackground(Color.appCard.id(theme.selectedTheme))
-                .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Affichage & Unités")
+        .navigationTitle("Affichage")
         .navigationBarTitleDisplayMode(.large)
     }
 
