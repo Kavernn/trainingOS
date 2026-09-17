@@ -1549,7 +1549,7 @@ struct WorkoutSeanceView: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-        ScrollView {
+        let content = ScrollView {
             VStack(spacing: 16) {
                 // Session command strip
                 VStack(alignment: .leading, spacing: 12) {
@@ -1881,27 +1881,7 @@ struct WorkoutSeanceView: View {
                 Text("Tous les exercices sont loggués.")
             }
         }
-        // PM partielle : "Reprendre plus tard" persiste les exos sans écrire completed=True
-        // (bloc PM reste visible dans SeanceView, cf. showEveningBlock L132). "Clore" bascule
-        // sur FinishSessionSheet (chemin existant : RPE + logSession completed=True).
-        .confirmationDialog(
-            "Séance partielle · \(partialDoneCount)/\(partialTotalCount) exercices",
-            isPresented: $showPartialSecondDialog,
-            titleVisibility: .visible
-        ) {
-            Button("Reprendre plus tard") {
-                // Dismiss APRÈS await finish : vue reste montée pendant la boucle
-                // logExercise, vm retenu par @StateObject (pas seulement la capture Task),
-                // spinner isFinishing visible, submitError → alert avant dismiss. Aligné
-                // sur le pattern AM/bonus (WorkoutActiveView.swift:1597, BonusSeanceView.swift:360).
-                Task {
-                    await vm.finish(rpe: 0, comment: "", sessionName: data.today, closeSession: false)
-                    await MainActor.run { dismiss() }
-                }
-            }
-            Button("Clore la séance") { showFinish = true }
-            Button("Annuler", role: .cancel) {}
-        }
+        partialSecondSessionDialog(content)
         // W-D11 — abandon session alert
         .alert("Quitter la séance ?", isPresented: $showAbandonAlert) {
             if vm.logResults.count > 0 {
@@ -1932,38 +1912,7 @@ struct WorkoutSeanceView: View {
         }
         .sheet(isPresented: $showSwapSheet) { swapSheet }
         .sheet(isPresented: $showCreateVariant) { createVariantSheet }
-        .onAppear {
-            // W-C3 — restore ghost dismissal state for this session
-            if UserDefaults.standard.bool(forKey: "ghostDismissed_\(data.today)") {
-                showGhost = false
-            }
-            guard inventory.isEmpty else { return }
-            Task {
-                await loadInventory()
-                await loadReadiness()
-                let weights = data.weights
-                let programExercises = Set(data.fullProgram.values.flatMap { $0.keys })
-                if let cutoff = Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) {
-                    let cutoffStr = DateFormatter.isoDate.string(from: cutoff)
-                    recentAdHocExercises = await Task.detached(priority: .utility) { () -> [String] in
-                        let filtered = weights.filter { (name: String, wd: WeightData) -> Bool in
-                            !programExercises.contains(name) && (wd.lastLogged ?? "") >= cutoffStr
-                        }
-                        let sorted = filtered.sorted { a, b in (a.value.lastLogged ?? "") > (b.value.lastLogged ?? "") }
-                        return sorted.prefix(5).map(\.key)
-                    }.value
-                }
-                await MainActor.run {
-                    guard expandedExercises.isEmpty else { return }
-                    let logged = Set(vm.logResults.keys)
-                    if let first = exercises.first(where: { !logged.contains($0.0) })?.0 {
-                        expandedExercises.insert(first)
-                        lastOpenedExercise = first
-                    }
-                }
-            }
-            computeGhost()
-        }
+        .onAppear(perform: handleWorkoutAppear)
         .onChange(of: data.inventoryTypes) { fresh in
             if !fresh.isEmpty { inventoryTypes = fresh }
         }
@@ -2019,6 +1968,86 @@ struct WorkoutSeanceView: View {
             }
         }
         } // end ScrollViewReader
+    }
+
+    // Opaque view boundary: keep the large body modifier chain tractable for Swift's
+    // type checker while preserving the dialog's position in the modifier order.
+    private func partialSecondSessionDialog<Content: View>(_ content: Content) -> some View {
+        content.confirmationDialog(
+            partialSecondSessionDialogTitle,
+            isPresented: $showPartialSecondDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Reprendre plus tard", action: resumePartialSecondSession)
+            Button("Clore la séance") { showFinish = true }
+            Button("Annuler", role: .cancel) {}
+        }
+    }
+
+    private var partialSecondSessionDialogTitle: String {
+        "Séance partielle · \(partialDoneCount)/\(partialTotalCount) exercices"
+    }
+
+    private func resumePartialSecondSession() {
+        // Dismiss APRÈS await finish : vue reste montée pendant la boucle
+        // logExercise, vm retenu par @StateObject (pas seulement la capture Task),
+        // spinner isFinishing visible, submitError → alert avant dismiss.
+        Task {
+            await vm.finish(rpe: 0, comment: "", sessionName: data.today, closeSession: false)
+            await MainActor.run { dismiss() }
+        }
+    }
+
+    private func handleWorkoutAppear() {
+        // W-C3 — restore ghost dismissal state for this session
+        if UserDefaults.standard.bool(forKey: "ghostDismissed_\(data.today)") {
+            showGhost = false
+        }
+        guard inventory.isEmpty else { return }
+        Task { await prepareWorkoutInventory() }
+        computeGhost()
+    }
+
+    private func prepareWorkoutInventory() async {
+        await loadInventory()
+        await loadReadiness()
+
+        let weights = data.weights
+        let programExercises = Set(data.fullProgram.values.flatMap { $0.keys })
+        if let cutoff = Calendar.mtl.date(byAdding: .day, value: -30, to: Date()) {
+            let cutoffString = DateFormatter.isoDate.string(from: cutoff)
+            let recentExercises = await recentAdHocExercises(
+                in: weights,
+                excluding: programExercises,
+                since: cutoffString
+            )
+            await MainActor.run { recentAdHocExercises = recentExercises }
+        }
+
+        await MainActor.run {
+            guard expandedExercises.isEmpty else { return }
+            let loggedExercises = Set(vm.logResults.keys)
+            if let first = exercises.first(where: { !loggedExercises.contains($0.0) })?.0 {
+                expandedExercises.insert(first)
+                lastOpenedExercise = first
+            }
+        }
+    }
+
+    private func recentAdHocExercises(
+        in weights: [String: WeightData],
+        excluding programExercises: Set<String>,
+        since cutoffString: String
+    ) async -> [String] {
+        await Task.detached(priority: .utility) {
+            let filtered = weights.filter { name, weightData in
+                !programExercises.contains(name) && (weightData.lastLogged ?? "") >= cutoffString
+            }
+            let sorted = filtered.sorted {
+                ($0.value.lastLogged ?? "") > ($1.value.lastLogged ?? "")
+            }
+            return sorted.prefix(5).map(\.key)
+        }.value
     }
 
     private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
