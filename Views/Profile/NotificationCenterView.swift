@@ -2,6 +2,9 @@ import SwiftUI
 import UserNotifications
 
 struct NotificationCenterView: View {
+    @Environment(\.scenePhase) private var scenePhase
+
+    @State private var authorizationStatus: UNAuthorizationStatus?
 
     // MARK: - Global
     @AppStorage("notif_all_disabled") private var allDisabled = false
@@ -80,6 +83,7 @@ struct NotificationCenterView: View {
             AmbientBackground(color: .statusPurple)
 
             List {
+                authorizationSection
                 globalSection
                 if !allDisabled {
                     seanceSection
@@ -94,9 +98,57 @@ struct NotificationCenterView: View {
         }
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.large)
+        .onAppear { refreshAuthorizationStatus() }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                refreshAuthorizationStatus()
+            }
+        }
     }
 
     // MARK: - Sections
+
+    private var authorizationSection: some View {
+        Section("Autorisation système") {
+            HStack(spacing: 12) {
+                Image(systemName: authorizationDetails.icon)
+                    .font(.appBody.weight(.semibold))
+                    .foregroundColor(authorizationDetails.color)
+                    .frame(width: 30, height: 30)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(authorizationDetails.title)
+                        .font(.appBody.weight(.medium))
+                        .foregroundColor(.appTextPrimary)
+                    Text(authorizationDetails.message)
+                        .font(.appCaption)
+                        .foregroundColor(.appTextSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.vertical, 3)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Autorisation système")
+            .accessibilityValue("\(authorizationDetails.title). \(authorizationDetails.message)")
+
+            if authorizationStatus == .notDetermined {
+                authorizationButton(
+                    title: "Autoriser les notifications",
+                    icon: "bell.badge.fill",
+                    action: requestAuthorization
+                )
+            } else if authorizationStatus == .denied {
+                authorizationButton(
+                    title: "Ouvrir Réglages",
+                    icon: "arrow.up.right.square",
+                    action: openAppSettings
+                )
+            }
+        }
+        .listRowBackground(Color.appCard)
+        .listRowSeparatorTint(Color.appSeparator)
+    }
 
     private var globalSection: some View {
         Section {
@@ -267,6 +319,107 @@ notifToggle(icon: "staroflife.fill", color: .indigo,
     }
 
     // MARK: - Helpers
+
+    private var authorizationDetails: (title: String, message: String, icon: String, color: Color) {
+        guard let authorizationStatus else {
+            return (
+                "Vérification…",
+                "Lecture de l’autorisation iOS en cours.",
+                "hourglass",
+                .statusBlue
+            )
+        }
+
+        switch authorizationStatus {
+        case .notDetermined:
+            return (
+                "À autoriser",
+                "Autorise les notifications pour que les rappels puissent fonctionner.",
+                "bell.badge.fill",
+                .statusBlue
+            )
+        case .denied:
+            return (
+                "Désactivé dans iOS",
+                "Tes préférences sont enregistrées, mais iOS bloque actuellement leur livraison.",
+                "bell.slash.fill",
+                .statusRed
+            )
+        case .authorized:
+            return (
+                "Autorisé",
+                "Les notifications peuvent être livrées par iOS.",
+                "checkmark.circle.fill",
+                .statusGreen
+            )
+        case .provisional:
+            return (
+                "Autorisation limitée",
+                "iOS autorise provisoirement la livraison des notifications.",
+                "bell.badge.fill",
+                .statusYellow
+            )
+        case .ephemeral:
+            return (
+                "Autorisation temporaire",
+                "iOS autorise temporairement la livraison des notifications.",
+                "clock.fill",
+                .statusYellow
+            )
+        @unknown default:
+            return (
+                "État système inconnu",
+                "L’autorisation iOS n’a pas pu être identifiée.",
+                "questionmark.circle.fill",
+                .statusYellow
+            )
+        }
+    }
+
+    private func authorizationButton(
+        title: String,
+        icon: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Text(title)
+                    .font(.appBody.weight(.semibold))
+                    .foregroundColor(Color.forge)
+                Spacer()
+                Image(systemName: icon)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(Color.forge)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+
+    private func refreshAuthorizationStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            Task { @MainActor in
+                authorizationStatus = settings.authorizationStatus
+            }
+        }
+    }
+
+    private func requestAuthorization() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            if granted {
+                NotificationService.scheduleAll()
+            }
+            refreshAuthorizationStatus()
+        }
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
 
     @ViewBuilder
     private func notifToggle(
