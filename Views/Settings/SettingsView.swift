@@ -6,48 +6,40 @@ struct SettingsView: View {
             AmbientBackground(color: .statusPurple)
 
             List {
-                Section("Identité") {
-                    MoreRow(icon: "person.fill", color: .statusPurple,
-                            title: "Mon profil",
-                            subtitle: "Nom, âge, objectif, photo") { ProfileView() }
+                Section("Personnalisation") {
+                    MoreRow(icon: "paintpalette.fill", color: .statusCyan,
+                            title: "Affichage",
+                            subtitle: "Thèmes, atmosphère et unités") { DisplaySettingsView() }
                 }
-                .listRowBackground(glassRowBG(.statusPurple))
+                .listRowBackground(glassRowBG(.statusCyan))
                 .listRowSeparatorTint(Color.appSeparator)
 
-                Section("Entraînement") {
+                Section("Activité & Santé") {
                     MoreRow(icon: "dumbbell.fill", color: Color.forge,
                             title: "Entraînement",
-                            subtitle: "Incréments, échauffement, RIR, timer") { TrainingSettingsView() }
-                    MoreRow(icon: "fork.knife", color: .statusGreen,
-                            title: "Nutrition",
-                            subtitle: "Cibles calories, macros, fenêtre") { NutritionView() }
-                    MoreRow(icon: "figure.run", color: .teal,
+                            subtitle: "Séances, progression et échauffement") { TrainingSettingsView() }
+                    MoreRow(icon: "heart.text.square.fill", color: .statusGreen,
+                            title: "Récupération & Sommeil",
+                            subtitle: "Objectif sommeil, HRV et horaires") { RecoverySettingsView() }
+                    MoreRow(icon: "figure.run", color: .statusCyan,
                             title: "Cardio",
                             subtitle: "FC max, objectif hebdo") { CardioSettingsView() }
+                    MoreRow(icon: "alarm.fill", color: .statusPurple,
+                            title: "Réveil intelligent",
+                            subtitle: "Cycles 90 min, fenêtre personnalisée") { SmartAlarmSettingsView() }
                 }
                 .listRowBackground(glassRowBG(Color.forge))
                 .listRowSeparatorTint(Color.appSeparator)
 
-                Section("Récupération") {
-                    MoreRow(icon: "bed.double.fill", color: .indigo,
-                            title: "Récupération & Sommeil",
-                            subtitle: "Objectif sommeil, HRV, horaires") { RecoverySettingsView() }
-                    MoreRow(icon: "alarm.fill", color: .indigo,
-                            title: "Réveil intelligent",
-                            subtitle: "Cycles 90 min, fenêtre personnalisée") { SmartAlarmSettingsView() }
-                }
-                .listRowBackground(glassRowBG(.indigo))
-                .listRowSeparatorTint(Color.appSeparator)
-
-                Section("Préférences") {
+                Section("Application") {
                     MoreRow(icon: "bell.badge.fill", color: .statusRed,
                             title: "Notifications",
-                            subtitle: "Rappels, horaires, toggles") { NotificationCenterView() }
-                    MoreRow(icon: "heart.text.square.fill", color: .pink,
+                            subtitle: "Rappels et alertes") { NotificationCenterView() }
+                    MoreRow(icon: "externaldrive.fill", color: .statusBlue,
                             title: "Données & Santé",
-                            subtitle: "HealthKit, export") { HealthDataSettingsView() }
+                            subtitle: "HealthKit et données de l’app") { HealthDataSettingsView() }
                 }
-                .listRowBackground(glassRowBG(.statusCyan))
+                .listRowBackground(glassRowBG(.statusBlue))
                 .listRowSeparatorTint(Color.appSeparator)
             }
             .listStyle(.insetGrouped)

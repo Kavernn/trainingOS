@@ -35,13 +35,6 @@ struct MoreView: View {
                     .listRowBackground(glassRowBG(.statusPurple))
                     .listRowSeparatorTint(Color.appSeparator)
 
-                    Section("Apparence") {
-                        MoreRow(icon: "slider.horizontal.3", color: .statusCyan, title: "Affichage & Thème",
-                                subtitle: "Thème, kg/lbs, objectif de pas") { DisplaySettingsView() }
-                    }
-                    .listRowBackground(glassRowBG(.statusCyan))
-                    .listRowSeparatorTint(Color.appSeparator)
-
                     Section("Quotidien") {
                         // RitualView a son propre NavigationStack — fullScreenCover évite la collision
                         Button {
@@ -90,7 +83,7 @@ struct MoreView: View {
 
                     Section("Réglages") {
                         MoreRow(icon: "gearshape.fill",   color: .statusPurple, title: "Paramètres",
-                                subtitle: "Entraînement, nutrition, récupération…") { SettingsView() }
+                                subtitle: "Affichage, entraînement, santé et notifications") { SettingsView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
                     .listRowSeparatorTint(Color.appSeparator)
