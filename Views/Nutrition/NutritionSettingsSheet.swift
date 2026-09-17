@@ -5,6 +5,7 @@ import SwiftUI
 struct NutritionSettingsSheet: View {
     let settings: NutritionSettings?
     var onSaved: () async -> Void
+    var embedsInNavigationStack: Bool
     @Environment(\.dismiss) private var dismiss
 
     @State private var proteines:    String
@@ -21,8 +22,13 @@ struct NutritionSettingsSheet: View {
     @State private var isSaving  = false
     @State private var saveError: String? = nil
 
-    init(settings: NutritionSettings?, onSaved: @escaping () async -> Void) {
+    init(
+        settings: NutritionSettings?,
+        embedsInNavigationStack: Bool = true,
+        onSaved: @escaping () async -> Void
+    ) {
         self.settings = settings
+        self.embedsInNavigationStack = embedsInNavigationStack
         self.onSaved  = onSaved
         let fmt: (Double?) -> String = { v in v.map { "\(Int($0))" } ?? "" }
         let dtt = settings?.dayTypeTargets
@@ -57,59 +63,11 @@ struct NutritionSettingsSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.appBg.ignoresSafeArea()
-                Form {
-                    Section(header: Text("MACROS FIXES (TOUS LES JOURS)")) {
-                        HStack {
-                            TextField("180", text: $proteines).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
-                            Text("g protéines").foregroundColor(Color.statusBlue).font(.appLabel)
-                        }
-                        HStack {
-                            TextField("75", text: $lipides).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
-                            Text("g lipides").foregroundColor(Color.statusRed).font(.appLabel)
-                        }
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    Section(header: Text("OBJECTIFS PAR TYPE DE JOURNÉE")) {
-                        DayTypeRow(icon: "dumbbell.fill",                       color: Color.forge,
-                                   label: "Lourd",    calPlaceholder: "2550",   glucPlaceholder: "270",
-                                   cal: $heavyCal,    gluc: $heavyGluc)
-                        DayTypeRow(icon: "figure.strengthtraining.traditional", color: Color.statusYellow,
-                                   label: "Modéré",   calPlaceholder: "2400",   glucPlaceholder: "235",
-                                   cal: $moderateCal, gluc: $moderateGluc)
-                        DayTypeRow(icon: "figure.arms.open",                    color: Color.statusCyan,
-                                   label: "Léger",    calPlaceholder: "2200",   glucPlaceholder: "185",
-                                   cal: $lightCal,    gluc: $lightGluc)
-                        DayTypeRow(icon: "moon.fill",                           color: Color.statusBlue,
-                                   label: "Repos",    calPlaceholder: "2100",   glucPlaceholder: "160",
-                                   cal: $restCalT,    gluc: $restGluc)
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    Section(header: Text("FENÊTRE NUTRITIONNELLE")) {
-                        DatePicker("Fin de journée", selection: $endTime, displayedComponents: .hourAndMinute)
-                            .foregroundColor(.appTextPrimary)
-                            .tint(Color.forge)
-                    }
-                    .listRowBackground(Color.appCard)
-                }
-                .scrollContentBackground(.hidden)
-                .scrollDismissesKeyboard(.interactively)
-            }
-            .navigationTitle("Objectifs nutrition")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Sauvegarder") { Task { await save() } }
-                        .foregroundColor(Color.forge).fontWeight(.semibold)
-                        .disabled(!canSave || isSaving)
-                }
+        Group {
+            if embedsInNavigationStack {
+                NavigationStack { settingsContent }
+            } else {
+                settingsContent
             }
         }
         .presentationDetents([.medium, .large])
@@ -120,6 +78,64 @@ struct NutritionSettingsSheet: View {
             Button("OK", role: .cancel) { saveError = nil }
         } message: {
             Text(saveError ?? "")
+        }
+    }
+
+    private var settingsContent: some View {
+        ZStack {
+            Color.appBg.ignoresSafeArea()
+            Form {
+                Section(header: Text("MACROS FIXES (TOUS LES JOURS)")) {
+                    HStack {
+                        TextField("180", text: $proteines).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
+                        Text("g protéines").foregroundColor(Color.statusBlue).font(.appLabel)
+                    }
+                    HStack {
+                        TextField("75", text: $lipides).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
+                        Text("g lipides").foregroundColor(Color.statusRed).font(.appLabel)
+                    }
+                }
+                .listRowBackground(Color.appCard)
+
+                Section(header: Text("OBJECTIFS PAR TYPE DE JOURNÉE")) {
+                    DayTypeRow(icon: "dumbbell.fill",                       color: Color.forge,
+                               label: "Lourd",    calPlaceholder: "2550",   glucPlaceholder: "270",
+                               cal: $heavyCal,    gluc: $heavyGluc)
+                    DayTypeRow(icon: "figure.strengthtraining.traditional", color: Color.statusYellow,
+                               label: "Modéré",   calPlaceholder: "2400",   glucPlaceholder: "235",
+                               cal: $moderateCal, gluc: $moderateGluc)
+                    DayTypeRow(icon: "figure.arms.open",                    color: Color.statusCyan,
+                               label: "Léger",    calPlaceholder: "2200",   glucPlaceholder: "185",
+                               cal: $lightCal,    gluc: $lightGluc)
+                    DayTypeRow(icon: "moon.fill",                           color: Color.statusBlue,
+                               label: "Repos",    calPlaceholder: "2100",   glucPlaceholder: "160",
+                               cal: $restCalT,    gluc: $restGluc)
+                }
+                .listRowBackground(Color.appCard)
+
+                Section(header: Text("FENÊTRE NUTRITIONNELLE")) {
+                    DatePicker("Fin de journée", selection: $endTime, displayedComponents: .hourAndMinute)
+                        .foregroundColor(.appTextPrimary)
+                        .tint(Color.forge)
+                }
+                .listRowBackground(Color.appCard)
+            }
+            .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .navigationTitle("Objectifs nutrition")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if embedsInNavigationStack {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Sauvegarder") { Task { await save() } }
+                    .foregroundColor(Color.forge).fontWeight(.semibold)
+                    .disabled(!canSave || isSaving)
+            }
         }
     }
 
@@ -151,6 +167,49 @@ struct NutritionSettingsSheet: View {
             saveError = error.localizedDescription
         }
         isSaving = false
+    }
+}
+
+struct NutritionSettingsDestination: View {
+    @State private var settings: NutritionSettings?
+    @State private var isLoading = true
+    @State private var loadError: String?
+
+    var body: some View {
+        Group {
+            if isLoading {
+                AppLoadingView()
+            } else if let loadError {
+                VStack(spacing: 16) {
+                    Text(loadError)
+                        .font(.appBody)
+                        .foregroundColor(.appTextSecondary)
+                        .multilineTextAlignment(.center)
+                    Button("Réessayer") { Task { await loadSettings() } }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.forge)
+                }
+                .padding(24)
+            } else {
+                NutritionSettingsSheet(
+                    settings: settings,
+                    embedsInNavigationStack: false,
+                    onSaved: {}
+                )
+            }
+        }
+        .task { await loadSettings() }
+    }
+
+    private func loadSettings() async {
+        isLoading = true
+        loadError = nil
+        do {
+            settings = try await APIService.shared.fetchNutritionDetail().settings
+        } catch {
+            loadError = "Impossible de charger les réglages Nutrition."
+        }
+        isLoading = false
     }
 }
 

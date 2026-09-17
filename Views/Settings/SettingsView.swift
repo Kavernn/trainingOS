@@ -18,6 +18,9 @@ struct SettingsView: View {
                     MoreRow(icon: "dumbbell.fill", color: Color.forge,
                             title: "Entraînement",
                             subtitle: "Séances, progression et échauffement") { TrainingSettingsView() }
+                    MoreRow(icon: "fork.knife", color: .statusYellow,
+                            title: "Nutrition",
+                            subtitle: "Macros, cibles et journée nutritionnelle") { NutritionSettingsDestination() }
                     MoreRow(icon: "heart.text.square.fill", color: .statusGreen,
                             title: "Récupération & Sommeil",
                             subtitle: "Objectif sommeil, HRV et horaires") { RecoverySettingsView() }

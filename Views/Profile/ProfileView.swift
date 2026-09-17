@@ -876,12 +876,8 @@ struct ProfileView: View {
     private func exportData() async {
         isExporting = true
         defer { isExporting = false }
-        guard let url = URL(string: "\(APIConfig.base)/api/export_data"),
-              let (data, _) = try? await URLSession.authed.data(from: url) else { return }
-        let tmp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("trainingos_export_\(DateFormatter.isoDate.string(from: Date())).json")
-        try? data.write(to: tmp)
-        await MainActor.run { exportURL = tmp; showExportShare = true }
+        guard let url = try? await UserDataExporter.export() else { return }
+        await MainActor.run { exportURL = url; showExportShare = true }
     }
 
     private func loadSelectedPhoto() async {
@@ -1072,6 +1068,19 @@ struct CameraView: UIViewControllerRepresentable {
 }
 
 // MARK: - Share Sheet
+
+enum UserDataExporter {
+    static func export() async throws -> URL {
+        guard let url = URL(string: "\(APIConfig.base)/api/export_data") else {
+            throw URLError(.badURL)
+        }
+        let (data, _) = try await URLSession.authed.data(from: url)
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("trainingos_export_\(DateFormatter.isoDate.string(from: Date())).json")
+        try data.write(to: destination, options: .atomic)
+        return destination
+    }
+}
 
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
