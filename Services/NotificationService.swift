@@ -400,10 +400,10 @@ enum NotificationService {
         let center = UNUserNotificationCenter.current()
         let id = "war_room.daily.checkin"
         center.removePendingNotificationRequests(withIdentifiers: [id])
-        guard isEnabled else { return }
+        guard !globalDisabled, isEnabled else { return }
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
+            guard !globalDisabled, settings.authorizationStatus == .authorized else { return }
 
             let content = UNMutableNotificationContent()
             content.title = "War Room — journée terminée ?"
@@ -529,6 +529,7 @@ enum NotificationService {
 
     /// Schedules calendar-exact notifications for season milestones if not yet passed.
     static func scheduleSeasonMilestones(seasonStartISO: String, seasonNumber: Int) {
+        guard !globalDisabled else { return }
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
         guard let start = f.date(from: String(seasonStartISO.prefix(10))) else { return }
         let center = UNUserNotificationCenter.current()
@@ -548,7 +549,7 @@ enum NotificationService {
         ]
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
+            guard !globalDisabled, settings.authorizationStatus == .authorized else { return }
             for (day, id, title, body) in milestones {
                 let fireDate = Calendar.current.safeDateByAdding(.day, value: day - 1, to: start)
                 guard fireDate > Date() else { continue }
