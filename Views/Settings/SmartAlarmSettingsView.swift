@@ -22,12 +22,10 @@ struct SmartAlarmSettingsView: View {
                 if service.isEnabled {
                     Section("Fenêtre de réveil") {
                         DatePicker("Début", selection: $windowStartDate, displayedComponents: .hourAndMinute)
-                            .colorScheme(.dark)
                             .foregroundColor(.appTextPrimary)
                             .onChange(of: windowStartDate) { _, _ in commitWindowChange() }
 
                         DatePicker("Fin", selection: $windowEndDate, displayedComponents: .hourAndMinute)
-                            .colorScheme(.dark)
                             .foregroundColor(.appTextPrimary)
                             .onChange(of: windowEndDate) { _, _ in commitWindowChange() }
                     }

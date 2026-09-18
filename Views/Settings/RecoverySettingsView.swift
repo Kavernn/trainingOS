@@ -79,11 +79,13 @@ struct RecoverySettingsView: View {
                                     Image(systemName: "checkmark")
                                         .font(.appLabel.weight(.semibold))
                                         .foregroundColor(Color.forge)
+                                        .accessibilityHidden(true)
                                 }
                             }
                             .padding(.vertical, 3)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(hrvSensitivity == option.id ? .isSelected : [])
                     }
                     Text("Influence les alertes HRV (vert / orange / rouge) dans le tableau de bord.")
                         .font(.system(size: 12))

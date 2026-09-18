@@ -212,7 +212,7 @@ struct NotificationCenterView: View {
             if ritualMorning {
                 HStack {
                     Spacer().frame(width: 42)
-                    DatePicker("", selection: morningDate, displayedComponents: .hourAndMinute)
+                    DatePicker("Rappel du matin", selection: morningDate, displayedComponents: .hourAndMinute)
                         .environment(\.locale, Locale(identifier: "fr_CA"))
                         .labelsHidden()
                 }
@@ -225,7 +225,7 @@ struct NotificationCenterView: View {
             if ritualEvening {
                 HStack {
                     Spacer().frame(width: 42)
-                    DatePicker("", selection: eveningDate, displayedComponents: .hourAndMinute)
+                    DatePicker("Rappel du soir", selection: eveningDate, displayedComponents: .hourAndMinute)
                         .environment(\.locale, Locale(identifier: "fr_CA"))
                         .labelsHidden()
                 }
@@ -245,7 +245,7 @@ struct NotificationCenterView: View {
             if hrvMorning {
                 HStack {
                     Spacer().frame(width: 42)
-                    DatePicker("", selection: hrvDate, displayedComponents: .hourAndMinute)
+                    DatePicker("Rappel HRV", selection: hrvDate, displayedComponents: .hourAndMinute)
                         .environment(\.locale, Locale(identifier: "fr_CA"))
                         .labelsHidden()
                 }
