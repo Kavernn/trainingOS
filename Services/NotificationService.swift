@@ -66,8 +66,8 @@ enum NotificationService {
         center.removePendingNotificationRequests(withIdentifiers: [id])
 
         let content = UNMutableNotificationContent()
-        content.title = "Full Body aujourd'hui 💪"
-        content.body  = "Pull B + Full Body — c'est vendredi, on envoie."
+        content.title = "Entraînement aujourd'hui 💪"
+        content.body  = "Ton rappel du vendredi est prêt. À toi de jouer."
         content.sound = .default
 
         // Adapt to learned session-end time, clamped to a reasonable training window (6–14h)
