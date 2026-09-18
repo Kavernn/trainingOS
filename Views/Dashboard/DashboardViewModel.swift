@@ -327,7 +327,10 @@ final class DashboardViewModel: ObservableObject {
                         let enabled = config.warStartDate != nil
                         p3.warRoomEnabled = enabled
                         UserDefaults.standard.set(enabled, forKey: "warRoomEnabled")
-                        NotificationService.scheduleWarRoomDailyCheckin(isEnabled: enabled)
+                        let notificationEnabled = NotificationService.isEnabled("notif_on_war_room_checkin")
+                        NotificationService.scheduleWarRoomDailyCheckin(
+                            isEnabled: enabled && notificationEnabled
+                        )
                     }
                 }
                 group.addTask { @MainActor in

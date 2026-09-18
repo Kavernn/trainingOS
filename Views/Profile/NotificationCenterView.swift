@@ -37,7 +37,8 @@ struct NotificationCenterView: View {
     @AppStorage("notif_on_proactive") private var proactive = true
 
     // MARK: - War Room
-    @AppStorage("warRoomEnabled") private var warRoom = false
+    @AppStorage("warRoomEnabled") private var warRoomFunctionalEnabled = false
+    @AppStorage("notif_on_war_room_checkin") private var warRoomCheckinEnabled = true
 
     // MARK: - Time pickers
 
@@ -160,7 +161,9 @@ struct NotificationCenterView: View {
                         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
                     } else {
                         NotificationService.scheduleAll()
-                        NotificationService.scheduleWarRoomDailyCheckin(isEnabled: warRoom)
+                        NotificationService.scheduleWarRoomDailyCheckin(
+                            isEnabled: warRoomFunctionalEnabled && warRoomCheckinEnabled
+                        )
                     }
                 }
             )) {
@@ -306,13 +309,23 @@ notifToggle(icon: "staroflife.fill", color: .indigo,
     private var warRoomSection: some View {
         Section("War Room") {
             notifToggle(icon: "shield.fill", color: Color.forge,
-                        title: "Check-in quotidien",
-                        subtitle: "À 22h — victoire ou défaite",
-                        isOn: $warRoom,
+                        title: "Check-in War Room",
+                        subtitle: warRoomFunctionalEnabled
+                            ? "À 22h — victoire ou défaite"
+                            : "Disponible lorsque War Room est actif",
+                        isOn: $warRoomCheckinEnabled,
                         ids: ["war_room.daily.checkin"],
                         onToggle: { enabled in
-                            NotificationService.scheduleWarRoomDailyCheckin(isEnabled: enabled)
+                            NotificationService.scheduleWarRoomDailyCheckin(
+                                isEnabled: warRoomFunctionalEnabled && enabled
+                            )
                         })
+                .disabled(!warRoomFunctionalEnabled)
+                .accessibilityHint(
+                    warRoomFunctionalEnabled
+                        ? "Active ou désactive le rappel quotidien War Room"
+                        : "Disponible lorsque War Room est actif"
+                )
         }
         .listRowBackground(Color.appCard)
         .listRowSeparatorTint(Color.appSeparator)
