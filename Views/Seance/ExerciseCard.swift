@@ -132,6 +132,14 @@ struct ExerciseCard: View {
     // (migration 094), étape 2 = check local piloté par le parent.
     private var isCheckOnly: Bool { trackingType == "mobility" }
 
+    private var hasSetLevelAction: Bool {
+        switch trackingType {
+        case "reps": return evm.setBySetMode || evm.repCountMode
+        case "carry", "plyo": return evm.setBySetMode
+        default: return false
+        }
+    }
+
     private var weightIncrement: Double {
         let isLower = ["squat", "hinge"].contains(movementPattern.lowercased())
         if units.isKg { return isLower ? incrementLowerKg : incrementUpperKg }
@@ -621,7 +629,11 @@ struct ExerciseCard: View {
         }
     }
 
-    @ViewBuilder private var logRoundButton: some View {
+    @ViewBuilder private var setCompletionButton: some View {
+        let isLastSet = evm.currentSetIndex >= evm.sets.count - 1
+        let label = isLastSet
+            ? (evm.isEditing ? "Mettre à jour l’exercice" : "Logger l’exercice")
+            : "Terminer la série \(evm.currentSetIndex + 1)"
         Button {
             withAnimation {
                 triggerImpact(style: .medium)
@@ -633,16 +645,22 @@ struct ExerciseCard: View {
                 }
             }
         } label: {
-            ZStack {
-                Circle()
-                    .fill(Color.forge)
-                    .frame(width: 48, height: 48)
-                    .shadow(color: Color.forge.opacity(0.35), radius: 3, x: 0, y: 1)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.appTitle)
-                    .foregroundColor(.white)
+            HStack(spacing: 8) {
+                Image(systemName: isLastSet ? "checkmark.circle.fill" : "checkmark")
+                    .accessibilityHidden(true)
+                Text(label)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .font(.appBody.weight(.bold))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .foregroundColor(Color.onAccent)
+            .background(Color.forge)
+            .cornerRadius(8)
         }
+        .accessibilityLabel(label)
         .buttonStyle(SpringButtonStyle(scale: 0.88))
         .frame(maxWidth: .infinity)
         .padding(.top, 4)
@@ -652,7 +670,7 @@ struct ExerciseCard: View {
     // avec repCountMode (RepCounterSection prioritaire) ; carry/plyo n'ont
     // pas de RepCounterSection utile — juste ce bouton en mode set-à-set.
     @ViewBuilder private var setBySetLogButton: some View {
-        if evm.setBySetMode { logRoundButton }
+        if evm.setBySetMode { setCompletionButton }
     }
 
     @ViewBuilder private func timeSetRows() -> some View {
@@ -1882,10 +1900,12 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var holdToLogButton: some View {
         HoldToLogButton(
-            label: evm.isEditing ? "Mettre à jour" : "Logger",
-            icon: evm.isEditing ? "arrow.triangle.2.circlepath.circle.fill" : "checkmark.circle.fill",
+            label: evm.isEditing ? "Mettre à jour l’exercice" : "Logger l’exercice",
+            icon: evm.isEditing ? "arrow.triangle.2.circlepath.circle.fill"
+                : (hasSetLevelAction ? "tray.and.arrow.down" : "checkmark.circle.fill"),
             isEnabled: evm.canLog,
-            logFlash: logFlash
+            logFlash: logFlash,
+            isSecondary: hasSetLevelAction
         ) {
             guard evm.canLog else { return }
             doLog()
@@ -1995,8 +2015,11 @@ private struct RepCounterSection: View {
                 HStack(spacing: 8) {
                     Image(systemName: isLastSet ? "checkmark.circle.fill" : "arrow.right.circle.fill")
                         .font(.appHeadline)
-                    Text(isLastSet ? "Logger l'exercice" : "Set terminé →")
+                    Text(isLastSet
+                         ? (evm.isEditing ? "Mettre à jour l’exercice" : "Logger l’exercice")
+                         : "Terminer la série \(evm.currentSetIndex + 1)")
                         .font(.appBody).fontWeight(.bold)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .padding(.vertical, 12)

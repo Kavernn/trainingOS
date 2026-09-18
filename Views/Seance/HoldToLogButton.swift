@@ -5,6 +5,7 @@ struct HoldToLogButton: View {
     let icon: String
     let isEnabled: Bool
     let logFlash: Bool
+    var isSecondary: Bool = false
     let onLog: () -> Void
 
     @GestureState private var isHolding = false
@@ -17,27 +18,36 @@ struct HoldToLogButton: View {
         let holding = isHolding && isEnabled
         ZStack {
             RoundedRectangle(cornerRadius: 14)
-                .fill(logFlash ? Color.statusGreen : holding ? Color.forge.opacity(0.22) : Color.forge.opacity(0.09))
+                .fill(logFlash ? Color.statusGreen
+                      : isSecondary ? Color.appSurfaceInset
+                      : holding ? Color.forge.opacity(0.22) : Color.forge.opacity(0.09))
             RoundedRectangle(cornerRadius: 14)
                 .stroke(
-                    showHint ? Color.forge.opacity(hintPulse ? 0.7 : 0.2) : logFlash ? Color.clear : Color.forge.opacity(isEnabled ? 0.35 : 0.1),
-                    lineWidth: showHint ? 1.5 : 1
+                    logFlash ? Color.clear : isSecondary ? Color.appSeparator
+                        : showHint ? Color.forge.opacity(hintPulse ? 0.7 : 0.2)
+                        : Color.forge.opacity(isEnabled ? 0.35 : 0.1),
+                    lineWidth: showHint && !isSecondary ? 1.5 : 1
                 )
             VStack(spacing: 3) {
                 HStack(spacing: 8) {
-                    Image(systemName: icon).font(.system(size: 20))
+                    Image(systemName: icon).font(isSecondary ? .appLabel : .system(size: 20))
                     Text(holding ? "Maintenir..." : label)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(isSecondary ? .appLabel : .system(size: 16, weight: .bold))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .foregroundColor(logFlash ? .black : (isEnabled ? .white : .gray))
+                .foregroundColor(logFlash ? Color.onAccent
+                                 : isEnabled && !isSecondary ? Color.appTextPrimary : Color.appTextSecondary)
                 if showHint && !holding {
                     Text("Maintenir appuyé pour logger")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(Color.forge.opacity(0.7))
+                        .foregroundColor(isSecondary ? Color.appTextSecondary : Color.forge.opacity(0.7))
                 }
             }
         }
-        .frame(maxWidth: .infinity).frame(height: showHint ? 62 : 54)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, minHeight: isSecondary ? 44 : (showHint ? 62 : 54))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .scaleEffect(holding ? 0.97 : 1.0)
         .animation(.easeInOut(duration: 0.1), value: holding)
