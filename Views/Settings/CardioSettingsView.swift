@@ -2,20 +2,9 @@ import SwiftUI
 
 struct CardioSettingsView: View {
     @AppStorage("cardio_max_hr")           private var maxHR: Int = 190
-    @AppStorage("cardio_weekly_goal_min")  private var weeklyGoalMin: Int = 150
 
     @State private var showMaxHRAlert = false
     @State private var maxHRInput: String = ""
-
-    private var weeklyGoalLabel: String {
-        let h = weeklyGoalMin / 60
-        let m = weeklyGoalMin % 60
-        if h == 0 { return "\(m) min" }
-        if m == 0 { return "\(h)h" }
-        return "\(h)h \(m)m"
-    }
-
-    private let weeklyGoalOptions = [60, 90, 120, 150, 180, 210, 240, 300]
 
     var body: some View {
         ZStack {
@@ -54,30 +43,6 @@ struct CardioSettingsView: View {
                     }
                     .padding(.vertical, 2)
                     .listRowBackground(Color.clear)
-                }
-                .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.appSeparator)
-
-                Section("Objectif hebdomadaire") {
-                    HStack(spacing: 12) {
-                        settingsIcon("calendar.badge.checkmark", color: .teal)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Minutes de cardio par semaine").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
-                            Text("Recommandation ACSM : 150 min/semaine").font(.appCaption).foregroundColor(.gray.opacity(0.55))
-                        }
-                    }
-
-                    Picker("Objectif cardio", selection: $weeklyGoalMin) {
-                        ForEach(weeklyGoalOptions, id: \.self) { mins in
-                            let h = mins / 60
-                            let m = mins % 60
-                            let label = h == 0 ? "\(m) min" : (m == 0 ? "\(h)h" : "\(h)h \(m)m")
-                            Text(label).tag(mins)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(height: 120)
-                    .colorScheme(.dark)
                 }
                 .listRowBackground(Color.appCard)
                 .listRowSeparatorTint(Color.appSeparator)

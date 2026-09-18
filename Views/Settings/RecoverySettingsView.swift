@@ -2,14 +2,8 @@ import SwiftUI
 
 struct RecoverySettingsView: View {
     @AppStorage("sleep_goal_hours") private var sleepGoalHours: Double = 8.0
-    @AppStorage("wake_time_target") private var wakeTimeTarget: String = "07:00"
-    @AppStorage("bedtime_target")   private var bedtimeTarget: String  = "23:00"
     @AppStorage("hrv_sensitivity")  private var hrvSensitivity: String = "standard"
 
-    // Calendar.current VOLONTAIRE (pickers wake/bed) — les cibles horaires suivent le
-    // device, pas MTL. Ne pas migrer vers Calendar.mtl.
-    @State private var wakeDate: Date = Calendar.current.date(from: DateComponents(hour: 7, minute: 0)) ?? Date()
-    @State private var bedDate:  Date = Calendar.current.date(from: DateComponents(hour: 23, minute: 0)) ?? Date()
     @State private var saveError: String? = nil
     @State private var isRevertingSleepGoal = false
 
@@ -47,38 +41,6 @@ struct RecoverySettingsView: View {
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.appTextPrimary)
                         }
-                    }
-                    .padding(.vertical, 3)
-
-                    HStack(spacing: 12) {
-                        settingsIcon("sunrise.fill", color: .statusYellow)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Heure de lever cible").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
-                            Text("Utilisé pour les rappels").font(.appCaption).foregroundColor(.gray.opacity(0.55))
-                        }
-                        Spacer()
-                        DatePicker("", selection: $wakeDate, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .colorScheme(.dark)
-                            .onChange(of: wakeDate) { _, d in
-                                wakeTimeTarget = timeString(from: d)
-                            }
-                    }
-                    .padding(.vertical, 3)
-
-                    HStack(spacing: 12) {
-                        settingsIcon("moon.fill", color: .statusBlue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Heure de coucher cible").font(.appBody.weight(.medium)).foregroundColor(.appTextPrimary)
-                            Text("Utilisé pour les rappels").font(.appCaption).foregroundColor(.gray.opacity(0.55))
-                        }
-                        Spacer()
-                        DatePicker("", selection: $bedDate, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .colorScheme(.dark)
-                            .onChange(of: bedDate) { _, d in
-                                bedtimeTarget = timeString(from: d)
-                            }
                     }
                     .padding(.vertical, 3)
                 }
@@ -136,7 +98,6 @@ struct RecoverySettingsView: View {
         }
         .navigationTitle("Récupération & Sommeil")
         .navigationBarTitleDisplayMode(.large)
-        .onAppear { loadStoredTimes() }
         .onChange(of: sleepGoalHours) { oldValue, newValue in
             if isRevertingSleepGoal { isRevertingSleepGoal = false; return }
             Task {
@@ -170,19 +131,5 @@ struct RecoverySettingsView: View {
                 .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
         }
-    }
-
-    private func timeString(from date: Date) -> String {
-        let cal = Calendar.current
-        let h = cal.component(.hour, from: date)
-        let m = cal.component(.minute, from: date)
-        return String(format: "%02d:%02d", h, m)
-    }
-
-    private func loadStoredTimes() {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "HH:mm"
-        if let d = fmt.date(from: wakeTimeTarget) { wakeDate = d }
-        if let d = fmt.date(from: bedtimeTarget)  { bedDate  = d }
     }
 }
