@@ -480,7 +480,7 @@ struct WorkoutSeanceView: View {
     private func isItemLogged(_ item: ExerciseRenderItem) -> Bool {
         switch item {
         case .superset(_, _, let entry, _, _, _):
-            return vm.logResults[entry.a] != nil || vm.logResults[entry.b] != nil
+            return vm.logResults[entry.a] != nil && vm.logResults[entry.b] != nil
         case .solo(let name, _, _):
             return vm.logResults[name] != nil || mobilityChecked.contains(name)
         }
