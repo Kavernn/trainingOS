@@ -234,6 +234,8 @@ final class DashboardViewModel: ObservableObject {
                     let entry = log.first(where: { $0.date == today })
                     p2.todayRecovery = entry
                     return 0
+                } catch let e as URLError where e.code == .cancelled {
+                    return 0  // task cancelled (navigation) — not an error
                 } catch {
                     self.logger.error("fetchRecovery: \(error, privacy: .public)")
                     return 1
