@@ -17,6 +17,8 @@ func dnaArchetypeAccent(_ key: String) -> Color {
 }
 
 struct ProfileView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @ObservedObject private var api      = APIService.shared
     @ObservedObject private var bodyComp = BodyCompService.shared
     @ObservedObject private var units    = UnitSettings.shared
@@ -119,6 +121,8 @@ struct ProfileView: View {
             }
             .navigationTitle("Profil")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.appBg.opacity(0.96), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Modifier") { showEdit = true }
@@ -135,6 +139,7 @@ struct ProfileView: View {
                         }
                     }
                     .disabled(isExporting)
+                    .accessibilityLabel(isExporting ? "Export en cours" : "Exporter mes données")
                 }
             }
             .confirmationDialog("Photo de profil", isPresented: $showPhotoOptions, titleVisibility: .visible) {
@@ -174,7 +179,7 @@ struct ProfileView: View {
 
     private var profileScrollContent: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
+            VStack(spacing: 18) {
                 if isProfileIncomplete { incompleteProfileBanner }
                 headerSection
                 statsGridSection
@@ -182,24 +187,25 @@ struct ProfileView: View {
                 prsCard
                 trendsSection
                 oathCard
-                settingsCard
-                Spacer(minLength: contentBottomPadding)
+                profileActionsCard
             }
-            .padding(.top, 12)
-            .padding(.bottom, 20)
+            .padding(.top, 4)
+            .padding(.bottom, fabBottomPadding)
         }
     }
 
     // MARK: - Section 1 — Header
 
     private var headerSection: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             ZStack(alignment: .bottomTrailing) {
                 profilePhotoView
                 Button(action: { showPhotoOptions = true }) {
                     ZStack {
-                        Circle().fill(Color.forge).frame(width: 30, height: 30)
-                            .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                        Circle()
+                            .fill(Color.forge)
+                            .frame(width: 44, height: 44)
+                            .shadow(color: Color.forge.opacity(0.28), radius: 8, y: 3)
                         if isUploadingPhoto {
                             ProgressView().tint(.onAccent).scaleEffect(0.6)
                         } else {
@@ -208,26 +214,56 @@ struct ProfileView: View {
                         }
                     }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Modifier la photo de profil")
             }
-            .padding(.bottom, 2)
 
             Text(profile?.name ?? "Athlète")
-                .font(.appTitle)
+                .font(.appTitle.weight(.bold))
                 .foregroundColor(.appTextPrimary)
+                .multilineTextAlignment(.center)
 
             if !memberSinceText.isEmpty {
                 Text(memberSinceText)
-                    .font(.appLabel).fontWeight(.regular)
+                    .font(.appCaption).fontWeight(.regular)
                     .foregroundColor(.gray.opacity(0.8))
             }
 
             headerBadgesRow
         }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
         .padding(.top, 8)
+        .padding(.bottom, 10)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.appCard)
+                Circle()
+                    .fill(Color.forge.opacity(0.12))
+                    .frame(width: 190, height: 190)
+                    .blur(radius: 34)
+                    .offset(y: -70)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.forge.opacity(0.22), lineWidth: 1)
+        }
+        .padding(.horizontal, 16)
     }
 
     private var headerBadgesRow: some View {
-        HStack(spacing: 8) {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { identityBadges }
+            VStack(spacing: 8) { identityBadges }
+        }
+        .padding(.top, 2)
+    }
+
+    @ViewBuilder
+    private var identityBadges: some View {
             if let dna {
                 let accent = dnaArchetypeAccent(dna.archetype.key)
                 HStack(spacing: 5) {
@@ -237,69 +273,29 @@ struct ProfileView: View {
                         .font(.appCaption).fontWeight(.bold).tracking(0.5)
                 }
                 .foregroundColor(accent)
-                .padding(.horizontal, 10).padding(.vertical, 5)
+                .padding(.horizontal, 10).padding(.vertical, 4)
                 .background(accent.opacity(0.15))
                 .clipShape(Capsule())
             }
             if let goal = profile?.goal, !goal.isEmpty {
                 Text(Goal.label(for: goal))
                     .font(.appCaption).foregroundColor(.gray)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .padding(.horizontal, 10).padding(.vertical, 4)
                     .background(Color.appSurfaceInset)
                     .clipShape(Capsule())
             }
-        }
-        .padding(.top, 2)
     }
 
-    @ViewBuilder
     private var profilePhotoView: some View {
-        if let img = profileImage {
-            Image(uiImage: img).resizable().scaledToFill()
-                .frame(width: 88, height: 88).clipShape(Circle())
-                .overlay(Circle().stroke(Color.appSeparator, lineWidth: 2))
-        } else if let urlStr = profile?.photoUrl, let url = URL(string: urlStr) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let img):
-                    img.resizable().scaledToFill()
-                        .frame(width: 88, height: 88).clipShape(Circle())
-                        .overlay(Circle().stroke(Color.appSeparator, lineWidth: 2))
-                case .failure:
-                    initialsCircle
-                default:
-                    Circle().fill(Color.forge.opacity(0.08)).frame(width: 88, height: 88)
-                        .overlay(ProgressView().tint(Color.forge).scaleEffect(0.7))
-                }
-            }
-        } else if let b64 = profile?.photoB64,
-                  let data = Data(base64Encoded: b64.components(separatedBy: ",").last ?? ""),
-                  let img = UIImage(data: data) {
-            Image(uiImage: img).resizable().scaledToFill()
-                .frame(width: 88, height: 88).clipShape(Circle())
-                .overlay(Circle().stroke(Color.appSeparator, lineWidth: 2))
-        } else {
-            initialsCircle
-        }
-    }
-
-    private var initialsCircle: some View {
-        ZStack {
-            Circle()
-                .fill(LinearGradient(
-                    colors: [Color.forge.opacity(0.6), Color.appDanger.opacity(0.4)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 88, height: 88)
-                .overlay(Circle().stroke(Color.appSeparator, lineWidth: 2))
-            Text(profile?.name?.prefix(1).uppercased() ?? "?")
-                .font(.system(size: 38, weight: .black)).foregroundColor(.onAccent)
-        }
+        ProfileAvatarView(profile: profile, overrideImage: profileImage, size: 112, showsLoading: true)
+            .shadow(color: Color.forge.opacity(0.22), radius: 20, y: 8)
+            .accessibilityHidden(true)
     }
 
     // MARK: - Section 2 — Stats Grid
 
     private var statsGridSection: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+        LazyVGrid(columns: statGridColumns, spacing: 10) {
             ProfileStatSquare(
                 value: displayTotalSessions > 0 ? "\(displayTotalSessions)" : "—",
                 label: "SÉANCES", icon: "dumbbell.fill", color: Color.forge,
@@ -329,6 +325,12 @@ struct ProfileView: View {
         .padding(.horizontal, 16)
     }
 
+    private var statGridColumns: [GridItem] {
+        dynamicTypeSize.isAccessibilitySize
+            ? [GridItem(.flexible())]
+            : [GridItem(.flexible()), GridItem(.flexible())]
+    }
+
     // MARK: - Section 4 — Body Composition
 
     private var bodyCompCard: some View {
@@ -342,22 +344,36 @@ struct ProfileView: View {
         return NavigationLink(destination: BodyCompView()) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("BODY COMP")
-                        .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
+                    Label("COMPOSITION CORPORELLE", systemImage: "figure.arms.open")
+                        .font(.appMicro).fontWeight(.bold).tracking(1.5)
+                        .foregroundColor(.appTextSecondary)
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.appCaption).foregroundColor(.gray.opacity(0.5))
+                        .font(.appCaption).foregroundColor(.appTextSecondary.opacity(0.6))
                 }
 
                 if let latest {
-                    HStack(spacing: 0) {
-                        bodyCompWeightCol(latest: latest, delta: delta)
-                        Rectangle().fill(Color.appSeparatorSubtle).frame(width: 1, height: 52)
-                        bodyCompFatCol(navyResult: navyResult, isMale: isMale)
-                        Rectangle().fill(Color.appSeparatorSubtle).frame(width: 1, height: 52)
-                        weightSparklineMini(histSorted)
-                            .frame(width: 72, height: 44)
-                            .padding(.leading, 14)
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 12) {
+                            bodyCompWeightCol(latest: latest, delta: delta)
+                            Divider().overlay(Color.appSeparatorSubtle)
+                            bodyCompFatCol(navyResult: navyResult, isMale: isMale)
+                                .padding(.horizontal, 0)
+                            weightSparklineMini(histSorted)
+                                .frame(height: 52)
+                                .accessibilityHidden(true)
+                        }
+                    } else {
+                        HStack(spacing: 0) {
+                            bodyCompWeightCol(latest: latest, delta: delta)
+                            Rectangle().fill(Color.appSeparatorSubtle).frame(width: 1, height: 52)
+                            bodyCompFatCol(navyResult: navyResult, isMale: isMale)
+                            Rectangle().fill(Color.appSeparatorSubtle).frame(width: 1, height: 52)
+                            weightSparklineMini(histSorted)
+                                .frame(width: 72, height: 44)
+                                .padding(.leading, 14)
+                                .accessibilityHidden(true)
+                        }
                     }
                     Text("Données du \(formattedShortDate(latest.date))")
                         .font(.appCaption).foregroundColor(.gray.opacity(0.6))
@@ -365,9 +381,13 @@ struct ProfileView: View {
                     bodyCompEmptyState
                 }
             }
-            .padding(16)
+            .padding(18)
             .background(Color.appCard)
-            .cornerRadius(16)
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.forge.opacity(0.16), lineWidth: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(PlainButtonStyle())
         .padding(.horizontal, 16)
@@ -727,9 +747,9 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Section 8 — Settings
+    // MARK: - Section 8 — Profile actions
 
-    private var settingsCard: some View {
+    private var profileActionsCard: some View {
         VStack(spacing: 0) {
             settingsRow(icon: "trophy.fill",         color: Color.statusYellow,  label: "Objectif & niveau",
                         detail: profile?.goal.flatMap { $0.isEmpty ? nil : Goal.label(for: $0) },
@@ -738,10 +758,6 @@ struct ProfileView: View {
             settingsRow(icon: "waveform.path.ecg", color: Color.statusCyan, label: "Revoir l'intro HRV", detail: nil, action: {
                 hrvOnboardingDone = false
                 showHRVOnboarding = true
-            })
-            settingsDivider
-            settingsRow(icon: "square.and.arrow.up", color: Color.appSuccess,   label: "Export données", detail: nil,    action: {
-                Task { await exportData() }
             })
             settingsDivider
             NavigationLink(destination: SeasonView()) {
@@ -917,6 +933,89 @@ struct ProfileView: View {
     }
 }
 
+// MARK: - Shared Profile Avatar
+
+struct ProfileAvatarView: View {
+    let profile: UserProfile?
+    var overrideImage: UIImage? = nil
+    let size: CGFloat
+    var showsLoading = false
+
+    var body: some View {
+        avatarContent
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .overlay {
+                Circle().strokeBorder(
+                    LinearGradient(
+                        colors: [Color.forge, Color.statusPurple, Color.forge.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: size >= 100 ? 3 : 2
+                )
+            }
+            .contentShape(Circle())
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var avatarContent: some View {
+        if let overrideImage {
+            Image(uiImage: overrideImage)
+                .resizable()
+                .scaledToFill()
+        } else if let urlString = profile?.photoUrl, let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                case .failure:
+                    fallback
+                default:
+                    loadingPlaceholder
+                }
+            }
+        } else if let encoded = profile?.photoB64,
+                  let data = Data(base64Encoded: encoded.components(separatedBy: ",").last ?? ""),
+                  let image = UIImage(data: data) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+        } else {
+            fallback
+        }
+    }
+
+    private var loadingPlaceholder: some View {
+        ZStack {
+            Circle().fill(Color.appSurfaceInset)
+            if showsLoading {
+                ProgressView().tint(Color.forge)
+            } else {
+                Image(systemName: "person.fill")
+                    .font(.system(size: size * 0.4, weight: .semibold))
+                    .foregroundColor(.appTextSecondary)
+            }
+        }
+    }
+
+    private var fallback: some View {
+        ZStack {
+            Circle().fill(
+                LinearGradient(
+                    colors: [Color.forge.opacity(0.72), Color.statusPurple.opacity(0.58)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            Text(profile?.name?.prefix(1).uppercased() ?? "?")
+                .font(.system(size: size * 0.42, weight: .black))
+                .foregroundColor(.onAccent)
+        }
+    }
+}
+
 // MARK: - Stat Square Card
 
 struct ProfileStatSquare: View {
@@ -934,15 +1033,18 @@ struct ProfileStatSquare: View {
                 Image(systemName: icon)
                     .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(color.opacity(hasData ? 1 : 0.35))
+                    .accessibilityHidden(true)
                 if isRecord {
                     Image(systemName: "trophy.fill")
                         .font(.appMicro).foregroundColor(Color.statusYellow)
+                        .accessibilityHidden(true)
                 }
             }
             Text(value)
                 .font(.system(size: 26, weight: .black))
                 .foregroundColor(isRecord ? Color.statusYellow : Color.appOnSurface.opacity(hasData ? 1 : 0.3))
-                .lineLimit(1).minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.7)
+                .fixedSize(horizontal: false, vertical: true)
             if let sub = subtitle {
                 Text(sub)
                     .font(.appMicro)
@@ -955,8 +1057,20 @@ struct ProfileStatSquare: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background(Color.appCard)
-        .cornerRadius(14)
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(color.opacity(hasData ? 0.2 : 0.08), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .opacity(hasData ? 1 : 0.7)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        guard hasData else { return "Aucune donnée pour \(label.lowercased())" }
+        let detail = subtitle.map { ", \($0)" } ?? ""
+        return "\(value), \(label.lowercased())\(detail)"
     }
 }
 

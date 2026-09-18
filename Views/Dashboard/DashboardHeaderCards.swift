@@ -76,6 +76,8 @@ struct SkeletonBar: View {
 
 // MARK: - Dashboard Branding Bar
 struct DashboardBrandingBar: View {
+    let profile: UserProfile
+
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: "bolt.fill")  // TODO: remplacer par asset logo
@@ -94,14 +96,20 @@ struct DashboardBrandingBar: View {
             Spacer(minLength: 0)
 
             NavigationLink { ProfileView() } label: {
-                Image(systemName: "person.crop.circle")
-                    .font(.appTitle)
-                    .foregroundColor(.appOnSurface)
+                ProfileAvatarView(profile: profile, size: 46)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(profileAccessibilityLabel)
         }
         .padding(.horizontal, 4)
         .padding(.top, 8)
+    }
+
+    private var profileAccessibilityLabel: String {
+        guard let name = profile.name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+            return "Profil"
+        }
+        return "Profil de \(name)"
     }
 }
 
