@@ -67,5 +67,13 @@ struct HoldToLogButton: View {
                     onLog()
                 }
         )
+        .accessibilityRepresentation {
+            Button(label) {
+                guard isEnabled else { return }
+                useCount += 1
+                onLog()
+            }
+            .disabled(!isEnabled)
+        }
     }
 }

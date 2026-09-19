@@ -330,6 +330,7 @@ struct ExerciseCard: View {
                 .background(isActive ? Color.forge.opacity(0.12) : Color.clear)
                 .cornerRadius(8)
                 .animation(.easeInOut(duration: 0.2), value: evm.currentSetIndex)
+                .accessibilityElement(children: .contain)
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 40)
                         .onEnded { v in
@@ -540,6 +541,7 @@ struct ExerciseCard: View {
                 .foregroundColor(Color.forge.opacity(0.35))
                 .frame(width: 12)
                 .transition(.opacity)
+                .accessibilityHidden(true)
         }
         Text("S\(i + 1)")
             .font(isActive ? .appBody : .appCaption).fontWeight(.bold)
@@ -551,6 +553,8 @@ struct ExerciseCard: View {
                 evm.sets[i].reps   = evm.sets[i - 1].reps
                 triggerImpact(style: .medium)
             }
+            .accessibilityLabel("Série \(i + 1) sur \(evm.sets.count)")
+            .accessibilityValue(isDone ? "Terminée" : isActive ? "Active" : "Non validée")
         StepperInput(
             valueStr: $evm.sets[i].weight,
             increment: weightIncrement,
@@ -559,7 +563,11 @@ struct ExerciseCard: View {
                 .replacingOccurrences(of: ",", with: ".")) ?? 0,
             isDisabled: evm.setBySetMode && !isActive && !isDone,
             autoFocus: false,
-            isCompact: evm.setBySetMode
+            isCompact: evm.setBySetMode,
+            accessibilityTitle: weightColumnLabel
+                .replacingOccurrences(of: " (\(units.label.uppercased()))", with: "")
+                .localizedCapitalized,
+            accessibilityUnit: units.isKg ? "kilogrammes" : "livres"
         )
         .frame(width: evm.setBySetMode ? 152 : 140)
     }
@@ -574,6 +582,7 @@ struct ExerciseCard: View {
                 .padding(8)
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(8)
+                .accessibilityHidden(true)
         } else {
             StepperInput(
                 valueStr: $evm.sets[i].reps,
@@ -583,7 +592,8 @@ struct ExerciseCard: View {
                     ? evm.lastRepsParts[i] : "1") ?? 1,
                 isInteger: true,
                 isDisabled: evm.setBySetMode && !isActive && !isDone,
-                isCompact: evm.setBySetMode
+                isCompact: evm.setBySetMode,
+                accessibilityTitle: trackingType == "plyo" ? "Sauts" : "Répétitions"
             )
             .frame(width: evm.setBySetMode ? 152 : 140)
         }
@@ -594,6 +604,18 @@ struct ExerciseCard: View {
                 disabled: evm.setBySetMode && !isActive && !isDone
             )
             .frame(width: 70)
+            .accessibilityRepresentation {
+                HStack {
+                    ForEach(RPEHelper.options) { option in
+                        Button("RIR, \(option.shortLabel) : \(option.label)") {
+                            evm.sets[i].rir = option.rir
+                            triggerImpact(style: .light)
+                        }
+                        .accessibilityAddTraits(min(evm.sets[i].rir, 4) == option.rir ? .isSelected : [])
+                        .disabled(evm.setBySetMode && !isActive && !isDone)
+                    }
+                }
+            }
         }
     }
 
@@ -606,10 +628,13 @@ struct ExerciseCard: View {
                 placeholder: Double(ExerciseCalculator.distanceTarget(scheme: scheme) ?? 0),
                 isInteger: true,
                 isDisabled: evm.setBySetMode && !isActive && !isDone,
-                isCompact: evm.setBySetMode
+                isCompact: evm.setBySetMode,
+                accessibilityTitle: "Distance",
+                accessibilityUnit: "mètres"
             )
             .frame(width: 100)
             Text("m").font(.appCaption).foregroundColor(.gray)
+                .accessibilityHidden(true)
         }
     }
 
@@ -619,6 +644,7 @@ struct ExerciseCard: View {
                 .font(.appLabel)
                 .foregroundColor(entered >= p.repMin ? Color.appSuccess : Color.gray)
                 .transition(.opacity)
+                .accessibilityLabel(entered >= p.repMin ? "Cible de répétitions atteinte" : "Cible de répétitions non atteinte")
         }
     }
 
@@ -626,6 +652,7 @@ struct ExerciseCard: View {
         if isDone {
             Image(systemName: "checkmark.circle.fill")
                 .font(.appHeadline).foregroundColor(Color.appSuccess.opacity(0.6))
+                .accessibilityHidden(true)
         }
     }
 
@@ -748,6 +775,7 @@ struct ExerciseCard: View {
                     Spacer()
                     setRowActionButton(i: i, isActive: isActive, isDone: isDone)
                 }
+                .accessibilityElement(children: .contain)
             }
             setBySetLogButton
         }
@@ -805,6 +833,7 @@ struct ExerciseCard: View {
                         }
                     }
                 }
+                .accessibilityElement(children: .contain)
             }
             setBySetLogButton
         }
@@ -820,11 +849,15 @@ struct ExerciseCard: View {
                 placeholder: 0,
                 isInteger: !isHorizontal,
                 isDisabled: evm.setBySetMode && !isActive && !isDone,
-                isCompact: evm.setBySetMode
+                isCompact: evm.setBySetMode,
+                accessibilityTitle: ExerciseCalculator.plyoMetricLabel(for: name)
+                    .replacingOccurrences(of: " (\(ExerciseCalculator.plyoUnitLabel(for: name)))", with: ""),
+                accessibilityUnit: isHorizontal ? "mètres" : "centimètres"
             )
             .frame(width: 100)
             Text(ExerciseCalculator.plyoUnitLabel(for: name))
                 .font(.appCaption).foregroundColor(.gray)
+                .accessibilityHidden(true)
         }
     }
 
@@ -1959,6 +1992,8 @@ private struct RepCounterSection: View {
             Text("SET \(evm.currentSetIndex + 1) / \(evm.sets.count)")
                 .font(.appCaption).fontWeight(.bold).tracking(2)
                 .foregroundColor(Color.forge.opacity(0.7))
+                .accessibilityLabel("Série \(evm.currentSetIndex + 1) sur \(evm.sets.count)")
+                .accessibilityValue("Active")
 
             Text("\(count)")
                 .font(.appDisplay)
@@ -1966,6 +2001,8 @@ private struct RepCounterSection: View {
                 .contentTransition(.numericText())
                 .animation(.spring(response: 0.2, dampingFraction: 0.6), value: count)
                 .frame(minWidth: 100)
+                .accessibilityLabel("Répétitions comptées")
+                .accessibilityValue("\(count)")
 
             HStack(spacing: 36) { // ponytail: écart rep-counter volontaire (isolation tap-target)
                 Button {
@@ -1978,6 +2015,8 @@ private struct RepCounterSection: View {
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Diminuer les répétitions")
+                .accessibilityValue("\(count)")
 
                 Button {
                     count += 1
@@ -1993,6 +2032,9 @@ private struct RepCounterSection: View {
                     }
                 }
                 .buttonStyle(SpringButtonStyle(scale: 0.92))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Ajouter une répétition")
+                .accessibilityValue("\(count)")
 
                 Button {
                     count = 0
@@ -2004,6 +2046,8 @@ private struct RepCounterSection: View {
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Remettre le compteur à zéro")
+                .accessibilityValue("\(count)")
             }
 
             Button {
@@ -2015,6 +2059,7 @@ private struct RepCounterSection: View {
                 HStack(spacing: 8) {
                     Image(systemName: isLastSet ? "checkmark.circle.fill" : "arrow.right.circle.fill")
                         .font(.appHeadline)
+                        .accessibilityHidden(true)
                     Text(isLastSet
                          ? (evm.isEditing ? "Mettre à jour l’exercice" : "Logger l’exercice")
                          : "Terminer la série \(evm.currentSetIndex + 1)")

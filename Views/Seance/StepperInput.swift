@@ -10,6 +10,8 @@ struct StepperInput: View {
     var autoFocus: Bool = false
     // Mode compact : centre minWidth 52 → 44. Zones tap 44pt préservées.
     var isCompact: Bool = false
+    let accessibilityTitle: String
+    var accessibilityUnit: String = ""
 
     @FocusState private var isManualFocused: Bool
     @State private var holdTask: Task<Void, Never>? = nil
@@ -31,6 +33,16 @@ struct StepperInput: View {
         isInteger ? "\(Int(placeholder))" : formatted(placeholder)
     }
 
+    private var spokenValue: String {
+        guard !valueStr.isEmpty else { return "Non renseigné" }
+        return accessibilityUnit.isEmpty ? valueStr : "\(valueStr) \(accessibilityUnit)"
+    }
+
+    private var spokenHint: String {
+        guard valueStr.isEmpty else { return "" }
+        return "Valeur suggérée : \(placeholderText) \(accessibilityUnit)"
+    }
+
     private func formatted(_ v: Double) -> String {
         v.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(v))" : String(format: "%.1f", v)
     }
@@ -45,6 +57,14 @@ struct StepperInput: View {
                         .onEnded   { _ in stopHold() }
                 )
                 .disabled(isDisabled)
+                .accessibilityRepresentation {
+                    Button("Diminuer : \(accessibilityTitle)") {
+                        guard !isDisabled else { return }
+                        step(-1)
+                    }
+                    .accessibilityValue(spokenValue)
+                    .disabled(isDisabled)
+                }
 
             ZStack {
                 if valueStr.isEmpty {
@@ -53,6 +73,7 @@ struct StepperInput: View {
                         .foregroundColor(.gray.opacity(0.35))
                         .frame(minWidth: isCompact ? 44 : 52, alignment: .center)
                         .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
 
                 TextField("", text: $valueStr)
@@ -63,6 +84,9 @@ struct StepperInput: View {
                     .frame(minWidth: isCompact ? 44 : 52)
                     .disabled(isDisabled)
                     .multilineTextAlignment(.center)
+                    .accessibilityLabel(accessibilityTitle)
+                    .accessibilityValue(spokenValue)
+                    .accessibilityHint(spokenHint)
             }
             .contentShape(Rectangle())
             .onTapGesture {
@@ -78,7 +102,16 @@ struct StepperInput: View {
                         .onEnded   { _ in stopHold() }
                 )
                 .disabled(isDisabled)
+                .accessibilityRepresentation {
+                    Button("Augmenter : \(accessibilityTitle)") {
+                        guard !isDisabled else { return }
+                        step(1)
+                    }
+                    .accessibilityValue(spokenValue)
+                    .disabled(isDisabled)
+                }
         }
+        .accessibilityElement(children: .contain)
         .background(Color.appSurfaceInset)
         .cornerRadius(8)
         .onChange(of: isManualFocused) { _, focused in
