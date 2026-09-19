@@ -2,6 +2,8 @@ import SwiftUI
 
 struct FloatingRestTimerCard: View {
     @ObservedObject private var timer = RestTimerManager.shared
+    var isCompact = false
+    var onExpand: () -> Void = {}
 
     var body: some View {
         TimelineView(.periodic(from: timer.startDate ?? .now, by: 1)) { ctx in
@@ -10,7 +12,31 @@ struct FloatingRestTimerCard: View {
             let progress = timer.totalSeconds > 0 ? Double(remaining) / Double(timer.totalSeconds) : 0
             let ringColor: Color = progress > 0.6 ? .statusGreen : (progress > 0.3 ? .statusOrange : .statusRed)
 
-            VStack(spacing: 8) {
+            Group {
+                if isCompact {
+                    Button(action: onExpand) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "timer")
+                                .accessibilityHidden(true)
+                            Text(remaining == 0 ? "Repos terminé" : (timer.isRunning ? "Repos" : "Repos en pause"))
+                                .font(.appLabel)
+                            Spacer(minLength: 8)
+                            Text(formatTime(remaining))
+                                .font(.appHeadline.weight(.bold))
+                                .monospacedDigit()
+                                .fixedSize()
+                            Image(systemName: "chevron.up")
+                                .accessibilityHidden(true)
+                        }
+                        .foregroundColor(Color.appTextPrimary)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Afficher les contrôles du repos")
+                    .accessibilityValue(restAccessibilityValue(remaining))
+                } else {
+                VStack(spacing: 8) {
                 // Ligne 1 : chrono + barre de progression horizontale
                 VStack(spacing: 4) {
                     Text(formatTime(remaining))
@@ -19,6 +45,8 @@ struct FloatingRestTimerCard: View {
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .frame(maxWidth: .infinity)
+                        .accessibilityLabel("Temps de repos restant")
+                        .accessibilityValue(restAccessibilityValue(remaining))
 
                     // ponytail: barre horizontale remplace le cercle 160pt d'avant.
                     // Même progress + même ringColor → feedback visuel préservé.
@@ -34,6 +62,7 @@ struct FloatingRestTimerCard: View {
                                 .scaleEffect(x: max(0, progress), y: 1, anchor: .leading)
                                 .animation(.linear(duration: 1), value: progress)
                         }
+                        .accessibilityHidden(true)
                 }
 
                 // Ligne 2 : contrôles alignés — ±10s toujours visibles (évite
@@ -51,6 +80,7 @@ struct FloatingRestTimerCard: View {
                             .cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: .appHairline))
                     }
+                    .accessibilityLabel("Retirer 10 secondes de repos")
 
                     Button {
                         timer.adjust(by: 10)
@@ -64,6 +94,7 @@ struct FloatingRestTimerCard: View {
                             .cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: .appHairline))
                     }
+                    .accessibilityLabel("Ajouter 10 secondes de repos")
 
                     Spacer()
 
@@ -75,6 +106,7 @@ struct FloatingRestTimerCard: View {
                             .background(Color.appSurfaceInset)
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel("Réinitialiser le repos")
 
                     Button {
                         if timer.isRunning { timer.stop() } else { timer.resume() }
@@ -87,6 +119,7 @@ struct FloatingRestTimerCard: View {
                             .clipShape(Circle())
                     }
                     .animation(.easeInOut(duration: 0.25), value: timer.isRunning)
+                    .accessibilityLabel(timer.isRunning ? "Mettre le repos en pause" : "Reprendre le repos")
 
                     Button {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
@@ -100,10 +133,13 @@ struct FloatingRestTimerCard: View {
                             .background(Color.appSurfaceInset)
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel("Fermer le repos")
                 }
                 // ponytail: override .tint(theme.accent) racine (ContentView L80)
                 // qui projetait un halo orange sur chaque bouton via le style auto iOS 26.
                 .buttonStyle(.plain)
+                }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -124,5 +160,10 @@ struct FloatingRestTimerCard: View {
 
     private func formatTime(_ s: Int) -> String {
         "\(s / 60):\(String(format: "%02d", s % 60))"
+    }
+
+    private func restAccessibilityValue(_ seconds: Int) -> String {
+        let state = seconds == 0 ? "Terminé" : (timer.isRunning ? "En cours" : "En pause")
+        return "\(seconds / 60) minutes, \(seconds % 60) secondes, \(state)"
     }
 }

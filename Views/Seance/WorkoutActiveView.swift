@@ -115,6 +115,7 @@ struct WorkoutSeanceView: View {
     @State private var cardioCount   = 0
     @State private var hiitCount     = 0
     @State private var lastScrollY: CGFloat? = nil
+    @State private var isRestTimerCompact = false
 
     // AI analysis pre-load
 
@@ -992,23 +993,50 @@ struct WorkoutSeanceView: View {
         if exercises.count > 1 {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(Array(exercises.enumerated()), id: \.offset) { _, ex in
-                        let isLogged = vm.logResults[ex.0] != nil
+                    ForEach(Array(exercises.enumerated()), id: \.element.0) { index, ex in
+                        let isLogged = vm.logResults[ex.0] != nil || mobilityChecked.contains(ex.0)
+                        let isCurrent = ex.0 == currentExerciseName
                         Button {
-                            withAnimation(.easeInOut(duration: 0.35)) {
-                                scrollProxy?.scrollTo(ex.0, anchor: .top)
+                            // Reveal the existing destination even when its section is folded.
+                            if isLogged && collapsedCompleted {
+                                collapsedCompleted = false
+                            }
+                            DispatchQueue.main.async {
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                    scrollProxy?.scrollTo(ex.0, anchor: .top)
+                                }
                             }
                         } label: {
-                            Circle()
-                                .fill(isLogged ? Color.appSuccess : Color.appOnSurface.opacity(0.22))
-                                .frame(width: 8, height: 8)
+                            HStack(spacing: 4) {
+                                Text("\(index + 1)")
+                                    .font(.appLabel.weight(.semibold))
+                                if isLogged {
+                                    Image(systemName: "checkmark")
+                                        .font(.appCaption)
+                                }
+                            }
+                            .foregroundColor(isCurrent ? Color.forge : Color.appTextSecondary)
+                            .padding(.horizontal, 8)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .background(isCurrent ? Color.forge.opacity(0.12) : Color.appSurfaceInset)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isCurrent ? Color.forge : Color.appSeparator, lineWidth: 1)
+                            }
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Exercice \(index + 1) sur \(exercises.count), \(ex.0)")
+                        .accessibilityValue(isLogged ? (isCurrent ? "Terminé, courant" : "Terminé") : (isCurrent ? "Courant" : "Non terminé"))
+                        .accessibilityHint("Afficher cet exercice")
+                        .accessibilityAddTraits(isCurrent ? .isSelected : [])
                     }
                 }
                 .padding(.horizontal, 16)
             }
-            .frame(height: 22)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.vertical, 4)
         }
     }
 
@@ -1707,8 +1735,6 @@ struct WorkoutSeanceView: View {
                 // Volume cumulé temps réel
                 volumeTotalRow
 
-                exerciseNavigator
-
                 // Swap confirmation banner (Fix #11)
                 if let swap = lastSwap {
                     HStack(spacing: 8) {
@@ -1780,14 +1806,18 @@ struct WorkoutSeanceView: View {
         .coordinateSpace(name: "workoutScroll")
         .onPreferenceChange(ScrollOffsetKey.self) { offset in
             guard let last = lastScrollY else { lastScrollY = offset; return }
-            if abs(offset - last) > 4, timer.isVisible {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
-                    timer.isVisible = false
-                }
+            if abs(offset - last) > 4, timer.isVisible, !isRestTimerCompact {
+                isRestTimerCompact = true
             }
             lastScrollY = offset
         }
         .scrollDismissesKeyboard(.interactively)
+        .onChange(of: timer.isVisible) { _, visible in
+            if !visible { isRestTimerCompact = false }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            if timer.isVisible { isRestTimerCompact = true }
+        }
         .dismissKeyboardOnTap()
         .onAppear {
             scrollProxy = proxy
@@ -1952,17 +1982,25 @@ struct WorkoutSeanceView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            if showStickyHeader {
-                stickyHeader
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation { proxy.scrollTo(currentExerciseName, anchor: .top) }
+            if !isEditMode && !showSummary && !exerciseRenderItems.isEmpty {
+                VStack(spacing: 0) {
+                    if showStickyHeader {
+                        stickyHeader
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation { proxy.scrollTo(currentExerciseName, anchor: .top) }
+                            }
                     }
+                    exerciseNavigator
+                }
+                .background(.ultraThinMaterial)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if timer.isVisible {
-                FloatingRestTimerCard()
+                FloatingRestTimerCard(isCompact: isRestTimerCompact, onExpand: {
+                    isRestTimerCompact = false
+                })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(.spring(response: 0.42, dampingFraction: 0.82), value: timer.isVisible)
             }
