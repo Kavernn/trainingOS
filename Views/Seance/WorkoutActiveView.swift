@@ -39,6 +39,8 @@ struct WorkoutSeanceView: View {
     @State private var showFinishConfirm = false
     @State private var showUnloggedWarning = false
     @State private var confirmedFromWarning = false
+    @State private var showRestartConfirmation = false
+    @State private var exercisePendingDeletion: String? = nil
     // PM partielle : dialogue "Reprendre plus tard / Clore la séance" quand
     // isSecondSession && exos loggés < plan total. Route dédiée, court-circuite
     // WorkoutSummarySheet (AM/bonus conservent l'existant).
@@ -453,9 +455,22 @@ struct WorkoutSeanceView: View {
     @ViewBuilder
     private func editModeRow(name: String, scheme: String) -> some View {
         HStack(spacing: 12) {
-            Button { Task { await deleteExercise(name) } } label: {
+            Button { exercisePendingDeletion = name } label: {
                 Image(systemName: "minus.circle.fill")
                     .font(.appTitle).foregroundColor(Color.appDanger)
+            }
+            .accessibilityLabel("Supprimer \(name)")
+            .confirmationDialog("Supprimer cet exercice ?", isPresented: Binding(
+                get: { exercisePendingDeletion == name },
+                set: { if !$0 { exercisePendingDeletion = nil } }
+            ), titleVisibility: .visible) {
+                Button("Supprimer", role: .destructive) {
+                    exercisePendingDeletion = nil
+                    Task { await deleteExercise(name) }
+                }
+                Button("Annuler", role: .cancel) { exercisePendingDeletion = nil }
+            } message: {
+                Text("« \(name) » sera retiré de cette séance uniquement. Le programme enregistré et les logs existants ne seront pas supprimés.")
             }
             Button {
                 editTarget = ExerciseTarget(seance: data.today, exercise: name, scheme: scheme)
@@ -1338,16 +1353,24 @@ struct WorkoutSeanceView: View {
                 }
                 Spacer()
                 Button("Recommencer") {
-                    withAnimation {
-                        vm.logResults.removeAll()
-                        vm.isResuming = false
-                    }
+                    showRestartConfirmation = true
                 }
                 .font(.appCaption).fontWeight(.semibold)
                 .foregroundColor(Color.appDanger.opacity(0.8))
                 .padding(.horizontal, 8).padding(.vertical, 4)
                 .background(Color.appDanger.opacity(0.1))
                 .cornerRadius(8)
+                .confirmationDialog("Recommencer la séance ?", isPresented: $showRestartConfirmation, titleVisibility: .visible) {
+                    Button("Recommencer", role: .destructive) {
+                        withAnimation {
+                            vm.logResults.removeAll()
+                            vm.isResuming = false
+                        }
+                    }
+                    Button("Annuler", role: .cancel) {}
+                } message: {
+                    Text("Les logs restaurés et le brouillon local de cette séance seront effacés. Les données déjà enregistrées sur le serveur ne seront pas supprimées.")
+                }
                 Button { withAnimation { showResumeBanner = false } } label: {
                     Image(systemName: "xmark")
                         .font(.appCaption).fontWeight(.semibold)
