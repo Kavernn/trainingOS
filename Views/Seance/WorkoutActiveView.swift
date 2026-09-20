@@ -33,6 +33,8 @@ struct WorkoutSeanceView: View {
     /// après le récap, pas pendant (fix race showSuccess vs showRecap).
     var onDidFinish: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var showFinish = false
@@ -549,9 +551,9 @@ struct WorkoutSeanceView: View {
                     .foregroundColor(Color.appTextMuted)
             }
             Text(currentExerciseName)
-                .font(.appHeadline).fontWeight(.bold)
+                .font(dynamicTypeSize.isAccessibilitySize ? .headline : .appHeadline).fontWeight(.bold)
                 .foregroundColor(Color.appTextPrimary)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16).padding(.vertical, 8)
@@ -769,7 +771,7 @@ struct WorkoutSeanceView: View {
                         lastOpenedExercise = next.0
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        withAnimation(.easeInOut(duration: 0.35)) {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
                             scrollProxy?.scrollTo(next.0, anchor: .top)
                         }
                     }
@@ -1017,14 +1019,15 @@ struct WorkoutSeanceView: View {
                                 collapsedCompleted = false
                             }
                             DispatchQueue.main.async {
-                                withAnimation(.easeInOut(duration: 0.35)) {
+                                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
                                     scrollProxy?.scrollTo(ex.0, anchor: .top)
                                 }
                             }
                         } label: {
                             HStack(spacing: 4) {
                                 Text("\(index + 1)")
-                                    .font(.appLabel.weight(.semibold))
+                                    .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.semibold) : .appLabel.weight(.semibold))
+                                    .fixedSize()
                                 if isLogged {
                                     Image(systemName: "checkmark")
                                         .font(.appCaption)
@@ -1389,7 +1392,7 @@ struct WorkoutSeanceView: View {
                 let logged = Set(vm.logResults.keys)
                 if let firstUnlogged = exercises.first(where: { !logged.contains($0.0) })?.0 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        withAnimation(.easeInOut(duration: 0.35)) {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
                             scrollProxy?.scrollTo(firstUnlogged, anchor: .top)
                         }
                     }
@@ -2011,7 +2014,7 @@ struct WorkoutSeanceView: View {
                         stickyHeader
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                withAnimation { proxy.scrollTo(currentExerciseName, anchor: .top) }
+                                withAnimation(reduceMotion ? nil : .default) { proxy.scrollTo(currentExerciseName, anchor: .top) }
                             }
                     }
                     exerciseNavigator
@@ -2025,7 +2028,13 @@ struct WorkoutSeanceView: View {
                     isRestTimerCompact = false
                 })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(response: 0.42, dampingFraction: 0.82), value: timer.isVisible)
+                    .animation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.82), value: timer.isVisible)
+            }
+        }
+        .transaction { transaction in
+            if reduceMotion {
+                transaction.animation = nil
+                transaction.disablesAnimations = true
             }
         }
         } // end ScrollViewReader

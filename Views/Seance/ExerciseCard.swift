@@ -40,6 +40,7 @@ struct ExerciseCard: View {
     @StateObject private var evm: ExerciseViewModel
     @ObservedObject private var units = UnitSettings.shared
     @ObservedObject private var restTimer = RestTimerManager.shared
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("exo_notes_data")          private var exoNotesData: String = "{}"
     @AppStorage("auto_start_rest_timer")   private var autoStartTimer = false
     @AppStorage("show_rir_column")         private var showRIRColumn = false
@@ -304,6 +305,14 @@ struct ExerciseCard: View {
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
                 ViewThatFits(in: .horizontal) {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 12) {
+                            setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
+                            setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
+                            setRowPrescriptionIcon(i: i)
+                            setRowActionButton(i: i, isActive: isActive, isDone: isDone)
+                        }
+                    }
                     HStack(spacing: 4) {
                         setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
                         setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
@@ -545,8 +554,8 @@ struct ExerciseCard: View {
         }
         Text("S\(i + 1)")
             .font(isActive ? .appBody : .appCaption).fontWeight(.bold)
-            .foregroundColor(isDone ? Color.appSuccess : isActive ? Color.forge : .gray)
-            .frame(width: 28)
+            .foregroundColor(isDone ? Color.appSuccess : isActive ? Color.forge : Color.appTextSecondary)
+            .frame(minWidth: 28)
             .onLongPressGesture(minimumDuration: 0.35) {
                 guard i > 0 else { return }
                 evm.sets[i].weight = evm.sets[i - 1].weight
@@ -569,7 +578,7 @@ struct ExerciseCard: View {
                 .localizedCapitalized,
             accessibilityUnit: units.isKg ? "kilogrammes" : "livres"
         )
-        .frame(width: evm.setBySetMode ? 152 : 140)
+        .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
     }
 
     @ViewBuilder private func setRowRepsSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
@@ -595,7 +604,7 @@ struct ExerciseCard: View {
                 isCompact: evm.setBySetMode,
                 accessibilityTitle: trackingType == "plyo" ? "Sauts" : "Répétitions"
             )
-            .frame(width: evm.setBySetMode ? 152 : 140)
+            .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
         }
         // W-C2 — hide RIR tiles for time-based exercises
         if showRIRColumn && !isTimeBased {
@@ -632,7 +641,7 @@ struct ExerciseCard: View {
                 accessibilityTitle: "Distance",
                 accessibilityUnit: "mètres"
             )
-            .frame(width: 100)
+            .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 100)
             Text("m").font(.appCaption).foregroundColor(.gray)
                 .accessibilityHidden(true)
         }
@@ -678,7 +687,7 @@ struct ExerciseCard: View {
                 Text(label)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .font(.appBody.weight(.bold))
+            .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.bold) : .appBody.weight(.bold))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -769,7 +778,7 @@ struct ExerciseCard: View {
             ForEach(evm.sets.indices, id: \.self) { i in
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
-                HStack(spacing: 4) {
+                (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: 4))) {
                     setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
                     setRowDistanceSide(i: i, isActive: isActive, isDone: isDone)
                     Spacer()
@@ -812,6 +821,14 @@ struct ExerciseCard: View {
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
                 ViewThatFits(in: .horizontal) {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 12) {
+                            setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
+                            setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
+                            setRowIntensitySide(i: i, isActive: isActive, isDone: isDone)
+                            setRowActionButton(i: i, isActive: isActive, isDone: isDone)
+                        }
+                    }
                     HStack(spacing: 4) {
                         setRowWeightSide(i: i, isActive: isActive, isDone: isDone)
                         setRowRepsSide(i: i, isActive: isActive, isDone: isDone)
@@ -854,7 +871,7 @@ struct ExerciseCard: View {
                     .replacingOccurrences(of: " (\(ExerciseCalculator.plyoUnitLabel(for: name)))", with: ""),
                 accessibilityUnit: isHorizontal ? "mètres" : "centimètres"
             )
-            .frame(width: 100)
+            .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 100)
             Text(ExerciseCalculator.plyoUnitLabel(for: name))
                 .font(.appCaption).foregroundColor(.gray)
                 .accessibilityHidden(true)
@@ -1423,7 +1440,7 @@ struct ExerciseCard: View {
                 }
                 .foregroundColor(evm.equipmentType == equipmentType ? .gray.opacity(0.6) : Color.gray)
                 .padding(.horizontal, 12).padding(.vertical, 4)
-                .background((evm.equipmentType == equipmentType ? Color.white : Color.gray).opacity(0.07))
+                .background(evm.equipmentType == equipmentType ? Color.appSurfaceInset : Color.clear)
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)

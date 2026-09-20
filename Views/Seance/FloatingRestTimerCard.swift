@@ -2,6 +2,8 @@ import SwiftUI
 
 struct FloatingRestTimerCard: View {
     @ObservedObject private var timer = RestTimerManager.shared
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var isCompact = false
     var onExpand: () -> Void = {}
 
@@ -15,18 +17,22 @@ struct FloatingRestTimerCard: View {
             Group {
                 if isCompact {
                     Button(action: onExpand) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "timer")
-                                .accessibilityHidden(true)
-                            Text(remaining == 0 ? "Repos terminé" : (timer.isRunning ? "Repos" : "Repos en pause"))
-                                .font(.appLabel)
-                            Spacer(minLength: 8)
-                            Text(formatTime(remaining))
-                                .font(.appHeadline.weight(.bold))
-                                .monospacedDigit()
-                                .fixedSize()
-                            Image(systemName: "chevron.up")
-                                .accessibilityHidden(true)
+                        (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "timer")
+                                    .accessibilityHidden(true)
+                                Text(remaining == 0 ? "Repos terminé" : (timer.isRunning ? "Repos" : "Repos en pause"))
+                                    .font(dynamicTypeSize.isAccessibilitySize ? .body : .appLabel)
+                            }
+                            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                            HStack(spacing: 12) {
+                                Text(formatTime(remaining))
+                                    .font(dynamicTypeSize.isAccessibilitySize ? .title2.weight(.bold) : .appHeadline.weight(.bold))
+                                    .monospacedDigit()
+                                    .fixedSize()
+                                Image(systemName: "chevron.up")
+                                    .accessibilityHidden(true)
+                            }
                         }
                         .foregroundColor(Color.appTextPrimary)
                         .frame(minHeight: 44)
@@ -40,7 +46,7 @@ struct FloatingRestTimerCard: View {
                 // Ligne 1 : chrono + barre de progression horizontale
                 VStack(spacing: 4) {
                     Text(formatTime(remaining))
-                        .font(.system(size: 36, weight: .black, design: .rounded))
+                        .font(dynamicTypeSize.isAccessibilitySize ? .largeTitle.weight(.black) : .system(size: 36, weight: .black, design: .rounded))
                         .foregroundColor(ringColor)
                         .monospacedDigit()
                         .contentTransition(.numericText())
@@ -60,22 +66,24 @@ struct FloatingRestTimerCard: View {
                                 .fill(ringColor)
                                 .frame(height: 4)
                                 .scaleEffect(x: max(0, progress), y: 1, anchor: .leading)
-                                .animation(.linear(duration: 1), value: progress)
+                                .animation(reduceMotion ? nil : .linear(duration: 1), value: progress)
                         }
                         .accessibilityHidden(true)
                 }
 
                 // Ligne 2 : contrôles alignés — ±10s toujours visibles (évite
                 // le layout jump entre running / pausé).
-                HStack(spacing: 8) {
+                LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize
+                          ? [GridItem(.adaptive(minimum: 90), spacing: 8)]
+                          : Array(repeating: GridItem(.flexible(), spacing: 8), count: 5), spacing: 8) {
                     Button {
                         timer.adjust(by: -10)
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
                         Text("−10s")
-                            .font(.appLabel.weight(.semibold))
+                            .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.semibold) : .appLabel.weight(.semibold))
                             .foregroundColor(ringColor.opacity(0.85))
-                            .frame(width: 52, height: 40)
+                            .frame(minWidth: 52, minHeight: 44)
                             .background(Color.appSurfaceInset)
                             .cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: .appHairline))
@@ -87,16 +95,14 @@ struct FloatingRestTimerCard: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
                         Text("+10s")
-                            .font(.appLabel.weight(.semibold))
+                            .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.semibold) : .appLabel.weight(.semibold))
                             .foregroundColor(ringColor.opacity(0.85))
-                            .frame(width: 52, height: 40)
+                            .frame(minWidth: 52, minHeight: 44)
                             .background(Color.appSurfaceInset)
                             .cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: .appHairline))
                     }
                     .accessibilityLabel("Ajouter 10 secondes de repos")
-
-                    Spacer()
 
                     Button { timer.reset() } label: {
                         Image(systemName: "arrow.counterclockwise")
@@ -118,11 +124,11 @@ struct FloatingRestTimerCard: View {
                             .background(ringColor)
                             .clipShape(Circle())
                     }
-                    .animation(.easeInOut(duration: 0.25), value: timer.isRunning)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: timer.isRunning)
                     .accessibilityLabel(timer.isRunning ? "Mettre le repos en pause" : "Reprendre le repos")
 
                     Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                        withAnimation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.82)) {
                             timer.dismiss()
                         }
                     } label: {
@@ -155,6 +161,12 @@ struct FloatingRestTimerCard: View {
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
+            .transaction { transaction in
+                if reduceMotion {
+                    transaction.animation = nil
+                    transaction.disablesAnimations = true
+                }
+            }
         }
     }
 

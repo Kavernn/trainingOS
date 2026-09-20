@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct StepperInput: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var valueStr: String
     let increment: Double
     let minimum: Double
@@ -69,15 +71,15 @@ struct StepperInput: View {
             ZStack {
                 if valueStr.isEmpty {
                     Text(placeholderText)
-                        .font(.appTitle)
-                        .foregroundColor(.gray.opacity(0.35))
+                        .font(dynamicTypeSize.isAccessibilitySize ? .title2 : .appTitle)
+                        .foregroundColor(Color.appTextSecondary)
                         .frame(minWidth: isCompact ? 44 : 52, alignment: .center)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
 
                 TextField("", text: $valueStr)
-                    .font(.appTitle)
+                    .font(dynamicTypeSize.isAccessibilitySize ? .title2 : .appTitle)
                     .foregroundColor(Color.appTextPrimary)
                     .keyboardType(isInteger ? .numberPad : .decimalPad)
                     .focused($isManualFocused)
@@ -152,8 +154,8 @@ struct StepperInput: View {
                 .foregroundColor(isDisabled ? .gray.opacity(0.2) : Color.appOnSurface.opacity(isHeld ? 1.0 : 0.9))
         }
         .frame(width: 44, height: 44)
-        .scaleEffect(isHeld ? 0.82 : 1.0)
-        .animation(.easeInOut(duration: 0.08), value: isHeld)
+        .scaleEffect(isHeld && !reduceMotion ? 0.82 : 1.0)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.08), value: isHeld)
         .contentShape(Rectangle())
     }
 
