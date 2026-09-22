@@ -41,6 +41,8 @@ struct ExerciseLogResult {
     var equipmentType: String = ""
     var painZone: String = ""
     var notes: String = ""
+    // Local draft metadata only; never added to the API payload.
+    var trackingType: String? = nil
 }
 
 struct DraftSet: Codable {
@@ -49,6 +51,11 @@ struct DraftSet: Codable {
     var rir: Int
     var duration: Int
     var rpe: Double? = nil
+    var distance: String? = nil
+    var intensity: String? = nil
+    var durationLeft: Int? = nil
+    var durationRight: Int? = nil
+    var protocolCompleted: Bool? = nil
 }
 
 // MARK: - ExerciseDraftPersistence
@@ -421,7 +428,13 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     private func saveDraft() {
-        let draft = sets.map { DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe) }
+        let draft = sets.map {
+            DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe,
+                     distance: $0.distance.isEmpty ? nil : $0.distance,
+                     intensity: $0.intensity.isEmpty ? nil : $0.intensity,
+                     durationLeft: $0.durationLeft, durationRight: $0.durationRight,
+                     protocolCompleted: $0.protocolCompleted ? true : nil)
+        }
         if draftStore.save(draft) { draftSavedAt = Date() }
     }
 
@@ -441,7 +454,12 @@ final class ExerciseViewModel: ObservableObject {
     func initializeSets() {
         guard sets.isEmpty else { return }
         if let draft = loadDraft(), !draft.isEmpty {
-            sets = draft.map { SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration, rir: $0.rir, rpe: $0.rpe) }
+            sets = draft.map {
+                SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration,
+                         durationLeft: $0.durationLeft, durationRight: $0.durationRight,
+                         distance: $0.distance ?? "", intensity: $0.intensity ?? "",
+                         rir: $0.rir, rpe: $0.rpe, protocolCompleted: $0.protocolCompleted ?? false)
+            }
         } else {
             sets = Array(repeating: SetInput(), count: setsCount)
         }
@@ -626,7 +644,7 @@ final class ExerciseViewModel: ObservableObject {
             let setsPayload: [[String: Any]] = [["weight": 0]]
             let result = ExerciseLogResult(name: name, weight: 0, reps: "1", rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-                equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
+                equipmentType: equipmentType, painZone: painZone, notes: sessionNote, trackingType: trackingType)
             logStatus = .success(0)
             return result
         }
@@ -647,7 +665,7 @@ final class ExerciseViewModel: ObservableObject {
             let firstW = setsPayload.compactMap { $0["weight"] as? Double }.first(where: { $0 > 0 }) ?? 0
             let result = ExerciseLogResult(name: name, weight: firstW, reps: repsCSV, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-                equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
+                equipmentType: equipmentType, painZone: painZone, notes: sessionNote, trackingType: trackingType)
             logStatus = .success(firstW)
             return result
         }
@@ -915,11 +933,7 @@ class SeanceViewModel: ObservableObject {
             }
         }
         for pending in SessionDraftStore.load(date: data.todayDate, sessionType: draftSessionType) {
-            let restoredSets: [[String: Any]] = pending.sets.map { s in
-                var entry: [String: Any] = ["weight": s.weight, "reps": s.reps, "rir": s.rir]
-                if let r = s.rpe { entry["rpe"] = r }
-                return entry
-            }
+            let restoredSets = pending.sets.map(\.payload)
             restored[pending.name] = ExerciseLogResult(
                 name: pending.name,
                 weight: pending.weight,
@@ -929,7 +943,8 @@ class SeanceViewModel: ObservableObject {
                 isSecond: pending.isSecond,
                 isBonus: pending.isBonus,
                 equipmentType: pending.equipmentType,
-                painZone: pending.painZone
+                painZone: pending.painZone,
+                trackingType: pending.trackingType
             )
         }
         // Restore sessionStart BEFORE assigning logResults — persistDraftIfNeeded() fires on
@@ -1071,26 +1086,20 @@ class SeanceViewModel: ObservableObject {
             SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
             chrono.start(date: date, sessionType: draftSessionType)
         }
-        let values = logResults.values.map {
+        let values = logResults.values.map { log in
             PersistedExerciseLogResult(
-                name: $0.name,
-                weight: $0.weight,
-                reps: $0.reps,
-                rpe: $0.rpe,
-                isSecond: $0.isSecond,
-                isBonus: $0.isBonus,
-                equipmentType: $0.equipmentType,
-                painZone: $0.painZone,
-                sets: $0.sets.compactMap { s -> PersistedSet? in
-                    guard let w = s["weight"] as? Double,
-                          let r = s.repsString() else { return nil }
-                    return PersistedSet(
-                        weight: w,
-                        reps: r,
-                        rir: s["rir"] as? Int ?? 3,
-                        rpe: s["rpe"] as? Double
-                    )
-                }
+                name: log.name,
+                weight: log.weight,
+                reps: log.reps,
+                rpe: log.rpe,
+                isSecond: log.isSecond,
+                isBonus: log.isBonus,
+                equipmentType: log.equipmentType,
+                painZone: log.painZone,
+                sets: log.sets.compactMap { s in
+                    PersistedSet.preserving(s, trackingType: log.trackingType ?? seanceData?.inventoryTracking[log.name] ?? "reps")
+                },
+                trackingType: log.trackingType
             )
         }
         SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)

@@ -5,9 +5,44 @@ private let draftLogger = Logger(subsystem: "TrainingOS", category: "session_dra
 
 struct PersistedSet: Codable {
     let weight: Double
-    let reps: String
-    let rir: Int
+    let reps: String?
+    let rir: Int?
     let rpe: Double?
+    var distanceM: Int? = nil
+    var intensity: Double? = nil
+    var leftTime: Int? = nil
+    var rightTime: Int? = nil
+
+    // Validated log payloads, not raw UI rows. Protocol's weight-only set means "done".
+    static func preserving(_ payload: [String: Any], trackingType: String) -> PersistedSet? {
+        guard let weight = (payload["weight"] as? NSNumber)?.doubleValue else { return nil }
+        let reps = payload.repsString()
+        let distance = payload["distance_m"] as? Int
+        let meaningful: Bool
+        switch trackingType {
+        case "carry": meaningful = (distance ?? 0) > 0
+        case "protocol": meaningful = payload.count == 1 && weight == 0
+        default: meaningful = reps != nil && reps != ""
+        }
+        guard meaningful else { return nil }
+        return PersistedSet(weight: weight, reps: reps, rir: payload["rir"] as? Int,
+                            rpe: payload["rpe"] as? Double,
+                            distanceM: distance, intensity: payload["intensity"] as? Double,
+                            leftTime: (payload["left"] as? [String: Any])?["time"] as? Int,
+                            rightTime: (payload["right"] as? [String: Any])?["time"] as? Int)
+    }
+
+    var payload: [String: Any] {
+        var result: [String: Any] = ["weight": weight]
+        if let reps { result["reps"] = reps }
+        if let rir { result["rir"] = rir }
+        if let rpe { result["rpe"] = rpe }
+        if let distanceM { result["distance_m"] = distanceM }
+        if let intensity { result["intensity"] = intensity }
+        if let leftTime { result["left"] = ["time": leftTime] }
+        if let rightTime { result["right"] = ["time": rightTime] }
+        return result
+    }
 }
 
 struct PersistedExerciseLogResult: Codable {
@@ -20,6 +55,7 @@ struct PersistedExerciseLogResult: Codable {
     let equipmentType: String
     let painZone: String
     var sets: [PersistedSet]
+    var trackingType: String? = nil
 }
 
 enum SessionDraftStore {

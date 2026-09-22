@@ -26,6 +26,94 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testLegacySetDraftsDecodeWithoutSpecializedValues() throws {
+        let oldCard = Data(#"{"weight":"80","reps":"5","rir":2,"duration":30,"rpe":8}"#.utf8)
+        let card = try APIService.decoder.decode(DraftSet.self, from: oldCard)
+        XCTAssertEqual(card.weight, "80")
+        XCTAssertEqual(card.reps, "5")
+        XCTAssertEqual(card.rir, 2)
+        XCTAssertEqual(card.rpe, 8)
+        XCTAssertNil(card.distance)
+        XCTAssertNil(card.intensity)
+        XCTAssertNil(card.durationLeft)
+        XCTAssertNil(card.durationRight)
+        XCTAssertNil(card.protocolCompleted)
+        let oldLog = Data(#"{"weight":80,"reps":"5","rir":2,"rpe":8}"#.utf8)
+        let log = try APIService.decoder.decode(PersistedSet.self, from: oldLog)
+        XCTAssertEqual(log.weight, 80)
+        XCTAssertEqual(log.reps, "5")
+        XCTAssertEqual(log.rir, 2)
+        XCTAssertEqual(log.rpe, 8)
+        XCTAssertNil(log.distanceM)
+        XCTAssertNil(log.intensity)
+        XCTAssertNil(log.leftTime)
+        XCTAssertNil(log.rightTime)
+    }
+
+    func testSpecializedLogPayloadsSurviveSessionStoreAndRestore() throws {
+        let cases: [(String, [String: Any])] = [
+            ("reps", ["weight": 80.0, "reps": "5", "rir": 2, "rpe": 8.0]),
+            ("reps", ["weight": 0.0, "reps": "8", "rir": 3, "rpe": 7.0]),
+            ("carry", ["weight": 40.0, "distance_m": 25]),
+            ("plyo", ["weight": 0.0, "reps": "6", "intensity": 42.5]),
+            ("time", ["weight": 0, "reps": "45"]),
+            ("time", ["weight": 0, "reps": "65", "left": ["time": 30], "right": ["time": 35]]),
+            ("protocol", ["weight": 0])
+        ]
+        for (tracking, payload) in cases {
+            let date = "payload-test-\(UUID().uuidString)"
+            defer { SessionDraftStore.clear(date: date, sessionType: "evening") }
+            var json = try XCTUnwrap(JSONSerialization.jsonObject(with: Fixtures.seanceDataJSON(todayDate: date)) as? [String: Any])
+            // Carry/protocol also retain their type when the screen's inventory is not in seanceData.
+            json["inventory_tracking"] = ["Bench Press": tracking == "carry" || tracking == "protocol" ? "reps" : tracking]
+            let data = try APIService.decoder.decode(SeanceData.self, from: JSONSerialization.data(withJSONObject: json))
+            let original = SeanceViewModel(draftSessionType: "evening")
+            original.seanceData = data
+            original.logResults = ["Bench Press": ExerciseLogResult(
+                name: "Bench Press", weight: 40, reps: "1", sets: [payload], isSecond: true,
+                trackingType: tracking
+            )]
+            XCTAssertEqual(SessionDraftStore.load(date: date, sessionType: "evening").first?.sets.count, 1)
+            let restored = SeanceViewModel(draftSessionType: "evening")
+            restored.seanceData = data
+            restored.restoreLogResults(from: data, serverSessionType: "evening", serverCompleted: false)
+            let restoredPayload = try XCTUnwrap(restored.logResults["Bench Press"]?.sets.first)
+            XCTAssertTrue(NSDictionary(dictionary: payload).isEqual(to: restoredPayload), tracking)
+            XCTAssertEqual(SessionDraftStore.load(date: date, sessionType: "evening").first?.sets.count, 1)
+        }
+        for tracking in ["reps", "carry", "plyo", "time", "protocol"] {
+            XCTAssertNil(PersistedSet.preserving([:], trackingType: tracking))
+        }
+        XCTAssertNil(PersistedSet.preserving(["weight": 0], trackingType: "reps"))
+        XCTAssertNil(PersistedSet.preserving(["weight": 0, "distance_m": 0], trackingType: "carry"))
+    }
+
+    func testSpecializedCardInputsSurviveDebouncedSaveAndRecreation() async throws {
+        let date = "card-test-\(UUID().uuidString)"
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "Draft test")
+        defer { store.clear() }
+        let original = ExerciseViewModel(name: "Draft test", scheme: "1x5", weightData: nil, sessionDate: date)
+        original.sets = [SetInput(weight: "12,5", reps: "6", duration: 45,
+                                  durationLeft: 20, durationRight: 25, distance: "30",
+                                  intensity: "42,5", rir: 2, rpe: 8, protocolCompleted: true)]
+        // ExerciseViewModel's production draft save is debounced by 0.5 seconds.
+        try await Task.sleep(nanoseconds: 800_000_000)
+        XCTAssertNotNil(store.load())
+        let recreated = ExerciseViewModel(name: "Draft test", scheme: "1x5", weightData: nil, sessionDate: date)
+        recreated.initializeSets()
+        let restored = try XCTUnwrap(recreated.sets.first)
+        XCTAssertEqual(restored.weight, "12,5")
+        XCTAssertEqual(restored.reps, "6")
+        XCTAssertEqual(restored.duration, 45)
+        XCTAssertEqual(restored.durationLeft, 20)
+        XCTAssertEqual(restored.durationRight, 25)
+        XCTAssertEqual(restored.distance, "30")
+        XCTAssertEqual(restored.intensity, "42,5")
+        XCTAssertEqual(restored.rir, 2)
+        XCTAssertEqual(restored.rpe, 8)
+        XCTAssertTrue(restored.protocolCompleted)
+    }
+
     func testDraftCleanupRequiresMatchingCompletedSession() throws {
         let cases: [(draft: String, source: String, completed: Bool?, clears: Bool)] = [
             ("evening", "morning", true, false),
