@@ -24,7 +24,7 @@ class SeanceSoirViewModel: SeanceViewModel {
            let cached = cacheService.load(for: "seance_data"),
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
             seanceData = decoded
-            restoreLogResults(from: decoded)
+            restoreLogResults(from: decoded, serverSessionType: "morning", serverCompleted: decoded.alreadyLogged)
         }
 
         if seanceData == nil { isLoading = true }
@@ -42,7 +42,13 @@ class SeanceSoirViewModel: SeanceViewModel {
                 fresh = bridged
             }
             seanceData = fresh
-            restoreLogResults(from: fresh)
+            // PM alreadyLogged means "session exists", including partial sessions.
+            // Dashboard provides actual completion, scoped to the same date and slot.
+            // With no matching snapshot, preserve the draft rather than infer completion.
+            let dashboard = APIService.shared.dashboard
+            let completed: Bool? = dashboard?.todayDate == fresh.todayDate
+                ? dashboard?.secondSessionCompleted : nil
+            restoreLogResults(from: fresh, serverSessionType: "evening", serverCompleted: completed)
         } catch {
             if seanceData == nil { self.error = error.localizedDescription }
         }

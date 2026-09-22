@@ -869,7 +869,7 @@ class SeanceViewModel: ObservableObject {
            let cached = cacheService.load(for: "seance_data"),
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
             seanceData = decoded
-            restoreLogResults(from: decoded)
+            restoreLogResults(from: decoded, serverSessionType: "morning", serverCompleted: decoded.alreadyLogged)
             // Étape 3b — reconcile moot : le backend est autoritative sur les overrides.
         }
 
@@ -878,14 +878,16 @@ class SeanceViewModel: ObservableObject {
         do {
             let fresh = try await APIService.shared.fetchSeanceData()
             seanceData = fresh
-            restoreLogResults(from: fresh)
+            restoreLogResults(from: fresh, serverSessionType: "morning", serverCompleted: fresh.alreadyLogged)
         } catch {
             if seanceData == nil { self.error = error.localizedDescription }
         }
         isLoading = false
     }
 
-    func restoreLogResults(from data: SeanceData) {
+    /// Completion must describe the source session, not merely the existence of a log.
+    /// Unknown completion preserves the draft; callers must supply the source context.
+    func restoreLogResults(from data: SeanceData, serverSessionType: String, serverCompleted: Bool?) {
         let program = data.fullProgram[data.today] ?? [:]
         var restored: [String: ExerciseLogResult] = [:]
         // Restauration depuis l'historique serveur : UNIQUEMENT en session matin.
@@ -945,7 +947,7 @@ class SeanceViewModel: ObservableObject {
             chrono.start(date: data.todayDate, sessionType: draftSessionType)
         }
         isResuming = !restored.isEmpty
-        if data.alreadyLogged {
+        if serverSessionType == draftSessionType, serverCompleted == true {
             SessionDraftStore.clear(date: data.todayDate, sessionType: draftSessionType)
         }
     }

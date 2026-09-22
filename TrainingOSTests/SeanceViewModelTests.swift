@@ -26,6 +26,50 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testDraftCleanupRequiresMatchingCompletedSession() throws {
+        let cases: [(draft: String, source: String, completed: Bool?, clears: Bool)] = [
+            ("evening", "morning", true, false),
+            ("morning", "evening", true, false),
+            ("evening", "evening", false, false),
+            ("evening", "evening", nil, false),
+            ("evening", "evening", true, true),
+            ("morning", "morning", true, true),
+            ("bonus", "morning", true, false),
+            ("bonus", "evening", true, false)
+        ]
+        for testCase in cases {
+            let date = "draft-cleanup-test-\(UUID().uuidString)"
+            defer { SessionDraftStore.clear(date: date, sessionType: testCase.draft) }
+            let data = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(
+                todayDate: date, alreadyLogged: true
+            ))
+            SessionDraftStore.save(date: date, sessionType: testCase.draft, values: [
+                PersistedExerciseLogResult(
+                    name: "Bench Press", weight: 80, reps: "5", rpe: 7,
+                    isSecond: testCase.draft == "evening", isBonus: testCase.draft == "bonus",
+                    equipmentType: "barbell", painZone: "",
+                    sets: [PersistedSet(weight: 80, reps: "5", rir: 3, rpe: 7)]
+                )
+            ])
+            let vm = SeanceViewModel(draftSessionType: testCase.draft)
+            vm.seanceData = data
+            vm.restoreLogResults(from: data, serverSessionType: testCase.source,
+                                 serverCompleted: testCase.completed)
+
+            XCTAssertEqual(SessionDraftStore.hasDraft(date: date, sessionType: testCase.draft),
+                           !testCase.clears, "\(testCase)")
+            XCTAssertEqual(vm.logResults["Bench Press"]?.weight, 80)
+            XCTAssertEqual(vm.logResults["Bench Press"]?.reps, "5")
+
+            // A second restore must still find drafts preserved after a foreign/partial state.
+            if !testCase.clears {
+                vm.restoreLogResults(from: data, serverSessionType: testCase.draft, serverCompleted: nil)
+                XCTAssertEqual(vm.logResults["Bench Press"]?.weight, 80)
+                XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: testCase.draft))
+            }
+        }
+    }
+
     func testRestoreLogResultsFromCache() async throws {
         let todayDate = "2026-03-15"
         let data = Fixtures.seanceDataJSON(
