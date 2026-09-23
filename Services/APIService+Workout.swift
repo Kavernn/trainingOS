@@ -3,6 +3,31 @@ import OSLog
 
 private let workoutLogger = Logger(subsystem: "TrainingOS", category: "api+workout")
 
+/// Local save status. Blocking failures throw instead of producing an accepted outcome.
+enum ExerciseSaveOutcome {
+    case confirmed(LogExerciseResponse)
+    case queuedOffline
+
+    /// Only offlinePost's nil (accepted by its queue) denotes queuedOffline.
+    /// Keep transport/HTTP/local errors outside the decode catch so they propagate unchanged.
+    static func fromOfflinePost(_ post: () async throws -> Data?) async throws -> ExerciseSaveOutcome {
+        guard let data = try await post() else { return .queuedOffline }
+        do {
+            let response = try APIService.decoder.decode(LogExerciseResponse.self, from: data)
+            // /api/log acknowledges success explicitly; {} or success:false are not acceptance.
+            guard response.success == true else {
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: [], debugDescription: "/api/log acknowledgment requires success=true"
+                ))
+            }
+            return .confirmed(response)
+        } catch {
+            workoutLogger.error("❌ logExercise response invalid: \(error, privacy: .public)")
+            throw APIError.decodingFailed(endpoint: "/api/log", error: error)
+        }
+    }
+}
+
 // Étape 3 — signal posté par les writers d'overrides (move/clear). Les vues
 // listen pour refetch leur payload (source unique backend). Ancien nom
 // .seanceSplitStoreDidChange renommé au retrait de SeanceSplitStore (commit 3).
@@ -30,6 +55,23 @@ extension APIService {
                      force: Bool = false, isSecond: Bool = false, isBonus: Bool = false,
                      equipmentType: String = "", painZone: String = "", notes: String = "",
                      invalidate: Bool = true) async throws -> LogExerciseResponse {
+        // Compatibility wrapper only. New finish orchestration must use logExerciseOutcome.
+        switch try await logExerciseOutcome(
+            exercise: exercise, weight: weight, reps: reps, rpe: rpe, sets: sets,
+            force: force, isSecond: isSecond, isBonus: isBonus,
+            equipmentType: equipmentType, painZone: painZone, notes: notes, invalidate: invalidate
+        ) {
+        case .confirmed(let response): return response
+        case .queuedOffline:
+            return LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil, baselineCount: nil, confidence: nil)
+        }
+    }
+
+    func logExerciseOutcome(exercise: String, weight: Double, reps: String,
+                            rpe: Double? = nil, sets: [[String: Any]] = [],
+                            force: Bool = false, isSecond: Bool = false, isBonus: Bool = false,
+                            equipmentType: String = "", painZone: String = "", notes: String = "",
+                            invalidate: Bool = true) async throws -> ExerciseSaveOutcome {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
         if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
@@ -39,16 +81,13 @@ extension APIService {
         if !equipmentType.isEmpty { body["equipment_type"] = equipmentType }
         if !painZone.isEmpty { body["pain_zone"] = painZone }
         if !notes.isEmpty { body["notes"] = notes }
-        guard let data = try await offlinePost(endpoint: "/api/log", payload: body) else {
-            return LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil, baselineCount: nil, confidence: nil)
+        let outcome = try await ExerciseSaveOutcome.fromOfflinePost {
+            try await self.offlinePost(endpoint: "/api/log", payload: body)
         }
-        if invalidate { CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate() }
-        do {
-            return try APIService.decoder.decode(LogExerciseResponse.self, from: data)
-        } catch {
-            workoutLogger.error("❌ logExercise decode failed: \(error, privacy: .public)")
-            throw APIError.decodingFailed(endpoint: "/api/log", error: error)
+        if case .confirmed = outcome, invalidate {
+            CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate()
         }
+        return outcome
     }
 
     func logSession(exos: [String], rpe: Double, comment: String,

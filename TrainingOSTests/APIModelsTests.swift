@@ -8,6 +8,71 @@ import XCTest
 
 final class APIModelsTests: XCTestCase {
 
+    func testExerciseSaveConfirmsBackendAcknowledgment() async throws {
+        let data = Data(#"{"success":true,"status":"ok","increase":0,"new_weight":80,"1rm":93.3,"is_pr":false,"baseline_count":3,"confidence":"high","achieved":[]}"#.utf8)
+        var calls = 0
+        let outcome = try await ExerciseSaveOutcome.fromOfflinePost { calls += 1; return data }
+        guard case .confirmed(let response) = outcome else { return XCTFail("Expected confirmed") }
+        XCTAssertEqual(calls, 1)
+        XCTAssertEqual(response.success, true)
+        XCTAssertEqual(response.newWeight, 80)
+        XCTAssertEqual(response.isPR, false)
+    }
+
+    func testExerciseSaveRejectsEmptyAndInvalidServerAcknowledgments() async {
+        for body in ["{}", #"{"success":false}"#, #"{"success":null}"#,
+                     #"{"is_pr":true}"#, #"{"success":"true"}"#, "not JSON"] {
+            do {
+                _ = try await ExerciseSaveOutcome.fromOfflinePost { Data(body.utf8) }
+                XCTFail("Unexpected accepted outcome for \(body)")
+            } catch APIError.decodingFailed(let endpoint, _) {
+                XCTAssertEqual(endpoint, "/api/log")
+            } catch {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
+    }
+
+    @MainActor
+    func testExerciseSaveDistinguishesAcceptedOfflineQueue() async throws {
+        let suite = "exercise-outcome-test-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let queue = UserDefaultsSyncQueue(defaults: defaults)
+        // Stub offlinePost's existing transport-error → enqueue → nil contract.
+        let outcome = try await ExerciseSaveOutcome.fromOfflinePost {
+            queue.append(PendingMutation(endpoint: "/api/log", payload: ["exercise": "Squat"]))
+            return nil
+        }
+        guard case .queuedOffline = outcome else { return XCTFail("Must not confirm an offline save") }
+        XCTAssertEqual(queue.load().count, 1)
+    }
+
+    func testExerciseSavePropagatesHTTPFailure() async {
+        do {
+            _ = try await ExerciseSaveOutcome.fromOfflinePost {
+                throw APIError.serverError(500, "Injected exercise failure")
+            }
+            XCTFail("HTTP failure must not produce an accepted outcome")
+        } catch APIError.serverError(let code, let message) {
+            XCTAssertEqual(code, 500)
+            XCTAssertEqual(message, "Injected exercise failure")
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testExerciseSavePropagatesLocalSerializationFailure() async {
+        do {
+            _ = try await ExerciseSaveOutcome.fromOfflinePost {
+                try JSONSerialization.data(withJSONObject: ["weight": Double.nan])
+            }
+            XCTFail("Invalid local JSON must throw before acceptance")
+        } catch {
+            XCTAssertEqual((error as NSError).domain, NSCocoaErrorDomain)
+        }
+    }
+
     // MARK: - Dashboard muscle metadata
 
     func testDashboardMuscleMetadataDecoding() throws {
