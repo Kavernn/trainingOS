@@ -195,9 +195,10 @@ final class SeanceViewModelTests: XCTestCase {
         original.sets = [SetInput(weight: "12,5", reps: "6", duration: 45,
                                   durationLeft: 20, durationRight: 25, distance: "30",
                                   intensity: "42,5", rir: 2, rpe: 8, protocolCompleted: true)]
+        original.sessionNote = "Contrôle lent sur la descente"
         // ExerciseViewModel's production draft save is debounced by 0.5 seconds.
         try await Task.sleep(nanoseconds: 800_000_000)
-        XCTAssertNotNil(store.load())
+        XCTAssertEqual(store.loadCard()?.sessionNote, "Contrôle lent sur la descente")
         let recreated = ExerciseViewModel(name: "Draft test", scheme: "1x5", weightData: nil, sessionDate: date)
         recreated.initializeSets()
         let restored = try XCTUnwrap(recreated.sets.first)
@@ -211,6 +212,63 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertEqual(restored.rir, 2)
         XCTAssertEqual(restored.rpe, 8)
         XCTAssertTrue(restored.protocolCompleted)
+        XCTAssertEqual(recreated.sessionNote, "Contrôle lent sur la descente")
+
+        let result = try XCTUnwrap(recreated.logExercise(alreadyLoggedViaBinding: false))
+        XCTAssertEqual(result.notes, "Contrôle lent sur la descente")
+        XCTAssertEqual(recreated.sessionNote, "")
+        XCTAssertNil(store.loadCard())
+    }
+
+    func testLegacyExerciseCardDraftRestoresWithoutNote() throws {
+        let date = "legacy-card-test-\(UUID().uuidString)"
+        let exerciseName = "Legacy draft"
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: exerciseName)
+        defer { store.clear() }
+        let legacySets = [DraftSet(weight: "80", reps: "5", rir: 2, duration: 30)]
+        let data = try APIService.encoder.encode(legacySets)
+        UserDefaults.standard.set(
+            data,
+            forKey: "\(ExerciseDraftPersistence.keyPrefix)\(date)_morning_\(exerciseName)"
+        )
+
+        let restored = try XCTUnwrap(store.loadCard())
+        XCTAssertEqual(restored.sets.first?.weight, "80")
+        XCTAssertEqual(restored.sets.first?.reps, "5")
+        XCTAssertNil(restored.sessionNote)
+    }
+
+    func testExerciseNoteSurvivesSessionDraftStoreAndRestore() throws {
+        let date = "note-session-test-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "evening") }
+        let data = try APIService.decoder.decode(
+            SeanceData.self,
+            from: Fixtures.seanceDataJSON(todayDate: date)
+        )
+        let original = SeanceViewModel(draftSessionType: "evening")
+        original.seanceData = data
+        original.logResults = [
+            "Bench Press": ExerciseLogResult(
+                name: "Bench Press", weight: 80, reps: "5",
+                sets: [["weight": 80.0, "reps": "5"]],
+                isSecond: true, equipmentType: "barbell",
+                notes: "Coude stable, aucune douleur"
+            )
+        ]
+
+        XCTAssertEqual(
+            SessionDraftStore.load(date: date, sessionType: "evening").first?.notes,
+            "Coude stable, aucune douleur"
+        )
+
+        let restored = SeanceViewModel(draftSessionType: "evening")
+        restored.seanceData = data
+        restored.restoreLogResults(
+            from: data,
+            serverSessionType: "evening",
+            serverCompleted: false
+        )
+        XCTAssertEqual(restored.logResults["Bench Press"]?.notes, "Coude stable, aucune douleur")
     }
 
     func testDraftCleanupRequiresMatchingCompletedSession() throws {
@@ -247,6 +305,7 @@ final class SeanceViewModelTests: XCTestCase {
                            !testCase.clears, "\(testCase)")
             XCTAssertEqual(vm.logResults["Bench Press"]?.weight, 80)
             XCTAssertEqual(vm.logResults["Bench Press"]?.reps, "5")
+            XCTAssertEqual(vm.logResults["Bench Press"]?.notes, "")
 
             // A second restore must still find drafts preserved after a foreign/partial state.
             if !testCase.clears {

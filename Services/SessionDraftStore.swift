@@ -56,6 +56,7 @@ struct PersistedExerciseLogResult: Codable {
     let painZone: String
     var sets: [PersistedSet]
     var trackingType: String? = nil
+    var notes: String? = nil
 }
 
 enum SessionDraftStore {

@@ -60,6 +60,11 @@ struct DraftSet: Codable {
 
 // MARK: - ExerciseDraftPersistence
 
+struct ExerciseCardDraft: Codable {
+    var sets: [DraftSet]
+    var sessionNote: String? = nil
+}
+
 // Draft par carte d'exercice. Scopé par (date, session_type, name) pour éviter
 // qu'un draft matin fuite en soir (crime Volet C — l'app se positionnait au 3e set
 // avec les valeurs matin déjà "loggées" sans geste utilisateur).
@@ -72,15 +77,22 @@ struct ExerciseDraftPersistence {
     private var key: String { "\(Self.keyPrefix)\(date)_\(sessionType)_\(exerciseName)" }
 
     @discardableResult
-    func save(_ drafts: [DraftSet]) -> Bool {
-        guard let data = try? APIService.encoder.encode(drafts) else { return false }
+    func save(_ drafts: [DraftSet], sessionNote: String? = nil) -> Bool {
+        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(sets: drafts, sessionNote: sessionNote)) else { return false }
         UserDefaults.standard.set(data, forKey: key)
         return true
     }
 
     func load() -> [DraftSet]? {
+        loadCard()?.sets
+    }
+
+    func loadCard() -> ExerciseCardDraft? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        return try? APIService.decoder.decode([DraftSet].self, from: data)
+        if let draft = try? APIService.decoder.decode(ExerciseCardDraft.self, from: data) { return draft }
+        // Existing drafts stored only the set array under this same key.
+        guard let sets = try? APIService.decoder.decode([DraftSet].self, from: data) else { return nil }
+        return ExerciseCardDraft(sets: sets)
     }
 
     func clear() { UserDefaults.standard.removeObject(forKey: key) }
@@ -281,7 +293,10 @@ final class ExerciseViewModel: ObservableObject {
     @Published var isLogged = false
     @Published var isEditing = false
     @Published var isSkipped = false
-    @Published var sessionNote: String = ""
+    @Published var sessionNote: String = "" {
+        didSet { if !isClearingDraft { saveDraft() } }
+    }
+    private var isClearingDraft = false
 
     @Published private(set) var draftSavedAt: Date? = nil
     // W-B2 — expose network log errors so ExerciseCard can display a banner
@@ -435,12 +450,12 @@ final class ExerciseViewModel: ObservableObject {
                      durationLeft: $0.durationLeft, durationRight: $0.durationRight,
                      protocolCompleted: $0.protocolCompleted ? true : nil)
         }
-        if draftStore.save(draft) { draftSavedAt = Date() }
+        if draftStore.save(draft, sessionNote: sessionNote) { draftSavedAt = Date() }
     }
 
-    private func loadDraft() -> [DraftSet]? { draftStore.load() }
-
     func clearDraft() {
+        isClearingDraft = true
+        defer { isClearingDraft = false }
         draftStore.clear()
         sessionNote = ""
     }
@@ -453,8 +468,9 @@ final class ExerciseViewModel: ObservableObject {
 
     func initializeSets() {
         guard sets.isEmpty else { return }
-        if let draft = loadDraft(), !draft.isEmpty {
-            sets = draft.map {
+        let draft = draftStore.loadCard()
+        if let draft, !draft.sets.isEmpty {
+            sets = draft.sets.map {
                 SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration,
                          durationLeft: $0.durationLeft, durationRight: $0.durationRight,
                          distance: $0.distance ?? "", intensity: $0.intensity ?? "",
@@ -463,6 +479,7 @@ final class ExerciseViewModel: ObservableObject {
         } else {
             sets = Array(repeating: SetInput(), count: setsCount)
         }
+        sessionNote = draft?.sessionNote ?? ""
         if !isTimeBased && !sets.isEmpty {
             setBySetMode = true
             // Reprend au 1er set incomplet ; si tous remplis (✓ final pas tapé),
@@ -634,7 +651,8 @@ final class ExerciseViewModel: ObservableObject {
         isLogged  = true
         isEditing = false
         logError  = nil   // W-B2 — clear any prior error on successful log
-        clearDraft()
+        let noteForResult = sessionNote
+        defer { clearDraft() }
 
         if trackingType == "protocol" {
             // ponytail: log protocol = fait par définition. reps="1" placeholder canLog + NOT NULL,
@@ -644,7 +662,7 @@ final class ExerciseViewModel: ObservableObject {
             let setsPayload: [[String: Any]] = [["weight": 0]]
             let result = ExerciseLogResult(name: name, weight: 0, reps: "1", rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-                equipmentType: equipmentType, painZone: painZone, notes: sessionNote, trackingType: trackingType)
+                equipmentType: equipmentType, painZone: painZone, notes: noteForResult, trackingType: trackingType)
             logStatus = .success(0)
             return result
         }
@@ -665,7 +683,7 @@ final class ExerciseViewModel: ObservableObject {
             let firstW = setsPayload.compactMap { $0["weight"] as? Double }.first(where: { $0 > 0 }) ?? 0
             let result = ExerciseLogResult(name: name, weight: firstW, reps: repsCSV, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-                equipmentType: equipmentType, painZone: painZone, notes: sessionNote, trackingType: trackingType)
+                equipmentType: equipmentType, painZone: painZone, notes: noteForResult, trackingType: trackingType)
             logStatus = .success(firstW)
             return result
         }
@@ -688,7 +706,7 @@ final class ExerciseViewModel: ObservableObject {
             let firstW = setsPayload.compactMap { $0["weight"] as? Double }.first(where: { $0 > 0 }) ?? 0
             let result = ExerciseLogResult(name: name, weight: firstW, reps: repsStr, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-                equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
+                equipmentType: equipmentType, painZone: painZone, notes: noteForResult)
             logStatus = .success(firstW)
             return result
         }
@@ -706,7 +724,7 @@ final class ExerciseViewModel: ObservableObject {
             }
             let result = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-                equipmentType: "bodyweight", painZone: painZone, notes: sessionNote)
+                equipmentType: "bodyweight", painZone: painZone, notes: noteForResult)
             logStatus = .success(0)
             return result
         }
@@ -732,7 +750,7 @@ final class ExerciseViewModel: ObservableObject {
         let repsForResult = repsStr.isEmpty && isFixedWeight ? "0" : repsStr
         let result = ExerciseLogResult(name: name, weight: total, reps: repsForResult, rpe: exerciseRPE,
             sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-            equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
+            equipmentType: equipmentType, painZone: painZone, notes: noteForResult)
         logStatus = .success(total)
         return result
     }
@@ -1053,6 +1071,7 @@ class SeanceViewModel: ObservableObject {
                 isBonus: pending.isBonus,
                 equipmentType: pending.equipmentType,
                 painZone: pending.painZone,
+                notes: pending.notes ?? "",
                 trackingType: pending.trackingType
             )
         }
@@ -1182,7 +1201,8 @@ class SeanceViewModel: ObservableObject {
                 sets: log.sets.compactMap { s in
                     PersistedSet.preserving(s, trackingType: log.trackingType ?? seanceData?.inventoryTracking[log.name] ?? "reps")
                 },
-                trackingType: log.trackingType
+                trackingType: log.trackingType,
+                notes: log.notes
             )
         }
         SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)
