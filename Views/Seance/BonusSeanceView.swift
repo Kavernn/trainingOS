@@ -7,23 +7,16 @@ class BonusSeanceViewModel: SeanceViewModel {
     }
 
     override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = true, closeSession: Bool = true) async {
+        guard !isFinishing else { return }
+        isFinishing = true
+        defer { isFinishing = false }
+        prepareFinishRetry(rpe: rpe, comment: comment, durationMin: durationMin, energyPre: energyPre,
+                           sessionName: sessionName, bonusSession: bonusSession, closeSession: closeSession)
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
         let exerciseLogs: [[String: Any]] = logResults.values.map {
             ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
         }
-        var failedExercises: [String] = []
-
-        for result in logResults.values {
-            do {
-                _ = try await APIService.shared.logExercise(
-                    exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
-                    sets: result.sets, force: true,
-                    isSecond: false, isBonus: true,
-                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes)
-            } catch {
-                failedExercises.append(result.name)
-            }
-        }
+        guard await saveExercisesForFinish(isSecond: false, isBonus: true, collectPRs: false) else { return }
 
         do {
             try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
@@ -37,9 +30,6 @@ class BonusSeanceViewModel: SeanceViewModel {
         }
 
         await APIService.shared.fetchDashboard()
-        if !failedExercises.isEmpty {
-            commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
-        }
         await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
         showSuccess = true
     }
@@ -191,7 +181,7 @@ struct BonusSeanceView: View {
     }
 
     // Extraction pour désengorger le type-checker sur le VStack englobant du body.
-    // Comportement et rendu strictement identiques à la version inline précédente.
+    // Reuse the finish state for initial saves and retries.
     @ViewBuilder
     private var finishSessionButton: some View {
         if !vm.logResults.isEmpty {
@@ -204,8 +194,9 @@ struct BonusSeanceView: View {
                 }
             } label: {
                 HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Terminer la séance")
+                    if vm.isFinishing { ProgressView().tint(Color.onAccent) }
+                    else { Image(systemName: "checkmark.circle.fill") }
+                    Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
                         .font(.appBody.weight(.semibold))
                 }
                 .frame(maxWidth: .infinity)
@@ -215,6 +206,7 @@ struct BonusSeanceView: View {
                 .cornerRadius(14)
             }
             .padding(.horizontal, 16)
+            .disabled(vm.isFinishing)
         }
     }
 
@@ -391,11 +383,15 @@ struct BonusSeanceView: View {
         .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await vm.load() } }
         }
-        .alert("Erreur", isPresented: Binding(
+        .alert(vm.failedExerciseNames.isEmpty ? "Erreur" : "Certains exercices n’ont pas été sauvegardés", isPresented: Binding(
             get: { vm.submitError != nil },
             set: { if !$0 { vm.submitError = nil } }
         )) {
-            Button("OK") { vm.submitError = nil }
+            if vm.canRetryFinish {
+                Button("Réessayer") { Task { await vm.retryFinish() } }
+                    .disabled(vm.isFinishing)
+            }
+            Button("Annuler", role: .cancel) { vm.submitError = nil }
         } message: {
             Text(vm.submitError ?? "")
         }

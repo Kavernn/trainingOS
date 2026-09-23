@@ -64,30 +64,14 @@ class SeanceSoirViewModel: SeanceViewModel {
         guard !isFinishing else { return }
         isFinishing = true
         defer { isFinishing = false }
+        prepareFinishRetry(rpe: rpe, comment: comment, durationMin: durationMin, energyPre: energyPre,
+                           sessionName: sessionName, bonusSession: bonusSession, closeSession: closeSession)
 
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
         let exerciseLogs: [[String: Any]] = logResults.values.map {
             ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
         }
-        var failedExercises: [String] = []
-
-        for result in logResults.values {
-            do {
-                let response = try await APIService.shared.logExercise(
-                    exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
-                    sets: result.sets, force: true,
-                    isSecond: true, isBonus: false,
-                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes)
-                if response.isPR == true {
-                    prCelebrations.append((name: result.name, oneRM: response.oneRM ?? 0))
-                }
-                // Étape 3b — remove-on-log moot : le backend override survit au log
-                // (garde-fou exercise_has_log_on empêche déjà toute mutation ultérieure),
-                // pas besoin de cleanup côté client.
-            } catch {
-                failedExercises.append(result.name)
-            }
-        }
+        guard await saveExercisesForFinish(isSecond: true, isBonus: false) else { return }
 
         // Reprendre plus tard : persist les exos (loop ci-dessus déjà fait) et sort.
         // On SKIP logSession → workout_sessions.completed reste false → showEveningBlock
@@ -96,6 +80,7 @@ class SeanceSoirViewModel: SeanceViewModel {
         // à la reprise = hide-done via loggedTodayNames (WorkoutActiveView L199-202).
         if !closeSession {
             await APIService.shared.fetchDashboard()
+            acceptPartialSave()
             return
         }
 
@@ -111,9 +96,6 @@ class SeanceSoirViewModel: SeanceViewModel {
         }
 
         await APIService.shared.fetchDashboard()
-        if !failedExercises.isEmpty {
-            commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
-        }
         await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
         if let date = seanceData?.todayDate {
             SessionDraftStore.clear(date: date, sessionType: draftSessionType)

@@ -26,6 +26,105 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    private final class FinishSaveStub: SeanceViewModel {
+        var failures: Set<String> = []
+        var queued: Set<String> = []
+        var calls: [String] = []
+        var sentWeights: [Double] = []
+        override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
+            calls.append(result.name)
+            sentWeights.append(result.weight)
+            if failures.contains(result.name) { throw APIError.serverError(500, "Injected") }
+            if queued.contains(result.name) { return .queuedOffline }
+            return .confirmed(LogExerciseResponse(success: true, newWeight: nil, oneRM: nil,
+                                                  isPR: false, baselineCount: nil, confidence: nil))
+        }
+    }
+
+    func testFinishGateRetriesOnlyFailuresAndAcceptsOffline() async throws {
+        let vm = FinishSaveStub(draftSessionType: "morning")
+        let date = "finish-test-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
+        vm.seanceData = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(todayDate: date))
+        vm.logResults = Dictionary(uniqueKeysWithValues: ["A", "B", "C"].map {
+            ($0, ExerciseLogResult(name: $0, weight: 80, reps: "5"))
+        })
+        vm.failures = ["B"]
+        vm.queued = ["C"]
+        let first = await vm.saveExercisesForFinish()
+        XCTAssertFalse(first)
+        XCTAssertEqual(vm.calls, ["A", "B", "C"])
+        XCTAssertEqual(vm.failedExerciseNames, ["B"])
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "morning"))
+        let second = await vm.saveExercisesForFinish()
+        XCTAssertFalse(second)
+        XCTAssertEqual(vm.calls, ["A", "B", "C", "B"])
+        vm.failures = []
+        let third = await vm.saveExercisesForFinish()
+        XCTAssertTrue(third)
+        XCTAssertEqual(vm.calls, ["A", "B", "C", "B", "B"])
+        XCTAssertTrue(vm.failedExerciseNames.isEmpty)
+        XCTAssertNil(vm.submitError)
+        // The gate never cleans the draft; finalization owns cleanup.
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "morning"))
+        vm.logResults["A"] = ExerciseLogResult(name: "A", weight: 85, reps: "5")
+        let edited = await vm.saveExercisesForFinish()
+        XCTAssertTrue(edited)
+        XCTAssertEqual(vm.calls.last, "A")
+        XCTAssertEqual(vm.sentWeights.last, 85)
+    }
+
+    func testFinishGateAllConfirmedAndFreshLifecycleResends() async {
+        let vm = FinishSaveStub(draftSessionType: "morning")
+        vm.logResults = ["A": ExerciseLogResult(name: "A", weight: 80, reps: "5")]
+        let accepted = await vm.saveExercisesForFinish()
+        XCTAssertTrue(accepted)
+        let recreated = FinishSaveStub(draftSessionType: "morning")
+        recreated.logResults = vm.logResults
+        let restoredAccepted = await recreated.saveExercisesForFinish()
+        XCTAssertTrue(restoredAccepted)
+        XCTAssertEqual(recreated.calls, ["A"])
+    }
+
+    private final class FailingEveningFinish: SeanceSoirViewModel {
+        override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
+            throw APIError.serverError(500, "Injected")
+        }
+    }
+    private final class FailingBonusFinish: BonusSeanceViewModel {
+        override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
+            throw APIError.serverError(500, "Injected")
+        }
+    }
+
+    func testBlockingSaveStopsMorningEveningBonusAndPartialEvening() async throws {
+        let morning = FinishSaveStub(draftSessionType: "morning")
+        morning.failures = ["A"]
+        let cases: [(SeanceViewModel, Bool)] = [
+            (morning, true), (FailingEveningFinish(), true),
+            (FailingBonusFinish(), true), (FailingEveningFinish(), false)
+        ]
+        for (vm, close) in cases {
+            let date = "blocked-finish-\(UUID().uuidString)"
+            defer { SessionDraftStore.clear(date: date, sessionType: vm.draftSessionType) }
+            vm.seanceData = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(todayDate: date))
+            vm.logResults = ["A": ExerciseLogResult(name: "A", weight: 80, reps: "5")]
+            await vm.finish(rpe: 7, comment: "", closeSession: close)
+            XCTAssertFalse(vm.showSuccess)
+            XCTAssertFalse(vm.partialSaveAccepted)
+            XCTAssertFalse(vm.isFinishing)
+            XCTAssertEqual(vm.failedExerciseNames, ["A"])
+            XCTAssertNotNil(vm.submitError)
+            XCTAssertTrue(vm.canRetryFinish)
+            XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: vm.draftSessionType))
+            await vm.retryFinish()
+            XCTAssertFalse(vm.showSuccess)
+            XCTAssertFalse(vm.partialSaveAccepted)
+            XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: vm.draftSessionType))
+        }
+    }
+
     func testLegacySetDraftsDecodeWithoutSpecializedValues() throws {
         let oldCard = Data(#"{"weight":"80","reps":"5","rir":2,"duration":30,"rpe":8}"#.utf8)
         let card = try APIService.decoder.decode(DraftSet.self, from: oldCard)

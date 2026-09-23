@@ -854,7 +854,14 @@ class SeanceViewModel: ObservableObject {
         didSet { persistDraftIfNeeded() }
     }
     @Published var showSuccess = false {
-        didSet { if showSuccess { NotificationCenter.default.post(name: .sessionCompleted, object: nil) } }
+        didSet {
+            if showSuccess {
+                finishExerciseSaves.removeAll()
+                retryFinishAction = nil
+                failedExerciseNames = []
+                NotificationCenter.default.post(name: .sessionCompleted, object: nil)
+            }
+        }
     }
     @Published var submitError: String?
     @Published var isResuming = false
@@ -865,6 +872,108 @@ class SeanceViewModel: ObservableObject {
     // guard de double-submit symétrique au parent.
     @Published var isFinishing = false
     @Published var prCelebrations: [(name: String, oneRM: Double)] = []
+    @Published private(set) var failedExerciseNames: [String] = []
+    private struct FinishExerciseSave {
+        enum State { case accepted, failed }
+        let payload: ExerciseLogResult
+        let fingerprint: Data
+        let state: State
+    }
+    private var finishExerciseSaves: [String: FinishExerciseSave] = [:]
+    private var finishSaveScope: String?
+    private var retryFinishAction: (() async -> Void)?
+    var canRetryFinish: Bool { retryFinishAction != nil }
+    private(set) var partialSaveAccepted = false
+
+    func prepareFinishRetry(rpe: Double, comment: String, durationMin: Double?, energyPre: Int?,
+                            sessionName: String?, bonusSession: Bool, closeSession: Bool) {
+        submitError = nil
+        partialSaveAccepted = false
+        retryFinishAction = { [weak self] in
+            await self?.finish(rpe: rpe, comment: comment, durationMin: durationMin,
+                               energyPre: energyPre, sessionName: sessionName,
+                               bonusSession: bonusSession, closeSession: closeSession)
+        }
+    }
+
+    func retryFinish() async {
+        guard !isFinishing else { return }
+        await retryFinishAction?()
+    }
+
+    func acceptPartialSave() { partialSaveAccepted = true }
+
+    // Overridable network boundary for targeted tests, using the explicit g2a contract.
+    func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
+        try await APIService.shared.logExerciseOutcome(
+            exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
+            sets: result.sets, force: true, isSecond: result.isSecond, isBonus: result.isBonus,
+            equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes,
+            invalidate: false)
+    }
+
+    private func finishFingerprint(_ result: ExerciseLogResult) throws -> Data {
+        var fields: [String: Any] = ["name": result.name, "weight": result.weight, "reps": result.reps,
+            "sets": result.sets, "isSecond": result.isSecond, "isBonus": result.isBonus,
+            "equipmentType": result.equipmentType, "painZone": result.painZone, "notes": result.notes]
+        if let rpe = result.rpe { fields["rpe"] = rpe }
+        return try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
+    }
+
+    /// No persistent success IDs: after recreation all restored logs can be safely upserted again.
+    func saveExercisesForFinish(isSecond: Bool? = nil, isBonus: Bool? = nil, collectPRs: Bool = true) async -> Bool {
+        submitError = nil
+        let scope = "\(draftSessionType)/\(seanceData?.todayDate ?? "")"
+        if finishSaveScope != scope { finishExerciseSaves.removeAll(); finishSaveScope = scope }
+        let snapshot = logResults
+        finishExerciseSaves = finishExerciseSaves.filter { snapshot[$0.key] != nil }
+        var failures: [String] = []
+        var invalidations: [CacheInvalidation] = []
+        for key in snapshot.keys.sorted() {
+            guard var result = snapshot[key] else { continue }
+            if let isSecond { result.isSecond = isSecond }
+            if let isBonus { result.isBonus = isBonus }
+            do {
+                let fingerprint = try finishFingerprint(result)
+                if let saved = finishExerciseSaves[key], saved.fingerprint == fingerprint,
+                   case .accepted = saved.state { continue }
+                do {
+                    let outcome = try await sendExerciseForFinish(result)
+                    switch outcome {
+                    case .confirmed(let response):
+                        invalidations.append(.exerciseLogged(isSecond: result.isSecond, isBonus: result.isBonus))
+                        if collectPRs, response.isPR == true {
+                            prCelebrations.append((name: result.name, oneRM: response.oneRM ?? 0))
+                        }
+                    case .queuedOffline: break
+                    }
+                    finishExerciseSaves[key] = FinishExerciseSave(payload: result, fingerprint: fingerprint, state: .accepted)
+                } catch {
+                    finishExerciseSaves[key] = FinishExerciseSave(payload: result, fingerprint: fingerprint, state: .failed)
+                    throw error
+                }
+            } catch { failures.append(result.name) }
+        }
+        CacheInvalidation.invalidateBatch(invalidations)
+        // A change made while awaiting the network must be saved before finalization too.
+        for key in snapshot.keys where logResults[key] == nil {
+            failures.append(snapshot[key]?.name ?? key)
+        }
+        for (key, current) in logResults {
+            var result = current
+            if let isSecond { result.isSecond = isSecond }
+            if let isBonus { result.isBonus = isBonus }
+            if let saved = finishExerciseSaves[key], case .accepted = saved.state,
+               let fingerprint = try? finishFingerprint(result), saved.fingerprint == fingerprint { continue }
+            failures.append(result.name)
+        }
+        failedExerciseNames = Array(Set(failures)).sorted()
+        guard failedExerciseNames.isEmpty else {
+            submitError = "Ta séance reste disponible sur cet appareil. Réessaie pour terminer la sauvegarde.\n\n" + failedExerciseNames.joined(separator: ", ")
+            return false
+        }
+        return true
+    }
 
     var sessionStart = Date()
     @Published private(set) var sessionStarted = false
@@ -973,6 +1082,8 @@ class SeanceViewModel: ObservableObject {
     func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false, closeSession: Bool = true) async {
         guard !isFinishing else { return }
         isFinishing = true
+        prepareFinishRetry(rpe: rpe, comment: comment, durationMin: durationMin, energyPre: energyPre,
+                           sessionName: sessionName, bonusSession: bonusSession, closeSession: closeSession)
 
         // Ask iOS for extra background time so the multi-step save (exercise POSTs + session POST)
         // completes even if the user backgrounds the app immediately after tapping "Terminer".
@@ -989,27 +1100,7 @@ class SeanceViewModel: ObservableObject {
         let exerciseLogs: [[String: Any]] = logResults.values.map {
             ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
         }
-        var failedExercises: [String] = []
-
-        var batchInvalidations: [CacheInvalidation] = []
-        for result in logResults.values {
-            do {
-                let response = try await APIService.shared.logExercise(
-                    exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
-                    sets: result.sets, force: true,
-                    isSecond: result.isSecond, isBonus: result.isBonus,
-                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes,
-                    invalidate: false)
-                batchInvalidations.append(.exerciseLogged(isSecond: result.isSecond, isBonus: result.isBonus))
-                if response.isPR == true {
-                    prCelebrations.append((name: result.name, oneRM: response.oneRM ?? 0))
-                }
-                // Étape 3b — remove-on-log moot : backend override survit au log,
-                // pas besoin de cleanup côté client (cf. SeanceSoirView.finish).
-            } catch {
-                failedExercises.append(result.name)
-            }
-        }
+        guard await saveExercisesForFinish() else { return }
 
         do {
             try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
@@ -1021,7 +1112,6 @@ class SeanceViewModel: ObservableObject {
             if let date = seanceData?.todayDate {
                 SessionDraftStore.clear(date: date, sessionType: draftSessionType)
             }
-            CacheInvalidation.invalidateBatch(batchInvalidations)
             await APIService.shared.fetchDashboard()
             commitWarning = "Séance déjà enregistrée ✓ — aucune perte de données."
             commitWarningStyle = .success
@@ -1046,13 +1136,6 @@ class SeanceViewModel: ObservableObject {
         await APIService.shared.fetchDashboard()
         if !verified {
             submitError = "Séance non confirmée en base — vérifie ta connexion et réessaie."
-        } else if !failedExercises.isEmpty {
-            if let date = seanceData?.todayDate {
-                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
-            }
-            commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
-            await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
-            showSuccess = true
         } else {
             if let date = seanceData?.todayDate {
                 SessionDraftStore.clear(date: date, sessionType: draftSessionType)

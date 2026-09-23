@@ -1913,14 +1913,22 @@ struct WorkoutSeanceView: View {
             recapSheetContent
         }
         .sheet(isPresented: $showProgressionSheet) { progressionSheet }
-        .alert("Erreur d'enregistrement", isPresented: Binding(
+        .alert(vm.failedExerciseNames.isEmpty ? "Erreur d'enregistrement" : "Certains exercices n’ont pas été sauvegardés", isPresented: Binding(
             get: { vm.submitError != nil },
             set: { if !$0 { vm.submitError = nil } }
         )) {
             Button("Réessayer") {
-                vm.submitError = nil
-                showFinish = true
+                if vm.canRetryFinish {
+                    Task {
+                        await vm.retryFinish()
+                        if vm.partialSaveAccepted { dismiss() }
+                    }
+                } else {
+                    vm.submitError = nil
+                    showFinish = true
+                }
             }
+            .disabled(vm.isFinishing)
             Button("Plus tard", role: .cancel) { vm.submitError = nil }
         } message: {
             Text(vm.submitError ?? "")
@@ -2064,7 +2072,7 @@ struct WorkoutSeanceView: View {
         // spinner isFinishing visible, submitError → alert avant dismiss.
         Task {
             await vm.finish(rpe: 0, comment: "", sessionName: data.today, closeSession: false)
-            await MainActor.run { dismiss() }
+            await MainActor.run { if vm.partialSaveAccepted { dismiss() } }
         }
     }
 
