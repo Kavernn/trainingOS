@@ -37,6 +37,16 @@ struct WorkoutSeanceView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var rpe: Double = 7
     @State private var comment = ""
+    private var commentBinding: Binding<String> {
+        Binding(get: { comment }, set: { value in
+            comment = value
+            SessionDraftStore.saveComment(value, date: data.todayDate, sessionType: vm.draftSessionType)
+        })
+    }
+
+    private func restoreComment() {
+        comment = SessionDraftStore.loadComment(date: data.todayDate, sessionType: vm.draftSessionType) ?? ""
+    }
     @State private var showFinish = false
     @State private var showFinishConfirm = false
     @State private var showUnloggedWarning = false
@@ -1210,7 +1220,7 @@ struct WorkoutSeanceView: View {
             logResults: vm.logResults,
             elapsedMin: Double(vm.chrono.elapsedSeconds) / 60.0,
             rpe: $rpe,
-            comment: $comment,
+            comment: commentBinding,
             preEnergy: energyPre,
             onSubmit: { _ in
                 let dur = Double(vm.chrono.stop())
@@ -1228,7 +1238,10 @@ struct WorkoutSeanceView: View {
             }
         )
         .presentationDetents([.medium, .large])
-        .onAppear { rpe = computedSessionRPE }
+        .onAppear {
+            restoreComment()
+            rpe = computedSessionRPE
+        }
     }
 
     private var progressionSheet: some View {
@@ -1368,6 +1381,8 @@ struct WorkoutSeanceView: View {
                         withAnimation {
                             vm.logResults.removeAll()
                             vm.isResuming = false
+                            SessionDraftStore.clear(date: data.todayDate, sessionType: vm.draftSessionType)
+                            restoreComment()
                         }
                     }
                     Button("Annuler", role: .cancel) {}
@@ -1920,7 +1935,7 @@ struct WorkoutSeanceView: View {
             Button("Réessayer") {
                 if vm.canRetryFinish {
                     Task {
-                        await vm.retryFinish()
+                        await vm.retryFinish(comment: comment)
                         if vm.partialSaveAccepted { dismiss() }
                     }
                 } else {
@@ -1977,6 +1992,8 @@ struct WorkoutSeanceView: View {
         .sheet(isPresented: $showSwapSheet) { swapSheet }
         .sheet(isPresented: $showCreateVariant) { createVariantSheet }
         .onAppear(perform: handleWorkoutAppear)
+        .onAppear(perform: restoreComment)
+        .onChange(of: data.todayDate) { _, _ in restoreComment() }
         .onChange(of: data.inventoryTypes) { fresh in
             if !fresh.isEmpty { inventoryTypes = fresh }
         }

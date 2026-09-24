@@ -26,6 +26,94 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testGlobalCommentRoundTripIsolationAndEmptyValues() {
+        let date = "comment-\(UUID().uuidString)"
+        let types = ["morning", "evening", "bonus"]
+        defer { for type in types { SessionDraftStore.clear(date: date, sessionType: type) } }
+        for (index, type) in types.enumerated() {
+            let text = index == 0 ? "Très bonne séance" : "Commentaire \(type)"
+            SessionDraftStore.saveComment(text, date: date, sessionType: type)
+        }
+        for (index, type) in types.enumerated() {
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type),
+                           index == 0 ? "Très bonne séance" : "Commentaire \(type)")
+            XCTAssertNil(SessionDraftStore.loadComment(date: "other-\(date)", sessionType: type))
+            SessionDraftStore.saveComment("", date: date, sessionType: type)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "")
+            SessionDraftStore.saveComment("  \n ", date: date, sessionType: type)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "  \n ")
+        }
+    }
+
+    func testGlobalCommentSurvivesEmptyLogsAndRestoreButNotFullCleanup() throws {
+        let date = "comment-lifecycle-\(UUID().uuidString)"
+        for type in ["morning", "evening", "bonus"] {
+            defer { SessionDraftStore.clear(date: date, sessionType: type) }
+            let data = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(todayDate: date))
+            SessionDraftStore.saveComment("Très bonne séance", date: date, sessionType: type)
+            let vm = SeanceViewModel(draftSessionType: type)
+            vm.seanceData = data
+            vm.restoreLogResults(from: data, serverSessionType: type, serverCompleted: false)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "Très bonne séance")
+            vm.logResults = ["A": ExerciseLogResult(name: "A", weight: 80, reps: "5")]
+            vm.logResults.removeAll()
+            XCTAssertTrue(SessionDraftStore.load(date: date, sessionType: type).isEmpty)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "Très bonne séance")
+            _ = vm.chrono.stop()
+            // AM/PM completion already uses this common cleanup; Bonus is tested below.
+            if type != "bonus" {
+                vm.restoreLogResults(from: data, serverSessionType: type, serverCompleted: true)
+                XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: type))
+            }
+            SessionDraftStore.clear(date: date, sessionType: type)
+            XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: type))
+        }
+    }
+
+    func testLegacySessionLogArrayRemainsUnchangedWithoutComment() throws {
+        let date = "comment-legacy-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
+        let logs = [PersistedExerciseLogResult(
+            name: "A", weight: 80, reps: "5", rpe: nil, isSecond: false,
+            isBonus: false, equipmentType: "barbell", painZone: "", sets: []
+        )]
+        let legacy = try APIService.encoder.encode(logs)
+        UserDefaults.standard.set(legacy, forKey: "session_draft_morning_\(date)")
+        XCTAssertEqual(SessionDraftStore.load(date: date).first?.name, "A")
+        XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: "morning"))
+        SessionDraftStore.saveComment("Très bonne séance", date: date, sessionType: "morning")
+        XCTAssertEqual(UserDefaults.standard.data(forKey: "session_draft_morning_\(date)"), legacy)
+    }
+
+    private final class CommentRetryProbe: SeanceViewModel {
+        var receivedComment: String?
+        var receivedClose: Bool?
+        override func finish(rpe: Double, comment: String, durationMin: Double? = nil,
+                             energyPre: Int? = nil, sessionName: String? = nil,
+                             bonusSession: Bool = false, closeSession: Bool = true) async {
+            receivedComment = comment
+            receivedClose = closeSession
+        }
+    }
+
+    func testRetrySuppliesLatestCommentAndPreservesPartialSessionOption() async {
+        for type in ["morning", "evening", "bonus"] {
+            let vm = CommentRetryProbe(draftSessionType: type)
+            vm.prepareFinishRetry(rpe: 7, comment: "Première version", durationMin: 20,
+                                  energyPre: 3, sessionName: "Test", bonusSession: type == "bonus",
+                                  closeSession: type != "evening")
+            vm.isFinishing = true
+            await vm.retryFinish(comment: "Version finale")
+            XCTAssertNil(vm.receivedComment)
+            vm.isFinishing = false
+            await vm.retryFinish(comment: "Version finale")
+            XCTAssertEqual(vm.receivedComment, "Version finale")
+            XCTAssertEqual(vm.receivedClose, type != "evening")
+            await vm.retryFinish(comment: "")
+            XCTAssertEqual(vm.receivedComment, "")
+        }
+    }
+
     private func restoreBonusDraft(date: String) throws -> BonusSeanceViewModel {
         SessionDraftStore.save(date: date, sessionType: "bonus", values: [
             PersistedExerciseLogResult(
@@ -46,6 +134,7 @@ final class SeanceViewModelTests: XCTestCase {
         let date = "bonus-reconcile-\(UUID().uuidString)"
         let otherDate = "other-\(date)"
         let vm = try restoreBonusDraft(date: date)
+        SessionDraftStore.saveComment("Bonus terminé", date: date, sessionType: "bonus")
         let saved = SessionDraftStore.load(date: date, sessionType: "bonus")
         for type in ["morning", "evening"] {
             SessionDraftStore.save(date: date, sessionType: type, values: saved)
@@ -74,6 +163,7 @@ final class SeanceViewModelTests: XCTestCase {
                     HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
         }
         XCTAssertFalse(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+        XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: "bonus"))
         XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "bonus"))
         XCTAssertTrue(vm.logResults.isEmpty)
         XCTAssertFalse(vm.isResuming)
@@ -90,6 +180,7 @@ final class SeanceViewModelTests: XCTestCase {
     func testBonusUnprovenCompletionPreservesDraftUntilLaterConfirmedRead() async throws {
         let date = "bonus-offline-\(UUID().uuidString)"
         let vm = try restoreBonusDraft(date: date)
+        SessionDraftStore.saveComment("Bonus à reprendre", date: date, sessionType: "bonus")
         defer {
             _ = vm.chrono.stop()
             SessionDraftStore.clear(date: date, sessionType: "bonus")
@@ -120,6 +211,7 @@ final class SeanceViewModelTests: XCTestCase {
             XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
             XCTAssertEqual(vm.logResults["Bench Press"]?.notes, "Bonus draft note")
             XCTAssertTrue(vm.isResuming)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "Bonus à reprendre")
         }
         let malformed = await vm.loadBonusState { request in
             (Data("not-json".utf8),
@@ -135,6 +227,7 @@ final class SeanceViewModelTests: XCTestCase {
         }
         XCTAssertFalse(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
         XCTAssertTrue(vm.logResults.isEmpty)
+        XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: "bonus"))
     }
 
     private final class FinishSaveStub: SeanceViewModel {
@@ -221,6 +314,7 @@ final class SeanceViewModelTests: XCTestCase {
             defer { SessionDraftStore.clear(date: date, sessionType: vm.draftSessionType) }
             vm.seanceData = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(todayDate: date))
             vm.logResults = ["A": ExerciseLogResult(name: "A", weight: 80, reps: "5")]
+            SessionDraftStore.saveComment("Très bonne séance", date: date, sessionType: vm.draftSessionType)
             await vm.finish(rpe: 7, comment: "", closeSession: close)
             XCTAssertFalse(vm.showSuccess)
             XCTAssertFalse(vm.partialSaveAccepted)
@@ -229,10 +323,18 @@ final class SeanceViewModelTests: XCTestCase {
             XCTAssertNotNil(vm.submitError)
             XCTAssertTrue(vm.canRetryFinish)
             XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: vm.draftSessionType))
-            await vm.retryFinish()
+            await vm.retryFinish(comment: "")
             XCTAssertFalse(vm.showSuccess)
             XCTAssertFalse(vm.partialSaveAccepted)
             XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: vm.draftSessionType))
+            let restoredComment = SessionDraftStore.loadComment(date: date, sessionType: vm.draftSessionType)
+            XCTAssertEqual(restoredComment, "Très bonne séance")
+            let recreated = CommentRetryProbe(draftSessionType: vm.draftSessionType)
+            recreated.prepareFinishRetry(rpe: 7, comment: "", durationMin: nil,
+                                         energyPre: nil, sessionName: nil,
+                                         bonusSession: vm.draftSessionType == "bonus", closeSession: close)
+            await recreated.retryFinish(comment: try XCTUnwrap(restoredComment))
+            XCTAssertEqual(recreated.receivedComment, "Très bonne séance")
         }
     }
 

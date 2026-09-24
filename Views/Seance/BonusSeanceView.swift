@@ -87,6 +87,19 @@ struct BonusSeanceView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var rpe: Double = 7
     @State private var comment = ""
+    private var commentBinding: Binding<String> {
+        Binding(get: { comment }, set: { value in
+            comment = value
+            guard let date = vm.seanceData?.todayDate else { return }
+            SessionDraftStore.saveComment(value, date: date, sessionType: vm.draftSessionType)
+        })
+    }
+
+    private func restoreComment() {
+        comment = vm.seanceData.flatMap {
+            SessionDraftStore.loadComment(date: $0.todayDate, sessionType: vm.draftSessionType)
+        } ?? ""
+    }
     @State private var isLoading = true
     @ObservedObject private var timer = RestTimerManager.shared
     @State private var sessionStart = Date()
@@ -273,7 +286,7 @@ struct BonusSeanceView: View {
             logResults: vm.logResults,
             elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
             rpe: $rpe,
-            comment: $comment,
+            comment: commentBinding,
             onSubmit: { energy in
                 let dur = Date().timeIntervalSince(sessionStart) / 60
                 Task {
@@ -287,7 +300,10 @@ struct BonusSeanceView: View {
             }
         )
         .presentationDetents([.medium, .large])
-        .onAppear { rpe = computedRPE }
+        .onAppear {
+            restoreComment()
+            rpe = computedRPE
+        }
     }
 
     private var quitButton: some View {
@@ -419,7 +435,7 @@ struct BonusSeanceView: View {
             set: { if !$0 { vm.submitError = nil } }
         )) {
             if vm.canRetryFinish {
-                Button("Réessayer") { Task { await vm.retryFinish() } }
+                Button("Réessayer") { Task { await vm.retryFinish(comment: comment) } }
                     .disabled(vm.isFinishing)
             }
             Button("Annuler", role: .cancel) { vm.submitError = nil }
@@ -443,6 +459,7 @@ struct BonusSeanceView: View {
 
     private func loadInventory() async {
         await vm.load()
+        restoreComment()
 
         // Étape 4b-iii — charger le plan bonus (exos poussés depuis matin/soir).
         // Séquentiel (pas async let — cf. feedback iOS 26 async let crash).
@@ -475,7 +492,9 @@ struct BonusSeanceView: View {
     /// sont préservés. Distingués via pushedNames Set (contextMenu retour dispo
     /// seulement sur les pushed).
     private func loadBonusPlan() async {
-        guard let bonus = await vm.loadBonusState() else { return }
+        let bonusState = await vm.loadBonusState()
+        restoreComment()
+        guard let bonus = bonusState else { return }
 
         let newPushed = bonus.pushedToBonus
         // Scheme source : fullProgram["Bonus"] du payload (contient les exos poussés).

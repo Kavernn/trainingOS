@@ -84,7 +84,25 @@ enum SessionDraftStore {
         return decoded
     }
 
+    private static func commentKey(date: String, sessionType: String) -> String {
+        "session_comment_\(sessionType)_\(date)"
+    }
+
+    static func saveComment(_ comment: String, date: String, sessionType: String) {
+        UserDefaults.standard.set(comment, forKey: commentKey(date: date, sessionType: sessionType))
+    }
+
+    static func loadComment(date: String, sessionType: String) -> String? {
+        UserDefaults.standard.string(forKey: commentKey(date: date, sessionType: sessionType))
+    }
+
     static func clear(date: String, sessionType: String = "morning") {
+        clearLogs(date: date, sessionType: sessionType)
+        UserDefaults.standard.removeObject(forKey: commentKey(date: date, sessionType: sessionType))
+    }
+
+    /// Intermediate empty logs must not discard a still-legitimate session comment.
+    static func clearLogs(date: String, sessionType: String) {
         UserDefaults.standard.removeObject(forKey: key(date: date, sessionType: sessionType))
         UserDefaults.standard.removeObject(forKey: startedAtKey(date: date, sessionType: sessionType))
         UserDefaults.standard.removeObject(forKey: chronoPausedDurationKey(date: date, sessionType: sessionType))

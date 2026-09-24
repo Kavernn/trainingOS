@@ -899,7 +899,7 @@ class SeanceViewModel: ObservableObject {
     }
     private var finishExerciseSaves: [String: FinishExerciseSave] = [:]
     private var finishSaveScope: String?
-    private var retryFinishAction: (() async -> Void)?
+    private var retryFinishAction: ((String) async -> Void)?
     var canRetryFinish: Bool { retryFinishAction != nil }
     private(set) var partialSaveAccepted = false
 
@@ -907,16 +907,16 @@ class SeanceViewModel: ObservableObject {
                             sessionName: String?, bonusSession: Bool, closeSession: Bool) {
         submitError = nil
         partialSaveAccepted = false
-        retryFinishAction = { [weak self] in
-            await self?.finish(rpe: rpe, comment: comment, durationMin: durationMin,
+        retryFinishAction = { [weak self] currentComment in
+            await self?.finish(rpe: rpe, comment: currentComment, durationMin: durationMin,
                                energyPre: energyPre, sessionName: sessionName,
                                bonusSession: bonusSession, closeSession: closeSession)
         }
     }
 
-    func retryFinish() async {
+    func retryFinish(comment: String) async {
         guard !isFinishing else { return }
-        await retryFinishAction?()
+        await retryFinishAction?(comment)
     }
 
     func acceptPartialSave() { partialSaveAccepted = true }
@@ -1178,7 +1178,7 @@ class SeanceViewModel: ObservableObject {
     private func persistDraftIfNeeded() {
         guard let date = seanceData?.todayDate else { return }
         if logResults.isEmpty {
-            SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+            SessionDraftStore.clearLogs(date: date, sessionType: draftSessionType)
             sessionStarted = false
             return
         }
