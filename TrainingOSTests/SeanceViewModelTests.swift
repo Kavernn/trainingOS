@@ -26,6 +26,117 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    private func restoreBonusDraft(date: String) throws -> BonusSeanceViewModel {
+        SessionDraftStore.save(date: date, sessionType: "bonus", values: [
+            PersistedExerciseLogResult(
+                name: "Bench Press", weight: 80, reps: "5", rpe: 7,
+                isSecond: false, isBonus: true, equipmentType: "barbell", painZone: "",
+                sets: [PersistedSet(weight: 80, reps: "5", rir: 3, rpe: 7)],
+                notes: "Bonus draft note"
+            )
+        ])
+        let vm = BonusSeanceViewModel()
+        let data = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(todayDate: date))
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: true)
+        return vm
+    }
+
+    func testBonusCompletionClearsRestoredStateAndOnlyMatchingBonusDraft() async throws {
+        let date = "bonus-reconcile-\(UUID().uuidString)"
+        let otherDate = "other-\(date)"
+        let vm = try restoreBonusDraft(date: date)
+        let saved = SessionDraftStore.load(date: date, sessionType: "bonus")
+        for type in ["morning", "evening"] {
+            SessionDraftStore.save(date: date, sessionType: type, values: saved)
+        }
+        SessionDraftStore.save(date: otherDate, sessionType: "bonus", values: saved)
+        defer {
+            _ = vm.chrono.stop()
+            for type in ["morning", "evening", "bonus"] {
+                SessionDraftStore.clear(date: date, sessionType: type)
+            }
+            SessionDraftStore.clear(date: otherDate, sessionType: "bonus")
+        }
+        XCTAssertTrue(vm.isResuming)
+        XCTAssertTrue(vm.sessionStarted)
+        XCTAssertEqual(vm.logResults["Bench Press"]?.notes, "Bonus draft note")
+
+        let payload: [String: Any] = [
+            "has_bonus_session": true, "today_date": date, "already_logged": true,
+            "full_program": ["Bonus": ["Squat": "3x8"]], "pushed_to_bonus": ["Squat"]
+        ]
+        let result = await vm.loadBonusState { request in
+            XCTAssertEqual(request.url?.path, "/api/seance_bonus_data")
+            XCTAssertEqual(request.cachePolicy, .reloadIgnoringLocalCacheData)
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Cache-Control"), "no-cache")
+            return (try JSONSerialization.data(withJSONObject: payload),
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        XCTAssertFalse(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+        XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "bonus"))
+        XCTAssertTrue(vm.logResults.isEmpty)
+        XCTAssertFalse(vm.isResuming)
+        XCTAssertFalse(vm.sessionStarted)
+        XCTAssertEqual(vm.chrono.elapsedSeconds, 0)
+        XCTAssertFalse(vm.showSuccess, "Reconciliation must not trigger finish side effects")
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "morning"))
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "evening"))
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: otherDate, sessionType: "bonus"))
+        XCTAssertEqual(result?.pushedToBonus, Set(["Squat"]))
+        XCTAssertEqual(result?.fullProgram["Bonus"]?["Squat"]?.value, "3x8")
+    }
+
+    func testBonusUnprovenCompletionPreservesDraftUntilLaterConfirmedRead() async throws {
+        let date = "bonus-offline-\(UUID().uuidString)"
+        let vm = try restoreBonusDraft(date: date)
+        defer {
+            _ = vm.chrono.stop()
+            SessionDraftStore.clear(date: date, sessionType: "bonus")
+        }
+        // A queued POST is not a completion signal. Transport/HTTP/unknown GET
+        // results must all preserve the restored state until a later positive read.
+        let failedFetch = await vm.loadBonusState { _ in throw URLError(.notConnectedToInternet) }
+        XCTAssertNil(failedFetch)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+        XCTAssertFalse(vm.logResults.isEmpty)
+
+        let cases: [(Bool?, String?, Bool?, Int)] = [
+            (true, date, false, 200), (true, "other-\(date)", true, 200),
+            (false, date, true, 200), (nil, date, true, 200),
+            (true, nil, true, 200), (true, "", true, 200),
+            (true, date, nil, 200), (true, date, true, 500),
+            (true, date, true, 302)
+        ]
+        for (exists, serverDate, completed, status) in cases {
+            var payload: [String: Any] = [:]
+            if let exists { payload["has_bonus_session"] = exists }
+            if let serverDate { payload["today_date"] = serverDate }
+            if let completed { payload["already_logged"] = completed }
+            _ = await vm.loadBonusState { request in
+                (try JSONSerialization.data(withJSONObject: payload),
+                 HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+            }
+            XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+            XCTAssertEqual(vm.logResults["Bench Press"]?.notes, "Bonus draft note")
+            XCTAssertTrue(vm.isResuming)
+        }
+        let malformed = await vm.loadBonusState { request in
+            (Data("not-json".utf8),
+             HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        XCTAssertNil(malformed)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+
+        _ = await vm.loadBonusState { request in
+            (try JSONSerialization.data(withJSONObject: [
+                "has_bonus_session": true, "today_date": date, "already_logged": true
+            ]), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        XCTAssertFalse(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+        XCTAssertTrue(vm.logResults.isEmpty)
+    }
+
     private final class FinishSaveStub: SeanceViewModel {
         var failures: Set<String> = []
         var queued: Set<String> = []

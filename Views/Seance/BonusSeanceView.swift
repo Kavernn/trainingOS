@@ -6,6 +6,37 @@ class BonusSeanceViewModel: SeanceViewModel {
         super.init(draftSessionType: draftSessionType)
     }
 
+    /// Reuses the plan read. Only a fresh, successful Bonus response can retire a draft.
+    func loadBonusState(
+        fetch: (URLRequest) async throws -> (Data, URLResponse) = {
+            try await URLSession.authed.data(for: $0)
+        }
+    ) async -> SeanceBonusData? {
+        guard let url = URL(string: "\(APIConfig.base)/api/seance_bonus_data") else { return nil }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        guard let (data, response) = try? await fetch(request),
+              let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode),
+              let bonus = try? JSONDecoder().decode(SeanceBonusData.self, from: data)
+        else { return nil }
+
+        if draftSessionType == "bonus",
+           bonus.hasBonusSession, bonus.alreadyLogged,
+           let date = seanceData?.todayDate, !date.isEmpty,
+           bonus.todayDate == date {
+            // Emptying logs also resets sessionStarted and clears this scoped draft
+            // through the existing didSet. Do not invoke finish/restart side effects.
+            logResults.removeAll()
+            isResuming = false
+            _ = chrono.stop()
+            chrono.elapsedSeconds = 0
+            sessionStart = Date()
+            SessionDraftStore.clear(date: date, sessionType: "bonus")
+        }
+        return bonus
+    }
+
     override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = true, closeSession: Bool = true) async {
         guard !isFinishing else { return }
         isFinishing = true
@@ -381,7 +412,7 @@ struct BonusSeanceView: View {
         .sheet(isPresented: $showAddExercise) { addExerciseSheet }
         .sheet(isPresented: $showFinish) { finishSheet }
         .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
-            Button("OK") { Task { await vm.load() } }
+            Button("OK") { Task { await loadInventory() } }
         }
         .alert(vm.failedExerciseNames.isEmpty ? "Erreur" : "Certains exercices n’ont pas été sauvegardés", isPresented: Binding(
             get: { vm.submitError != nil },
@@ -444,10 +475,7 @@ struct BonusSeanceView: View {
     /// sont préservés. Distingués via pushedNames Set (contextMenu retour dispo
     /// seulement sur les pushed).
     private func loadBonusPlan() async {
-        guard let url = URL(string: "\(APIConfig.base)/api/seance_bonus_data"),
-              let (data, _) = try? await URLSession.authed.data(from: url),
-              let bonus = try? JSONDecoder().decode(SeanceBonusData.self, from: data)
-        else { return }
+        guard let bonus = await vm.loadBonusState() else { return }
 
         let newPushed = bonus.pushedToBonus
         // Scheme source : fullProgram["Bonus"] du payload (contient les exos poussés).
