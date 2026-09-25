@@ -26,6 +26,126 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testMorningPriorCompletionPreservesCommentThroughConflictAndCompletionPolicy() throws {
+        let date = "morning-comment-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        let data = try extraData(date)
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: true)
+        let comment = "Nouvelle note après completion"
+        SessionDraftStore.saveComment(comment, date: date, sessionType: "morning")
+        let protection = try XCTUnwrap(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning"))
+        XCTAssertTrue(protection.hasUnacknowledgedLocalChanges)
+        XCTAssertFalse(vm.handleFinishConflict())
+        XCTAssertNotNil(vm.submitError)
+        XCTAssertFalse(vm.showSuccess)
+        vm.applyCompletedSessionRecoveryPolicy()
+        XCTAssertTrue(vm.commitWarning?.contains("synchronisation n’est pas confirmée") == true)
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: true)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), comment)
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation, protection.generation)
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "morning"))
+    }
+
+    func testMorningNewLogAfterCompletionSurvivesRecreation() throws {
+        let date = "morning-log-\(UUID().uuidString)"
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        let reopened = SeanceViewModel(draftSessionType: "morning")
+        defer {
+            _ = vm.chrono.stop(); _ = reopened.chrono.stop()
+            SessionDraftStore.clear(date: date, sessionType: "morning")
+        }
+        let data = try extraData(date)
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: true)
+        vm.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 85, reps: "6", rpe: 8,
+            sets: [["weight": 85.0, "reps": "6", "rir": 2, "rpe": 8.0]], notes: "Nouvelle note", trackingType: "reps")
+        vm.logResults["Carry"] = ExerciseLogResult(name: "Carry", weight: 20, reps: "",
+            sets: [["weight": 20.0, "distance_m": 30]], trackingType: "carry")
+        SessionDraftStore.saveComment("Après completion", date: date, sessionType: "morning")
+        let generation = SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation
+        vm.applyCompletedSessionRecoveryPolicy()
+        reopened.seanceData = data
+        reopened.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: true)
+        XCTAssertEqual(reopened.logResults["Bench Press"]?.notes, "Nouvelle note")
+        XCTAssertEqual(reopened.logResults["Bench Press"]?.weight, 85)
+        XCTAssertEqual(reopened.logResults["Bench Press"]?.sets.first?["rir"] as? Int, 2)
+        XCTAssertEqual(reopened.logResults["Carry"]?.sets.first?["distance_m"] as? Int, 30)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "Après completion")
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation, generation)
+        XCTAssertFalse(reopened.handleFinishConflict())
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "morning"))
+    }
+
+    func testMorningLegacyRecoveryAndExplicitClearRemainTypeScoped() throws {
+        let date = "morning-legacy-\(UUID().uuidString)"
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        defer {
+            _ = vm.chrono.stop()
+            for type in ["morning", "evening", "bonus"] { SessionDraftStore.clear(date: date, sessionType: type) }
+        }
+        let legacy = [PersistedExerciseLogResult(name: "Bench Press", weight: 80, reps: "5", rpe: nil,
+            isSecond: false, isBonus: false, equipmentType: "", painZone: "", sets: [])]
+        let raw = try APIService.encoder.encode(legacy)
+        UserDefaults.standard.set(raw, forKey: "session_draft_morning_\(date)")
+        let data = try extraData(date)
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: true)
+        XCTAssertNil(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning"))
+        XCTAssertEqual(UserDefaults.standard.data(forKey: "session_draft_morning_\(date)"), raw)
+        XCTAssertFalse(vm.handleFinishConflict())
+        for type in ["evening", "bonus"] {
+            XCTAssertTrue(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: type))
+            SessionDraftStore.saveComment(type, date: date, sessionType: type)
+        }
+        SessionDraftStore.saveComment("Morning", date: date, sessionType: "morning")
+        SessionDraftStore.clearLogs(date: date, sessionType: "morning")
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "morning"))
+        SessionDraftStore.saveStartedAt(date: date, sessionType: "morning", startedAt: Date())
+        SessionDraftStore.clear(date: date, sessionType: "morning")
+        XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: "morning"))
+        XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "morning"))
+        XCTAssertNil(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning"))
+        XCTAssertTrue(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "morning"))
+        for type in ["evening", "bonus"] {
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), type)
+            XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: type)?.generation, 1)
+        }
+    }
+
+    func testMorningServerRestoreWithoutLocalRecoveryCreatesNoDraft() throws {
+        let date = "morning-empty-\(UUID().uuidString)"
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        defer { _ = vm.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "morning") }
+        let data = try extraData(date)
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: true)
+        vm.applyCompletedSessionRecoveryPolicy()
+        XCTAssertTrue(vm.handleFinishConflict())
+        XCTAssertNil(vm.submitError)
+        XCTAssertFalse(SessionDraftStore.hasDraft(date: date, sessionType: "morning"))
+        XCTAssertNil(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning"))
+        XCTAssertTrue(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "morning"))
+    }
+
+    func testNormalMorningGateAndCompletionPolicyPreserveUnacknowledgedRecovery() async throws {
+        let date = "morning-normal-\(UUID().uuidString)"
+        let vm = FinishSaveStub(draftSessionType: "morning")
+        defer { _ = vm.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "morning") }
+        vm.seanceData = try APIService.decoder.decode(SeanceData.self, from: Fixtures.seanceDataJSON(todayDate: date, alreadyLogged: false))
+        vm.logResults["A"] = ExerciseLogResult(name: "A", weight: 80, reps: "5")
+        let accepted = await vm.saveExercisesForFinish()
+        XCTAssertTrue(accepted)
+        vm.applyCompletedSessionRecoveryPolicy()
+        XCTAssertNil(vm.submitError)
+        XCTAssertNotNil(vm.commitWarning)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "morning"))
+        let retryAccepted = await vm.saveExercisesForFinish()
+        XCTAssertTrue(retryAccepted)
+        XCTAssertEqual(vm.calls, ["A"])
+    }
+
     func testSessionOutcomeResponseQueueAndErrors() async throws {
         let response = try await SessionSaveOutcome.fromOfflinePost { Data(#"{"success":true}"#.utf8) }
         guard case .serverResponse = response else { return XCTFail("Expected application response") }
@@ -386,11 +506,8 @@ final class SeanceViewModelTests: XCTestCase {
             XCTAssertTrue(SessionDraftStore.load(date: date, sessionType: type).isEmpty)
             XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "Très bonne séance")
             _ = vm.chrono.stop()
-            // Only Morning retains automatic cleanup on completion.
-            if type == "morning" {
-                vm.restoreLogResults(from: data, serverSessionType: type, serverCompleted: true)
-                XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: type))
-            }
+            vm.restoreLogResults(from: data, serverSessionType: type, serverCompleted: true)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "Très bonne séance")
             SessionDraftStore.clear(date: date, sessionType: type)
             XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: type))
         }
@@ -816,7 +933,7 @@ final class SeanceViewModelTests: XCTestCase {
             ("evening", "evening", false, false),
             ("evening", "evening", nil, false),
             ("evening", "evening", true, false),
-            ("morning", "morning", true, true),
+            ("morning", "morning", true, false),
             ("bonus", "morning", true, false),
             ("bonus", "evening", true, false)
         ]

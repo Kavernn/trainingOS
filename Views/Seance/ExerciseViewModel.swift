@@ -1100,7 +1100,8 @@ class SeanceViewModel: ObservableObject {
         }
     }
 
-    // Extra overrides the proof source, never the common save gate/retry pipeline.
+    // Extra overrides the status source, never the common save gate/retry pipeline.
+    // Completion describes server status, not acknowledgment of the local generation.
     func verifyFinishCompletion() async -> Bool {
         guard draftSessionType != "bonus" else { return false }
         return (try? await APIService.shared.fetchSeanceData().alreadyLogged) == true
@@ -1112,11 +1113,26 @@ class SeanceViewModel: ObservableObject {
             return false
         }
         if let date = seanceData?.todayDate {
+            guard SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: draftSessionType) else {
+                submitError = "La séance existe déjà. Les données locales sont conservées ; leur synchronisation n’est pas confirmée."
+                return false
+            }
             SessionDraftStore.clear(date: date, sessionType: draftSessionType)
         }
-        commitWarning = "Séance déjà enregistrée ✓ — aucune perte de données."
+        commitWarning = "Séance déjà marquée terminée côté serveur."
         commitWarningStyle = .success
         return true
+    }
+
+    /// Shared completion branch: server status alone never retires protected recovery.
+    func applyCompletedSessionRecoveryPolicy() {
+        guard let date = seanceData?.todayDate else { return }
+        if SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: draftSessionType) {
+            SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+        } else {
+            commitWarning = "Séance complétée côté serveur. Les données locales sont conservées ; leur synchronisation n’est pas confirmée."
+            commitWarningStyle = .success
+        }
     }
 
     // closeSession : knob PM-only honoré par SeanceSoirViewModel.finish
@@ -1158,7 +1174,7 @@ class SeanceViewModel: ObservableObject {
         } catch {
             submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
             // Draft conservé intentionnellement : les données restent restaurables au redémarrage.
-            // Si le POST a abouti malgré l'erreur réseau, alreadyLogged le détectera et nettoiera.
+            // Une completion observée plus tard n'acquitte pas ces données locales.
             await APIService.shared.fetchDashboard()
             return
         }
@@ -1169,14 +1185,7 @@ class SeanceViewModel: ObservableObject {
         if !verified {
             submitError = "Séance non confirmée en base — vérifie ta connexion et réessaie."
         } else {
-            if let date = seanceData?.todayDate {
-                if SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: draftSessionType) {
-                    SessionDraftStore.clear(date: date, sessionType: draftSessionType)
-                } else {
-                    commitWarning = "Séance complétée côté serveur. Les données locales sont conservées ; leur synchronisation n’est pas confirmée."
-                    commitWarningStyle = .success
-                }
-            }
+            applyCompletedSessionRecoveryPolicy()
             BehaviorTracker.shared.record(.sessionEnd)
             await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
             showSuccess = true

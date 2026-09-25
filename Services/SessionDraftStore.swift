@@ -66,7 +66,7 @@ enum SessionDraftStore {
     }
 
     static func protectsRecovery(sessionType: String) -> Bool {
-        sessionType == "bonus" || sessionType == "evening"
+        sessionType == "morning" || sessionType == "bonus" || sessionType == "evening"
     }
 
     private static func protectionKey(date: String, sessionType: String) -> String {
