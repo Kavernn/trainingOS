@@ -3,6 +3,30 @@ import OSLog
 
 private let workoutLogger = Logger(subsystem: "TrainingOS", category: "api+workout")
 
+struct LogSessionResponse: Decodable {
+    let success: Bool
+}
+
+/// Application response, NOT persistence acknowledgment. offlinePost does not expose
+/// HTTP status here (including a theoretical final 3xx response with valid JSON).
+enum SessionSaveOutcome {
+    case serverResponse(LogSessionResponse)
+    case queuedOffline
+
+    static func fromOfflinePost(_ post: () async throws -> Data?) async throws -> SessionSaveOutcome {
+        guard let data = try await post() else { return .queuedOffline }
+        do {
+            let response = try APIService.decoder.decode(LogSessionResponse.self, from: data)
+            guard response.success else {
+                throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "success=true required"))
+            }
+            return .serverResponse(response)
+        } catch {
+            throw APIError.decodingFailed(endpoint: "/api/log_session", error: error)
+        }
+    }
+}
+
 /// Local save status. Blocking failures throw instead of producing an accepted outcome.
 enum ExerciseSaveOutcome {
     case confirmed(LogExerciseResponse)
@@ -117,6 +141,24 @@ extension APIService {
         let url = try buildURL(path: "/api/seance_soir_data")
         let data = try await fetchWithCache(url: url, key: "seance_soir_data")
         return try APIService.decoder.decode(SeanceSoirData.self, from: data)
+    }
+
+    /// Evening-only adopter. Legacy logSession intentionally retains its permissive contract.
+    func logEveningSessionOutcome(exos: [String], rpe: Double, comment: String,
+                                 durationMin: Double?, energyPre: Int?, sessionName: String?,
+                                 exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment, "second_session": true]
+        if let durationMin { body["duration_min"] = durationMin }
+        if let energyPre { body["energy_pre"] = energyPre }
+        if let sessionName, !sessionName.isEmpty { body["session_name"] = sessionName }
+        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
+        let outcome = try await SessionSaveOutcome.fromOfflinePost {
+            try await self.offlinePost(endpoint: "/api/log_session", payload: body)
+        }
+        if case .serverResponse = outcome {
+            CacheInvalidation.sessionLogged(isSecond: true, isBonus: false).invalidate()
+        }
+        return outcome
     }
 
     /// POST programs.cycle_start_date. Structure = throw, jamais offlinePost

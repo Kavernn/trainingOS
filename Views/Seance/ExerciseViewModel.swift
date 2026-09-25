@@ -868,7 +868,7 @@ class SeanceViewModel: ObservableObject {
     @Published var seanceData: SeanceData?
     @Published var isLoading = false
     @Published var error: String?
-    private var restoringBonusLogs = false
+    private var restoringProtectedLogs = false
     @Published var logResults: [String: ExerciseLogResult] = [:] {
         didSet { persistDraftIfNeeded() }
     }
@@ -1035,8 +1035,8 @@ class SeanceViewModel: ObservableObject {
     /// Unknown completion preserves the draft; callers must supply the source context.
     func restoreLogResults(from data: SeanceData, serverSessionType: String, serverCompleted: Bool?) {
         // Restoration is not an edit, including legacy/undecodable recovery state.
-        restoringBonusLogs = draftSessionType == "bonus"
-        defer { restoringBonusLogs = false }
+        restoringProtectedLogs = SessionDraftStore.protectsRecovery(sessionType: draftSessionType)
+        defer { restoringProtectedLogs = false }
         let program = data.fullProgram[data.today] ?? [:]
         var restored: [String: ExerciseLogResult] = [:]
         // Restauration depuis l'historique serveur : UNIQUEMENT en session matin.
@@ -1194,7 +1194,7 @@ class SeanceViewModel: ObservableObject {
     }
 
     private func persistDraftIfNeeded() {
-        guard !restoringBonusLogs else { return }
+        guard !restoringProtectedLogs else { return }
         guard let date = seanceData?.todayDate else { return }
         if logResults.isEmpty {
             SessionDraftStore.clearLogs(date: date, sessionType: draftSessionType)

@@ -26,6 +26,156 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testSessionOutcomeResponseQueueAndErrors() async throws {
+        let response = try await SessionSaveOutcome.fromOfflinePost { Data(#"{"success":true}"#.utf8) }
+        guard case .serverResponse = response else { return XCTFail("Expected application response") }
+        let queued = try await SessionSaveOutcome.fromOfflinePost { nil }
+        guard case .queuedOffline = queued else { return XCTFail("Expected queued") }
+        for text in ["invalid", "{}", #"{"success":false}"#] {
+            do {
+                _ = try await SessionSaveOutcome.fromOfflinePost { Data(text.utf8) }
+                XCTFail("Invalid response accepted")
+            } catch {}
+        }
+        do {
+            _ = try await SessionSaveOutcome.fromOfflinePost { throw APIError.serverError(409, "Conflict") }
+            XCTFail("Error swallowed")
+        } catch APIError.serverError(let code, _) { XCTAssertEqual(code, 409) }
+    }
+
+    private final class EveningOutcomeStub: SeanceSoirViewModel {
+        var queued = true
+        var failure: Int?
+        var completed = false
+        var comments: [String] = []
+        var recorded = 0
+        override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome { .queuedOffline }
+        override func sendEveningSession(exos: [String], rpe: Double, comment: String,
+                                        durationMin: Double?, energyPre: Int?, sessionName: String?,
+                                        exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+            comments.append(comment)
+            if let failure { throw APIError.serverError(failure, "Injected") }
+            return queued ? .queuedOffline : .serverResponse(LogSessionResponse(success: true))
+        }
+        override func refreshEveningDashboard() async {}
+        override func observeEveningCompletion(date: String) async -> Bool { completed }
+        override func recordEveningWorkout() async { recorded += 1 }
+    }
+
+    func testEveningFullFinishQueueFailureRetryAndResponsePreserveDraft() async throws {
+        let date = "evening-full-\(UUID().uuidString)"
+        let vm = EveningOutcomeStub()
+        let reopened = SeanceSoirViewModel()
+        defer {
+            _ = vm.chrono.stop(); _ = reopened.chrono.stop()
+            SessionDraftStore.clear(date: date, sessionType: "evening")
+        }
+        let data = try extraData(date)
+        vm.seanceData = data
+        vm.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 80, reps: "5", isSecond: true, notes: "Soir")
+        SessionDraftStore.saveComment("Initial", date: date, sessionType: "evening")
+        await vm.finish(rpe: 7, comment: "Initial")
+        XCTAssertNotNil(vm.saveStatusMessage)
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertFalse(vm.isFinishing)
+        XCTAssertTrue(vm.canRetryFinish)
+        XCTAssertEqual(vm.recorded, 0)
+        let generation = SessionDraftStore.recoveryProtection(date: date, sessionType: "evening")?.generation
+        XCTAssertNotNil(generation)
+        reopened.seanceData = data
+        reopened.restoreLogResults(from: data, serverSessionType: "evening", serverCompleted: true)
+        XCTAssertEqual(reopened.logResults["Bench Press"]?.notes, "Soir")
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "Initial")
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: "evening")?.generation, generation)
+        for code in [500, 409] {
+            vm.failure = code
+            await vm.retryFinish(comment: "Modifié")
+            XCTAssertNotNil(vm.submitError)
+            XCTAssertFalse(vm.showSuccess)
+            XCTAssertFalse(vm.isFinishing)
+            XCTAssertEqual(vm.comments.last, "Modifié")
+            XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "evening"))
+        }
+        vm.failure = nil
+        vm.queued = false
+        await vm.retryFinish(comment: "Modifié")
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertNotNil(vm.saveStatusMessage)
+        vm.completed = true
+        SessionDraftStore.saveComment("Dernière version", date: date, sessionType: "evening")
+        await vm.retryFinish(comment: "Dernière version")
+        XCTAssertTrue(vm.showSuccess)
+        XCTAssertNotNil(vm.commitWarning)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "evening"))
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "Dernière version")
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "evening"))
+    }
+
+    func testPrecompletedEveningNewEditSurvivesAnotherCompletionRead() throws {
+        let date = "evening-precompleted-\(UUID().uuidString)"
+        let vm = SeanceSoirViewModel()
+        defer { _ = vm.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "evening") }
+        let data = try extraData(date)
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "evening", serverCompleted: true)
+        vm.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 85, reps: "6", isSecond: true, notes: "Nouvelle version")
+        SessionDraftStore.saveComment("Après clôture", date: date, sessionType: "evening")
+        let protection = SessionDraftStore.recoveryProtection(date: date, sessionType: "evening")
+        XCTAssertEqual(protection?.hasUnacknowledgedLocalChanges, true)
+        vm.restoreLogResults(from: data, serverSessionType: "evening", serverCompleted: true)
+        XCTAssertEqual(vm.logResults["Bench Press"]?.notes, "Nouvelle version")
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "Après clôture")
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: "evening")?.generation, protection?.generation)
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "evening"))
+    }
+
+    func testEveningPartialFinishStillSkipsSessionPost() async throws {
+        let date = "partial-\(UUID().uuidString)"
+        let vm = EveningOutcomeStub()
+        defer { _ = vm.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "evening") }
+        vm.seanceData = try extraData(date)
+        vm.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 80, reps: "5", isSecond: true)
+        SessionDraftStore.saveComment("Plus tard", date: date, sessionType: "evening")
+        await vm.finish(rpe: 7, comment: "Plus tard", closeSession: false)
+        XCTAssertTrue(vm.partialSaveAccepted)
+        XCTAssertTrue(vm.comments.isEmpty)
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertEqual(vm.recorded, 0)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "evening"))
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "Plus tard")
+    }
+
+    func testEveningLegacyCommentOnlyAndTypeIsolation() throws {
+        let date = "evening-legacy-\(UUID().uuidString)"
+        let vm = SeanceSoirViewModel()
+        defer {
+            _ = vm.chrono.stop()
+            for type in ["evening", "bonus"] { SessionDraftStore.clear(date: date, sessionType: type) }
+        }
+        let legacy = [PersistedExerciseLogResult(name: "Bench Press", weight: 80, reps: "5", rpe: nil,
+            isSecond: true, isBonus: false, equipmentType: "", painZone: "", sets: [])]
+        UserDefaults.standard.set(try APIService.encoder.encode(legacy), forKey: "session_draft_evening_\(date)")
+        XCTAssertNil(SessionDraftStore.recoveryProtection(date: date, sessionType: "evening"))
+        let data = try extraData(date)
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "evening", serverCompleted: true)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "evening"))
+        SessionDraftStore.clear(date: date, sessionType: "evening")
+        vm.logResults.removeAll()
+        SessionDraftStore.saveComment("Seul commentaire", date: date, sessionType: "evening")
+        vm.restoreLogResults(from: data, serverSessionType: "evening", serverCompleted: true)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "Seul commentaire")
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "evening"))
+        XCTAssertTrue(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus"))
+        XCTAssertTrue(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "morning"))
+        SessionDraftStore.saveComment("Bonus", date: date, sessionType: "bonus")
+        let bonusGeneration = SessionDraftStore.bonusProtection(date: date)?.generation
+        SessionDraftStore.clear(date: date, sessionType: "evening")
+        XCTAssertNil(SessionDraftStore.recoveryProtection(date: date, sessionType: "evening"))
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, bonusGeneration)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "Bonus")
+    }
+
     private func extraData(_ date: String, exercise: String = "Bench Press") throws -> SeanceData {
         try APIService.decoder.decode(SeanceData.self, from:
             Fixtures.seanceDataJSON(todayDate: date, alreadyLogged: true, exerciseName: exercise))
@@ -236,8 +386,8 @@ final class SeanceViewModelTests: XCTestCase {
             XCTAssertTrue(SessionDraftStore.load(date: date, sessionType: type).isEmpty)
             XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "Très bonne séance")
             _ = vm.chrono.stop()
-            // AM/PM completion already uses this common cleanup; Bonus is tested below.
-            if type != "bonus" {
+            // Only Morning retains automatic cleanup on completion.
+            if type == "morning" {
                 vm.restoreLogResults(from: data, serverSessionType: type, serverCompleted: true)
                 XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: type))
             }
@@ -665,7 +815,7 @@ final class SeanceViewModelTests: XCTestCase {
             ("morning", "evening", true, false),
             ("evening", "evening", false, false),
             ("evening", "evening", nil, false),
-            ("evening", "evening", true, true),
+            ("evening", "evening", true, false),
             ("morning", "morning", true, true),
             ("bonus", "morning", true, false),
             ("bonus", "evening", true, false)

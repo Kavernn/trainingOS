@@ -3,6 +3,37 @@ import SwiftUI
 // MARK: - ViewModel
 
 class SeanceSoirViewModel: SeanceViewModel {
+    @Published var saveStatusMessage: String?
+
+    // Narrow test seams: no change to the shared exercise gate or offline queue.
+    func sendEveningSession(exos: [String], rpe: Double, comment: String,
+                            durationMin: Double?, energyPre: Int?, sessionName: String?,
+                            exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+        try await APIService.shared.logEveningSessionOutcome(exos: exos, rpe: rpe, comment: comment,
+            durationMin: durationMin, energyPre: energyPre, sessionName: sessionName, exerciseLogs: exerciseLogs)
+    }
+
+    func refreshEveningDashboard() async { await APIService.shared.fetchDashboard() }
+
+    func observeEveningCompletion(date: String) async -> Bool {
+        struct Status: Decodable {
+            let today_date: String
+            let second_session_completed: Bool
+        }
+        guard !date.isEmpty, var components = URLComponents(string: "\(APIConfig.base)/api/dashboard") else { return false }
+        components.queryItems = [URLQueryItem(name: "date", value: date)]
+        guard let url = components.url else { return false }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        guard let (data, response) = try? await URLSession.authed.data(for: request),
+              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+              let status = try? JSONDecoder().decode(Status.self, from: data) else { return false }
+        return status.today_date == date && status.second_session_completed
+    }
+
+    func recordEveningWorkout() async {
+        await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
+    }
     /// Nom soir override manuel — passé par les call sites qui affichent
     /// eveningSessionName (Dashboard, hero SOIR ProgrammeView). nil = héritage
     /// matin (comportement historique : charge la séance matin, filtrée par
@@ -79,27 +110,39 @@ class SeanceSoirViewModel: SeanceViewModel {
         // clear du draft (safety net local si logExercise a échoué offline). Restitution
         // à la reprise = hide-done via loggedTodayNames (WorkoutActiveView L199-202).
         if !closeSession {
-            await APIService.shared.fetchDashboard()
+            await refreshEveningDashboard()
             acceptPartialSave()
             return
         }
 
+        saveStatusMessage = nil
         do {
-            try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
+            let outcome = try await sendEveningSession(exos: exos, rpe: rpe, comment: comment,
                                                    durationMin: durationMin, energyPre: energyPre,
-                                                   secondSession: true, sessionName: sessionName,
+                                                   sessionName: sessionName,
                                                    exerciseLogs: exerciseLogs)
+            if case .queuedOffline = outcome {
+                saveStatusMessage = "Synchronisation en attente. Données conservées sur cet appareil. Tu peux fermer la séance et la reprendre plus tard."
+                return
+            }
         } catch {
             submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
-            await APIService.shared.fetchDashboard()
+            await refreshEveningDashboard()
             return
         }
 
-        await APIService.shared.fetchDashboard()
-        await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
-        if let date = seanceData?.todayDate {
+        guard let date = seanceData?.todayDate, await observeEveningCompletion(date: date) else {
+            saveStatusMessage = "Réponse serveur reçue. La clôture n’est pas confirmée. Les données locales sont conservées."
+            return
+        }
+        await refreshEveningDashboard()
+        await recordEveningWorkout()
+        // completed is server status only. Never retire unacknowledged local content.
+        if SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: draftSessionType) {
             SessionDraftStore.clear(date: date, sessionType: draftSessionType)
         }
+        commitWarning = "Séance complétée côté serveur. Les données locales sont conservées ; leur synchronisation complète n’est pas confirmée."
+        commitWarningStyle = .success
         showSuccess = true
     }
 }
@@ -184,6 +227,14 @@ struct SeanceSoirView: View {
             }
         }
         .task { await vm.load() }
+        .alert("Sauvegarde de la séance", isPresented: Binding(
+            get: { vm.saveStatusMessage != nil },
+            set: { if !$0 { vm.saveStatusMessage = nil } }
+        )) {
+            Button("OK") { vm.saveStatusMessage = nil }
+        } message: {
+            Text(vm.saveStatusMessage ?? "")
+        }
     }
 
     @ViewBuilder
