@@ -868,6 +868,7 @@ class SeanceViewModel: ObservableObject {
     @Published var seanceData: SeanceData?
     @Published var isLoading = false
     @Published var error: String?
+    private var restoringBonusLogs = false
     @Published var logResults: [String: ExerciseLogResult] = [:] {
         didSet { persistDraftIfNeeded() }
     }
@@ -1033,6 +1034,9 @@ class SeanceViewModel: ObservableObject {
     /// Completion must describe the source session, not merely the existence of a log.
     /// Unknown completion preserves the draft; callers must supply the source context.
     func restoreLogResults(from data: SeanceData, serverSessionType: String, serverCompleted: Bool?) {
+        // Restoration is not an edit, including legacy/undecodable recovery state.
+        restoringBonusLogs = draftSessionType == "bonus"
+        defer { restoringBonusLogs = false }
         let program = data.fullProgram[data.today] ?? [:]
         var restored: [String: ExerciseLogResult] = [:]
         // Restauration depuis l'historique serveur : UNIQUEMENT en session matin.
@@ -1090,9 +1094,29 @@ class SeanceViewModel: ObservableObject {
             chrono.start(date: data.todayDate, sessionType: draftSessionType)
         }
         isResuming = !restored.isEmpty
-        if serverSessionType == draftSessionType, serverCompleted == true {
+        if serverSessionType == draftSessionType, serverCompleted == true,
+           SessionDraftStore.isAutomaticCleanupAllowed(date: data.todayDate, sessionType: draftSessionType) {
             SessionDraftStore.clear(date: data.todayDate, sessionType: draftSessionType)
         }
+    }
+
+    // Extra overrides the proof source, never the common save gate/retry pipeline.
+    func verifyFinishCompletion() async -> Bool {
+        guard draftSessionType != "bonus" else { return false }
+        return (try? await APIService.shared.fetchSeanceData().alreadyLogged) == true
+    }
+
+    func handleFinishConflict() -> Bool {
+        guard draftSessionType != "bonus" else {
+            submitError = "La séance existe déjà. Les données locales sont conservées ; leur synchronisation n’est pas confirmée."
+            return false
+        }
+        if let date = seanceData?.todayDate {
+            SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+        }
+        commitWarning = "Séance déjà enregistrée ✓ — aucune perte de données."
+        commitWarningStyle = .success
+        return true
     }
 
     // closeSession : knob PM-only honoré par SeanceSoirViewModel.finish
@@ -1127,14 +1151,9 @@ class SeanceViewModel: ObservableObject {
                                                    bonusSession: bonusSession, sessionName: sessionName,
                                                    exerciseLogs: exerciseLogs)
         } catch APIError.serverError(409, _) {
-            // Séance déjà enregistrée — double-submit ou retry après crash. Draft nettoyé explicitement.
-            if let date = seanceData?.todayDate {
-                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
-            }
+            let confirmed = handleFinishConflict()
             await APIService.shared.fetchDashboard()
-            commitWarning = "Séance déjà enregistrée ✓ — aucune perte de données."
-            commitWarningStyle = .success
-            showSuccess = true
+            if confirmed { showSuccess = true }
             return
         } catch {
             submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
@@ -1144,20 +1163,19 @@ class SeanceViewModel: ObservableObject {
             return
         }
 
-        let verified: Bool
-        do {
-            let fresh = try await APIService.shared.fetchSeanceData()
-            verified = fresh.alreadyLogged
-        } catch {
-            verified = false
-        }
+        let verified = await verifyFinishCompletion()
 
         await APIService.shared.fetchDashboard()
         if !verified {
             submitError = "Séance non confirmée en base — vérifie ta connexion et réessaie."
         } else {
             if let date = seanceData?.todayDate {
-                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+                if SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: draftSessionType) {
+                    SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+                } else {
+                    commitWarning = "Séance complétée côté serveur. Les données locales sont conservées ; leur synchronisation n’est pas confirmée."
+                    commitWarningStyle = .success
+                }
             }
             BehaviorTracker.shared.record(.sessionEnd)
             await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
@@ -1176,6 +1194,7 @@ class SeanceViewModel: ObservableObject {
     }
 
     private func persistDraftIfNeeded() {
+        guard !restoringBonusLogs else { return }
         guard let date = seanceData?.todayDate else { return }
         if logResults.isEmpty {
             SessionDraftStore.clearLogs(date: date, sessionType: draftSessionType)

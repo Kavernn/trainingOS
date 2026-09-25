@@ -60,6 +60,42 @@ struct PersistedExerciseLogResult: Codable {
 }
 
 enum SessionDraftStore {
+    struct BonusProtection: Codable {
+        let generation: Int
+        let hasUnacknowledgedLocalChanges: Bool
+    }
+
+    private static func protectionKey(date: String) -> String {
+        "session_draft_protection_bonus_\(date)"
+    }
+
+    static func bonusProtection(date: String) -> BonusProtection? {
+        guard let data = UserDefaults.standard.data(forKey: protectionKey(date: date)) else { return nil }
+        return try? JSONDecoder().decode(BonusProtection.self, from: data)
+    }
+
+    private static func markBonusMutation(date: String, sessionType: String) {
+        guard sessionType == "bonus" else { return }
+        let value = BonusProtection(generation: (bonusProtection(date: date)?.generation ?? 0) + 1,
+                                    hasUnacknowledgedLocalChanges: true)
+        if let data = try? JSONEncoder().encode(value) {
+            UserDefaults.standard.set(data, forKey: protectionKey(date: date))
+        }
+    }
+
+    /// Completion is not an acknowledgment. Raw keys also protect legacy/corrupt data.
+    static func isAutomaticCleanupAllowed(date: String, sessionType: String) -> Bool {
+        guard sessionType == "bonus" else { return true }
+        return UserDefaults.standard.object(forKey: protectionKey(date: date)) == nil
+            && UserDefaults.standard.object(forKey: key(date: date, sessionType: sessionType)) == nil
+            && UserDefaults.standard.object(forKey: commentKey(date: date, sessionType: sessionType)) == nil
+    }
+
+    private static func canonicalLogs(_ values: [PersistedExerciseLogResult]) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(values.sorted { $0.name < $1.name })
+    }
     private static func key(date: String, sessionType: String) -> String {
         "session_draft_\(sessionType)_\(date)"
     }
@@ -70,6 +106,15 @@ enum SessionDraftStore {
     static func save(date: String, sessionType: String = "morning", values: [PersistedExerciseLogResult]) {
         do {
             let data = try APIService.encoder.encode(values)
+            if sessionType == "bonus" {
+                let previous = UserDefaults.standard.data(forKey: key(date: date, sessionType: sessionType))
+                    .flatMap { try? APIService.decoder.decode([PersistedExerciseLogResult].self, from: $0) }
+                let previousContent = try previous.map { try canonicalLogs($0) }
+                let currentContent = try canonicalLogs(values)
+                if previousContent != currentContent {
+                    markBonusMutation(date: date, sessionType: sessionType)
+                }
+            }
             UserDefaults.standard.set(data, forKey: key(date: date, sessionType: sessionType))
         } catch {
             draftLogger.error("SessionDraftStore save failed [\(sessionType)/\(date)]: \(error)")
@@ -89,6 +134,9 @@ enum SessionDraftStore {
     }
 
     static func saveComment(_ comment: String, date: String, sessionType: String) {
+        if loadComment(date: date, sessionType: sessionType) != comment {
+            markBonusMutation(date: date, sessionType: sessionType)
+        }
         UserDefaults.standard.set(comment, forKey: commentKey(date: date, sessionType: sessionType))
     }
 
@@ -99,10 +147,16 @@ enum SessionDraftStore {
     static func clear(date: String, sessionType: String = "morning") {
         clearLogs(date: date, sessionType: sessionType)
         UserDefaults.standard.removeObject(forKey: commentKey(date: date, sessionType: sessionType))
+        if sessionType == "bonus" {
+            UserDefaults.standard.removeObject(forKey: protectionKey(date: date))
+        }
     }
 
     /// Intermediate empty logs must not discard a still-legitimate session comment.
     static func clearLogs(date: String, sessionType: String) {
+        if UserDefaults.standard.object(forKey: key(date: date, sessionType: sessionType)) != nil {
+            markBonusMutation(date: date, sessionType: sessionType)
+        }
         UserDefaults.standard.removeObject(forKey: key(date: date, sessionType: sessionType))
         UserDefaults.standard.removeObject(forKey: startedAtKey(date: date, sessionType: sessionType))
         UserDefaults.standard.removeObject(forKey: chronoPausedDurationKey(date: date, sessionType: sessionType))

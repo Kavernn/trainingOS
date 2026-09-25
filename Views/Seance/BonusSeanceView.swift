@@ -6,7 +6,7 @@ class BonusSeanceViewModel: SeanceViewModel {
         super.init(draftSessionType: draftSessionType)
     }
 
-    /// Reuses the plan read. Only a fresh, successful Bonus response can retire a draft.
+    /// Server completion is not acknowledgment of the current local generation.
     func loadBonusState(
         fetch: (URLRequest) async throws -> (Data, URLResponse) = {
             try await URLSession.authed.data(for: $0)
@@ -24,7 +24,8 @@ class BonusSeanceViewModel: SeanceViewModel {
         if draftSessionType == "bonus",
            bonus.hasBonusSession, bonus.alreadyLogged,
            let date = seanceData?.todayDate, !date.isEmpty,
-           bonus.todayDate == date {
+           bonus.todayDate == date,
+           SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus") {
             // Emptying logs also resets sessionStarted and clears this scoped draft
             // through the existing didSet. Do not invoke finish/restart side effects.
             logResults.removeAll()
@@ -427,8 +428,10 @@ struct BonusSeanceView: View {
         }
         .sheet(isPresented: $showAddExercise) { addExerciseSheet }
         .sheet(isPresented: $showFinish) { finishSheet }
-        .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
+        .alert("Fin de séance", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await loadInventory() } }
+        } message: {
+            Text("Les données locales sont conservées. Leur synchronisation complète n’est pas confirmée.")
         }
         .alert(vm.failedExerciseNames.isEmpty ? "Erreur" : "Certains exercices n’ont pas été sauvegardés", isPresented: Binding(
             get: { vm.submitError != nil },

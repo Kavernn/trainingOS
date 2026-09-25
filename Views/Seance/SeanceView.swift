@@ -1200,9 +1200,49 @@ struct PostSessionEditSheet: View {
 }
 
 // MARK: - Extra Session Sheet
+/// Extra displays a selected template but owns the shared daily Bonus draft.
+@MainActor
+class ExtraSessionViewModel: SeanceViewModel {
+    init() { super.init(draftSessionType: "bonus") }
+
+    @discardableResult
+    func adoptSelectedData(_ data: SeanceData) -> Bool {
+        seanceData = data
+        restoreLogResults(from: data, serverSessionType: "bonus", serverCompleted: nil)
+        let names = Set((data.fullProgram[data.today] ?? [:]).keys)
+        let incompatible = Set(logResults.keys).subtracting(names)
+        error = incompatible.isEmpty ? nil : "Un Bonus en cours contient des exercices absents de cette séance. Choisis une séance compatible pour le reprendre ou le réinitialiser explicitement. Aucune donnée n’a été supprimée."
+        return incompatible.isEmpty
+    }
+
+    override func load() async {
+        // Generic workout callbacks must not replace this adopted template with Morning.
+        // Its local recovery state is already live; reloading it would overwrite edits.
+    }
+
+    func fetchBonusCompletion() async throws -> SeanceBonusData {
+        guard let url = URL(string: "\(APIConfig.base)/api/seance_bonus_data") else { throw URLError(.badURL) }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        let (data, response) = try await URLSession.authed.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode(SeanceBonusData.self, from: data)
+    }
+
+    override func verifyFinishCompletion() async -> Bool {
+        guard let expectedDate = seanceData?.todayDate, !expectedDate.isEmpty,
+              let bonus = try? await fetchBonusCompletion() else { return false }
+        // This proves server status only. The shared store separately protects local content.
+        return seanceData?.todayDate == expectedDate && bonus.hasBonusSession
+            && bonus.todayDate == expectedDate && bonus.alreadyLogged
+    }
+}
+
 struct ExtraSessionSheet: View {
     let data: SeanceData
-    @StateObject private var extraVM = SeanceViewModel(draftSessionType: "bonus")
+    @StateObject private var extraVM = ExtraSessionViewModel()
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedSession: String? = nil
@@ -1249,7 +1289,13 @@ struct ExtraSessionSheet: View {
         Task {
             do {
                 let d = try await APIService.shared.fetchSeanceData(sessionName: session)
-                await MainActor.run { bonusData = d; isLoading = false }
+                await MainActor.run {
+                    let compatible = extraVM.adoptSelectedData(d)
+                    bonusData = compatible ? d : nil
+                    loadError = extraVM.error
+                    if !compatible { selectedSession = nil }
+                    isLoading = false
+                }
             } catch {
                 await MainActor.run { loadError = error.localizedDescription; isLoading = false }
             }

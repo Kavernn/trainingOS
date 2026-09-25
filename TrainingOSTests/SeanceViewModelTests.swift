@@ -26,6 +26,182 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    private func extraData(_ date: String, exercise: String = "Bench Press") throws -> SeanceData {
+        try APIService.decoder.decode(SeanceData.self, from:
+            Fixtures.seanceDataJSON(todayDate: date, alreadyLogged: true, exerciseName: exercise))
+    }
+
+    private func bonusResponse(_ date: String, completed: Bool = true) throws -> SeanceBonusData {
+        try JSONDecoder().decode(SeanceBonusData.self, from: JSONSerialization.data(withJSONObject: [
+            "has_bonus_session": true, "today_date": date, "already_logged": completed
+        ]))
+    }
+
+    private final class ExtraProofStub: ExtraSessionViewModel {
+        var response: SeanceBonusData?
+        override func fetchBonusCompletion() async throws -> SeanceBonusData {
+            guard let response else { throw URLError(.notConnectedToInternet) }
+            return response
+        }
+    }
+
+    func testBonusGenerationTracksContentNotOrderingAndClearLogsKeepsProtection() throws {
+        let date = "generation-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        var a = PersistedExerciseLogResult(name: "A", weight: 80, reps: "5", rpe: nil,
+            isSecond: false, isBonus: true, equipmentType: "", painZone: "", sets: [], notes: "initial")
+        let b = PersistedExerciseLogResult(name: "B", weight: 40, reps: "8", rpe: nil,
+            isSecond: false, isBonus: true, equipmentType: "", painZone: "", sets: [])
+        SessionDraftStore.save(date: date, sessionType: "bonus", values: [a, b])
+        let initial = try XCTUnwrap(SessionDraftStore.bonusProtection(date: date))
+        XCTAssertTrue(initial.hasUnacknowledgedLocalChanges)
+        SessionDraftStore.save(date: date, sessionType: "bonus", values: [b, a])
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, initial.generation)
+        a.notes = "changed"
+        SessionDraftStore.save(date: date, sessionType: "bonus", values: [a, b])
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, initial.generation + 1)
+        SessionDraftStore.clearLogs(date: date, sessionType: "bonus")
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, initial.generation + 2)
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus"))
+    }
+
+    func testCompletedBonusWithoutLocalRecoveryAllowsNoOpCleanup() async throws {
+        let date = "empty-bonus-\(UUID().uuidString)"
+        let vm = BonusSeanceViewModel()
+        defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        vm.seanceData = try extraData(date)
+        XCTAssertTrue(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus"))
+        _ = await vm.loadBonusState { request in
+            (try JSONEncoder().encode(self.bonusResponse(date)),
+             HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        XCTAssertNil(SessionDraftStore.bonusProtection(date: date))
+        XCTAssertTrue(vm.logResults.isEmpty)
+        XCTAssertFalse(vm.showSuccess)
+    }
+
+    func testExtraHydrationRecreationIdenticalRestoreAndTemplateSafety() async throws {
+        let date = "extra-\(UUID().uuidString)"
+        let nextDate = "next-\(date)"
+        let first = ExtraSessionViewModel()
+        let second = ExtraSessionViewModel()
+        defer {
+            _ = first.chrono.stop(); _ = second.chrono.stop()
+            SessionDraftStore.clear(date: date, sessionType: "bonus")
+            SessionDraftStore.clear(date: nextDate, sessionType: "bonus")
+        }
+        let data = try extraData(date)
+        XCTAssertTrue(first.adoptSelectedData(data))
+        XCTAssertEqual(first.seanceData?.todayDate, date)
+        var log = ExerciseLogResult(name: "Bench Press", weight: 80, reps: "5")
+        log.isBonus = true
+        log.notes = "Note durable"
+        log.trackingType = "carry"
+        log.sets = [["weight": 80.0, "distance_m": 30]]
+        first.logResults[log.name] = log
+        SessionDraftStore.saveComment("Commentaire durable", date: date, sessionType: "bonus")
+        let generation = SessionDraftStore.bonusProtection(date: date)?.generation
+        XCTAssertNotNil(generation)
+        XCTAssertEqual(SessionDraftStore.load(date: date, sessionType: "bonus").first?.sets.first?.distanceM, 30)
+        XCTAssertTrue(second.adoptSelectedData(data))
+        XCTAssertEqual(second.logResults[log.name]?.notes, log.notes)
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+        SessionDraftStore.saveComment("Commentaire durable", date: date, sessionType: "bonus")
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+        await second.load()
+        XCTAssertEqual(second.seanceData?.todayDate, date)
+        XCTAssertEqual(second.logResults[log.name]?.notes, log.notes)
+        XCTAssertFalse(second.adoptSelectedData(try extraData(date, exercise: "Squat")))
+        XCTAssertNotNil(second.error)
+        XCTAssertNotNil(second.logResults[log.name])
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+        XCTAssertTrue(second.adoptSelectedData(try extraData(nextDate)))
+        XCTAssertTrue(second.logResults.isEmpty)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+    }
+
+    func testExtraToDedicatedBonusPreservesDirtyLogsAndComment() async throws {
+        let date = "cross-entry-\(UUID().uuidString)"
+        let extra = ExtraSessionViewModel()
+        let dedicated = BonusSeanceViewModel()
+        defer {
+            _ = extra.chrono.stop(); _ = dedicated.chrono.stop()
+            SessionDraftStore.clear(date: date, sessionType: "bonus")
+        }
+        let data = try extraData(date)
+        XCTAssertTrue(extra.adoptSelectedData(data))
+        extra.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 80, reps: "5", isBonus: true)
+        SessionDraftStore.saveComment("Nouveau commentaire", date: date, sessionType: "bonus")
+        dedicated.seanceData = data
+        dedicated.restoreLogResults(from: data, serverSessionType: "bonus", serverCompleted: true)
+        _ = await dedicated.loadBonusState { request in
+            // A mutation arriving during the GET must remain protected too.
+            SessionDraftStore.saveComment("Encore modifié", date: date, sessionType: "bonus")
+            return (try JSONEncoder().encode(self.bonusResponse(date)),
+                    HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        XCTAssertNotNil(dedicated.logResults["Bench Press"])
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "Encore modifié")
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus"))
+    }
+
+    func testLegacyAndCommentOnlyProtectionAndExplicitFullClear() async throws {
+        let date = "legacy-bonus-\(UUID().uuidString)"
+        let vm = BonusSeanceViewModel()
+        defer { _ = vm.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        let legacy = [PersistedExerciseLogResult(name: "Bench Press", weight: 80, reps: "5", rpe: nil,
+            isSecond: false, isBonus: true, equipmentType: "", painZone: "", sets: [], notes: "")]
+        UserDefaults.standard.set(try APIService.encoder.encode(legacy), forKey: "session_draft_bonus_\(date)")
+        XCTAssertNil(SessionDraftStore.bonusProtection(date: date))
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus"))
+        let data = try extraData(date)
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "bonus", serverCompleted: true)
+        XCTAssertNotNil(vm.logResults["Bench Press"])
+        SessionDraftStore.clear(date: date, sessionType: "bonus")
+        vm.logResults.removeAll()
+        SessionDraftStore.saveComment("Seul commentaire", date: date, sessionType: "bonus")
+        let generation = SessionDraftStore.bonusProtection(date: date)?.generation
+        SessionDraftStore.clearLogs(date: date, sessionType: "bonus")
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+        _ = await vm.loadBonusState { request in
+            (try JSONEncoder().encode(self.bonusResponse(date)),
+             HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "Seul commentaire")
+        SessionDraftStore.saveStartedAt(date: date, sessionType: "bonus", startedAt: Date())
+        SessionDraftStore.clear(date: date, sessionType: "bonus")
+        XCTAssertNil(SessionDraftStore.bonusProtection(date: date))
+        XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: "bonus"))
+        XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "bonus"))
+        XCTAssertTrue(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus"))
+    }
+
+    func testExtraMorningIsolationOfflineWrongDateAndConflictPreserveDraft() async throws {
+        let date = "extra-proof-\(UUID().uuidString)"
+        let vm = ExtraProofStub()
+        defer { _ = vm.chrono.stop(); SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        XCTAssertTrue(vm.adoptSelectedData(try extraData(date))) // Morning alreadyLogged=true
+        vm.logResults["Bench Press"] = ExerciseLogResult(name: "Bench Press", weight: 80, reps: "5", isBonus: true)
+        vm.response = try bonusResponse(date, completed: false)
+        let incomplete = await vm.verifyFinishCompletion()
+        XCTAssertFalse(incomplete)
+        vm.response = nil
+        let offline = await vm.verifyFinishCompletion()
+        XCTAssertFalse(offline)
+        vm.response = try bonusResponse("other-\(date)")
+        let wrongDate = await vm.verifyFinishCompletion()
+        XCTAssertFalse(wrongDate)
+        XCTAssertFalse(vm.handleFinishConflict())
+        XCTAssertFalse(vm.showSuccess)
+        vm.response = try bonusResponse(date)
+        let completed = await vm.verifyFinishCompletion()
+        XCTAssertTrue(completed, "Server status is not a local content ACK")
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+        XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "bonus"))
+    }
+
     func testGlobalCommentRoundTripIsolationAndEmptyValues() {
         let date = "comment-\(UUID().uuidString)"
         let types = ["morning", "evening", "bonus"]
@@ -130,7 +306,7 @@ final class SeanceViewModelTests: XCTestCase {
         return vm
     }
 
-    func testBonusCompletionClearsRestoredStateAndOnlyMatchingBonusDraft() async throws {
+    func testBonusCompletionPreservesUnacknowledgedStateAndOtherDrafts() async throws {
         let date = "bonus-reconcile-\(UUID().uuidString)"
         let otherDate = "other-\(date)"
         let vm = try restoreBonusDraft(date: date)
@@ -162,13 +338,12 @@ final class SeanceViewModelTests: XCTestCase {
             return (try JSONSerialization.data(withJSONObject: payload),
                     HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
         }
-        XCTAssertFalse(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
-        XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: "bonus"))
-        XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "bonus"))
-        XCTAssertTrue(vm.logResults.isEmpty)
-        XCTAssertFalse(vm.isResuming)
-        XCTAssertFalse(vm.sessionStarted)
-        XCTAssertEqual(vm.chrono.elapsedSeconds, 0)
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "Bonus terminé")
+        XCTAssertNotNil(SessionDraftStore.loadStartedAt(date: date, sessionType: "bonus"))
+        XCTAssertFalse(vm.logResults.isEmpty)
+        XCTAssertTrue(vm.isResuming)
+        XCTAssertTrue(vm.sessionStarted)
         XCTAssertFalse(vm.showSuccess, "Reconciliation must not trigger finish side effects")
         XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "morning"))
         XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "evening"))
@@ -177,7 +352,7 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertEqual(result?.fullProgram["Bonus"]?["Squat"]?.value, "3x8")
     }
 
-    func testBonusUnprovenCompletionPreservesDraftUntilLaterConfirmedRead() async throws {
+    func testBonusDraftSurvivesUnprovenAndLaterCompletedRead() async throws {
         let date = "bonus-offline-\(UUID().uuidString)"
         let vm = try restoreBonusDraft(date: date)
         SessionDraftStore.saveComment("Bonus à reprendre", date: date, sessionType: "bonus")
@@ -186,7 +361,7 @@ final class SeanceViewModelTests: XCTestCase {
             SessionDraftStore.clear(date: date, sessionType: "bonus")
         }
         // A queued POST is not a completion signal. Transport/HTTP/unknown GET
-        // results must all preserve the restored state until a later positive read.
+        // results preserve local state; even a later positive read is not a content ACK.
         let failedFetch = await vm.loadBonusState { _ in throw URLError(.notConnectedToInternet) }
         XCTAssertNil(failedFetch)
         XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
@@ -225,9 +400,9 @@ final class SeanceViewModelTests: XCTestCase {
                 "has_bonus_session": true, "today_date": date, "already_logged": true
             ]), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
         }
-        XCTAssertFalse(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
-        XCTAssertTrue(vm.logResults.isEmpty)
-        XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: "bonus"))
+        XCTAssertTrue(SessionDraftStore.hasDraft(date: date, sessionType: "bonus"))
+        XCTAssertFalse(vm.logResults.isEmpty)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "Bonus à reprendre")
     }
 
     private final class FinishSaveStub: SeanceViewModel {
