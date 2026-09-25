@@ -388,80 +388,88 @@ struct WorkoutSeanceView: View {
         if showSummary {
             sessionSummaryTable
         } else if isEditMode {
-            VStack(spacing: 0) {
-                ForEach(exercises, id: \.0) { name, scheme in
-                    editModeRow(name: name, scheme: scheme)
-                }
-                Button { addTarget = SeanceName(id: data.today) } label: {
-                    HStack {
-                        Image(systemName: "plus.circle.fill").foregroundColor(Color.forge)
-                        Text("Ajouter un exercice")
-                            .font(.appLabel)
-                            .foregroundColor(Color.forge)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                }
-            }
-            .background(Color.appCard)
-            .cornerRadius(14)
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.2), lineWidth: 1))
-            .padding(.horizontal, 16)
+            editableExerciseSection
         } else {
-            VStack(spacing: 8) {
-                ForEach(Array(partitionedItems.enumerated()), id: \.element.id) { idx, item in
-                    if idx == loggedStartIndex && loggedCount > 0 {
-                        completedHeader
-                    }
-                    let isInCompleted = idx >= loggedStartIndex
-                    let hidden = collapsedCompleted && isInCompleted
-                    renderExerciseItem(item)
-                        .frame(height: hidden ? 0 : nil)
-                        .clipped()
-                        .opacity(hidden ? 0 : 1)
-                }
-            }
-            .animation(.spring(response: 0.42, dampingFraction: 0.82), value: vm.logResults.count)
-            .animation(.spring(response: 0.42, dampingFraction: 0.82), value: collapsedCompleted)
-            .onPreferenceChange(CardHeightKey.self) { cardHeights.merge($0) { $1 } }
+            activeExerciseSection
+        }
+    }
 
-            if orderSaveError {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.circle.fill").foregroundColor(Color.appDanger)
-                    Text("Ordre non sauvegardé").font(.appCaption).foregroundColor(Color.appDanger)
-                    Spacer()
-                    Button("Réessayer") {
-                        orderSaveError = false
-                        Task { await saveOrder(exerciseOrder) }
-                    }
-                    .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(Color.forge)
-                    Button { orderSaveError = false } label: {
-                        Image(systemName: "xmark").font(.appCaption).foregroundColor(Color.appTextSecondary)
-                    }
-                }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(Color.appDanger.opacity(0.08))
-                .cornerRadius(8)
-                .padding(.horizontal, 16)
+    private var editableExerciseSection: some View {
+        VStack(spacing: 0) {
+            ForEach(exercises, id: \.0) { name, scheme in
+                editModeRow(name: name, scheme: scheme)
             }
-
-            // Add exercise — session-local only, doesn't modify the programme
-            Button { showAddLocal = true } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill").foregroundColor(Color.forge.opacity(0.7))
+            Button { addTarget = SeanceName(id: data.today) } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill").foregroundColor(Color.forge)
                     Text("Ajouter un exercice")
-                        .font(.appLabel).fontWeight(.semibold)
-                        .foregroundColor(Color.forge.opacity(0.7))
+                        .font(.appLabel)
+                        .foregroundColor(Color.forge)
                 }
-                .frame(maxWidth: .infinity, minHeight: 44)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(Color.forge.opacity(0.06))
-                .cornerRadius(8)
             }
-            .buttonStyle(SpringButtonStyle())
+        }
+        .background(Color.appCard)
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.2), lineWidth: 1))
+        .padding(.horizontal, 16)
+    }
+
+    @ViewBuilder private var activeExerciseSection: some View {
+        VStack(spacing: 8) {
+            ForEach(Array(partitionedItems.enumerated()), id: \.element.id) { idx, item in
+                if idx == loggedStartIndex && loggedCount > 0 {
+                    completedHeader
+                }
+                let isInCompleted = idx >= loggedStartIndex
+                let hidden = collapsedCompleted && isInCompleted
+                renderExerciseItem(item)
+                    .frame(height: hidden ? 0 : nil)
+                    .clipped()
+                    .opacity(hidden ? 0 : 1)
+            }
+        }
+        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: vm.logResults.count)
+        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: collapsedCompleted)
+        .onPreferenceChange(CardHeightKey.self) { cardHeights.merge($0) { $1 } }
+
+        if orderSaveError {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill").foregroundColor(Color.appDanger)
+                Text("Ordre non sauvegardé").font(.appCaption).foregroundColor(Color.appDanger)
+                Spacer()
+                Button("Réessayer") {
+                    orderSaveError = false
+                    Task { await saveOrder(exerciseOrder) }
+                }
+                .font(.appCaption).fontWeight(.semibold)
+                .foregroundColor(Color.forge)
+                Button { orderSaveError = false } label: {
+                    Image(systemName: "xmark").font(.appCaption).foregroundColor(Color.appTextSecondary)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(Color.appDanger.opacity(0.08))
+            .cornerRadius(8)
             .padding(.horizontal, 16)
         }
+
+        // Add exercise — session-local only, doesn't modify the programme
+        Button { showAddLocal = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill").foregroundColor(Color.forge.opacity(0.7))
+                Text("Ajouter un exercice")
+                    .font(.appLabel).fontWeight(.semibold)
+                    .foregroundColor(Color.forge.opacity(0.7))
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.vertical, 12)
+            .background(Color.forge.opacity(0.06))
+            .cornerRadius(8)
+        }
+        .buttonStyle(SpringButtonStyle())
+        .padding(.horizontal, 16)
     }
 
     @ViewBuilder
@@ -1616,151 +1624,104 @@ struct WorkoutSeanceView: View {
         }
     }
 
+    private var sessionCommandSection: some View {
+        // Session command strip
+        VStack(alignment: .leading, spacing: 12) {
+            WorkoutSessionCommands(
+                sessionName: data.today,
+                sessionStarted: vm.sessionStarted,
+                chrono: vm.chrono,
+                showSummary: showSummary,
+                isEditMode: isEditMode,
+                onSelectSession: { showSessionPicker = true },
+                onToggleSummary: { withAnimation { showSummary.toggle() } },
+                onToggleEditing: { withAnimation { isEditMode.toggle() } },
+                onAbandon: { showAbandonAlert = true }
+            )
+
+            HStack(spacing: 8) {
+                Text("SEMAINE \(data.week)")
+                    .font(.appMicro).fontWeight(.bold).tracking(1)
+                    .foregroundColor(Color.appTextSecondary)
+                if let meso = data.mesocycle {
+                    Rectangle()
+                        .fill(Color.appSeparatorStrong)
+                        .frame(width: .appHairline, height: 12)
+                    Text("\(meso.phaseLabel) · \(meso.phase)")
+                        .font(.appCaption).fontWeight(.semibold)
+                        .foregroundColor(Color.appTextSecondary)
+                        .lineLimit(1)
+                    Rectangle()
+                        .fill(Color.appSeparatorStrong)
+                        .frame(width: .appHairline, height: 12)
+                    Text("RPE \(meso.rpeTarget)")
+                        .font(.appCaption).fontWeight(.bold)
+                        .foregroundColor(Color.forge.opacity(0.8))
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+
+            // Progress bar — superset-aware
+            let done = progressDone
+            let total = progressTotal
+            let allDone = progressComplete
+            VStack(spacing: 6) {
+                HStack(spacing: 8) {
+                    Text(allDone ? "SÉANCE COMPLÈTE" : "PROGRESSION")
+                        .font(.appMicro).fontWeight(.bold).tracking(1.4)
+                        .foregroundColor(allDone ? Color.appSuccess : Color.appTextMuted)
+                        .animation(.easeInOut(duration: 0.2), value: allDone)
+                    Spacer()
+                    Text("\(done) / \(total)")
+                        .font(.appCaption).fontWeight(.bold)
+                        .foregroundColor(allDone ? Color.appSuccess : Color.appTextPrimary)
+                        .monospacedDigit()
+                    if allDone {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.appMicro).fontWeight(.bold)
+                            .foregroundColor(Color.appSuccess)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.easeInOut(duration: 0.3), value: allDone)
+                Capsule()
+                    .fill(Color.appSurfaceInset)
+                    .frame(height: 4)
+                    .overlay(
+                        GeometryReader { g in
+                            let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
+                            Capsule()
+                                .fill(allDone ? Color.appSuccess : Color.forge)
+                                .frame(width: g.size.width * fraction)
+                                .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
+                        },
+                        alignment: .leading
+                    )
+            }
+
+            contextToggleButton
+            if showContextPanel {
+                contextPanel
+            }
+        }
+        .padding(.horizontal, .appCardInsetH)
+        .padding(.vertical, .appCardInsetV)
+        .background(Color.appCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: .appCardRadius)
+                .stroke(Color.appSeparator, lineWidth: .appHairline)
+        )
+        .cornerRadius(.appCardRadius)
+        .padding(.horizontal, .appPagePadding)
+        .padding(.top, 12)
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
         let content = ScrollView {
             VStack(spacing: 16) {
-                // Session command strip
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .top, spacing: 12) {
-                        Button {
-                            showSessionPicker = true
-                        } label: {
-                            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                Text(data.today)
-                                    .font(.appTitle).fontWeight(.heavy)
-                                    .foregroundColor(Color.appTextPrimary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                                Image(systemName: "chevron.down")
-                                    .font(.appCaption).fontWeight(.bold)
-                                    .foregroundColor(Color.forge.opacity(0.7))
-                            }
-                        }
-                        .buttonStyle(.plain)
-
-                        Spacer(minLength: 8)
-
-                        if vm.sessionStarted {
-                            SessionTimerView(chrono: vm.chrono)
-                        }
-                        Button {
-                            withAnimation { showSummary.toggle() }
-                        } label: {
-                            Image(systemName: showSummary ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
-                                .font(.appHeadline)
-                                .foregroundColor(showSummary ? Color.forge : Color.appTextMuted)
-                                .frame(width: 34, height: 34)
-                                .background(Color.appSurfaceInset)
-                                .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(showSummary ? "Masquer le résumé" : "Afficher le résumé")
-                        Button {
-                            withAnimation { isEditMode.toggle() }
-                        } label: {
-                            Image(systemName: isEditMode ? "checkmark.circle.fill" : "pencil.circle")
-                                .font(.appHeadline)
-                                .foregroundColor(isEditMode ? Color.appSuccess : Color.appTextMuted)
-                                .frame(width: 34, height: 34)
-                                .background(Color.appSurfaceInset)
-                                .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(isEditMode ? "Terminer la modification" : "Modifier la séance")
-                        // W-D11 — abandon session button
-                        if vm.sessionStarted {
-                            Button {
-                                showAbandonAlert = true
-                            } label: {
-                                Image(systemName: "xmark.circle")
-                                    .font(.appHeadline)
-                                    .foregroundColor(Color.appDanger.opacity(0.6))
-                                    .frame(width: 34, height: 34)
-                                    .background(Color.appSurfaceInset)
-                                    .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Quitter la séance")
-                        }
-                    }
-
-                    HStack(spacing: 8) {
-                        Text("SEMAINE \(data.week)")
-                            .font(.appMicro).fontWeight(.bold).tracking(1)
-                            .foregroundColor(Color.appTextSecondary)
-                        if let meso = data.mesocycle {
-                            Rectangle()
-                                .fill(Color.appSeparatorStrong)
-                                .frame(width: .appHairline, height: 12)
-                            Text("\(meso.phaseLabel) · \(meso.phase)")
-                                .font(.appCaption).fontWeight(.semibold)
-                                .foregroundColor(Color.appTextSecondary)
-                                .lineLimit(1)
-                            Rectangle()
-                                .fill(Color.appSeparatorStrong)
-                                .frame(width: .appHairline, height: 12)
-                            Text("RPE \(meso.rpeTarget)")
-                                .font(.appCaption).fontWeight(.bold)
-                                .foregroundColor(Color.forge.opacity(0.8))
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
-                    }
-
-                    // Progress bar — superset-aware
-                    let done = progressDone
-                    let total = progressTotal
-                    let allDone = progressComplete
-                    VStack(spacing: 6) {
-                        HStack(spacing: 8) {
-                            Text(allDone ? "SÉANCE COMPLÈTE" : "PROGRESSION")
-                                .font(.appMicro).fontWeight(.bold).tracking(1.4)
-                                .foregroundColor(allDone ? Color.appSuccess : Color.appTextMuted)
-                                .animation(.easeInOut(duration: 0.2), value: allDone)
-                            Spacer()
-                            Text("\(done) / \(total)")
-                                .font(.appCaption).fontWeight(.bold)
-                                .foregroundColor(allDone ? Color.appSuccess : Color.appTextPrimary)
-                                .monospacedDigit()
-                            if allDone {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.appMicro).fontWeight(.bold)
-                                    .foregroundColor(Color.appSuccess)
-                                    .transition(.scale.combined(with: .opacity))
-                            }
-                        }
-                        .animation(.easeInOut(duration: 0.3), value: allDone)
-                        Capsule()
-                            .fill(Color.appSurfaceInset)
-                            .frame(height: 4)
-                            .overlay(
-                                GeometryReader { g in
-                                    let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
-                                    Capsule()
-                                        .fill(allDone ? Color.appSuccess : Color.forge)
-                                        .frame(width: g.size.width * fraction)
-                                        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
-                                },
-                                alignment: .leading
-                            )
-                    }
-
-                    contextToggleButton
-                    if showContextPanel {
-                        contextPanel
-                    }
-                }
-                .padding(.horizontal, .appCardInsetH)
-                .padding(.vertical, .appCardInsetV)
-                .background(Color.appCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: .appCardRadius)
-                        .stroke(Color.appSeparator, lineWidth: .appHairline)
-                )
-                .cornerRadius(.appCardRadius)
-                .padding(.horizontal, .appPagePadding)
-                .padding(.top, 12)
+                sessionCommandSection
 
                 exerciseSection
 
@@ -2367,5 +2328,84 @@ struct WorkoutSeanceView: View {
         }
         CacheService.shared.clear(for: "seance_data")
         await vm.load()
+    }
+}
+
+// Non-generic boundary: the command row's nested Button types stay out of
+// WorkoutSeanceView's scroll-content type. State and actions remain in its owner.
+private struct WorkoutSessionCommands: View {
+    let sessionName: String
+    let sessionStarted: Bool
+    let chrono: WorkoutChronoViewModel
+    let showSummary: Bool
+    let isEditMode: Bool
+    let onSelectSession: () -> Void
+    let onToggleSummary: () -> Void
+    let onToggleEditing: () -> Void
+    let onAbandon: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Button {
+                onSelectSession()
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(sessionName)
+                        .font(.appTitle).fontWeight(.heavy)
+                        .foregroundColor(Color.appTextPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Image(systemName: "chevron.down")
+                        .font(.appCaption).fontWeight(.bold)
+                        .foregroundColor(Color.forge.opacity(0.7))
+                }
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 8)
+
+            if sessionStarted {
+                SessionTimerView(chrono: chrono)
+            }
+            Button {
+                onToggleSummary()
+            } label: {
+                Image(systemName: showSummary ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
+                    .font(.appHeadline)
+                    .foregroundColor(showSummary ? Color.forge : Color.appTextMuted)
+                    .frame(width: 34, height: 34)
+                    .background(Color.appSurfaceInset)
+                    .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(showSummary ? "Masquer le résumé" : "Afficher le résumé")
+            Button {
+                onToggleEditing()
+            } label: {
+                Image(systemName: isEditMode ? "checkmark.circle.fill" : "pencil.circle")
+                    .font(.appHeadline)
+                    .foregroundColor(isEditMode ? Color.appSuccess : Color.appTextMuted)
+                    .frame(width: 34, height: 34)
+                    .background(Color.appSurfaceInset)
+                    .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isEditMode ? "Terminer la modification" : "Modifier la séance")
+            // W-D11 — abandon session button
+            if sessionStarted {
+                Button {
+                    onAbandon()
+                } label: {
+                    Image(systemName: "xmark.circle")
+                        .font(.appHeadline)
+                        .foregroundColor(Color.appDanger.opacity(0.6))
+                        .frame(width: 34, height: 34)
+                        .background(Color.appSurfaceInset)
+                        .clipShape(RoundedRectangle(cornerRadius: .appPillRadius))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Quitter la séance")
+            }
+        }
     }
 }
