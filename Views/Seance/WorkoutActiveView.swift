@@ -36,16 +36,13 @@ struct WorkoutSeanceView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var rpe: Double = 7
-    @State private var comment = ""
+    private var comment: String { vm.sessionComment }
     private var commentBinding: Binding<String> {
-        Binding(get: { comment }, set: { value in
-            comment = value
-            SessionDraftStore.saveComment(value, date: data.todayDate, sessionType: vm.draftSessionType)
-        })
+        $vm.sessionComment
     }
 
     private func restoreComment() {
-        comment = SessionDraftStore.loadComment(date: data.todayDate, sessionType: vm.draftSessionType) ?? ""
+        vm.restoreSessionComment()
     }
     @State private var showFinish = false
     @State private var showFinishConfirm = false
@@ -1932,6 +1929,7 @@ struct WorkoutSeanceView: View {
                 vm.isResuming = false
                 if let date = vm.seanceData?.todayDate {
                     SessionDraftStore.clear(date: date, sessionType: vm.draftSessionType)
+                    restoreComment()
                 }
             }
             Button("Continuer", role: .cancel) {}
@@ -2049,7 +2047,7 @@ struct WorkoutSeanceView: View {
         // logExercise, vm retenu par @StateObject (pas seulement la capture Task),
         // spinner isFinishing visible, submitError → alert avant dismiss.
         Task {
-            await vm.finish(rpe: 0, comment: "", sessionName: data.today, closeSession: false)
+            await vm.finish(rpe: 0, comment: comment, sessionName: data.today, closeSession: false)
             await MainActor.run { if vm.partialSaveAccepted { dismiss() } }
         }
     }

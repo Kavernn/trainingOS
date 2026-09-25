@@ -1252,7 +1252,6 @@ struct ExtraSessionSheet: View {
 
     @State private var showFinishFromExit = false
     @State private var exitRpe: Double = 7
-    @State private var exitComment: String = ""
 
     private var sessionList: [String] {
         let known  = TrainingDoctrine.canonicalSeanceOrder.filter { data.fullProgram[$0] != nil }
@@ -1350,10 +1349,10 @@ struct ExtraSessionSheet: View {
                     logResults: extraVM.logResults,
                     elapsedMin: Double(extraVM.chrono.elapsedSeconds) / 60.0,
                     rpe: $exitRpe,
-                    comment: $exitComment,
+                    comment: $extraVM.sessionComment,
                     onSubmit: { energy in
                         let dur = Double(extraVM.chrono.stop())
-                        Task { await extraVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy, bonusSession: true) }
+                        Task { await extraVM.finish(rpe: exitRpe, comment: extraVM.sessionComment, durationMin: dur, energyPre: energy, bonusSession: true) }
                     }
                 )
             }
@@ -1433,7 +1432,6 @@ struct FinishRemainingSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showExitAlert = false
     @State private var exitRpe: Double = 7
-    @State private var exitComment: String = ""
     @State private var showFinishFromExit = false
     @AppStorage("energy_pre_date") private var energyPreDate = ""
     @AppStorage("energy_pre_value") private var energyPreValue: Int = 3
@@ -1549,11 +1547,11 @@ struct FinishRemainingSheet: View {
                     exercises: remaining.map(\.0),
                     logResults: finishVM.logResults,
                     elapsedMin: Double(finishVM.chrono.elapsedSeconds) / 60.0,
-                    rpe: $exitRpe, comment: $exitComment,
+                    rpe: $exitRpe, comment: $finishVM.sessionComment,
                     preEnergy: energyPreDate == data.todayDate ? energyPreValue : nil,
                     onSubmit: { energy in
                         let dur = Double(finishVM.chrono.stop())
-                        Task { await finishVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy, sessionName: data.today) }
+                        Task { await finishVM.finish(rpe: exitRpe, comment: finishVM.sessionComment, durationMin: dur, energyPre: energy, sessionName: data.today) }
                     }
                 )
             }

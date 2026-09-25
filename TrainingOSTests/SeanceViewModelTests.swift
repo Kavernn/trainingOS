@@ -7,6 +7,7 @@
 //  ignored since seanceData is already set from cache.
 
 import XCTest
+import SwiftUI
 @testable import TrainingOS
 
 @MainActor
@@ -25,6 +26,99 @@ final class SeanceViewModelTests: XCTestCase {
     }
 
     // MARK: - Tests
+
+    func testExtraSharedCommentPrefillRoundTripAndRecreation() throws {
+        let date = "extra-comment-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        SessionDraftStore.saveComment("A", date: date, sessionType: "bonus")
+        let generation = SessionDraftStore.bonusProtection(date: date)?.generation
+        let vm = ExtraSessionViewModel()
+        XCTAssertTrue(vm.adoptSelectedData(try extraData(date)))
+        // Both live surfaces bind the same property, not independently restored copies.
+        let workout = Binding(get: { vm.sessionComment }, set: { vm.sessionComment = $0 })
+        let exitSheet = Binding(get: { vm.sessionComment }, set: { vm.sessionComment = $0 })
+        XCTAssertEqual(exitSheet.wrappedValue, "A")
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+        exitSheet.wrappedValue = "B"
+        XCTAssertEqual(workout.wrappedValue, "B")
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "B")
+        workout.wrappedValue = "C"
+        XCTAssertEqual(exitSheet.wrappedValue, "C")
+        exitSheet.wrappedValue = "Voyage — séance adaptée"
+        let savedGeneration = SessionDraftStore.bonusProtection(date: date)?.generation
+        // Recreate before any finish submission, including the dedicated Bonus entry.
+        let reopened = ExtraSessionViewModel()
+        XCTAssertTrue(reopened.adoptSelectedData(try extraData(date)))
+        let bonus = BonusSeanceViewModel()
+        bonus.seanceData = try extraData(date)
+        XCTAssertEqual(reopened.sessionComment, "Voyage — séance adaptée")
+        XCTAssertEqual(bonus.sessionComment, reopened.sessionComment)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), reopened.sessionComment)
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, savedGeneration)
+    }
+
+    func testSharedExitCommentFinishRetryEmptyAndClear() async throws {
+        for type in ["morning", "evening", "bonus"] {
+            let date = "exit-retry-\(UUID().uuidString)"
+            defer { SessionDraftStore.clear(date: date, sessionType: type) }
+            let vm = CommentRetryProbe(draftSessionType: type)
+            vm.seanceData = try extraData(date)
+            vm.sessionComment = "A"
+            await vm.finish(rpe: 7, comment: vm.sessionComment)
+            XCTAssertEqual(vm.receivedComment, "A")
+            vm.prepareFinishRetry(rpe: 7, comment: vm.sessionComment, durationMin: nil,
+                energyPre: nil, sessionName: nil, bonusSession: type == "bonus", closeSession: true)
+            vm.submitError = "Échec simulé"
+            let sheet = Binding(get: { vm.sessionComment }, set: { vm.sessionComment = $0 })
+            sheet.wrappedValue = "B"
+            await vm.retryFinish(comment: vm.sessionComment)
+            XCTAssertEqual(vm.receivedComment, "B")
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "B")
+            sheet.wrappedValue = ""
+            await vm.retryFinish(comment: vm.sessionComment)
+            XCTAssertEqual(vm.receivedComment, "")
+            let reopened = SeanceViewModel(draftSessionType: type)
+            reopened.seanceData = try extraData(date)
+            XCTAssertEqual(reopened.sessionComment, "")
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), "")
+            sheet.wrappedValue = "À effacer"
+            SessionDraftStore.clear(date: date, sessionType: type)
+            vm.restoreSessionComment() // Same refresh used by confirmed workout clear actions.
+            XCTAssertEqual(sheet.wrappedValue, "")
+            XCTAssertNil(SessionDraftStore.loadComment(date: date, sessionType: type))
+            XCTAssertNil(SessionDraftStore.recoveryProtection(date: date, sessionType: type))
+            reopened.seanceData = try extraData(date)
+            XCTAssertEqual(reopened.sessionComment, "")
+        }
+    }
+
+    func testRemainingWorkoutCommentUsesLoadedDateAndActualSessionType() throws {
+        let date = "remaining-comment-\(UUID().uuidString)"
+        let otherDate = "other-\(date)"
+        for (type, value) in [("morning", "A"), ("evening", "B"), ("bonus", "C")] {
+            SessionDraftStore.saveComment(value, date: date, sessionType: type)
+        }
+        defer {
+            for type in ["morning", "evening", "bonus"] {
+                SessionDraftStore.clear(date: date, sessionType: type)
+                SessionDraftStore.clear(date: otherDate, sessionType: type)
+            }
+        }
+        for (type, value) in [("morning", "A"), ("evening", "B"), ("bonus", "C")] {
+            // FinishRemainingSheet constructs this VM with its supplied sessionType.
+            let vm = SeanceViewModel(draftSessionType: type)
+            vm.seanceData = try extraData(date)
+            XCTAssertEqual(vm.sessionComment, value)
+            vm.sessionComment = value + " modifié"
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: type), value + " modifié")
+            vm.seanceData = try extraData(otherDate)
+            XCTAssertEqual(vm.sessionComment, "")
+            XCTAssertNil(SessionDraftStore.loadComment(date: otherDate, sessionType: type))
+            XCTAssertNil(SessionDraftStore.recoveryProtection(date: otherDate, sessionType: type))
+            vm.seanceData = try extraData(date)
+            XCTAssertEqual(vm.sessionComment, value + " modifié")
+        }
+    }
 
     func testMorningPriorCompletionPreservesCommentThroughConflictAndCompletionPolicy() throws {
         let date = "morning-comment-\(UUID().uuidString)"

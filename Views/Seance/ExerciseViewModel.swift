@@ -865,7 +865,25 @@ final class WorkoutChronoViewModel: ObservableObject {
 
 @MainActor
 class SeanceViewModel: ObservableObject {
-    @Published var seanceData: SeanceData?
+    @Published var seanceData: SeanceData? {
+        didSet { restoreSessionComment() }
+    }
+    private var restoringSessionComment = false
+    @Published var sessionComment = "" {
+        didSet {
+            guard !restoringSessionComment, let date = seanceData?.todayDate else { return }
+            SessionDraftStore.saveComment(sessionComment, date: date, sessionType: draftSessionType)
+        }
+    }
+
+    /// Hydration/full-clear refresh is not an edit and must not create recovery metadata.
+    func restoreSessionComment() {
+        restoringSessionComment = true
+        defer { restoringSessionComment = false }
+        sessionComment = seanceData.flatMap {
+            SessionDraftStore.loadComment(date: $0.todayDate, sessionType: draftSessionType)
+        } ?? ""
+    }
     @Published var isLoading = false
     @Published var error: String?
     private var restoringProtectedLogs = false
