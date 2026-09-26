@@ -868,6 +868,7 @@ final class WorkoutChronoViewModel: ObservableObject {
     private var totalPausedDuration: TimeInterval = 0
     private var persistDate: String?
     private var persistSessionType: String?
+    var hasTimingContext: Bool { startTime != nil }
 
     func start(date: String, sessionType: String) {
         persistDate = date
@@ -958,12 +959,81 @@ final class WorkoutChronoViewModel: ObservableObject {
 
 @MainActor
 class SeanceViewModel: ObservableObject {
+    enum RecoveryAdmission: Equatable {
+        // Caller attestation only; this does NOT prove program/fingerprint provenance.
+        case allowCurrentScopedRecovery, deny
+    }
+    enum PreparationError: Error {
+        case invalidContext, ownerNotFresh, alreadyPrepared, contextChanged, finalizationDisabled
+    }
+    private struct LocalExecutionContext: Equatable {
+        let token: String
+        let date: String
+        let source: String
+        let session: String
+    }
+    private var localExecutionContext: LocalExecutionContext?
+    private var localRecoveryAdmitted = false
+    private var preparingLocalExecution = false
+    var isDayComposerLocal: Bool { localExecutionContext != nil }
+
+    /// No fetch, server synthesis, timing, cleanup or persistence during preparation.
+    /// Admission must be supplied by a caller that has independently validated provenance.
+    /// Even an identical second preparation is rejected without changing the owner.
+    func prepareForDayComposer(data: SeanceData, sessionDate: String, source: String,
+                               sessionName: String, contextToken: String,
+                               recoveryAdmission: RecoveryAdmission) throws {
+        guard ["morning", "evening"].contains(source), source == draftSessionType,
+              !sessionDate.isEmpty, data.todayDate == sessionDate,
+              !sessionName.isEmpty, data.today == sessionName, !contextToken.isEmpty else {
+            throw PreparationError.invalidContext
+        }
+        let context = LocalExecutionContext(token: contextToken, date: sessionDate,
+                                            source: source, session: sessionName)
+        if let existing = localExecutionContext {
+            throw existing == context ? PreparationError.alreadyPrepared : PreparationError.contextChanged
+        }
+        guard seanceData == nil, logResults.isEmpty, sessionComment.isEmpty,
+              !sessionStarted, !chrono.hasTimingContext, !isLoading, !isFinishing, !showSuccess,
+              !isResuming, !partialSaveAccepted, retryFinishAction == nil,
+              finishExerciseSaves.isEmpty, finishSaveScope == nil, finishSourceDate == nil else {
+            throw PreparationError.ownerNotFresh
+        }
+
+        localExecutionContext = context
+        localRecoveryAdmitted = recoveryAdmission == .allowCurrentScopedRecovery
+        preparingLocalExecution = true
+        restoringProtectedLogs = true
+        defer { preparingLocalExecution = false; restoringProtectedLogs = false }
+        seanceData = data // Existing comment restoration is read-only and admission-gated.
+        if localRecoveryAdmitted {
+            logResults = localRecovery(date: sessionDate)
+            isResuming = !logResults.isEmpty
+        }
+    }
+
+    private func rejectLocalFinalization() -> Bool {
+        guard isDayComposerLocal else { return false }
+        submitError = "Finalisation indisponible pour cette préparation locale."
+        return true
+    }
+
     @Published var seanceData: SeanceData? {
-        didSet { restoreSessionComment() }
+        didSet {
+            if isDayComposerLocal && !preparingLocalExecution {
+                seanceData = oldValue // The injected DTO/date cannot be replaced by a reload.
+                return
+            }
+            restoreSessionComment()
+        }
     }
     private var restoringSessionComment = false
     @Published var sessionComment = "" {
         didSet {
+            if isDayComposerLocal && !localRecoveryAdmitted {
+                sessionComment = oldValue
+                return
+            }
             guard !restoringSessionComment, let date = seanceData?.todayDate else { return }
             SessionDraftStore.saveComment(sessionComment, date: date, sessionType: draftSessionType)
         }
@@ -971,6 +1041,7 @@ class SeanceViewModel: ObservableObject {
 
     /// Hydration/full-clear refresh is not an edit and must not create recovery metadata.
     func restoreSessionComment() {
+        guard !isDayComposerLocal || localRecoveryAdmitted else { return }
         restoringSessionComment = true
         defer { restoringSessionComment = false }
         sessionComment = seanceData.flatMap {
@@ -981,10 +1052,17 @@ class SeanceViewModel: ObservableObject {
     @Published var error: String?
     private var restoringProtectedLogs = false
     @Published var logResults: [String: ExerciseLogResult] = [:] {
-        didSet { persistDraftIfNeeded() }
+        didSet {
+            if isDayComposerLocal && !localRecoveryAdmitted {
+                logResults = oldValue
+                return
+            }
+            persistDraftIfNeeded()
+        }
     }
     @Published var showSuccess = false {
         didSet {
+            if isDayComposerLocal { showSuccess = false; return }
             if showSuccess {
                 finishExerciseSaves.removeAll()
                 retryFinishAction = nil
@@ -1019,6 +1097,7 @@ class SeanceViewModel: ObservableObject {
 
     func prepareFinishRetry(rpe: Double, comment: String, durationMin: Double?, energyPre: Int?,
                             sessionName: String?, bonusSession: Bool, closeSession: Bool) {
+        guard !rejectLocalFinalization() else { return }
         submitError = nil
         partialSaveAccepted = false
         let retryDate = seanceData?.todayDate
@@ -1035,6 +1114,7 @@ class SeanceViewModel: ObservableObject {
     }
 
     func retryFinish(comment: String) async {
+        guard !rejectLocalFinalization() else { return }
         guard !isFinishing else { return }
         await retryFinishAction?(comment)
     }
@@ -1043,7 +1123,8 @@ class SeanceViewModel: ObservableObject {
 
     // Overridable network boundary for targeted tests, using the explicit g2a contract.
     func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
-        try await APIService.shared.logExerciseOutcome(
+        guard !isDayComposerLocal else { throw PreparationError.finalizationDisabled }
+        return try await APIService.shared.logExerciseOutcome(
             exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
             sets: result.sets, force: true, isSecond: result.isSecond, isBonus: result.isBonus,
             equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes,
@@ -1053,7 +1134,8 @@ class SeanceViewModel: ObservableObject {
     func sendMorningSession(exos: [String], rpe: Double, comment: String, date: String,
                             durationMin: Double?, energyPre: Int?, sessionName: String?,
                             exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
-        try await APIService.shared.logMorningSessionOutcome(exos: exos, rpe: rpe, comment: comment,
+        guard !isDayComposerLocal else { throw PreparationError.finalizationDisabled }
+        return try await APIService.shared.logMorningSessionOutcome(exos: exos, rpe: rpe, comment: comment,
             date: date, durationMin: durationMin, energyPre: energyPre, sessionName: sessionName,
             exerciseLogs: exerciseLogs)
     }
@@ -1068,6 +1150,7 @@ class SeanceViewModel: ObservableObject {
 
     /// No persistent success IDs: after recreation all restored logs can be safely upserted again.
     func saveExercisesForFinish(isSecond: Bool? = nil, isBonus: Bool? = nil, collectPRs: Bool = true) async -> Bool {
+        guard !rejectLocalFinalization() else { return false }
         submitError = nil
         finishSourceDate = seanceData?.todayDate
         if draftSessionType != "bonus", finishSourceDate?.isEmpty != false {
@@ -1132,7 +1215,9 @@ class SeanceViewModel: ObservableObject {
 
     var sessionStart = Date()
     @Published private(set) var sessionStarted = false
-    var draftSessionType: String
+    var draftSessionType: String {
+        didSet { if let context = localExecutionContext { draftSessionType = context.source } }
+    }
     let chrono = WorkoutChronoViewModel()
 
     var cacheService: CacheService = .shared
@@ -1147,6 +1232,7 @@ class SeanceViewModel: ObservableObject {
     }
 
     func load() async {
+        guard !isDayComposerLocal else { return }
         if seanceData == nil,
            let cached = cacheService.load(for: "seance_data"),
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
@@ -1170,6 +1256,7 @@ class SeanceViewModel: ObservableObject {
     /// Completion must describe the source session, not merely the existence of a log.
     /// Unknown completion preserves the draft; callers must supply the source context.
     func restoreLogResults(from data: SeanceData, serverSessionType: String, serverCompleted: Bool?) {
+        guard !isDayComposerLocal else { return }
         // Restoration is not an edit, including legacy/undecodable recovery state.
         restoringProtectedLogs = SessionDraftStore.protectsRecovery(sessionType: draftSessionType)
         defer { restoringProtectedLogs = false }
@@ -1199,24 +1286,7 @@ class SeanceViewModel: ObservableObject {
                 }
             }
         }
-        for pending in SessionDraftStore.load(date: data.todayDate, sessionType: draftSessionType) {
-            let restoredSets = pending.sets.map(\.payload)
-            restored[pending.name] = ExerciseLogResult(
-                name: pending.name,
-                weight: pending.weight,
-                reps: pending.reps,
-                rpe: pending.rpe,
-                sets: restoredSets,
-                isSecond: pending.isSecond,
-                isBonus: pending.isBonus,
-                equipmentType: pending.equipmentType,
-                painZone: pending.painZone,
-                notes: pending.notes ?? "",
-                trackingType: pending.trackingType,
-                scheme: pending.scheme,
-                isUnilateral: pending.isUnilateral
-            )
-        }
+        restored.merge(localRecovery(date: data.todayDate)) { _, local in local }
         // Restore sessionStart BEFORE assigning logResults — persistDraftIfNeeded() fires on
         // didSet and would overwrite T0 with Date() if sessionStarted is still false at that point.
         if let saved = SessionDraftStore.loadStartedAt(date: data.todayDate, sessionType: draftSessionType) {
@@ -1238,14 +1308,40 @@ class SeanceViewModel: ObservableObject {
         }
     }
 
+    /// Preserve all local entries, including names outside the injected plan.
+    private func localRecovery(date: String) -> [String: ExerciseLogResult] {
+        var restored: [String: ExerciseLogResult] = [:]
+        for pending in SessionDraftStore.load(date: date, sessionType: draftSessionType) {
+            let restoredSets = pending.sets.map(\.payload)
+            restored[pending.name] = ExerciseLogResult(
+                name: pending.name,
+                weight: pending.weight,
+                reps: pending.reps,
+                rpe: pending.rpe,
+                sets: restoredSets,
+                isSecond: pending.isSecond,
+                isBonus: pending.isBonus,
+                equipmentType: pending.equipmentType,
+                painZone: pending.painZone,
+                notes: pending.notes ?? "",
+                trackingType: pending.trackingType,
+                scheme: pending.scheme,
+                isUnilateral: pending.isUnilateral
+            )
+        }
+        return restored
+    }
+
     // Extra overrides the status source, never the common save gate/retry pipeline.
     // Completion describes server status, not acknowledgment of the local generation.
     func verifyFinishCompletion() async -> Bool {
+        guard !isDayComposerLocal else { return false }
         guard draftSessionType != "bonus" else { return false }
         return (try? await APIService.shared.fetchSeanceData().alreadyLogged) == true
     }
 
     func handleFinishConflict() -> Bool {
+        guard !rejectLocalFinalization() else { return false }
         guard draftSessionType != "bonus" else {
             submitError = "La séance existe déjà. Les données locales sont conservées ; leur synchronisation n’est pas confirmée."
             return false
@@ -1264,6 +1360,7 @@ class SeanceViewModel: ObservableObject {
 
     /// Shared completion branch: server status alone never retires protected recovery.
     func applyCompletedSessionRecoveryPolicy() {
+        guard !isDayComposerLocal else { return }
         guard let date = seanceData?.todayDate else { return }
         if SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: draftSessionType) {
             SessionDraftStore.clear(date: date, sessionType: draftSessionType)
@@ -1277,6 +1374,7 @@ class SeanceViewModel: ObservableObject {
     // (branche "Reprendre plus tard" = persist exos sans écrire completed=True).
     // Ignoré ici : AM/bonus ferment toujours.
     func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false, closeSession: Bool = true) async {
+        guard !rejectLocalFinalization() else { return }
         guard !isFinishing else { return }
         isFinishing = true
         prepareFinishRetry(rpe: rpe, comment: comment, durationMin: durationMin, energyPre: energyPre,
@@ -1356,6 +1454,7 @@ class SeanceViewModel: ObservableObject {
     }
 
     func startSession() {
+        guard !isDayComposerLocal else { return }
         guard !sessionStarted else { return }
         sessionStart = Date()
         sessionStarted = true
@@ -1369,11 +1468,16 @@ class SeanceViewModel: ObservableObject {
         guard !restoringProtectedLogs else { return }
         guard let date = seanceData?.todayDate else { return }
         if logResults.isEmpty {
-            SessionDraftStore.clearLogs(date: date, sessionType: draftSessionType)
+            if isDayComposerLocal {
+                // An explicit local undo is an edit, not permission to erase timing metadata.
+                SessionDraftStore.save(date: date, sessionType: draftSessionType, values: [])
+            } else {
+                SessionDraftStore.clearLogs(date: date, sessionType: draftSessionType)
+            }
             sessionStarted = false
             return
         }
-        if !sessionStarted {
+        if !isDayComposerLocal && !sessionStarted {
             sessionStart = Date()
             sessionStarted = true
             SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
@@ -1399,6 +1503,8 @@ class SeanceViewModel: ObservableObject {
             )
         }
         SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)
-        SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
+        if !isDayComposerLocal {
+            SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
+        }
     }
 }

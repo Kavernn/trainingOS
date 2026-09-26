@@ -13,6 +13,271 @@ import SwiftUI
 @MainActor
 final class SeanceViewModelTests: XCTestCase {
 
+    // MARK: - R10.0e1 passive owner preparation
+
+    private func preparationBytes(_ date: String) -> NSDictionary {
+        NSDictionary(dictionary: UserDefaults.standard.dictionaryRepresentation().filter { $0.key.contains(date) })
+    }
+
+    private func seedPreparationRecovery(_ date: String, source: String, weight: Double,
+                                         name: String = "Bench Press", comment: String = "Comment") {
+        SessionDraftStore.save(date: date, sessionType: source, values: [
+            .init(name: name, weight: weight, reps: "5", rpe: 7,
+                  isSecond: source == "evening", isBonus: false, equipmentType: "machine", painZone: "",
+                  sets: [], notes: "Note \(source)")
+        ])
+        SessionDraftStore.saveComment(comment, date: date, sessionType: source)
+        SessionDraftStore.saveStartedAt(date: date, sessionType: source, startedAt: Date(timeIntervalSince1970: 100))
+        SessionDraftStore.saveChronoPausedDuration(date: date, sessionType: source, duration: 12)
+        SessionDraftStore.saveChronoIsPaused(date: date, sessionType: source, isPaused: true)
+        SessionDraftStore.saveChronoPausedAt(date: date, sessionType: source, pausedAt: Date(timeIntervalSince1970: 200))
+    }
+
+    private func prepare(_ vm: SeanceViewModel, _ data: SeanceData,
+                         token: String = "validated-context-A",
+                         admission: SeanceViewModel.RecoveryAdmission = .allowCurrentScopedRecovery) throws {
+        try vm.prepareForDayComposer(data: data, sessionDate: data.todayDate, source: vm.draftSessionType,
+            sessionName: data.today, contextToken: token, recoveryAdmission: admission)
+    }
+
+    private final class PassiveMorningSpy: SeanceViewModel {
+        var externalCalls = 0
+        override func load() async { externalCalls += 1 }
+        override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
+            externalCalls += 1
+            throw URLError(.cancelled)
+        }
+        override func sendMorningSession(exos: [String], rpe: Double, comment: String, date: String,
+                                         durationMin: Double?, energyPre: Int?, sessionName: String?,
+                                         exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+            externalCalls += 1
+            throw URLError(.cancelled)
+        }
+    }
+
+    private final class PassiveEveningSpy: SeanceSoirViewModel {
+        var externalCalls = 0
+        override func load() async { externalCalls += 1 }
+        override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
+            externalCalls += 1
+            throw URLError(.cancelled)
+        }
+        override func sendEveningSession(exos: [String], rpe: Double, comment: String,
+                                         durationMin: Double?, energyPre: Int?, sessionName: String?,
+                                         exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+            externalCalls += 1
+            throw URLError(.cancelled)
+        }
+        override func refreshEveningDashboard() async { externalCalls += 1 }
+        override func observeEveningCompletion(date: String) async -> Bool { externalCalls += 1; return true }
+        override func recordEveningWorkout() async { externalCalls += 1 }
+    }
+
+    func testPassivePreparationRestoresBothSourcesWithoutWritesOrTiming() async throws {
+        let date = "passive-\(UUID().uuidString)"
+        let cardDraft = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "Bench Press")
+        defer {
+            SessionDraftStore.clear(date: date, sessionType: "morning")
+            SessionDraftStore.clear(date: date, sessionType: "evening")
+            cardDraft.clear()
+        }
+        seedPreparationRecovery(date, source: "morning", weight: 80, comment: "AM")
+        seedPreparationRecovery(date, source: "evening", weight: 60, comment: "")
+        cardDraft.save([], sessionNote: "Existing card note")
+        let before = preparationBytes(date)
+        let morning = PassiveMorningSpy(draftSessionType: "morning")
+        let evening = PassiveEveningSpy(sessionName: "Override must not be loaded")
+        let morningStart = morning.sessionStart
+        let eveningStart = evening.sessionStart
+        let data = try extraData(date)
+        try prepare(morning, data)
+        try prepare(evening, data)
+        XCTAssertEqual(morning.logResults["Bench Press"]?.weight, 80)
+        XCTAssertEqual(evening.logResults["Bench Press"]?.weight, 60)
+        XCTAssertEqual(morning.logResults["Bench Press"]?.notes, "Note morning")
+        XCTAssertEqual(evening.logResults["Bench Press"]?.notes, "Note evening")
+        XCTAssertEqual(morning.sessionComment, "AM")
+        XCTAssertEqual(evening.sessionComment, "")
+        XCTAssertEqual(evening.draftSessionType, "evening")
+        // Longer than the chrono's one-second tick; no delayed preparation writes.
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        for vm in [morning as SeanceViewModel, evening] {
+            XCTAssertTrue(vm.isDayComposerLocal)
+            XCTAssertEqual(vm.seanceData?.todayDate, date)
+            XCTAssertFalse(vm.sessionStarted)
+            XCTAssertFalse(vm.chrono.hasTimingContext)
+            XCTAssertEqual(vm.chrono.elapsedSeconds, 0)
+            XCTAssertFalse(vm.showSuccess)
+            XCTAssertFalse(vm.canRetryFinish)
+            XCTAssertNil(vm.finishSourceDate)
+        }
+        XCTAssertEqual(morning.sessionStart, morningStart)
+        XCTAssertEqual(evening.sessionStart, eveningStart)
+        XCTAssertEqual(morning.externalCalls + evening.externalCalls, 0)
+        XCTAssertEqual(preparationBytes(date), before)
+    }
+
+    func testPassiveAdmissionDenyPreservesRecoveryAndRejectsWrites() throws {
+        let date = "denied-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
+        seedPreparationRecovery(date, source: "morning", weight: 80)
+        let before = preparationBytes(date)
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        try prepare(vm, extraData(date), admission: .deny)
+        XCTAssertTrue(vm.logResults.isEmpty)
+        XCTAssertEqual(vm.sessionComment, "")
+        vm.restoreSessionComment()
+        vm.logResults["Other"] = .init(name: "Other", weight: 10, reps: "5")
+        vm.sessionComment = "Must not overwrite denied comment"
+        XCTAssertTrue(vm.logResults.isEmpty)
+        XCTAssertEqual(vm.sessionComment, "")
+        XCTAssertEqual(preparationBytes(date), before)
+    }
+
+    func testPassivePreparationNeverSynthesizesServerLogsOrCleansOutOfPlanRecovery() throws {
+        let date = "no-synthesis-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
+        seedPreparationRecovery(date, source: "morning", weight: 25, name: "Outside plan")
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: Fixtures.seanceDataJSON(
+            todayDate: date, alreadyLogged: true, exerciseName: "Server only", historyDate: date)) as? [String: Any])
+        json["logged_today_names"] = ["Server only"]
+        let data = try APIService.decoder.decode(SeanceData.self, from: JSONSerialization.data(withJSONObject: json))
+        let before = preparationBytes(date)
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        try prepare(vm, data)
+        XCTAssertEqual(Set(vm.logResults.keys), ["Outside plan"])
+        XCTAssertNil(vm.logResults["Server only"])
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: true)
+        vm.applyCompletedSessionRecoveryPolicy()
+        XCTAssertEqual(preparationBytes(date), before)
+        XCTAssertEqual(Set(vm.logResults.keys), ["Outside plan"])
+    }
+
+    func testPassiveUserEditsPersistWithoutTimingAndKeepOtherSource() throws {
+        let date = "local-edit-\(UUID().uuidString)"
+        defer {
+            SessionDraftStore.clear(date: date, sessionType: "morning")
+            SessionDraftStore.clear(date: date, sessionType: "evening")
+        }
+        seedPreparationRecovery(date, source: "morning", weight: 80, name: "Outside plan")
+        seedPreparationRecovery(date, source: "evening", weight: 60)
+        let eveningBefore = SessionDraftStore.load(date: date, sessionType: "evening")
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        try prepare(vm, extraData(date))
+        let generation = try XCTUnwrap(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation)
+        vm.logResults["Bench Press"] = .init(name: "Bench Press", weight: 85, reps: "6")
+        XCTAssertEqual(Set(SessionDraftStore.load(date: date, sessionType: "morning").map(\.name)), ["Outside plan", "Bench Press"])
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation, generation + 1)
+        vm.sessionComment = "Edited"
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "Edited")
+        vm.sessionComment = ""
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "")
+        vm.logResults = [:] // Explicit undo must not clear timing metadata either.
+        XCTAssertEqual(SessionDraftStore.loadStartedAt(date: date, sessionType: "morning"), Date(timeIntervalSince1970: 100))
+        XCTAssertEqual(SessionDraftStore.loadChronoPausedDuration(date: date, sessionType: "morning"), 12)
+        XCTAssertTrue(SessionDraftStore.loadChronoIsPaused(date: date, sessionType: "morning"))
+        XCTAssertEqual(SessionDraftStore.loadChronoPausedAt(date: date, sessionType: "morning"), Date(timeIntervalSince1970: 200))
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        XCTAssertEqual(try encoder.encode(SessionDraftStore.load(date: date, sessionType: "evening")),
+                       try encoder.encode(eveningBefore))
+        XCTAssertFalse(vm.chrono.hasTimingContext)
+        XCTAssertFalse(vm.sessionStarted)
+    }
+
+    func testPassivePrepareValidationAndReprepareAreMutationFree() throws {
+        let date = "context-\(UUID().uuidString)"
+        let data = try extraData(date)
+        let before = preparationBytes(date)
+        let vm = SeanceViewModel(draftSessionType: "morning")
+        for (source, suppliedDate, session, token) in [
+            ("bonus", date, data.today, "X"), ("evening", date, data.today, "X"),
+            ("morning", "", data.today, "X"), ("morning", "other", data.today, "X"),
+            ("morning", date, "Other session", "X"), ("morning", date, data.today, "")
+        ] {
+            XCTAssertThrowsError(try vm.prepareForDayComposer(data: data, sessionDate: suppliedDate,
+                source: source, sessionName: session, contextToken: token, recoveryAdmission: .allowCurrentScopedRecovery))
+            XCTAssertNil(vm.seanceData)
+            XCTAssertFalse(vm.isDayComposerLocal)
+        }
+        try prepare(vm, data)
+        XCTAssertThrowsError(try prepare(vm, data)) // Explicit harmless rejection, not rehydration.
+        XCTAssertThrowsError(try prepare(vm, data, token: "different-program-or-plan"))
+        XCTAssertThrowsError(try prepare(vm, extraData("other-date")))
+        vm.seanceData = try extraData("other-date")
+        vm.draftSessionType = "evening"
+        XCTAssertEqual(vm.seanceData?.todayDate, date)
+        XCTAssertEqual(vm.draftSessionType, "morning")
+        XCTAssertEqual(preparationBytes(date), before)
+        let classic = SeanceViewModel(draftSessionType: "morning")
+        classic.seanceData = data
+        XCTAssertThrowsError(try prepare(classic, data))
+        XCTAssertFalse(classic.isDayComposerLocal)
+    }
+
+    func testPassiveFirstLogPersistsWithoutStartingEitherOwnerClock() throws {
+        let date = "first-local-\(UUID().uuidString)"
+        defer {
+            SessionDraftStore.clear(date: date, sessionType: "morning")
+            SessionDraftStore.clear(date: date, sessionType: "evening")
+        }
+        let morning = SeanceViewModel(draftSessionType: "morning")
+        let evening = SeanceSoirViewModel()
+        try prepare(morning, extraData(date))
+        try prepare(evening, extraData(date))
+        XCTAssertNil(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning"))
+        XCTAssertNil(SessionDraftStore.recoveryProtection(date: date, sessionType: "evening"))
+        morning.logResults["A"] = .init(name: "A", weight: 80, reps: "5")
+        evening.logResults["B"] = .init(name: "B", weight: 60, reps: "8", isSecond: true)
+        for vm in [morning, evening] {
+            XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: vm.draftSessionType)?.generation, 1)
+            XCTAssertNil(SessionDraftStore.loadStartedAt(date: date, sessionType: vm.draftSessionType))
+            XCTAssertFalse(vm.chrono.hasTimingContext)
+            XCTAssertFalse(vm.sessionStarted)
+        }
+        let restoredMorning = SeanceViewModel(draftSessionType: "morning")
+        let restoredEvening = SeanceSoirViewModel()
+        let before = preparationBytes(date)
+        try prepare(restoredMorning, extraData(date))
+        try prepare(restoredEvening, extraData(date))
+        XCTAssertEqual(Set(restoredMorning.logResults.keys), ["A"])
+        XCTAssertEqual(Set(restoredEvening.logResults.keys), ["B"])
+        XCTAssertEqual(preparationBytes(date), before)
+    }
+
+    func testPassiveFinishAndPartialEveningAreBlockedBeforeNetwork() async throws {
+        let date = "no-finalize-\(UUID().uuidString)"
+        defer {
+            SessionDraftStore.clear(date: date, sessionType: "morning")
+            SessionDraftStore.clear(date: date, sessionType: "evening")
+        }
+        seedPreparationRecovery(date, source: "morning", weight: 80)
+        seedPreparationRecovery(date, source: "evening", weight: 60)
+        let before = preparationBytes(date)
+        let morning = PassiveMorningSpy(draftSessionType: "morning")
+        let evening = PassiveEveningSpy()
+        try prepare(morning, extraData(date))
+        try prepare(evening, extraData(date))
+        for vm in [morning as SeanceViewModel, evening] {
+            vm.startSession()
+            await vm.finish(rpe: 7, comment: vm.sessionComment)
+            await vm.retryFinish(comment: "Retry")
+            let accepted = await vm.saveExercisesForFinish()
+            XCTAssertFalse(accepted)
+            vm.showSuccess = true
+            XCTAssertFalse(vm.showSuccess)
+            XCTAssertFalse(vm.isFinishing)
+            XCTAssertFalse(vm.canRetryFinish)
+            XCTAssertNil(vm.finishSourceDate)
+            XCTAssertFalse(vm.chrono.hasTimingContext)
+            XCTAssertNotNil(vm.submitError)
+        }
+        await evening.finish(rpe: 7, comment: "Partial", closeSession: false)
+        XCTAssertFalse(evening.partialSaveAccepted)
+        XCTAssertEqual(morning.externalCalls + evening.externalCalls, 0)
+        XCTAssertEqual(preparationBytes(date), before)
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(cacheData: Data? = nil, cacheKey: String = "seance_data") -> SeanceViewModel {
