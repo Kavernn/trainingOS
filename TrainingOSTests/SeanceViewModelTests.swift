@@ -27,6 +27,137 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    private final class BonusOutcomeStub: BonusSeanceViewModel {
+        var response: Data? = Data(#"{"success":true}"#.utf8)
+        var failure: Int?
+        var failExercise = false
+        var sessionComments: [String] = []
+        var sessionLogs: [[[String: Any]]] = []
+        var sentExercises: [ExerciseLogResult] = []
+        var recorded = 0
+
+        override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
+            sentExercises.append(result)
+            if failExercise { throw APIError.serverError(500, "Exercise failure") }
+            return .queuedOffline
+        }
+
+        override func sendBonusSession(exos: [String], rpe: Double, comment: String,
+                                       durationMin: Double?, energyPre: Int?,
+                                       exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+            sessionComments.append(comment)
+            sessionLogs.append(exerciseLogs)
+            return try await SessionSaveOutcome.fromOfflinePost {
+                if let failure = self.failure { throw APIError.serverError(failure, "Injected") }
+                return self.response
+            }
+        }
+
+        override func refreshBonusDashboard() async {}
+        override func recordBonusWorkout() async { recorded += 1 }
+    }
+
+    func testBonusFinalOutcomesPreserveRecoveryAndGateHealthKit() async throws {
+        let responses: [Data?] = [Data(#"{"success":true}"#.utf8), nil,
+                                 Data(#"{"success":false}"#.utf8), Data("invalid".utf8)]
+        for (index, response) in responses.enumerated() {
+            let date = "bonus-outcome-\(UUID().uuidString)"
+            defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+            let vm = BonusOutcomeStub()
+            vm.seanceData = try extraData(date)
+            vm.logResults["Bench Press"] = recoveryLog()
+            vm.sessionComment = "Latest"
+            // A previously observed completion must not acknowledge this local generation.
+            vm.restoreLogResults(from: try extraData(date), serverSessionType: "bonus", serverCompleted: true)
+            let generation = SessionDraftStore.bonusProtection(date: date)?.generation
+            vm.response = response
+            await vm.finish(rpe: 7, comment: vm.sessionComment)
+            XCTAssertEqual(vm.showSuccess, index == 0)
+            XCTAssertEqual(vm.isSessionQueued, index == 1)
+            XCTAssertEqual(vm.recorded, index == 0 ? 1 : 0)
+            XCTAssertEqual(vm.submitError != nil, index >= 2)
+            XCTAssertFalse(vm.isFinishing)
+            XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+            XCTAssertEqual(SessionDraftStore.load(date: date, sessionType: "bonus").count, 1)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "bonus"), "Latest")
+            if index == 1 {
+                await vm.retryFinish(comment: "Do not enqueue again")
+                await vm.finish(rpe: 7, comment: "Do not enqueue again")
+                XCTAssertEqual(vm.sessionComments.count, 1)
+                XCTAssertEqual(vm.sentExercises.count, 1)
+                XCTAssertEqual(vm.recorded, 0)
+            } else if index >= 2 {
+                XCTAssertTrue(vm.canRetryFinish)
+            }
+        }
+    }
+
+    func testBonusFinalFailureRetryUsesCurrentPayloadAndComment() async throws {
+        let date = "bonus-retry-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        let vm = BonusOutcomeStub()
+        vm.seanceData = try extraData(date)
+        vm.logResults["Bench Press"] = recoveryLog()
+        vm.response = Data(#"{"success":false}"#.utf8)
+        await vm.finish(rpe: 7, comment: "First")
+        XCTAssertNotNil(vm.submitError)
+        XCTAssertEqual(vm.recorded, 0)
+        var changed = recoveryLog()
+        changed.notes = "Updated exercise note"
+        vm.logResults[changed.name] = changed
+        vm.sessionComment = "Latest"
+        vm.response = Data(#"{"success":true}"#.utf8)
+        await vm.retryFinish(comment: vm.sessionComment)
+        XCTAssertEqual(vm.sessionComments, ["First", "Latest"])
+        XCTAssertEqual(vm.sentExercises.count, 2)
+        XCTAssertEqual(vm.sentExercises.last?.notes, "Updated exercise note")
+        XCTAssertEqual(vm.sessionLogs.last?.first?["exercise"] as? String, changed.name)
+        XCTAssertTrue(vm.showSuccess)
+        XCTAssertFalse(vm.isSessionQueued)
+        XCTAssertNil(vm.submitError)
+        XCTAssertEqual(vm.recorded, 1)
+        XCTAssertEqual(SessionDraftStore.load(date: date, sessionType: "bonus").first?.notes, changed.notes)
+    }
+
+    func testBonusHTTPFailureRetryToQueueDoesNotResendAcceptedExercises() async throws {
+        let date = "bonus-retry-queue-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        let vm = BonusOutcomeStub()
+        vm.seanceData = try extraData(date)
+        vm.logResults["Bench Press"] = recoveryLog()
+        vm.failure = 500
+        await vm.finish(rpe: 7, comment: "First")
+        XCTAssertNotNil(vm.submitError)
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertFalse(vm.isSessionQueued)
+        vm.failure = nil
+        vm.response = nil
+        await vm.retryFinish(comment: "New comment")
+        XCTAssertEqual(vm.sessionComments, ["First", "New comment"])
+        XCTAssertEqual(vm.sentExercises.count, 1)
+        XCTAssertTrue(vm.isSessionQueued)
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertNil(vm.submitError)
+        XCTAssertEqual(vm.recorded, 0)
+        await vm.retryFinish(comment: "No duplicate")
+        XCTAssertEqual(vm.sessionComments.count, 2)
+    }
+
+    func testBonusExerciseFailureStillBlocksFinalOutcomePath() async throws {
+        let date = "bonus-gate-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        let vm = BonusOutcomeStub()
+        vm.seanceData = try extraData(date)
+        vm.logResults["Bench Press"] = recoveryLog()
+        vm.failExercise = true
+        await vm.finish(rpe: 7, comment: "Blocked")
+        XCTAssertTrue(vm.sessionComments.isEmpty)
+        XCTAssertNotNil(vm.submitError)
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertFalse(vm.isSessionQueued)
+        XCTAssertEqual(vm.recorded, 0)
+    }
+
     func testTrustedBonusMetadataAndFallbackRoundTrip() throws {
         for trusted in [false, true] {
             let date = "metadata-\(UUID().uuidString)"

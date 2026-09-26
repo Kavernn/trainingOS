@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // Presentation only. Results continue to live in SeanceViewModel.logResults.
 struct BonusRecoveryConfiguration {
@@ -93,6 +94,27 @@ enum BonusRecoveryPresentation {
 
 // MARK: - ViewModel
 class BonusSeanceViewModel: SeanceViewModel {
+    @Published private(set) var isSessionQueued = false
+
+    // Narrow outcome/side-effect seams, matching the Evening pattern.
+    func sendBonusSession(exos: [String], rpe: Double, comment: String,
+                          durationMin: Double?, energyPre: Int?,
+                          exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+        try await APIService.shared.logBonusSessionOutcome(exos: exos, rpe: rpe, comment: comment,
+            durationMin: durationMin, energyPre: energyPre, exerciseLogs: exerciseLogs)
+    }
+
+    func refreshBonusDashboard() async { await APIService.shared.fetchDashboard() }
+
+    func recordBonusWorkout() async {
+        await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
+    }
+
+    override func retryFinish(comment: String) async {
+        guard !isSessionQueued else { return }
+        await super.retryFinish(comment: comment)
+    }
+
     override init(draftSessionType: String = "bonus") {
         super.init(draftSessionType: draftSessionType)
     }
@@ -130,7 +152,8 @@ class BonusSeanceViewModel: SeanceViewModel {
     }
 
     override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = true, closeSession: Bool = true) async {
-        guard !isFinishing else { return }
+        guard !isFinishing, !isSessionQueued else { return }
+        showSuccess = false
         isFinishing = true
         defer { isFinishing = false }
         prepareFinishRetry(rpe: rpe, comment: comment, durationMin: durationMin, energyPre: energyPre,
@@ -142,18 +165,20 @@ class BonusSeanceViewModel: SeanceViewModel {
         guard await saveExercisesForFinish(isSecond: false, isBonus: true, collectPRs: false) else { return }
 
         do {
-            try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
-                                                   durationMin: durationMin, energyPre: energyPre,
-                                                   bonusSession: true,
-                                                   exerciseLogs: exerciseLogs)
+            let outcome = try await sendBonusSession(exos: exos, rpe: rpe, comment: comment,
+                durationMin: durationMin, energyPre: energyPre, exerciseLogs: exerciseLogs)
+            if case .queuedOffline = outcome {
+                isSessionQueued = true
+                return
+            }
         } catch {
             submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
-            await APIService.shared.fetchDashboard()
+            await refreshBonusDashboard()
             return
         }
 
-        await APIService.shared.fetchDashboard()
-        await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
+        await refreshBonusDashboard()
+        await recordBonusWorkout()
         showSuccess = true
     }
 }
@@ -365,7 +390,17 @@ struct BonusSeanceView: View {
     // Reuse the finish state for initial saves and retries.
     @ViewBuilder
     private var finishSessionButton: some View {
-        if !vm.logResults.isEmpty {
+        if vm.isSessionQueued {
+            VStack(spacing: 8) {
+                Text("Synchronisation en attente. Les données sont conservées sur cet appareil.")
+                    .font(.appCaption)
+                    .foregroundColor(Color.appTextPrimary)
+                Button("Fermer et reprendre plus tard") { dismiss() }
+                    .frame(minHeight: 44)
+                    .foregroundColor(Color.forge)
+            }
+            .padding(.horizontal, 16)
+        } else if !vm.logResults.isEmpty {
             Button {
                 let unlogged = orderedExercises.filter { vm.logResults[$0] == nil }
                 if unlogged.isEmpty {
@@ -574,13 +609,13 @@ struct BonusSeanceView: View {
         .alert("Fin de séance", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await loadInventory() } }
         } message: {
-            Text("Les données locales sont conservées. Leur synchronisation complète n’est pas confirmée.")
+            Text("Le serveur a accepté la requête. Les données locales sont conservées ; leur synchronisation complète n’est pas confirmée.")
         }
         .alert(vm.failedExerciseNames.isEmpty ? "Erreur" : "Certains exercices n’ont pas été sauvegardés", isPresented: Binding(
             get: { vm.submitError != nil },
             set: { if !$0 { vm.submitError = nil } }
         )) {
-            if vm.canRetryFinish {
+            if vm.canRetryFinish && !vm.isSessionQueued {
                 Button("Réessayer") { Task { await vm.retryFinish(comment: comment) } }
                     .disabled(vm.isFinishing)
             }

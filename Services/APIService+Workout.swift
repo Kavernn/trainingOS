@@ -137,6 +137,23 @@ extension APIService {
         if !secondSession && !bonusSession { NotificationService.cancelSessionReminders() }
     }
 
+    /// Dedicated Bonus adopter; legacy logSession remains unchanged.
+    func logBonusSessionOutcome(exos: [String], rpe: Double, comment: String,
+                                durationMin: Double?, energyPre: Int?,
+                                exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment, "bonus_session": true]
+        if let durationMin { body["duration_min"] = durationMin }
+        if let energyPre { body["energy_pre"] = energyPre }
+        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
+        let outcome = try await SessionSaveOutcome.fromOfflinePost {
+            try await self.offlinePost(endpoint: "/api/log_session", payload: body)
+        }
+        if case .serverResponse = outcome {
+            CacheInvalidation.sessionLogged(isSecond: false, isBonus: true).invalidate()
+        }
+        return outcome
+    }
+
     func fetchSeanceSoirData() async throws -> SeanceSoirData {
         let url = try buildURL(path: "/api/seance_soir_data")
         let data = try await fetchWithCache(url: url, key: "seance_soir_data")
