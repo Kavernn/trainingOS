@@ -81,7 +81,8 @@ struct ExerciseCard: View {
          showsReorderHandle: Bool = false,
          isChecked: Bool = false,
          onCheckToggle: (() -> Void)? = nil,
-         sessionDate: String = "", recoveredInitialState: ExerciseRecoveryHydration? = nil) {
+         sessionDate: String = "", recoveredInitialState: ExerciseRecoveryHydration? = nil,
+         reconstructionMetadata: ExerciseReconstructionMetadata? = nil) {
         self.recoveredInitialState = recoveredInitialState
         self.name            = name
         self.scheme          = scheme
@@ -117,7 +118,7 @@ struct ExerciseCard: View {
             bodyWeight: bodyWeight, isSecondSession: isSecondSession,
             isBonusSession: isBonusSession, restSeconds: restSeconds,
             prescription: prescription, suggestion: suggestion,
-            sessionDate: sessionDate))
+            sessionDate: sessionDate, reconstructionMetadata: reconstructionMetadata))
     }
 
     // MARK: - View-layer computed

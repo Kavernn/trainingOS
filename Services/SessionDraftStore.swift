@@ -57,6 +57,8 @@ struct PersistedExerciseLogResult: Codable {
     var sets: [PersistedSet]
     var trackingType: String? = nil
     var notes: String? = nil
+    var scheme: String? = nil
+    var isUnilateral: Bool? = nil
 }
 
 enum SessionDraftStore {

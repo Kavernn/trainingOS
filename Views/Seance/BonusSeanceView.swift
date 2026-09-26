@@ -9,6 +9,12 @@ struct BonusRecoveryConfiguration {
 
     static func resolve(name: String, log: ExerciseLogResult, schemes: [String],
                         equipment: [String], tracking: [String], unilateral: [Bool]) -> Self? {
+        let schemes = log.scheme.map { [$0] } ?? schemes
+        let tracking = log.trackingType.map { [$0] } ?? tracking
+        let unilateral = log.isUnilateral.map { [$0] } ?? unilateral
+        // Equipment was already historical. Preserve the legacy conflict policy
+        // unless the log explicitly carries the new reconstruction contract.
+        let equipment = (log.scheme != nil || log.isUnilateral != nil) ? [log.equipmentType] : equipment
         guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               name == log.name,
               let scheme = schemes.first, !scheme.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -230,6 +236,19 @@ struct BonusSeanceView: View {
         visibleExercises.map(\.id)
     }
 
+    private func trustedScheme(for name: String, configuration: BonusRecoveryConfiguration?) -> String? {
+        if let historical = vm.logResults[name]?.scheme { return historical }
+        if pushedNames.contains(name) { return pushedSchemes[name] }
+        // AddExerciseSheet also supplies "3x8-12" when the catalogue is absent.
+        // Its returned local value alone is therefore not provenance.
+        if let catalogue = inventorySchemes[name], catalogue == localExercises[name] { return catalogue }
+        if let configuration,
+           vm.seanceData?.fullProgram.values.contains(where: { $0[name]?.value == configuration.scheme }) == true {
+            return configuration.scheme
+        }
+        return nil
+    }
+
     @ViewBuilder private func exerciseCard(for name: String, configuration: BonusRecoveryConfiguration? = nil,
                                          hydration: ExerciseRecoveryHydration? = nil) -> some View {
         let idx = orderedExercises.firstIndex(of: name)
@@ -258,7 +277,11 @@ struct BonusSeanceView: View {
             },
             nextExerciseName: next,
             sessionDate: vm.seanceData?.todayDate ?? todayDateStr,
-            recoveredInitialState: hydration
+            recoveredInitialState: hydration,
+            reconstructionMetadata: ExerciseReconstructionMetadata(
+                scheme: trustedScheme(for: name, configuration: configuration),
+                trackingType: configuration?.tracking ?? inventoryTracking[name],
+                isUnilateral: configuration?.unilateral ?? inventoryUnilateral[name])
         )
         .padding(.horizontal, 16)
         // Étape 4b-iii — retour bonus→matin/soir (bidir, décidé à froid).

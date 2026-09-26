@@ -27,6 +27,135 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testTrustedBonusMetadataAndFallbackRoundTrip() throws {
+        for trusted in [false, true] {
+            let date = "metadata-\(UUID().uuidString)"
+            defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+            let metadata = trusted ? ExerciseReconstructionMetadata(
+                scheme: "4x6", trackingType: "reps", isUnilateral: false) : nil
+            let exercise = ExerciseViewModel(name: "Bench Press", scheme: trusted ? "4x6" : "3x8-12",
+                weightData: nil, equipmentType: "machine", isBonusSession: true,
+                sessionDate: date, reconstructionMetadata: metadata)
+            exercise.sets = [SetInput(weight: "100", reps: "6", rir: 2, rpe: 8)]
+            let log = try XCTUnwrap(exercise.logExercise(alreadyLoggedViaBinding: false))
+            let owner = ExtraSessionViewModel()
+            XCTAssertTrue(owner.adoptSelectedData(try extraData(date)))
+            owner.logResults[log.name] = log
+            let persisted = try XCTUnwrap(SessionDraftStore.load(date: date, sessionType: "bonus").first)
+            XCTAssertEqual(persisted.scheme, trusted ? "4x6" : nil)
+            XCTAssertEqual(persisted.trackingType, trusted ? "reps" : nil)
+            XCTAssertEqual(persisted.isUnilateral, trusted ? false : nil)
+            let reopened = BonusSeanceViewModel()
+            reopened.restoreLogResults(from: try extraData(date), serverSessionType: "bonus", serverCompleted: nil)
+            let restored = try XCTUnwrap(reopened.logResults[log.name])
+            XCTAssertEqual(restored.scheme, persisted.scheme)
+            XCTAssertEqual(restored.trackingType, persisted.trackingType)
+            XCTAssertEqual(restored.isUnilateral, persisted.isUnilateral)
+            XCTAssertEqual(restored.equipmentType, "machine")
+        }
+    }
+
+    func testIntrinsicTimeAndPlyoMetadataRoundTrip() throws {
+        for mode in ["time", "plyo"] {
+            let date = "metadata-special-\(UUID().uuidString)"
+            defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+            let exercise = ExerciseViewModel(name: "Special", scheme: "3x8-12", weightData: nil,
+                equipmentType: "bodyweight", trackingType: mode, isBonusSession: true, sessionDate: date)
+            exercise.sets = [SetInput(weight: "0", reps: "5", duration: 20, intensity: "10")]
+            let log = try XCTUnwrap(exercise.logExercise(alreadyLoggedViaBinding: false))
+            XCTAssertEqual(log.trackingType, mode)
+            XCTAssertNil(log.scheme)
+            XCTAssertNil(log.isUnilateral)
+            let owner = ExtraSessionViewModel()
+            XCTAssertTrue(owner.adoptSelectedData(try extraData(date)))
+            owner.logResults[log.name] = log
+            let reopened = BonusSeanceViewModel()
+            reopened.restoreLogResults(from: try extraData(date), serverSessionType: "bonus", serverCompleted: nil)
+            XCTAssertEqual(reopened.logResults[log.name]?.trackingType, mode)
+        }
+    }
+
+    func testLegacyMetadataDecodeAndResolution() throws {
+        let json = #"{"name":"Bench Press","weight":100,"reps":"8","isSecond":false,"isBonus":true,"equipmentType":"machine","painZone":"","sets":[]}"#
+        let legacy = try JSONDecoder().decode(PersistedExerciseLogResult.self, from: Data(json.utf8))
+        XCTAssertNil(legacy.scheme)
+        XCTAssertNil(legacy.trackingType)
+        XCTAssertNil(legacy.isUnilateral)
+        let log = recoveryLog()
+        XCTAssertNotNil(recoveryConfig(log.name, log))
+        XCTAssertNil(BonusRecoveryConfiguration.resolve(name: log.name, log: log,
+            schemes: [], equipment: [], tracking: [], unilateral: []))
+    }
+
+    func testHistoricalMetadataPriorityAndPartialCompletion() throws {
+        var log = recoveryLog()
+        log.scheme = "4x6"
+        log.trackingType = "reps"
+        log.isUnilateral = false
+        let noCatalog = BonusRecoveryPresentation.reconcile(order: [], snapshotOrder: [log.name],
+            local: [:], logs: [log.name: log], resolve: { name, log in
+                BonusRecoveryConfiguration.resolve(name: name, log: log, schemes: [],
+                    equipment: [], tracking: [], unilateral: [])
+            }, displayWeight: { $0 })
+        guard case .editable(_, .some(_)) = noCatalog.first?.content else {
+            return XCTFail("Complete history must resolve without catalogue")
+        }
+        let conflict = try XCTUnwrap(BonusRecoveryConfiguration.resolve(name: log.name, log: log,
+            schemes: ["9x9"], equipment: ["barbell"], tracking: ["time"], unilateral: [true]))
+        XCTAssertEqual(conflict.scheme, "4x6")
+        XCTAssertEqual(conflict.tracking, "reps")
+        XCTAssertFalse(conflict.unilateral)
+        log.scheme = nil
+        log.isUnilateral = nil
+        let partial = try XCTUnwrap(BonusRecoveryConfiguration.resolve(name: log.name, log: log,
+            schemes: ["3x8"], equipment: ["machine"], tracking: ["time"], unilateral: [false]))
+        XCTAssertEqual(partial.scheme, "3x8")
+        XCTAssertEqual(partial.tracking, "reps")
+        log.scheme = "4x6"
+        log.isUnilateral = true
+        log.trackingType = "time"
+        let historicalTime = try XCTUnwrap(BonusRecoveryConfiguration.resolve(name: log.name, log: log,
+            schemes: ["3x8"], equipment: ["machine"], tracking: ["reps"], unilateral: [false]))
+        XCTAssertEqual(historicalTime.tracking, "time")
+        XCTAssertNil(ExerciseRecoveryHydration.make(log, equipment: historicalTime.equipment,
+            tracking: historicalTime.tracking, unilateral: historicalTime.unilateral, displayWeight: { $0 }))
+    }
+
+    func testFutureMetadataRestoreDoesNotDirtyAfterDebounce() async throws {
+        let date = "metadata-no-dirty-\(UUID().uuidString)"
+        let cardStore = ExerciseDraftPersistence(date: date, sessionType: "bonus", exerciseName: "Bench Press")
+        defer { cardStore.clear(); SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        var log = recoveryLog()
+        log.scheme = "4x6"
+        log.trackingType = "reps"
+        log.isUnilateral = false
+        let owner = ExtraSessionViewModel()
+        XCTAssertTrue(owner.adoptSelectedData(try extraData(date)))
+        owner.logResults[log.name] = log
+        owner.sessionComment = "Unchanged"
+        let generation = SessionDraftStore.bonusProtection(date: date)?.generation
+        let before = try JSONEncoder().encode(SessionDraftStore.load(date: date, sessionType: "bonus"))
+        let reopened = BonusSeanceViewModel()
+        reopened.seanceData = try extraData(date)
+        reopened.restoreLogResults(from: try extraData(date), serverSessionType: "bonus", serverCompleted: nil)
+        let restored = try XCTUnwrap(reopened.logResults[log.name])
+        let config = try XCTUnwrap(BonusRecoveryConfiguration.resolve(name: log.name, log: restored,
+            schemes: [], equipment: [], tracking: [], unilateral: []))
+        let exercise = ExerciseViewModel(name: log.name, scheme: config.scheme, weightData: nil,
+            equipmentType: config.equipment, isBonusSession: true, sessionDate: date)
+        exercise.initializeRecovery(try XCTUnwrap(ExerciseRecoveryHydration.make(restored,
+            equipment: config.equipment, tracking: config.tracking, unilateral: config.unilateral, displayWeight: { $0 })))
+        try await Task.sleep(nanoseconds: 800_000_000)
+        XCTAssertNil(cardStore.loadCard())
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+        let after = try JSONEncoder().encode(SessionDraftStore.load(date: date, sessionType: "bonus"))
+        XCTAssertEqual(try JSONSerialization.jsonObject(with: before) as? NSArray,
+                       try JSONSerialization.jsonObject(with: after) as? NSArray)
+        XCTAssertEqual(reopened.logResults[log.name]?.scheme, "4x6")
+        XCTAssertEqual(reopened.logResults[log.name]?.notes, log.notes)
+        XCTAssertEqual(reopened.sessionComment, "Unchanged")
+    }
+
     private func recoveryLog(_ name: String = "Bench Press") -> ExerciseLogResult {
         ExerciseLogResult(name: name, weight: 100, reps: "8", rpe: 8,
             sets: [["weight": 100.0, "reps": "8", "rir": 2, "rpe": 8.0]],

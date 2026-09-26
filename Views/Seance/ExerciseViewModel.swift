@@ -43,6 +43,15 @@ struct ExerciseLogResult {
     var notes: String = ""
     // Local draft metadata only; never added to the API payload.
     var trackingType: String? = nil
+    var scheme: String? = nil
+    var isUnilateral: Bool? = nil
+}
+
+/// Provenance supplied by the caller, separate from effective UI defaults.
+struct ExerciseReconstructionMetadata {
+    let scheme: String?
+    let trackingType: String?
+    let isUnilateral: Bool?
 }
 
 /// Read-only conversion of a validated recovery, never a new draft or log.
@@ -320,6 +329,7 @@ final class ExerciseViewModel: ObservableObject {
     let prescription: ExercisePrescription?
     let suggestion: ProgressionSuggestion?
     let sessionDate: String
+    let reconstructionMetadata: ExerciseReconstructionMetadata?
 
     // Published state (was @State in ExerciseCard)
     @Published var sets: [SetInput] = []
@@ -352,7 +362,8 @@ final class ExerciseViewModel: ObservableObject {
          isSecondSession: Bool = false, isBonusSession: Bool = false,
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
          suggestion: ProgressionSuggestion? = nil,
-         sessionDate: String = "") {
+         sessionDate: String = "", reconstructionMetadata: ExerciseReconstructionMetadata? = nil) {
+        self.reconstructionMetadata = reconstructionMetadata
         self.name            = name
         self.scheme          = scheme
         self.weightData      = weightData
@@ -704,6 +715,21 @@ final class ExerciseViewModel: ObservableObject {
 
     // Returns ExerciseLogResult to assign to the binding, or nil if can't log.
     // Caller is responsible for: setting logResult binding, calling onLogged, triggering haptic.
+    private func withReconstructionMetadata(_ log: ExerciseLogResult) -> ExerciseLogResult {
+        var result = log
+        // Certify only values matching the configuration actually used by this VM.
+        if let metadata = reconstructionMetadata {
+            result.scheme = metadata.scheme == scheme ? metadata.scheme : nil
+            result.isUnilateral = metadata.isUnilateral == isUnilateral ? metadata.isUnilateral : nil
+            if metadata.trackingType == trackingType { result.trackingType = metadata.trackingType }
+        }
+        // These branches cannot be entered through the default UI "reps" fallback.
+        if ["time", "plyo", "carry", "protocol"].contains(trackingType) {
+            result.trackingType = trackingType
+        }
+        return result
+    }
+
     @discardableResult
     func logExercise(alreadyLoggedViaBinding: Bool) -> ExerciseLogResult? {
         let alreadyLogged = isLogged || alreadyLoggedViaBinding || isSkipped
@@ -731,7 +757,7 @@ final class ExerciseViewModel: ObservableObject {
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: equipmentType, painZone: painZone, notes: noteForResult, trackingType: trackingType)
             logStatus = .success(0)
-            return result
+            return withReconstructionMetadata(result)
         }
 
         if trackingType == "carry" {
@@ -752,7 +778,7 @@ final class ExerciseViewModel: ObservableObject {
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: equipmentType, painZone: painZone, notes: noteForResult, trackingType: trackingType)
             logStatus = .success(firstW)
-            return result
+            return withReconstructionMetadata(result)
         }
 
         if trackingType == "plyo" {
@@ -775,7 +801,7 @@ final class ExerciseViewModel: ObservableObject {
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: equipmentType, painZone: painZone, notes: noteForResult)
             logStatus = .success(firstW)
-            return result
+            return withReconstructionMetadata(result)
         }
 
         if isTimeBased {
@@ -793,7 +819,7 @@ final class ExerciseViewModel: ObservableObject {
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: "bodyweight", painZone: painZone, notes: noteForResult)
             logStatus = .success(0)
-            return result
+            return withReconstructionMetadata(result)
         }
 
         let units = UnitSettings.shared
@@ -819,7 +845,7 @@ final class ExerciseViewModel: ObservableObject {
             sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
             equipmentType: equipmentType, painZone: painZone, notes: noteForResult)
         logStatus = .success(total)
-        return result
+        return withReconstructionMetadata(result)
     }
 
     func undoLog() {
@@ -1161,7 +1187,9 @@ class SeanceViewModel: ObservableObject {
                 equipmentType: pending.equipmentType,
                 painZone: pending.painZone,
                 notes: pending.notes ?? "",
-                trackingType: pending.trackingType
+                trackingType: pending.trackingType,
+                scheme: pending.scheme,
+                isUnilateral: pending.isUnilateral
             )
         }
         // Restore sessionStart BEFORE assigning logResults — persistDraftIfNeeded() fires on
@@ -1315,7 +1343,9 @@ class SeanceViewModel: ObservableObject {
                     PersistedSet.preserving(s, trackingType: log.trackingType ?? seanceData?.inventoryTracking[log.name] ?? "reps")
                 },
                 trackingType: log.trackingType,
-                notes: log.notes
+                notes: log.notes,
+                scheme: log.scheme,
+                isUnilateral: log.isUnilateral
             )
         }
         SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)
