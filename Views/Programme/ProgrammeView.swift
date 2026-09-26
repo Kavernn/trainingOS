@@ -805,6 +805,7 @@ struct ProgrammeView: View {
                 VStack(spacing: .appSectionSpacing) {
                     heroMatin
                     heroSoir
+                    DayComposerTodayEntry(activeProgramID: vm.activeProgramId)
                     volumeRow
                     mesocycleRow
                 }
