@@ -11,7 +11,8 @@ class SeanceSoirViewModel: SeanceViewModel {
                             durationMin: Double?, energyPre: Int?, sessionName: String?,
                             exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
         try await APIService.shared.logEveningSessionOutcome(exos: exos, rpe: rpe, comment: comment,
-            durationMin: durationMin, energyPre: energyPre, sessionName: sessionName, exerciseLogs: exerciseLogs)
+            durationMin: durationMin, energyPre: energyPre, sessionName: sessionName, exerciseLogs: exerciseLogs,
+            date: finishSourceDate)
     }
 
     func refreshEveningDashboard() async { await APIService.shared.fetchDashboard() }
@@ -104,6 +105,7 @@ class SeanceSoirViewModel: SeanceViewModel {
             ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
         }
         guard await saveExercisesForFinish(isSecond: true, isBonus: false) else { return }
+        guard let date = finishSourceDate else { return }
 
         // Reprendre plus tard : persist les exos (loop ci-dessus déjà fait) et sort.
         // On SKIP logSession → workout_sessions.completed reste false → showEveningBlock
@@ -132,11 +134,12 @@ class SeanceSoirViewModel: SeanceViewModel {
             return
         }
 
-        guard let date = seanceData?.todayDate, await observeEveningCompletion(date: date) else {
+        guard await observeEveningCompletion(date: date), seanceData?.todayDate == date else {
             saveStatusMessage = "Réponse serveur reçue. La clôture n’est pas confirmée. Les données locales sont conservées."
             return
         }
         await refreshEveningDashboard()
+        guard seanceData?.todayDate == date else { return }
         await recordEveningWorkout()
         // completed is server status only. Never retire unacknowledged local content.
         if SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: draftSessionType) {

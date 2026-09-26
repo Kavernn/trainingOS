@@ -1011,6 +1011,8 @@ class SeanceViewModel: ObservableObject {
     }
     private var finishExerciseSaves: [String: FinishExerciseSave] = [:]
     private var finishSaveScope: String?
+    // Frozen before the first await. Never derive a queued payload's date from the clock.
+    private(set) var finishSourceDate: String?
     private var retryFinishAction: ((String) async -> Void)?
     var canRetryFinish: Bool { retryFinishAction != nil }
     private(set) var partialSaveAccepted = false
@@ -1019,7 +1021,13 @@ class SeanceViewModel: ObservableObject {
                             sessionName: String?, bonusSession: Bool, closeSession: Bool) {
         submitError = nil
         partialSaveAccepted = false
+        let retryDate = seanceData?.todayDate
+        let requiresSourceDate = draftSessionType == "morning" || draftSessionType == "evening"
         retryFinishAction = { [weak self] currentComment in
+            guard !requiresSourceDate || self?.seanceData?.todayDate == retryDate else {
+                self?.submitError = "Le contexte de séance a changé. Les données locales sont conservées."
+                return
+            }
             await self?.finish(rpe: rpe, comment: currentComment, durationMin: durationMin,
                                energyPre: energyPre, sessionName: sessionName,
                                bonusSession: bonusSession, closeSession: closeSession)
@@ -1039,7 +1047,15 @@ class SeanceViewModel: ObservableObject {
             exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
             sets: result.sets, force: true, isSecond: result.isSecond, isBonus: result.isBonus,
             equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes,
-            invalidate: false)
+            date: draftSessionType == "bonus" ? nil : finishSourceDate, invalidate: false)
+    }
+
+    func sendMorningSession(exos: [String], rpe: Double, comment: String, date: String,
+                            durationMin: Double?, energyPre: Int?, sessionName: String?,
+                            exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+        try await APIService.shared.logMorningSessionOutcome(exos: exos, rpe: rpe, comment: comment,
+            date: date, durationMin: durationMin, energyPre: energyPre, sessionName: sessionName,
+            exerciseLogs: exerciseLogs)
     }
 
     private func finishFingerprint(_ result: ExerciseLogResult) throws -> Data {
@@ -1053,6 +1069,11 @@ class SeanceViewModel: ObservableObject {
     /// No persistent success IDs: after recreation all restored logs can be safely upserted again.
     func saveExercisesForFinish(isSecond: Bool? = nil, isBonus: Bool? = nil, collectPRs: Bool = true) async -> Bool {
         submitError = nil
+        finishSourceDate = seanceData?.todayDate
+        if draftSessionType != "bonus", finishSourceDate?.isEmpty != false {
+            submitError = "Date de séance indisponible. Les données locales sont conservées."
+            return false
+        }
         let scope = "\(draftSessionType)/\(seanceData?.todayDate ?? "")"
         if finishSaveScope != scope { finishExerciseSaves.removeAll(); finishSaveScope = scope }
         let snapshot = logResults
@@ -1085,6 +1106,10 @@ class SeanceViewModel: ObservableObject {
             } catch { failures.append(result.name) }
         }
         CacheInvalidation.invalidateBatch(invalidations)
+        guard draftSessionType == "bonus" || seanceData?.todayDate == finishSourceDate else {
+            submitError = "Le contexte de séance a changé. Les données locales sont conservées."
+            return false
+        }
         // A change made while awaiting the network must be saved before finalization too.
         for key in snapshot.keys where logResults[key] == nil {
             failures.append(snapshot[key]?.name ?? key)
@@ -1273,13 +1298,29 @@ class SeanceViewModel: ObservableObject {
             ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
         }
         guard await saveExercisesForFinish() else { return }
+        let date = finishSourceDate
+        let isMorning = draftSessionType == "morning" && !bonusSession
 
         do {
-            try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
-                                                   durationMin: durationMin, energyPre: energyPre,
-                                                   bonusSession: bonusSession, sessionName: sessionName,
-                                                   exerciseLogs: exerciseLogs)
+            if isMorning, let date {
+                let outcome = try await sendMorningSession(exos: exos, rpe: rpe, comment: comment,
+                    date: date, durationMin: durationMin, energyPre: energyPre,
+                    sessionName: sessionName, exerciseLogs: exerciseLogs)
+                if case .queuedOffline = outcome {
+                    submitError = "Synchronisation en attente. Données conservées sur cet appareil."
+                    return
+                }
+            } else {
+                try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
+                                                       durationMin: durationMin, energyPre: energyPre,
+                                                       bonusSession: bonusSession, sessionName: sessionName,
+                                                       exerciseLogs: exerciseLogs)
+            }
         } catch APIError.serverError(409, _) {
+            if isMorning {
+                submitError = "La tentative n’est pas confirmée. Les données locales sont conservées."
+                return
+            }
             let confirmed = handleFinishConflict()
             await APIService.shared.fetchDashboard()
             if confirmed { showSuccess = true }
@@ -1292,10 +1333,19 @@ class SeanceViewModel: ObservableObject {
             return
         }
 
-        let verified = await verifyFinishCompletion()
+        // seance_data is today-only. Fail closed across midnight rather than
+        // accepting completion of another date; no claim of historical verification.
+        let verified: Bool
+        if isMorning {
+            let fresh = try? await APIService.shared.fetchSeanceData()
+            verified = fresh?.todayDate == date && fresh?.alreadyLogged == true
+                && seanceData?.todayDate == date
+        } else {
+            verified = await verifyFinishCompletion()
+        }
 
         await APIService.shared.fetchDashboard()
-        if !verified {
+        if !verified || (isMorning && seanceData?.todayDate != date) {
             submitError = "Séance non confirmée en base — vérifie ta connexion et réessaie."
         } else {
             applyCompletedSessionRecoveryPolicy()

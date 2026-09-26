@@ -95,8 +95,10 @@ extension APIService {
                             rpe: Double? = nil, sets: [[String: Any]] = [],
                             force: Bool = false, isSecond: Bool = false, isBonus: Bool = false,
                             equipmentType: String = "", painZone: String = "", notes: String = "",
-                            invalidate: Bool = true) async throws -> ExerciseSaveOutcome {
+                            date: String? = nil, invalidate: Bool = true,
+                            post: (([String: Any]) async throws -> Data?)? = nil) async throws -> ExerciseSaveOutcome {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
+        if let date { body["session_date"] = date }
         if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
         if force    { body["force"] = true }
@@ -106,7 +108,8 @@ extension APIService {
         if !painZone.isEmpty { body["pain_zone"] = painZone }
         if !notes.isEmpty { body["notes"] = notes }
         let outcome = try await ExerciseSaveOutcome.fromOfflinePost {
-            try await self.offlinePost(endpoint: "/api/log", payload: body)
+            if let post { return try await post(body) }
+            return try await self.offlinePost(endpoint: "/api/log", payload: body)
         }
         if case .confirmed = outcome, invalidate {
             CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate()
@@ -137,6 +140,27 @@ extension APIService {
         if !secondSession && !bonusSession { NotificationService.cancelSessionReminders() }
     }
 
+    /// Explicit Morning boundary. A response is not an ACK of local recovery.
+    func logMorningSessionOutcome(exos: [String], rpe: Double, comment: String,
+                                  date: String, durationMin: Double? = nil, energyPre: Int? = nil,
+                                  sessionName: String? = nil, exerciseLogs: [[String: Any]] = [],
+                                  post: (([String: Any]) async throws -> Data?)? = nil) async throws -> SessionSaveOutcome {
+        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment, "date": date]
+        if let durationMin { body["duration_min"] = durationMin }
+        if let energyPre { body["energy_pre"] = energyPre }
+        if let sessionName, !sessionName.isEmpty { body["session_name"] = sessionName }
+        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
+        let outcome = try await SessionSaveOutcome.fromOfflinePost {
+            if let post { return try await post(body) }
+            return try await self.offlinePost(endpoint: "/api/log_session", payload: body)
+        }
+        if case .serverResponse = outcome {
+            CacheInvalidation.sessionLogged(isSecond: false, isBonus: false).invalidate()
+            NotificationService.cancelSessionReminders()
+        }
+        return outcome
+    }
+
     /// Dedicated Bonus adopter; legacy logSession remains unchanged.
     func logBonusSessionOutcome(exos: [String], rpe: Double, comment: String,
                                 durationMin: Double?, energyPre: Int?,
@@ -163,14 +187,17 @@ extension APIService {
     /// Evening-only adopter. Legacy logSession intentionally retains its permissive contract.
     func logEveningSessionOutcome(exos: [String], rpe: Double, comment: String,
                                  durationMin: Double?, energyPre: Int?, sessionName: String?,
-                                 exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+                                 exerciseLogs: [[String: Any]], date: String? = nil,
+                                 post: (([String: Any]) async throws -> Data?)? = nil) async throws -> SessionSaveOutcome {
         var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment, "second_session": true]
+        if let date { body["date"] = date }
         if let durationMin { body["duration_min"] = durationMin }
         if let energyPre { body["energy_pre"] = energyPre }
         if let sessionName, !sessionName.isEmpty { body["session_name"] = sessionName }
         if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
         let outcome = try await SessionSaveOutcome.fromOfflinePost {
-            try await self.offlinePost(endpoint: "/api/log_session", payload: body)
+            if let post { return try await post(body) }
+            return try await self.offlinePost(endpoint: "/api/log_session", payload: body)
         }
         if case .serverResponse = outcome {
             CacheInvalidation.sessionLogged(isSecond: true, isBonus: false).invalidate()

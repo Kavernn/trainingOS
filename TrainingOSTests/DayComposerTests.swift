@@ -4,6 +4,40 @@ import XCTest
 #endif
 
 final class DayComposerTests: XCTestCase {
+    func testExecutionProvenanceCompatibilityIsPureAndPreservesOrder() throws {
+        let original = try snapshot()
+        let context = try DayComposerExecutionContext(snapshot: original)
+        try withStore { store in
+            try store.save(original.initialUnits, for: original)
+            let before = store.defaults.dictionaryRepresentation()
+            XCTAssertEqual(context.compatibility(with: context), .compatible)
+            XCTAssertEqual(context.compatibility(with: try .init(snapshot: snapshot(program: "B"))), .differentProgram)
+            XCTAssertEqual(context.compatibility(with: try .init(snapshot: snapshot(date: "2026-09-27"))), .differentDate)
+            XCTAssertEqual(context.compatibility(with: try .init(snapshot: snapshot(morning: ["Changed"]))), .differentSources)
+            var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(context)) as? [String: Any])
+            json["version"] = 99
+            let future = try JSONDecoder().decode(DayComposerExecutionContext.self,
+                from: JSONSerialization.data(withJSONObject: json))
+            XCTAssertEqual(future.compatibility(with: context), .unsupportedVersion)
+            XCTAssertEqual(NSDictionary(dictionary: before), NSDictionary(dictionary: store.defaults.dictionaryRepresentation()))
+        }
+    }
+
+    func testSourceProjectionKeepsHomonymsAndIdenticalSetsSeparate() throws {
+        let data = Data(#"{"session_list":[{"date":"2026-09-26","session_type":"morning","exos":[{"exercise":"A"},{"exercise":"Bench Press","sets":[{"weight":80,"reps":5}]}]},{"date":"2026-09-26","session_type":"evening","exos":[{"exercise":"B"},{"exercise":"Bench Press","sets":[{"weight":80,"reps":5}]}]},{"date":"2026-09-26","session_type":"bonus","exos":[{"exercise":"C"}]},{"date":"2026-09-25","session_type":"morning","exos":[{"exercise":"D"}]}],"has_more":true}"#.utf8)
+        let projection = try DayComposerServerProjection(date: "2026-09-26", historyData: data)
+        XCTAssertEqual(projection.positivelyObserved.count, 4)
+        XCTAssertEqual(projection.positivelyObserved.filter { $0.exactName == "Bench Press" }.count, 2)
+        XCTAssertEqual(projection.presence(of: "Bench Press", source: .morning), .observed)
+        XCTAssertEqual(projection.presence(of: "Bench Press", source: .evening), .observed)
+        XCTAssertEqual(projection.presence(of: "A", source: .morning), .observed)
+        XCTAssertEqual(projection.presence(of: "A", source: .evening), .unknown)
+        XCTAssertEqual(projection.presence(of: "B", source: .morning), .unknown)
+        XCTAssertEqual(projection.presence(of: "B", source: .evening), .observed)
+        XCTAssertEqual(projection.presence(of: "C", source: .morning), .unknown)
+        XCTAssertEqual(projection.presence(of: "D", source: .morning), .unknown)
+    }
+
     private func snapshot(date: String = "2026-09-26", program: String = "A",
                           morning: [String] = ["A", "B"], evening: [String] = ["C", "D"],
                           completed: Bool = false) throws -> DayComposerSnapshot {

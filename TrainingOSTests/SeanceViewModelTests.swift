@@ -660,12 +660,14 @@ final class SeanceViewModelTests: XCTestCase {
         var failure: Int?
         var completed = false
         var comments: [String] = []
+        var dates: [String?] = []
         var recorded = 0
         override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome { .queuedOffline }
         override func sendEveningSession(exos: [String], rpe: Double, comment: String,
                                         durationMin: Double?, energyPre: Int?, sessionName: String?,
                                         exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
             comments.append(comment)
+            dates.append(finishSourceDate)
             if let failure { throw APIError.serverError(failure, "Injected") }
             return queued ? .queuedOffline : .serverResponse(LogSessionResponse(success: true))
         }
@@ -1169,9 +1171,11 @@ final class SeanceViewModelTests: XCTestCase {
         var queued: Set<String> = []
         var calls: [String] = []
         var sentWeights: [Double] = []
+        var sentDates: [String?] = []
         override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome {
             calls.append(result.name)
             sentWeights.append(result.weight)
+            sentDates.append(finishSourceDate)
             if failures.contains(result.name) { throw APIError.serverError(500, "Injected") }
             if queued.contains(result.name) { return .queuedOffline }
             return .confirmed(LogExerciseResponse(success: true, newWeight: nil, oneRM: nil,
@@ -1211,18 +1215,201 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertTrue(edited)
         XCTAssertEqual(vm.calls.last, "A")
         XCTAssertEqual(vm.sentWeights.last, 85)
+        XCTAssertTrue(vm.sentDates.allSatisfy { $0 == date })
     }
 
-    func testFinishGateAllConfirmedAndFreshLifecycleResends() async {
+    func testFinishGateAllConfirmedAndFreshLifecycleResends() async throws {
+        let date = "finish-lifecycle-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
         let vm = FinishSaveStub(draftSessionType: "morning")
+        defer { _ = vm.chrono.stop() }
+        vm.seanceData = try extraData(date)
         vm.logResults = ["A": ExerciseLogResult(name: "A", weight: 80, reps: "5")]
         let accepted = await vm.saveExercisesForFinish()
         XCTAssertTrue(accepted)
         let recreated = FinishSaveStub(draftSessionType: "morning")
+        defer { _ = recreated.chrono.stop() }
+        recreated.seanceData = vm.seanceData
         recreated.logResults = vm.logResults
         let restoredAccepted = await recreated.saveExercisesForFinish()
         XCTAssertTrue(restoredAccepted)
         XCTAssertEqual(recreated.calls, ["A"])
+    }
+
+    func testExercisePayloadKeepsCapturedDateInPersistedReplayBytes() async throws {
+        let suite = "date-queue-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let queue = UserDefaultsSyncQueue(defaults: defaults)
+        for evening in [false, true] {
+            let outcome = try await APIService.shared.logExerciseOutcome(exercise: "Bench Press", weight: 80,
+                reps: "5", isSecond: evening, date: "2026-09-26", invalidate: false, post: { payload in
+                    XCTAssertEqual(payload["session_date"] as? String, "2026-09-26")
+                    XCTAssertEqual(payload["is_second"] as? Bool ?? false, evening)
+                    queue.append(PendingMutation(endpoint: "/api/log", payload: payload))
+                    return nil
+                })
+            guard case .queuedOffline = outcome else { return XCTFail("Expected queued exercise") }
+        }
+        let replayDay = "2026-09-27"
+        let recreated = UserDefaultsSyncQueue(defaults: defaults)
+        for mutation in recreated.load() {
+            var request = URLRequest(url: URL(string: "https://example.invalid/api/log")!)
+            request.httpBody = mutation.payloadData // Same byte assignment as SyncManager.send.
+            let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(request.httpBody)) as? [String: Any])
+            XCTAssertEqual(body["session_date"] as? String, "2026-09-26")
+            XCTAssertNotEqual(body["session_date"] as? String, replayDay)
+            XCTAssertEqual(request.httpBody, mutation.payloadData)
+        }
+        XCTAssertEqual(recreated.load().count, 2)
+    }
+
+    private final class DatedMorningStub: SeanceViewModel {
+        var failWithConflict = false
+        var postedDates: [String] = []
+        var postedComments: [String] = []
+        override func sendExerciseForFinish(_ result: ExerciseLogResult) async throws -> ExerciseSaveOutcome { .queuedOffline }
+        override func sendMorningSession(exos: [String], rpe: Double, comment: String, date: String,
+                                         durationMin: Double?, energyPre: Int?, sessionName: String?,
+                                         exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
+            postedDates.append(date)
+            postedComments.append(comment)
+            if failWithConflict { throw APIError.serverError(409, "Prior completion") }
+            return .queuedOffline
+        }
+    }
+
+    func testMorningOwnerQueuedConflictAndChangedDateCannotCompleteOrClear() async throws {
+        let date = "morning-owner-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
+        let vm = DatedMorningStub(draftSessionType: "morning")
+        vm.seanceData = try extraData(date)
+        vm.sessionComment = "First"
+        let generation = SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation
+        await vm.finish(rpe: 7, comment: vm.sessionComment)
+        XCTAssertEqual(vm.postedDates, [date])
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertNotNil(vm.submitError)
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation, generation)
+        vm.failWithConflict = true
+        vm.sessionComment = "Latest"
+        await vm.retryFinish(comment: vm.sessionComment)
+        XCTAssertEqual(vm.postedDates, [date, date])
+        XCTAssertEqual(vm.postedComments, ["First", "Latest"])
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "Latest")
+        vm.seanceData = try extraData("other-date")
+        await vm.retryFinish(comment: "Must not send")
+        XCTAssertEqual(vm.postedDates, [date, date])
+        XCTAssertFalse(vm.showSuccess)
+    }
+
+    func testDatedMorningAndEveningFinalPayloads() async throws {
+        _ = try await APIService.shared.logMorningSessionOutcome(exos: ["A"], rpe: 7, comment: "Latest",
+            date: "2026-09-26", post: { payload in
+                XCTAssertEqual(payload["date"] as? String, "2026-09-26")
+                XCTAssertNil(payload["second_session"])
+                XCTAssertNil(payload["bonus_session"])
+                XCTAssertEqual(payload["comment"] as? String, "Latest")
+                return nil
+            })
+        _ = try await APIService.shared.logEveningSessionOutcome(exos: ["B"], rpe: 7, comment: "PM",
+            durationMin: nil, energyPre: nil, sessionName: "PM", exerciseLogs: [], date: "2026-09-26",
+            post: { payload in
+                XCTAssertEqual(payload["date"] as? String, "2026-09-26")
+                XCTAssertEqual(payload["second_session"] as? Bool, true)
+                XCTAssertNil(payload["bonus_session"])
+                return nil
+            })
+        _ = try await APIService.shared.logExerciseOutcome(exercise: "Legacy", weight: 1, reps: "1",
+            isBonus: true, invalidate: false, post: { payload in
+                XCTAssertNil(payload["session_date"])
+                XCTAssertEqual(payload["is_bonus"] as? Bool, true)
+                return nil
+            })
+    }
+
+    func testEveningOwnerPassesFrozenDateAndRetainsSecondSessionScope() async throws {
+        let date = "evening-date-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "evening") }
+        let vm = EveningOutcomeStub()
+        vm.seanceData = try extraData(date)
+        vm.sessionComment = "PM recovery"
+        await vm.finish(rpe: 7, comment: vm.sessionComment)
+        await vm.retryFinish(comment: vm.sessionComment)
+        XCTAssertEqual(vm.dates, [date, date])
+        XCTAssertEqual(vm.draftSessionType, "evening")
+        XCTAssertFalse(vm.showSuccess)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "PM recovery")
+    }
+
+    func testMorningTypedBoundaryDoesNotAcknowledgeRecovery() async throws {
+        let date = "morning-typed-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
+        SessionDraftStore.saveComment("Dirty comment", date: date, sessionType: "morning")
+        let generation = try XCTUnwrap(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation)
+        let replies: [Data?] = [Data(#"{"success":true}"#.utf8), nil,
+                                Data(#"{"success":false}"#.utf8), Data("invalid".utf8)]
+        for (index, reply) in replies.enumerated() {
+            do {
+                let outcome = try await APIService.shared.logMorningSessionOutcome(exos: [], rpe: 7,
+                    comment: "Dirty comment", date: date, post: { _ in reply })
+                switch (index, outcome) {
+                case (0, .serverResponse), (1, .queuedOffline): break
+                default: XCTFail("Invalid success outcome")
+                }
+            } catch { XCTAssertGreaterThan(index, 1) }
+            XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation, generation)
+            XCTAssertFalse(SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: "morning"))
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "Dirty comment")
+        }
+        do {
+            _ = try await APIService.shared.logMorningSessionOutcome(exos: [], rpe: 7, comment: "",
+                date: date, post: { _ in throw APIError.serverError(500, "Injected") })
+            XCTFail("HTTP error must propagate")
+        } catch APIError.serverError(let code, _) { XCTAssertEqual(code, 500) }
+        do {
+            _ = try await APIService.shared.logMorningSessionOutcome(exos: [], rpe: 7, comment: "",
+                date: date, post: { _ in throw URLError(.timedOut) })
+            XCTFail("Transport error must propagate")
+        } catch let error as URLError { XCTAssertEqual(error.code, .timedOut) }
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: date, sessionType: "morning")?.generation, generation)
+    }
+
+    func testProjectionAndContextMismatchNeverMutateOwnersOrRecovery() throws {
+        let date = "2026-09-26"
+        // Isolated source dates for draft storage; the passive projection cannot access these owners.
+        let draftDate = "projection-\(UUID().uuidString)"
+        let morning = SeanceViewModel(draftSessionType: "morning")
+        let evening = SeanceSoirViewModel()
+        defer {
+            SessionDraftStore.clear(date: draftDate, sessionType: "morning")
+            SessionDraftStore.clear(date: draftDate, sessionType: "evening")
+        }
+        morning.seanceData = try extraData(draftDate)
+        evening.seanceData = try extraData(draftDate)
+        morning.sessionComment = "AM draft"
+        evening.sessionComment = "PM draft"
+        let amGeneration = SessionDraftStore.recoveryProtection(date: draftDate, sessionType: "morning")?.generation
+        let pmGeneration = SessionDraftStore.recoveryProtection(date: draftDate, sessionType: "evening")?.generation
+        let projection = try DayComposerServerProjection(date: date, historyData:
+            Data(#"{"session_list":[{"date":"2026-09-26","session_type":"morning","exos":[{"exercise":"Bench Press"}]}]}"#.utf8))
+        XCTAssertEqual(projection.presence(of: "Bench Press", source: .morning), .observed)
+        XCTAssertTrue(morning.logResults.isEmpty)
+        XCTAssertTrue(evening.logResults.isEmpty)
+        func context(_ program: String, _ name: String) throws -> DayComposerExecutionContext {
+            try .init(snapshot: .init(date: date, activeProgramID: program,
+                morning: .init(source: .morning, session: "AM", schemes: [name: "3x10"], order: [name]),
+                evening: .init(source: .evening, session: "PM", schemes: [:], order: []),
+                morningCompleted: false, eveningCompleted: false))
+        }
+        let original = try context("A", "Bench Press")
+        XCTAssertEqual(original.compatibility(with: try context("B", "Bench Press")), .differentProgram)
+        XCTAssertEqual(original.compatibility(with: try context("A", "Changed")), .differentSources)
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: draftDate, sessionType: "morning")?.generation, amGeneration)
+        XCTAssertEqual(SessionDraftStore.recoveryProtection(date: draftDate, sessionType: "evening")?.generation, pmGeneration)
+        XCTAssertEqual(morning.sessionComment, "AM draft")
+        XCTAssertEqual(evening.sessionComment, "PM draft")
     }
 
     private final class FailingEveningFinish: SeanceSoirViewModel {
