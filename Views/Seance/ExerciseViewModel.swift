@@ -128,6 +128,14 @@ struct ExerciseDraftPersistence {
     static let keyPrefix = "exo_draft_"
     private var key: String { "\(Self.keyPrefix)\(date)_\(sessionType)_\(exerciseName)" }
 
+    enum Presence: Equatable { case absent, presentDecodable, presentUnreadable }
+
+    /// Raw existence matters: an unreadable payload must never become "no draft".
+    func presence() -> Presence {
+        guard UserDefaults.standard.object(forKey: key) != nil else { return .absent }
+        return loadCard() == nil ? .presentUnreadable : .presentDecodable
+    }
+
     @discardableResult
     func save(_ drafts: [DraftSet], sessionNote: String? = nil) -> Bool {
         guard let data = try? APIService.encoder.encode(ExerciseCardDraft(sets: drafts, sessionNote: sessionNote)) else { return false }
