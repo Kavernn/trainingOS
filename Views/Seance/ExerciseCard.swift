@@ -20,6 +20,7 @@ struct ExerciseCard: View {
     var suggestion: ProgressionSuggestion? = nil
     var hint: String? = nil
     @Binding var logResult: ExerciseLogResult?
+    private var recoveredInitialState: ExerciseRecoveryHydration?
     var onLogged: (() -> Void)? = nil
     // Expand/collapse (controlled by parent)
     var isExpanded: Bool = false
@@ -80,7 +81,8 @@ struct ExerciseCard: View {
          showsReorderHandle: Bool = false,
          isChecked: Bool = false,
          onCheckToggle: (() -> Void)? = nil,
-         sessionDate: String = "") {
+         sessionDate: String = "", recoveredInitialState: ExerciseRecoveryHydration? = nil) {
+        self.recoveredInitialState = recoveredInitialState
         self.name            = name
         self.scheme          = scheme
         self.weightData      = weightData
@@ -1036,7 +1038,11 @@ struct ExerciseCard: View {
         }
         .animation(.easeInOut(duration: 0.25), value: alreadyLogged)
         .onAppear {
-            evm.initializeSets()
+            if let recoveredInitialState {
+                evm.initializeRecovery(recoveredInitialState)
+            } else {
+                evm.initializeSets()
+            }
             if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }
         }
         // Pré-remplissage automatique supprimé (2026-07-13) : saisir est un

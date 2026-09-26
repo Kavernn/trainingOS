@@ -1,5 +1,90 @@
 import SwiftUI
 
+// Presentation only. Results continue to live in SeanceViewModel.logResults.
+struct BonusRecoveryConfiguration {
+    let scheme: String
+    let equipment: String
+    let tracking: String
+    let unilateral: Bool
+
+    static func resolve(name: String, log: ExerciseLogResult, schemes: [String],
+                        equipment: [String], tracking: [String], unilateral: [Bool]) -> Self? {
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              name == log.name,
+              let scheme = schemes.first, !scheme.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              Set(schemes).count == 1,
+              let type = equipment.first, Set(equipment).count == 1, type == log.equipmentType,
+              let mode = tracking.first, Set(tracking).count == 1,
+              log.trackingType == nil || log.trackingType == mode,
+              let side = unilateral.first, Set(unilateral).count == 1 else { return nil }
+        return Self(scheme: scheme, equipment: type, tracking: mode, unilateral: side)
+    }
+}
+
+struct BonusVisibleExercise: Identifiable {
+    enum Content {
+        case editable(BonusRecoveryConfiguration?, ExerciseRecoveryHydration?)
+        case recoveredReadOnly
+    }
+    let id: String
+    let content: Content
+}
+
+enum BonusRecoveryPresentation {
+    static func reconcile(order: [String], snapshotOrder: [String], local: [String: String],
+                          logs: [String: ExerciseLogResult],
+                          resolve: (String, ExerciseLogResult) -> BonusRecoveryConfiguration?,
+                          displayWeight: (Double) -> Double) -> [BonusVisibleExercise] {
+        var seen: Set<String> = []
+        // Snapshot order is preserved, not described as the original logging order.
+        return (order + snapshotOrder).compactMap { name in
+            guard seen.insert(name).inserted else { return nil }
+            if let log = logs[name] {
+                if let config = resolve(name, log),
+                   let hydration = ExerciseRecoveryHydration.make(log, equipment: config.equipment,
+                       tracking: config.tracking, unilateral: config.unilateral, displayWeight: displayWeight) {
+                    return BonusVisibleExercise(id: name, content: .editable(config, hydration))
+                }
+                return BonusVisibleExercise(id: name, content: .recoveredReadOnly)
+            }
+            guard local[name] != nil else { return nil }
+            return BonusVisibleExercise(id: name, content: .editable(nil, nil))
+        }
+    }
+
+    static func summary(_ log: ExerciseLogResult) -> [String] {
+        // Neutral wording: a reps field can encode duration/distance in old logs.
+        var lines = ["Charge enregistrée : \(UnitSettings.shared.format(log.weight))",
+                     "Valeur enregistrée : \(log.reps)"]
+        if let rpe = log.rpe { lines.append("RPE : \(rpe)") }
+        for (index, set) in log.sets.enumerated() {
+            var fields: [String] = []
+            for key in set.keys.sorted() {
+                guard let value = set[key] else { continue }
+                switch key {
+                case "weight":
+                    if let weight = value as? Double { fields.append("Charge : \(UnitSettings.shared.format(weight))") }
+                    else { fields.append("Charge enregistrée : \(value)") }
+                case "reps": fields.append("Valeur enregistrée : \(value)")
+                case "rir": fields.append("RIR : \(value)")
+                case "rpe": fields.append("RPE : \(value)")
+                case "distance_m": fields.append("Distance : \(value) m")
+                case "intensity": fields.append("Intensité : \(value)")
+                case "left", "right":
+                    if let side = value as? [String: Any], side.count == 1, let time = side["time"] {
+                        fields.append("\(key == "left" ? "Gauche" : "Droite") : \(time) s")
+                    } else { fields.append("\(key) : \(value)") }
+                default: fields.append("\(key) : \(value)")
+                }
+            }
+            lines.append("Série \(index + 1) — " + fields.joined(separator: " · "))
+        }
+        if !log.painZone.isEmpty { lines.append("Zone de douleur : \(log.painZone)") }
+        if !log.notes.isEmpty { lines.append("Note : \(log.notes)") }
+        return lines
+    }
+}
+
 // MARK: - ViewModel
 class BonusSeanceViewModel: SeanceViewModel {
     override init(draftSessionType: String = "bonus") {
@@ -114,22 +199,49 @@ struct BonusSeanceView: View {
     @State private var pushedNames: Set<String> = []
     @State private var exerciseIdsMap: [String: String] = [:]
     @State private var todayDateStr: String = ""
+    @State private var pushedSchemes: [String: String] = [:]
+    @State private var pushedEquipment: [String: String] = [:]
+    @State private var pushedTracking: [String: String] = [:]
+    @State private var pushedUnilateral: [String: Bool] = [:]
 
-    private var orderedExercises: [String] {
-        exerciseOrder.filter { localExercises[$0] != nil }
+    private var visibleExercises: [BonusVisibleExercise] {
+        let snapshot = vm.seanceData.map {
+            SessionDraftStore.load(date: $0.todayDate, sessionType: vm.draftSessionType).map(\.name)
+        } ?? []
+        return BonusRecoveryPresentation.reconcile(order: exerciseOrder, snapshotOrder: snapshot,
+            local: localExercises, logs: vm.logResults, resolve: recoveryConfiguration,
+            displayWeight: UnitSettings.shared.display)
     }
 
-    @ViewBuilder private func exerciseCard(for name: String) -> some View {
+    private func recoveryConfiguration(name: String, log: ExerciseLogResult) -> BonusRecoveryConfiguration? {
+        // Catalogue default schemes are not evidence of the recovered prescription.
+        let planSchemes = vm.seanceData?.fullProgram.values.compactMap { $0[name]?.value } ?? []
+        // localExercises may contain the old pushed-plan display fallback. It is
+        // not evidence for recovery; only a real manual selection may contribute.
+        let manualScheme = pushedNames.contains(name) ? nil : localExercises[name]
+        return BonusRecoveryConfiguration.resolve(name: name, log: log,
+            schemes: planSchemes + [manualScheme, pushedSchemes[name]].compactMap { $0 },
+            equipment: [inventoryTypes[name], vm.seanceData?.inventoryTypes[name], pushedEquipment[name]].compactMap { $0 },
+            tracking: [inventoryTracking[name], vm.seanceData?.inventoryTracking[name], pushedTracking[name]].compactMap { $0 },
+            unilateral: [inventoryUnilateral[name], vm.seanceData?.inventoryUnilateral[name], pushedUnilateral[name]].compactMap { $0 })
+    }
+
+    private var orderedExercises: [String] {
+        visibleExercises.map(\.id)
+    }
+
+    @ViewBuilder private func exerciseCard(for name: String, configuration: BonusRecoveryConfiguration? = nil,
+                                         hydration: ExerciseRecoveryHydration? = nil) -> some View {
         let idx = orderedExercises.firstIndex(of: name)
         let next = idx.flatMap { $0 + 1 < orderedExercises.count ? orderedExercises[$0 + 1] : nil }
         let isPushed = pushedNames.contains(name)
         ExerciseCard(
             name: name,
-            scheme: localExercises[name] ?? "3x8-12",
+            scheme: configuration?.scheme ?? localExercises[name] ?? "3x8-12",
             weightData: vm.seanceData?.weights[name],
-            equipmentType: inventoryTypes[name] ?? "machine",
-            trackingType: inventoryTracking[name] ?? "reps",
-            isUnilateral: inventoryUnilateral[name] ?? false,
+            equipmentType: configuration?.equipment ?? inventoryTypes[name] ?? "machine",
+            trackingType: configuration?.tracking ?? inventoryTracking[name] ?? "reps",
+            isUnilateral: configuration?.unilateral ?? inventoryUnilateral[name] ?? false,
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: false,
             isBonusSession: true,
@@ -145,7 +257,8 @@ struct BonusSeanceView: View {
                 }
             },
             nextExerciseName: next,
-            sessionDate: vm.seanceData?.todayDate ?? todayDateStr
+            sessionDate: vm.seanceData?.todayDate ?? todayDateStr,
+            recoveredInitialState: hydration
         )
         .padding(.horizontal, 16)
         // Étape 4b-iii — retour bonus→matin/soir (bidir, décidé à froid).
@@ -283,7 +396,7 @@ struct BonusSeanceView: View {
 
     private var finishSheet: some View {
         FinishSessionSheet(
-            exercises: exerciseOrder,
+            exercises: orderedExercises,
             logResults: vm.logResults,
             elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
             rpe: $rpe,
@@ -354,7 +467,7 @@ struct BonusSeanceView: View {
                         }
 
                         // Exercise cards
-                        if localExercises.isEmpty {
+                        if visibleExercises.isEmpty {
                             VStack(spacing: 12) {
                                 Image(systemName: "dumbbell")
                                     .font(.system(size: 40))
@@ -367,8 +480,15 @@ struct BonusSeanceView: View {
                             .padding(.vertical, 40)
                         } else {
                             VStack(spacing: 8) {
-                                ForEach(orderedExercises, id: \.self) { name in
-                                    exerciseCard(for: name)
+                                ForEach(visibleExercises) { item in
+                                    switch item.content {
+                                    case .editable(let configuration, let hydration):
+                                        exerciseCard(for: item.id, configuration: configuration, hydration: hydration)
+                                    case .recoveredReadOnly:
+                                        if let log = vm.logResults[item.id] {
+                                            recoveredCard(log)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -490,6 +610,24 @@ struct BonusSeanceView: View {
         }
     }
 
+    private func recoveredCard(_ log: ExerciseLogResult) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(log.name).font(.appHeadline).foregroundColor(Color.appTextPrimary)
+            Text("Données récupérées").font(.appLabel).foregroundColor(Color.forge)
+            Text("Configuration indisponible — consultation uniquement")
+                .font(.appCaption).foregroundColor(Color.appTextSecondary)
+            ForEach(Array(BonusRecoveryPresentation.summary(log).enumerated()), id: \.offset) { _, line in
+                Text(line).font(.appCaption).foregroundColor(Color.appTextPrimary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color.appCard)
+        .cornerRadius(14)
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+    }
+
     /// Étape 4b-iii — GET /api/seance_bonus_data → merge pushedToBonus dans
     /// localExercises/exerciseOrder. Les ajouts MANUELS (via AddExerciseSheet)
     /// sont préservés. Distingués via pushedNames Set (contextMenu retour dispo
@@ -505,6 +643,10 @@ struct BonusSeanceView: View {
 
         await MainActor.run {
             let oldPushed = pushedNames
+            pushedSchemes = bonusPlan.mapValues(\.value)
+            pushedEquipment = bonus.inventoryTypes
+            pushedTracking = bonus.inventoryTracking
+            pushedUnilateral = bonus.inventoryUnilateral
             // Retire les anciens pushed qui ne le sont plus (mais garde les manuels).
             for name in oldPushed.subtracting(newPushed) {
                 localExercises.removeValue(forKey: name)

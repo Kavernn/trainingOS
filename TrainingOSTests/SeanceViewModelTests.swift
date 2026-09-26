@@ -27,6 +27,144 @@ final class SeanceViewModelTests: XCTestCase {
 
     // MARK: - Tests
 
+    private func recoveryLog(_ name: String = "Bench Press") -> ExerciseLogResult {
+        ExerciseLogResult(name: name, weight: 100, reps: "8", rpe: 8,
+            sets: [["weight": 100.0, "reps": "8", "rir": 2, "rpe": 8.0]],
+            isBonus: true, equipmentType: "machine", notes: "Note récupérée")
+    }
+
+    private func recoveryConfig(_ name: String, _ log: ExerciseLogResult) -> BonusRecoveryConfiguration? {
+        BonusRecoveryConfiguration.resolve(name: name, log: log, schemes: ["3x8"],
+            equipment: ["machine"], tracking: ["reps"], unilateral: [false])
+    }
+
+    func testBonusRecoveryResolvedAndConflictingConfiguration() throws {
+        let log = recoveryLog()
+        let config = try XCTUnwrap(recoveryConfig(log.name, log))
+        let hydration = try XCTUnwrap(ExerciseRecoveryHydration.make(log,
+            equipment: config.equipment, tracking: config.tracking,
+            unilateral: config.unilateral, displayWeight: { $0 }))
+        XCTAssertEqual(hydration.sets.count, 1) // Not expanded to the three-set scheme.
+        XCTAssertEqual(hydration.sets[0].weight, "100.0")
+        XCTAssertEqual(hydration.sets[0].reps, "8")
+        XCTAssertEqual(hydration.sets[0].rir, 2)
+        XCTAssertEqual(hydration.sets[0].rpe, 8)
+        XCTAssertEqual(hydration.note, log.notes)
+        XCTAssertNil(BonusRecoveryConfiguration.resolve(name: log.name, log: log,
+            schemes: ["3x8", "4x10"], equipment: ["machine"], tracking: ["reps"], unilateral: [false]))
+        XCTAssertNil(BonusRecoveryConfiguration.resolve(name: log.name, log: log,
+            schemes: ["3x8"], equipment: ["machine"], tracking: ["reps", "time"], unilateral: [false]))
+        XCTAssertNil(BonusRecoveryConfiguration.resolve(name: log.name, log: log,
+            schemes: ["3x8"], equipment: ["machine"], tracking: ["reps"], unilateral: []))
+        var incomplete = log
+        incomplete.sets[0].removeValue(forKey: "rir")
+        XCTAssertNil(ExerciseRecoveryHydration.make(incomplete, equipment: "machine",
+            tracking: "reps", unilateral: false, displayWeight: { $0 }))
+        let conflict = BonusRecoveryPresentation.reconcile(order: [], snapshotOrder: [log.name],
+            local: [:], logs: [log.name: log], resolve: { _, _ in nil }, displayWeight: { $0 })
+        guard case .recoveredReadOnly = conflict.first?.content else { return XCTFail("Conflict must stay visible") }
+    }
+
+    func testBonusRecoveryMergeIdempotenceAndReadOnlyEmptyState() {
+        let logs = ["B": recoveryLog("B"), "C": recoveryLog("C")]
+        func reconcile() -> [BonusVisibleExercise] {
+            BonusRecoveryPresentation.reconcile(order: ["A", "B"], snapshotOrder: ["B", "C"],
+                local: ["A": "3x8", "B": "3x8"], logs: logs,
+                resolve: { name, log in name == "B" ? self.recoveryConfig(name, log) : nil },
+                displayWeight: { $0 })
+        }
+        let first = reconcile()
+        XCTAssertEqual(first.map(\.id), ["A", "B", "C"])
+        XCTAssertEqual(reconcile().map(\.id), first.map(\.id))
+        guard case .editable(_, .some(_)) = first[1].content else { return XCTFail("B must be editable") }
+        guard case .recoveredReadOnly = first[2].content else { return XCTFail("C must remain visible") }
+        let readOnly = BonusRecoveryPresentation.reconcile(order: [], snapshotOrder: ["C"], local: [:],
+            logs: ["C": recoveryLog("C")], resolve: { _, _ in nil }, displayWeight: { $0 })
+        XCTAssertFalse(readOnly.isEmpty)
+        XCTAssertEqual(logs["C"]?.notes, "Note récupérée")
+    }
+
+    func testBonusSpecializedRecoverySummaryPreservesFieldsAndZero() {
+        var log = recoveryLog()
+        log.trackingType = "time"
+        log.sets = [["weight": 0.0, "reps": "20", "left": ["time": 0],
+                     "right": ["time": 20], "distance_m": 15, "intensity": 0.0]]
+        let before = NSDictionary(dictionary: log.sets[0])
+        let summary = BonusRecoveryPresentation.summary(log).joined(separator: "\n")
+        XCTAssertTrue(summary.contains("Gauche : 0 s"))
+        XCTAssertTrue(summary.contains("Droite : 20 s"))
+        XCTAssertTrue(summary.contains("Distance : 15 m"))
+        XCTAssertTrue(summary.contains("Intensité : 0"))
+        XCTAssertTrue(summary.contains("Valeur enregistrée"))
+        XCTAssertTrue(summary.contains(log.notes))
+        XCTAssertFalse(summary.contains("Protocole complété"))
+        XCTAssertEqual(before, NSDictionary(dictionary: log.sets[0]))
+        XCTAssertNil(ExerciseRecoveryHydration.make(log, equipment: "machine",
+            tracking: "time", unilateral: true, displayWeight: { $0 }))
+    }
+
+    func testBonusRecoveryHydrationDoesNotSaveAfterDebounceAndPreservesEdits() async throws {
+        let date = "recovery-hydration-\(UUID().uuidString)"
+        let log = recoveryLog()
+        let store = ExerciseDraftPersistence(date: date, sessionType: "bonus", exerciseName: log.name)
+        defer { store.clear(); SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        let owner = ExtraSessionViewModel()
+        XCTAssertTrue(owner.adoptSelectedData(try extraData(date)))
+        owner.logResults[log.name] = log
+        let generation = SessionDraftStore.bonusProtection(date: date)?.generation
+        let evm = ExerciseViewModel(name: log.name, scheme: "3x8", weightData: nil,
+            equipmentType: "machine", isBonusSession: true, sessionDate: date)
+        let hydration = try XCTUnwrap(ExerciseRecoveryHydration.make(log, equipment: "machine",
+            tracking: "reps", unilateral: false, displayWeight: { $0 }))
+        evm.initializeRecovery(hydration)
+        evm.syncSetsCount()
+        try await Task.sleep(nanoseconds: 800_000_000)
+        XCTAssertNil(store.loadCard())
+        XCTAssertNil(evm.draftSavedAt)
+        XCTAssertEqual(evm.sets.count, 1)
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+        XCTAssertEqual(owner.logResults[log.name]?.notes, log.notes)
+        evm.sets[0].reps = "9"
+        evm.sessionNote = "Édition réelle"
+        evm.initializeRecovery(hydration)
+        try await Task.sleep(nanoseconds: 800_000_000)
+        XCTAssertEqual(evm.sets[0].reps, "9")
+        XCTAssertEqual(store.loadCard()?.sets[0].reps, "9")
+        XCTAssertEqual(store.loadCard()?.sessionNote, "Édition réelle")
+        let recreated = ExerciseViewModel(name: log.name, scheme: "3x8", weightData: nil,
+            equipmentType: "machine", isBonusSession: true, sessionDate: date)
+        recreated.initializeRecovery(hydration)
+        XCTAssertEqual(recreated.sets[0].reps, "9")
+        XCTAssertEqual(recreated.sessionNote, "Édition réelle")
+    }
+
+    func testExtraToBonusRecoveryPresentationAndExplicitClear() throws {
+        let date = "recovery-cross-entry-\(UUID().uuidString)"
+        defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }
+        let extra = ExtraSessionViewModel()
+        XCTAssertTrue(extra.adoptSelectedData(try extraData(date)))
+        extra.logResults["Bench Press"] = recoveryLog()
+        extra.sessionComment = "Commentaire conservé"
+        let bonus = BonusSeanceViewModel()
+        bonus.seanceData = try extraData(date)
+        bonus.restoreLogResults(from: try extraData(date), serverSessionType: "bonus", serverCompleted: true)
+        let generation = SessionDraftStore.bonusProtection(date: date)?.generation
+        func visible(_ vm: SeanceViewModel) -> [BonusVisibleExercise] {
+            BonusRecoveryPresentation.reconcile(order: [],
+                snapshotOrder: SessionDraftStore.load(date: date, sessionType: "bonus").map(\.name),
+                local: [:], logs: vm.logResults, resolve: { _, _ in nil }, displayWeight: { $0 })
+        }
+        XCTAssertEqual(visible(bonus).map(\.id), ["Bench Press"])
+        XCTAssertEqual(visible(bonus).map(\.id), visible(bonus).map(\.id))
+        XCTAssertEqual(SessionDraftStore.bonusProtection(date: date)?.generation, generation)
+        XCTAssertEqual(bonus.sessionComment, "Commentaire conservé")
+        SessionDraftStore.clear(date: date, sessionType: "bonus")
+        let reopened = BonusSeanceViewModel()
+        reopened.seanceData = try extraData(date)
+        reopened.restoreLogResults(from: try extraData(date), serverSessionType: "bonus", serverCompleted: nil)
+        XCTAssertTrue(visible(reopened).isEmpty)
+    }
+
     func testExtraSharedCommentPrefillRoundTripAndRecreation() throws {
         let date = "extra-comment-\(UUID().uuidString)"
         defer { SessionDraftStore.clear(date: date, sessionType: "bonus") }

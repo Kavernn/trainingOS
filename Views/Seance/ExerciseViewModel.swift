@@ -45,6 +45,48 @@ struct ExerciseLogResult {
     var trackingType: String? = nil
 }
 
+/// Read-only conversion of a validated recovery, never a new draft or log.
+/// Other tracking modes remain visible as summaries until their forms can
+/// represent every optional field without supplying defaults.
+struct ExerciseRecoveryHydration {
+    let sets: [SetInput]
+    let note: String
+    let painZone: String
+
+    static func make(_ log: ExerciseLogResult, equipment: String,
+                     tracking: String, unilateral: Bool,
+                     displayWeight: (Double) -> Double) -> Self? {
+        guard tracking == "reps", !unilateral,
+              log.trackingType == nil || log.trackingType == tracking,
+              log.equipmentType == equipment,
+              ["machine", "bodyweight", "barbell", "dumbbell", "cable_double"].contains(equipment),
+              !log.sets.isEmpty else { return nil }
+        var inputs: [SetInput] = []
+        for raw in log.sets {
+            guard Set(raw.keys).isSubset(of: ["weight", "reps", "rir", "rpe"]),
+                  let weight = raw["weight"] as? Double, weight.isFinite, weight >= 0,
+                  let reps = raw.repsString(), let count = Int(reps), count > 0,
+                  let rir = raw["rir"] as? Int, (0...4).contains(rir),
+                  let rpe = raw["rpe"] as? Double, rpe.isFinite else { return nil }
+            let input: Double
+            switch equipment {
+            case "barbell":
+                guard weight >= 45 else { return nil }
+                input = (weight - 45) / 2
+            case "dumbbell", "cable_double": input = weight / 2
+            default: input = weight
+            }
+            let displayed = displayWeight(input)
+            guard displayed.isFinite else { return nil }
+            // duration/protocol are inapplicable to this explicitly resolved reps form.
+            inputs.append(SetInput(weight: String(displayed), reps: reps,
+                                   duration: 0, rir: rir, rpe: rpe))
+        }
+        guard inputs.map(\.reps).joined(separator: ",") == log.reps else { return nil }
+        return Self(sets: inputs, note: log.notes, painZone: log.painZone)
+    }
+}
+
 struct DraftSet: Codable {
     var weight: String
     var reps: String
@@ -294,9 +336,11 @@ final class ExerciseViewModel: ObservableObject {
     @Published var isEditing = false
     @Published var isSkipped = false
     @Published var sessionNote: String = "" {
-        didSet { if !isClearingDraft { saveDraft() } }
+        didSet { if !isClearingDraft && !isHydratingRecovery { saveDraft() } }
     }
     private var isClearingDraft = false
+    private var isHydratingRecovery = false
+    private var didHydrateRecovery = false
 
     @Published private(set) var draftSavedAt: Date? = nil
     // W-B2 — expose network log errors so ExerciseCard can display a banner
@@ -326,6 +370,7 @@ final class ExerciseViewModel: ObservableObject {
         // W-D9 — reduced debounce from 1.5s to 0.5s for faster draft saves
         $sets
             .dropFirst()
+            .filter { [weak self] _ in self?.isHydratingRecovery != true }
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.saveDraft() }
             .store(in: &cancellables)
@@ -466,6 +511,27 @@ final class ExerciseViewModel: ObservableObject {
     func perSetHint(for index: Int) -> String { ExerciseCalculator.perSetHint(for: index, weightData: weightData, equipmentType: equipmentType) }
     func formatDuration(_ secs: Int) -> String { ExerciseCalculator.formatDuration(secs) }
 
+    func initializeRecovery(_ recovery: ExerciseRecoveryHydration) {
+        guard !didHydrateRecovery, sets.isEmpty else { return }
+        didHydrateRecovery = true
+        isHydratingRecovery = true
+        defer { isHydratingRecovery = false }
+        // A real edit saved after recovery takes precedence on a later recreation.
+        if let draft = draftStore.loadCard(), !draft.sets.isEmpty {
+            sets = draft.sets.map {
+                SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration,
+                         durationLeft: $0.durationLeft, durationRight: $0.durationRight,
+                         distance: $0.distance ?? "", intensity: $0.intensity ?? "",
+                         rir: $0.rir, rpe: $0.rpe, protocolCompleted: $0.protocolCompleted ?? false)
+            }
+            sessionNote = draft.sessionNote ?? recovery.note
+        } else {
+            sets = recovery.sets
+            sessionNote = recovery.note
+        }
+        painZone = recovery.painZone
+    }
+
     func initializeSets() {
         guard sets.isEmpty else { return }
         let draft = draftStore.loadCard()
@@ -489,6 +555,7 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     func syncSetsCount() {
+        guard !didHydrateRecovery else { return }
         if sets.count < setsCount {
             sets.append(contentsOf: Array(repeating: SetInput(), count: setsCount - sets.count))
         } else if sets.count > setsCount {
