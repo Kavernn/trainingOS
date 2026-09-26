@@ -113,19 +113,24 @@ enum SessionDraftStore {
         "session_started_at_\(sessionType)_\(date)"
     }
 
-    static func save(date: String, sessionType: String = "morning", values: [PersistedExerciseLogResult]) {
+    static func save(date: String, sessionType: String = "morning", values: [PersistedExerciseLogResult],
+                     authorization: DayComposerProvenanceStore.Authorization? = nil) {
         do {
             let data = try APIService.encoder.encode(values)
-            if protectsRecovery(sessionType: sessionType) {
-                let previous = UserDefaults.standard.data(forKey: key(date: date, sessionType: sessionType))
-                    .flatMap { try? APIService.decoder.decode([PersistedExerciseLogResult].self, from: $0) }
-                let previousContent = try previous.map { try canonicalLogs($0) }
-                let currentContent = try canonicalLogs(values)
-                if previousContent != currentContent {
+            let previous = UserDefaults.standard.data(forKey: key(date: date, sessionType: sessionType))
+                .flatMap { try? APIService.decoder.decode([PersistedExerciseLogResult].self, from: $0) }
+            let previousContent = try previous.map { try canonicalLogs($0) }
+            let currentContent = try canonicalLogs(values)
+            // Re-saving an identical recovery is not a new attribution event.
+            if previousContent == currentContent { return }
+            // Encode before beginning the attribution transaction; generation and
+            // payload writes are covered by the SAME synchronous boundary.
+            mutate(date: date, sessionType: sessionType, authorization: authorization) {
+                if protectsRecovery(sessionType: sessionType), previousContent != currentContent {
                     markRecoveryMutation(date: date, sessionType: sessionType)
                 }
+                UserDefaults.standard.set(data, forKey: key(date: date, sessionType: sessionType))
             }
-            UserDefaults.standard.set(data, forKey: key(date: date, sessionType: sessionType))
         } catch {
             draftLogger.error("SessionDraftStore save failed [\(sessionType)/\(date)]: \(error)")
         }
@@ -143,11 +148,15 @@ enum SessionDraftStore {
         "session_comment_\(sessionType)_\(date)"
     }
 
-    static func saveComment(_ comment: String, date: String, sessionType: String) {
-        if loadComment(date: date, sessionType: sessionType) != comment {
-            markRecoveryMutation(date: date, sessionType: sessionType)
+    static func saveComment(_ comment: String, date: String, sessionType: String,
+                            authorization: DayComposerProvenanceStore.Authorization? = nil) {
+        if loadComment(date: date, sessionType: sessionType) == comment { return }
+        mutate(date: date, sessionType: sessionType, authorization: authorization) {
+            if loadComment(date: date, sessionType: sessionType) != comment {
+                markRecoveryMutation(date: date, sessionType: sessionType)
+            }
+            UserDefaults.standard.set(comment, forKey: commentKey(date: date, sessionType: sessionType))
         }
-        UserDefaults.standard.set(comment, forKey: commentKey(date: date, sessionType: sessionType))
     }
 
     static func loadComment(date: String, sessionType: String) -> String? {
@@ -155,15 +164,23 @@ enum SessionDraftStore {
     }
 
     static func clear(date: String, sessionType: String = "morning") {
-        clearLogs(date: date, sessionType: sessionType)
-        UserDefaults.standard.removeObject(forKey: commentKey(date: date, sessionType: sessionType))
-        if protectsRecovery(sessionType: sessionType) {
-            UserDefaults.standard.removeObject(forKey: protectionKey(date: date, sessionType: sessionType))
+        mutate(date: date, sessionType: sessionType) {
+            clearLogsStorage(date: date, sessionType: sessionType)
+            UserDefaults.standard.removeObject(forKey: commentKey(date: date, sessionType: sessionType))
+            if protectsRecovery(sessionType: sessionType) {
+                UserDefaults.standard.removeObject(forKey: protectionKey(date: date, sessionType: sessionType))
+            }
         }
     }
 
     /// Intermediate empty logs must not discard a still-legitimate session comment.
     static func clearLogs(date: String, sessionType: String) {
+        mutate(date: date, sessionType: sessionType) {
+            clearLogsStorage(date: date, sessionType: sessionType)
+        }
+    }
+
+    private static func clearLogsStorage(date: String, sessionType: String) {
         if UserDefaults.standard.object(forKey: key(date: date, sessionType: sessionType)) != nil {
             markRecoveryMutation(date: date, sessionType: sessionType)
         }
@@ -182,8 +199,11 @@ enum SessionDraftStore {
         ["morning", "evening", "bonus"].contains(where: { !load(date: date, sessionType: $0).isEmpty })
     }
 
-    static func saveStartedAt(date: String, sessionType: String = "morning", startedAt: Date) {
-        UserDefaults.standard.set(startedAt.timeIntervalSince1970, forKey: startedAtKey(date: date, sessionType: sessionType))
+    static func saveStartedAt(date: String, sessionType: String = "morning", startedAt: Date,
+                              authorization: DayComposerProvenanceStore.Authorization? = nil) {
+        mutate(date: date, sessionType: sessionType, authorization: authorization) {
+            UserDefaults.standard.set(startedAt.timeIntervalSince1970, forKey: startedAtKey(date: date, sessionType: sessionType))
+        }
     }
 
     static func loadStartedAt(date: String, sessionType: String = "morning") -> Date? {
@@ -204,28 +224,46 @@ enum SessionDraftStore {
         "session_chrono_paused_at_\(sessionType)_\(date)"
     }
 
-    static func saveChronoPausedDuration(date: String, sessionType: String, duration: TimeInterval) {
-        UserDefaults.standard.set(duration, forKey: chronoPausedDurationKey(date: date, sessionType: sessionType))
+    static func saveChronoPausedDuration(date: String, sessionType: String, duration: TimeInterval,
+                                        authorization: DayComposerProvenanceStore.Authorization? = nil) {
+        mutate(date: date, sessionType: sessionType, authorization: authorization) {
+            UserDefaults.standard.set(duration, forKey: chronoPausedDurationKey(date: date, sessionType: sessionType))
+        }
     }
     static func loadChronoPausedDuration(date: String, sessionType: String) -> TimeInterval {
         UserDefaults.standard.double(forKey: chronoPausedDurationKey(date: date, sessionType: sessionType))
     }
-    static func saveChronoIsPaused(date: String, sessionType: String, isPaused: Bool) {
-        UserDefaults.standard.set(isPaused, forKey: chronoIsPausedKey(date: date, sessionType: sessionType))
+    static func saveChronoIsPaused(date: String, sessionType: String, isPaused: Bool,
+                                  authorization: DayComposerProvenanceStore.Authorization? = nil) {
+        mutate(date: date, sessionType: sessionType, authorization: authorization) {
+            UserDefaults.standard.set(isPaused, forKey: chronoIsPausedKey(date: date, sessionType: sessionType))
+        }
     }
     static func loadChronoIsPaused(date: String, sessionType: String) -> Bool {
         UserDefaults.standard.bool(forKey: chronoIsPausedKey(date: date, sessionType: sessionType))
     }
-    static func saveChronoPausedAt(date: String, sessionType: String, pausedAt: Date?) {
-        if let pa = pausedAt {
-            UserDefaults.standard.set(pa.timeIntervalSince1970, forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
-        } else {
-            UserDefaults.standard.removeObject(forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
+    static func saveChronoPausedAt(date: String, sessionType: String, pausedAt: Date?,
+                                  authorization: DayComposerProvenanceStore.Authorization? = nil) {
+        mutate(date: date, sessionType: sessionType, authorization: authorization) {
+            if let pa = pausedAt {
+                UserDefaults.standard.set(pa.timeIntervalSince1970, forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
+            } else {
+                UserDefaults.standard.removeObject(forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
+            }
         }
     }
     static func loadChronoPausedAt(date: String, sessionType: String) -> Date? {
         let ts = UserDefaults.standard.double(forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
         guard ts > 0 else { return nil }
         return Date(timeIntervalSince1970: ts)
+    }
+
+    private static func mutate(date: String, sessionType: String,
+                               authorization: DayComposerProvenanceStore.Authorization? = nil,
+                               _ write: () -> Void) {
+        if !DayComposerProvenanceStore.shared.mutate(date: date, sessionType: sessionType,
+                                                    authorization: authorization, write) {
+            draftLogger.error("Recovery attribution write failed [\(sessionType)/\(date)]")
+        }
     }
 }

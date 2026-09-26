@@ -123,6 +123,7 @@ struct ExerciseDraftPersistence {
     let date: String
     let sessionType: String
     let exerciseName: String
+    var authorization: DayComposerProvenanceStore.Authorization? = nil
 
     static let keyPrefix = "exo_draft_"
     private var key: String { "\(Self.keyPrefix)\(date)_\(sessionType)_\(exerciseName)" }
@@ -130,8 +131,16 @@ struct ExerciseDraftPersistence {
     @discardableResult
     func save(_ drafts: [DraftSet], sessionNote: String? = nil) -> Bool {
         guard let data = try? APIService.encoder.encode(ExerciseCardDraft(sets: drafts, sessionNote: sessionNote)) else { return false }
-        UserDefaults.standard.set(data, forKey: key)
-        return true
+        // An unchanged restoration/debounce is a no-op, not a classic edit.
+        if let previous = UserDefaults.standard.data(forKey: key),
+           let oldJSON = try? JSONSerialization.jsonObject(with: previous),
+           let newJSON = try? JSONSerialization.jsonObject(with: data),
+           let oldCanonical = try? JSONSerialization.data(withJSONObject: oldJSON, options: .sortedKeys),
+           let newCanonical = try? JSONSerialization.data(withJSONObject: newJSON, options: .sortedKeys),
+           oldCanonical == newCanonical { return true }
+        return DayComposerProvenanceStore.shared.mutate(date: date, sessionType: sessionType, authorization: authorization) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
     }
 
     func load() -> [DraftSet]? {
@@ -146,7 +155,11 @@ struct ExerciseDraftPersistence {
         return ExerciseCardDraft(sets: sets)
     }
 
-    func clear() { UserDefaults.standard.removeObject(forKey: key) }
+    func clear() {
+        DayComposerProvenanceStore.shared.mutate(date: date, sessionType: sessionType, authorization: authorization) {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
 
     /// Purge : (a) tous les drafts au ancien format "exo_draft_<name>" (orphelins
     /// par le changement de clé), (b) les drafts nouveau format dont la date < currentDate.
@@ -161,7 +174,14 @@ struct ExerciseDraftPersistence {
             let isNewFormat = firstSegment.count == 10 && firstSegment.split(separator: "-").count == 3
             if isNewFormat {
                 if firstSegment < currentDate {
-                    defaults.removeObject(forKey: k)
+                    let remainder = String(suffix.dropFirst(firstSegment.count + 1))
+                    if let source = ["morning", "evening"].first(where: { remainder.hasPrefix($0 + "_") }) {
+                        DayComposerProvenanceStore.shared.mutate(date: firstSegment, sessionType: source) {
+                            defaults.removeObject(forKey: k)
+                        }
+                    } else {
+                        defaults.removeObject(forKey: k)
+                    }
                 }
             } else {
                 // Ancien format sans date → orphelin, purge inconditionnelle
@@ -330,6 +350,7 @@ final class ExerciseViewModel: ObservableObject {
     let suggestion: ProgressionSuggestion?
     let sessionDate: String
     let reconstructionMetadata: ExerciseReconstructionMetadata?
+    private let draftAuthorization: DayComposerProvenanceStore.Authorization?
 
     // Published state (was @State in ExerciseCard)
     @Published var sets: [SetInput] = []
@@ -362,7 +383,9 @@ final class ExerciseViewModel: ObservableObject {
          isSecondSession: Bool = false, isBonusSession: Bool = false,
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
          suggestion: ProgressionSuggestion? = nil,
-         sessionDate: String = "", reconstructionMetadata: ExerciseReconstructionMetadata? = nil) {
+         sessionDate: String = "", reconstructionMetadata: ExerciseReconstructionMetadata? = nil,
+         draftAuthorization: DayComposerProvenanceStore.Authorization? = nil) {
+        self.draftAuthorization = draftAuthorization
         self.reconstructionMetadata = reconstructionMetadata
         self.name            = name
         self.scheme          = scheme
@@ -495,7 +518,8 @@ final class ExerciseViewModel: ObservableObject {
         return "morning"
     }
     private var draftStore: ExerciseDraftPersistence {
-        ExerciseDraftPersistence(date: sessionDate, sessionType: sessionTypeForDraft, exerciseName: name)
+        ExerciseDraftPersistence(date: sessionDate, sessionType: sessionTypeForDraft, exerciseName: name,
+                                 authorization: draftAuthorization)
     }
 
     private func saveDraft() {
@@ -975,7 +999,20 @@ class SeanceViewModel: ObservableObject {
     private var localExecutionContext: LocalExecutionContext?
     private var localRecoveryAdmitted = false
     private var preparingLocalExecution = false
+    private var provenanceAuthorization: DayComposerProvenanceStore.Authorization?
     var isDayComposerLocal: Bool { localExecutionContext != nil }
+
+    /// e2b calls this AFTER both passive owners succeed and explicit provenance
+    /// creation/admission. Binding is read-only, never an attribution write.
+    func bindProvenanceAuthorization(_ authorization: DayComposerProvenanceStore.Authorization) throws {
+        guard let local = localExecutionContext, localRecoveryAdmitted,
+              local.date == authorization.context.date, local.source == authorization.source.rawValue,
+              local.token == authorization.context.sourceFingerprint,
+              local.session == (authorization.source == .morning ? authorization.context.morningSession : authorization.context.eveningSession),
+              case .validated(let id, _) = DayComposerProvenanceStore.shared.admission(context: authorization.context, source: authorization.source),
+              id == authorization.executionID else { throw PreparationError.invalidContext }
+        provenanceAuthorization = authorization
+    }
 
     /// No fetch, server synthesis, timing, cleanup or persistence during preparation.
     /// Admission must be supplied by a caller that has independently validated provenance.
@@ -1035,7 +1072,8 @@ class SeanceViewModel: ObservableObject {
                 return
             }
             guard !restoringSessionComment, let date = seanceData?.todayDate else { return }
-            SessionDraftStore.saveComment(sessionComment, date: date, sessionType: draftSessionType)
+            SessionDraftStore.saveComment(sessionComment, date: date, sessionType: draftSessionType,
+                                          authorization: provenanceAuthorization)
         }
     }
 
@@ -1470,7 +1508,7 @@ class SeanceViewModel: ObservableObject {
         if logResults.isEmpty {
             if isDayComposerLocal {
                 // An explicit local undo is an edit, not permission to erase timing metadata.
-                SessionDraftStore.save(date: date, sessionType: draftSessionType, values: [])
+                SessionDraftStore.save(date: date, sessionType: draftSessionType, values: [], authorization: provenanceAuthorization)
             } else {
                 SessionDraftStore.clearLogs(date: date, sessionType: draftSessionType)
             }
@@ -1502,7 +1540,7 @@ class SeanceViewModel: ObservableObject {
                 isUnilateral: log.isUnilateral
             )
         }
-        SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)
+        SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values, authorization: provenanceAuthorization)
         if !isDayComposerLocal {
             SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
         }

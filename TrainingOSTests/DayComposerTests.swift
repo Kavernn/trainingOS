@@ -4,6 +4,294 @@ import XCTest
 #endif
 
 final class DayComposerTests: XCTestCase {
+    // Isolated dates keep the real legacy primitives and shared provenance hooks
+    // under test, without touching user recovery or depending on test order.
+    private func withProvenance(_ body: (DayComposerProvenanceStore, DayComposerExecutionContext) throws -> Void) throws {
+        let date = "provenance-\(UUID().uuidString)"
+        let context = try DayComposerExecutionContext(snapshot: snapshot(date: date))
+        let store = DayComposerProvenanceStore.shared
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(date) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+            try? store.clear(date: date)
+        }
+        try body(store, context)
+    }
+
+    private func assertValidated(_ store: DayComposerProvenanceStore, _ context: DayComposerExecutionContext,
+                                 _ source: DayComposerSource, file: StaticString = #filePath, line: UInt = #line) {
+        guard case .validated = store.admission(context: context, source: source) else {
+            return XCTFail("Expected validated \(source)", file: file, line: line)
+        }
+    }
+
+    func testProvenanceFreshAndEmptyProvenanceAreReadOnly() throws {
+        try withProvenance { store, context in
+            XCTAssertEqual(store.admission(context: context, source: .morning), .fresh)
+            XCTAssertEqual(store.admission(context: context, source: .evening), .fresh)
+            XCTAssertNil(try store.load(date: context.date))
+            let id = try store.create(context: context)
+            let before = try Data(contentsOf: store.recordURL(date: context.date))
+            XCTAssertEqual(store.admission(context: context, source: .morning), .validated(executionID: id, revision: 0))
+            assertValidated(store, context, .evening)
+            XCTAssertFalse(try store.inventory(date: context.date, source: .morning).hasState)
+            XCTAssertEqual(try Data(contentsOf: store.recordURL(date: context.date)), before)
+            XCTAssertThrowsError(try store.create(context: context))
+        }
+    }
+
+    func testProvenanceLegacyInventoryIncludesEmptyCorruptCardsAndTiming() throws {
+        try withProvenance { store, context in
+            let d = context.date
+            for key in ["session_draft_morning_\(d)", "session_comment_morning_\(d)",
+                        "session_draft_protection_morning_\(d)", "exo_draft_\(d)_morning_Outside plan",
+                        "session_started_at_morning_\(d)", "session_chrono_paused_morning_\(d)",
+                        "session_chrono_is_paused_morning_\(d)", "session_chrono_paused_at_morning_\(d)"] {
+                UserDefaults.standard.set("", forKey: key)
+                XCTAssertEqual(store.admission(context: context, source: .morning), .denied(.legacyWithoutProvenance))
+                XCTAssertThrowsError(try store.create(context: context))
+                XCTAssertNotNil(UserDefaults.standard.object(forKey: key))
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+            XCTAssertEqual(store.admission(context: context, source: .morning), .fresh)
+        }
+    }
+
+    func testProvenanceEachContextMismatchPreservesBytes() throws {
+        try withProvenance { store, context in
+            try store.create(context: context)
+            let before = try Data(contentsOf: store.recordURL(date: context.date))
+            let original = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(context)) as? [String: Any])
+            for key in ["activeProgramID", "sourceFingerprint", "morningSession", "eveningSession"] {
+                var json = original
+                json[key] = "different"
+                let other = try JSONDecoder().decode(DayComposerExecutionContext.self, from: JSONSerialization.data(withJSONObject: json))
+                XCTAssertEqual(store.admission(context: other, source: .morning), .denied(.contextMismatch))
+                XCTAssertEqual(store.admission(context: other, source: .evening), .denied(.contextMismatch))
+            }
+            XCTAssertEqual(try Data(contentsOf: store.recordURL(date: context.date)), before)
+            let token = try store.authorize(context: context, source: .morning)
+            var wrote = false
+            XCTAssertFalse(store.mutate(date: context.date + "other", sessionType: "morning", authorization: token) { wrote = true })
+            XCTAssertFalse(wrote)
+        }
+    }
+
+    func testProvenanceAuthorizedLogsCommentsDraftsAndRevisionNoACK() throws {
+        try withProvenance { store, context in
+            try store.create(context: context)
+            let token = try store.authorize(context: context, source: .morning)
+            let evening = try store.load(date: context.date)?.evening
+            let log = PersistedExerciseLogResult(name: "Bench Press", weight: 80, reps: "5", rpe: nil,
+                isSecond: false, isBonus: false, equipmentType: "machine", painZone: "", sets: [], notes: "Private note")
+            SessionDraftStore.save(date: context.date, values: [log], authorization: token)
+            SessionDraftStore.saveComment("Private comment", date: context.date, sessionType: "morning", authorization: token)
+            SessionDraftStore.saveComment("", date: context.date, sessionType: "morning", authorization: token)
+            let card = ExerciseDraftPersistence(date: context.date, sessionType: "morning", exerciseName: "Bench Press", authorization: token)
+            XCTAssertTrue(card.save([], sessionNote: "Private draft"))
+            card.clear()
+            assertValidated(store, context, .morning)
+            XCTAssertEqual(try store.load(date: context.date)?.morning.revision, 5)
+            XCTAssertEqual(try store.load(date: context.date)?.evening, evening)
+            XCTAssertEqual(SessionDraftStore.recoveryProtection(date: context.date, sessionType: "morning")?.generation, 3)
+            XCTAssertEqual(SessionDraftStore.recoveryProtection(date: context.date, sessionType: "morning")?.hasUnacknowledgedLocalChanges, true)
+            let bytes = try Data(contentsOf: store.recordURL(date: context.date))
+            let text = String(decoding: bytes, as: UTF8.self)
+            for forbidden in ["Private note", "Private comment", "Private draft", "hasUnacknowledgedLocalChanges", "generation", "HealthKit"] {
+                XCTAssertFalse(text.contains(forbidden))
+            }
+            let recreated = DayComposerProvenanceStore()
+            assertValidated(recreated, context, .morning)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: context.date, sessionType: "morning"), "")
+            XCTAssertEqual(try Data(contentsOf: store.recordURL(date: context.date)), bytes)
+        }
+    }
+
+    func testProvenanceClassicMutationsInvalidateOnlyTheirSource() throws {
+        for source in [DayComposerSource.morning, .evening] {
+            for operation in 0..<9 {
+                try withProvenance { store, context in
+                    try store.create(context: context)
+                    let other: DayComposerSource = source == .morning ? .evening : .morning
+                    let before = try store.load(date: context.date)?[other]
+                    switch operation {
+                    case 0: SessionDraftStore.save(date: context.date, sessionType: source.rawValue, values: [])
+                    case 1: SessionDraftStore.saveComment("", date: context.date, sessionType: source.rawValue)
+                    case 2: XCTAssertTrue(ExerciseDraftPersistence(date: context.date, sessionType: source.rawValue, exerciseName: "Bench Press").save([], sessionNote: "Note"))
+                    case 3: ExerciseDraftPersistence(date: context.date, sessionType: source.rawValue, exerciseName: "Bench Press").clear()
+                    case 4: SessionDraftStore.saveStartedAt(date: context.date, sessionType: source.rawValue, startedAt: Date())
+                    case 5: SessionDraftStore.saveChronoPausedDuration(date: context.date, sessionType: source.rawValue, duration: 2)
+                    case 6: SessionDraftStore.saveChronoIsPaused(date: context.date, sessionType: source.rawValue, isPaused: true)
+                    case 7: SessionDraftStore.saveChronoPausedAt(date: context.date, sessionType: source.rawValue, pausedAt: Date())
+                    default: SessionDraftStore.clear(date: context.date, sessionType: source.rawValue)
+                    }
+                    XCTAssertEqual(store.admission(context: context, source: source), .denied(.invalidated))
+                    XCTAssertEqual(try store.load(date: context.date)?[other], before)
+                    assertValidated(store, context, other)
+                }
+            }
+        }
+    }
+
+    func testProvenanceInterruptedBeginAndRecoveryWriteFailClosed() throws {
+        for writeRecovery in [false, true] {
+            try withProvenance { store, context in
+                try store.create(context: context)
+                let token = try store.authorize(context: context, source: .morning)
+                _ = try store.begin(token)
+                if writeRecovery { UserDefaults.standard.set("Partial write", forKey: "session_comment_morning_\(context.date)") }
+                let reopened = DayComposerProvenanceStore()
+                XCTAssertEqual(reopened.admission(context: context, source: .morning), .denied(.interruptedWrite))
+                assertValidated(reopened, context, .evening)
+                XCTAssertThrowsError(try reopened.authorize(context: context, source: .morning))
+            }
+        }
+    }
+
+    func testProvenanceWriteFailuresAndPersistenceReorderingFailClosed() throws {
+        try withProvenance { store, context in
+            try store.create(context: context)
+            let token = try store.authorize(context: context, source: .morning)
+            let failing = DayComposerProvenanceStore(writeRecord: { _, _ in throw CocoaError(.fileWriteNoPermission) })
+            var wrote = false
+            XCTAssertFalse(failing.mutate(date: context.date, sessionType: "morning", authorization: token) { wrote = true })
+            XCTAssertFalse(wrote) // Failure before begin: recovery untouched.
+            assertValidated(store, context, .morning)
+            let mutation = try store.begin(token)
+            UserDefaults.standard.set("New", forKey: "session_comment_morning_\(context.date)")
+            XCTAssertThrowsError(try failing.finish(mutation))
+            XCTAssertEqual(store.admission(context: context, source: .morning), .denied(.interruptedWrite))
+            try store.finish(mutation)
+            // Simulate UserDefaults not retaining the last write, despite stable metadata.
+            UserDefaults.standard.removeObject(forKey: "session_comment_morning_\(context.date)")
+            XCTAssertEqual(store.admission(context: context, source: .morning), .denied(.integrityMismatch))
+        }
+    }
+
+    func testProvenanceFullClearRecreateAndOrderResetNeverRecertify() throws {
+        try withProvenance { store, context in
+            try store.create(context: context)
+            for source in [DayComposerSource.morning, .evening] {
+                let token = try store.authorize(context: context, source: source)
+                SessionDraftStore.saveComment("same", date: context.date, sessionType: source.rawValue, authorization: token)
+            }
+            let evening = try store.load(date: context.date)?.evening
+            SessionDraftStore.clear(date: context.date, sessionType: "morning")
+            XCTAssertNil(SessionDraftStore.loadComment(date: context.date, sessionType: "morning"))
+            SessionDraftStore.saveComment("same", date: context.date, sessionType: "morning")
+            XCTAssertEqual(store.admission(context: context, source: .morning), .denied(.invalidated))
+            XCTAssertEqual(try store.load(date: context.date)?.evening, evening)
+            let before = try Data(contentsOf: store.recordURL(date: context.date))
+            try withStore { order in try order.reset(snapshot(date: context.date)) }
+            XCTAssertEqual(try Data(contentsOf: store.recordURL(date: context.date)), before)
+            XCTAssertThrowsError(try store.clear(date: context.date))
+            XCTAssertEqual(SessionDraftStore.loadComment(date: context.date, sessionType: "evening"), "same")
+        }
+    }
+
+    func testProvenanceCorruptUnknownVersionAndWrongStoredDateNeverBecomeFresh() throws {
+        try withProvenance { store, context in
+            try store.create(context: context)
+            let bytes = try Data(contentsOf: store.recordURL(date: context.date))
+            let original = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+            var future = original
+            future["schemaVersion"] = 99
+            var wrongDate = original
+            var nested = try XCTUnwrap(wrongDate["context"] as? [String: Any])
+            nested["date"] = "wrong-date"
+            wrongDate["context"] = nested
+            for (data, reason) in [(Data("broken".utf8), DayComposerSourceAdmission.Denial.corrupt),
+                                   (try JSONSerialization.data(withJSONObject: future), .unsupportedVersion),
+                                   (try JSONSerialization.data(withJSONObject: wrongDate), .corrupt)] {
+                try data.write(to: store.recordURL(date: context.date), options: .atomic)
+                XCTAssertEqual(store.admission(context: context, source: .morning), .denied(reason))
+                SessionDraftStore.saveComment("classic still works", date: context.date, sessionType: "morning")
+                XCTAssertEqual(try Data(contentsOf: store.recordURL(date: context.date)), data)
+                XCTAssertThrowsError(try store.create(context: context))
+            }
+        }
+    }
+
+    func testProvenanceClassicWithoutRecordAndRapidAuthorizedWrites() throws {
+        try withProvenance { store, context in
+            SessionDraftStore.saveComment("", date: context.date, sessionType: "morning")
+            let card = ExerciseDraftPersistence(date: context.date, sessionType: "evening", exerciseName: "Bench Press")
+            XCTAssertTrue(card.save([], sessionNote: "Draft"))
+            XCTAssertEqual(card.loadCard()?.sessionNote, "Draft")
+            XCTAssertNil(try store.load(date: context.date))
+            card.clear()
+            SessionDraftStore.clear(date: context.date, sessionType: "morning")
+            try store.create(context: context)
+            let token = try store.authorize(context: context, source: .morning)
+            for n in 0..<30 {
+                SessionDraftStore.saveComment("\(n)", date: context.date, sessionType: "morning", authorization: token)
+            }
+            XCTAssertEqual(try store.load(date: context.date)?.morning.revision, 30)
+            XCTAssertNil(try store.load(date: context.date)?.morning.pendingMutation)
+            assertValidated(store, context, .morning)
+            assertValidated(store, context, .evening)
+        }
+    }
+
+    func testProvenanceIdenticalRestorationIsReadOnlyAndHomonymousCardsStaySeparate() throws {
+        try withProvenance { store, context in
+            try store.create(context: context)
+            let sets = [DraftSet(weight: "80", reps: "5", rir: 2, duration: 0)]
+            for source in [DayComposerSource.morning, .evening] {
+                let token = try store.authorize(context: context, source: source)
+                let card = ExerciseDraftPersistence(date: context.date, sessionType: source.rawValue, exerciseName: "Bench Press", authorization: token)
+                XCTAssertTrue(card.save(sets, sessionNote: "Same note"))
+                SessionDraftStore.saveComment("same", date: context.date, sessionType: source.rawValue, authorization: token)
+            }
+            let before = try Data(contentsOf: store.recordURL(date: context.date))
+            let morning = ExerciseDraftPersistence(date: context.date, sessionType: "morning", exerciseName: "Bench Press")
+            XCTAssertEqual(morning.loadCard()?.sets.first?.weight, "80")
+            XCTAssertTrue(morning.save(sets, sessionNote: "Same note"))
+            SessionDraftStore.saveComment("same", date: context.date, sessionType: "morning")
+            XCTAssertEqual(try Data(contentsOf: store.recordURL(date: context.date)), before)
+            XCTAssertTrue(morning.save(sets, sessionNote: "Edited note"))
+            XCTAssertEqual(store.admission(context: context, source: .morning), .denied(.invalidated))
+            assertValidated(store, context, .evening)
+            XCTAssertEqual(ExerciseDraftPersistence(date: context.date, sessionType: "evening", exerciseName: "Bench Press").loadCard()?.sessionNote, "Same note")
+        }
+    }
+
+    func testProvenanceWrongSourceStaleExecutionAndNestedMutationAreRejected() throws {
+        try withProvenance { store, context in
+            try store.create(context: context)
+            let token = try store.authorize(context: context, source: .morning)
+            var wrote = false
+            XCTAssertFalse(store.mutate(date: context.date, sessionType: "evening", authorization: token) { wrote = true })
+            XCTAssertFalse(wrote)
+            let pending = try store.begin(token)
+            XCTAssertThrowsError(try store.begin(token))
+            try store.finish(pending)
+            XCTAssertThrowsError(try store.finish(pending)) // Receipt cannot be reused.
+            try store.clear(date: context.date) // Explicit, no recovery exists.
+            try store.create(context: context)
+            XCTAssertFalse(store.mutate(date: context.date, sessionType: "morning", authorization: token) { wrote = true })
+            XCTAssertFalse(wrote)
+            assertValidated(store, context, .morning)
+        }
+    }
+
+    func testProvenanceInvalidationStorageFailureDoesNotWriteRecovery() throws {
+        try withProvenance { store, context in
+            try store.create(context: context)
+            let failing = DayComposerProvenanceStore(writeRecord: { _, _ in throw CocoaError(.fileWriteNoPermission) })
+            var wrote = false
+            XCTAssertFalse(failing.mutate(date: context.date, sessionType: "morning") { wrote = true })
+            XCTAssertFalse(wrote)
+            assertValidated(store, context, .morning)
+            try store.invalidateAll(date: context.date)
+            XCTAssertEqual(store.admission(context: context, source: .morning), .denied(.invalidated))
+            XCTAssertEqual(store.admission(context: context, source: .evening), .denied(.invalidated))
+            try store.clear(date: context.date)
+            XCTAssertEqual(store.admission(context: context, source: .morning), .fresh)
+        }
+    }
+
     func testExecutionProvenanceCompatibilityIsPureAndPreservesOrder() throws {
         let original = try snapshot()
         let context = try DayComposerExecutionContext(snapshot: original)

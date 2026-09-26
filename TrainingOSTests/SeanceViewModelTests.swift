@@ -13,6 +13,64 @@ import SwiftUI
 @MainActor
 final class SeanceViewModelTests: XCTestCase {
 
+    func testProvenancePreparationBindingAndLocalMutations() throws {
+        let date = "prepared-provenance-\(UUID().uuidString)"
+        let data = try extraData(date)
+        let context = try DayComposerExecutionContext(snapshot: DayComposerSnapshot(date: date, activeProgramID: "A",
+            morning: DayComposerPlan(source: .morning, session: data.today, schemes: ["Bench Press": "3x5"], order: []),
+            evening: DayComposerPlan(source: .evening, session: data.today, schemes: ["Bench Press": "3x5"], order: []),
+            morningCompleted: false, eveningCompleted: false))
+        let store = DayComposerProvenanceStore.shared
+        defer {
+            for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(date) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+            try? store.clear(date: date)
+        }
+        let morning = SeanceViewModel(draftSessionType: "morning")
+        let evening = SeanceSoirViewModel()
+        try prepare(morning, data, token: context.sourceFingerprint)
+        try prepare(evening, data, token: context.sourceFingerprint)
+        XCTAssertNil(try store.load(date: date)) // Preparation did not create attribution.
+        try store.create(context: context)
+        let am = try store.authorize(context: context, source: .morning)
+        let pm = try store.authorize(context: context, source: .evening)
+        let before = try Data(contentsOf: store.recordURL(date: date))
+        XCTAssertThrowsError(try morning.bindProvenanceAuthorization(pm))
+        try morning.bindProvenanceAuthorization(am)
+        try evening.bindProvenanceAuthorization(pm)
+        morning.restoreSessionComment()
+        evening.restoreSessionComment()
+        XCTAssertEqual(try Data(contentsOf: store.recordURL(date: date)), before)
+        morning.logResults["Bench Press"] = .init(name: "Bench Press", weight: 80, reps: "5")
+        evening.logResults["Bench Press"] = .init(name: "Bench Press", weight: 60, reps: "8", isSecond: true)
+        morning.sessionComment = "Morning"
+        evening.sessionComment = "Evening"
+        morning.sessionComment = ""
+        for source in [DayComposerSource.morning, .evening] {
+            guard case .validated = store.admission(context: context, source: source) else { return XCTFail("Lost attribution") }
+        }
+        XCTAssertEqual(SessionDraftStore.load(date: date, sessionType: "morning").first?.weight, 80)
+        XCTAssertEqual(SessionDraftStore.load(date: date, sessionType: "evening").first?.weight, 60)
+        XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "")
+        XCTAssertFalse(morning.chrono.hasTimingContext)
+        XCTAssertFalse(evening.chrono.hasTimingContext)
+        let recoveryBefore = preparationBytes(date)
+        let attributionBefore = try Data(contentsOf: store.recordURL(date: date))
+        let restored = SeanceViewModel(draftSessionType: "morning")
+        try prepare(restored, data, token: context.sourceFingerprint)
+        try restored.bindProvenanceAuthorization(am)
+        XCTAssertEqual(restored.logResults["Bench Press"]?.weight, 80)
+        XCTAssertEqual(preparationBytes(date), recoveryBefore)
+        XCTAssertEqual(try Data(contentsOf: store.recordURL(date: date)), attributionBefore)
+        SessionDraftStore.saveComment("Classic edit", date: date, sessionType: "morning")
+        let afterClassic = preparationBytes(date)
+        morning.sessionComment = "Stale Composer token"
+        XCTAssertEqual(preparationBytes(date), afterClassic) // Stale token cannot overwrite recovery.
+        XCTAssertEqual(store.admission(context: context, source: .morning), .denied(.invalidated))
+        guard case .validated = store.admission(context: context, source: .evening) else { return XCTFail("Cross-source invalidation") }
+    }
+
     // MARK: - R10.0e1 passive owner preparation
 
     private func preparationBytes(_ date: String) -> NSDictionary {
