@@ -31,6 +31,10 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     let input: DayComposerValidatedExecutionInput
     let morningVM: SeanceViewModel
     let eveningVM: SeanceViewModel
+    private let finalInputsIdentity: DayComposerExecutionIdentity
+    private let finalInputsStore: DayComposerFinalInputsStore
+    private(set) lazy var morningFinalInputs = makeFinalInputsParticipant(.morning)
+    private(set) lazy var eveningFinalInputs = makeFinalInputsParticipant(.evening)
     private let morningAuthorization: DayComposerProvenanceStore.Authorization
     private let eveningAuthorization: DayComposerProvenanceStore.Authorization
     private let currentDate: () -> String
@@ -58,6 +62,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     static func make(
         validatedInput input: DayComposerValidatedExecutionInput,
         currentDate: @escaping () -> String = { DateFormatter.isoDate.string(from: Date()) },
+        finalInputsStore: DayComposerFinalInputsStore = DayComposerFinalInputsStore(),
         makeOwner: @MainActor (DayComposerSource) throws -> SeanceViewModel = {
             $0 == .morning ? SeanceViewModel(draftSessionType: "morning") : SeanceSoirViewModel()
         },
@@ -101,8 +106,14 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         try bind(morning, morningToken)
         try bind(evening, eveningToken)
         let coordinator = DayComposerExecutionCoordinator(input: input, morning: morning, evening: evening,
-            morningToken: morningToken, eveningToken: eveningToken, currentDate: currentDate)
+            morningToken: morningToken, eveningToken: eveningToken, currentDate: currentDate,
+            finalInputsIdentity: try DayComposerExecutionIdentity(executionID: morningToken.executionID, context: input.context),
+            finalInputsStore: finalInputsStore)
         guard coordinator.revalidateExecutionContext() else { throw Failure.incompatible }
+        // Eagerly restore both lazy participants after self is fully initialized.
+        // Missing/corrupt inputs remain source-local projections, not a local-only lock.
+        _ = coordinator.morningFinalInputs
+        _ = coordinator.eveningFinalInputs
         coordinator.selectFirstActionable()
         coordinator.observeOwners()
         return coordinator
@@ -110,13 +121,37 @@ final class DayComposerExecutionCoordinator: ObservableObject {
 
     private init(input: DayComposerValidatedExecutionInput, morning: SeanceViewModel, evening: SeanceViewModel,
                  morningToken: DayComposerProvenanceStore.Authorization,
-                 eveningToken: DayComposerProvenanceStore.Authorization, currentDate: @escaping () -> String) {
+                 eveningToken: DayComposerProvenanceStore.Authorization, currentDate: @escaping () -> String,
+                 finalInputsIdentity: DayComposerExecutionIdentity, finalInputsStore: DayComposerFinalInputsStore) {
         self.input = input
         morningVM = morning
         eveningVM = evening
         morningAuthorization = morningToken
         eveningAuthorization = eveningToken
         self.currentDate = currentDate
+        self.finalInputsIdentity = finalInputsIdentity
+        self.finalInputsStore = finalInputsStore
+    }
+
+    private func makeFinalInputsParticipant(_ source: DayComposerSource) -> DayComposerFinalInputsParticipant {
+        DayComposerFinalInputsParticipant(identity: finalInputsIdentity, source: source, store: finalInputsStore,
+            authorizeMutation: { [weak self] in
+                guard let self, self.revalidateExecutionContext() else {
+                    throw DayComposerStabilizationError.contextRejected
+                }
+                guard self.stabilizationBarrier?.permitsOrdinaryMutation(for: source) != false else {
+                    throw DayComposerStabilizationError.sourceFrozen
+                }
+            })
+    }
+
+    func finalInputsParticipant(for source: DayComposerSource) -> DayComposerFinalInputsParticipant {
+        source == .morning ? morningFinalInputs : eveningFinalInputs
+    }
+
+    @discardableResult
+    func setFinalRPE(_ rpe: Double, for source: DayComposerSource) throws -> DayComposerFinalInputsReceipt {
+        try finalInputsParticipant(for: source).setRPE(rpe)
     }
 
     private static func validate(_ input: DayComposerValidatedExecutionInput) throws {
@@ -414,6 +449,8 @@ final class DayComposerExecutionCoordinator: ObservableObject {
             commentMatches: { [weak self] in self?.persistedCommentMatches($0, for: $1) == true },
             rejected: { [weak self] in self?.reportPersistenceRefusal(.rejectedContext) }))
         stabilizationBarrier = barrier
+        barrier.registerFinalInputsParticipant(morningFinalInputs)
+        barrier.registerFinalInputsParticipant(eveningFinalInputs)
         return barrier
     }
 
@@ -491,6 +528,24 @@ final class DayComposerExecutionCoordinator: ObservableObject {
                      itemFacts: facts, comment: evidence.comment, guardValue: evidence.guardValue)
     }
 
+    /// Immutable local data only. No snapshot write, binding, request or submission.
+    func captureFinalSource(for source: DayComposerSource,
+        evidence: DayComposerStableFinalSourceEvidence) throws -> DayComposerFinalSourceCapture {
+        guard revalidateExecutionContext() else { throw DayComposerStabilizationError.contextRejected }
+        guard evidence.local.identity == finalInputsIdentity,
+              evidence.finalInputs.executionIdentity == finalInputsIdentity else {
+            throw DayComposerFinalInputsError.contextMismatch
+        }
+        guard evidence.local.source == source, evidence.finalInputs.source == source else {
+            throw DayComposerFinalInputsError.sourceMismatch
+        }
+        try evidence.verifyCurrent()
+        try finalInputsParticipant(for: source).verify(evidence.finalInputs)
+        let local = try captureLocalFinalizationFacts(for: source, evidence: evidence.local)
+        try evidence.verifyCurrent()
+        return .init(local: local, finalInputs: evidence.finalInputs)
+    }
+
     private func observeOwners() {
         // @Published fires before didSet persistence. Schedule a later MainActor
         // read, discard emitted values, and never use publication as a disk ACK.
@@ -519,4 +574,10 @@ struct DayComposerLocalFinalizationFacts {
     let itemFacts: [DayComposerRequiredItemFacts]
     let comment: String
     let guardValue: DayComposerFinalizationGuard
+}
+
+/// A value capture, never a cached authorization. p2b owns reconstruction/binding.
+struct DayComposerFinalSourceCapture {
+    let local: DayComposerLocalFinalizationFacts
+    let finalInputs: DayComposerFinalInputsReceipt
 }

@@ -26,7 +26,8 @@ final class DayComposerStabilizationFixture {
 
     init(morning names: [String] = ["A"], evening eveningNames: [String] = ["A"],
          tracking: [String: String] = [:], observed: [String] = [],
-         supersets: [String: [String: SupersetEntry]] = [:]) throws {
+         supersets: [String: [String: SupersetEntry]] = [:],
+         finalInputsStore: DayComposerFinalInputsStore = DayComposerFinalInputsStore()) throws {
         date = try Self.unusedDate()
         let date = date
         let sharedID = UUID().uuidString
@@ -48,7 +49,7 @@ final class DayComposerStabilizationFixture {
                                                       "exos": observed.map { ["exercise": $0] }]]]
         let input = try DayComposerValidatedExecutionInput(bundle: bundle, orderedItemIDs: bundle.snapshot.initialIDs,
             serverProjection: DayComposerServerProjection(date: date, historyData: JSONSerialization.data(withJSONObject: history)))
-        coordinator = try .make(validatedInput: input, currentDate: { date })
+        coordinator = try .make(validatedInput: input, currentDate: { date }, finalInputsStore: finalInputsStore)
         barrier = try coordinator.makeStabilizationBarrier()
         morning = .init(source: .morning, text: coordinator.comment(for: .morning))
         evening = .init(source: .evening, text: coordinator.comment(for: .evening))
@@ -91,6 +92,339 @@ final class DayComposerStabilizationFixture {
 
 @MainActor
 final class DayComposerStabilizationTests: XCTestCase {
+    private func withFinalFixture(_ body: (DayComposerStabilizationFixture, DayComposerFinalInputsStore, URL) throws -> Void) throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = DayComposerFinalInputsStore(baseDirectory: directory)
+        let f = try DayComposerStabilizationFixture(finalInputsStore: store)
+        defer { f.cleanup() }
+        try f.mount(.morning); try f.mount(.evening)
+        defer {
+            XCTAssertFalse(f.barrier.isInteractionFrozen)
+            for source in [DayComposerSource.morning, .evening] {
+                XCTAssertEqual(f.barrier.phase(for: source), .idle)
+                XCTAssertTrue(f.barrier.permitsOrdinaryMutation(for: source))
+            }
+            for handle in f.handles { XCTAssertTrue(handle.gate.allowsOrdinaryMutation) }
+        }
+        try body(f, store, directory)
+    }
+
+    func testFinalMissingInputsFailsBeforeClosureButLocalOnlySucceeds() throws {
+        try withFinalFixture { f, store, _ in
+            let id = f.coordinator.morningFinalInputs.identity
+            var calls = 0
+            try f.barrier.withStabilizedSource(.morning) { _ in calls += 1 }
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in calls += 1 }) {
+                XCTAssertEqual($0 as? DayComposerFinalInputsError, .missingRequiredRPE)
+            }
+            XCTAssertEqual(calls, 1)
+            XCTAssertNil(try store.load(executionIdentity: id, source: .morning))
+        }
+    }
+
+    func testFinalBothSourcesExposeExactImmutableCaptureWithoutBindingOrSnapshotWrite() throws {
+        try withFinalFixture { f, store, directory in
+            let identity = f.coordinator.morningFinalInputs.identity
+            let history = DayComposerFinalizationStore()
+            let historyBefore = try history.load(identity: identity)
+            for (source, rpe) in [(DayComposerSource.morning, 7.0), (.evening, 9.0)] {
+                let receipt = try f.coordinator.setFinalRPE(rpe, for: source)
+                let holder = source == .morning ? f.morning : f.evening
+                XCTAssertTrue(f.barrier.editComment(holder, text: source == .morning ? "" : " exact \n"))
+                let bytes = try Data(contentsOf: store.recordURL(executionIdentity: identity, source: source))
+                let capture = try f.barrier.withStabilizedFinalSource(source) { evidence in
+                    XCTAssertTrue(evidence.isCurrentAttempt)
+                    XCTAssertEqual(evidence.finalInputs, receipt)
+                    XCTAssertEqual(evidence.local.identity, identity)
+                    return try f.coordinator.captureFinalSource(for: source, evidence: evidence)
+                }
+                XCTAssertEqual(capture.finalInputs, receipt)
+                XCTAssertEqual(capture.finalInputs.values.rpe, rpe)
+                XCTAssertNil(capture.finalInputs.values.durationMin)
+                XCTAssertNil(capture.finalInputs.values.energyPre)
+                XCTAssertEqual(capture.local.comment, holder.text)
+                XCTAssertEqual(capture.local.source, source)
+                XCTAssertEqual(try Data(contentsOf: store.recordURL(executionIdentity: identity, source: source)), bytes)
+                XCTAssertNil(try store.load(executionIdentity: identity, source: source)?.captureBinding)
+            }
+            XCTAssertEqual(try history.load(identity: identity), historyBefore)
+            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path).count, 2)
+        }
+    }
+
+    func testCorruptFinalInputsLeaveLocalModeUsableAndBytesUntouched() throws {
+        try withFinalFixture { f, store, _ in
+            let receipt = try f.coordinator.setFinalRPE(7, for: .morning)
+            let url = try store.recordURL(executionIdentity: receipt.executionIdentity, source: .morning)
+            try Data("{".utf8).write(to: url)
+            var called = false
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in called = true }) {
+                XCTAssertEqual($0 as? DayComposerFinalInputsError, .corruptPersistence)
+            }
+            XCTAssertFalse(called)
+            try f.barrier.withStabilizedSource(.morning) { _ in }
+            XCTAssertEqual(try Data(contentsOf: url), Data("{".utf8))
+            // Final AM must not inspect a corrupt PM file, and conversely.
+            _ = try f.coordinator.setFinalRPE(9, for: .evening)
+            try f.barrier.withStabilizedFinalSource(.evening) { _ in }
+        }
+    }
+
+    func testFinalPostVerifyDetectsSeparateStoreWriteAndABA() throws {
+        for aba in [false, true] {
+            try withFinalFixture { f, _, directory in
+                let first = try f.coordinator.setFinalRPE(7, for: .morning)
+                let bypass = DayComposerFinalInputsStore(baseDirectory: directory)
+                XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ -> Int in
+                    let second = try bypass.save(executionIdentity: first.executionIdentity, source: .morning,
+                        values: DayComposerFinalInputs(rpe: 8), expectedRevision: first.revision)
+                    if aba {
+                        let third = try bypass.save(executionIdentity: first.executionIdentity, source: .morning,
+                            values: DayComposerFinalInputs(rpe: 7), expectedRevision: second.revision)
+                        XCTAssertEqual(third.finalInputsVersion, first.finalInputsVersion)
+                    }
+                    return 42
+                }) { XCTAssertEqual($0 as? DayComposerStabilizationError, .staleEvidence) }
+                XCTAssertFalse(try bypass.verify(first))
+            }
+        }
+    }
+
+    func testFinalGateBlocksTargetSetterIncludingNoOpButAllowsOtherSource() throws {
+        try withFinalFixture { f, store, _ in
+            let first = try f.coordinator.setFinalRPE(7, for: .morning)
+            try f.barrier.withStabilizedFinalSource(.morning) { _ in
+                for rpe in [7.0, 8] {
+                    XCTAssertThrowsError(try f.coordinator.setFinalRPE(rpe, for: .morning)) {
+                        XCTAssertEqual($0 as? DayComposerStabilizationError, .sourceFrozen)
+                    }
+                    // Direct participant access uses the SAME injected gate, no bypass.
+                    XCTAssertThrowsError(try f.coordinator.morningFinalInputs.setRPE(rpe)) {
+                        XCTAssertEqual($0 as? DayComposerStabilizationError, .sourceFrozen)
+                    }
+                }
+                XCTAssertEqual(f.coordinator.morningFinalInputs.state, .loaded(first))
+                XCTAssertTrue(try store.verify(first))
+                XCTAssertEqual(try f.coordinator.setFinalRPE(9, for: .evening).values.rpe, 9)
+            }
+            XCTAssertEqual(try f.coordinator.setFinalRPE(8, for: .morning).revision, 2)
+            // Local-only attempts must gate the setter too, without requiring inputs.
+            try f.barrier.withStabilizedSource(.morning) { _ in
+                XCTAssertThrowsError(try f.coordinator.setFinalRPE(8, for: .morning)) {
+                    XCTAssertEqual($0 as? DayComposerStabilizationError, .sourceFrozen)
+                }
+            }
+        }
+    }
+
+    func testFinalRegistryMissingDuplicateIdempotenceAndStaleUnregister() throws {
+        try withFinalFixture { f, store, _ in
+            let original = f.coordinator.morningFinalInputs
+            _ = try f.coordinator.setFinalRPE(7, for: .morning)
+            XCTAssertTrue(f.barrier.registerFinalInputsParticipant(original))
+            f.barrier.unregisterFinalInputsParticipant(source: .morning, token: original.instance)
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in XCTFail("Missing participant") }) {
+                XCTAssertEqual($0 as? DayComposerStabilizationError, .missingParticipant)
+            }
+            try f.barrier.withStabilizedSource(.morning) { _ in }
+            let replacement = DayComposerFinalInputsParticipant(identity: original.identity, source: .morning,
+                store: store, authorizeMutation: { throw DayComposerStabilizationError.sourceFrozen })
+            XCTAssertTrue(f.barrier.registerFinalInputsParticipant(replacement))
+            f.barrier.unregisterFinalInputsParticipant(source: .morning, token: original.instance)
+            try f.barrier.withStabilizedFinalSource(.morning) { _ in }
+            XCTAssertFalse(f.barrier.registerFinalInputsParticipant(original))
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in XCTFail("Duplicate") }) {
+                XCTAssertEqual($0 as? DayComposerStabilizationError, .duplicateParticipant)
+            }
+            try f.barrier.withStabilizedSource(.morning) { _ in }
+        }
+    }
+
+    func testFinalParticipantReplacementDuringClosureInvalidatesAndReleases() throws {
+        try withFinalFixture { f, store, _ in
+            let original = f.coordinator.morningFinalInputs
+            _ = try f.coordinator.setFinalRPE(7, for: .morning)
+            let replacement = DayComposerFinalInputsParticipant(identity: original.identity, source: .morning,
+                store: store, authorizeMutation: {})
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { evidence in
+                f.barrier.unregisterFinalInputsParticipant(source: .morning, token: original.instance)
+                XCTAssertTrue(f.barrier.registerFinalInputsParticipant(replacement))
+                XCTAssertThrowsError(try f.coordinator.captureFinalSource(for: .morning, evidence: evidence))
+            }) { XCTAssertEqual($0 as? DayComposerStabilizationError, .staleEvidence) }
+        }
+    }
+
+    func testFinalEvidenceExpiresAndRejectsWrongSourceAndExecution() throws {
+        try withFinalFixture { f, store, _ in
+            _ = try f.coordinator.setFinalRPE(7, for: .morning)
+            let other = try DayComposerStabilizationFixture(finalInputsStore: store)
+            defer { other.cleanup() }
+            var escaped: DayComposerStableFinalSourceEvidence?
+            try f.barrier.withStabilizedFinalSource(.morning) { evidence in
+                escaped = evidence
+                XCTAssertThrowsError(try f.coordinator.captureFinalSource(for: .evening, evidence: evidence)) {
+                    XCTAssertEqual($0 as? DayComposerFinalInputsError, .sourceMismatch)
+                }
+                XCTAssertThrowsError(try other.coordinator.captureFinalSource(for: .morning, evidence: evidence)) {
+                    XCTAssertEqual($0 as? DayComposerFinalInputsError, .contextMismatch)
+                }
+            }
+            let old = try XCTUnwrap(escaped)
+            XCTAssertFalse(old.isCurrentAttempt)
+            XCTAssertThrowsError(try f.coordinator.captureFinalSource(for: .morning, evidence: old)) {
+                XCTAssertEqual($0 as? DayComposerStabilizationError, .staleEvidence)
+            }
+            try f.barrier.withStabilizedFinalSource(.morning) { _ in
+                XCTAssertFalse(old.isCurrentAttempt)
+                XCTAssertThrowsError(try old.verifyCurrent())
+            }
+        }
+    }
+
+    func testFinalCaptureRejectsExternalMutationBeforeReturningData() throws {
+        try withFinalFixture { f, store, _ in
+            let first = try f.coordinator.setFinalRPE(7, for: .morning)
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { evidence in
+                _ = try store.save(executionIdentity: first.executionIdentity, source: .morning,
+                    values: DayComposerFinalInputs(rpe: 8), expectedRevision: first.revision)
+                XCTAssertThrowsError(try f.coordinator.captureFinalSource(for: .morning, evidence: evidence)) {
+                    XCTAssertEqual($0 as? DayComposerFinalInputsError, .staleInputs)
+                }
+            }) { XCTAssertEqual($0 as? DayComposerStabilizationError, .staleEvidence) }
+        }
+    }
+
+    func testFinalPostVerifyCorruptionAndClosureThrowRelease() throws {
+        enum Expected: Error { case stop }
+        try withFinalFixture { f, store, _ in
+            let receipt = try f.coordinator.setFinalRPE(7, for: .morning)
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in throw Expected.stop }) {
+                XCTAssertTrue($0 is Expected)
+            }
+            XCTAssertFalse(f.barrier.isInteractionFrozen)
+            let url = try store.recordURL(executionIdentity: receipt.executionIdentity, source: .morning)
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in
+                try Data("{".utf8).write(to: url)
+            }) { XCTAssertEqual($0 as? DayComposerStabilizationError, .staleEvidence) }
+            XCTAssertEqual(try Data(contentsOf: url), Data("{".utf8))
+        }
+    }
+
+    func testCoordinatorParticipantsRecreateWithExactReceiptsAndWeakOwnership() throws {
+        try withFinalFixture { f, store, directory in
+            let input = f.coordinator.input, date = f.date
+            var coordinator: DayComposerExecutionCoordinator? = try .make(validatedInput: input,
+                currentDate: { date }, finalInputsStore: store)
+            let a = try XCTUnwrap(coordinator).setFinalRPE(8, for: .morning)
+            let b = try XCTUnwrap(coordinator).setFinalRPE(9, for: .evening)
+            let barrier = try XCTUnwrap(coordinator).makeStabilizationBarrier()
+            weak var weakCoordinator = coordinator
+            weak var weakParticipant = coordinator?.morningFinalInputs
+            coordinator = nil
+            XCTAssertNil(weakCoordinator)
+            XCTAssertNil(weakParticipant) // Retained barrier holds neither strongly.
+            XCTAssertFalse(barrier.isInteractionFrozen)
+            let readOnly = DayComposerFinalInputsStore(baseDirectory: directory, writeRecord: { _, _ in XCTFail("Reload wrote") })
+            let rebuilt = try DayComposerExecutionCoordinator.make(validatedInput: input,
+                currentDate: { date }, finalInputsStore: readOnly)
+            XCTAssertEqual(rebuilt.morningFinalInputs.state, .loaded(a))
+            XCTAssertEqual(rebuilt.eveningFinalInputs.state, .loaded(b))
+            XCTAssertEqual(try rebuilt.morningFinalInputs.prepare(), a)
+            XCTAssertEqual(try rebuilt.eveningFinalInputs.prepare(), b)
+        }
+    }
+
+    func testCoordinatorSameContentSetterStillRejectsInvalidContext() throws {
+        try withFinalFixture { f, store, _ in
+            let receipt = try f.coordinator.setFinalRPE(7, for: .morning)
+            SessionDraftStore.saveComment("outside authorization", date: f.date, sessionType: "morning")
+            XCTAssertThrowsError(try f.coordinator.setFinalRPE(7, for: .morning)) {
+                XCTAssertEqual($0 as? DayComposerStabilizationError, .contextRejected)
+            }
+            XCTAssertTrue(f.coordinator.isLocked)
+            XCTAssertTrue(try store.verify(receipt))
+        }
+    }
+
+    func testFinalPrepareFailurePreventsAllForcedFlushes() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let h = try Harness(), a = Card(), b = Card()
+        h.add(a, id: h.id("A")); h.add(b, id: h.id("B"))
+        var events: [String] = []
+        a.onEvent = { events.append("A-\($0)") }; b.onEvent = { events.append("B-\($0)") }
+        let inputs = DayComposerFinalInputsParticipant(identity: h.identity, source: .morning,
+            store: DayComposerFinalInputsStore(baseDirectory: directory), authorizeMutation: {})
+        h.barrier.registerFinalInputsParticipant(inputs)
+        XCTAssertThrowsError(try h.barrier.withStabilizedFinalSource(.morning) { _ in XCTFail("Missing RPE") }) {
+            XCTAssertEqual($0 as? DayComposerFinalInputsError, .missingRequiredRPE)
+        }
+        XCTAssertEqual(events, ["A-prepare", "B-prepare"])
+        XCTAssertTrue(h.writes.isEmpty)
+        XCTAssertTrue(a.gate.allowsOrdinaryMutation); XCTAssertTrue(b.gate.allowsOrdinaryMutation)
+        h.assertReleased()
+    }
+
+    func testFinalDeadAndWrongExecutionParticipantsFailClosed() throws {
+        try withFinalFixture { f, store, _ in
+            let original = f.coordinator.morningFinalInputs
+            f.barrier.unregisterFinalInputsParticipant(source: .morning, token: original.instance)
+            var dead: DayComposerFinalInputsParticipant? = .init(identity: original.identity, source: .morning,
+                store: store, authorizeMutation: {})
+            XCTAssertTrue(f.barrier.registerFinalInputsParticipant(try XCTUnwrap(dead)))
+            dead = nil
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in XCTFail("Dead participant") }) {
+                XCTAssertEqual($0 as? DayComposerStabilizationError, .missingParticipant)
+            }
+            let otherIdentity = try DayComposerExecutionIdentity(executionID: UUID(), context: f.coordinator.context)
+            let other = DayComposerFinalInputsParticipant(identity: otherIdentity, source: .morning,
+                store: store, authorizeMutation: {})
+            XCTAssertFalse(f.barrier.registerFinalInputsParticipant(other))
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in XCTFail("Wrong execution") }) {
+                XCTAssertEqual($0 as? DayComposerFinalInputsError, .contextMismatch)
+            }
+            try f.barrier.withStabilizedSource(.morning) { _ in }
+        }
+    }
+
+    func testFinalRegistryNoOpAndOtherSourceChangesDoNotInvalidateTarget() throws {
+        try withFinalFixture { f, _, _ in
+            _ = try f.coordinator.setFinalRPE(7, for: .morning)
+            try f.barrier.withStabilizedFinalSource(.morning) { evidence in
+                XCTAssertTrue(f.barrier.registerFinalInputsParticipant(f.coordinator.morningFinalInputs))
+                let pm = f.coordinator.eveningFinalInputs
+                f.barrier.unregisterFinalInputsParticipant(source: .evening, token: pm.instance)
+                XCTAssertTrue(f.barrier.registerFinalInputsParticipant(pm))
+                _ = try f.coordinator.captureFinalSource(for: .morning, evidence: evidence)
+                XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.evening) { _ in }) {
+                    XCTAssertEqual($0 as? DayComposerStabilizationError, .busy)
+                }
+            }
+        }
+    }
+
+    func testFinalPublicationReentranceCannotDeliverStaleInputs() throws {
+        try withFinalFixture { f, store, _ in
+            let first = try f.coordinator.setFinalRPE(7, for: .morning)
+            var injected = false
+            let observation = f.barrier.$phases.sink { phases in
+                guard phases[.morning] == .frozenForSnapshot, !injected else { return }
+                injected = true
+                XCTAssertNoThrow(try store.save(executionIdentity: first.executionIdentity, source: .morning,
+                    values: DayComposerFinalInputs(rpe: 8), expectedRevision: first.revision))
+            }
+            defer { observation.cancel() }
+            var invoked = false
+            XCTAssertThrowsError(try f.barrier.withStabilizedFinalSource(.morning) { _ in invoked = true }) {
+                XCTAssertEqual($0 as? DayComposerFinalInputsError, .staleInputs)
+            }
+            XCTAssertTrue(injected)
+            XCTAssertFalse(invoked)
+        }
+    }
+
     @MainActor private final class Card: DayComposerCardParticipant {
         let instance = UUID()
         let gate = ExerciseEditorMutationGate()

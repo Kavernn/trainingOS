@@ -5,6 +5,7 @@ enum DayComposerStabilizationError: Error, Equatable {
     case busy, contextRejected, missingParticipant, unexpectedParticipant, duplicateParticipant
     case participantSetChanged, missingComment, commentFailed, persistenceFailed, staleEvidence
     case editor(ExerciseEditorPreparationFailure), nonRepresentablePain
+    case sourceFrozen
 }
 
 /// Type-erased, attempt-local receipts. Closures retain no business state copies.
@@ -80,6 +81,21 @@ struct DayComposerStableSourceEvidence {
     }
 }
 
+/// Non-optional final-input proof, valid only inside the originating final closure.
+/// Does not establish readiness, a snapshot binding or permission to submit.
+@MainActor
+struct DayComposerStableFinalSourceEvidence {
+    let local: DayComposerStableSourceEvidence
+    let finalInputs: DayComposerFinalInputsReceipt
+    fileprivate let verifyInputs: () throws -> Void
+    var isCurrentAttempt: Bool { local.isCurrentAttempt }
+
+    func verifyCurrent() throws {
+        guard isCurrentAttempt else { throw DayComposerStabilizationError.staleEvidence }
+        try verifyInputs()
+    }
+}
+
 /// Optional lifecycle endpoint supplied only to Day Composer cards.
 @MainActor
 struct DayComposerCardRegistration {
@@ -114,6 +130,10 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
         weak var holder: DayComposerCommentParticipant?
         init(_ holder: DayComposerCommentParticipant) { self.holder = holder }
     }
+    private final class FinalInputsEntry {
+        weak var participant: DayComposerFinalInputsParticipant?
+        init(_ participant: DayComposerFinalInputsParticipant) { self.participant = participant }
+    }
     private struct CommentReceipt {
         let instance: UUID
         let generation: UInt64
@@ -124,6 +144,8 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
     private var cards: [DayComposerExecutionItemIdentity: [UUID: CardEntry]] = [:]
     private var comments: [DayComposerSource: [UUID: CommentEntry]] = [:]
     private var generations: [DayComposerSource: UInt64] = [:]
+    private var finalInputs: [DayComposerSource: [UUID: FinalInputsEntry]] = [:]
+    private var finalInputsGenerations: [DayComposerSource: UInt64] = [:]
     private var activeAttempt: UUID?
     private var frozenSource: DayComposerSource?
     @Published private(set) var phases: [DayComposerSource: Phase] = [:]
@@ -174,6 +196,38 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
     func unregisterComment(source: DayComposerSource, token: UUID) {
         guard comments[source]?.removeValue(forKey: token) != nil else { return }
         generations[source, default: 0] &+= 1
+    }
+
+    @discardableResult
+    func registerFinalInputsParticipant(_ participant: DayComposerFinalInputsParticipant) -> Bool {
+        let source = participant.source
+        if let entry = finalInputs[source]?[participant.instance] {
+            return entry.participant === participant && finalInputs[source]?.count == 1
+                && participant.identity == identity
+        }
+        var entries = finalInputs[source, default: [:]].filter { $0.value.participant != nil }
+        entries[participant.instance] = FinalInputsEntry(participant)
+        finalInputs[source] = entries
+        finalInputsGenerations[source, default: 0] &+= 1
+        return entries.count == 1 && participant.identity == identity
+    }
+
+    func unregisterFinalInputsParticipant(source: DayComposerSource, token: UUID) {
+        guard finalInputs[source]?.removeValue(forKey: token) != nil else { return }
+        finalInputsGenerations[source, default: 0] &+= 1
+    }
+
+    private func finalInputsHolder(_ source: DayComposerSource) throws -> DayComposerFinalInputsParticipant {
+        guard let entries = finalInputs[source], !entries.isEmpty else {
+            throw DayComposerStabilizationError.missingParticipant
+        }
+        guard entries.count == 1 else { throw DayComposerStabilizationError.duplicateParticipant }
+        guard let participant = entries.values.first?.participant else {
+            throw DayComposerStabilizationError.missingParticipant
+        }
+        guard participant.identity == identity else { throw DayComposerFinalInputsError.contextMismatch }
+        guard participant.source == source else { throw DayComposerFinalInputsError.sourceMismatch }
+        return participant
     }
 
     /// Gate BEFORE changing the UI buffer, including retry of identical content.
@@ -230,6 +284,20 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
     /// in operation. A stored snapshot remains historical if post-verification fails.
     func withStabilizedSource<T>(_ source: DayComposerSource,
                                 operation: (DayComposerStableSourceEvidence) throws -> T) throws -> T {
+        try stabilize(source, requiresFinalInputs: false) { local, _ in try operation(local) }
+    }
+
+    func withStabilizedFinalSource<T>(_ source: DayComposerSource,
+        operation: (DayComposerStableFinalSourceEvidence) throws -> T) throws -> T {
+        try stabilize(source, requiresFinalInputs: true) { _, final in
+            guard let final else { throw DayComposerStabilizationError.missingParticipant }
+            return try operation(final)
+        }
+    }
+
+    /// Shared algorithm; local mode never loads or verifies the final-input registry/store.
+    private func stabilize<T>(_ source: DayComposerSource, requiresFinalInputs: Bool,
+        operation: (DayComposerStableSourceEvidence, DayComposerStableFinalSourceEvidence?) throws -> T) throws -> T {
         guard activeAttempt == nil else { throw DayComposerStabilizationError.busy }
         let attempt = UUID()
         activeAttempt = attempt // BEFORE any callback or publication (reentrance).
@@ -248,6 +316,8 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
             let expected = dependencies.expected(source)
             let handles = try coverage(source, expected: expected)
             let holder = try commentHolder(source)
+            let inputsHolder = requiresFinalInputs ? try finalInputsHolder(source) : nil
+            let inputsGeneration = requiresFinalInputs ? finalInputsGenerations[source, default: 0] : 0
             for handle in handles {
                 gated.append((handle, handle.gate.allowsOrdinaryMutation))
                 handle.gate.allowsOrdinaryMutation = false
@@ -258,10 +328,27 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
                 let current = try coverage(source, expected: expected)
                 guard zip(current, handles).allSatisfy({ pair in pair.0.instance == pair.1.instance }),
                       try commentHolder(source) === holder else { throw DayComposerStabilizationError.participantSetChanged }
+                if let inputsHolder {
+                    guard finalInputsGenerations[source, default: 0] == inputsGeneration,
+                          try finalInputsHolder(source) === inputsHolder else {
+                        throw DayComposerStabilizationError.participantSetChanged
+                    }
+                }
             }
             phases[source] = .preparingEditors
             let prepared = try handles.map { try $0.prepareForSource() }
+            let inputsReceipt = try inputsHolder?.prepare()
+            func verifyInputs() throws {
+                if let inputsHolder, let inputsReceipt {
+                    guard finalInputsGenerations[source, default: 0] == inputsGeneration,
+                          try finalInputsHolder(source) === inputsHolder else {
+                        throw DayComposerStabilizationError.participantSetChanged
+                    }
+                    try inputsHolder.verify(inputsReceipt)
+                }
+            }
             guard prepared.allSatisfy({ $0.verify() }) else { throw DayComposerStabilizationError.staleEvidence }
+            try verifyInputs()
             try verifyRegistry()
             phases[source] = .stabilizing
             let receipts = try prepared.map { try $0.flush() }
@@ -279,8 +366,10 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
             guard verifyComment(comment, holder: holder), receipts.allSatisfy({ $0.verify() }) else {
                 throw DayComposerStabilizationError.staleEvidence
             }
+            try verifyInputs()
             try verifyRegistry()
             let guardValue = try dependencies.guardValue(source)
+            try verifyInputs()
             try guardValue.validate(identity: identity, source: source)
             guard receipts.allSatisfy({ $0.verify() }), verifyComment(comment, holder: holder) else {
                 throw DayComposerStabilizationError.staleEvidence
@@ -290,19 +379,36 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
             // evidence to the caller after one of those clients changed the inputs.
             try validateContext()
             try verifyRegistry()
+            try verifyInputs()
             guard receipts.allSatisfy({ $0.verify() }), verifyComment(comment, holder: holder),
                   try dependencies.guardValue(source) == guardValue else {
                 throw DayComposerStabilizationError.staleEvidence
             }
+            try verifyInputs()
             let evidence = DayComposerStableSourceEvidence(source: source, identity: identity, guardValue: guardValue,
                 comment: comment.text, expectedParticipantIDs: expected, registryGeneration: generation,
                 isLive: { [weak self] in self?.activeAttempt == attempt && self?.phase(for: source) == .frozenForSnapshot })
-            let result = try operation(evidence)
+            let finalEvidence: DayComposerStableFinalSourceEvidence?
+            if let inputsHolder, let inputsReceipt {
+                finalEvidence = .init(local: evidence, finalInputs: inputsReceipt,
+                    verifyInputs: { [weak self, weak inputsHolder] in
+                        guard let self, let inputsHolder,
+                              self.activeAttempt == attempt,
+                              self.finalInputsGenerations[source, default: 0] == inputsGeneration,
+                              try self.finalInputsHolder(source) === inputsHolder else {
+                            throw DayComposerStabilizationError.staleEvidence
+                        }
+                        try inputsHolder.verify(inputsReceipt)
+                    })
+            } else { finalEvidence = nil }
+            let result = try operation(evidence, finalEvidence)
             do {
                 try validateContext()
                 try verifyRegistry()
+                try verifyInputs()
                 guard receipts.allSatisfy({ $0.verify() }), verifyComment(comment, holder: holder),
                       try dependencies.guardValue(source) == guardValue else { throw DayComposerStabilizationError.staleEvidence }
+                try verifyInputs()
             } catch { throw DayComposerStabilizationError.staleEvidence }
             return result
         } catch {
