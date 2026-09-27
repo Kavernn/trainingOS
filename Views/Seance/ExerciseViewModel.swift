@@ -1554,10 +1554,7 @@ class SeanceViewModel: ObservableObject {
             UIApplication.shared.endBackgroundTask(bgTask)
         }
 
-        let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
-        let exerciseLogs: [[String: Any]] = logResults.values.map {
-            ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
-        }
+        let (exos, exerciseLogs) = WorkoutPayloadBuilder.summaries(logResults)
         guard await saveExercisesForFinish() else { return }
         let date = finishSourceDate
         let isMorning = draftSessionType == "morning" && !bonusSession

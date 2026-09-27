@@ -100,10 +100,7 @@ class SeanceSoirViewModel: SeanceViewModel {
         prepareFinishRetry(rpe: rpe, comment: comment, durationMin: durationMin, energyPre: energyPre,
                            sessionName: sessionName, bonusSession: bonusSession, closeSession: closeSession)
 
-        let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
-        let exerciseLogs: [[String: Any]] = logResults.values.map {
-            ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
-        }
+        let (exos, exerciseLogs) = WorkoutPayloadBuilder.summaries(logResults)
         guard await saveExercisesForFinish(isSecond: true, isBonus: false) else { return }
         guard let date = finishSourceDate else { return }
 

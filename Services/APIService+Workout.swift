@@ -16,10 +16,7 @@ enum SessionSaveOutcome {
     static func fromOfflinePost(_ post: () async throws -> Data?) async throws -> SessionSaveOutcome {
         guard let data = try await post() else { return .queuedOffline }
         do {
-            let response = try APIService.decoder.decode(LogSessionResponse.self, from: data)
-            guard response.success else {
-                throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "success=true required"))
-            }
+            let response = try WorkoutResponseParser.session(data).legacyValue(message: "success=true required")
             return .serverResponse(response)
         } catch {
             throw APIError.decodingFailed(endpoint: "/api/log_session", error: error)
@@ -37,18 +34,328 @@ enum ExerciseSaveOutcome {
     static func fromOfflinePost(_ post: () async throws -> Data?) async throws -> ExerciseSaveOutcome {
         guard let data = try await post() else { return .queuedOffline }
         do {
-            let response = try APIService.decoder.decode(LogExerciseResponse.self, from: data)
-            // /api/log acknowledges success explicitly; {} or success:false are not acceptance.
-            guard response.success == true else {
-                throw DecodingError.dataCorrupted(.init(
-                    codingPath: [], debugDescription: "/api/log acknowledgment requires success=true"
-                ))
-            }
+            let response = try WorkoutResponseParser.exercise(data).legacyValue(
+                message: "/api/log acknowledgment requires success=true")
             return .confirmed(response)
         } catch {
             workoutLogger.error("❌ logExercise response invalid: \(error, privacy: .public)")
             throw APIError.decodingFailed(endpoint: "/api/log", error: error)
         }
+    }
+}
+
+// MARK: - Pure shared payload/response contracts
+
+enum WorkoutPayloadBuilder {
+    static func summaries(_ resultsByIdentity: [String: ExerciseLogResult])
+        -> (exos: [String], exerciseLogs: [[String: Any]]) {
+        let results = resultsByIdentity.keys.sorted().compactMap { resultsByIdentity[$0] }
+        return (results.map { "\($0.name) \($0.weight)lbs \($0.reps)" },
+                results.map { ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps] })
+    }
+
+    static func exercise(exercise: String, weight: Double, reps: String, rpe: Double?,
+                         sets: [[String: Any]], force: Bool, isSecond: Bool, isBonus: Bool,
+                         equipmentType: String, painZone: String, notes: String,
+                         date: String?) -> [String: Any] {
+        var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
+        if let date { body["session_date"] = date }
+        if let rpe { body["rpe"] = rpe }
+        if !sets.isEmpty { body["sets"] = sets }
+        if force { body["force"] = true }
+        if isSecond { body["is_second"] = true }
+        if isBonus { body["is_bonus"] = true }
+        if !equipmentType.isEmpty { body["equipment_type"] = equipmentType }
+        if !painZone.isEmpty { body["pain_zone"] = painZone }
+        if !notes.isEmpty { body["notes"] = notes }
+        return body
+    }
+
+    static func session(exos: [String], rpe: Double, comment: String,
+                        durationMin: Double?, energyPre: Int?, secondSession: Bool,
+                        bonusSession: Bool, sessionName: String?, exerciseLogs: [[String: Any]],
+                        date: String?) -> [String: Any] {
+        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment]
+        if let durationMin { body["duration_min"] = durationMin }
+        if let energyPre { body["energy_pre"] = energyPre }
+        if secondSession { body["second_session"] = true }
+        if bonusSession { body["bonus_session"] = true }
+        if let sessionName, !sessionName.isEmpty { body["session_name"] = sessionName }
+        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
+        if let date { body["date"] = date }
+        return body
+    }
+
+    /// Arrays retain caller order (sets have semantic order). Dictionary-derived
+    /// exercise collections must be ordered by their stable key before calling.
+    static func encode(_ body: [String: Any]) throws -> Data {
+        try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
+    }
+}
+
+enum WorkoutApplicationResult<Response> {
+    case success(Response)
+    case failure
+    case invalidResponse(Error)
+
+    /// Preserve the legacy decodingFailed adapter, including its underlying error.
+    func legacyValue(message: String) throws -> Response {
+        switch self {
+        case .success(let response): return response
+        case .failure:
+            throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: message))
+        case .invalidResponse(let error): throw error
+        }
+    }
+}
+
+enum WorkoutResponseParser {
+    static func exercise(_ data: Data) -> WorkoutApplicationResult<LogExerciseResponse> {
+        do {
+            let response = try APIService.decoder.decode(LogExerciseResponse.self, from: data)
+            guard let success = response.success else {
+                return .invalidResponse(DecodingError.dataCorrupted(.init(
+                    codingPath: [], debugDescription: "/api/log acknowledgment requires success=true")))
+            }
+            return success ? .success(response) : .failure
+        } catch { return .invalidResponse(error) }
+    }
+
+    static func session(_ data: Data) -> WorkoutApplicationResult<LogSessionResponse> {
+        do {
+            let response = try APIService.decoder.decode(LogSessionResponse.self, from: data)
+            return response.success ? .success(response) : .failure
+        } catch { return .invalidResponse(error) }
+    }
+}
+
+// MARK: - Neutral immutable submissions (no owner, UI or recovery effects)
+
+enum NeutralSubmissionValidationError: Error {
+    case invalidDate, invalidIdentity, inconsistentSource, invalidOperationKey
+}
+
+private enum NeutralSubmissionValidation {
+    static func validDate(_ date: String) -> Bool {
+        guard date.range(of: #"^\d{4}-\d{2}-\d{2}$"#, options: .regularExpression) != nil else { return false }
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        guard let parsed = formatter.date(from: date) else { return false }
+        return formatter.string(from: parsed) == date
+    }
+
+    static func check(date: String, identity: String, key: OfflineOperationKey) throws {
+        guard validDate(date) else { throw NeutralSubmissionValidationError.invalidDate }
+        guard !identity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw NeutralSubmissionValidationError.invalidIdentity
+        }
+        guard !key.rawValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw NeutralSubmissionValidationError.invalidOperationKey
+        }
+    }
+}
+
+/// Reuses DayComposerSource, a Foundation domain enum, not a View/owner type.
+/// Bytes, identity and routing cannot be changed after the validated constructor.
+struct NeutralExerciseSubmissionRequest {
+    let itemIdentity: String
+    let source: DayComposerSource
+    let date: String
+    let isSecond: Bool
+    let isBonus: Bool
+    let payloadData: Data
+    let operationKey: OfflineOperationKey
+
+    init(itemIdentity: String, source: DayComposerSource, date: String,
+         result: ExerciseLogResult, operationKey: OfflineOperationKey) throws {
+        try NeutralSubmissionValidation.check(date: date, identity: itemIdentity, key: operationKey)
+        guard !result.isBonus, result.isSecond == (source == .evening) else {
+            throw NeutralSubmissionValidationError.inconsistentSource
+        }
+        self.itemIdentity = itemIdentity
+        self.source = source
+        self.date = date
+        self.isSecond = result.isSecond
+        self.isBonus = false
+        self.operationKey = operationKey
+        payloadData = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.exercise(
+            exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
+            sets: result.sets, force: true, isSecond: result.isSecond, isBonus: false,
+            equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes, date: date))
+    }
+}
+
+/// The application's declared success is NOT an exact-version, completion or recovery ACK.
+enum NeutralSubmissionOutcome<Response> {
+    case applicationConfirmed(Response)
+    case queued(OfflineMutationReceipt)
+    case transportDeliveredUnverified(OfflineMutationRecord)
+    case discarded(OfflineMutationRecord)
+    case uncertain(OfflineMutationRecord?)
+    case applicationFailure
+    case invalidResponse
+    case failedBeforeSubmission(String)
+    case correlationConflict
+    case noExistingTransport
+    case dependenciesBlocked(NeutralSourceDependencies)
+
+    static func existing(_ status: OfflineMutationStatus) -> Self {
+        switch status {
+        case .notFound: return .noExistingTransport
+        case .pending(let receipt): return .queued(receipt)
+        case .delivered(let record): return .transportDeliveredUnverified(record)
+        case .discarded(let record): return .discarded(record)
+        case .uncertain(let record): return .uncertain(record)
+        }
+    }
+}
+
+enum NeutralSourceDependencies: Equatable {
+    case satisfied, waiting, unverified, failed, uncertain
+
+    /// Caller supplies the complete CURRENT exercise snapshot, not historical outcomes.
+    /// f2b/f2c will own completeness, source/version matching and staleness checks.
+    static func evaluate(_ outcomes: [NeutralSubmissionOutcome<LogExerciseResponse>]) -> Self {
+        var state: Self = .satisfied
+        for outcome in outcomes {
+            switch outcome {
+            case .applicationConfirmed: break
+            case .uncertain: return .uncertain
+            case .applicationFailure, .invalidResponse, .discarded, .failedBeforeSubmission,
+                 .correlationConflict, .dependenciesBlocked:
+                state = .failed
+            case .transportDeliveredUnverified, .noExistingTransport:
+                if state != .failed { state = .unverified }
+            case .queued:
+                if state == .satisfied { state = .waiting }
+            }
+        }
+        return state
+    }
+}
+
+struct NeutralSourceFinalizationRequest {
+    let source: DayComposerSource
+    let date: String
+    let sessionName: String
+    let payloadData: Data
+    let operationKey: OfflineOperationKey
+    let dependencies: NeutralSourceDependencies
+
+    /// Explicit inputs only. No timing computation or owner reads during transport.
+    /// Future f2c MUST block completed+dirty before calling: Morning's historical
+    /// early return does not apply new comments; Evening post-completion editing
+    /// is also not supported by this first neutral contract.
+    init(source: DayComposerSource, date: String, sessionName: String,
+         resultsByIdentity: [String: ExerciseLogResult], comment: String, rpe: Double,
+         durationMin: Double? = nil, energyPre: Int? = nil,
+         operationKey: OfflineOperationKey, dependencies: NeutralSourceDependencies) throws {
+        try NeutralSubmissionValidation.check(date: date, identity: sessionName, key: operationKey)
+        let results = resultsByIdentity.keys.sorted().compactMap { resultsByIdentity[$0] }
+        guard results.allSatisfy({ !$0.isBonus && $0.isSecond == (source == .evening) }) else {
+            throw NeutralSubmissionValidationError.inconsistentSource
+        }
+        self.source = source
+        self.date = date
+        self.sessionName = sessionName
+        self.operationKey = operationKey
+        self.dependencies = dependencies
+        let summary = WorkoutPayloadBuilder.summaries(resultsByIdentity)
+        payloadData = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.session(
+            exos: summary.exos, rpe: rpe, comment: comment,
+            durationMin: durationMin, energyPre: energyPre, secondSession: source == .evening,
+            bonusSession: false, sessionName: sessionName,
+            exerciseLogs: summary.exerciseLogs, date: date))
+    }
+}
+
+enum SourceCompletionObservation: Equatable {
+    case observed, unconfirmed, lookupFailure, unsupportedDate
+}
+
+extension APIService {
+    /// Uses f1's byte-preserving transport directly; no re-encoding after snapshot.
+    @MainActor
+    func submitExerciseCorrelated(_ request: NeutralExerciseSubmissionRequest,
+        manager: SyncManager? = nil,
+        transport: ((URLRequest) async throws -> (Data, URLResponse))? = nil
+    ) async -> NeutralSubmissionOutcome<LogExerciseResponse> {
+        await submitNeutral(endpoint: "/api/log", bytes: request.payloadData, key: request.operationKey,
+            manager: manager ?? .shared, transport: transport, parse: WorkoutResponseParser.exercise)
+    }
+
+    @MainActor
+    func submitSourceFinalCorrelated(_ request: NeutralSourceFinalizationRequest,
+        manager: SyncManager? = nil,
+        transport: ((URLRequest) async throws -> (Data, URLResponse))? = nil
+    ) async -> NeutralSubmissionOutcome<LogSessionResponse> {
+        guard request.dependencies == .satisfied else { return .dependenciesBlocked(request.dependencies) }
+        return await submitNeutral(endpoint: "/api/log_session", bytes: request.payloadData, key: request.operationKey,
+            manager: manager ?? .shared, transport: transport, parse: WorkoutResponseParser.session)
+    }
+
+    @MainActor
+    private func submitNeutral<Response>(endpoint: String, bytes: Data, key: OfflineOperationKey,
+        manager: SyncManager, transport: ((URLRequest) async throws -> (Data, URLResponse))?,
+        parse: (Data) -> WorkoutApplicationResult<Response>
+    ) async -> NeutralSubmissionOutcome<Response> {
+        do {
+            switch try await manager.postCorrelated(endpoint: endpoint, method: "POST", payloadData: bytes,
+                                                    operationKey: key, transport: transport) {
+            case .queued(let receipt): return .queued(receipt)
+            case .response(let data):
+                switch parse(data) {
+                case .success(let response): return .applicationConfirmed(response)
+                case .failure: return .applicationFailure
+                case .invalidResponse: return .invalidResponse
+                }
+            }
+        } catch OfflineCorrelationError.payloadConflict {
+            return .correlationConflict
+        } catch OfflineCorrelationError.existing(let status) {
+            return .existing(status)
+        } catch {
+            // f1 may have journaled a 4xx discard or an ambiguous attempt before
+            // throwing. Never label such an attempt as failed-before-submission.
+            let status = manager.status(for: key)
+            if status != .notFound { return .existing(status) }
+            return .failedBeforeSubmission(String(describing: error))
+        }
+    }
+
+    /// Fresh read, no cache mutation or owner effects. Observation certifies only
+    /// completion for source/date, NEVER exact payload/version or recovery ACK.
+    func observeSourceCompletion(source: DayComposerSource, date: String,
+        transport: ((URLRequest) async throws -> (Data, URLResponse))? = nil
+    ) async -> SourceCompletionObservation {
+        guard NeutralSubmissionValidation.validDate(date) else { return .unsupportedDate }
+        do {
+            let url = try buildURL(path: source == .morning ? "/api/seance_data" : "/api/dashboard",
+                queryItems: source == .morning ? [] : [URLQueryItem(name: "date", value: date)])
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+            request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+            let pair: (Data, URLResponse)
+            if let transport { pair = try await transport(request) }
+            else { pair = try await URLSession.authed.data(for: request) }
+            guard let http = pair.1 as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                return .lookupFailure
+            }
+            struct Status: Decodable {
+                let today_date: String
+                let already_logged: Bool?
+                let second_session_completed: Bool?
+            }
+            let status = try JSONDecoder().decode(Status.self, from: pair.0)
+            guard status.today_date == date else { return source == .morning ? .unsupportedDate : .unconfirmed }
+            guard let completed = source == .morning ? status.already_logged : status.second_session_completed else {
+                return .lookupFailure
+            }
+            return completed ? .observed : .unconfirmed
+        } catch { return .lookupFailure }
     }
 }
 
@@ -97,16 +404,9 @@ extension APIService {
                             equipmentType: String = "", painZone: String = "", notes: String = "",
                             date: String? = nil, invalidate: Bool = true,
                             post: (([String: Any]) async throws -> Data?)? = nil) async throws -> ExerciseSaveOutcome {
-        var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
-        if let date { body["session_date"] = date }
-        if let rpe { body["rpe"] = rpe }
-        if !sets.isEmpty { body["sets"] = sets }
-        if force    { body["force"] = true }
-        if isSecond { body["is_second"] = true }
-        if isBonus  { body["is_bonus"] = true }
-        if !equipmentType.isEmpty { body["equipment_type"] = equipmentType }
-        if !painZone.isEmpty { body["pain_zone"] = painZone }
-        if !notes.isEmpty { body["notes"] = notes }
+        let body = WorkoutPayloadBuilder.exercise(exercise: exercise, weight: weight, reps: reps,
+            rpe: rpe, sets: sets, force: force, isSecond: isSecond, isBonus: isBonus,
+            equipmentType: equipmentType, painZone: painZone, notes: notes, date: date)
         let outcome = try await ExerciseSaveOutcome.fromOfflinePost {
             if let post { return try await post(body) }
             return try await self.offlinePost(endpoint: "/api/log", payload: body)
@@ -123,14 +423,9 @@ extension APIService {
                     sessionName: String? = nil,
                     exerciseLogs: [[String: Any]] = [],
                     date: String? = nil) async throws {
-        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment]
-        if let d = durationMin  { body["duration_min"] = d }
-        if let e = energyPre    { body["energy_pre"] = e }
-        if secondSession        { body["second_session"] = true }
-        if bonusSession         { body["bonus_session"] = true }
-        if let n = sessionName, !n.isEmpty { body["session_name"] = n }
-        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
-        if let d = date         { body["date"] = d }
+        let body = WorkoutPayloadBuilder.session(exos: exos, rpe: rpe, comment: comment,
+            durationMin: durationMin, energyPre: energyPre, secondSession: secondSession,
+            bonusSession: bonusSession, sessionName: sessionName, exerciseLogs: exerciseLogs, date: date)
         if !secondSession && !bonusSession && date == nil {
             await MainActor.run { sessionLoggedToday = true }
         }
@@ -145,11 +440,9 @@ extension APIService {
                                   date: String, durationMin: Double? = nil, energyPre: Int? = nil,
                                   sessionName: String? = nil, exerciseLogs: [[String: Any]] = [],
                                   post: (([String: Any]) async throws -> Data?)? = nil) async throws -> SessionSaveOutcome {
-        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment, "date": date]
-        if let durationMin { body["duration_min"] = durationMin }
-        if let energyPre { body["energy_pre"] = energyPre }
-        if let sessionName, !sessionName.isEmpty { body["session_name"] = sessionName }
-        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
+        let body = WorkoutPayloadBuilder.session(exos: exos, rpe: rpe, comment: comment,
+            durationMin: durationMin, energyPre: energyPre, secondSession: false,
+            bonusSession: false, sessionName: sessionName, exerciseLogs: exerciseLogs, date: date)
         let outcome = try await SessionSaveOutcome.fromOfflinePost {
             if let post { return try await post(body) }
             return try await self.offlinePost(endpoint: "/api/log_session", payload: body)
@@ -165,10 +458,9 @@ extension APIService {
     func logBonusSessionOutcome(exos: [String], rpe: Double, comment: String,
                                 durationMin: Double?, energyPre: Int?,
                                 exerciseLogs: [[String: Any]]) async throws -> SessionSaveOutcome {
-        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment, "bonus_session": true]
-        if let durationMin { body["duration_min"] = durationMin }
-        if let energyPre { body["energy_pre"] = energyPre }
-        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
+        let body = WorkoutPayloadBuilder.session(exos: exos, rpe: rpe, comment: comment,
+            durationMin: durationMin, energyPre: energyPre, secondSession: false,
+            bonusSession: true, sessionName: nil, exerciseLogs: exerciseLogs, date: nil)
         let outcome = try await SessionSaveOutcome.fromOfflinePost {
             try await self.offlinePost(endpoint: "/api/log_session", payload: body)
         }
@@ -189,12 +481,9 @@ extension APIService {
                                  durationMin: Double?, energyPre: Int?, sessionName: String?,
                                  exerciseLogs: [[String: Any]], date: String? = nil,
                                  post: (([String: Any]) async throws -> Data?)? = nil) async throws -> SessionSaveOutcome {
-        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment, "second_session": true]
-        if let date { body["date"] = date }
-        if let durationMin { body["duration_min"] = durationMin }
-        if let energyPre { body["energy_pre"] = energyPre }
-        if let sessionName, !sessionName.isEmpty { body["session_name"] = sessionName }
-        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
+        let body = WorkoutPayloadBuilder.session(exos: exos, rpe: rpe, comment: comment,
+            durationMin: durationMin, energyPre: energyPre, secondSession: true,
+            bonusSession: false, sessionName: sessionName, exerciseLogs: exerciseLogs, date: date)
         let outcome = try await SessionSaveOutcome.fromOfflinePost {
             if let post { return try await post(body) }
             return try await self.offlinePost(endpoint: "/api/log_session", payload: body)
