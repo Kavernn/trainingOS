@@ -46,6 +46,7 @@ struct ExerciseCard: View {
     @StateObject private var evm: ExerciseViewModel
     @StateObject private var editorController: ExerciseEditorPreparationController
     private let preparesEditors: Bool
+    private let sourceRegistration: DayComposerCardRegistration?
     @ObservedObject private var units = UnitSettings.shared
     @ObservedObject private var restTimer = RestTimerManager.shared
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -96,8 +97,10 @@ struct ExerciseCard: View {
          onPersistenceRefused: ((LocalPersistenceResult) -> Void)? = nil,
          allowsManualRest: Bool = true,
          onDraftPersisted: (() -> Void)? = nil,
-         editorPreparation: ExerciseEditorPreparationController? = nil) {
-        self.preparesEditors = editorPreparation != nil
+         editorPreparation: ExerciseEditorPreparationController? = nil,
+         sourceRegistration: DayComposerCardRegistration? = nil) {
+        self.sourceRegistration = sourceRegistration
+        self.preparesEditors = editorPreparation != nil || sourceRegistration != nil
         _editorController = StateObject(wrappedValue: editorPreparation ?? ExerciseEditorPreparationController())
         self.allowsManualRest = allowsManualRest
         self.onDraftPersisted = onDraftPersisted
@@ -1195,8 +1198,12 @@ struct ExerciseCard: View {
             }
             if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }
             if preparesEditors { editorController.attach(evm, requiresEnduranceInspection: isTimeBased) }
+            sourceRegistration?.appear(editorController)
         }
-        .onDisappear { if preparesEditors { editorController.detach() } }
+        .onDisappear {
+            sourceRegistration?.disappear(editorController)
+            if preparesEditors { editorController.detach() }
+        }
         // Pré-remplissage automatique supprimé (2026-07-13) : saisir est un
         // acte utilisateur, le placeholder gris est le hint, "Reprendre la
         // dernière séance" est la restitution explicite. Trois canaux, jamais

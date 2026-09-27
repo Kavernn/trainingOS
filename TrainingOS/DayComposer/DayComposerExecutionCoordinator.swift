@@ -35,6 +35,9 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     private let eveningAuthorization: DayComposerProvenanceStore.Authorization
     private let currentDate: () -> String
     private var subscriptions = Set<AnyCancellable>()
+    // Host owns the barrier; weak here avoids a coordinator/barrier ownership cycle.
+    private(set) weak var stabilizationBarrier: DayComposerLocalStabilizationBarrier?
+    private var permitsNavigation: Bool { stabilizationBarrier?.isInteractionFrozen != true }
     @Published private(set) var isLocked = false
     @Published private(set) var localPersistenceIssue: LocalPersistenceResult?
     private var awaitingAdvance: Set<DayComposerItemID> = []
@@ -224,7 +227,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
 
     /// Called only after accepted owner write AND accepted card cleanup.
     func advanceAfterAcceptedLog(itemID: DayComposerItemID) {
-        guard revalidateExecutionContext(), currentMemberID == itemID,
+        guard permitsNavigation, revalidateExecutionContext(), currentMemberID == itemID,
               awaitingAdvance.contains(itemID), let item = item(for: itemID),
               ExerciseDraftPersistence(date: context.date, sessionType: itemID.source.rawValue,
                 exerciseName: item.name).presence() == .absent else { return }
@@ -283,6 +286,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
 
     // Position is presentation-only. Never write DayComposerStore here.
     func select(_ id: DayComposerItemID) throws {
+        guard permitsNavigation else { throw DayComposerStabilizationError.busy }
         guard revalidateExecutionContext() else { throw Failure.incompatible }
         guard let unit = orderedUnits.first(where: { $0.items.contains(where: { $0.id == id }) }) else {
             throw Failure.invalidItem
@@ -291,16 +295,16 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         currentMemberID = id
     }
     func selectFirstActionable() {
-        guard revalidateExecutionContext() else { return }
+        guard permitsNavigation, revalidateExecutionContext() else { return }
         setSelection(items.first(where: { status(for: $0.id)?.isActionable == true })?.id)
     }
     func next() {
-        guard revalidateExecutionContext() else { return }
+        guard permitsNavigation, revalidateExecutionContext() else { return }
         let start = currentMemberID.flatMap { id in items.firstIndex(where: { $0.id == id }) }.map { $0 + 1 } ?? 0
         setSelection(items.dropFirst(start).first(where: { status(for: $0.id)?.isActionable == true })?.id)
     }
     func previous() {
-        guard revalidateExecutionContext() else { return }
+        guard permitsNavigation, revalidateExecutionContext() else { return }
         let index = currentMemberID.flatMap { id in items.firstIndex(where: { $0.id == id }) } ?? items.count
         if index > 0 { setSelection(items[index - 1].id) }
     }
@@ -379,7 +383,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
 
     // Consultation never authorizes writes, persists position or unlocks an execution.
     func consult(_ id: DayComposerItemID) {
-        guard item(for: id) != nil else { return }
+        guard permitsNavigation, item(for: id) != nil else { return }
         setSelection(id)
     }
     func adjacentItem(offset: Int) -> DayComposerItemID? {
@@ -391,8 +395,102 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         return items.indices.contains(target) ? items[target].id : nil
     }
     func consultAdjacent(offset: Int) {
+        guard permitsNavigation else { return }
         if let id = adjacentItem(offset: offset) { consult(id) }
     }
+    /// Host must retain the returned instance and inject it into the internal shell.
+    func makeStabilizationBarrier() throws -> DayComposerLocalStabilizationBarrier {
+        if let stabilizationBarrier { return stabilizationBarrier }
+        guard revalidateExecutionContext() else { throw Failure.incompatible }
+        let identity = try DayComposerExecutionIdentity(executionID: morningAuthorization.executionID, context: context)
+        let barrier = DayComposerLocalStabilizationBarrier(dependencies: .init(identity: identity,
+            expected: { [weak self] in self?.expectedMutableParticipantIDs(for: $0) ?? [] },
+            validate: { [weak self] in self?.revalidateExecutionContext() == true },
+            guardValue: { [weak self] source in
+                guard let self else { throw DayComposerStabilizationError.contextRejected }
+                return try self.currentFinalizationGuard(for: source)
+            },
+            writeComment: { [weak self] in self?.setComment($0, for: $1) ?? .rejectedContext },
+            commentMatches: { [weak self] in self?.persistedCommentMatches($0, for: $1) == true },
+            rejected: { [weak self] in self?.reportPersistenceRefusal(.rejectedContext) }))
+        stabilizationBarrier = barrier
+        return barrier
+    }
+
+    /// Mirrors actual rendering, including local-log precedence. Selection is irrelevant.
+    func expectedMutableParticipantIDs(for source: DayComposerSource) -> [DayComposerExecutionItemIdentity] {
+        items.filter { $0.id.source == source }.compactMap { item in
+            guard let p = presentation(for: item.id), p.rendering == .mutable else { return nil }
+            return p.identity
+        }
+    }
+
+    func persistedCommentMatches(_ text: String, for source: DayComposerSource) -> Bool {
+        comment(for: source) == text && SessionDraftStore.loadComment(date: context.date, sessionType: source.rawValue) == text
+    }
+
+    /// No repair or write. Admission validates inventory; surrounding reads reject
+    /// a record changed during inspection. Invalid provenance follows the existing lock.
+    func currentFinalizationGuard(for source: DayComposerSource) throws -> DayComposerFinalizationGuard {
+        do {
+            guard revalidateExecutionContext() else { throw Failure.incompatible }
+            let store = DayComposerProvenanceStore.shared
+            let token = source == .morning ? morningAuthorization : eveningAuthorization
+            guard let first = try store.load(date: context.date), first.context == context,
+                  first.executionID == token.executionID, first[source].validity == .valid,
+                  first[source].pendingMutation == nil,
+                  case .validated(let id, let revision) = store.admission(context: context, source: source),
+                  id == first.executionID, revision == first[source].revision,
+                  try store.inventory(date: context.date, source: source).integrity == first[source].integrity,
+                  try store.load(date: context.date) == first else { throw Failure.incompatible }
+            return try .init(executionID: id, source: source, revision: revision, integrity: first[source].integrity)
+        } catch {
+            reportPersistenceRefusal(.rejectedContext)
+            throw DayComposerStabilizationError.contextRejected
+        }
+    }
+
+    /// Only callable within the issuing barrier's live closure. Values are deep
+    /// encoded now; no mutable owner/Any dictionaries escape as snapshot facts.
+    func captureLocalFinalizationFacts(for source: DayComposerSource,
+        evidence: DayComposerStableSourceEvidence) throws -> DayComposerLocalFinalizationFacts {
+        guard evidence.isCurrentAttempt, evidence.source == source,
+              evidence.identity == (try DayComposerExecutionIdentity(executionID: morningAuthorization.executionID, context: context)),
+              expectedMutableParticipantIDs(for: source) == evidence.expectedParticipantIDs,
+              try currentFinalizationGuard(for: source) == evidence.guardValue,
+              persistedCommentMatches(evidence.comment, for: source),
+              sourceOwner(source).persistedLogsMatchCurrentState() else { throw DayComposerStabilizationError.staleEvidence }
+        let planItems = (source == .morning ? input.snapshot.morning : input.snapshot.evening).units.flatMap(\.items)
+        let facts: [DayComposerRequiredItemFacts] = try planItems.map { item in
+            guard let state = status(for: item.id) else { throw Failure.invalidItem }
+            let draft: DayComposerRawDraftFact
+            switch state.draft {
+            case .absent: draft = .absent
+            case .presentDecodable: draft = .present
+            case .presentUnreadable: draft = .corrupt
+            }
+            let result = consultationResult(for: item.id)
+            let local: DayComposerLocalResultFact
+            if let result {
+                guard result.name == item.name, !result.isBonus, result.isSecond == (source == .evening) else {
+                    throw Failure.invalidResult
+                }
+                let bytes = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.exercise(
+                    exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
+                    sets: result.sets, force: true, isSecond: result.isSecond, isBonus: false,
+                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes, date: context.date))
+                local = .persisted(payload: bytes, readOnly: presentation(for: item.id)?.rendering != .mutable)
+            } else { local = .none }
+            // Cached name-level observation cannot prove exact payload agreement.
+            return .init(itemID: item.id, local: local, draft: draft,
+                         localConflictsWithServer: result != nil && state.serverObserved)
+        }
+        guard evidence.isCurrentAttempt, try currentFinalizationGuard(for: source) == evidence.guardValue,
+              sourceOwner(source).persistedLogsMatchCurrentState() else { throw DayComposerStabilizationError.staleEvidence }
+        return .init(identity: evidence.identity, source: source, canonicalPlan: input.snapshot,
+                     itemFacts: facts, comment: evidence.comment, guardValue: evidence.guardValue)
+    }
+
     private func observeOwners() {
         // @Published fires before didSet persistence. Schedule a later MainActor
         // read, discard emitted values, and never use publication as a disk ACK.
@@ -411,4 +509,14 @@ final class DayComposerExecutionCoordinator: ObservableObject {
             }.store(in: &subscriptions)
         }
     }
+}
+
+/// Local facts only. Server freshness/completion/history must be supplied independently.
+struct DayComposerLocalFinalizationFacts {
+    let identity: DayComposerExecutionIdentity
+    let source: DayComposerSource
+    let canonicalPlan: DayComposerSnapshot
+    let itemFacts: [DayComposerRequiredItemFacts]
+    let comment: String
+    let guardValue: DayComposerFinalizationGuard
 }

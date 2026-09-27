@@ -10,13 +10,14 @@ final class DayComposerTests: XCTestCase {
     /// EVM: a pending AM edit must survive collapse/source-switch before debounce.
     @MainActor
     func testMountedShellKeepsPendingCardDraftAcrossSourceNavigation() async throws {
-        let date = "mounted-shell-\(UUID().uuidString)"
+        let date = try DayComposerStabilizationFixture.unusedDate()
         defer { cleanupExecution(date) }
         let input = try executionInput(executionBundle(date, morning: ["A"], evening: ["E"]))
         let c = try coordinator(input)
         let ids = input.snapshot.initialIDs
         let identity = c.executionIdentity(for: ids[0])
-        let host = UIHostingController(rootView: DayComposerActiveView(coordinator: c, onDismiss: {}))
+        let barrier = try c.makeStabilizationBarrier()
+        let host = UIHostingController(rootView: DayComposerActiveView(coordinator: c, stabilizationBarrier: barrier, onDismiss: {}))
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 430, height: 932))
         window.rootViewController = host
         window.isHidden = false
@@ -105,7 +106,7 @@ final class DayComposerTests: XCTestCase {
 
     @MainActor
     func testShellLocalSafeUnsafeHydrationAndRebuild() throws {
-        try withExecution { date in
+        try withExecution(date: DayComposerStabilizationFixture.unusedDate()) { date in
             let input = try executionInput(executionBundle(date))
             let c = try coordinator(input)
             let ids = input.snapshot.initialIDs
@@ -123,7 +124,8 @@ final class DayComposerTests: XCTestCase {
             XCTAssertEqual(rebuilt.comment(for: .morning), "AM saved")
             XCTAssertEqual(rebuilt.presentation(for: ids[0])?.identity, c.presentation(for: ids[0])?.identity)
             var dismissals = 0
-            let shell = DayComposerActiveView(coordinator: rebuilt) { dismissals += 1 }
+            let barrier = try rebuilt.makeStabilizationBarrier()
+            let shell = DayComposerActiveView(coordinator: rebuilt, stabilizationBarrier: barrier) { dismissals += 1 }
             shell.onDismiss()
             XCTAssertEqual(dismissals, 1)
             XCTAssertEqual(SessionDraftStore.load(date: date).count, 2)
@@ -153,8 +155,7 @@ final class DayComposerTests: XCTestCase {
     // Coordinator integration uses the same isolated-date pattern as provenance
     // tests: actual shared hooks, no fake store inconsistent with owner binding.
     @MainActor
-    private func withExecution(_ body: (String) throws -> Void) throws {
-        let date = "coordinator-\(UUID().uuidString)"
+    private func withExecution(date: String = "coordinator-\(UUID().uuidString)", _ body: (String) throws -> Void) throws {
         defer { cleanupExecution(date) }
         try body(date)
     }

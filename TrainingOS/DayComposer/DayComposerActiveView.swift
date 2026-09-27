@@ -25,20 +25,25 @@ struct DayComposerCommentBuffers {
 /// Internal only. The caller owns a fully prepared coordinator. No Preview or public route.
 struct DayComposerActiveView: View {
     @ObservedObject var coordinator: DayComposerExecutionCoordinator
+    @ObservedObject var stabilizationBarrier: DayComposerLocalStabilizationBarrier
     let bodyWeight: Double
     let onDismiss: () -> Void
     @ObservedObject private var timer = RestTimerManager.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @State private var comments: DayComposerCommentBuffers
+    @StateObject private var morningComment: DayComposerCommentParticipant
+    @StateObject private var eveningComment: DayComposerCommentParticipant
 
-    init(coordinator: DayComposerExecutionCoordinator, bodyWeight: Double = 0,
+    init(coordinator: DayComposerExecutionCoordinator, stabilizationBarrier: DayComposerLocalStabilizationBarrier,
+         bodyWeight: Double = 0,
          onDismiss: @escaping () -> Void) {
+        precondition(coordinator.stabilizationBarrier === stabilizationBarrier, "Inject the coordinator's retained barrier")
         self.coordinator = coordinator
+        self.stabilizationBarrier = stabilizationBarrier
         self.bodyWeight = bodyWeight
         self.onDismiss = onDismiss
-        _comments = State(initialValue: .init(morning: .init(text: coordinator.comment(for: .morning)),
-                                            evening: .init(text: coordinator.comment(for: .evening))))
+        _morningComment = StateObject(wrappedValue: .init(source: .morning, text: coordinator.comment(for: .morning)))
+        _eveningComment = StateObject(wrappedValue: .init(source: .evening, text: coordinator.comment(for: .evening)))
     }
 
     var body: some View {
@@ -47,10 +52,12 @@ struct DayComposerActiveView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     DayComposerActiveHeader(coordinator: coordinator)
                     DayComposerNavigator(coordinator: coordinator, select: select)
+                        .disabled(stabilizationBarrier.isInteractionFrozen)
                     rootMessage
                     units
                     commentPanel
                     DayComposerActiveCommands(coordinator: coordinator, navigate: navigate, dismiss: leave)
+                        .disabled(stabilizationBarrier.isInteractionFrozen)
                 }
                 .padding(16)
             }
@@ -65,7 +72,15 @@ struct DayComposerActiveView: View {
             }
         }
         .background(Color.appSurfaceInset)
-        .onAppear { coordinator.revalidateExecutionContext() }
+        .onAppear {
+            coordinator.revalidateExecutionContext()
+            stabilizationBarrier.registerComment(morningComment)
+            stabilizationBarrier.registerComment(eveningComment)
+        }
+        .onDisappear {
+            stabilizationBarrier.unregisterComment(source: .morning, token: morningComment.instance)
+            stabilizationBarrier.unregisterComment(source: .evening, token: eveningComment.instance)
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { coordinator.revalidateExecutionContext() }
         }
@@ -74,6 +89,7 @@ struct DayComposerActiveView: View {
     @ViewBuilder private var rootMessage: some View {
         if coordinator.isLocked {
             DayComposerLockedState(close: leave)
+                .disabled(stabilizationBarrier.isInteractionFrozen)
         } else if !coordinator.hasActionableItems || coordinator.currentMemberID == nil {
             DayComposerSummaryState()
         }
@@ -90,42 +106,49 @@ struct DayComposerActiveView: View {
         VStack(alignment: .leading, spacing: 16) {
             ForEach(coordinator.orderedUnits) { unit in
                 DayComposerUnitContent(coordinator: coordinator, unit: unit,
-                                       bodyWeight: bodyWeight, select: select, logged: logged)
+                                       barrier: stabilizationBarrier, bodyWeight: bodyWeight, select: select, logged: logged)
             }
         }
     }
 
     @ViewBuilder private var commentPanel: some View {
         if let source = coordinator.selectedSource {
-            DayComposerSourceCommentSection(source: source, buffer: comments[source],
+            let holder = source == .morning ? morningComment : eveningComment
+            DayComposerSourceCommentSection(holder: holder,
                 locked: coordinator.isLocked,
+                frozen: !stabilizationBarrier.permitsOrdinaryMutation(for: source),
                 edit: { text in writeComment(text, source: source) },
-                retry: { writeComment(comments[source].text, source: source) })
+                retry: { writeComment(holder.text, source: source) })
                 .id(source)
         }
     }
 
     private func writeComment(_ text: String, source: DayComposerSource) {
-        comments.edit(text, source: source) { coordinator.setComment($0, for: $1) }
+        guard !coordinator.isLocked else { return }
+        stabilizationBarrier.editComment(source == .morning ? morningComment : eveningComment, text: text)
     }
     private func endEditing() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     private func select(_ id: DayComposerItemID) {
+        guard !stabilizationBarrier.isInteractionFrozen else { return }
         endEditing()
         coordinator.revalidateExecutionContext()
         coordinator.consult(id)
     }
     private func navigate(_ offset: Int) {
+        guard !stabilizationBarrier.isInteractionFrozen else { return }
         endEditing()
         coordinator.revalidateExecutionContext()
         coordinator.consultAdjacent(offset: offset)
     }
     private func logged(_ id: DayComposerItemID) {
+        guard !stabilizationBarrier.isInteractionFrozen else { return }
         endEditing()
         coordinator.advanceAfterAcceptedLog(itemID: id)
     }
     private func leave() {
+        guard !stabilizationBarrier.isInteractionFrozen else { return }
         endEditing()
         onDismiss() // No cleanup, finish, timer reset or network request.
     }
@@ -182,19 +205,20 @@ private struct DayComposerNavigator: View {
 private struct DayComposerUnitContent: View {
     @ObservedObject var coordinator: DayComposerExecutionCoordinator
     let unit: DayComposerUnit
+    let barrier: DayComposerLocalStabilizationBarrier
     let bodyWeight: Double
     let select: (DayComposerItemID) -> Void
     let logged: (DayComposerItemID) -> Void
     var body: some View {
         if unit.group != nil {
             DayComposerSupersetContent(coordinator: coordinator, unit: unit,
-                                      bodyWeight: bodyWeight, select: select, logged: logged)
+                                      barrier: barrier, bodyWeight: bodyWeight, select: select, logged: logged)
         } else {
             ForEach(unit.items) { item in member(item) }
         }
     }
     private func member(_ item: DayComposerItem) -> some View {
-        DayComposerExerciseContent(coordinator: coordinator, item: item, bodyWeight: bodyWeight,
+        DayComposerExerciseContent(coordinator: coordinator, item: item, barrier: barrier, bodyWeight: bodyWeight,
                                    select: select, logged: logged).id(item.id)
     }
 }
@@ -202,6 +226,7 @@ private struct DayComposerUnitContent: View {
 private struct DayComposerSupersetContent: View {
     @ObservedObject var coordinator: DayComposerExecutionCoordinator
     let unit: DayComposerUnit
+    let barrier: DayComposerLocalStabilizationBarrier
     let bodyWeight: Double
     let select: (DayComposerItemID) -> Void
     let logged: (DayComposerItemID) -> Void
@@ -212,7 +237,7 @@ private struct DayComposerSupersetContent: View {
                 .accessibilityLabel("Superset \(unit.source.title), 2 exercices")
                 .accessibilityAddTraits(.isHeader)
             ForEach(unit.items) { item in
-                DayComposerExerciseContent(coordinator: coordinator, item: item, bodyWeight: bodyWeight,
+                DayComposerExerciseContent(coordinator: coordinator, item: item, barrier: barrier, bodyWeight: bodyWeight,
                                            select: select, logged: logged).id(item.id)
             }
         }
@@ -222,6 +247,7 @@ private struct DayComposerSupersetContent: View {
 private struct DayComposerExerciseContent: View {
     @ObservedObject var coordinator: DayComposerExecutionCoordinator
     let item: DayComposerItem
+    let barrier: DayComposerLocalStabilizationBarrier
     let bodyWeight: Double
     let select: (DayComposerItemID) -> Void
     let logged: (DayComposerItemID) -> Void
@@ -263,7 +289,8 @@ private struct DayComposerExerciseContent: View {
             onSubmitLogCandidate: { coordinator.submit(candidate: $0, for: item.id) },
             onPersistenceRefused: { coordinator.reportPersistenceRefusal($0) },
             allowsManualRest: p.allowsManualRest,
-            onDraftPersisted: { coordinator.refreshDerivedState() })
+            onDraftPersisted: { coordinator.refreshDerivedState() },
+            sourceRegistration: .init(barrier: barrier, identity: p.identity))
     }
 }
 
@@ -344,24 +371,27 @@ private struct DayComposerLocalSummary: View {
 }
 
 private struct DayComposerSourceCommentSection: View {
-    let source: DayComposerSource
-    let buffer: DayComposerCommentBuffers.Buffer
+    @ObservedObject var holder: DayComposerCommentParticipant
     let locked: Bool
+    let frozen: Bool
     let edit: (String) -> Void
     let retry: () -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Commentaire \(source.title)").font(.headline).accessibilityAddTraits(.isHeader)
+            Text("Commentaire \(holder.source.title)").font(.headline).accessibilityAddTraits(.isHeader)
             if locked {
-                Text(buffer.text.isEmpty ? "Aucun commentaire saisi" : buffer.text)
+                Text(holder.text.isEmpty ? "Aucun commentaire saisi" : holder.text)
             } else {
-                TextField("Commentaire \(source.title)", text: Binding(get: { buffer.text }, set: edit), axis: .vertical)
+                TextField("Commentaire \(holder.source.title)", text: Binding(get: { holder.text }, set: edit), axis: .vertical)
                     .frame(minHeight: 44)
-                    .accessibilityLabel("Commentaire \(source.title)")
+                    .accessibilityLabel("Commentaire \(holder.source.title)")
+                    .disabled(frozen)
             }
-            if let outcome = buffer.outcome, outcome != .accepted {
+            if let outcome = holder.outcome, outcome != .accepted {
                 Text("Non enregistré sur cet appareil").foregroundStyle(Color.appDanger)
-                if !locked { Button("Réessayer l’enregistrement local", action: retry).frame(minHeight: 44) }
+                if !locked {
+                    Button("Réessayer l’enregistrement local", action: retry).frame(minHeight: 44).disabled(frozen)
+                }
             }
         }
         .foregroundStyle(Color.appTextPrimary)

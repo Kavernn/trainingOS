@@ -91,7 +91,7 @@ final class ExerciseEditorPreparationController: ObservableObject {
         init(_ child: any ExerciseChildPreparing) { self.child = child; token = child.instance }
     }
     let gate: ExerciseEditorMutationGate
-    private let instance = UUID()
+    let instance = UUID()
     private weak var vm: ExerciseViewModel?
     private var attached = false
     private var equipmentBaseline: String?
@@ -236,12 +236,17 @@ final class ExerciseEditorPreparationController: ObservableObject {
         switch prepareEditorsForStabilization() {
         case .failure(let failure): return .editorFailure(failure)
         case .success(let editors):
-            guard let vm else { return .editorFailure(.instanceChanged) }
-            let result = vm.flushPendingLocalPersistence()
-            guard case .stable(let persistence) = result else { return .persistenceFailure(result) }
-            let receipt = ExerciseCardStabilizationReceipt(editors: editors, persistence: persistence)
-            return verifyCardStabilization(receipt) ? .stable(receipt) : .editorFailure(.instanceChanged)
+            return flushPreparedEditors(editors)
         }
+    }
+
+    /// Consumes an already prepared receipt; never re-prepares another child.
+    func flushPreparedEditors(_ editors: ExerciseEditorPreparationReceipt) -> ExerciseCardStabilizationOutcome {
+        guard verifyEditors(editors), let vm else { return .editorFailure(.instanceChanged) }
+        let result = vm.flushPendingLocalPersistence()
+        guard case .stable(let persistence) = result else { return .persistenceFailure(result) }
+        let receipt = ExerciseCardStabilizationReceipt(editors: editors, persistence: persistence)
+        return verifyCardStabilization(receipt) ? .stable(receipt) : .editorFailure(.instanceChanged)
     }
 
     func verifyCardStabilization(_ receipt: ExerciseCardStabilizationReceipt) -> Bool {
