@@ -123,6 +123,24 @@ enum LocalPersistenceResult: Equatable {
     case accepted, rejectedContext, failed
 }
 
+/// VM-local evidence only: private child editors and source readiness are not certified.
+struct ExerciseLocalFlushReceipt {
+    fileprivate enum DraftState: Equatable { case absent, present(Data), unreadable }
+    fileprivate let owner: UUID
+    let editGeneration: UInt64
+    fileprivate let epoch: Int
+    fileprivate let editor: Data
+    fileprivate let expected: DraftState
+    fileprivate let painZone: String
+}
+
+enum ExerciseLocalFlushOutcome {
+    enum UnrepresentedField { case painZone }
+    case stable(ExerciseLocalFlushReceipt)
+    case rejectedContext, failed
+    case nonRepresentableState(UnrepresentedField)
+}
+
 struct ExerciseDraftPersistence {
     let date: String
     let sessionType: String
@@ -383,12 +401,23 @@ final class ExerciseViewModel: ObservableObject {
     private let validateLocalPersistence: (() -> LocalPersistenceResult)?
 
     // Published state (was @State in ExerciseCard)
-    @Published var sets: [SetInput] = []
+    @Published var sets: [SetInput] = [] {
+        didSet {
+            if !isHydratingRecovery && !isInitializingSets &&
+                canonical(ExerciseCardDraft(sets: draftSets(oldValue))) != canonical(ExerciseCardDraft(sets: draftSets(sets))) {
+                localEditGeneration += 1
+            }
+        }
+    }
     @Published var showHistory = false
     @Published var logStatus: LogStatus? = nil
     // Auto-calculé depuis le RIR moyen des sets (ne plus modifier manuellement)
     var exerciseRPE: Double { ExerciseCalculator.exerciseRPE(sets: sets) }
-    @Published var painZone: String = ""
+    @Published var painZone: String = "" {
+        didSet {
+            if !isHydratingRecovery && painZone != oldValue { localEditGeneration += 1 }
+        }
+    }
     @Published var setBySetMode: Bool = false
     @Published var currentSetIndex: Int = 0
     @Published var repCountMode: Bool = false
@@ -397,10 +426,16 @@ final class ExerciseViewModel: ObservableObject {
     @Published var isEditing = false
     @Published var isSkipped = false
     @Published var sessionNote: String = "" {
-        didSet { if !isClearingDraft && !isHydratingRecovery { saveDraft() } }
+        didSet {
+            if !isClearingDraft && !isHydratingRecovery {
+                if !isInitializingSets && sessionNote != oldValue { localEditGeneration += 1 }
+                saveDraft()
+            }
+        }
     }
     private var isClearingDraft = false
     private var isHydratingRecovery = false
+    private var isInitializingSets = false
     private var didHydrateRecovery = false
     private var draftEpoch = 0
     @Published private(set) var localPersistenceIssue: LocalPersistenceResult?
@@ -413,7 +448,13 @@ final class ExerciseViewModel: ObservableObject {
     @Published private(set) var draftSavedAt: Date? = nil
     // W-B2 — expose network log errors so ExerciseCard can display a banner
     @Published var logError: String? = nil
-    private var cancellables = Set<AnyCancellable>()
+    private var setsDraftDebounceCancellable: AnyCancellable?
+    private(set) var hasPendingSetsPersistence = false
+    private(set) var localEditGeneration: UInt64 = 0
+    private let flushIdentity = UUID()
+    private var baselineEditor: Data?
+    private var baselineDraft: ExerciseLocalFlushReceipt.DraftState = .absent
+    private var baselinePainZone = ""
 
     init(name: String, scheme: String, weightData: WeightData?, equipmentType: String = "machine",
          trackingType: String = "reps", isUnilateral: Bool = false, bodyWeight: Double = 0,
@@ -440,17 +481,29 @@ final class ExerciseViewModel: ObservableObject {
         self.suggestion      = suggestion
         self.sessionDate     = sessionDate
 
-        // W-D9 — reduced debounce from 1.5s to 0.5s for faster draft saves
-        $sets
+        baselineEditor = canonical(currentDraft)
+        installSetsDraftDebounce()
+    }
+
+    private func installSetsDraftDebounce() {
+        setsDraftDebounceCancellable = $sets
             .dropFirst()
             .filter { [weak self] _ in self?.isHydratingRecovery != true }
+            .handleEvents(receiveOutput: { [weak self] _ in self?.hasPendingSetsPersistence = true })
             .map { [weak self] _ in self?.draftEpoch }
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
             .sink { [weak self] epoch in
-                guard let self, epoch == self.draftEpoch else { return }
+                guard let self, self.draftAuthorization == nil || epoch == self.draftEpoch else { return }
+                self.hasPendingSetsPersistence = false
                 self.saveDraft()
             }
-            .store(in: &cancellables)
+    }
+
+    private func cancelSetsDraftDebounce() {
+        setsDraftDebounceCancellable?.cancel()
+        setsDraftDebounceCancellable = nil
+        draftEpoch += 1
+        hasPendingSetsPersistence = false
     }
 
     // MARK: - Computed
@@ -570,6 +623,93 @@ final class ExerciseViewModel: ObservableObject {
         return validateLocalPersistence?() ?? .accepted
     }
 
+    private func draftSets(_ inputs: [SetInput]) -> [DraftSet] {
+        inputs.map {
+            DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe,
+                     distance: $0.distance.isEmpty ? nil : $0.distance,
+                     intensity: $0.intensity.isEmpty ? nil : $0.intensity,
+                     durationLeft: $0.durationLeft, durationRight: $0.durationRight,
+                     protocolCompleted: $0.protocolCompleted ? true : nil)
+        }
+    }
+
+    private var currentDraft: ExerciseCardDraft {
+        ExerciseCardDraft(sets: draftSets(sets), sessionNote: sessionNote)
+    }
+
+    private func canonical(_ draft: ExerciseCardDraft) -> Data? {
+        guard let bytes = try? APIService.encoder.encode(draft),
+              let json = try? JSONSerialization.jsonObject(with: bytes) else { return nil }
+        return try? JSONSerialization.data(withJSONObject: json, options: .sortedKeys)
+    }
+
+    private func persistedDraftState() -> ExerciseLocalFlushReceipt.DraftState {
+        switch draftStore.presence() {
+        case .absent: return .absent
+        case .presentUnreadable: return .unreadable
+        case .presentDecodable:
+            guard let draft = draftStore.loadCard(), let data = canonical(draft) else { return .unreadable }
+            return .present(data)
+        }
+    }
+
+    private func establishHydratedBaseline() {
+        baselineEditor = canonical(currentDraft)
+        baselineDraft = persistedDraftState()
+        baselinePainZone = painZone
+    }
+
+    /// Cancels the old deadline even on refusal. Rearming never replays its current value.
+    /// This does not log, clear recovery, or certify private ExerciseCard child state.
+    func flushPendingLocalPersistence() -> ExerciseLocalFlushOutcome {
+        let permission = writePermission() // Authorization precedes every equality/no-op path.
+        cancelSetsDraftDebounce()
+        defer { installSetsDraftDebounce() }
+        guard permission == .accepted else {
+            recordPersistenceResult(permission)
+            return permission == .rejectedContext ? .rejectedContext : .failed
+        }
+        guard !cleanupPending, !isHydratingRecovery, !isInitializingSets,
+              let editor = canonical(currentDraft) else {
+            recordPersistenceResult(.failed)
+            return .failed
+        }
+        guard painZone == baselinePainZone else { return .nonRepresentableState(.painZone) }
+        let generation = localEditGeneration
+        let epoch = draftEpoch
+        if editor != baselineEditor {
+            let result = saveDraft()
+            guard result == .accepted else {
+                recordPersistenceResult(result)
+                return result == .rejectedContext ? .rejectedContext : .failed
+            }
+        }
+        let finalPermission = writePermission()
+        guard finalPermission == .accepted else {
+            recordPersistenceResult(finalPermission)
+            return finalPermission == .rejectedContext ? .rejectedContext : .failed
+        }
+        guard baselineDraft != .unreadable, persistedDraftState() == baselineDraft,
+              canonical(currentDraft) == editor, painZone == baselinePainZone,
+              localEditGeneration == generation, draftEpoch == epoch else {
+            recordPersistenceResult(.failed)
+            return .failed
+        }
+        recordPersistenceResult(.accepted)
+        return .stable(.init(owner: flushIdentity, editGeneration: localEditGeneration,
+                             epoch: draftEpoch, editor: editor, expected: baselineDraft, painZone: painZone))
+    }
+
+    /// Readback only. The optional parent validator may update its own context-lock state.
+    func verifyLocalPersistence(_ receipt: ExerciseLocalFlushReceipt) -> Bool {
+        receipt.owner == flushIdentity && receipt.editGeneration == localEditGeneration &&
+        receipt.epoch == draftEpoch && !hasPendingSetsPersistence && !cleanupPending &&
+        !isHydratingRecovery && !isInitializingSets && writePermission() == .accepted &&
+        canonical(currentDraft) == receipt.editor && receipt.painZone == painZone &&
+        painZone == baselinePainZone && receipt.expected != .unreadable &&
+        persistedDraftState() == receipt.expected
+    }
+
     @discardableResult
     func saveDraft() -> LocalPersistenceResult {
         let permission = writePermission()
@@ -577,16 +717,14 @@ final class ExerciseViewModel: ObservableObject {
             recordPersistenceResult(permission)
             return permission
         }
-        let draft = sets.map {
-            DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe,
-                     distance: $0.distance.isEmpty ? nil : $0.distance,
-                     intensity: $0.intensity.isEmpty ? nil : $0.intensity,
-                     durationLeft: $0.durationLeft, durationRight: $0.durationRight,
-                     protocolCompleted: $0.protocolCompleted ? true : nil)
-        }
-        let result = draftStore.saveResult(draft, sessionNote: sessionNote)
+        let projection = currentDraft
+        let result = draftStore.saveResult(projection.sets, sessionNote: projection.sessionNote)
         if draftAuthorization != nil { recordPersistenceResult(result) }
-        if result == .accepted { draftSavedAt = Date() }
+        if result == .accepted {
+            baselineEditor = canonical(projection)
+            baselineDraft = baselineEditor.map { .present($0) } ?? .unreadable
+            draftSavedAt = Date()
+        }
         return result
     }
 
@@ -604,8 +742,17 @@ final class ExerciseViewModel: ObservableObject {
             recordPersistenceResult(result)
             guard result == .accepted else { return result }
         }
-        if draftAuthorization != nil { draftEpoch += 1 } // Cancel pending authorized writes after cleanup.
+        if draftAuthorization != nil {
+            cancelSetsDraftDebounce()
+            installSetsDraftDebounce()
+        } else if result == .accepted {
+            draftEpoch += 1
+        }
         sessionNote = ""
+        if result == .accepted {
+            baselineEditor = canonical(currentDraft)
+            baselineDraft = .absent
+        }
         return result
     }
 
@@ -619,7 +766,7 @@ final class ExerciseViewModel: ObservableObject {
         guard !didHydrateRecovery, sets.isEmpty else { return }
         didHydrateRecovery = true
         isHydratingRecovery = true
-        defer { isHydratingRecovery = false }
+        defer { establishHydratedBaseline(); isHydratingRecovery = false }
         // A real edit saved after recovery takes precedence on a later recreation.
         if let draft = draftStore.loadCard(), !draft.sets.isEmpty {
             sets = draft.sets.map {
@@ -638,8 +785,13 @@ final class ExerciseViewModel: ObservableObject {
 
     func initializeSets() {
         guard sets.isEmpty else { return }
+        isInitializingSets = true
         isHydratingRecovery = draftAuthorization != nil
-        defer { isHydratingRecovery = false }
+        defer {
+            establishHydratedBaseline()
+            isHydratingRecovery = false
+            isInitializingSets = false
+        }
         let draft = draftStore.loadCard()
         if let draft, !draft.sets.isEmpty {
             sets = draft.sets.map {
@@ -945,6 +1097,7 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     private func markLogAccepted(_ result: ExerciseLogResult) {
+        baselinePainZone = result.painZone
         isLogged = true
         isEditing = false
         logError = nil

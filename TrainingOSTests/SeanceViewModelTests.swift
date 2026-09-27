@@ -13,6 +13,285 @@ import SwiftUI
 @MainActor
 final class SeanceViewModelTests: XCTestCase {
 
+    private func flushReceipt(_ vm: ExerciseViewModel, file: StaticString = #filePath,
+                              line: UInt = #line) throws -> ExerciseLocalFlushReceipt {
+        guard case .stable(let receipt) = vm.flushPendingLocalPersistence() else {
+            XCTFail("Expected VM-local stable receipt", file: file, line: line)
+            throw NSError(domain: "ForcedFlushTests", code: 1)
+        }
+        XCTAssertTrue(vm.verifyLocalPersistence(receipt), file: file, line: line)
+        return receipt
+    }
+
+    func testForcedFlushCleanAndHydratedBaselinesNeverWrite() async throws {
+        let date = "flush-clean-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil,
+                                   sessionDate: date, draftAuthorization: token)
+        let before = preparationBytes(date)
+        let provenance = try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date))
+        _ = try flushReceipt(vm)
+        vm.initializeRecovery(.init(sets: [SetInput(weight: "80", reps: "5")], note: "Recovered", painZone: "Knee"))
+        let receipt = try flushReceipt(vm)
+        XCTAssertEqual(receipt.editGeneration, 0)
+        XCTAssertFalse(vm.hasPendingSetsPersistence)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(preparationBytes(date), before)
+        XCTAssertEqual(try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date)), provenance)
+        XCTAssertTrue(vm.verifyLocalPersistence(receipt))
+        XCTAssertNil(vm.draftSavedAt)
+        XCTAssertFalse(vm.isLogged)
+        XCTAssertNil(vm.logStatus)
+    }
+
+    func testForcedFlushHydratedDraftVerifiesWithoutRevision() async throws {
+        let date = "flush-hydrate-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A", authorization: token)
+        XCTAssertEqual(store.saveResult([DraftSet(weight: "80", reps: "5", rir: 2, duration: 0)], sessionNote: "Keep"), .accepted)
+        let before = preparationBytes(date)
+        let record = try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date))
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        vm.initializeSets()
+        XCTAssertEqual(vm.localEditGeneration, 0)
+        _ = try flushReceipt(vm)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(preparationBytes(date), before)
+        XCTAssertEqual(try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date)), record)
+    }
+
+    func testForcedFlushPendingOnceThenRearmsFutureEdit() async throws {
+        let date = "flush-once-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A")
+        vm.initializeSets()
+        vm.sets[0].reps = "5"
+        XCTAssertTrue(vm.hasPendingSetsPersistence)
+        XCTAssertEqual(vm.localEditGeneration, 1)
+        let revision = try XCTUnwrap(DayComposerProvenanceStore.shared.load(date: date)).morning.revision
+        let receipt = try flushReceipt(vm)
+        XCTAssertFalse(vm.hasPendingSetsPersistence)
+        XCTAssertEqual(store.load()?.first?.reps, "5")
+        XCTAssertEqual(try XCTUnwrap(DayComposerProvenanceStore.shared.load(date: date)).morning.revision, revision + 1)
+        let savedAt = vm.draftSavedAt
+        let record = try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date))
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(vm.draftSavedAt, savedAt) // Detect even a redundant no-op save attempt.
+        XCTAssertEqual(try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date)), record)
+        vm.sets[0].reps = "6"
+        XCTAssertFalse(vm.verifyLocalPersistence(receipt))
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(store.load()?.first?.reps, "6")
+    }
+
+    func testForcedFlushSameContentStillRejectsStaleAuthorization() async throws {
+        let date = "flush-stale-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        vm.initializeSets()
+        vm.sessionNote = "Same"
+        _ = try flushReceipt(vm)
+        SessionDraftStore.saveComment("Classic edit", date: date, sessionType: "morning")
+        let before = preparationBytes(date)
+        guard case .rejectedContext = vm.flushPendingLocalPersistence() else { return XCTFail("Stale no-op accepted") }
+        vm.sets[0].reps = "6"
+        guard case .rejectedContext = vm.flushPendingLocalPersistence() else { return XCTFail("Stale edit accepted") }
+        XCTAssertFalse(vm.hasPendingSetsPersistence)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(preparationBytes(date), before)
+    }
+
+    func testForcedFlushFailureCancelsDeadlineButNewEditCanSave() async throws {
+        let date = "flush-failure-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        var checks = 0
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date,
+            draftAuthorization: token, validateLocalPersistence: {
+                checks += 1
+                return checks == 2 ? .failed : .accepted // Refuse the forced save, after initial admission.
+            })
+        vm.initializeSets()
+        vm.sets[0].reps = "5"
+        guard case .failed = vm.flushPendingLocalPersistence() else { return XCTFail("Expected failure") }
+        XCTAssertEqual(vm.localPersistenceIssue, .failed)
+        XCTAssertEqual(vm.sets[0].reps, "5")
+        XCTAssertFalse(vm.hasPendingSetsPersistence)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(checks, 2)
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A")
+        XCTAssertEqual(store.presence(), .absent)
+        vm.sets[0].reps = "6"
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(store.load()?.first?.reps, "6")
+        XCTAssertNil(vm.localPersistenceIssue)
+    }
+
+    func testForcedFlushNotesEmptyAndReceiptInvalidation() throws {
+        let date = "flush-note-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        vm.initializeSets()
+        var receipt = try flushReceipt(vm)
+        for note in ["Exact note", ""] {
+            vm.sessionNote = note
+            XCTAssertFalse(vm.verifyLocalPersistence(receipt))
+            let before = preparationBytes(date)
+            let savedAt = vm.draftSavedAt
+            receipt = try flushReceipt(vm)
+            XCTAssertEqual(preparationBytes(date), before)
+            XCTAssertEqual(vm.draftSavedAt, savedAt)
+            XCTAssertEqual(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").loadCard()?.sessionNote, note)
+        }
+        XCTAssertEqual(vm.clearDraft(), .accepted)
+        XCTAssertFalse(vm.verifyLocalPersistence(receipt))
+        _ = try flushReceipt(vm)
+    }
+
+    func testForcedFlushSpecializedProjectionAndExactNoOpGeneration() throws {
+        let date = "flush-specialized-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        vm.initializeSets()
+        vm.sets[0] = SetInput(weight: "20", reps: "8", duration: 75, durationLeft: 30,
+                             durationRight: 40, distance: "25", intensity: "60", rir: 1, rpe: 9, protocolCompleted: true)
+        _ = try flushReceipt(vm)
+        let draft = try XCTUnwrap(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").load()?.first)
+        XCTAssertEqual(draft.distance, "25")
+        XCTAssertEqual(draft.intensity, "60")
+        XCTAssertEqual(draft.reps, "8")
+        XCTAssertEqual(draft.protocolCompleted, true)
+        XCTAssertEqual(draft.duration, 75)
+        XCTAssertEqual(draft.durationLeft, 30)
+        XCTAssertEqual(draft.durationRight, 40)
+        XCTAssertEqual(draft.rir, 1)
+        XCTAssertEqual(draft.rpe, 9)
+        let generation = vm.localEditGeneration
+        let unchanged = vm.sets
+        vm.sets = unchanged
+        XCTAssertEqual(vm.localEditGeneration, generation)
+        _ = try flushReceipt(vm)
+    }
+
+    func testForcedFlushPainZoneAndAcceptedLogAbsenceBaseline() async throws {
+        let date = "flush-log-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        vm.initializeSets()
+        let clean = try flushReceipt(vm)
+        vm.painZone = "Knee"
+        XCTAssertFalse(vm.verifyLocalPersistence(clean))
+        guard case .nonRepresentableState(.painZone) = vm.flushPendingLocalPersistence() else { return XCTFail("Pain not represented") }
+        vm.sets[0].weight = "80"
+        vm.sets[0].reps = "5"
+        XCTAssertEqual(vm.submitLog(alreadyLoggedViaBinding: false) { result in
+            XCTAssertEqual(result?.painZone, "Knee")
+            return .accepted
+        }, .accepted)
+        XCTAssertFalse(vm.sets.isEmpty)
+        let before = preparationBytes(date)
+        _ = try flushReceipt(vm)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(preparationBytes(date), before)
+        XCTAssertEqual(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").presence(), .absent)
+    }
+
+    func testForcedFlushRefusesCleanupPending() throws {
+        let date = "flush-cleanup-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        var allowCleanup = true
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date,
+            draftAuthorization: token, validateLocalPersistence: { allowCleanup ? .accepted : .failed })
+        vm.initializeSets()
+        vm.sets[0].weight = "80"
+        vm.sets[0].reps = "5"
+        vm.sessionNote = "Keep draft"
+        XCTAssertEqual(vm.submitLog(alreadyLoggedViaBinding: false) { _ in
+            allowCleanup = false
+            return .accepted
+        }, .failed)
+        allowCleanup = true
+        XCTAssertTrue(vm.cleanupPending)
+        let before = preparationBytes(date)
+        guard case .failed = vm.flushPendingLocalPersistence() else { return XCTFail("Cleanup pending certified") }
+        XCTAssertEqual(preparationBytes(date), before)
+    }
+
+    func testForcedFlushReceiptRejectsOtherVMAndChangedReadback() throws {
+        let date = "flush-receipt-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date)
+        let other = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date)
+        let receipt = try flushReceipt(vm)
+        XCTAssertFalse(other.verifyLocalPersistence(receipt))
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A")
+        XCTAssertEqual(store.saveResult([], sessionNote: "External"), .accepted)
+        XCTAssertFalse(vm.verifyLocalPersistence(receipt))
+        guard case .failed = vm.flushPendingLocalPersistence() else { return XCTFail("Unexpected draft overwritten") }
+        XCTAssertEqual(store.loadCard()?.sessionNote, "External")
+    }
+
+    func testForcedFlushRetriesFailedImmediateNoteExplicitly() throws {
+        let date = "flush-note-retry-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        var allow = false
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date,
+            draftAuthorization: token, validateLocalPersistence: { allow ? .accepted : .failed })
+        vm.initializeSets()
+        vm.sessionNote = "Retained"
+        XCTAssertEqual(vm.localPersistenceIssue, .failed)
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A")
+        XCTAssertEqual(store.presence(), .absent)
+        allow = true
+        _ = try flushReceipt(vm)
+        XCTAssertEqual(store.loadCard()?.sessionNote, "Retained")
+        XCTAssertNil(vm.localPersistenceIssue)
+    }
+
+    func testForcedFlushUnencodableProjectionCancelsPendingWrite() async throws {
+        let date = "flush-encoding-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        vm.initializeSets()
+        vm.sets[0].rpe = .nan
+        guard case .failed = vm.flushPendingLocalPersistence() else { return XCTFail("Non-JSON projection certified") }
+        XCTAssertFalse(vm.hasPendingSetsPersistence)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertNil(vm.draftSavedAt)
+        XCTAssertEqual(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").presence(), .absent)
+    }
+
+    func testClassicNilAuthorizationDebounceNoteLogAndResetWithoutFlush() async throws {
+        let date = "flush-classic-regression-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date)
+        let store = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A")
+        vm.initializeSets()
+        vm.sets[0].weight = "80"
+        vm.sets[0].reps = "5"
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(store.load()?.first?.reps, "5")
+        vm.sessionNote = "Classic"
+        XCTAssertEqual(store.loadCard()?.sessionNote, "Classic")
+        XCTAssertEqual(vm.logExercise(alreadyLoggedViaBinding: false)?.notes, "Classic")
+        XCTAssertEqual(store.presence(), .absent)
+        vm.undoLog()
+        vm.resetAfterClear()
+        XCTAssertFalse(vm.isLogged)
+        XCTAssertEqual(store.presence(), .absent)
+    }
+
     private func cardAuthorization(_ date: String, source: DayComposerSource = .morning)
         throws -> DayComposerProvenanceStore.Authorization {
         let context = try DayComposerExecutionContext(snapshot: DayComposerSnapshot(date: date, activeProgramID: "A",
