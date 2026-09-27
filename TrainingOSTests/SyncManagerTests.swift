@@ -38,12 +38,15 @@ final class SyncManagerTests: XCTestCase {
         XCTAssertTrue(queue.load().allSatisfy { $0.isSynced })
     }
 
-    func testFlush409CountsAsSuccess() async throws {
+    func testFlush409IsDiscardedRatherThanDelivered() async throws {
         manager.urlSession = makeMockURLSession(statusCode: 409)
         manager.enqueue(endpoint: "/api/log", payload: ["exercise": "Deadlift"])
         await manager.flushQueue()
         XCTAssertEqual(manager.pendingCount, 0)
         XCTAssertTrue(queue.load().allSatisfy { $0.isSynced })
+        // isSynced historically means "retired", including rejection. The toast
+        // proves the discarded branch ran; the old assertion couldn't distinguish it.
+        XCTAssertTrue(manager.offlineToast?.contains("409") == true)
     }
 
     func testFlushFailureIncrementsRetry() async throws {
