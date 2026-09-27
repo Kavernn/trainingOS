@@ -44,6 +44,8 @@ struct ExerciseCard: View {
     var onCheckToggle: (() -> Void)? = nil
 
     @StateObject private var evm: ExerciseViewModel
+    @StateObject private var editorController: ExerciseEditorPreparationController
+    private let preparesEditors: Bool
     @ObservedObject private var units = UnitSettings.shared
     @ObservedObject private var restTimer = RestTimerManager.shared
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -93,7 +95,10 @@ struct ExerciseCard: View {
          onSubmitLogCandidate: ((ExerciseLogResult?) -> LocalPersistenceResult)? = nil,
          onPersistenceRefused: ((LocalPersistenceResult) -> Void)? = nil,
          allowsManualRest: Bool = true,
-         onDraftPersisted: (() -> Void)? = nil) {
+         onDraftPersisted: (() -> Void)? = nil,
+         editorPreparation: ExerciseEditorPreparationController? = nil) {
+        self.preparesEditors = editorPreparation != nil
+        _editorController = StateObject(wrappedValue: editorPreparation ?? ExerciseEditorPreparationController())
         self.allowsManualRest = allowsManualRest
         self.onDraftPersisted = onDraftPersisted
         self.onSubmitLogCandidate = onSubmitLogCandidate
@@ -144,6 +149,69 @@ struct ExerciseCard: View {
 
     // MARK: - View-layer computed
 
+    private var mayEdit: Bool { !preparesEditors || editorController.gate.allowsOrdinaryMutation }
+
+    private func allowAction() -> Bool {
+        guard mayEdit else { return false }
+        if preparesEditors { editorController.didMutatePrivateState() }
+        return true
+    }
+
+    private func controlled<Value>(_ binding: Binding<Value>) -> Binding<Value> {
+        Binding(get: { binding.wrappedValue }, set: {
+            let value = $0
+            if preparesEditors {
+                editorController.gate.performOrdinaryMutation { binding.wrappedValue = value }
+            } else { binding.wrappedValue = value }
+        })
+    }
+
+    private func setText(_ index: Int, _ keyPath: WritableKeyPath<SetInput, String>) -> Binding<String> {
+        let id = evm.sets[index].id
+        return Binding(get: {
+            guard evm.sets.indices.contains(index), evm.sets[index].id == id else { return "" }
+            return evm.sets[index][keyPath: keyPath]
+        }, set: { value in
+            guard evm.sets.indices.contains(index), evm.sets[index].id == id else { return }
+            if preparesEditors {
+                editorController.gate.performOrdinaryMutation { evm.sets[index][keyPath: keyPath] = value }
+            } else { evm.sets[index][keyPath: keyPath] = value }
+        })
+    }
+
+    private func stepperContext(_ index: Int, field: String,
+                                keyPath: WritableKeyPath<SetInput, String>,
+                                minimum: @escaping () -> Double = { 0 },
+                                isInteger: Bool = false) -> ExerciseStepperPreparationContext? {
+        guard preparesEditors, evm.sets.indices.contains(index) else { return nil }
+        let id = evm.sets[index].id
+        return ExerciseStepperPreparationContext(controller: editorController,
+            identity: "stepper.\(index).\(id).\(field)", writeNormalized: { value in
+                // Do not write through a stale index after set removal/replacement.
+                // SetInput IDs can be repeated by the historical Array(repeating:) initializer.
+                guard evm.sets.indices.contains(index), evm.sets[index].id == id else { return }
+                evm.sets[index][keyPath: keyPath] = value
+            }, isAvailable: { evm.sets.indices.contains(index) && evm.sets[index].id == id },
+            normalization: { ExerciseStepperEditor.normalized($0, minimum: minimum(), isInteger: isInteger) })
+    }
+
+    private func changeEquipment(_ value: String) {
+        guard mayEdit else { return }
+        if preparesEditors { editorController.setEquipment(value) }
+        else { evm.equipmentType = value }
+    }
+
+    private func deliverDuration(_ index: Int, side: Side, duration: Int) -> Bool {
+        guard mayEdit, evm.sets.indices.contains(index) else { return false }
+        if isUnilateral {
+            switch side {
+            case .left: evm.sets[index].durationLeft = duration
+            case .right: evm.sets[index].durationRight = duration
+            }
+        } else { evm.sets[index].duration = duration }
+        return true
+    }
+
     private var isTimeBased: Bool { trackingType == "time" }
 
     // time (Deadhang/planks/Copenhagen), reps, carry (Farmer's) et protocol (Bloc pelvien) ne
@@ -186,6 +254,7 @@ struct ExerciseCard: View {
     private var isCompletedCompact: Bool { alreadyLogged && !isExpanded }
 
     private func adjustAllWeights(_ direction: Int) {
+        guard mayEdit else { return }
         for i in evm.sets.indices {
             let base = evm.sets[i].weight.isEmpty
                 ? (Double(evm.perSetHint(for: i).replacingOccurrences(of: ",", with: ".")) ?? 0)
@@ -212,9 +281,11 @@ struct ExerciseCard: View {
         (try? JSONDecoder().decode([String: String].self, from: Data(exoNotesData.utf8)))?[name] ?? ""
     }
     private func saveExoNote(_ note: String) {
+        guard mayEdit else { return }
         var notes = (try? JSONDecoder().decode([String: String].self, from: Data(exoNotesData.utf8))) ?? [:]
         if note.isEmpty { notes.removeValue(forKey: name) } else { notes[name] = note }
         if let d = try? JSONEncoder().encode(notes), let s = String(data: d, encoding: .utf8) {
+            if preparesEditors { editorController.didMutatePrivateState() }
             exoNotesData = s
         }
     }
@@ -223,6 +294,7 @@ struct ExerciseCard: View {
 
     private var noteIconButton: some View {
         Button {
+            guard allowAction() else { return }
             triggerImpact(style: .light)
             if !isExpanded { onToggle() }
             withAnimation(.easeInOut(duration: 0.2)) { showAdvanced = true }
@@ -277,7 +349,9 @@ struct ExerciseCard: View {
     private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     private func doLog() {
+        guard mayEdit else { return }
         guard !showUndo, !logFlash else { return }
+        let loggedEquipment = evm.equipmentType
         if requiresAcceptance {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             guard let onSubmitLogCandidate else {
@@ -288,6 +362,7 @@ struct ExerciseCard: View {
         } else if let result = evm.logExercise(alreadyLoggedViaBinding: logResult != nil) {
             logResult = result
         } else { return }
+        if preparesEditors { editorController.acceptedEquipmentLog(loggedEquipment) }
         if !requiresAcceptance { onLogged?() }
         triggerNotificationFeedback(.success)
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -322,15 +397,19 @@ struct ExerciseCard: View {
     }
 
     private func removeLog(undo: Bool = false) -> Bool {
+        guard mayEdit else { return false }
         if requiresAcceptance {
             guard let onSubmitLogCandidate else {
                 evm.recordPersistenceResult(.failed)
                 return false
             }
-            return evm.removeAcceptedLog(submit: onSubmitLogCandidate) == .accepted
+            guard evm.removeAcceptedLog(submit: onSubmitLogCandidate) == .accepted else { return false }
+            if preparesEditors { editorController.removedEquipmentLog() }
+            return true
         }
         logResult = nil
         if undo { evm.undoLog() } else { evm.resetAfterClear() }
+        if preparesEditors { editorController.removedEquipmentLog() }
         return true
     }
 
@@ -403,6 +482,7 @@ struct ExerciseCard: View {
                         .onEnded { v in
                             guard isActive && !evm.repCountMode else { return }
                             guard v.translation.width > 60, abs(v.translation.height) < 50 else { return }
+                            guard allowAction() else { return }
                             withAnimation {
                                 triggerImpact(style: .medium)
                                 if evm.currentSetIndex < evm.sets.count - 1 {
@@ -424,7 +504,8 @@ struct ExerciseCard: View {
             }
             overloadHintLine()
             if evm.repCountMode {
-                RepCounterSection(evm: evm, doLog: doLog)
+                RepCounterSection(evm: evm, doLog: doLog,
+                                  preparation: preparesEditors ? editorController : nil)
             } else {
                 setBySetLogButton
             }
@@ -615,6 +696,7 @@ struct ExerciseCard: View {
             .foregroundColor(isDone ? Color.appSuccess : isActive ? Color.forge : Color.appTextSecondary)
             .frame(minWidth: 28)
             .onLongPressGesture(minimumDuration: 0.35) {
+                guard allowAction() else { return }
                 guard i > 0 else { return }
                 evm.sets[i].weight = evm.sets[i - 1].weight
                 evm.sets[i].reps   = evm.sets[i - 1].reps
@@ -623,7 +705,7 @@ struct ExerciseCard: View {
             .accessibilityLabel("Série \(i + 1) sur \(evm.sets.count)")
             .accessibilityValue(isDone ? "Terminée" : isActive ? "Active" : "Non validée")
         StepperInput(
-            valueStr: $evm.sets[i].weight,
+            valueStr: setText(i, \.weight),
             increment: weightIncrement,
             minimum: 0,
             placeholder: Double(evm.perSetHint(for: i)
@@ -634,7 +716,8 @@ struct ExerciseCard: View {
             accessibilityTitle: weightColumnLabel
                 .replacingOccurrences(of: " (\(units.label.uppercased()))", with: "")
                 .localizedCapitalized,
-            accessibilityUnit: units.isKg ? "kilogrammes" : "livres"
+            accessibilityUnit: units.isKg ? "kilogrammes" : "livres",
+            editorPreparation: stepperContext(i, field: "weight", keyPath: \.weight)
         )
         .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
     }
@@ -652,7 +735,7 @@ struct ExerciseCard: View {
                 .accessibilityHidden(true)
         } else {
             StepperInput(
-                valueStr: $evm.sets[i].reps,
+                valueStr: setText(i, \.reps),
                 increment: 1,
                 minimum: evm.equipmentType == "fixed_weight" ? 0 : 1,
                 placeholder: Double(evm.lastRepsParts.indices.contains(i)
@@ -660,14 +743,16 @@ struct ExerciseCard: View {
                 isInteger: true,
                 isDisabled: evm.setBySetMode && !isActive && !isDone,
                 isCompact: evm.setBySetMode,
-                accessibilityTitle: trackingType == "plyo" ? "Sauts" : "Répétitions"
+                accessibilityTitle: trackingType == "plyo" ? "Sauts" : "Répétitions",
+                editorPreparation: stepperContext(i, field: "reps", keyPath: \.reps,
+                    minimum: { evm.equipmentType == "fixed_weight" ? 0 : 1 }, isInteger: true)
             )
             .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
         }
         // W-C2 — hide RIR tiles for time-based exercises
         if showRIRColumn && !isTimeBased {
             RPEHelper.RIRTiles(
-                rir: $evm.sets[i].rir,
+                rir: controlled($evm.sets[i].rir),
                 disabled: evm.setBySetMode && !isActive && !isDone
             )
             .frame(width: 70)
@@ -675,6 +760,7 @@ struct ExerciseCard: View {
                 HStack {
                     ForEach(RPEHelper.options) { option in
                         Button("RIR, \(option.shortLabel) : \(option.label)") {
+                            guard allowAction() else { return }
                             evm.sets[i].rir = option.rir
                             triggerImpact(style: .light)
                         }
@@ -689,7 +775,7 @@ struct ExerciseCard: View {
     @ViewBuilder private func setRowDistanceSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
         HStack(spacing: 4) {
             StepperInput(
-                valueStr: $evm.sets[i].distance,
+                valueStr: setText(i, \.distance),
                 increment: 5,
                 minimum: 0,
                 placeholder: Double(ExerciseCalculator.distanceTarget(scheme: scheme) ?? 0),
@@ -697,7 +783,8 @@ struct ExerciseCard: View {
                 isDisabled: evm.setBySetMode && !isActive && !isDone,
                 isCompact: evm.setBySetMode,
                 accessibilityTitle: "Distance",
-                accessibilityUnit: "mètres"
+                accessibilityUnit: "mètres",
+                editorPreparation: stepperContext(i, field: "distance", keyPath: \.distance, isInteger: true)
             )
             .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 100)
             Text("m").font(.appCaption).foregroundColor(.gray)
@@ -729,6 +816,7 @@ struct ExerciseCard: View {
             ? (evm.isEditing ? "Mettre à jour l’exercice" : "Logger l’exercice")
             : "Terminer la série \(evm.currentSetIndex + 1)"
         Button {
+            guard allowAction() else { return }
             withAnimation {
                 triggerImpact(style: .medium)
                 if evm.currentSetIndex < evm.sets.count - 1 {
@@ -771,7 +859,7 @@ struct ExerciseCard: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 ForEach([15, 30, 45, 60, 90, 120], id: \.self) { secs in
-                    Button { for i in evm.sets.indices { evm.sets[i].duration = secs } } label: {
+                    Button { guard allowAction() else { return }; for i in evm.sets.indices { evm.sets[i].duration = secs } } label: {
                         Text(evm.formatDuration(secs))
                             .font(.appCaption).fontWeight(.semibold)
                             .padding(.horizontal, 12).padding(.vertical, 4)
@@ -793,7 +881,7 @@ struct ExerciseCard: View {
             ForEach(evm.sets.indices, id: \.self) { i in
                 HStack(spacing: 8) {
                     Text("S\(i + 1)").font(.appCaption).fontWeight(.bold).foregroundColor(.gray).frame(width: 28)
-                    Button { if evm.sets[i].duration > 5 { evm.sets[i].duration -= 5 } } label: {
+                    Button { guard allowAction() else { return }; if evm.sets[i].duration > 5 { evm.sets[i].duration -= 5 } } label: {
                         Image(systemName: "minus.circle.fill").font(.appTitle).foregroundColor(.gray)
                     }.buttonStyle(.plain)
                     Text(evm.formatDuration(evm.sets[i].duration))
@@ -801,7 +889,7 @@ struct ExerciseCard: View {
                         .frame(minWidth: 64, alignment: .center)
                         .padding(.vertical, 8).padding(.horizontal, 12)
                         .background(Color.appSurfaceInset).cornerRadius(8)
-                    Button { evm.sets[i].duration += 5 } label: {
+                    Button { guard allowAction() else { return }; evm.sets[i].duration += 5 } label: {
                         Image(systemName: "plus.circle.fill").font(.appTitle).foregroundColor(Color.gray)
                     }.buttonStyle(.plain)
                     Spacer()
@@ -918,7 +1006,7 @@ struct ExerciseCard: View {
         let isHorizontal = ExerciseCalculator.plyoUnitLabel(for: name) == "m"
         HStack(spacing: 4) {
             StepperInput(
-                valueStr: $evm.sets[i].intensity,
+                valueStr: setText(i, \.intensity),
                 increment: isHorizontal ? 1 : 5,
                 minimum: 0,
                 placeholder: 0,
@@ -927,7 +1015,8 @@ struct ExerciseCard: View {
                 isCompact: evm.setBySetMode,
                 accessibilityTitle: ExerciseCalculator.plyoMetricLabel(for: name)
                     .replacingOccurrences(of: " (\(ExerciseCalculator.plyoUnitLabel(for: name)))", with: ""),
-                accessibilityUnit: isHorizontal ? "mètres" : "centimètres"
+                accessibilityUnit: isHorizontal ? "mètres" : "centimètres",
+                editorPreparation: stepperContext(i, field: "intensity", keyPath: \.intensity, isInteger: !isHorizontal)
             )
             .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 100)
             Text(ExerciseCalculator.plyoUnitLabel(for: name))
@@ -949,6 +1038,7 @@ struct ExerciseCard: View {
             // (bouton Logger global). Backend dérive protocol_completed=True via tracking_type.
             Button {
                 triggerImpact(style: .medium)
+                guard allowAction() else { return }
                 if evm.sets.isEmpty { evm.sets = [SetInput()] }
                 evm.sets[0].protocolCompleted.toggle()
             } label: {
@@ -1005,18 +1095,21 @@ struct ExerciseCard: View {
     // MARK: - Body
 
     var body: some View {
-        if isCheckOnly {
-            checkOnlyCard
-        } else {
-            fullCard
+        Group {
+            if isCheckOnly {
+                checkOnlyCard
+            } else {
+                fullCard
+            }
         }
+        .disabled(!mayEdit)
     }
 
     // Mode mobility : nom + rappel + case à cocher. Tap = toggle du set géré
     // par le parent (WorkoutSeanceView.mobilityChecked). Ni expand, ni log, ni
     // note, ni undo — juste un rappel qui avance la barre de progression.
     @ViewBuilder private var checkOnlyCard: some View {
-        Button(action: { onCheckToggle?(); triggerImpact(style: .light) }) {
+        Button(action: { guard allowAction() else { return }; onCheckToggle?(); triggerImpact(style: .light) }) {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
@@ -1101,16 +1194,23 @@ struct ExerciseCard: View {
                 evm.initializeSets()
             }
             if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }
+            if preparesEditors { editorController.attach(evm, requiresEnduranceInspection: isTimeBased) }
         }
+        .onDisappear { if preparesEditors { editorController.detach() } }
         // Pré-remplissage automatique supprimé (2026-07-13) : saisir est un
         // acte utilisateur, le placeholder gris est le hint, "Reprendre la
         // dernière séance" est la restitution explicite. Trois canaux, jamais
         // mélangés. (Crime : cards qui semblaient déjà faites à l'ouverture.)
         .onChange(of: evm.setsCount) {
+            guard mayEdit else { return }
             evm.syncSetsCount()
         }
         .onChange(of: logResult == nil) { _, isNil in
-            if isNil && !requiresAcceptance { evm.resetAfterClear() }
+            guard mayEdit else { return }
+            if isNil && !requiresAcceptance {
+                evm.resetAfterClear()
+                if preparesEditors { editorController.removedEquipmentLog() }
+            }
         }
         .onChange(of: evm.localPersistenceIssue) { _, issue in
             if let issue {
@@ -1139,6 +1239,7 @@ struct ExerciseCard: View {
         }
         .confirmationDialog(Text("Sauter \(name) ?"), isPresented: $confirmSkip, titleVisibility: .visible) {
             Button("Sauter cet exercice", role: .destructive) {
+                guard allowAction() else { return }
                 evm.isSkipped = true
                 triggerImpact(style: .light)
             }
@@ -1148,7 +1249,7 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var headerButton: some View {
-        Button(action: onToggle) {
+        Button(action: { guard allowAction() else { return }; onToggle() }) {
             HStack(alignment: isCurrentHero ? .top : .center,
                    spacing: (isUpcomingCompact || isCompletedCompact) ? 8 : 12) {
                 if isUpcomingCompact {
@@ -1257,6 +1358,7 @@ struct ExerciseCard: View {
                 }
                 if logResult != nil {
                     Button {
+                        guard allowAction() else { return }
                         evm.isEditing = true
                         if !isExpanded { onToggle() }
                     } label: {
@@ -1304,6 +1406,7 @@ struct ExerciseCard: View {
                     }
                 }
                 Button {
+                    guard allowAction() else { return }
                     evm.isEditing = true
                     if !isExpanded { onToggle() }
                 } label: {
@@ -1429,6 +1532,7 @@ struct ExerciseCard: View {
                         confirmSwapAfterLog = true
                     } else {
                         triggerImpact(style: .light)
+                        guard allowAction() else { return }
                         onSwap()
                     }
                 } label: {
@@ -1448,6 +1552,7 @@ struct ExerciseCard: View {
             if trackingType == "reps" || trackingType == "carry" || trackingType == "plyo" {
                 Button {
                     withAnimation {
+                        guard allowAction() else { return }
                         evm.setBySetMode.toggle()
                         if evm.setBySetMode { evm.currentSetIndex = 0 }
                         if !evm.setBySetMode { evm.repCountMode = false }
@@ -1470,6 +1575,7 @@ struct ExerciseCard: View {
                 if trackingType == "reps" {
                     Button {
                         withAnimation {
+                            guard allowAction() else { return }
                             if evm.repCountMode {
                                 evm.repCountMode = false
                             } else {
@@ -1494,15 +1600,15 @@ struct ExerciseCard: View {
             }
             Spacer()
             Menu {
-                Button { evm.equipmentType = "barbell" }      label: { Label("Barre",        systemImage: "minus.circle.fill") }
-                Button { evm.equipmentType = "ez-bar" }       label: { Label("EZ-Bar",       systemImage: "waveform") }
-                Button { evm.equipmentType = "dumbbell" }     label: { Label("Haltères",     systemImage: "dumbbell.fill") }
-                Button { evm.equipmentType = "machine" }      label: { Label("Machine",      systemImage: "gearshape.fill") }
-                Button { evm.equipmentType = "cable" }        label: { Label("Câble",        systemImage: "arrow.up.and.down.circle") }
-                Button { evm.equipmentType = "cable_double" } label: { Label("Câble ×2",     systemImage: "arrow.left.and.right.circle") }
-                Button { evm.equipmentType = "bodyweight" }   label: { Label("Poids corps",  systemImage: "figure.walk") }
-                Button { evm.equipmentType = "press" }        label: { Label("Presse",       systemImage: "arrow.down.to.line.compact") }
-                Button { evm.equipmentType = "fixed_weight" } label: { Label("Poids fixe",   systemImage: "scalemass.fill") }
+                Button { changeEquipment("barbell") }      label: { Label("Barre",        systemImage: "minus.circle.fill") }
+                Button { changeEquipment("ez-bar") }       label: { Label("EZ-Bar",       systemImage: "waveform") }
+                Button { changeEquipment("dumbbell") }     label: { Label("Haltères",     systemImage: "dumbbell.fill") }
+                Button { changeEquipment("machine") }      label: { Label("Machine",      systemImage: "gearshape.fill") }
+                Button { changeEquipment("cable") }        label: { Label("Câble",        systemImage: "arrow.up.and.down.circle") }
+                Button { changeEquipment("cable_double") } label: { Label("Câble ×2",     systemImage: "arrow.left.and.right.circle") }
+                Button { changeEquipment("bodyweight") }   label: { Label("Poids corps",  systemImage: "figure.walk") }
+                Button { changeEquipment("press") }        label: { Label("Presse",       systemImage: "arrow.down.to.line.compact") }
+                Button { changeEquipment("fixed_weight") } label: { Label("Poids fixe",   systemImage: "scalemass.fill") }
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: equipmentIcon(evm.equipmentType)).font(.appCaption)
@@ -1524,7 +1630,7 @@ struct ExerciseCard: View {
                 Image(systemName: "forward.fill").font(.appLabel).foregroundColor(.gray)
                 Text("Sauté").font(.appLabel).foregroundColor(.gray)
                 Spacer()
-                Button(action: { evm.isSkipped = false }) {
+                Button(action: { guard allowAction() else { return }; evm.isSkipped = false }) {
                     Image(systemName: "arrow.counterclockwise").font(.appCaption).foregroundColor(.gray.opacity(0.5))
                 }
             }
@@ -1574,7 +1680,7 @@ struct ExerciseCard: View {
             .padding(.vertical, 8).padding(.horizontal, 12)
             .background(Color.appSuccess.opacity(0.08)).cornerRadius(8)
             .contextMenu {
-                Button { evm.isEditing = true } label: { Label("Modifier", systemImage: "pencil") }
+                Button { guard allowAction() else { return }; evm.isEditing = true } label: { Label("Modifier", systemImage: "pencil") }
                 Button(role: .destructive) {
                     _ = removeLog()
                 } label: { Label("Réinitialiser", systemImage: "arrow.counterclockwise") }
@@ -1608,6 +1714,7 @@ struct ExerciseCard: View {
         if !isTimeBased, evm.lastReps != "—", !evm.lastReps.isEmpty {
             Button {
                 triggerImpact(style: .medium)
+                guard allowAction() else { return }
                 evm.fillFromLastSession()
             } label: {
                 HStack(spacing: 4) {
@@ -1688,21 +1795,16 @@ struct ExerciseCard: View {
                 sets: evm.sets,
                 exerciseName: name,
                 isUnilateral: isUnilateral,
-                onSetCompleted: { idx, side, dur in
-                    guard idx < evm.sets.count else { return }
-                    if isUnilateral {
-                        switch side {
-                        case .left:  evm.sets[idx].durationLeft  = dur
-                        case .right: evm.sets[idx].durationRight = dur
-                        }
-                    } else {
-                        evm.sets[idx].duration = dur
-                    }
-                }
+                onSetCompleted: { idx, side, dur in _ = deliverDuration(idx, side: side, duration: dur) },
+                preparation: preparesEditors ? editorController : nil,
+                deliverPreparedCompletion: preparesEditors ? { idx, side, dur in
+                    deliverDuration(idx, side: side, duration: dur)
+                } : nil
             )
         } else { setRows() }
         HStack(spacing: 12) {
             Button {
+                guard allowAction() else { return }
                 if evm.sets.count > 1 { evm.sets.removeLast() }
             } label: {
                 Image(systemName: "minus.circle").font(.appTitle)
@@ -1713,6 +1815,7 @@ struct ExerciseCard: View {
                 .font(.appCaption).fontWeight(.medium).foregroundColor(.gray)
             // W-C1 — show "Max" label and accessibility hint when set limit is reached
             Button {
+                guard allowAction() else { return }
                 if evm.sets.count < 12 { evm.sets.append(SetInput()) }
             } label: {
                 HStack(spacing: 4) {
@@ -1738,7 +1841,7 @@ struct ExerciseCard: View {
                 Image(systemName: "note").font(.appCaption)
                     .foregroundColor(evm.sessionNote.isEmpty ? .gray.opacity(0.35) : Color.forge.opacity(0.7))
                     .padding(.top, 1) // ponytail: micro-align, hors échelle volontaire
-                TextField("Note de séance…", text: $evm.sessionNote, axis: .vertical)
+                TextField("Note de séance…", text: controlled($evm.sessionNote), axis: .vertical)
                     .font(.appCaption)
                     .foregroundColor(evm.sessionNote.isEmpty ? .gray : Color.forge)
                     .lineLimit(1...3)
@@ -1821,7 +1924,7 @@ struct ExerciseCard: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "bandage").font(.appCaption).foregroundColor(Color.appDanger.opacity(0.6))
-                TextField("Zone douloureuse (optionnel)", text: $evm.painZone)
+                TextField("Zone douloureuse (optionnel)", text: controlled($evm.painZone))
                     .font(.appCaption).foregroundColor(evm.painZone.isEmpty ? .gray : Color.appDanger)
             }
             HStack(spacing: 8) {
@@ -2009,7 +2112,7 @@ struct ExerciseCard: View {
                 }
             }
             if evm.isEditing {
-                Button(action: { evm.isEditing = false }) {
+                Button(action: { guard allowAction() else { return }; evm.isEditing = false }) {
                     Text("Annuler")
                         .font(.appCaption).fontWeight(.medium).foregroundColor(.gray.opacity(0.5))
                 }
@@ -2051,6 +2154,7 @@ struct ExerciseCard: View {
         PlateCalculatorSheet(
             initialTotal: plateCalculatorInitialTotal,
             onApply: { perSide in
+                guard allowAction() else { return }
                 let perSideStr = String(format: "%.4g", perSide)
                 for i in evm.sets.indices { evm.sets[i].weight = perSideStr }
             }
@@ -2079,8 +2183,30 @@ struct ExerciseCard: View {
 private struct RepCounterSection: View {
     @ObservedObject var evm: ExerciseViewModel
     let doLog: () -> Void
+    var preparation: ExerciseEditorPreparationController? = nil
+    @StateObject private var editor = ExercisePrivateEditor()
 
     @State private var count: Int = 0
+    @State private var registeredIdentity = ""
+
+    private var mayEdit: Bool { preparation?.gate.allowsOrdinaryMutation ?? true }
+    private func mountCounter() {
+        let id = evm.sets.indices.contains(evm.currentSetIndex)
+            ? evm.sets[evm.currentSetIndex].id.uuidString : "missing"
+        let index = evm.currentSetIndex
+        registeredIdentity = "counter.\(index).\(id).reps"
+        editor.mount(preparation, identity: registeredIdentity)
+        editor.isAvailable = { [weak evm] in
+            guard let evm, evm.sets.indices.contains(evm.currentSetIndex) else { return false }
+            return evm.currentSetIndex == index && evm.sets[index].id.uuidString == id
+        }
+        if let preparation { count = preparation.count(identity: registeredIdentity) }
+    }
+    private func updateCount(_ value: Int, resolved: Bool = false) {
+        count = value
+        preparation?.setCount(value, identity: registeredIdentity, explicitlyResolved: resolved)
+        editor.changed()
+    }
 
     var body: some View {
         let isLastSet = evm.currentSetIndex == evm.sets.count - 1
@@ -2104,7 +2230,8 @@ private struct RepCounterSection: View {
 
             HStack(spacing: 36) { // ponytail: écart rep-counter volontaire (isolation tap-target)
                 Button {
-                    count = max(0, count - 1)
+                    guard mayEdit else { return }
+                    updateCount(max(0, count - 1))
                     triggerImpact(style: .light)
                 } label: {
                     Image(systemName: "minus.circle.fill")
@@ -2117,7 +2244,8 @@ private struct RepCounterSection: View {
                 .accessibilityValue("\(count)")
 
                 Button {
-                    count += 1
+                    guard mayEdit else { return }
+                    updateCount(count + 1)
                     triggerImpact(style: .medium)
                 } label: {
                     ZStack {
@@ -2135,7 +2263,8 @@ private struct RepCounterSection: View {
                 .accessibilityValue("\(count)")
 
                 Button {
-                    count = 0
+                    guard mayEdit else { return }
+                    updateCount(0, resolved: true)
                     triggerImpact(style: .light)
                 } label: {
                     Image(systemName: "arrow.counterclockwise.circle.fill")
@@ -2149,8 +2278,10 @@ private struct RepCounterSection: View {
             }
 
             Button {
+                guard mayEdit else { return }
+                guard preparation == nil || (editor.isAvailable() && evm.setBySetMode && count > 0) else { return }
                 let allDone = evm.confirmSet(reps: count)
-                count = 0
+                updateCount(0, resolved: true)
                 triggerImpact(style: .medium)
                 if allDone { doLog() }
             } label: {
@@ -2174,7 +2305,15 @@ private struct RepCounterSection: View {
             .buttonStyle(SpringButtonStyle())
         }
         .padding(.top, 4)
-        .onChange(of: evm.currentSetIndex) { _ in count = 0 }
+        .onAppear { mountCounter() }
+        .onDisappear { editor.unmount() }
+        .onChange(of: evm.currentSetIndex) { _ in
+            if preparation == nil { count = 0 }
+            else { mountCounter() }
+        }
+        .onChange(of: evm.sets.map(\.id)) { _, _ in
+            if preparation != nil { mountCounter() }
+        }
     }
 }
 
@@ -2191,6 +2330,47 @@ struct EnduranceTimerSection: View {
     let exerciseName: String
     let isUnilateral: Bool
     let onSetCompleted: (Int, Side, Int) -> Void   // (setIndex, side, durationSec)
+    var preparation: ExerciseEditorPreparationController? = nil
+    var deliverPreparedCompletion: ((Int, Side, Int) -> Bool)? = nil
+    @StateObject private var editor = ExercisePrivateEditor()
+    @State private var completionDelivered = false
+
+    private var mayEdit: Bool { preparation?.gate.allowsOrdinaryMutation ?? true }
+    private func registerTimer() {
+        let id = sets.indices.contains(currentSetIdx) ? sets[currentSetIdx].id.uuidString : "missing"
+        editor.mount(preparation, identity: "endurance.\(currentSetIdx).\(id).\(currentSide.rawValue)")
+    }
+    private func transition(_ state: EnduranceTimerState) {
+        timerState = state
+        registerTimer()
+        editor.changed()
+        switch state {
+        case .idle: preparation?.inspectEnduranceIdle()
+        case .countdown: preparation?.enduranceTransition(.countdown)
+        case .running: preparation?.enduranceTransition(.running)
+        case .warning: preparation?.enduranceTransition(.warning)
+        case .paused: preparation?.enduranceTransition(.paused)
+        case .finished:
+            preparation?.enduranceTransition(completionDelivered ? .completionDelivered : .completionUndelivered)
+        }
+    }
+
+    private func deliverCompletion(_ duration: Int) -> Bool {
+        guard mayEdit else {
+            preparation?.enduranceTransition(.completionUndelivered)
+            return false
+        }
+        let delivered: Bool
+        if preparation != nil {
+            delivered = deliverPreparedCompletion?(currentSetIdx, currentSide, duration) == true
+        } else {
+            onSetCompleted(currentSetIdx, currentSide, duration)
+            delivered = true
+        }
+        completionDelivered = delivered
+        preparation?.enduranceTransition(delivered ? .completionDelivered : .completionUndelivered)
+        return delivered
+    }
 
     @State private var timerState: EnduranceTimerState = .idle
     @State private var currentSetIdx: Int = 0
@@ -2233,8 +2413,12 @@ struct EnduranceTimerSection: View {
             controls
         }
         .padding(.vertical, 4)
-        .onAppear { restoreOrSync() }
-        .onDisappear { timerTask?.cancel(); timerTask = nil }
+        .onAppear {
+            registerTimer()
+            restoreOrSync()
+            if case .idle = timerState { preparation?.inspectEnduranceIdle() }
+        }
+        .onDisappear { timerTask?.cancel(); timerTask = nil; editor.unmount() }
     }
 
     // MARK: Sub-views
@@ -2244,7 +2428,9 @@ struct EnduranceTimerSection: View {
             HStack(spacing: 8) {
                 ForEach(presets, id: \.self) { s in
                     Button {
+                        guard mayEdit else { return }
                         targetDur = s; remaining = s
+                        editor.changed()
                     } label: {
                         Text(fmt(s))
                             .font(.appCaption).fontWeight(.semibold)
@@ -2500,6 +2686,10 @@ struct EnduranceTimerSection: View {
     }
 
     private func restoreOrSync() {
+        guard mayEdit else {
+            preparation?.enduranceTransition(.completionUndelivered)
+            return
+        }
         let ud = UserDefaults.standard
         if let raw = ud.string(forKey: udSide), let s = Side(rawValue: raw) {
             currentSide = s
@@ -2510,7 +2700,7 @@ struct EnduranceTimerSection: View {
             currentSetIdx = ud.integer(forKey: udSetIdx)
             targetDur     = ud.integer(forKey: udTarget)
             remaining     = pausedRem
-            timerState    = .paused
+            transition(.paused)
             return
         }
         // Running state: compute elapsed since start
@@ -2525,44 +2715,51 @@ struct EnduranceTimerSection: View {
         let rem = savedTarget - elapsed
         if rem > 0 {
             remaining  = rem
-            timerState = .running
+            transition(.running)
             timerTask  = Task { @MainActor in await runLoop() }
         } else {
             // Finished while in background — notification already fired
             remaining = 0
+            // A denied/unavailable receiver must not erase the timer recovery.
+            if preparation != nil {
+                guard deliverCompletion(savedTarget) else { transition(.finished); return }
+            }
             clearTimerState()
-            onSetCompleted(currentSetIdx, currentSide, savedTarget)
-            timerState = .finished
+            if preparation == nil { _ = deliverCompletion(savedTarget) }
+            transition(.finished)
             withAnimation { flashGreen = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { withAnimation { flashGreen = false } }
         }
     }
 
     private func startCountdown() {
+        guard mayEdit else { return }
+        completionDelivered = false
+        if preparation != nil { transition(.countdown(3)) }
         triggerImpact(style: .light)
         saveRunningState()
         scheduleNotification(in: targetDur + 3)   // +3 for countdown
         timerTask = Task { @MainActor in
             for i in stride(from: 3, through: 1, by: -1) {
-                guard !Task.isCancelled else { return }
-                timerState = .countdown(i)
+                guard !Task.isCancelled, mayEdit else { return }
+                transition(.countdown(i))
                 beepPlayer = makeBeep(hz: 800, duration: 0.1)
                 beepPlayer?.play()
                 triggerImpact(style: .light)
                 do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
             }
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, mayEdit else { return }
             remaining  = targetDur
-            timerState = .running
+            transition(.running)
             await runLoop()
         }
     }
 
     private func runLoop() async {
         while remaining > 0 {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, mayEdit else { return }
             do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, mayEdit else { return }
             // Sons AVANT décrément — inclut remaining=1 (manquant avec l'ordre inverse)
             if remaining <= 5 {
                 beepPlayer = makeBeep(hz: 1000, duration: 0.08)
@@ -2571,63 +2768,72 @@ struct EnduranceTimerSection: View {
             }
             remaining -= 1
             if remaining > 0 && remaining <= 5 {
-                timerState = .warning(remaining)
+                transition(.warning(remaining))
             } else if remaining > 5 {
-                timerState = .running
+                transition(.running)
             }
         }
         finish()
     }
 
     private func finish() {
+        guard mayEdit else { return }
         beepPlayer = makeBeep(hz: 1200, duration: 0.35)
         beepPlayer?.play()
         triggerNotificationFeedback(.success)
         withAnimation { flashGreen = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { withAnimation { flashGreen = false } }
+        if preparation != nil {
+            guard deliverCompletion(targetDur) else { transition(.finished); return }
+        }
         clearTimerState()
         cancelNotification()
         UserDefaults.standard.set(targetDur, forKey: udLastDur)
-        onSetCompleted(currentSetIdx, currentSide, targetDur)
-        timerState = .finished
+        if preparation == nil { _ = deliverCompletion(targetDur) }
+        transition(.finished)
     }
 
     private func pauseTimer() {
+        guard mayEdit else { return }
         timerTask?.cancel(); timerTask = nil
         triggerImpact(style: .light)
         cancelNotification()
         savePausedState()
-        timerState = .paused
+        transition(.paused)
     }
 
     private func resumeTimer() {
+        guard mayEdit else { return }
         triggerImpact(style: .light)
-        timerState = .running
+        transition(.running)
         saveRunningState()
         scheduleNotification(in: remaining)
         timerTask = Task { @MainActor in await runLoop() }
     }
 
     private func stopTimer() {
+        guard mayEdit else { return }
         timerTask?.cancel(); timerTask = nil
         triggerImpact(style: .medium)
         cancelNotification()
         clearTimerState()
+        preparation?.enduranceTransition(.explicitlyStopped)
         remaining  = targetDur
-        timerState = .idle
+        transition(.idle)
     }
 
     private func nextSet() {
+        guard mayEdit, preparation == nil || completionDelivered else { return }
         if isUnilateral && currentSide == .left {
             currentSide = .right
             syncTarget()
-            timerState = .idle
+            transition(.idle)
             triggerImpact(style: .light)
         } else {
             currentSetIdx += 1
             currentSide = .left
             syncTarget()
-            timerState = .idle
+            transition(.idle)
             triggerImpact(style: .light)
         }
     }

@@ -14,9 +14,10 @@ struct StepperInput: View {
     var isCompact: Bool = false
     let accessibilityTitle: String
     var accessibilityUnit: String = ""
+    var editorPreparation: ExerciseStepperPreparationContext? = nil
 
     @FocusState private var isManualFocused: Bool
-    @State private var holdTask: Task<Void, Never>? = nil
+    @StateObject private var editor = ExerciseStepperEditor()
     @GestureState private var minusHeld = false
     @GestureState private var plusHeld = false
 
@@ -46,7 +47,7 @@ struct StepperInput: View {
     }
 
     private func formatted(_ v: Double) -> String {
-        v.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(v))" : String(format: "%.1f", v)
+        ExerciseStepperEditor.formatted(v, isInteger: false)
     }
 
     var body: some View {
@@ -78,7 +79,10 @@ struct StepperInput: View {
                         .accessibilityHidden(true)
                 }
 
-                TextField("", text: $valueStr)
+                TextField("", text: Binding(get: { valueStr }, set: {
+                    guard editor.allowsOrdinaryMutation else { return }
+                    valueStr = $0
+                }))
                     .font(dynamicTypeSize.isAccessibilitySize ? .title2 : .appTitle)
                     .foregroundColor(Color.appTextPrimary)
                     .keyboardType(isInteger ? .numberPad : .decimalPad)
@@ -114,11 +118,14 @@ struct StepperInput: View {
                 }
         }
         .accessibilityElement(children: .contain)
+        .disabled(!editor.allowsOrdinaryMutation)
         .background(Color.appSurfaceInset)
         .cornerRadius(8)
         .onChange(of: isManualFocused) { _, focused in
             if focused {
+                let epoch = editor.callbackEpoch
                 DispatchQueue.main.async {
+                    guard editor.callbackIsCurrent(epoch) else { return }
                     UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
                 }
             } else {
@@ -126,11 +133,20 @@ struct StepperInput: View {
             }
         }
         .onAppear {
+            let binding = $valueStr
+            editor.mount(read: { binding.wrappedValue }, write: { binding.wrappedValue = $0 },
+                         minimum: minimum, isInteger: isInteger, context: editorPreparation)
             guard autoFocus else { return }
+            let epoch = editor.callbackEpoch
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                guard editor.callbackIsCurrent(epoch) else { return }
                 isManualFocused = true
             }
         }
+        .onDisappear { editor.unmount() }
+        .onChange(of: minimum) { _, _ in configureEditor() }
+        .onChange(of: isInteger) { _, _ in configureEditor() }
+        .onChange(of: editorPreparation?.identity) { _, _ in configureEditor() }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 if isManualFocused {
@@ -160,9 +176,12 @@ struct StepperInput: View {
     }
 
     private func startHold(_ direction: Int) {
-        guard holdTask == nil else { return }
+        guard !isDisabled, editor.allowsOrdinaryMutation, editor.holdTask == nil else { return }
         step(direction)
-        holdTask = Task {
+        let epoch = editor.holdEpoch
+        let child = editor
+        let increment = increment, minimum = minimum, placeholder = placeholder, integer = isInteger
+        editor.holdTask = Task { @MainActor [weak child] in
             // 400ms avant le début du rapid-fire
             try? await Task.sleep(nanoseconds: 400_000_000)
             guard !Task.isCancelled else { return }
@@ -174,30 +193,37 @@ struct StepperInput: View {
                                :                 30_000_000    //  30ms — rapide (~83 lbs/s)
                 try? await Task.sleep(nanoseconds: ns)
                 guard !Task.isCancelled else { return }
-                await MainActor.run { step(direction) }
+                if let child {
+                    guard child.holdIsCurrent(epoch) else { return }
+                    if child.step(direction, increment: increment, minimum: minimum, placeholder: placeholder, isInteger: integer) {
+                        triggerImpact(style: .light)
+                    }
+                } else {
+                    return
+                }
             }
         }
     }
 
+    private func configureEditor() {
+        editor.invalidateCallbacks()
+        let binding = $valueStr
+        editor.mount(read: { binding.wrappedValue }, write: { binding.wrappedValue = $0 },
+                     minimum: minimum, isInteger: isInteger, context: editorPreparation)
+    }
+
     private func stopHold() {
-        holdTask?.cancel()
-        holdTask = nil
+        editor.stopHold()
     }
 
     private func step(_ direction: Int) {
-        let newVal = max(minimum, currentValue + Double(direction) * increment)
-        apply(newVal)
-        triggerImpact(style: .light)
-    }
-
-    private func apply(_ val: Double) {
-        let clamped = max(minimum, val)
-        valueStr = isInteger ? "\(Int(clamped))" : formatted(clamped)
+        guard !isDisabled, editor.allowsOrdinaryMutation else { return }
+        if editor.step(direction, increment: increment, minimum: minimum, placeholder: placeholder, isInteger: isInteger) {
+            triggerImpact(style: .light)
+        }
     }
 
     private func validateInput() {
-        guard !valueStr.isEmpty else { return }
-        let v = Double(valueStr.replacingOccurrences(of: ",", with: ".")) ?? minimum
-        apply(v)
+        editor.normalizeOrdinary()
     }
 }
