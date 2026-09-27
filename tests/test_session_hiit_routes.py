@@ -144,6 +144,99 @@ class TestSessionDelete(BaseRouteTest):
 
 class TestLogSession(BaseRouteTest):
 
+    def setUp(self):
+        super().setUp()
+        # Local date/type-aware fake: the global historical fixture keys some
+        # sessions by date only and cannot prove AM/PM isolation here.
+        self.evening = {}
+        self.evening_calls = []
+        db = sys.modules["db"]
+        self.original_update = db.update_workout_session_by_type
+
+        def get_or_create(date):
+            self.evening_calls.append("get_or_create")
+            return self.evening.setdefault(date, {"id": date + "_pm", "completed": False})
+
+        def update(date, session_type, values):
+            if session_type != "evening":
+                return self.original_update(date, session_type, values)
+            self.evening_calls.append("update")
+            if date not in self.evening:
+                return False
+            self.evening[date].update(values)
+            return True
+
+        db.get_or_create_workout_session_second = get_or_create
+        db.update_workout_session_by_type = update
+
+    def test_evening_existing_session_persists_exact_patch(self):
+        self.evening[TODAY] = {"id": "existing-pm", "completed": False}
+        self.store["sessions"][TODAY] = {"rpe": 3, "comment": "Morning"}
+        values = {"rpe": 6, "comment": "", "duration_min": 42,
+                  "energy_pre": 4, "session_name": "Evening plan"}
+        response = self.post("/api/log_session", {"date": TODAY, "second_session": True, **values})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"success": True}, self.json(response))
+        self.assertEqual({"id": "existing-pm", "completed": True, **values}, self.evening[TODAY])
+        self.assertEqual({"rpe": 3, "comment": "Morning"}, self.store["sessions"][TODAY])
+        self.assertEqual(["get_or_create", "update"], self.evening_calls)
+
+    def test_evening_absent_session_created_before_update(self):
+        response = self.post("/api/log_session", {"date": TODAY, "second_session": True, "comment": "PM"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"success": True}, self.json(response))
+        self.assertEqual(["get_or_create", "update"], self.evening_calls)
+        self.assertTrue(self.evening[TODAY]["completed"])
+        self.assertEqual("PM", self.evening[TODAY]["comment"])
+
+    def test_evening_false_update_never_succeeds_existing_or_created(self):
+        for existing in (False, True):
+            with self.subTest(existing=existing):
+                self.evening.clear()
+                if existing:
+                    self.evening[TODAY] = {"id": "existing-pm", "completed": False}
+                with patch.object(sys.modules["db"], "update_workout_session_by_type", return_value=False) as update:
+                    response = self.post("/api/log_session", {"date": TODAY, "second_session": True})
+                self.assertEqual(500, response.status_code)
+                self.assertIn("error", self.json(response))
+                self.assertNotIn("success", self.json(response))
+                update.assert_called_once_with(TODAY, "evening", {"comment": "", "completed": True})
+                self.assertFalse(self.evening[TODAY]["completed"])
+
+    def test_evening_create_failure_skips_update(self):
+        with patch.object(sys.modules["db"], "get_or_create_workout_session_second", return_value={}):
+            with patch.object(sys.modules["db"], "update_workout_session_by_type") as update:
+                response = self.post("/api/log_session", {"date": TODAY, "second_session": True})
+        self.assertEqual(500, response.status_code)
+        self.assertIn("error", self.json(response))
+        self.assertNotIn("success", self.json(response))
+        update.assert_not_called()
+
+    def test_evening_persistence_exception_returns_json_500(self):
+        with patch.object(sys.modules["db"], "update_workout_session_by_type", side_effect=RuntimeError("DB unavailable")):
+            response = self.post("/api/log_session", {"date": TODAY, "second_session": True})
+        self.assertEqual(500, response.status_code)
+        self.assertIn("error", self.json(response))
+        self.assertNotIn("success", self.json(response))
+
+    def test_morning_completed_keeps_previous_comment(self):
+        self.store["sessions"][TODAY] = {"completed": True, "comment": "original", "rpe": 7}
+        response = self.post("/api/log_session", {"date": TODAY, "comment": "new", "rpe": 9})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"success": True}, self.json(response))
+        self.assertEqual("original", self.store["sessions"][TODAY]["comment"])
+        self.assertEqual([], self.evening_calls)
+
+    def test_bonus_branch_does_not_call_evening_helpers(self):
+        with patch("sessions.log_bonus_session") as log_bonus:
+            with patch.object(sys.modules["db"], "complete_workout_session_bonus", return_value=True) as complete:
+                response = self.post("/api/log_session", {"date": TODAY, "bonus_session": True, "rpe": 6, "comment": "Bonus"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"success": True}, self.json(response))
+        log_bonus.assert_called_once()
+        complete.assert_called_once()
+        self.assertEqual([], self.evening_calls)
+
     def test_log_session_success(self):
         r = self.post("/api/log_session", {
             "date": TODAY, "rpe": 7, "comment": "good",

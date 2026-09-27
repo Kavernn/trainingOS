@@ -539,10 +539,17 @@ def api_log_session():
             # ~120 PATCH par fin de séance 2). Le vrai patch de la row evening
             # se fait ci-dessous via update_workout_session_by_type, aucune
             # perte fonctionnelle.
-            _db.update_workout_session_by_type(today, "evening", {
+            # A missing Evening row is valid, but creating a stub alone does
+            # not acknowledge completion. Create first, then require the PATCH.
+            evening_session = _db.get_or_create_workout_session_second(today)
+            if not (evening_session or {}).get("id"):
+                return jsonify({"error": "Impossible de créer la séance du soir"}), 500
+            updated = _db.update_workout_session_by_type(today, "evening", {
                 **{k: v for k, v in session_patch.items() if v is not None},
                 "completed": True,
             })
+            if not updated:
+                return jsonify({"error": "Impossible de marquer la séance du soir comme terminée"}), 500
         else:
             log_session(today, rpe, comment, exos, duration_min, energy_pre,
                         blocks=blocks, **vol_stats, session_name=session_name)
@@ -557,7 +564,7 @@ def api_log_session():
         if bonus_session:
             sid = (_db.get_or_create_workout_session_bonus(today) or {}).get("id")
         elif second_session:
-            sid = (_db.get_or_create_workout_session_second(today) or {}).get("id")
+            sid = evening_session["id"]
         else:
             sid = (_db.get_or_create_workout_session(today) or {}).get("id")
 
