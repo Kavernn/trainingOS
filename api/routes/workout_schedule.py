@@ -5,11 +5,23 @@ logger = logging.getLogger("trainingos")
 workout_schedule_bp = Blueprint("workout_schedule", __name__)
 
 
+def _workout_date():
+    from datetime import datetime
+    from planner import get_today_date
+    value = request.args.get("date", "")
+    try:
+        if datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d") == value:
+            return value
+    except ValueError:
+        pass
+    return get_today_date()
+
+
 @workout_schedule_bp.route("/api/seance_data")
 def api_seance_data():
     from weights import load_weights
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
-                         get_suggested_weights_for_today, get_today_evening)
+                         get_suggested_weights_for_today, get_today_evening, sessions_for_date)
     from inventory import load_inventory
     from blocks import get_strength_exercises, get_strength_exercise_ids
     from progression import prescribe_volume
@@ -20,7 +32,7 @@ def api_seance_data():
     program_id_param = request.args.get("program_id") or None
     full_program = _db.get_full_program(program_id_param) if program_id_param else load_program()
     inventory    = load_inventory()
-    today_date = get_today_date()
+    today_date = _workout_date()
     schedule   = get_week_schedule()
 
     session_name_override = request.args.get("session_name", "").strip()
@@ -28,7 +40,7 @@ def api_seance_data():
         today_str     = session_name_override
         already_logged = False
     else:
-        today_str  = get_today()
+        today_str = sessions_for_date(today_date, full_program)[0]
         _s = _db.get_workout_session(today_date) or {}
         already_logged = bool(_s.get("completed"))
 
@@ -83,7 +95,7 @@ def api_seance_data():
         | set(_day_plan.get("pushed_to_bonus") or [])
     )
     weights = load_weights(sorted(weights_names), limit_per=20)
-    suggestions = get_suggested_weights_for_today(weights, full_program)
+    suggestions = get_suggested_weights_for_today(weights, full_program, today_date)
 
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
@@ -165,7 +177,7 @@ def api_seance_data():
         # Nom soir résolu (override manuel > héritage matin > None). Exposé pour
         # que les call sites iOS de SeanceSoirView passent le vrai nom soir sans
         # deviner ni faire un fetch séparé. Cf. commit héritage soir.
-        "evening_session_name": get_today_evening(),
+        "evening_session_name": sessions_for_date(today_date, full_program)[1],
     })
 
 
@@ -182,11 +194,12 @@ def api_seance_soir_data():
     from deload import get_cached_fatigue_score
     import smart_progression as _sp
 
-    today_soir = get_today_evening()
     weights      = load_weights()
     full_program = load_program()
     inventory    = load_inventory()
-    today_date   = get_today_date()
+    today_date   = _workout_date()
+    from planner import sessions_for_date
+    today_soir = sessions_for_date(today_date, full_program)[1]
     schedule     = get_evening_schedule()
 
     # Étape 3a-iii — pseudo-séance soir si un override matin→soir apporte des
@@ -228,7 +241,7 @@ def api_seance_soir_data():
     inventory_muscle_groups = {name: info["muscle_group"] for name, info in inv.items() if info.get("muscle_group")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     exercise_supersets = _db.get_session_supersets(_db.get_active_program_id())
-    suggestions     = get_suggested_weights_for_today(weights, full_program)
+    suggestions     = get_suggested_weights_for_today(weights, full_program, today_date)
 
     # logged_today_names : union tous slots (symétrie matin L38-51).
     logged_today_names: set[str] = set()

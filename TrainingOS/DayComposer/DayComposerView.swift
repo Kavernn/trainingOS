@@ -55,6 +55,9 @@ struct DayComposerView: View {
     @State private var error: String?
     @State private var refresh = UUID()
     private let store = DayComposerStore()
+    @State private var launch: DayComposerLaunch?
+    @State private var starting = false
+    @State private var executionAllowed = false
 
     var body: some View {
         List {
@@ -64,11 +67,15 @@ struct DayComposerView: View {
                 Section {
                     Text("2 séances · \(snapshot.initialIDs.count) exercices")
                         .font(.appBody.weight(.semibold))
-                    Text("Prépare l’ordre pour aujourd’hui. L’exécution reste disponible séparément dans Matin et Soir.")
+                    Text("Choisis l’ordre d’aujourd’hui. Chaque exercice reste rattaché à sa séance du matin ou du soir.")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
                     if incompatible {
                         Text("La journée a changé ou l’ordre sauvegardé est incompatible. L’ordre source est affiché. Réinitialise-le pour reprendre la préparation.")
                             .foregroundColor(.appTextSecondary)
+                    }
+                    if !executionAllowed {
+                        Text("Des données de séance doivent être vérifiées avant de démarrer cette journée. Les saisies existantes sont conservées.")
+                            .font(.appCaption).foregroundColor(.appTextSecondary)
                     }
                 }
                 Section("Ordre du jour") {
@@ -81,6 +88,13 @@ struct DayComposerView: View {
                     }
                 }
                 Section {
+                    Button(starting ? "Préparation…" : "Commencer") {
+                        Task { await start() }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .disabled(starting || !executionAllowed || !snapshot.canStart(orderedIDs: units.flatMap { $0.items.map(\.id) },
+                        activeProgram: activeProgramID, date: DateFormatter.isoDate.string(from: Date()),
+                        loading: loading, incompatible: incompatible))
                     Button("Réinitialiser l’ordre") { reset(snapshot) }
                         .frame(minHeight: 44)
                         .foregroundColor(.forge)
@@ -98,6 +112,13 @@ struct DayComposerView: View {
         .background(Color.appBg)
         .navigationTitle("Ma journée")
         .environment(\.editMode, .constant(.active))
+        .disabled(starting)
+        .fullScreenCover(item: $launch, onDismiss: { refresh = UUID() }) { session in
+            NavigationStack {
+                DayComposerActiveView(coordinator: session.coordinator, stabilizationBarrier: session.barrier,
+                    finishCoordinator: session.finish, onDismiss: { launch = nil })
+            }
+        }
         .task(id: refresh) { await reload() }
         .onChange(of: scenePhase) { _, phase in
             loading = true
@@ -106,6 +127,26 @@ struct DayComposerView: View {
         .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange)) { _ in
             loading = true
             refresh = UUID()
+        }
+    }
+
+    @MainActor private func start() async {
+        guard !starting, executionAllowed, let snapshot,
+              snapshot.canStart(orderedIDs: units.flatMap { $0.items.map(\.id) }, activeProgram: activeProgramID,
+                date: DateFormatter.isoDate.string(from: Date()), loading: loading, incompatible: incompatible) else { return }
+        starting = true
+        defer { starting = false }
+        do {
+            try store.save(units, for: snapshot)
+            let input = try await DayComposerLoader.loadExecution(program: activeProgramID, orderStore: store)
+            guard !Task.isCancelled, input.context.date == snapshot.date,
+                  try input.snapshot.fingerprint == snapshot.fingerprint else { throw DayComposerError.contextChanged }
+            let coordinator = try DayComposerExecutionCoordinator.make(validatedInput: input)
+            let barrier = try coordinator.makeStabilizationBarrier()
+            let finish = try coordinator.makeFinishCoordinator()
+            launch = .init(coordinator: coordinator, barrier: barrier, finish: finish)
+        } catch {
+            self.error = "La journée n’est plus prête à démarrer. Tes données sont conservées. Recharge la journée pour vérifier son contenu."
         }
     }
 
@@ -177,6 +218,7 @@ struct DayComposerView: View {
     private func reload() async {
         loading = true
         snapshot = nil
+        executionAllowed = false
         error = nil
         do {
             let fresh = try await DayComposerLoader.load(program: activeProgramID)
@@ -193,10 +235,25 @@ struct DayComposerView: View {
             case .restored(let saved): units = saved
             case .incompatible: incompatible = true
             }
+            let context = try DayComposerExecutionContext(snapshot: fresh)
+            let provenance = DayComposerProvenanceStore.shared
+            switch (provenance.admission(context: context, source: .morning),
+                    provenance.admission(context: context, source: .evening)) {
+            case (.fresh, .fresh): executionAllowed = true
+            case (.validated(let a, _), .validated(let b, _)): executionAllowed = a == b
+            default: executionAllowed = false
+            }
         } catch {
             guard !Task.isCancelled else { return }
             self.error = "La préparation nécessite deux séances compatibles et le programme actif actuel. Reviens à Aujourd’hui ou réessaie."
         }
         loading = false
     }
+}
+
+private struct DayComposerLaunch: Identifiable {
+    let id = UUID()
+    let coordinator: DayComposerExecutionCoordinator
+    let barrier: DayComposerLocalStabilizationBarrier
+    let finish: DayComposerFinishCoordinator
 }

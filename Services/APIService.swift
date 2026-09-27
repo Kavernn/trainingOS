@@ -198,15 +198,9 @@ class APIService: ObservableObject {
 
     // MARK: - Dashboard
     func fetchDashboard() async {
-        if let cached = CacheService.shared.load(for: "dashboard"),
-           dashboard == nil {
-            if let decoded = try? APIService.decoder.decode(DashboardData.self, from: cached) {
-                await MainActor.run { self.dashboard = decoded }
-            } else {
-                logger.warning("⚠️ Dashboard cache decode failed — stale cache cleared")
-                CacheService.shared.clear(for: "dashboard")
-            }
-        }
+        // An unscoped cache cannot certify the active program or local day.
+        // Never present an old workout as today's executable session.
+        await MainActor.run { self.dashboard = nil }
 
         await MainActor.run {
             APILoadingState.shared.isLoading = true
@@ -221,7 +215,7 @@ class APIService: ObservableObject {
             }
             return
         }
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         req.timeoutInterval = 15
         let slowTask = Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
@@ -231,17 +225,17 @@ class APIService: ObservableObject {
         }
         do {
             let data: Data
-            do {
-                let (d, _) = try await URLSession.authed.data(for: req)
-                CacheService.shared.save(d, for: "dashboard")
-                data = d
-            } catch {
-                guard let cached = CacheService.shared.load(for: "dashboard") else { throw error }
-                data = cached
+            let (d, response) = try await URLSession.authed.data(for: req)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                throw URLError(.badServerResponse)
             }
+            data = d
             slowTask.cancel()
             await MainActor.run { APILoadingState.shared.isSlow = false }
             let decoded = try APIService.decoder.decode(DashboardData.self, from: data)
+            guard decoded.todayDate == DateFormatter.isoDate.string(from: Date()) else {
+                throw URLError(.badServerResponse)
+            }
             await MainActor.run {
                 self.dashboard = decoded
                 APILoadingState.shared.isLoading = false
@@ -259,7 +253,7 @@ class APIService: ObservableObject {
                 APILoadingState.shared.isLoading = false
                 APILoadingState.shared.isSlow = false
                 self.consecutiveDashboardFailures += 1
-                if self.consecutiveDashboardFailures >= 3 { self.revertOptimisticFlagFromStaleCache() }
+                if self.consecutiveDashboardFailures >= 3 { self.sessionLoggedToday = false }
             }
         } catch {
             slowTask.cancel()
@@ -268,20 +262,8 @@ class APIService: ObservableObject {
                 APILoadingState.shared.isLoading = false
                 APILoadingState.shared.isSlow = false
                 self.consecutiveDashboardFailures += 1
-                if self.consecutiveDashboardFailures >= 3 { self.revertOptimisticFlagFromStaleCache() }
+                if self.consecutiveDashboardFailures >= 3 { self.sessionLoggedToday = false }
             }
-        }
-    }
-
-    // Called on MainActor — reads stale cache to verify sessionLoggedToday after 3 consecutive failures.
-    // Prevents an optimistic flag from persisting indefinitely when the network is down.
-    private func revertOptimisticFlagFromStaleCache() {
-        guard sessionLoggedToday else { return }
-        let (stale, _, _) = CacheService.shared.loadIncludingStale(for: "dashboard")
-        if let stale, let decoded = try? APIService.decoder.decode(DashboardData.self, from: stale) {
-            sessionLoggedToday = decoded.alreadyLoggedToday
-        } else {
-            sessionLoggedToday = false
         }
     }
 

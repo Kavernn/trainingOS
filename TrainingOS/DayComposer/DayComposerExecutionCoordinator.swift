@@ -33,6 +33,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     let eveningVM: SeanceViewModel
     private let finalInputsIdentity: DayComposerExecutionIdentity
     private let finalInputsStore: DayComposerFinalInputsStore
+    private var finishCoordinator: DayComposerFinishCoordinator?
     private(set) lazy var morningFinalInputs = makeFinalInputsParticipant(.morning)
     private(set) lazy var eveningFinalInputs = makeFinalInputsParticipant(.evening)
     private let morningAuthorization: DayComposerProvenanceStore.Authorization
@@ -49,6 +50,13 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     @Published private(set) var currentMemberID: DayComposerItemID?
 
     var context: DayComposerExecutionContext { input.context }
+    func canOfferFinish(_ source: DayComposerSource) -> Bool {
+        let required = items.filter { $0.id.source == source }
+        return !isLocked && !required.isEmpty && required.allSatisfy { item in
+            guard let state = status(for: item.id), !state.hasDraft else { return false }
+            return consultationResult(for: item.id) != nil || state.serverObserved
+        }
+    }
     var orderedUnits: [DayComposerUnit] { input.orderedUnits }
     private var items: [DayComposerItem] { orderedUnits.flatMap(\.items) }
 
@@ -454,6 +462,15 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         return barrier
     }
 
+    /// One internal engine per execution host. No public CTA or body-local owner.
+    func makeFinishCoordinator() throws -> DayComposerFinishCoordinator {
+        if let finishCoordinator { return finishCoordinator }
+        let engine = DayComposerFinishCoordinator(execution: self, barrier: try makeStabilizationBarrier(),
+            store: DayComposerFinalizationStore(), inputs: finalInputsStore, dependencies: .live)
+        finishCoordinator = engine
+        return engine
+    }
+
     /// Mirrors actual rendering, including local-log precedence. Selection is irrelevant.
     func expectedMutableParticipantIDs(for source: DayComposerSource) -> [DayComposerExecutionItemIdentity] {
         items.filter { $0.id.source == source }.compactMap { item in
@@ -544,6 +561,29 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         let local = try captureLocalFinalizationFacts(for: source, evidence: evidence.local)
         try evidence.verifyCurrent()
         return .init(local: local, finalInputs: evidence.finalInputs)
+    }
+
+    /// Read-only expiry check after awaits; no flush, recapture, or silent rebase.
+    /// Also checks owner memory, including private restoration paths outside G2.
+    func verifyFinalCapture(_ capture: DayComposerFinalSourceCapture) throws {
+        let local = capture.local
+        guard local.identity == finalInputsIdentity,
+              try currentFinalizationGuard(for: local.source) == local.guardValue,
+              persistedCommentMatches(local.comment, for: local.source),
+              sourceOwner(local.source).persistedLogsMatchCurrentState() else {
+            throw DayComposerStabilizationError.staleEvidence
+        }
+        for fact in local.itemFacts {
+            let bytes: Data?
+            if let result = consultationResult(for: fact.itemID) {
+                bytes = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.exercise(
+                    exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
+                    sets: result.sets, force: true, isSecond: result.isSecond, isBonus: result.isBonus,
+                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes, date: context.date))
+            } else { bytes = nil }
+            guard bytes == fact.local.payload else { throw DayComposerStabilizationError.staleEvidence }
+        }
+        try finalInputsParticipant(for: local.source).verify(capture.finalInputs)
     }
 
     private func observeOwners() {

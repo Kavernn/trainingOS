@@ -71,6 +71,18 @@ final class DayComposerStabilizationFixture {
         }
     }
 
+    /// Recreate real owners/barrier from the identical durable execution, without
+    /// clearing recovery or generating a new provenance identity.
+    init(restoring input: DayComposerValidatedExecutionInput, finalInputsStore: DayComposerFinalInputsStore) throws {
+        date = input.context.date
+        let date = date
+        coordinator = try .make(validatedInput: input, currentDate: { date }, finalInputsStore: finalInputsStore)
+        barrier = try coordinator.makeStabilizationBarrier()
+        morning = .init(source: .morning, text: coordinator.comment(for: .morning))
+        evening = .init(source: .evening, text: coordinator.comment(for: .evening))
+        barrier.registerComment(morning); barrier.registerComment(evening)
+    }
+
     func cleanup() {
         for handle in handles { handle.detach() }
         handles.removeAll(); vms.removeAll()
@@ -349,7 +361,8 @@ final class DayComposerStabilizationTests: XCTestCase {
     }
 
     func testFinalPrepareFailurePreventsAllForcedFlushes() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let h = try Harness(), a = Card(), b = Card()
         h.add(a, id: h.id("A")); h.add(b, id: h.id("B"))
@@ -412,8 +425,12 @@ final class DayComposerStabilizationTests: XCTestCase {
             let observation = f.barrier.$phases.sink { phases in
                 guard phases[.morning] == .frozenForSnapshot, !injected else { return }
                 injected = true
-                XCTAssertNoThrow(try store.save(executionIdentity: first.executionIdentity, source: .morning,
-                    values: DayComposerFinalInputs(rpe: 8), expectedRevision: first.revision))
+                do {
+                    _ = try store.save(executionIdentity: first.executionIdentity, source: .morning,
+                        values: DayComposerFinalInputs(rpe: 8), expectedRevision: first.revision)
+                } catch {
+                    XCTFail("Reentrant fixture save failed: \(error)")
+                }
             }
             defer { observation.cancel() }
             var invoked = false
@@ -477,7 +494,8 @@ final class DayComposerStabilizationTests: XCTestCase {
         func id(_ name: String = "A", _ source: DayComposerSource = .morning) -> DayComposerExecutionItemIdentity {
             .init(executionID: identity.executionID, version: identity.contextVersion, date: identity.date,
                   activeProgramID: identity.activeProgramID, sourceFingerprint: identity.sourceFingerprint,
-                  itemID: .init(source: source, name: name, exerciseID: "00000000-0000-0000-0000-000000000001"))
+                  itemID: .init(source: source, name: name,
+                                exerciseID: name == "A" ? "00000000-0000-0000-0000-000000000001" : nil))
         }
         func guardValue(_ source: DayComposerSource) throws -> DayComposerFinalizationGuard {
             try .init(executionID: identity.executionID, source: source, revision: revision,
@@ -624,8 +642,11 @@ final class DayComposerStabilizationTests: XCTestCase {
             // Published state can synchronously call clients on this same MainActor stack.
             MainActor.assumeIsolated {
                 guard h.barrier.isInteractionFrozen else { return }
-                XCTAssertThrowsError(try h.barrier.withStabilizedSource(.evening) { _ in XCTFail() }) {
-                    XCTAssertEqual($0 as? DayComposerStabilizationError, .busy)
+                do {
+                    try h.barrier.withStabilizedSource(.evening) { _ in XCTFail() }
+                    XCTFail("Reentrant stabilization must throw busy")
+                } catch {
+                    XCTAssertEqual(error as? DayComposerStabilizationError, .busy)
                 }
                 reentries += 1
             }
@@ -687,9 +708,10 @@ final class DayComposerStabilizationTests: XCTestCase {
         let f = try DayComposerStabilizationFixture(); defer { f.cleanup() }
         let id = try XCTUnwrap(f.coordinator.orderedUnits.first?.items.first?.id)
         var log = ExerciseLogResult(name: "A", weight: 80, reps: "5", equipmentType: "machine")
-        log.sets = [["weight": 80.0, "reps": "5"]]
+        log.sets = [["weight": 80.0, "reps": "5", "rir": 2, "rpe": 8.0]]
         XCTAssertEqual(f.coordinator.submit(candidate: log, for: id), .accepted)
         try f.mount(.morning)
+        let handle = try XCTUnwrap(f.handles.first, "A complete reps log must mount an editable participant")
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let store = DayComposerFinalizationStore(baseDirectory: directory)
@@ -706,7 +728,7 @@ final class DayComposerStabilizationTests: XCTestCase {
             stored = snapshot
             try store.recordSourceSnapshot(identity: snapshot.identity, version: snapshot.sourceVersion,
                                            provenanceGuard: snapshot.provenanceGuard)
-            f.handles[0].didMutatePrivateState()
+            handle.didMutatePrivateState()
         }) { XCTAssertEqual($0 as? DayComposerStabilizationError, .staleEvidence) }
         let snapshot = try XCTUnwrap(stored)
         XCTAssertEqual(try store.load(identity: snapshot.identity)?.sourceSnapshots.count, 1)
@@ -727,7 +749,7 @@ final class DayComposerStabilizationTests: XCTestCase {
         // Create the local log through the admitted owner to exercise rendering's
         // local precedence even though the cached projection observes that name.
         var safe = ExerciseLogResult(name: "Safe", weight: 80, reps: "5", equipmentType: "machine")
-        safe.sets = [["weight": 80.0, "reps": "5"]]
+        safe.sets = [["weight": 80.0, "reps": "5", "rir": 2, "rpe": 8.0]]
         c.morningVM.logResults["Safe"] = safe
         c.morningVM.logResults["Unsafe"] = ExerciseLogResult(name: "Unsafe", weight: 80, reps: "5", equipmentType: "machine")
         let draftVM = ExerciseViewModel(name: "Draft", scheme: "1x5", weightData: nil, sessionDate: f.date,

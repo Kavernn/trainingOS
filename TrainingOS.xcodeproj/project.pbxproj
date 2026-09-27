@@ -143,6 +143,7 @@
 		E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */; };
 		EBD686A12DC32EF0A13FD632 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */; };
 		EC0001EC0001EC0001EC0001 /* StepperInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0001EF0001EF0001EF0001 /* StepperInput.swift */; };
+		EC0004EC0004EC0004EC0004 /* ExerciseEditorPreparation.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0004EF0004EF0004EF0004 /* ExerciseEditorPreparation.swift */; };
 		EC0002EC0002EC0002EC0002 /* HoldToLogButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0002EF0002EF0002EF0002 /* HoldToLogButton.swift */; };
 		EC0003EC0003EC0003EC0003 /* FloatingRestTimerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0003EF0003EF0003EF0003 /* FloatingRestTimerCard.swift */; };
 		ED93F64E254A447DBC2B6899 /* DailyBriefService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5AE21CD9D0142D9B211387E /* DailyBriefService.swift */; };
@@ -436,6 +437,7 @@
 		EE5500032F5D98BA002AE470 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		EE5500052F5D98BA002AE470 /* UserDefaultsSyncQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsSyncQueue.swift; sourceTree = "<group>"; };
 		EF0001EF0001EF0001EF0001 /* StepperInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepperInput.swift; sourceTree = "<group>"; };
+		EF0004EF0004EF0004EF0004 /* ExerciseEditorPreparation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEditorPreparation.swift; sourceTree = "<group>"; };
 		EF0002EF0002EF0002EF0002 /* HoldToLogButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoldToLogButton.swift; sourceTree = "<group>"; };
 		EF0003EF0003EF0003EF0003 /* FloatingRestTimerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingRestTimerCard.swift; sourceTree = "<group>"; };
 		ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnergyModels.swift; sourceTree = "<group>"; };
@@ -1005,6 +1007,7 @@
 				058BA2E35BCC575568655DDC /* ExerciseViewModel.swift */,
 				15EBCC3B6A4B2F3CDA11F3EF /* ExerciseCard.swift */,
 				EF0001EF0001EF0001EF0001 /* StepperInput.swift */,
+				EF0004EF0004EF0004EF0004 /* ExerciseEditorPreparation.swift */,
 				EF0002EF0002EF0002EF0002 /* HoldToLogButton.swift */,
 				EF0003EF0003EF0003EF0003 /* FloatingRestTimerCard.swift */,
 				SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */,
@@ -1535,6 +1538,7 @@
 				189D3562DBA17BDF3736B59B /* ExerciseViewModel.swift in Sources */,
 				EE40EFBE12129A661F672B0A /* ExerciseCard.swift in Sources */,
 				EC0001EC0001EC0001EC0001 /* StepperInput.swift in Sources */,
+				EC0004EC0004EC0004EC0004 /* ExerciseEditorPreparation.swift in Sources */,
 				EC0002EC0002EC0002EC0002 /* HoldToLogButton.swift in Sources */,
 				EC0003EC0003EC0003EC0003 /* FloatingRestTimerCard.swift in Sources */,
 				SWAP0002SWAP0002SWAP0002 /* ExerciseSwapSheet.swift in Sources */,

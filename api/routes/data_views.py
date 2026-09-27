@@ -29,7 +29,6 @@ def api_dashboard():
     goals        = load_goals()
     full_program = load_program()
     hiit_log     = load_hiit_log()
-    today_str    = get_today()
     # Étape 3 — plan du jour post-overrides (SOURCE UNIQUE, cf. planner.py).
     # Un exo déplacé matin→soir n'apparaît plus dans le plan matin du dashboard.
     from planner import get_day_plan as _get_day_plan
@@ -39,8 +38,10 @@ def api_dashboard():
         today_date = _client_date
     except (ValueError, Exception):
         today_date = get_today_date()
+    from planner import sessions_for_date
+    today_str, _evening_session_name = sessions_for_date(today_date, full_program)
     schedule     = get_week_schedule()
-    suggestions  = get_suggested_weights_for_today(weights, full_program)
+    suggestions  = get_suggested_weights_for_today(weights, full_program, today_date)
 
     # Nutrition totals avec date locale iOS (pas _today_mtl() serveur)
     _nutr_entries = _db.get_nutrition_entries(today_date)
@@ -175,7 +176,6 @@ def api_dashboard():
 
     # Séance 2 planifiée : source de vérité UNIQUE = get_today_evening() (planner.py),
     # même helper que /api/seance_soir_data → jamais de divergence entre menu et vue.
-    _evening_session_name = get_today_evening()
     _second_session_completed = bool(
         (_db.get_workout_session_second(today_date) or {}).get("completed")
     )

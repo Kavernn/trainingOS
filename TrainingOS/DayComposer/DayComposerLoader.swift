@@ -51,8 +51,9 @@ enum DayComposerLoader {
         let second_session_completed: Bool
     }
 
-    private static func read<T: Decodable>(_ path: String) async throws -> T {
-        let url = try APIService.shared.buildURL(path: path)
+    private static func read<T: Decodable>(_ path: String, date: String? = nil) async throws -> T {
+        let url = try APIService.shared.buildURL(path: path,
+            queryItems: date.map { [URLQueryItem(name: "date", value: $0)] } ?? [])
         let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         let (data, response) = try await URLSession.authed.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -72,10 +73,10 @@ enum DayComposerLoader {
         guard before.active_program_id == program, before.current_program_id == program else {
             throw DayComposerError.contextChanged
         }
-        let morning: SeanceData = try await read("/api/seance_data")
-        let eveningResponse: SeanceSoirData = try await read("/api/seance_soir_data")
+        let morning: SeanceData = try await read("/api/seance_data", date: date)
+        let eveningResponse: SeanceSoirData = try await read("/api/seance_soir_data", date: date)
         guard let evening = eveningResponse.asSeanceData() else { throw DayComposerError.unavailable }
-        let completion: Completion = try await read("/api/dashboard")
+        let completion: Completion = try await read("/api/dashboard", date: date)
         let after: Context = try await read("/api/programme_data")
         return try validate(program: program, date: date,
             currentDate: DateFormatter.isoDate.string(from: Date()),
@@ -130,7 +131,7 @@ enum DayComposerLoader {
         return DayComposerLoadedBundle(snapshot: snapshot, morningData: morning, eveningData: evening)
     }
 
-    /// Internal only. Preparation UI never invokes this path.
+    /// Explicit Start/reopen path; passive eligibility never prepares owners.
     static func loadExecution(program: String, orderStore: DayComposerStore = DayComposerStore(),
                               projection: (String) async throws -> DayComposerServerProjection = {
                                   try await DayComposerServerProjection.load(date: $0)

@@ -47,7 +47,18 @@ enum ExerciseSaveOutcome {
 // MARK: - Pure shared payload/response contracts
 
 enum WorkoutPayloadBuilder {
+    struct Summary: Equatable {
+        let name: String
+        let weight: Double
+        let reps: String
+    }
+
     static func summaries(_ resultsByIdentity: [String: ExerciseLogResult])
+        -> (exos: [String], exerciseLogs: [[String: Any]]) {
+        summaries(resultsByIdentity.mapValues { Summary(name: $0.name, weight: $0.weight, reps: $0.reps) })
+    }
+
+    static func summaries(_ resultsByIdentity: [String: Summary])
         -> (exos: [String], exerciseLogs: [[String: Any]]) {
         let results = resultsByIdentity.keys.sorted().compactMap { resultsByIdentity[$0] }
         return (results.map { "\($0.name) \($0.weight)lbs \($0.reps)" },
@@ -170,6 +181,28 @@ struct NeutralExerciseSubmissionRequest {
     let payloadData: Data
     let operationKey: OfflineOperationKey
 
+    /// Validated routing, byte-preserving construction. The caller additionally
+    /// binds these bytes to its captured business version before submission.
+    init(itemIdentity: String, source: DayComposerSource, date: String,
+         payloadData: Data, operationKey: OfflineOperationKey) throws {
+        try NeutralSubmissionValidation.check(date: date, identity: itemIdentity, key: operationKey)
+        guard let body = try JSONSerialization.jsonObject(with: payloadData) as? [String: Any],
+              body["exercise"] as? String == itemIdentity,
+              body["session_date"] as? String == date,
+              (body["is_second"] as? Bool ?? false) == (source == .evening),
+              (body["is_bonus"] as? Bool ?? false) == false,
+              body["weight"] is NSNumber, body["reps"] is String else {
+            throw NeutralSubmissionValidationError.inconsistentSource
+        }
+        self.itemIdentity = itemIdentity
+        self.source = source
+        self.date = date
+        self.isSecond = source == .evening
+        self.isBonus = false
+        self.payloadData = payloadData
+        self.operationKey = operationKey
+    }
+
     init(itemIdentity: String, source: DayComposerSource, date: String,
          result: ExerciseLogResult, operationKey: OfflineOperationKey) throws {
         try NeutralSubmissionValidation.check(date: date, identity: itemIdentity, key: operationKey)
@@ -245,6 +278,25 @@ struct NeutralSourceFinalizationRequest {
     let payloadData: Data
     let operationKey: OfflineOperationKey
     let dependencies: NeutralSourceDependencies
+
+    init(source: DayComposerSource, date: String, sessionName: String,
+         payloadData: Data, operationKey: OfflineOperationKey,
+         dependencies: NeutralSourceDependencies) throws {
+        try NeutralSubmissionValidation.check(date: date, identity: sessionName, key: operationKey)
+        guard let body = try JSONSerialization.jsonObject(with: payloadData) as? [String: Any],
+              body["date"] as? String == date, body["session_name"] as? String == sessionName,
+              (body["second_session"] as? Bool ?? false) == (source == .evening),
+              (body["bonus_session"] as? Bool ?? false) == false,
+              body["exos"] is [String], body["comment"] is String, body["rpe"] is NSNumber else {
+            throw NeutralSubmissionValidationError.inconsistentSource
+        }
+        self.source = source
+        self.date = date
+        self.sessionName = sessionName
+        self.payloadData = payloadData
+        self.operationKey = operationKey
+        self.dependencies = dependencies
+    }
 
     /// Explicit inputs only. No timing computation or owner reads during transport.
     /// Future f2c MUST block completed+dirty before calling: Morning's historical
@@ -335,7 +387,7 @@ extension APIService {
         guard NeutralSubmissionValidation.validDate(date) else { return .unsupportedDate }
         do {
             let url = try buildURL(path: source == .morning ? "/api/seance_data" : "/api/dashboard",
-                queryItems: source == .morning ? [] : [URLQueryItem(name: "date", value: date)])
+                queryItems: [URLQueryItem(name: "date", value: date)])
             var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
             request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
             let pair: (Data, URLResponse)

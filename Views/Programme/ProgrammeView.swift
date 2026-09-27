@@ -272,6 +272,9 @@ struct ProgrammeView: View {
     }
 
     private var todaySessionName: String? {
+        if let current = vm.currentExecutionMorning, current.date == todayDateStr {
+            return current.name.isEmpty || current.name == "Repos" ? nil : current.name
+        }
         let weekday = Calendar.mtl.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7  // 1=Sun → idx=6, 2=Mon → idx=0, …, 7=Sat → idx=5
         guard idx < TrainingDoctrine.dayNames.count else { return nil }
@@ -730,7 +733,7 @@ struct ProgrammeView: View {
         if let manual = vm.eveningSchedule[day], !manual.isEmpty, manual != "Repos" {
             return (manual, false)
         }
-        if let morning = vm.schedule[day], !morning.isEmpty, morning != "Repos" {
+        if let morning = todaySessionName {
             return (morning, true)
         }
         return nil

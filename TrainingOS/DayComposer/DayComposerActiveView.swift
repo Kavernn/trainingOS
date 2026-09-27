@@ -22,10 +22,11 @@ struct DayComposerCommentBuffers {
     }
 }
 
-/// Internal only. The caller owns a fully prepared coordinator. No Preview or public route.
+/// The preparation screen owns and injects the fully prepared execution context.
 struct DayComposerActiveView: View {
     @ObservedObject var coordinator: DayComposerExecutionCoordinator
     @ObservedObject var stabilizationBarrier: DayComposerLocalStabilizationBarrier
+    @ObservedObject var finishCoordinator: DayComposerFinishCoordinator
     let bodyWeight: Double
     let onDismiss: () -> Void
     @ObservedObject private var timer = RestTimerManager.shared
@@ -33,13 +34,18 @@ struct DayComposerActiveView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var morningComment: DayComposerCommentParticipant
     @StateObject private var eveningComment: DayComposerCommentParticipant
+    @State private var rpeSource: DayComposerSource?
+    @State private var selectedRPE: Int?
+    @State private var operations: [DayComposerSource: Task<Void, Never>] = [:]
 
     init(coordinator: DayComposerExecutionCoordinator, stabilizationBarrier: DayComposerLocalStabilizationBarrier,
+         finishCoordinator: DayComposerFinishCoordinator,
          bodyWeight: Double = 0,
          onDismiss: @escaping () -> Void) {
         precondition(coordinator.stabilizationBarrier === stabilizationBarrier, "Inject the coordinator's retained barrier")
         self.coordinator = coordinator
         self.stabilizationBarrier = stabilizationBarrier
+        self.finishCoordinator = finishCoordinator
         self.bodyWeight = bodyWeight
         self.onDismiss = onDismiss
         _morningComment = StateObject(wrappedValue: .init(source: .morning, text: coordinator.comment(for: .morning)))
@@ -56,6 +62,7 @@ struct DayComposerActiveView: View {
                     rootMessage
                     units
                     commentPanel
+                    finishPanel
                     DayComposerActiveCommands(coordinator: coordinator, navigate: navigate, dismiss: leave)
                         .disabled(stabilizationBarrier.isInteractionFrozen)
                 }
@@ -72,17 +79,103 @@ struct DayComposerActiveView: View {
             }
         }
         .background(Color.appSurfaceInset)
+        .sheet(isPresented: Binding(get: { rpeSource != nil }, set: { if !$0 { rpeSource = nil } })) {
+            rpeSheet
+        }
         .onAppear {
             coordinator.revalidateExecutionContext()
             stabilizationBarrier.registerComment(morningComment)
             stabilizationBarrier.registerComment(eveningComment)
         }
         .onDisappear {
+            for operation in operations.values { operation.cancel() }
             stabilizationBarrier.unregisterComment(source: .morning, token: morningComment.instance)
             stabilizationBarrier.unregisterComment(source: .evening, token: eveningComment.instance)
         }
+        .task {
+            // Cards/comment participants register on appearance before this async read.
+            await finishCoordinator.refreshSource(.morning)
+            await finishCoordinator.refreshSource(.evening)
+        }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { coordinator.revalidateExecutionContext() }
+            if phase == .active {
+                coordinator.revalidateExecutionContext()
+                for source in [DayComposerSource.morning, .evening] where finishCoordinator.productState(source) != .processing {
+                    operations[source] = Task { await finishCoordinator.refreshSource(source) }
+                }
+            }
+        }
+    }
+
+    private var finishPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if finishCoordinator.dayCompleted {
+                Label("Journée terminée", systemImage: "checkmark.circle.fill")
+                    .font(.headline).accessibilityAddTraits(.isHeader)
+                Button("Retour au Programme", action: leave).frame(minHeight: 44)
+            } else {
+                ForEach([DayComposerSource.morning, .evening], id: \.self) { source in
+                    let state = finishCoordinator.productState(source)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("\(source.title) · \(state.title)").font(.headline)
+                        if state == .processing { ProgressView() }
+                        if state == .pending {
+                            Text("Les données sont conservées. Vérifie leur synchronisation une fois la connexion rétablie.")
+                                .font(.subheadline).foregroundStyle(Color.appTextSecondary)
+                        } else if state == .review || state == .failed {
+                            Text("Vérifie les exercices et le commentaire. Aucun renvoi automatique n’est effectué.")
+                                .font(.subheadline).foregroundStyle(Color.appTextSecondary)
+                        }
+                        if state == .pending || state == .review || state == .failed {
+                            Button("Vérifier l’état — \(source.title)") {
+                                operations[source] = Task { await finishCoordinator.refreshSource(source) }
+                            }.frame(minHeight: 44)
+                        }
+                        if state == .ready {
+                            Button("Terminer — \(source.title)") { selectedRPE = nil; rpeSource = source }
+                                .frame(minHeight: 44)
+                                .disabled(!coordinator.canOfferFinish(source))
+                            if !coordinator.canOfferFinish(source) {
+                                Text("Enregistre les exercices de cette séance avant de la terminer.")
+                                    .font(.subheadline).foregroundStyle(Color.appTextSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .foregroundStyle(Color.appTextPrimary).tint(Color.forge).dayComposerSurface()
+    }
+
+    private var rpeSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Effort global de la séance \(rpeSource?.title ?? "")")
+                    Text("Choisis ton RPE de séance, de 6 à 10. Aucun effort n’est estimé automatiquement.")
+                        .foregroundStyle(Color.appTextSecondary)
+                    ForEach(6...10, id: \.self) { value in
+                        Button { selectedRPE = value } label: {
+                            HStack {
+                                Text("RPE \(value)")
+                                Spacer()
+                                if selectedRPE == value { Image(systemName: "checkmark").accessibilityHidden(true) }
+                            }.frame(minHeight: 44)
+                        }
+                        .accessibilityAddTraits(selectedRPE == value ? .isSelected : [])
+                    }
+                }
+                Button("Confirmer et terminer") {
+                    guard let source = rpeSource, let selectedRPE else { return }
+                    endEditing()
+                    rpeSource = nil
+                    operations[source] = Task { await finishCoordinator.finishSource(source, rpe: Double(selectedRPE)) }
+                }
+                .frame(minHeight: 44).disabled(selectedRPE == nil)
+            }
+            .navigationTitle("RPE de séance")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { rpeSource = nil } } }
+            .tint(Color.forge)
         }
     }
 
@@ -107,6 +200,7 @@ struct DayComposerActiveView: View {
             ForEach(coordinator.orderedUnits) { unit in
                 DayComposerUnitContent(coordinator: coordinator, unit: unit,
                                        barrier: stabilizationBarrier, bodyWeight: bodyWeight, select: select, logged: logged)
+                    .disabled(finishCoordinator.productState(unit.source) == .completed)
             }
         }
     }
@@ -115,7 +209,7 @@ struct DayComposerActiveView: View {
         if let source = coordinator.selectedSource {
             let holder = source == .morning ? morningComment : eveningComment
             DayComposerSourceCommentSection(holder: holder,
-                locked: coordinator.isLocked,
+                locked: coordinator.isLocked || finishCoordinator.productState(source) == .completed,
                 frozen: !stabilizationBarrier.permitsOrdinaryMutation(for: source),
                 edit: { text in writeComment(text, source: source) },
                 retry: { writeComment(holder.text, source: source) })
@@ -161,6 +255,10 @@ private struct DayComposerActiveHeader: View {
             Text("Ma journée").font(.title2.bold()).accessibilityAddTraits(.isHeader)
             Text("\(coordinator.treatedCount)/\(coordinator.executableCount) exercices traités")
                 .accessibilityLabel("\(coordinator.treatedCount) sur \(coordinator.executableCount) exercices traités")
+            if let index = coordinator.orderedUnits.flatMap(\.items).firstIndex(where: { $0.id == coordinator.currentMemberID }) {
+                Text("Exercice \(index + 1) sur \(coordinator.orderedUnits.flatMap(\.items).count)")
+                    .font(.subheadline)
+            }
             Text([coordinator.selectedSource?.title, coordinator.context.date].compactMap { $0 }.joined(separator: " · "))
                 .font(.subheadline).foregroundStyle(Color.appTextSecondary)
         }

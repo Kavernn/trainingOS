@@ -17,7 +17,8 @@ final class DayComposerTests: XCTestCase {
         let ids = input.snapshot.initialIDs
         let identity = c.executionIdentity(for: ids[0])
         let barrier = try c.makeStabilizationBarrier()
-        let host = UIHostingController(rootView: DayComposerActiveView(coordinator: c, stabilizationBarrier: barrier, onDismiss: {}))
+        let host = UIHostingController(rootView: DayComposerActiveView(coordinator: c, stabilizationBarrier: barrier,
+            finishCoordinator: try c.makeFinishCoordinator(), onDismiss: {}))
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 430, height: 932))
         window.rootViewController = host
         window.isHidden = false
@@ -125,7 +126,8 @@ final class DayComposerTests: XCTestCase {
             XCTAssertEqual(rebuilt.presentation(for: ids[0])?.identity, c.presentation(for: ids[0])?.identity)
             var dismissals = 0
             let barrier = try rebuilt.makeStabilizationBarrier()
-            let shell = DayComposerActiveView(coordinator: rebuilt, stabilizationBarrier: barrier) { dismissals += 1 }
+            let shell = DayComposerActiveView(coordinator: rebuilt, stabilizationBarrier: barrier,
+                finishCoordinator: try rebuilt.makeFinishCoordinator()) { dismissals += 1 }
             shell.onDismiss()
             XCTAssertEqual(dismissals, 1)
             XCTAssertEqual(SessionDraftStore.load(date: date).count, 2)
@@ -155,7 +157,8 @@ final class DayComposerTests: XCTestCase {
     // Coordinator integration uses the same isolated-date pattern as provenance
     // tests: actual shared hooks, no fake store inconsistent with owner binding.
     @MainActor
-    private func withExecution(date: String = "coordinator-\(UUID().uuidString)", _ body: (String) throws -> Void) throws {
+    private func withExecution(date requestedDate: String? = nil, _ body: (String) throws -> Void) throws {
+        let date = try requestedDate ?? DayComposerStabilizationFixture.unusedDate()
         defer { cleanupExecution(date) }
         try body(date)
     }
@@ -215,7 +218,7 @@ final class DayComposerTests: XCTestCase {
 
     @MainActor
     func testExplicitAcceptanceReadbackUndoAndAdvanceOnce() async throws {
-        let date = "acceptance-\(UUID().uuidString)"
+        let date = try DayComposerStabilizationFixture.unusedDate()
         defer { cleanupExecution(date) }
         let input = try executionInput(executionBundle(date))
         let c = try coordinator(input)
@@ -332,7 +335,7 @@ final class DayComposerTests: XCTestCase {
 
     @MainActor
     func testLiveGateRejectsPendingDraftAfterLocalLockWithoutStoreInvalidation() async throws {
-        let date = "local-lock-\(UUID().uuidString)"
+        let date = try DayComposerStabilizationFixture.unusedDate()
         defer { cleanupExecution(date) }
         let input = try executionInput(executionBundle(date))
         let c = try coordinator(input)
@@ -815,7 +818,7 @@ final class DayComposerTests: XCTestCase {
 
     @MainActor
     func testCoordinatorOwnerPublishersRefreshAfterPersistenceWithoutCopies() async throws {
-        let date = "coordinator-observation-\(UUID().uuidString)"
+        let date = try DayComposerStabilizationFixture.unusedDate()
         defer { cleanupExecution(date) }
         let input = try executionInput(executionBundle(date))
         let c = try coordinator(input)
@@ -1364,10 +1367,10 @@ final class DayComposerTests: XCTestCase {
             try DayComposerSnapshot(date: base.date, activeProgramID: base.activeProgramID, morning: plan,
                 evening: base.evening, morningCompleted: false, eveningCompleted: false).fingerprint
         }
-        XCTAssertEqual(try fingerprint(a), fingerprint(b))
+        XCTAssertEqual(try fingerprint(a), try fingerprint(b))
         let changed = try DayComposerPlan(source: .morning, session: "AM", schemes: ["A": "4x10", "B": "3x10"], order: ["A", "B"])
-        XCTAssertNotEqual(try fingerprint(a), fingerprint(changed))
-        XCTAssertEqual(try base.fingerprint, snapshot(completed: true).fingerprint)
+        XCTAssertNotEqual(try fingerprint(a), try fingerprint(changed))
+        XCTAssertEqual(try base.fingerprint, try snapshot(completed: true).fingerprint)
     }
 
     func testInvalidOrderRejectedWithoutOverwriting() throws {

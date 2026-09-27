@@ -27,6 +27,7 @@ final class ProgrammeViewModel: ObservableObject {
     @Published var fullProgram: [String: [String: String]] = [:]
     @Published var exerciseOrder: [String: [String]] = [:]
     @Published var schedule: [String: String] = [:]
+    @Published private(set) var currentExecutionMorning: (date: String, name: String)?
     @Published var eveningSchedule: [String: String] = [:]
     /// Date début mésocycle (YYYY-MM-DD) — source serveur (programs.cycle_start_date).
     /// Hydratée par applyJSON depuis /api/programme_data. Écrite via
@@ -239,6 +240,7 @@ final class ProgrammeViewModel: ObservableObject {
     /// /api/evening_schedule et /api/seance_data. Séquentiel : async let LIFO crash
     /// sur iOS 26 beta (lessons.md).
     func loadData(programId: String? = nil) async {
+        currentExecutionMorning = nil
         loadGeneration += 1
         let generation = loadGeneration
         isLoading = true
@@ -287,11 +289,17 @@ final class ProgrammeViewModel: ObservableObject {
                 print("⚠️ evening_schedule decode failed: \(error)")
             }
         }
-        if let wURL = URL(string: "\(APIConfig.base)/api/seance_data"),
+        if let wURL = URL(string: "\(APIConfig.base)/api/seance_data?date=\(DateFormatter.isoDate.string(from: Date()))"),
            let (wData, _) = try? await URLSession.authed.data(from: wURL),
            generation == loadGeneration,
            let wJson = try? JSONSerialization.jsonObject(with: wData) as? [String: Any],
            let weights = wJson["weights"] as? [String: [String: Any]] {
+            if loadedProgramId == activeProgramId,
+               let date = wJson["today_date"] as? String,
+               date == DateFormatter.isoDate.string(from: Date()),
+               let name = wJson["today"] as? String {
+                currentExecutionMorning = (date, name)
+            }
             exerciseWeights = weights.compactMapValues { d in
                 let w  = d["current_weight"] as? Double
                 let r  = d["last_reps"]      as? String

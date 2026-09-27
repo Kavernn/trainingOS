@@ -89,22 +89,33 @@ def _montreal_now() -> datetime:
     return utc_now.astimezone(timezone(timedelta(hours=offset)))
 
 
-def get_today() -> str:
+def sessions_for_date(date: str, program: dict | None = None) -> tuple[str, str | None]:
+    """Resolve both slots for ONE explicit local date and active-program payload.
+
+    A dated manual override remains supported; a foreign program's session can
+    never become executable merely because the global schedule still names it.
+    """
     import db as _db
-    # Explicit user override for today (e.g. rescheduled session)
+    day = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][datetime.strptime(date, "%Y-%m-%d").weekday()]
+    morning = (_db.get_relational_week_schedule() or {}).get(day, "Repos")
     try:
         override = _db.get_session_override()
-        if override and override.get("session"):
-            return override["session"]
+        if override and override.get("date") == date and override.get("session"):
+            morning = override["session"]
     except Exception:
         pass
-    schedule = _db.get_relational_week_schedule()
-    days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-    day_key = days[_montreal_now().weekday()]
-    if schedule:
-        return schedule.get(day_key, "Repos")
-    logger.error("get_today: relational schedule unavailable — returning Repos")
-    return "Repos"
+    if program is not None and morning not in program:
+        morning = "Repos"
+    evening = (_db.get_evening_week_schedule() or {}).get(day)
+    if program is not None and evening not in program:
+        evening = None
+    if not evening or evening == "Repos":
+        evening = morning if morning and morning != "Repos" else None
+    return morning or "Repos", evening
+
+
+def get_today() -> str:
+    return sessions_for_date(get_today_date())[0]
 
 
 def get_today_date() -> str:
@@ -131,24 +142,18 @@ def get_today_evening() -> str | None:
     si matin ET soir sont Repos (vrai repos). Un override manuel du planning
     soir gagne toujours sur l'héritage.
     """
-    days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-    day_key = days[_montreal_now().weekday()]
-    evening = get_evening_schedule().get(day_key)
-    if evening and evening != "Repos":
-        return evening
-    morning = get_today()
-    return morning if morning and morning != "Repos" else None
+    return sessions_for_date(get_today_date())[1]
 
 
 # ---------------------------------------------------------------------------
 # Weight suggestions
 # ---------------------------------------------------------------------------
 
-def get_suggested_weights_for_today(weights: dict, program: dict | None = None) -> List[dict]:
+def get_suggested_weights_for_today(weights: dict, program: dict | None = None, date: str | None = None) -> List[dict]:
     from inventory import load_inventory
-    today_session = get_today()
     if program is None:
         program = load_program()
+    today_session = sessions_for_date(date or get_today_date(), program)[0]
     if today_session not in program:
         return []
 
@@ -220,8 +225,7 @@ def get_day_plan(date: str, full_program: dict) -> dict:
     import db as _db
     from blocks import get_strength_exercises
 
-    morning_name = get_today()
-    evening_name = get_today_evening()
+    morning_name, evening_name = sessions_for_date(date, full_program)
 
     morning_exos = dict(get_strength_exercises(full_program.get(morning_name, {}))) if morning_name else {}
     evening_exos = dict(get_strength_exercises(full_program.get(evening_name, {}))) if evening_name else {}

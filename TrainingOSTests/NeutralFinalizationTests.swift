@@ -93,6 +93,28 @@ final class NeutralFinalizationTests: XCTestCase {
         }
     }
 
+    func testBytePreservingOverloadsKeepExactDataAndRejectWrongRouting() throws {
+        for source in [DayComposerSource.morning, .evening] {
+            let original = try exercise(source)
+            let request = try NeutralExerciseSubmissionRequest(itemIdentity: "Carry", source: source,
+                date: date, payloadData: original.payloadData, operationKey: original.operationKey)
+            XCTAssertEqual(request.payloadData, original.payloadData)
+            XCTAssertThrowsError(try NeutralExerciseSubmissionRequest(itemIdentity: "Other", source: source,
+                date: date, payloadData: original.payloadData, operationKey: original.operationKey))
+            XCTAssertThrowsError(try NeutralExerciseSubmissionRequest(itemIdentity: "Carry",
+                source: source == .morning ? .evening : .morning, date: date,
+                payloadData: original.payloadData, operationKey: original.operationKey))
+            let final = try final(source)
+            let preserved = try NeutralSourceFinalizationRequest(source: source, date: date,
+                sessionName: final.sessionName, payloadData: final.payloadData,
+                operationKey: final.operationKey, dependencies: .satisfied)
+            XCTAssertEqual(preserved.payloadData, final.payloadData)
+            XCTAssertThrowsError(try NeutralSourceFinalizationRequest(source: source, date: "2026-01-01",
+                sessionName: final.sessionName, payloadData: final.payloadData,
+                operationKey: final.operationKey, dependencies: .satisfied))
+        }
+    }
+
     func testFinalBuilderStableOrderExactCommentAndSnapshot() throws {
         for source in [DayComposerSource.morning, .evening] {
             for comment in ["", " exact \n"] {

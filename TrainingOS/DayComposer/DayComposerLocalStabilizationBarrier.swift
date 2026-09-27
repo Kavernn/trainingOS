@@ -88,6 +88,9 @@ struct DayComposerStableFinalSourceEvidence {
     let local: DayComposerStableSourceEvidence
     let finalInputs: DayComposerFinalInputsReceipt
     fileprivate let verifyInputs: () throws -> Void
+    /// Read-only expiry witness. Unlike live evidence this can outlive the
+    /// closure, but cannot capture, flush, bind, or authorize a new snapshot.
+    let verifyUnchanged: () throws -> Void
     var isCurrentAttempt: Bool { local.isCurrentAttempt }
 
     func verifyCurrent() throws {
@@ -121,7 +124,7 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
         let commentMatches: (String, DayComposerSource) -> Bool
         let rejected: () -> Void
     }
-    private final class CardEntry {
+    @MainActor private final class CardEntry {
         weak var handle: (any DayComposerCardParticipant)?
         let token: UUID
         init(_ handle: any DayComposerCardParticipant) { self.handle = handle; token = handle.instance }
@@ -398,6 +401,22 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
                               try self.finalInputsHolder(source) === inputsHolder else {
                             throw DayComposerStabilizationError.staleEvidence
                         }
+                        try inputsHolder.verify(inputsReceipt)
+                    }, verifyUnchanged: { [weak self, weak holder, weak inputsHolder] in
+                        guard let self, let holder, let inputsHolder else {
+                            throw DayComposerStabilizationError.staleEvidence
+                        }
+                        try self.validateContext()
+                        guard self.registryGeneration(for: source) == generation,
+                              self.dependencies.expected(source) == expected,
+                              self.finalInputsGenerations[source, default: 0] == inputsGeneration,
+                              try self.commentHolder(source) === holder,
+                              try self.finalInputsHolder(source) === inputsHolder,
+                              receipts.allSatisfy({ $0.verify() }), self.verifyComment(comment, holder: holder),
+                              try self.dependencies.guardValue(source) == guardValue else {
+                            throw DayComposerStabilizationError.staleEvidence
+                        }
+                        _ = try self.coverage(source, expected: expected)
                         try inputsHolder.verify(inputsReceipt)
                     })
             } else { finalEvidence = nil }

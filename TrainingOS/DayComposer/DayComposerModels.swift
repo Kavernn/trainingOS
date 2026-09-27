@@ -131,6 +131,14 @@ struct DayComposerSnapshot {
         source == .morning ? morningCompleted : eveningCompleted
     }
 
+    func canStart(orderedIDs: [DayComposerItemID], activeProgram: String, date: String,
+                  loading: Bool, incompatible: Bool) -> Bool {
+        !loading && !incompatible && activeProgramID == activeProgram && self.date == date
+            && !morning.units.isEmpty && !evening.units.isEmpty
+            && units(for: orderedIDs)?.isEmpty == false
+            && initialUnits.flatMap(\.items).allSatisfy { ["reps", "time", "carry", "plyo", "protocol"].contains($0.tracking) }
+    }
+
     /// Reject duplicate/missing/foreign IDs and any attempt to split or reverse a superset.
     func units(for ids: [DayComposerItemID]) -> [DayComposerUnit]? {
         guard ids.count == initialIDs.count, Set(ids) == Set(initialIDs) else { return nil }
