@@ -22,6 +22,9 @@ struct ExerciseCard: View {
     @Binding var logResult: ExerciseLogResult?
     private var recoveredInitialState: ExerciseRecoveryHydration?
     var onLogged: (() -> Void)? = nil
+    private let onSubmitLogCandidate: ((ExerciseLogResult?) -> LocalPersistenceResult)?
+    private let onPersistenceRefused: ((LocalPersistenceResult) -> Void)?
+    private let requiresAcceptance: Bool
     // Expand/collapse (controlled by parent)
     var isExpanded: Bool = false
     var isFocused: Bool = false
@@ -82,7 +85,14 @@ struct ExerciseCard: View {
          isChecked: Bool = false,
          onCheckToggle: (() -> Void)? = nil,
          sessionDate: String = "", recoveredInitialState: ExerciseRecoveryHydration? = nil,
-         reconstructionMetadata: ExerciseReconstructionMetadata? = nil) {
+         reconstructionMetadata: ExerciseReconstructionMetadata? = nil,
+         draftAuthorization: DayComposerProvenanceStore.Authorization? = nil,
+         validateLocalPersistence: (() -> LocalPersistenceResult)? = nil,
+         onSubmitLogCandidate: ((ExerciseLogResult?) -> LocalPersistenceResult)? = nil,
+         onPersistenceRefused: ((LocalPersistenceResult) -> Void)? = nil) {
+        self.onSubmitLogCandidate = onSubmitLogCandidate
+        self.onPersistenceRefused = onPersistenceRefused
+        self.requiresAcceptance = draftAuthorization != nil || onSubmitLogCandidate != nil
         self.recoveredInitialState = recoveredInitialState
         self.name            = name
         self.scheme          = scheme
@@ -118,7 +128,12 @@ struct ExerciseCard: View {
             bodyWeight: bodyWeight, isSecondSession: isSecondSession,
             isBonusSession: isBonusSession, restSeconds: restSeconds,
             prescription: prescription, suggestion: suggestion,
-            sessionDate: sessionDate, reconstructionMetadata: reconstructionMetadata))
+            sessionDate: sessionDate, reconstructionMetadata: reconstructionMetadata,
+            draftAuthorization: draftAuthorization,
+            // Authorized cards require the parent's live gate as well as their
+            // immutable token (a local lock need not invalidate the store).
+            validateLocalPersistence: draftAuthorization == nil ? validateLocalPersistence
+                : (validateLocalPersistence ?? { .failed })))
     }
 
     // MARK: - View-layer computed
@@ -150,7 +165,10 @@ struct ExerciseCard: View {
         return isLower ? incrementLowerLbs : incrementUpperLbs
     }
 
-    private var alreadyLogged: Bool { evm.isLogged || logResult != nil || evm.isSkipped }
+    private var alreadyLogged: Bool {
+        if requiresAcceptance && evm.cleanupPending { return false }
+        return evm.isLogged || logResult != nil || evm.isSkipped
+    }
 
     /// Presentation-only projection of the parent-owned current exercise state.
     private var isCurrentHero: Bool { isFocused && isExpanded && !alreadyLogged }
@@ -254,29 +272,60 @@ struct ExerciseCard: View {
 
     private func doLog() {
         guard !showUndo, !logFlash else { return }
-        if let result = evm.logExercise(alreadyLoggedViaBinding: logResult != nil) {
-            logResult = result
-            onLogged?()
-            triggerNotificationFeedback(.success)
+        if requiresAcceptance {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            if autoStartTimer, let secs = restSeconds, secs > 0 {
-                RestTimerManager.shared.start(seconds: secs, exerciseName: name)
+            guard let onSubmitLogCandidate else {
+                evm.recordPersistenceResult(.failed)
+                return
             }
-            undoCountdown = 8
-            undoTask?.cancel()
-            undoTask = Task { @MainActor in
-                // Laisser le flash vert (logFlash) visible avant de swap vers le banner undo
-                try? await Task.sleep(nanoseconds: 450_000_000)
-                guard !Task.isCancelled else { return }
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { showUndo = true }
-                for i in stride(from: 7, through: 0, by: -1) {
-                    try? await Task.sleep(nanoseconds: 1_000_000_000)
-                    guard !Task.isCancelled else { return }
-                    undoCountdown = i
-                }
-                withAnimation(.easeOut(duration: 0.3)) { showUndo = false }
-            }
+            guard evm.submitLog(alreadyLoggedViaBinding: logResult != nil, submit: onSubmitLogCandidate) == .accepted else { return }
+        } else if let result = evm.logExercise(alreadyLoggedViaBinding: logResult != nil) {
+            logResult = result
+        } else { return }
+        if !requiresAcceptance { onLogged?() }
+        triggerNotificationFeedback(.success)
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        if autoStartTimer, let secs = restSeconds, secs > 0 {
+            RestTimerManager.shared.start(seconds: secs, exerciseName: name)
         }
+        undoCountdown = 8
+        undoTask?.cancel()
+        undoTask = Task { @MainActor in
+            // Laisser le flash vert (logFlash) visible avant de swap vers le banner undo
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { showUndo = true }
+            for i in stride(from: 7, through: 0, by: -1) {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                undoCountdown = i
+            }
+            withAnimation(.easeOut(duration: 0.3)) { showUndo = false }
+        }
+        if requiresAcceptance {
+            flashAcceptedLog()
+            onLogged?() // Parent may advance only after persistence AND cleanup.
+        }
+    }
+
+    private func flashAcceptedLog() {
+        withAnimation(.easeInOut(duration: 0.12)) { logFlash = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            withAnimation(.easeOut(duration: 0.2)) { logFlash = false }
+        }
+    }
+
+    private func removeLog(undo: Bool = false) -> Bool {
+        if requiresAcceptance {
+            guard let onSubmitLogCandidate else {
+                evm.recordPersistenceResult(.failed)
+                return false
+            }
+            return evm.removeAcceptedLog(submit: onSubmitLogCandidate) == .accepted
+        }
+        logResult = nil
+        if undo { evm.undoLog() } else { evm.resetAfterClear() }
+        return true
     }
 
     // MARK: - Set rows
@@ -1011,6 +1060,7 @@ struct ExerciseCard: View {
 
             // MARK: Header — always visible, tap to expand/collapse
             headerButton
+            persistenceIssueBanner
 
             // MARK: Expanded content
             if isExpanded { expandedContent }
@@ -1054,7 +1104,13 @@ struct ExerciseCard: View {
             evm.syncSetsCount()
         }
         .onChange(of: logResult == nil) { _, isNil in
-            if isNil { evm.resetAfterClear() }
+            if isNil && !requiresAcceptance { evm.resetAfterClear() }
+        }
+        .onChange(of: evm.localPersistenceIssue) { _, issue in
+            if let issue {
+                showSaved = false
+                onPersistenceRefused?(issue)
+            }
         }
         .onChange(of: evm.isEditing) { _, editing in
             if editing {
@@ -1064,8 +1120,7 @@ struct ExerciseCard: View {
         }
         .confirmationDialog("Changer l'exercice ?", isPresented: $confirmSwapAfterLog, titleVisibility: .visible) {
             Button("Changer et effacer le log", role: .destructive) {
-                logResult = nil
-                evm.resetAfterClear()
+                guard removeLog() else { return }
                 triggerImpact(style: .medium)
                 onSwap?()
             }
@@ -1512,8 +1567,7 @@ struct ExerciseCard: View {
             .contextMenu {
                 Button { evm.isEditing = true } label: { Label("Modifier", systemImage: "pencil") }
                 Button(role: .destructive) {
-                    logResult = nil
-                    evm.resetAfterClear()
+                    _ = removeLog()
                 } label: { Label("Réinitialiser", systemImage: "arrow.counterclockwise") }
             }
         }
@@ -1738,6 +1792,19 @@ struct ExerciseCard: View {
         }
     }
 
+    @ViewBuilder private var persistenceIssueBanner: some View {
+        if let issue = evm.localPersistenceIssue {
+            Text(evm.cleanupPending
+                 ? "Modification du log enregistrée, mais nettoyage du brouillon non confirmé. Aucune avance automatique."
+                 : (issue == .rejectedContext
+                    ? "Contexte modifié. Saisie conservée à l’écran, écriture locale refusée."
+                    : "Enregistrement local non confirmé. Saisie conservée à l’écran."))
+                .font(.appCaption)
+                .foregroundColor(Color.appDanger)
+                .padding(12)
+        }
+    }
+
     @ViewBuilder private var advancedFields: some View {
         let noteBinding = Binding<String>(get: { exoNote }, set: { saveExoNote($0) })
         VStack(spacing: 8) {
@@ -1894,10 +1961,9 @@ struct ExerciseCard: View {
         VStack(spacing: 8) {
             if showUndo {
                 Button {
+                    guard removeLog(undo: true) else { return }
                     undoTask?.cancel(); undoTask = nil
                     withAnimation(.easeOut(duration: 0.25)) { showUndo = false }
-                    logResult = nil
-                    evm.undoLog()
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.uturn.backward.circle.fill")
@@ -1966,10 +2032,7 @@ struct ExerciseCard: View {
         ) {
             guard evm.canLog else { return }
             doLog()
-            withAnimation(.easeInOut(duration: 0.12)) { logFlash = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                withAnimation(.easeOut(duration: 0.2)) { logFlash = false }
-            }
+            if !requiresAcceptance { flashAcceptedLog() }
         }
     }
 

@@ -13,6 +13,175 @@ import SwiftUI
 @MainActor
 final class SeanceViewModelTests: XCTestCase {
 
+    private func cardAuthorization(_ date: String, source: DayComposerSource = .morning)
+        throws -> DayComposerProvenanceStore.Authorization {
+        let context = try DayComposerExecutionContext(snapshot: DayComposerSnapshot(date: date, activeProgramID: "A",
+            morning: DayComposerPlan(source: .morning, session: "AM", schemes: ["A": "1x5"], order: []),
+            evening: DayComposerPlan(source: .evening, session: "PM", schemes: ["A": "1x5"], order: []),
+            morningCompleted: false, eveningCompleted: false))
+        try DayComposerProvenanceStore.shared.create(context: context)
+        return try DayComposerProvenanceStore.shared.authorize(context: context, source: source)
+    }
+
+    private func cleanupCardAuthorization(_ date: String) {
+        for key in UserDefaults.standard.dictionaryRepresentation().keys where key.contains(date) {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+        try? DayComposerProvenanceStore.shared.clear(date: date)
+    }
+
+    func testAuthorizedCardHydrationDoesNotWriteEvenAfterDebounce() async throws {
+        for source in [DayComposerSource.morning, .evening] {
+            let date = "card-hydrate-\(UUID().uuidString)"
+            defer { cleanupCardAuthorization(date) }
+            let token = try cardAuthorization(date, source: source)
+            let draft = ExerciseDraftPersistence(date: date, sessionType: source.rawValue,
+                exerciseName: "A", authorization: token)
+            XCTAssertEqual(draft.saveResult([DraftSet(weight: "80", reps: "5", rir: 2, duration: 0)], sessionNote: "Note"), .accepted)
+            let before = preparationBytes(date)
+            let record = try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date))
+            let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil,
+                isSecondSession: source == .evening, sessionDate: date, draftAuthorization: token)
+            vm.initializeSets()
+            try await Task.sleep(nanoseconds: 700_000_000)
+            XCTAssertEqual(preparationBytes(date), before)
+            XCTAssertEqual(try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date)), record)
+            XCTAssertNil(vm.localPersistenceIssue)
+            XCTAssertNil(vm.draftSavedAt)
+            vm.sessionNote = "Edited"
+            XCTAssertEqual(draft.loadCard()?.sessionNote, "Edited")
+            XCTAssertNil(vm.localPersistenceIssue)
+            vm.sets[0].reps = "6"
+            try await Task.sleep(nanoseconds: 700_000_000)
+            XCTAssertEqual(draft.load()?.first?.reps, "6")
+            XCTAssertEqual(vm.clearDraft(), .accepted)
+            XCTAssertEqual(draft.presence(), .absent)
+        }
+    }
+
+    func testWrongAndExpiredAuthorizationCannotUseIdenticalContentShortcutOrClear() throws {
+        let date = "card-invalid-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let am = try cardAuthorization(date)
+        let pm = try DayComposerProvenanceStore.shared.authorize(context: am.context, source: .evening)
+        let sets = [DraftSet(weight: "80", reps: "5", rir: 2, duration: 0)]
+        let valid = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A", authorization: am)
+        XCTAssertEqual(valid.saveResult(sets, sessionNote: "Keep"), .accepted)
+        let before = preparationBytes(date)
+        let wrong = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A", authorization: pm)
+        XCTAssertEqual(wrong.saveResult(sets, sessionNote: "Keep"), .rejectedContext)
+        XCTAssertEqual(wrong.clear(), .rejectedContext)
+        let wrongDate = ExerciseDraftPersistence(date: "wrong-date", sessionType: "morning", exerciseName: "A", authorization: am)
+        XCTAssertEqual(wrongDate.saveResult(sets), .rejectedContext)
+        XCTAssertEqual(preparationBytes(date), before)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: pm)
+        vm.initializeSets()
+        XCTAssertEqual(vm.saveDraft(), .rejectedContext)
+        XCTAssertEqual(vm.localPersistenceIssue, .rejectedContext)
+        XCTAssertEqual(vm.sessionNote, "Keep")
+        SessionDraftStore.saveComment("Classic", date: date, sessionType: "morning")
+        XCTAssertEqual(valid.saveResult(sets, sessionNote: "Keep"), .rejectedContext)
+        XCTAssertEqual(valid.clear(), .rejectedContext)
+        XCTAssertEqual(valid.loadCard()?.sessionNote, "Keep")
+    }
+
+    func testAuthorizedFreshAndRecoveredHydrationDoNotScheduleWrites() async throws {
+        let date = "card-initial-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let before = preparationBytes(date)
+        let record = try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date))
+        let fresh = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        fresh.initializeSets()
+        let restored = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        restored.initializeRecovery(.init(sets: [SetInput(weight: "80", reps: "5")], note: "Restored", painZone: ""))
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(preparationBytes(date), before)
+        XCTAssertEqual(try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date)), record)
+        XCTAssertNil(fresh.localPersistenceIssue)
+        XCTAssertNil(restored.localPersistenceIssue)
+        XCTAssertNil(restored.draftSavedAt)
+        restored.sessionNote = "User edit"
+        XCTAssertEqual(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").loadCard()?.sessionNote, "User edit")
+    }
+
+    func testOldExecutionTokenCannotAcceptIdenticalDraftInNewExecution() throws {
+        let date = "card-execution-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let old = try cardAuthorization(date)
+        try DayComposerProvenanceStore.shared.clear(date: date)
+        let current = try cardAuthorization(date)
+        XCTAssertNotEqual(old.executionID, current.executionID)
+        let sets = [DraftSet(weight: "80", reps: "5", rir: 2, duration: 0)]
+        let valid = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A", authorization: current)
+        XCTAssertEqual(valid.saveResult(sets), .accepted)
+        let stale = ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A", authorization: old)
+        XCTAssertEqual(stale.saveResult(sets), .rejectedContext)
+        XCTAssertEqual(stale.clear(), .rejectedContext)
+        XCTAssertEqual(valid.presence(), .presentDecodable)
+    }
+
+    func testPendingDebounceRefusedAfterInvalidationPreservesInputAndDraft() async throws {
+        let date = "card-debounce-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        vm.initializeSets()
+        vm.sets[0].weight = "80"
+        vm.sets[0].reps = "5"
+        vm.sessionNote = "Keep"
+        vm.sets[0].reps = "8"
+        SessionDraftStore.saveComment("Classic", date: date, sessionType: "morning")
+        let before = preparationBytes(date)
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(preparationBytes(date), before)
+        XCTAssertEqual(vm.sets[0].reps, "8")
+        XCTAssertEqual(vm.localPersistenceIssue, .rejectedContext)
+        XCTAssertEqual(DayComposerProvenanceStore.shared.admission(context: token.context, source: .morning), .denied(.invalidated))
+        XCTAssertEqual(vm.submitLog(alreadyLoggedViaBinding: false) { _ in .rejectedContext }, .rejectedContext)
+        XCTAssertFalse(vm.isLogged)
+        XCTAssertNil(vm.logStatus)
+        XCTAssertEqual(vm.sessionNote, "Keep")
+        XCTAssertEqual(preparationBytes(date), before)
+    }
+
+    func testCandidateFailureIssueClearsOnlyOnAcceptedWriteAndClassicStillLogs() throws {
+        let date = "card-retry-\(UUID().uuidString)"
+        defer { cleanupCardAuthorization(date) }
+        let token = try cardAuthorization(date)
+        let vm = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+        vm.initializeSets()
+        vm.sets[0].weight = "80"
+        vm.sets[0].reps = "5"
+        vm.sessionNote = "Note"
+        let before = preparationBytes(date)
+        XCTAssertNotNil(vm.buildLogCandidate(alreadyLoggedViaBinding: false))
+        XCTAssertFalse(vm.isLogged)
+        XCTAssertEqual(preparationBytes(date), before)
+        XCTAssertEqual(vm.submitLog(alreadyLoggedViaBinding: false) { _ in .failed }, .failed)
+        XCTAssertEqual(vm.localPersistenceIssue, .failed)
+        XCTAssertEqual(preparationBytes(date), before)
+        vm.initializeSets()
+        XCTAssertEqual(vm.localPersistenceIssue, .failed)
+        vm.sessionNote = "Retry"
+        XCTAssertNil(vm.localPersistenceIssue)
+        XCTAssertEqual(vm.saveDraft(), .accepted)
+
+        let classic = ExerciseViewModel(name: "Classic", scheme: "1x5", weightData: nil, sessionDate: date)
+        classic.initializeSets()
+        classic.sets[0].weight = "80"
+        classic.sets[0].reps = "5"
+        classic.sessionNote = "Classic note"
+        let log = try XCTUnwrap(classic.logExercise(alreadyLoggedViaBinding: false))
+        XCTAssertEqual(log.notes, "Classic note")
+        XCTAssertTrue(classic.isLogged)
+        XCTAssertNil(classic.localPersistenceIssue)
+        classic.undoLog()
+        XCTAssertFalse(classic.isLogged)
+        classic.resetAfterClear()
+        XCTAssertNil(classic.logStatus)
+    }
+
     func testProvenancePreparationBindingAndLocalMutations() throws {
         let date = "prepared-provenance-\(UUID().uuidString)"
         let data = try extraData(date)

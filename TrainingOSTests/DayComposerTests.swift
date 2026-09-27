@@ -67,6 +67,181 @@ final class DayComposerTests: XCTestCase {
     }
 
     @MainActor
+    func testExplicitAcceptanceReadbackUndoAndAdvanceOnce() async throws {
+        let date = "acceptance-\(UUID().uuidString)"
+        defer { cleanupExecution(date) }
+        let input = try executionInput(executionBundle(date))
+        let c = try coordinator(input)
+        let id = input.snapshot.initialIDs[0]
+        let token = try c.authorization(for: .morning)
+        let card = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil,
+            sessionDate: date, draftAuthorization: token)
+        card.initializeSets()
+        card.sets[0].weight = "80"
+        card.sets[0].reps = "5"
+        card.sessionNote = "Keep note"
+        XCTAssertEqual(card.saveDraft(), .accepted)
+        var successes = 0
+        let outcome = card.submitLog(alreadyLoggedViaBinding: false) { c.submit(candidate: $0, for: id) }
+        if outcome == .accepted {
+            successes += 1 // The exact gate used by ExerciseCard for rest/haptics/onLogged.
+            c.advanceAfterAcceptedLog(itemID: id)
+        }
+        XCTAssertEqual(outcome, .accepted)
+        XCTAssertEqual(successes, 1)
+        XCTAssertTrue(card.isLogged)
+        XCTAssertEqual(SessionDraftStore.load(date: date).first?.notes, "Keep note")
+        XCTAssertEqual(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").presence(), .absent)
+        for _ in 0..<5 { await Task.yield() }
+        c.advanceAfterAcceptedLog(itemID: id)
+        XCTAssertEqual(c.currentMemberID, input.snapshot.initialIDs[1])
+        XCTAssertEqual(card.removeAcceptedLog { c.submit(candidate: $0, for: id) }, .accepted)
+        XCTAssertTrue(SessionDraftStore.load(date: date).isEmpty)
+        XCTAssertFalse(card.isLogged)
+        XCTAssertEqual(c.treatedCount, 0)
+        card.isSkipped = true
+        XCTAssertEqual(c.treatedCount, 0)
+    }
+
+    @MainActor
+    func testRejectedCandidateAndUndoPreserveRecovery() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date))
+            let c = try coordinator(input)
+            let id = input.snapshot.initialIDs[0]
+            XCTAssertEqual(c.submit(candidate: executionLog("A"), for: id), .accepted)
+            SessionDraftStore.saveComment("Classic edit", date: date, sessionType: "morning")
+            XCTAssertEqual(c.submit(candidate: nil, for: id), .rejectedContext)
+            XCTAssertEqual(c.submit(candidate: executionLog("A", weight: 100), for: id), .rejectedContext)
+            XCTAssertTrue(c.isLocked)
+            XCTAssertEqual(SessionDraftStore.load(date: date).first?.weight, 80)
+            XCTAssertEqual(c.morningVM.logResults["A"]?.weight, 80)
+            XCTAssertEqual(c.currentMemberID, id)
+        }
+    }
+
+    @MainActor
+    func testGenericEncodingFailureIsRetryableAndDoesNotClaimAccepted() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date))
+            let c = try coordinator(input)
+            let id = input.snapshot.initialIDs[0]
+            XCTAssertEqual(c.submit(candidate: executionLog("A", weight: .nan), for: id), .failed)
+            XCTAssertEqual(c.localPersistenceIssue, .failed)
+            XCTAssertFalse(c.isLocked)
+            XCTAssertTrue(c.morningVM.logResults.isEmpty)
+            XCTAssertTrue(SessionDraftStore.load(date: date).isEmpty)
+            XCTAssertEqual(c.currentMemberID, id)
+            XCTAssertEqual(c.submit(candidate: executionLog("A"), for: id), .accepted)
+            XCTAssertNil(c.localPersistenceIssue)
+        }
+    }
+
+    @MainActor
+    func testCommentAcceptanceEmptyIsolationAndRefusal() throws {
+        try withExecution { date in
+            let c = try coordinator(executionInput(executionBundle(date)))
+            XCTAssertEqual(c.setComment("abc", for: .morning), .accepted)
+            XCTAssertEqual(c.setComment("PM", for: .evening), .accepted)
+            XCTAssertEqual(c.setComment("", for: .morning), .accepted)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "")
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "PM")
+            SessionDraftStore.saveComment("External", date: date, sessionType: "evening")
+            XCTAssertEqual(c.setComment("No", for: .morning), .rejectedContext)
+            XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "")
+            XCTAssertTrue(c.isLocked)
+        }
+    }
+
+    @MainActor
+    func testAcceptedLogCleanupRefusalKeepsLogAndDoesNotAdvance() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date))
+            let c = try coordinator(input)
+            let id = input.snapshot.initialIDs[0]
+            let card = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil,
+                sessionDate: date, draftAuthorization: try c.authorization(for: .morning))
+            card.initializeSets()
+            card.sets[0].weight = "80"
+            card.sets[0].reps = "5"
+            card.sessionNote = "Preserve"
+            let outcome = card.submitLog(alreadyLoggedViaBinding: false) { candidate in
+                let result = c.submit(candidate: candidate, for: id)
+                XCTAssertEqual(result, .accepted)
+                SessionDraftStore.saveComment("External", date: date, sessionType: "morning")
+                return result
+            }
+            XCTAssertEqual(outcome, .rejectedContext)
+            c.reportPersistenceRefusal(outcome)
+            XCTAssertTrue(card.cleanupPending)
+            XCTAssertFalse(card.isLogged)
+            XCTAssertEqual(card.sessionNote, "Preserve")
+            XCTAssertEqual(SessionDraftStore.load(date: date).first?.notes, "Preserve")
+            XCTAssertEqual(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").presence(), .presentDecodable)
+            c.advanceAfterAcceptedLog(itemID: id)
+            XCTAssertEqual(c.currentMemberID, id)
+        }
+    }
+
+    @MainActor
+    func testLiveGateRejectsPendingDraftAfterLocalLockWithoutStoreInvalidation() async throws {
+        let date = "local-lock-\(UUID().uuidString)"
+        defer { cleanupExecution(date) }
+        let input = try executionInput(executionBundle(date))
+        let c = try coordinator(input)
+        let token = try c.authorization(for: .morning)
+        let card = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil,
+            sessionDate: date, draftAuthorization: token,
+            validateLocalPersistence: { c.validateLocalPersistence() })
+        card.initializeSets()
+        card.sets[0].reps = "9"
+        c.reportPersistenceRefusal(.rejectedContext)
+        // Local lock is deliberately NOT a recovery/provenance rewrite.
+        guard case .validated = DayComposerProvenanceStore.shared.admission(context: token.context, source: .morning)
+        else { return XCTFail("Unexpected provenance mutation") }
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertEqual(card.localPersistenceIssue, .rejectedContext)
+        XCTAssertEqual(card.sets[0].reps, "9")
+        XCTAssertEqual(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").presence(), .absent)
+    }
+
+    @MainActor
+    func testGenericCleanupFailureRetainsAcceptedLogAndAllowsExplicitRetry() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date))
+            let c = try coordinator(input)
+            let id = input.snapshot.initialIDs[0]
+            var refuseCleanup = false
+            let card = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil,
+                sessionDate: date, draftAuthorization: try c.authorization(for: .morning),
+                validateLocalPersistence: { refuseCleanup ? .failed : c.validateLocalPersistence() })
+            card.initializeSets()
+            card.sets[0].weight = "80"
+            card.sets[0].reps = "5"
+            card.sessionNote = "Keep"
+            XCTAssertEqual(card.submitLog(alreadyLoggedViaBinding: false) { value in
+                let result = c.submit(candidate: value, for: id)
+                refuseCleanup = true
+                return result
+            }, .failed)
+            c.reportPersistenceRefusal(.failed)
+            XCTAssertFalse(c.isLocked)
+            XCTAssertTrue(card.cleanupPending)
+            XCTAssertFalse(card.isLogged)
+            XCTAssertEqual(card.localPersistenceIssue, .failed)
+            XCTAssertEqual(SessionDraftStore.load(date: date).first?.notes, "Keep")
+            c.advanceAfterAcceptedLog(itemID: id)
+            XCTAssertEqual(c.currentMemberID, id)
+            refuseCleanup = false
+            XCTAssertEqual(card.submitLog(alreadyLoggedViaBinding: true) { c.submit(candidate: $0, for: id) }, .accepted)
+            XCTAssertNil(card.localPersistenceIssue)
+            XCTAssertFalse(card.cleanupPending)
+            c.advanceAfterAcceptedLog(itemID: id)
+            XCTAssertEqual(c.currentMemberID, input.snapshot.initialIDs[1])
+        }
+    }
+
+    @MainActor
     func testCoordinatorFreshAndValidatedRestoreWithoutRecreatingProvenance() throws {
         try withExecution { date in
             let input = try executionInput(executionBundle(date))
@@ -81,7 +256,7 @@ final class DayComposerTests: XCTestCase {
             XCTAssertEqual(c!.treatedCount, 0)
             XCTAssertEqual(c!.currentMemberID, input.snapshot.initialIDs[0])
             try c!.setResult(executionLog("A"), for: input.snapshot.initialIDs[0])
-            try c!.setComment("AM", for: .morning)
+            XCTAssertEqual(c!.setComment("AM", for: .morning), .accepted)
             let record = try Data(contentsOf: store.recordURL(date: date))
             c = nil
             let rebuilt = try coordinator(input)
@@ -106,7 +281,7 @@ final class DayComposerTests: XCTestCase {
         try withExecution { date in
             let input = try executionInput(executionBundle(date))
             let c = try coordinator(input)
-            try c.setComment("Keep", for: .evening)
+            XCTAssertEqual(c.setComment("Keep", for: .evening), .accepted)
             try DayComposerProvenanceStore.shared.invalidate(date: date, source: .morning)
             let record = try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date))
             XCTAssertThrowsError(try coordinator(input))
@@ -184,7 +359,9 @@ final class DayComposerTests: XCTestCase {
                 XCTAssertTrue(try c.owner(for: am) === c.morningVM)
                 XCTAssertTrue(try c.owner(for: pm) === c.eveningVM)
                 try c.setResult(executionLog("Bench Press", weight: 40), for: am)
+                c.advanceAfterAcceptedLog(itemID: am)
                 try c.setResult(executionLog("Bench Press", evening: true, weight: 60), for: pm)
+                c.advanceAfterAcceptedLog(itemID: pm)
                 XCTAssertEqual(try c.result(for: am)?.weight, 40)
                 XCTAssertEqual(try c.result(for: pm)?.weight, 60)
                 XCTAssertEqual(c.treatedCount, 2)
@@ -195,7 +372,8 @@ final class DayComposerTests: XCTestCase {
                 bonus.isBonus = true
                 XCTAssertThrowsError(try c.setResult(bonus, for: am))
                 XCTAssertThrowsError(try c.owner(for: .init(source: .morning, name: "Foreign", exerciseID: nil)))
-                XCTAssertEqual(try c.result(for: am)?.weight, 40)
+                XCTAssertEqual(c.morningVM.logResults["Bench Press"]?.weight, 40)
+                XCTAssertTrue(c.isLocked)
             }
         }
     }
@@ -275,6 +453,7 @@ final class DayComposerTests: XCTestCase {
             for id in ids.prefix(3) {
                 XCTAssertEqual(c!.currentMemberID, id)
                 try c!.setResult(executionLog(c!.item(for: id)!.name, evening: id.source == .evening), for: id)
+                c!.advanceAfterAcceptedLog(itemID: id)
             }
             XCTAssertEqual(c!.currentMemberID, ids[3])
             c!.previous()
@@ -300,10 +479,12 @@ final class DayComposerTests: XCTestCase {
             let ids = input.snapshot.initialIDs
             XCTAssertEqual(c.currentMemberID, ids[0])
             try c.setResult(executionLog("A"), for: ids[0])
+            c.advanceAfterAcceptedLog(itemID: ids[0])
             XCTAssertEqual(c.currentMemberID, ids[1])
             XCTAssertEqual(c.currentUnitID, ids[0])
             XCTAssertEqual(try coordinator(input).currentMemberID, ids[1])
             try c.setResult(executionLog("B"), for: ids[1])
+            c.advanceAfterAcceptedLog(itemID: ids[1])
             XCTAssertEqual(c.currentMemberID, ids[2])
             XCTAssertEqual(c.treatedCount, 2)
             XCTAssertEqual(c.executableCount, 4)
@@ -343,7 +524,7 @@ final class DayComposerTests: XCTestCase {
         try withExecution { date in
             let input = try executionInput(executionBundle(date))
             let c = try coordinator(input)
-            try c.setComment("PM survives", for: .evening)
+            XCTAssertEqual(c.setComment("PM survives", for: .evening), .accepted)
             SessionDraftStore.saveComment("Classic edit", date: date, sessionType: "morning")
             XCTAssertFalse(c.revalidateExecutionContext())
             XCTAssertTrue(c.isLocked)
@@ -351,7 +532,7 @@ final class DayComposerTests: XCTestCase {
                 XCTAssertThrowsError(try c.setResult(executionLog(c.item(for: id)!.name,
                     evening: id.source == .evening), for: id))
             }
-            XCTAssertThrowsError(try c.setComment("Blocked", for: .evening))
+            XCTAssertEqual(c.setComment("Blocked", for: .evening), .rejectedContext)
             XCTAssertThrowsError(try c.authorization(for: .evening))
             XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "Classic edit")
             XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "PM survives")
@@ -363,11 +544,11 @@ final class DayComposerTests: XCTestCase {
         try withExecution { date in
             let input = try executionInput(executionBundle(date))
             let c = try coordinator(input)
-            try c.setComment("Morning", for: .morning)
+            XCTAssertEqual(c.setComment("Morning", for: .morning), .accepted)
             try c.select(input.snapshot.initialIDs.last!)
-            try c.setComment("Still Morning", for: .morning)
-            try c.setComment("Evening", for: .evening)
-            try c.setComment("", for: .morning)
+            XCTAssertEqual(c.setComment("Still Morning", for: .morning), .accepted)
+            XCTAssertEqual(c.setComment("Evening", for: .evening), .accepted)
+            XCTAssertEqual(c.setComment("", for: .morning), .accepted)
             XCTAssertEqual(c.comment(for: .morning), "")
             XCTAssertEqual(c.comment(for: .evening), "Evening")
             XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "morning"), "")
@@ -491,7 +672,7 @@ final class DayComposerTests: XCTestCase {
         for _ in 0..<5 { await Task.yield() }
         XCTAssertEqual(c.status(for: first)?.status, .localLogged)
         XCTAssertEqual(c.treatedCount, 1)
-        XCTAssertEqual(c.currentMemberID, input.snapshot.initialIDs[1])
+        XCTAssertEqual(c.currentMemberID, first) // Publication refreshes; never advances.
         XCTAssertEqual(c.comment(for: .evening), "Direct owner edit")
         XCTAssertEqual(SessionDraftStore.loadComment(date: date, sessionType: "evening"), "Direct owner edit")
         XCTAssertTrue(c.revalidateExecutionContext())
@@ -505,7 +686,7 @@ final class DayComposerTests: XCTestCase {
             let store = DayComposerProvenanceStore.shared
             let receipt = try store.begin(c.authorization(for: .evening))
             XCTAssertFalse(c.revalidateExecutionContext())
-            XCTAssertThrowsError(try c.setComment("No", for: .morning))
+            XCTAssertEqual(c.setComment("No", for: .morning), .rejectedContext)
             XCTAssertThrowsError(try coordinator(input))
             try store.finish(receipt)
             XCTAssertFalse(c.revalidateExecutionContext()) // A locked instance never silently unlocks.
@@ -519,7 +700,7 @@ final class DayComposerTests: XCTestCase {
             let input = try executionInput(executionBundle(date))
             let c = try coordinator(input)
             try c.setResult(executionLog("A"), for: input.snapshot.initialIDs[0])
-            try c.setComment("Preserve", for: .evening)
+            XCTAssertEqual(c.setComment("Preserve", for: .evening), .accepted)
             let before = UserDefaults.standard.dictionaryRepresentation().filter { $0.key.contains(date) }
             let store = DayComposerProvenanceStore.shared
             let record = try Data(contentsOf: store.recordURL(date: date))

@@ -27,6 +27,8 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     private let currentDate: () -> String
     private var subscriptions = Set<AnyCancellable>()
     @Published private(set) var isLocked = false
+    @Published private(set) var localPersistenceIssue: LocalPersistenceResult?
+    private var awaitingAdvance: Set<DayComposerItemID> = []
     @Published private(set) var currentUnitID: DayComposerItemID?
     @Published private(set) var currentMemberID: DayComposerItemID?
 
@@ -160,24 +162,75 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         return try owner(for: id).logResults[item.name]
     }
     func setResult(_ result: ExerciseLogResult?, for id: DayComposerItemID) throws {
-        guard let item = item(for: id) else { throw Failure.invalidItem }
-        let owner = try owner(for: id)
-        guard Self.isSupported(item.tracking), let state = status(for: id),
-              !state.draftCorrupt, state.status != .serverObserved else { throw Failure.readOnlyItem }
+        guard submit(candidate: result, for: id) == .accepted else { throw Failure.invalidResult }
+    }
+
+    @discardableResult
+    func submit(candidate result: ExerciseLogResult?, for id: DayComposerItemID) -> LocalPersistenceResult {
+        guard revalidateExecutionContext() else { return report(.rejectedContext) }
+        guard let item = item(for: id) else { return report(.rejectedContext) }
+        guard Self.isSupported(item.tracking),
+              let state = status(for: id), !state.draftCorrupt,
+              state.status != .serverObserved else { return report(.failed) }
         if let result {
             guard result.name == item.name, result.isSecond == (id.source == .evening), !result.isBonus else {
-                throw Failure.invalidResult
+                return report(.rejectedContext)
             }
         }
+        let owner = sourceOwner(id.source)
+        let previous = owner.logResults
         owner.logResults[item.name] = result
-        guard revalidateExecutionContext() else { throw Failure.incompatible }
-        refreshSelectionAfterChange()
+        let matches = owner.persistedLogsMatchCurrentState()
+        guard revalidateExecutionContext() else {
+            if !matches { owner.restoreUnacceptedLocalResults(previous) }
+            return report(.rejectedContext)
+        }
+        guard matches else {
+            owner.restoreUnacceptedLocalResults(previous)
+            return report(.failed)
+        }
+        if result != nil { awaitingAdvance.insert(id) } else { awaitingAdvance.remove(id) }
+        refreshDerivedState()
+        return report(.accepted)
     }
+
+    @discardableResult
+    private func report(_ result: LocalPersistenceResult) -> LocalPersistenceResult {
+        if result == .rejectedContext { isLocked = true }
+        localPersistenceIssue = result == .accepted ? nil : result
+        return result
+    }
+
+    /// Card cleanup failures also arrive here; generic disk failures remain retryable.
+    func reportPersistenceRefusal(_ result: LocalPersistenceResult) {
+        guard result != .accepted else { return }
+        report(result)
+    }
+
+    /// Pass to the future card's generic live gate, alongside its immutable token.
+    /// Invoked at write time, never while constructing a SwiftUI body.
+    func validateLocalPersistence() -> LocalPersistenceResult {
+        revalidateExecutionContext() ? .accepted : report(.rejectedContext)
+    }
+
+    /// Called only after accepted owner write AND accepted card cleanup.
+    func advanceAfterAcceptedLog(itemID: DayComposerItemID) {
+        guard revalidateExecutionContext(), currentMemberID == itemID,
+              awaitingAdvance.contains(itemID), let item = item(for: itemID),
+              ExerciseDraftPersistence(date: context.date, sessionType: itemID.source.rawValue,
+                exerciseName: item.name).presence() == .absent else { return }
+        awaitingAdvance.remove(itemID)
+        next()
+    }
+
     func comment(for source: DayComposerSource) -> String { sourceOwner(source).sessionComment }
-    func setComment(_ comment: String, for source: DayComposerSource) throws {
-        guard revalidateExecutionContext() else { throw Failure.incompatible }
+    @discardableResult
+    func setComment(_ comment: String, for source: DayComposerSource) -> LocalPersistenceResult {
+        guard revalidateExecutionContext() else { return report(.rejectedContext) }
         sourceOwner(source).sessionComment = comment
-        guard revalidateExecutionContext() else { throw Failure.incompatible }
+        let matches = SessionDraftStore.loadComment(date: context.date, sessionType: source.rawValue) == comment
+        guard revalidateExecutionContext() else { return report(.rejectedContext) }
+        return report(matches ? .accepted : .failed)
     }
 
     /// Read-only projection. No synthetic logs, cleanup, ACK or copies of owner state.
@@ -246,11 +299,8 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         currentMemberID = id
         currentUnitID = id.flatMap { id in orderedUnits.first(where: { $0.items.contains(where: { $0.id == id }) })?.id }
     }
-    private func refreshSelectionAfterChange() {
+    func refreshDerivedState() {
         objectWillChange.send()
-        if let id = currentMemberID {
-            if status(for: id)?.isActionable == false { next() }
-        } else { selectFirstActionable() }
     }
     private func observeOwners() {
         // @Published fires before didSet persistence. Schedule a later MainActor
@@ -259,7 +309,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
             owner.$logResults.dropFirst().sink { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self, self.revalidateExecutionContext() else { return }
-                    self.refreshSelectionAfterChange()
+                    self.refreshDerivedState()
                 }
             }.store(in: &subscriptions)
             owner.$sessionComment.dropFirst().sink { [weak self] _ in

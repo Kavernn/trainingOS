@@ -119,6 +119,10 @@ struct ExerciseCardDraft: Codable {
 // Draft par carte d'exercice. Scopé par (date, session_type, name) pour éviter
 // qu'un draft matin fuite en soir (crime Volet C — l'app se positionnait au 3e set
 // avec les valeurs matin déjà "loggées" sans geste utilisateur).
+enum LocalPersistenceResult: Equatable {
+    case accepted, rejectedContext, failed
+}
+
 struct ExerciseDraftPersistence {
     let date: String
     let sessionType: String
@@ -138,17 +142,31 @@ struct ExerciseDraftPersistence {
 
     @discardableResult
     func save(_ drafts: [DraftSet], sessionNote: String? = nil) -> Bool {
-        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(sets: drafts, sessionNote: sessionNote)) else { return false }
+        saveResult(drafts, sessionNote: sessionNote) == .accepted
+    }
+
+    var authorizationIsValid: Bool {
+        guard let authorization else { return true }
+        guard authorization.context.date == date, authorization.source.rawValue == sessionType,
+              case .validated(let id, _) = DayComposerProvenanceStore.shared.admission(
+                context: authorization.context, source: authorization.source) else { return false }
+        return id == authorization.executionID
+    }
+
+    func saveResult(_ drafts: [DraftSet], sessionNote: String? = nil) -> LocalPersistenceResult {
+        guard authorizationIsValid else { return .rejectedContext }
+        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(sets: drafts, sessionNote: sessionNote)) else { return .failed }
         // An unchanged restoration/debounce is a no-op, not a classic edit.
         if let previous = UserDefaults.standard.data(forKey: key),
            let oldJSON = try? JSONSerialization.jsonObject(with: previous),
            let newJSON = try? JSONSerialization.jsonObject(with: data),
            let oldCanonical = try? JSONSerialization.data(withJSONObject: oldJSON, options: .sortedKeys),
            let newCanonical = try? JSONSerialization.data(withJSONObject: newJSON, options: .sortedKeys),
-           oldCanonical == newCanonical { return true }
-        return DayComposerProvenanceStore.shared.mutate(date: date, sessionType: sessionType, authorization: authorization) {
+           oldCanonical == newCanonical { return .accepted }
+        let saved = DayComposerProvenanceStore.shared.mutate(date: date, sessionType: sessionType, authorization: authorization) {
             UserDefaults.standard.set(data, forKey: key)
         }
+        return saved && UserDefaults.standard.data(forKey: key) == data ? .accepted : .failed
     }
 
     func load() -> [DraftSet]? {
@@ -163,10 +181,13 @@ struct ExerciseDraftPersistence {
         return ExerciseCardDraft(sets: sets)
     }
 
-    func clear() {
-        DayComposerProvenanceStore.shared.mutate(date: date, sessionType: sessionType, authorization: authorization) {
+    @discardableResult
+    func clear() -> LocalPersistenceResult {
+        guard authorizationIsValid else { return .rejectedContext }
+        let cleared = DayComposerProvenanceStore.shared.mutate(date: date, sessionType: sessionType, authorization: authorization) {
             UserDefaults.standard.removeObject(forKey: key)
         }
+        return cleared && UserDefaults.standard.object(forKey: key) == nil ? .accepted : .failed
     }
 
     /// Purge : (a) tous les drafts au ancien format "exo_draft_<name>" (orphelins
@@ -359,6 +380,7 @@ final class ExerciseViewModel: ObservableObject {
     let sessionDate: String
     let reconstructionMetadata: ExerciseReconstructionMetadata?
     private let draftAuthorization: DayComposerProvenanceStore.Authorization?
+    private let validateLocalPersistence: (() -> LocalPersistenceResult)?
 
     // Published state (was @State in ExerciseCard)
     @Published var sets: [SetInput] = []
@@ -380,6 +402,13 @@ final class ExerciseViewModel: ObservableObject {
     private var isClearingDraft = false
     private var isHydratingRecovery = false
     private var didHydrateRecovery = false
+    private var draftEpoch = 0
+    @Published private(set) var localPersistenceIssue: LocalPersistenceResult?
+    @Published private(set) var cleanupPending = false
+
+    func recordPersistenceResult(_ result: LocalPersistenceResult) {
+        localPersistenceIssue = result == .accepted ? nil : result
+    }
 
     @Published private(set) var draftSavedAt: Date? = nil
     // W-B2 — expose network log errors so ExerciseCard can display a banner
@@ -392,8 +421,10 @@ final class ExerciseViewModel: ObservableObject {
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
          suggestion: ProgressionSuggestion? = nil,
          sessionDate: String = "", reconstructionMetadata: ExerciseReconstructionMetadata? = nil,
-         draftAuthorization: DayComposerProvenanceStore.Authorization? = nil) {
+         draftAuthorization: DayComposerProvenanceStore.Authorization? = nil,
+         validateLocalPersistence: (() -> LocalPersistenceResult)? = nil) {
         self.draftAuthorization = draftAuthorization
+        self.validateLocalPersistence = validateLocalPersistence
         self.reconstructionMetadata = reconstructionMetadata
         self.name            = name
         self.scheme          = scheme
@@ -413,8 +444,12 @@ final class ExerciseViewModel: ObservableObject {
         $sets
             .dropFirst()
             .filter { [weak self] _ in self?.isHydratingRecovery != true }
+            .map { [weak self] _ in self?.draftEpoch }
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
-            .sink { [weak self] _ in self?.saveDraft() }
+            .sink { [weak self] epoch in
+                guard let self, epoch == self.draftEpoch else { return }
+                self.saveDraft()
+            }
             .store(in: &cancellables)
     }
 
@@ -530,7 +565,18 @@ final class ExerciseViewModel: ObservableObject {
                                  authorization: draftAuthorization)
     }
 
-    private func saveDraft() {
+    private func writePermission() -> LocalPersistenceResult {
+        guard draftStore.authorizationIsValid else { return .rejectedContext }
+        return validateLocalPersistence?() ?? .accepted
+    }
+
+    @discardableResult
+    func saveDraft() -> LocalPersistenceResult {
+        let permission = writePermission()
+        guard permission == .accepted else {
+            recordPersistenceResult(permission)
+            return permission
+        }
         let draft = sets.map {
             DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe,
                      distance: $0.distance.isEmpty ? nil : $0.distance,
@@ -538,14 +584,29 @@ final class ExerciseViewModel: ObservableObject {
                      durationLeft: $0.durationLeft, durationRight: $0.durationRight,
                      protocolCompleted: $0.protocolCompleted ? true : nil)
         }
-        if draftStore.save(draft, sessionNote: sessionNote) { draftSavedAt = Date() }
+        let result = draftStore.saveResult(draft, sessionNote: sessionNote)
+        if draftAuthorization != nil { recordPersistenceResult(result) }
+        if result == .accepted { draftSavedAt = Date() }
+        return result
     }
 
-    func clearDraft() {
+    @discardableResult
+    func clearDraft() -> LocalPersistenceResult {
+        let permission = writePermission()
+        guard permission == .accepted else {
+            recordPersistenceResult(permission)
+            return permission
+        }
         isClearingDraft = true
         defer { isClearingDraft = false }
-        draftStore.clear()
+        let result = draftStore.clear()
+        if draftAuthorization != nil {
+            recordPersistenceResult(result)
+            guard result == .accepted else { return result }
+        }
+        if draftAuthorization != nil { draftEpoch += 1 } // Cancel pending authorized writes after cleanup.
         sessionNote = ""
+        return result
     }
 
     // MARK: - Methods
@@ -577,6 +638,8 @@ final class ExerciseViewModel: ObservableObject {
 
     func initializeSets() {
         guard sets.isEmpty else { return }
+        isHydratingRecovery = draftAuthorization != nil
+        defer { isHydratingRecovery = false }
         let draft = draftStore.loadCard()
         if let draft, !draft.sets.isEmpty {
             sets = draft.sets.map {
@@ -636,10 +699,13 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     func resetAfterClear() {
+        if draftAuthorization != nil {
+            guard clearDraft() == .accepted else { return }
+        }
         isLogged  = false
         logStatus = nil
         isEditing = false
-        clearDraft()
+        if draftAuthorization == nil { clearDraft() }
     }
 
     /// Vrai si le set est jugé "complet" selon equipmentType. USAGE INTERNE
@@ -764,6 +830,14 @@ final class ExerciseViewModel: ObservableObject {
 
     @discardableResult
     func logExercise(alreadyLoggedViaBinding: Bool) -> ExerciseLogResult? {
+        guard let result = buildLogCandidate(alreadyLoggedViaBinding: alreadyLoggedViaBinding) else { return nil }
+        markLogAccepted(result)
+        clearDraft()
+        return result
+    }
+
+    /// Computes the existing payload without claiming success or deleting recovery.
+    func buildLogCandidate(alreadyLoggedViaBinding: Bool) -> ExerciseLogResult? {
         let alreadyLogged = isLogged || alreadyLoggedViaBinding || isSkipped
         guard !alreadyLogged || isEditing else { return nil }
 
@@ -772,12 +846,7 @@ final class ExerciseViewModel: ObservableObject {
             return nil
         }
 
-        if isEditing { isLogged = false }
-        isLogged  = true
-        isEditing = false
-        logError  = nil   // W-B2 — clear any prior error on successful log
         let noteForResult = sessionNote
-        defer { clearDraft() }
 
         if trackingType == "protocol" {
             // ponytail: log protocol = fait par définition. reps="1" placeholder canLog + NOT NULL,
@@ -788,7 +857,6 @@ final class ExerciseViewModel: ObservableObject {
             let result = ExerciseLogResult(name: name, weight: 0, reps: "1", rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: equipmentType, painZone: painZone, notes: noteForResult, trackingType: trackingType)
-            logStatus = .success(0)
             return withReconstructionMetadata(result)
         }
 
@@ -809,7 +877,6 @@ final class ExerciseViewModel: ObservableObject {
             let result = ExerciseLogResult(name: name, weight: firstW, reps: repsCSV, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: equipmentType, painZone: painZone, notes: noteForResult, trackingType: trackingType)
-            logStatus = .success(firstW)
             return withReconstructionMetadata(result)
         }
 
@@ -832,7 +899,6 @@ final class ExerciseViewModel: ObservableObject {
             let result = ExerciseLogResult(name: name, weight: firstW, reps: repsStr, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: equipmentType, painZone: painZone, notes: noteForResult)
-            logStatus = .success(firstW)
             return withReconstructionMetadata(result)
         }
 
@@ -850,7 +916,6 @@ final class ExerciseViewModel: ObservableObject {
             let result = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: "bodyweight", painZone: painZone, notes: noteForResult)
-            logStatus = .success(0)
             return withReconstructionMetadata(result)
         }
 
@@ -876,15 +941,67 @@ final class ExerciseViewModel: ObservableObject {
         let result = ExerciseLogResult(name: name, weight: total, reps: repsForResult, rpe: exerciseRPE,
             sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
             equipmentType: equipmentType, painZone: painZone, notes: noteForResult)
-        logStatus = .success(total)
         return withReconstructionMetadata(result)
     }
 
-    func undoLog() {
+    private func markLogAccepted(_ result: ExerciseLogResult) {
+        isLogged = true
+        isEditing = false
+        logError = nil
+        logStatus = .success(result.weight)
+    }
+
+    /// No UI side effect is allowed unless BOTH the owner and cleanup accepted.
+    @discardableResult
+    func submitLog(alreadyLoggedViaBinding: Bool,
+                   submit: (ExerciseLogResult?) -> LocalPersistenceResult) -> LocalPersistenceResult {
+        let permission = writePermission()
+        guard permission == .accepted else {
+            recordPersistenceResult(permission)
+            return permission
+        }
+        guard let candidate = buildLogCandidate(alreadyLoggedViaBinding: alreadyLoggedViaBinding && !cleanupPending) else { return .failed }
+        let accepted = submit(candidate)
+        recordPersistenceResult(accepted)
+        guard accepted == .accepted else { return accepted }
+        cleanupPending = true
+        let cleanup = clearDraft()
+        recordPersistenceResult(cleanup)
+        guard cleanup == .accepted else { return cleanup }
+        cleanupPending = false
+        markLogAccepted(candidate)
+        return .accepted
+    }
+
+    @discardableResult
+    func removeAcceptedLog(submit: (ExerciseLogResult?) -> LocalPersistenceResult) -> LocalPersistenceResult {
+        let permission = writePermission()
+        guard permission == .accepted else {
+            recordPersistenceResult(permission)
+            return permission
+        }
+        let result = submit(nil)
+        recordPersistenceResult(result)
+        guard result == .accepted else { return result }
+        cleanupPending = true
+        let cleanup = clearDraft()
+        recordPersistenceResult(cleanup)
+        guard cleanup == .accepted else { return cleanup }
+        cleanupPending = false
         isLogged = false
         isEditing = false
         logStatus = nil
-        clearDraft()
+        return .accepted
+    }
+
+    func undoLog() {
+        if draftAuthorization != nil {
+            guard clearDraft() == .accepted else { return }
+        }
+        isLogged = false
+        isEditing = false
+        logStatus = nil
+        if draftAuthorization == nil { clearDraft() }
     }
 }
 
@@ -1529,7 +1646,15 @@ class SeanceViewModel: ObservableObject {
             SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
             chrono.start(date: date, sessionType: draftSessionType)
         }
-        let values = logResults.values.map { log in
+        let values = persistedLogValues()
+        SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values, authorization: provenanceAuthorization)
+        if !isDayComposerLocal {
+            SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
+        }
+    }
+
+    private func persistedLogValues() -> [PersistedExerciseLogResult] {
+        logResults.values.map { log in
             PersistedExerciseLogResult(
                 name: log.name,
                 weight: log.weight,
@@ -1548,9 +1673,24 @@ class SeanceViewModel: ObservableObject {
                 isUnilateral: log.isUnilateral
             )
         }
-        SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values, authorization: provenanceAuthorization)
-        if !isDayComposerLocal {
-            SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
-        }
+    }
+
+    /// Published owner state is not an acknowledgment. Compare the complete,
+    /// canonically encoded payload using the same mapping as the writer.
+    func persistedLogsMatchCurrentState() -> Bool {
+        guard let date = seanceData?.todayDate else { return false }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let expected = try? encoder.encode(persistedLogValues().sorted { $0.name < $1.name }),
+              let actual = try? encoder.encode(SessionDraftStore.load(date: date, sessionType: draftSessionType)
+                .sorted { $0.name < $1.name }) else { return false }
+        return expected == actual
+    }
+
+    func restoreUnacceptedLocalResults(_ previous: [String: ExerciseLogResult]) {
+        guard isDayComposerLocal else { return }
+        restoringProtectedLogs = true
+        defer { restoringProtectedLogs = false }
+        logResults = previous
     }
 }
