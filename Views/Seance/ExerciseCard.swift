@@ -25,6 +25,8 @@ struct ExerciseCard: View {
     private let onSubmitLogCandidate: ((ExerciseLogResult?) -> LocalPersistenceResult)?
     private let onPersistenceRefused: ((LocalPersistenceResult) -> Void)?
     private let requiresAcceptance: Bool
+    private let allowsManualRest: Bool
+    private let onDraftPersisted: (() -> Void)?
     // Expand/collapse (controlled by parent)
     var isExpanded: Bool = false
     var isFocused: Bool = false
@@ -89,7 +91,11 @@ struct ExerciseCard: View {
          draftAuthorization: DayComposerProvenanceStore.Authorization? = nil,
          validateLocalPersistence: (() -> LocalPersistenceResult)? = nil,
          onSubmitLogCandidate: ((ExerciseLogResult?) -> LocalPersistenceResult)? = nil,
-         onPersistenceRefused: ((LocalPersistenceResult) -> Void)? = nil) {
+         onPersistenceRefused: ((LocalPersistenceResult) -> Void)? = nil,
+         allowsManualRest: Bool = true,
+         onDraftPersisted: (() -> Void)? = nil) {
+        self.allowsManualRest = allowsManualRest
+        self.onDraftPersisted = onDraftPersisted
         self.onSubmitLogCandidate = onSubmitLogCandidate
         self.onPersistenceRefused = onPersistenceRefused
         self.requiresAcceptance = draftAuthorization != nil || onSubmitLogCandidate != nil
@@ -1112,6 +1118,9 @@ struct ExerciseCard: View {
                 onPersistenceRefused?(issue)
             }
         }
+        .onChange(of: evm.draftSavedAt) { _, savedAt in
+            if savedAt != nil { onDraftPersisted?() }
+        }
         .onChange(of: evm.isEditing) { _, editing in
             if editing {
                 undoTask?.cancel(); undoTask = nil
@@ -1764,10 +1773,12 @@ struct ExerciseCard: View {
             .padding(.top, 4)
         }
         if showAdvanced { advancedFields }
-        RestTimerBadge(restSeconds: restSeconds ?? 120, onTap: {
-            RestTimerManager.shared.start(seconds: restSeconds ?? 120, exerciseName: name)
-        })
-        .padding(.top, 4)
+        if allowsManualRest {
+            RestTimerBadge(restSeconds: restSeconds ?? 120, onTap: {
+                RestTimerManager.shared.start(seconds: restSeconds ?? 120, exerciseName: name)
+            })
+            .padding(.top, 4)
+        }
         logSection
         logStatusRow
         // W-B2 — network error banner

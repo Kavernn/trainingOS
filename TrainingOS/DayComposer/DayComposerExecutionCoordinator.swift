@@ -1,6 +1,15 @@
 import Foundation
 import Combine
 
+struct DayComposerExecutionItemIdentity: Hashable {
+    let executionID: UUID
+    let version: Int
+    let date: String
+    let activeProgramID: String
+    let sourceFingerprint: String
+    let itemID: DayComposerItemID
+}
+
 /// Internal Phase E only. No public route, finalization, networking or clocks.
 @MainActor
 final class DayComposerExecutionCoordinator: ObservableObject {
@@ -301,6 +310,88 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     }
     func refreshDerivedState() {
         objectWillChange.send()
+    }
+
+    // MARK: - Pure shell projections (safe during SwiftUI body evaluation)
+
+    enum Rendering: Equatable {
+        case mutable, localReadOnly, observed, corruptDraft, conflict, unsupported, locked
+    }
+    struct Presentation {
+        let item: DayComposerItem
+        let identity: DayComposerExecutionItemIdentity
+        let rendering: Rendering
+        let label: String
+        let result: ExerciseLogResult?
+        let hydration: ExerciseRecoveryHydration?
+        let authorization: DayComposerProvenanceStore.Authorization?
+        let equipment: String
+        let restSeconds: Int?
+        let allowsManualRest: Bool
+    }
+    var selectedSource: DayComposerSource? { currentMemberID?.source ?? selectedUnit?.source }
+    var selectedUnit: DayComposerUnit? { orderedUnits.first { $0.id == currentUnitID } }
+    var hasActionableItems: Bool { items.contains { status(for: $0.id)?.isActionable == true } }
+
+    func consultationResult(for id: DayComposerItemID) -> ExerciseLogResult? {
+        guard let item = item(for: id) else { return nil }
+        return sourceOwner(id.source).logResults[item.name]
+    }
+    func executionIdentity(for id: DayComposerItemID) -> DayComposerExecutionItemIdentity? {
+        guard item(for: id) != nil else { return nil }
+        return .init(executionID: morningAuthorization.executionID, version: context.version,
+                     date: context.date, activeProgramID: context.activeProgramID,
+                     sourceFingerprint: context.sourceFingerprint, itemID: id)
+    }
+    func presentation(for id: DayComposerItemID) -> Presentation? {
+        guard let item = item(for: id), let state = status(for: id), let identity = executionIdentity(for: id),
+              let unit = orderedUnits.first(where: { $0.items.contains { $0.id == id } }) else { return nil }
+        let dto = data(for: id.source)
+        let equipment = dto.inventoryTypes[item.name] ?? "machine"
+        let result = consultationResult(for: id)
+        let hydration = result.flatMap {
+            ExerciseRecoveryHydration.make($0, equipment: equipment, tracking: item.tracking,
+                                          unilateral: item.unilateral, displayWeight: UnitSettings.shared.display)
+        }
+        let rendering: Rendering
+        let label: String
+        if isLocked { rendering = .locked; label = "Lecture seule — contexte modifié" }
+        else if state.status == .unsupported { rendering = .unsupported; label = "Non pris en charge" }
+        else if state.draftCorrupt { rendering = .corruptDraft; label = "Brouillon local à vérifier" }
+        else if result != nil {
+            rendering = hydration == nil ? .localReadOnly : .mutable
+            label = "Enregistré sur cet appareil"
+        } else if state.draftServerConflict { rendering = .conflict; label = "Historique et brouillon local" }
+        else if state.serverObserved { rendering = .observed; label = "Observé" }
+        else { rendering = .mutable; label = state.hasDraft ? "Brouillon local" : "À vérifier" }
+        let firstInPair = unit.group != nil && unit.items.first?.id == id
+        let rest = unit.group == nil ? dto.inventoryRest[item.name] : (firstInPair ? nil : 120)
+        return .init(item: item, identity: identity, rendering: rendering, label: label,
+                     result: result, hydration: hydration,
+                     authorization: rendering == .mutable ? (id.source == .morning ? morningAuthorization : eveningAuthorization) : nil,
+                     equipment: equipment, restSeconds: rest, allowsManualRest: !firstInPair)
+    }
+    func nextActionableName(after id: DayComposerItemID) -> String? {
+        guard let index = items.firstIndex(where: { $0.id == id }),
+              let next = items.dropFirst(index + 1).first(where: { status(for: $0.id)?.isActionable == true }) else { return nil }
+        return "\(next.name) · \(next.id.source.title)"
+    }
+
+    // Consultation never authorizes writes, persists position or unlocks an execution.
+    func consult(_ id: DayComposerItemID) {
+        guard item(for: id) != nil else { return }
+        setSelection(id)
+    }
+    func adjacentItem(offset: Int) -> DayComposerItemID? {
+        guard offset == -1 || offset == 1 else { return nil }
+        guard let current = currentMemberID, let index = items.firstIndex(where: { $0.id == current }) else {
+            return offset == 1 ? items.first?.id : items.last?.id
+        }
+        let target = index + offset
+        return items.indices.contains(target) ? items[target].id : nil
+    }
+    func consultAdjacent(offset: Int) {
+        if let id = adjacentItem(offset: offset) { consult(id) }
     }
     private func observeOwners() {
         // @Published fires before didSet persistence. Schedule a later MainActor

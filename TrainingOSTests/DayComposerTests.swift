@@ -1,9 +1,155 @@
 import XCTest
+import SwiftUI
+import UIKit
 #if canImport(TrainingOS)
 @testable import TrainingOS
 #endif
 
 final class DayComposerTests: XCTestCase {
+    /// Run in the iOS test host. This mounts the real shell/card, not a replacement
+    /// EVM: a pending AM edit must survive collapse/source-switch before debounce.
+    @MainActor
+    func testMountedShellKeepsPendingCardDraftAcrossSourceNavigation() async throws {
+        let date = "mounted-shell-\(UUID().uuidString)"
+        defer { cleanupExecution(date) }
+        let input = try executionInput(executionBundle(date, morning: ["A"], evening: ["E"]))
+        let c = try coordinator(input)
+        let ids = input.snapshot.initialIDs
+        let identity = c.executionIdentity(for: ids[0])
+        let host = UIHostingController(rootView: DayComposerActiveView(coordinator: c, onDismiss: {}))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 430, height: 932))
+        window.rootViewController = host
+        window.isHidden = false
+        defer { window.isHidden = true; window.rootViewController = nil }
+        host.view.layoutIfNeeded()
+        try await Task.sleep(nanoseconds: 200_000_000)
+        func fields(_ view: UIView) -> [UITextField] {
+            (view as? UITextField).map { [$0] } ?? view.subviews.flatMap(fields)
+        }
+        let field = try XCTUnwrap(fields(host.view).first {
+            $0.isEnabled && ($0.keyboardType == .decimalPad || $0.keyboardType == .numberPad)
+        }, "The mounted active ExerciseCard must expose a numeric editor")
+        field.text = "7"
+        field.sendActions(for: .editingChanged)
+        c.consult(ids[1]) // Deliberately before the 500ms draft debounce.
+        host.view.layoutIfNeeded()
+        try await Task.sleep(nanoseconds: 800_000_000)
+        let draft = try XCTUnwrap(ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: "A").load())
+        XCTAssertTrue(draft.contains { $0.weight == "7" || $0.reps == "7" })
+        XCTAssertEqual(ExerciseDraftPersistence(date: date, sessionType: "evening", exerciseName: "E").presence(), .absent)
+        c.consult(ids[0])
+        host.view.layoutIfNeeded()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertEqual(c.executionIdentity(for: ids[0]), identity)
+        XCTAssertTrue(fields(host.view).contains { $0.text == "7" })
+        XCTAssertEqual(c.presentation(for: ids[0])?.label, "Brouillon local")
+    }
+
+    @MainActor
+    func testShellPresentationIdentityNavigationAndReadOnlyQueries() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["Shared"], evening: ["Shared"],
+                ids: ["Shared": UUID().uuidString]))
+            let c = try coordinator(input)
+            let ids = input.snapshot.initialIDs
+            let before = try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date))
+            let am = try XCTUnwrap(c.presentation(for: ids[0]))
+            let pm = try XCTUnwrap(c.presentation(for: ids[1]))
+            XCTAssertNotEqual(am.identity, pm.identity)
+            XCTAssertEqual(am.rendering, .mutable)
+            XCTAssertEqual(pm.rendering, .mutable)
+            XCTAssertEqual(am.authorization?.source, .morning)
+            XCTAssertEqual(pm.authorization?.source, .evening)
+            XCTAssertNil(c.adjacentItem(offset: -1))
+            c.consultAdjacent(offset: 1)
+            XCTAssertEqual(c.selectedSource, .evening)
+            XCTAssertNil(c.adjacentItem(offset: 1))
+            c.consult(ids[0])
+            XCTAssertEqual(c.presentation(for: ids[0])?.identity, am.identity)
+            XCTAssertEqual(c.nextActionableName(after: ids[0]), "Shared · Soir")
+            XCTAssertEqual(try Data(contentsOf: DayComposerProvenanceStore.shared.recordURL(date: date)), before)
+            c.reportPersistenceRefusal(.failed)
+            XCTAssertFalse(c.isLocked)
+            XCTAssertEqual(c.localPersistenceIssue, .failed)
+            c.reportPersistenceRefusal(.rejectedContext)
+            XCTAssertTrue(c.isLocked)
+            c.consult(ids[1])
+            XCTAssertEqual(c.selectedSource, .evening)
+            XCTAssertEqual(c.presentation(for: ids[1])?.rendering, .locked)
+            XCTAssertNil(c.presentation(for: ids[1])?.authorization)
+        }
+    }
+
+    @MainActor
+    func testShellSupersetRestAndObservedUnsupportedMatrix() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A", "B", "M"],
+                tracking: ["M": "mobility"],
+                supersets: ["AM": ["SS": .init(a: "A", b: "B", rest: 90)]]), observedPM: ["E"])
+            let c = try coordinator(input)
+            func id(_ name: String, _ source: DayComposerSource = .morning) -> DayComposerItemID {
+                .init(source: source, name: name, exerciseID: nil)
+            }
+            let a = try XCTUnwrap(c.presentation(for: id("A")))
+            let b = try XCTUnwrap(c.presentation(for: id("B")))
+            XCTAssertNil(a.restSeconds)
+            XCTAssertFalse(a.allowsManualRest)
+            XCTAssertEqual(b.restSeconds, 120)
+            XCTAssertTrue(b.allowsManualRest)
+            XCTAssertEqual(c.presentation(for: id("M"))?.rendering, .unsupported)
+            XCTAssertEqual(c.presentation(for: id("E", .evening))?.rendering, .observed)
+            XCTAssertNil(c.presentation(for: id("E", .evening))?.authorization)
+            XCTAssertEqual(c.nextActionableName(after: id("B")), "F · Soir")
+        }
+    }
+
+    @MainActor
+    func testShellLocalSafeUnsafeHydrationAndRebuild() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date))
+            let c = try coordinator(input)
+            let ids = input.snapshot.initialIDs
+            var safe = executionLog("A")
+            safe.sets = [["weight": 80.0, "reps": "5", "rir": 2, "rpe": 8.0]]
+            XCTAssertEqual(c.submit(candidate: safe, for: ids[0]), .accepted)
+            XCTAssertEqual(c.presentation(for: ids[0])?.rendering, .mutable)
+            XCTAssertNotNil(c.presentation(for: ids[0])?.hydration)
+            XCTAssertEqual(c.submit(candidate: executionLog("B"), for: ids[1]), .accepted)
+            XCTAssertEqual(c.presentation(for: ids[1])?.rendering, .localReadOnly)
+            XCTAssertNil(c.presentation(for: ids[1])?.authorization)
+            XCTAssertEqual(c.setComment("AM saved", for: .morning), .accepted)
+            let rebuilt = try coordinator(input)
+            XCTAssertEqual(rebuilt.currentMemberID, ids[2])
+            XCTAssertEqual(rebuilt.comment(for: .morning), "AM saved")
+            XCTAssertEqual(rebuilt.presentation(for: ids[0])?.identity, c.presentation(for: ids[0])?.identity)
+            var dismissals = 0
+            let shell = DayComposerActiveView(coordinator: rebuilt) { dismissals += 1 }
+            shell.onDismiss()
+            XCTAssertEqual(dismissals, 1)
+            XCTAssertEqual(SessionDraftStore.load(date: date).count, 2)
+        }
+    }
+
+    func testShellCommentBuffersCaptureSourceAndRetainRejectedText() {
+        var buffers = DayComposerCommentBuffers(morning: .init(text: "AM"), evening: .init(text: "PM"))
+        let capturedSource = DayComposerSource.morning
+        buffers.edit("Pending AM", source: capturedSource) { text, source in
+            XCTAssertEqual(source, .morning)
+            XCTAssertEqual(text, "Pending AM")
+            return .failed
+        }
+        XCTAssertEqual(buffers.morning.text, "Pending AM")
+        XCTAssertEqual(buffers.morning.outcome, .failed)
+        XCTAssertEqual(buffers.evening.text, "PM")
+        buffers.edit("", source: .evening) { _, source in
+            XCTAssertEqual(source, .evening)
+            return .accepted
+        }
+        XCTAssertEqual(buffers.evening.text, "")
+        XCTAssertEqual(buffers.evening.outcome, .accepted)
+        XCTAssertEqual(buffers.morning.text, "Pending AM")
+    }
+
     // Coordinator integration uses the same isolated-date pattern as provenance
     // tests: actual shared hooks, no fake store inconsistent with owner binding.
     @MainActor
@@ -413,6 +559,13 @@ final class DayComposerTests: XCTestCase {
             XCTAssertEqual(restored.status(for: id("Corrupt"))?.isActionable, false)
             XCTAssertEqual(restored.status(for: id("Unknown"))?.status, .unknown)
             XCTAssertEqual(restored.status(for: id("Mobility"))?.status, .unsupported)
+            XCTAssertEqual(restored.presentation(for: id("Local"))?.rendering, .localReadOnly)
+            XCTAssertEqual(restored.presentation(for: id("Server"))?.rendering, .conflict)
+            XCTAssertEqual(restored.presentation(for: id("Draft"))?.rendering, .mutable)
+            XCTAssertEqual(restored.presentation(for: id("Corrupt"))?.rendering, .corruptDraft)
+            XCTAssertNil(restored.presentation(for: id("Corrupt"))?.authorization)
+            XCTAssertEqual(restored.presentation(for: id("Unknown"))?.rendering, .mutable)
+            XCTAssertEqual(restored.presentation(for: id("Mobility"))?.rendering, .unsupported)
             XCTAssertEqual(restored.executableCount, 6)
             XCTAssertEqual(restored.treatedCount, 2)
             XCTAssertEqual(restored.currentMemberID, id("Draft"))
