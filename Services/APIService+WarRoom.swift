@@ -1,6 +1,13 @@
 import Foundation
+import CryptoKit
 
 extension APIService {
+    // This app has a fixed single-user API configuration, not a sign-in/account model.
+    // Keep credentials out of identity values exposed to the rest of the app.
+    static let warRoomContextIdentity = SHA256.hash(
+        data: Data((APIConfig.base + "\0" + APIConfig.apiKey).utf8)
+    ).map { String(format: "%02x", $0) }.joined()
+
 
     // MARK: Config
 
@@ -11,8 +18,9 @@ extension APIService {
     }
 
     func updateWarRoomConfig(_ fields: [String: Any]) async throws {
-        _ = try await offlinePost(endpoint: "/api/war_room/config", payload: fields)
+        let data = try await offlinePost(endpoint: "/api/war_room/config", payload: fields)
         CacheInvalidation.warRoomConfigUpdated.invalidate()
+        guard data != nil else { throw APIError.queuedOffline }
         await WarRoomProgressStore.shared.configurationChanged()
     }
 
@@ -50,6 +58,7 @@ extension APIService {
         CacheInvalidation.warRoomBattleLogged.invalidate()
         guard let data else { throw APIError.queuedOffline }
         let resp = try APIService.decoder.decode(BattleUpsertResponse.self, from: data)
+        if resp.ok { await WarRoomProgressStore.shared.invalidate() }
         return resp.summary
     }
 

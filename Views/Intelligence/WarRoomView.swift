@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 
 struct WarRoomView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var progressStore = WarRoomProgressStore.shared
     @StateObject private var vm = WarRoomViewModel()
     @State private var tab: WarRoomTab = .counter
@@ -56,6 +57,12 @@ struct WarRoomView: View {
             }
         }
         .task { await vm.loadAll() }
+        .task(id: scenePhase) {
+            if scenePhase == .active { await progressStore.refresh() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            progressStore.reprojectForCurrentDate()
+        }
         .sheet(isPresented: $showOath) {
             OathGateView()
         }

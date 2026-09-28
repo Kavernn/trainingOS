@@ -4,6 +4,7 @@ import Foundation
 // Standalone doubles isolate all network and settings writes.
 final class APIService {
     static let shared = APIService()
+    static let warRoomContextIdentity = "isolated-fixture"
     func getWarRoomProgress() async throws -> WarRoomHistory { throw URLError(.notConnectedToInternet) }
 }
 extension DateFormatter {
@@ -94,15 +95,21 @@ struct WarRoomProgressChecks {
         await store.configurationChanged()
         check(store.progress == nil, "changed context rejects previous snapshot even on read failure")
         var readCount = 0
+        var releaseOld: CheckedContinuation<WarRoomHistory, Error>?
         let racing = WarRoomProgressStore(read: {
             readCount += 1
-            let call = readCount
-            if call == 1 { try await Task.sleep(nanoseconds: 50_000_000) }
-            return history(call == 1 ? wins(40) : [row], context: call == 1 ? "old" : "new")
+            if readCount == 1 { return history(wins(40), context: "old") }
+            if readCount == 2 { return try await withCheckedThrowingContinuation { releaseOld = $0 } }
+            return history([row], context: "new")
         }, now: { today })
-        let oldRequest = Task { await racing.refresh() }
-        while readCount == 0 { await Task.yield() }
-        await racing.refresh(force: true)
+        await racing.refresh()
+        let oldRequest = Task { await racing.refresh(force: true) }
+        while releaseOld == nil { await Task.yield() }
+        let changed = Task { await racing.configurationChanged() }
+        // Wait until the explicit context invalidation has happened, without a timer.
+        while racing.progress != nil { await Task.yield() }
+        releaseOld?.resume(returning: history(wins(40), context: "old"))
+        await changed.value
         await oldRequest.value
         check(racing.progress?.victories == 1 && racing.progress?.history.context == "new", "late response from old context is rejected")
         let active = project([battle("2026-09-20", .active), row])
@@ -111,6 +118,7 @@ struct WarRoomProgressChecks {
             let keys = Set(week.days.map(\.key))
             check(week.victories == mixed.days.filter { keys.contains($0.key) && $0.state == .victory }.count, "weekly bar and calendar share results \(week.id)")
         }
+        await freshnessChecks()
         print("War Room focused checks complete")
     }
 }
@@ -118,5 +126,168 @@ struct WarRoomProgressChecks {
 extension Calendar {
     static var mtl: Calendar {
         var c = Calendar(identifier: .iso8601); c.timeZone = DateFormatter.isoDate.timeZone; return c
+    }
+}
+
+extension WarRoomProgressChecks {
+    @MainActor static func freshnessChecks() async {
+        var clock = today
+        var reads = 0
+        var response = history([])
+        var failure: Error?
+        let store = WarRoomProgressStore(read: {
+            reads += 1
+            if let failure { throw failure }
+            return response
+        }, now: { clock }, contextIdentity: { "A" })
+        for _ in 0..<4 { await store.refresh() }
+        check(reads == 1 && store.progress?.complete == true, "first opening + three nearby returns use one read")
+        print("AFTER A first+3returns requests=\(reads)")
+        var count = reads
+        clock = clock.addingTimeInterval(61)
+        await store.refresh()
+        check(reads == count + 1, "expired automatic opening reads again")
+        print("AFTER B expired requests=\(reads-count)")
+        count = reads
+        await store.refresh(force: true)
+        check(reads == count + 1, "manual refresh bypasses fresh age")
+        print("AFTER C manual requests=\(reads-count)")
+        count = reads
+        let before = store.progress
+        store.invalidate() // Confirmed API mutation; a queued/failed API write does not call this.
+        response = history([battle("2026-09-28")])
+        let message = await store.confirmedVictory(date: "2026-09-28", status: .victory, before: before)
+        await store.refresh()
+        check(reads == count + 1 && message != nil && store.progress?.victories == 1, "confirmed victory invalidates immediately and return reuses result")
+        print("AFTER D accepted+return requests=\(reads-count)")
+        store.invalidate()
+        response = history([battle("2026-09-28", .lost)])
+        await store.refresh()
+        check(store.progress?.victories == 0, "correction invalidates fresh history")
+        store.invalidate()
+        response = history([battle("2026-01-03")])
+        await store.refresh()
+        check(store.progress?.victories == 1 && store.progress?.history.battles.first?.date == "2026-01-03", "backfill keeps its real business date")
+        store.invalidate()
+        response = history([])
+        await store.refresh()
+        check(store.progress?.victories == 0, "a confirmed deletion would reload rather than reuse")
+
+        response = history(wins(7))
+        await store.refresh(force: true)
+        failure = URLError(.notConnectedToInternet)
+        await store.refresh(force: true)
+        check(store.progress?.victories == 7 && store.error != nil, "failed refresh preserves complete snapshot")
+        count = reads
+        failure = nil
+        await store.refresh()
+        check(reads == count + 1 && store.error == nil, "failure does not advance freshness")
+        failure = CancellationError()
+        await store.refresh(force: true)
+        check(store.progress?.victories == 7 && store.error == nil, "transport cancellation is silent and non-destructive")
+        count = reads
+        failure = nil
+        await store.refresh()
+        check(reads == count + 1, "transport cancellation does not renew freshness")
+        response = history([battle("2026-09-28")], complete: false)
+        await store.refresh(force: true)
+        check(store.progress?.complete == true && store.progress?.victories == 7 && store.error != nil, "partial read cannot silently downgrade complete history")
+        count = reads
+        await store.refresh()
+        check(reads == count + 1, "coverage failure is not treated as fresh")
+        var partialReads = 0
+        let partial = WarRoomProgressStore(read: { partialReads += 1; return history(wins(40), complete: false) }, now: { today })
+        await partial.refresh()
+        check(partial.progress?.level == nil && partial.progress?.complete == false && partial.progress?.badges.contains(where: \.earned) == false, "first partial response has no total level or earned badge")
+        await partial.refresh()
+        check(partialReads == 2, "partial coverage cannot enter complete-history freshness")
+
+        var scope = "A"
+        var scopedReads = 0
+        var oldReply: CheckedContinuation<WarRoomHistory, Error>?
+        let scoped = WarRoomProgressStore(read: {
+            scopedReads += 1
+            if scopedReads == 2 { return try await withCheckedThrowingContinuation { oldReply = $0 } }
+            return history(scopedReads == 1 ? wins(7) : [])
+        }, now: { today }, contextIdentity: { scope })
+        await scoped.refresh()
+        let old = Task { await scoped.refresh(force: true) }
+        while oldReply == nil { await Task.yield() }
+        scope = "B"
+        check(scoped.progress == nil, "old account snapshot hidden before new read")
+        await scoped.refresh()
+        oldReply?.resume(returning: history(wins(40)))
+        await old.value
+        check(scoped.progress?.victories == 0 && scopedReads == 3, "old account late response cannot replace current history")
+
+        var dateReads = 0
+        clock = f.date(from: "2026-09-27")!.addingTimeInterval(86390)
+        let dated = WarRoomProgressStore(read: {
+            dateReads += 1
+            return WarRoomHistory(battles: [battle("2026-09-27")], complete: true, startDate: "2026-01-01", context: "fixture", throughDate: "2026-09-27")
+        }, now: { clock })
+        await dated.refresh()
+        let previousWeek = dated.progress?.weeks.last?.date
+        clock = clock.addingTimeInterval(20)
+        await dated.refresh()
+        check(dateReads == 1 && dated.progress?.today == "2026-09-28" && dated.progress?.weeks.last?.date != previousWeek, "fresh history reprojects new business day and week without download")
+        check(dated.progress?.curve.last?.isToday == true && dated.progress?.days.first(where: { $0.key == "2026-09-28" })?.state == .ongoing, "reprojected today stays unknown rather than lost")
+
+        await concurrentChecks()
+        await receptionClockChecks()
+    }
+
+    @MainActor static func concurrentChecks() async {
+        var reads = 0
+        var gates: [CheckedContinuation<WarRoomHistory, Error>] = []
+        let store = WarRoomProgressStore(read: {
+            reads += 1
+            return try await withCheckedThrowingContinuation { gates.append($0) }
+        }, now: { today })
+        let a = Task { await store.refresh() }
+        while gates.count < 1 { await Task.yield() }
+        let b = Task { await store.refresh(force: true) }
+        await Task.yield()
+        a.cancel()
+        gates[0].resume(returning: history([]))
+        await a.value; await b.value
+        check(reads == 1 && store.progress?.complete == true && store.error == nil, "concurrent manual/automatic reads share task despite one waiter cancellation")
+
+        let obsolete = Task { await store.refresh(force: true) }
+        while gates.count < 2 { await Task.yield() }
+        store.invalidate()
+        store.invalidate()
+        let following = Task { await store.refresh(force: true) }
+        await Task.yield()
+        gates[1].resume(returning: history(wins(40)))
+        while gates.count < 3 { await Task.yield() }
+        check(store.progress?.victories == 0, "response preceding mutations is never published")
+        gates[2].resume(returning: history([battle("2026-09-28")]))
+        await obsolete.value; await following.value
+        check(reads == 3 && store.progress?.victories == 1, "mutation burst coalesces to exactly one following read")
+        await store.refresh()
+        check(reads == 3, "only accepted following response becomes fresh")
+    }
+
+    @MainActor static func receptionClockChecks() async {
+        var clock = today
+        var reads = 0
+        var gate: CheckedContinuation<WarRoomHistory, Error>?
+        let store = WarRoomProgressStore(read: {
+            reads += 1
+            if reads == 1 { return try await withCheckedThrowingContinuation { gate = $0 } }
+            return history([])
+        }, now: { clock }, freshness: 10)
+        let initial = Task { await store.refresh() }
+        while gate == nil { await Task.yield() }
+        clock = clock.addingTimeInterval(100)
+        gate?.resume(returning: history([]))
+        await initial.value
+        clock = clock.addingTimeInterval(9)
+        await store.refresh()
+        check(reads == 1, "freshness starts at accepted reception, not request start")
+        clock = clock.addingTimeInterval(1)
+        await store.refresh()
+        check(reads == 2, "injected freshness expires at its exact boundary")
     }
 }
