@@ -48,7 +48,6 @@ struct ExerciseCard: View {
     private let preparesEditors: Bool
     private let sourceRegistration: DayComposerCardRegistration?
     @ObservedObject private var units = UnitSettings.shared
-    @ObservedObject private var restTimer = RestTimerManager.shared
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("exo_notes_data")          private var exoNotesData: String = "{}"
     @AppStorage("auto_start_rest_timer")   private var autoStartTimer = false
@@ -1409,19 +1408,7 @@ struct ExerciseCard: View {
         } else if alreadyLogged && !evm.isEditing, let r = logResult {
             HStack(spacing: 8) {
                 noteIconButton
-                if restTimer.isRunning, restTimer.exerciseName == name {
-                    TimelineView(.periodic(from: restTimer.startDate ?? .now, by: 1)) { ctx in
-                        let elapsed = max(0, ctx.date.timeIntervalSince(restTimer.startDate ?? .now))
-                        let remaining = max(0, restTimer.totalSeconds - Int(elapsed))
-                        HStack(spacing: 4) {
-                            Image(systemName: "timer").font(.appMicro).foregroundColor(Color.gray)
-                            Text(evm.formatDuration(remaining))
-                                .font(.appCaption).fontWeight(.bold).foregroundColor(Color.gray)
-                        }
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.gray.opacity(0.1)).clipShape(Capsule())
-                    }
-                }
+                ExerciseRestCountdown(name: name, timer: .shared)
                 VStack(alignment: .trailing, spacing: 4) {
                     if isTimeBased {
                         Text(r.reps.split(separator: ",").compactMap { Int($0) }
@@ -2873,5 +2860,27 @@ struct EnduranceTimerSection: View {
         guard secs >= 60 else { return "\(secs)s" }
         let m = secs / 60; let s = secs % 60
         return s > 0 ? "\(m):\(String(format: "%02d", s))" : "\(m):00"
+    }
+}
+
+// The card owns its editors; only this presentation observes rest transitions.
+struct ExerciseRestCountdown: View {
+    let name: String
+    @ObservedObject var timer: RestTimerManager
+
+    var body: some View {
+        if timer.isRunning, timer.exerciseName == name {
+            TimelineView(.periodic(from: timer.startDate ?? .now, by: 1)) { ctx in
+                let elapsed = max(0, ctx.date.timeIntervalSince(timer.startDate ?? .now))
+                let remaining = max(0, timer.totalSeconds - Int(elapsed))
+                HStack(spacing: 4) {
+                    Image(systemName: "timer").font(.appMicro).foregroundColor(Color.gray)
+                    Text(ExerciseCalculator.formatDuration(remaining))
+                        .font(.appCaption).fontWeight(.bold).foregroundColor(Color.gray)
+                }
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Color.gray.opacity(0.1)).clipShape(Capsule())
+            }
+        }
     }
 }

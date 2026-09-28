@@ -698,7 +698,30 @@ enum NotificationService {
 final class RestTimerManager: ObservableObject {
     static let shared   = RestTimerManager()
     static let presetKey = "restTimerPreset"
-    private init() {}
+    private let defaults: UserDefaults
+    private let now: () -> Date
+    private let automaticallyTicks: Bool
+    private let effects: ((Effect) -> Void)?
+
+    // Isolated clock/preferences/effects for focused tests; the singleton keeps live effects.
+    enum Effect: Equatable {
+        case schedule(Int), cancel, countdown, finished
+    }
+
+    private init() {
+        defaults = .standard
+        now = Date.init
+        automaticallyTicks = true
+        effects = nil
+    }
+
+    init(defaults: UserDefaults, now: @escaping () -> Date,
+         automaticallyTicks: Bool = false, effects: @escaping (Effect) -> Void) {
+        self.defaults = defaults
+        self.now = now
+        self.automaticallyTicks = automaticallyTicks
+        self.effects = effects
+    }
 
     @Published var totalSeconds  = 120
     @Published var isRunning     = false
@@ -712,6 +735,8 @@ final class RestTimerManager: ObservableObject {
 
     private var timerTask: Task<Void, Never>?
     private var beepPlayer: AVAudioPlayer?
+    private(set) var runID: UUID?
+    private var lastSoundedRem = 0
 
     /// Start (or restart) the timer. Always replaces any running timer, always auto-starts.
     func start(seconds: Int, exerciseName: String? = nil) {
@@ -719,41 +744,42 @@ final class RestTimerManager: ObservableObject {
         cancelNotification()
         let secs        = max(10, seconds)
         totalSeconds    = secs
-        remaining       = secs
-        startDate       = Date()
+        setRemaining(secs)
+        startDate       = now()
         isRunning       = true
         isVisible       = true
         if let name = exerciseName { self.exerciseName = name }
-        UserDefaults.standard.set(secs, forKey: Self.presetKey)
+        defaults.set(secs, forKey: Self.presetKey)
         scheduleNotification(seconds: secs)
-        timerTask = Task { [weak self] in await self?.runLoop() }
+        beginLoop()
     }
 
     /// Resume a paused timer without changing duration.
     func resume() {
         guard !isRunning, remaining > 0 else { return }
-        startDate = Date().addingTimeInterval(-Double(totalSeconds - remaining))
+        startDate = now().addingTimeInterval(-Double(totalSeconds - remaining))
         isRunning = true
         scheduleNotification(seconds: remaining)
-        timerTask = Task { [weak self] in await self?.runLoop() }
+        beginLoop()
     }
 
     func stop() {
+        runID = nil
         isRunning = false
         startDate = nil
         timerTask?.cancel(); timerTask = nil
         cancelNotification()
     }
 
-    func reset() { stop(); remaining = totalSeconds }
+    func reset() { stop(); setRemaining(totalSeconds) }
 
     func dismiss() { stop(); isVisible = false; exerciseName = nil }
 
     func adjust(by delta: Int) {
-        remaining = max(1, remaining + delta)
+        setRemaining(max(1, remaining + delta))
         if isRunning {
             totalSeconds = max(totalSeconds, remaining)
-            startDate = Date().addingTimeInterval(-Double(totalSeconds - remaining))
+            startDate = now().addingTimeInterval(-Double(totalSeconds - remaining))
             cancelNotification()
             scheduleNotification(seconds: remaining)
         } else {
@@ -763,6 +789,7 @@ final class RestTimerManager: ObservableObject {
 
     private func scheduleNotification(seconds: Int) {
         cancelNotification()
+        if let effects { effects(.schedule(seconds)); return }
         let content = UNMutableNotificationContent()
         content.title = "Repos terminé ✅"; content.body = "C'est reparti !"; content.sound = .default
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
@@ -771,31 +798,57 @@ final class RestTimerManager: ObservableObject {
     }
 
     private func cancelNotification() {
+        if let effects { effects(.cancel); return }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["restTimer"])
     }
 
-    private func runLoop() async {
-        var lastSoundedRem = totalSeconds + 1   // anti-double-bip
+    private func setRemaining(_ value: Int) {
+        // Keep the existing non-published contract: TimelineView owns display ticks.
+        if remaining != value { remaining = value }
+    }
+
+    private func beginLoop() {
+        let id = UUID()
+        runID = id
+        lastSoundedRem = totalSeconds + 1
+        if automaticallyTicks {
+            timerTask = Task { [weak self] in await self?.runLoop(id: id) }
+        }
+    }
+
+    /// A single deadline-based tick, also driven synchronously by isolated tests.
+    @discardableResult
+    func tick(id: UUID) -> Bool {
+        guard runID == id, isRunning, let sd = startDate else { return false }
+        // Relit startDate à CHAQUE tick : adjust() déplace cette origine.
+        let rem = max(0, totalSeconds - Int(now().timeIntervalSince(sd)))
+        setRemaining(rem)
+        // Equality filtering must never skip completion or legitimate effects.
+        if rem <= 3 && rem > 0 && rem < lastSoundedRem {
+            lastSoundedRem = rem
+            if let effects { effects(.countdown) } else {
+                playBeep(hz: 880); triggerImpact(style: .rigid)
+            }
+        }
+        if rem == 0 {
+            isRunning = false
+            cancelNotification()
+            if let effects { effects(.finished) } else {
+                playBeep(hz: 1200); triggerNotificationFeedback(.success)
+            }
+            return false
+        }
+        return true
+    }
+
+    private func runLoop(id: UUID) async {
         while !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 500_000_000)   // tick 0.5s
             guard !Task.isCancelled else { break }
-            // Relit startDate à CHAQUE tick — source unique. adjust() bouge startDate,
-            // une copie capturée diverge et fait remonter remaining (bug -Xs cumulatif).
-            guard let sd = startDate else { break }
-            let rem = max(0, totalSeconds - Int(Date().timeIntervalSince(sd)))
-            remaining = rem
-            if rem <= 3 && rem > 0 && rem < lastSoundedRem {
-                lastSoundedRem = rem
-                playBeep(hz: 880); triggerImpact(style: .rigid)
-            }
-            if rem == 0 {
-                isRunning = false
-                cancelNotification()
-                playBeep(hz: 1200); triggerNotificationFeedback(.success)
-                break
-            }
+            guard tick(id: id) else { break }
         }
-        timerTask = nil
+        // A cancelled loop must not clear the replacement task's handle.
+        if runID == id { timerTask = nil }
     }
 
     private func playBeep(hz: Double) {
