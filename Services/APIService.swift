@@ -107,6 +107,13 @@ class APIService: ObservableObject {
     @MainActor private var dashboardGeneration = 0
     @MainActor var dashboardContextVersion: Int { dashboardGeneration }
     @MainActor private var dashboardRequestRunning = false
+    @MainActor private var dashboardPlanValidation: (generation: Int, date: String)?
+
+    @MainActor func dashboardPlanIsCurrent(on date: Date) -> Bool {
+        dashboardPlanValidation?.generation == dashboardGeneration
+            && dashboardPlanValidation?.date == DateFormatter.isoDate.string(from: date)
+            && dashboardPlan?.programme.isActive == true
+    }
     @MainActor private var dashboardScope: (program: String, date: String)?
     private let dashboardDefaults: UserDefaults
     private static let dashboardPlanKey = "dashboard_active_weekly_plan_v1"
@@ -318,7 +325,7 @@ class APIService: ObservableObject {
     @MainActor func fetchDashboard(
         mode: DashboardLoadMode = .initial,
         now: () -> Date = { Date() },
-        transport: (URLRequest) async throws -> (Data, URLResponse) = { try await URLSession.authed.data(for: $0) }
+        transport: @escaping (URLRequest) async throws -> (Data, URLResponse) = { try await URLSession.authed.data(for: $0) }
     ) async -> Bool {
         guard !dashboardRequestRunning else { return false }
         dashboardRequestRunning = true
@@ -366,16 +373,48 @@ class APIService: ObservableObject {
                 dashboardPlan = nil
                 dashboardDefaults.removeObject(forKey: Self.dashboardPlanKey)
             }
-            let evening: [String: String] = try await read("/api/evening_schedule")
-            let after: DashboardPlan.Programme = try await read("/api/programme_data")
-            guard current() else { return false }
-            guard before.matches(after) else { invalidateDashboardContext(); return false }
-            let plan = DashboardPlan(programme: before, eveningSchedule: evening)
-            // Persist the weekly plan independently: even a failed metrics request
-            // can leave a correct, date-resolved offline presentation.
-            dashboardPlan = plan
-            dashboardDefaults.set(try JSONEncoder().encode(plan), forKey: Self.dashboardPlanKey)
-            let decoded: DashboardData = try await read("/api/dashboard", dated: true)
+            enum InitialRead {
+                case plan(Result<DashboardPlan, Error>)
+                case metrics(Result<DashboardData, Error>)
+            }
+            // Metrics need the explicit date and the active-program snapshot, not
+            // the evening plan. Keep both validation fences around the reads.
+            let metrics: Result<DashboardData, Error>? = await withTaskGroup(of: InitialRead.self) { group in
+                group.addTask { @MainActor in
+                    do {
+                        let evening: [String: String] = try await read("/api/evening_schedule")
+                        let after: DashboardPlan.Programme = try await read("/api/programme_data")
+                        return .plan(.success(DashboardPlan(programme: after, eveningSchedule: evening)))
+                    } catch { return .plan(.failure(error)) }
+                }
+                group.addTask { @MainActor in
+                    do { return .metrics(.success(try await read("/api/dashboard", dated: true))) }
+                    catch { return .metrics(.failure(error)) }
+                }
+                var result: Result<DashboardData, Error>?
+                for await value in group {
+                    // A newer request may be running inside a transport callback.
+                    // Superseding this generation must not cancel that new owner.
+                    guard current() else { continue }
+                    switch value {
+                    case .plan(.success(let plan)):
+                        guard before.matches(plan.programme) else {
+                            invalidateDashboardContext(); group.cancelAll(); return nil
+                        }
+                        dashboardPlanValidation = (generation, date)
+                        dashboardPlan = plan
+                        if let data = try? JSONEncoder().encode(plan) {
+                            dashboardDefaults.set(data, forKey: Self.dashboardPlanKey)
+                        }
+                    case .plan(.failure(let error)):
+                        group.cancelAll(); return .failure(error)
+                    case .metrics(let response): result = response
+                    }
+                }
+                return result
+            }
+            guard current(), let metrics else { return false }
+            let decoded = try metrics.get()
             let finalContext: DashboardPlan.Programme = try await read("/api/programme_data")
             guard current() else { return false }
             guard before.matches(finalContext) else { invalidateDashboardContext(); return false }

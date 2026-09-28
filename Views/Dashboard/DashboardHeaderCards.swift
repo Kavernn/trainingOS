@@ -3,7 +3,6 @@ import SwiftUI
 // MARK: - Dashboard Skeleton (fix #5)
 struct DashboardSkeletonView: View {
     var body: some View {
-        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
                 // Greeting
                 HStack {
@@ -52,7 +51,6 @@ struct DashboardSkeletonView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
-        }
     }
 }
 
@@ -76,7 +74,7 @@ struct SkeletonBar: View {
 
 // MARK: - Dashboard Branding Bar
 struct DashboardBrandingBar: View {
-    let profile: UserProfile
+    let profile: UserProfile?
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -106,7 +104,7 @@ struct DashboardBrandingBar: View {
     }
 
     private var profileAccessibilityLabel: String {
-        guard let name = profile.name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+        guard let name = profile?.name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
             return "Profil"
         }
         return "Profil de \(name)"
@@ -115,30 +113,32 @@ struct DashboardBrandingBar: View {
 
 // MARK: - Dashboard Status Bar
 struct DashboardStatusBar: View {
-    let dash: DashboardData
+    let dash: DashboardData?
+    let plannedSession: String
 
     private var dateShort: String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_CA")
         f.dateFormat = "EEE d MMM"
-        return f.string(from: Date()).capitalized
+        return f.string(from: dash.flatMap { DateFormatter.isoDate.date(from: $0.todayDate) } ?? Date()).capitalized
     }
 
     private var isLoggedToday: Bool {
-        dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
+        guard let dash else { return false }
+        return dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
     }
 
     private var dotColor: Color {
         if isLoggedToday { return Color.statusGreen }
-        let low = dash.today.lowercased()
+        let low = plannedSession.lowercased()
         if low.contains("repos") || low.contains("recovery") || low.contains("rest") {
             return Color.secondary
         }
-        return Color.sessionTypeColor(dash.today)
+        return Color.sessionTypeColor(plannedSession)
     }
 
     var body: some View {
-        let accent = Color.sessionTypeColor(dash.today)
+        let accent = Color.sessionTypeColor(plannedSession)
         // Point 2 — Wash accent + liseré bas : la StatusBar devient "le panneau du jour".
         // Réversible via DashboardAccentRadiance.statusBarFill / statusBarRule.
         return HStack(spacing: 0) {
@@ -153,7 +153,7 @@ struct DashboardStatusBar: View {
                     Circle()
                         .fill(dotColor)
                         .frame(width: 6, height: 6)
-                    Text(dash.today)
+                    Text(plannedSession)
                         .font(.appCaption.weight(.medium))
                         .foregroundColor(Color.appOnSurface.opacity(0.85))
                         .lineLimit(1)

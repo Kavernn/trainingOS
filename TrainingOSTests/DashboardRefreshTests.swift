@@ -1,4 +1,5 @@
 import XCTest
+import Combine
 @testable import TrainingOS
 
 @MainActor
@@ -44,6 +45,54 @@ final class DashboardRefreshTests: XCTestCase {
     private func seed() async {
         await api.fetchDashboard(mode: .initial, now: { self.date }, transport: { try self.reply($0) })
         XCTAssertNotNil(api.dashboard)
+    }
+
+    func testMetricsStartWhileEveningWaitsAndPlanPublishesBeforeMetrics() async {
+        let eveningStarted = expectation(description: "evening started")
+        let metricsStarted = expectation(description: "metrics started independently")
+        let planReady = expectation(description: "validated plan published before metrics")
+        var eveningGate: CheckedContinuation<Void, Never>?
+        var metricsGate: CheckedContinuation<Void, Never>?
+        var paths: [String] = []
+        let subscription = api.$dashboardPlan.dropFirst().sink { plan in
+            if plan != nil { planReady.fulfill() }
+        }
+        defer { subscription.cancel() }
+        let task = Task {
+            await self.api.fetchDashboard(now: { self.date }, transport: { request in
+                paths.append(request.url!.path)
+                if request.url!.path == "/api/evening_schedule" {
+                    await withCheckedContinuation { eveningGate = $0; eveningStarted.fulfill() }
+                }
+                if request.url!.path == "/api/dashboard" {
+                    await withCheckedContinuation { metricsGate = $0; metricsStarted.fulfill() }
+                }
+                return try self.reply(request)
+            })
+        }
+        await fulfillment(of: [eveningStarted, metricsStarted], timeout: 5)
+        XCTAssertNil(api.dashboard)
+        XCTAssertFalse(api.dashboardPlanIsCurrent(on: date))
+        eveningGate?.resume()
+        await fulfillment(of: [planReady], timeout: 5)
+        XCTAssertNil(api.dashboard, "Slow metrics must not prevent a certified plan")
+        XCTAssertTrue(api.dashboardPlanIsCurrent(on: date))
+        XCTAssertEqual(api.dashboardPlan?.morning(on: date), "A dimanche")
+        metricsGate?.resume()
+        let loaded = await task.value
+        XCTAssertTrue(loaded)
+        XCTAssertEqual(paths.count, 5)
+        XCTAssertEqual(paths.filter { $0 == "/api/programme_data" }.count, 3)
+        api.invalidateDashboardContext()
+        XCTAssertFalse(api.dashboardPlanIsCurrent(on: date))
+    }
+
+    func testPersistedPlanIsNotCertifiedUntilRevalidated() async {
+        await seed()
+        let reopened = APIService(dashboardDefaults: defaults)
+        XCTAssertNotNil(reopened.dashboardPlan)
+        XCTAssertFalse(reopened.dashboardPlanIsCurrent(on: date))
+        XCTAssertFalse(api.dashboardPlanIsCurrent(on: date.addingTimeInterval(86400)))
     }
 
     func testManualRefreshKeepsDashboardThroughoutRequests() async {

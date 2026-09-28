@@ -1,5 +1,15 @@
 import SwiftUI
 
+struct DashboardPrimaryPresentation: Equatable {
+    let title: String
+    let action: String?
+    init(plannedSession: String, hasMorningRecovery: Bool, completed: Bool) {
+        title = hasMorningRecovery && !completed ? "Séance à reprendre" : plannedSession
+        action = completed || (plannedSession == "Repos" && !hasMorningRecovery)
+            ? nil : (hasMorningRecovery ? "Reprendre ma séance" : "Ouvrir ma séance")
+    }
+}
+
 // MARK: - Today Card
 struct TodayCardView: View {
     let dash: DashboardData
@@ -32,7 +42,12 @@ struct TodayCardView: View {
     }
 
     private var hasPartialLogs: Bool {
-        dash.hasPartialLogs || SessionDraftStore.hasAnyDraft(date: dash.todayDate)
+        dash.hasPartialLogs || SessionDraftStore.hasDraft(date: dash.todayDate, sessionType: "morning")
+    }
+
+    private var presentation: DashboardPrimaryPresentation {
+        DashboardPrimaryPresentation(plannedSession: plannedMorning, hasMorningRecovery: hasPartialLogs,
+                                     completed: isLoggedToday)
     }
 
     var todayColor: Color { Color.sessionTypeColor(plannedMorning) }
@@ -116,11 +131,11 @@ struct TodayCardView: View {
                         .foregroundColor(isLoggedToday ? Color.appSuccess : todayColor)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(plannedMorning.isEmpty ? "Repos" : plannedMorning)
+                    Text(presentation.title)
                         .font(.appTitle.weight(.bold))
                         .foregroundColor(Color.appOnSurface)
-                        .lineLimit(1)
-                    if let pm = plannedEvening, !pm.isEmpty {
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let pm = plannedEvening, !pm.isEmpty, !hasPartialLogs {
                         HStack(spacing: 4) {
                             Image(systemName: "moon.stars.fill")
                                 .font(.appCaption)
@@ -155,7 +170,7 @@ struct TodayCardView: View {
                                 .foregroundColor(Color.appSuccess)
                         }
                     }
-                } else if !exercises.isEmpty {
+                } else if !exercises.isEmpty, !hasPartialLogs {
                     Text("\(exercises.count) exos")
                         .font(.appCaption.weight(.semibold))
                         .foregroundColor(Color.appTextSecondary)
@@ -223,30 +238,8 @@ struct TodayCardView: View {
                 }
                 // Loggé sans séance 2 planifiée → Seance3BonusStrip (fin de VStack) fournit l'accès bonus.
             } else {
-                // ── Programme prévu (pas encore loggé) ───────────────────
-                if !exercises.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        TodayPriorityHeader(
-                            title: "À FAIRE MAINTENANT",
-                            subtitle: plannedMorning,
-                            icon: todayIcon
-                        )
-                        TodayExercisePreview(exercises: exercises, accent: todayColor)
-                        muscleMap(for: exercises.map(\.0))
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                }
-
-                // ── Readiness badge ──────────────────────────────────
-                if readiness != nil {
-                    ReadinessBadge(readiness: readiness, cap: effortCap)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-                }
-
                 // Jour de repos → pas de CTA principal ici, Seance3BonusStrip (fin VStack) suffit.
-                if plannedMorning != "Repos" {
+                if plannedMorning != "Repos" || hasPartialLogs {
                     Group {
                         if let onOpenSession {
                             Button(action: {
@@ -255,7 +248,7 @@ struct TodayCardView: View {
                             }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
-                                    Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
+                                    Text(presentation.action ?? "Ouvrir ma séance")
                                         .font(.appBody.weight(.bold))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -263,13 +256,13 @@ struct TodayCardView: View {
                                 .background(AppTheme.shared.accentGradient(startPoint: .leading, endPoint: .trailing))
                                 .foregroundColor(Color.onAccent)
                                 .cornerRadius(14)
-                                .shadow(color: Color.forge.opacity(0.30), radius: 12, y: 5)
+
                             }
                         } else {
                             NavigationLink(destination: SeanceView()) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
-                                    Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
+                                    Text(presentation.action ?? "Ouvrir ma séance")
                                         .font(.appBody.weight(.bold))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -277,7 +270,7 @@ struct TodayCardView: View {
                                 .background(AppTheme.shared.accentGradient(startPoint: .leading, endPoint: .trailing))
                                 .foregroundColor(Color.onAccent)
                                 .cornerRadius(14)
-                                .shadow(color: Color.forge.opacity(0.30), radius: 12, y: 5)
+
                             }
                         }
                     }
@@ -285,6 +278,29 @@ struct TodayCardView: View {
                     .padding([.horizontal, .bottom], 16)
                     .padding(.top, 12)
                 }
+                if hasPartialLogs {
+                    Text("Une saisie est à reprendre. Le contexte et les exercices seront vérifiés à l’ouverture. Planning du jour : \(plannedMorning).")
+                        .font(.appCaption).foregroundStyle(Color.appTextSecondary)
+                        .padding(.horizontal, 16).padding(.bottom, 12)
+                }
+                // ── Programme prévu (pas encore loggé) ───────────────────
+                if !hasPartialLogs, !exercises.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("EXERCICES PRÉVUS")
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundStyle(Color.appTextSecondary)
+                        TodayExercisePreview(exercises: exercises, accent: todayColor)
+                        muscleMap(for: exercises.map(\.0))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+
+                // ── Readiness badge ──────────────────────────────────
+                ReadinessBadge(readiness: readiness, cap: effortCap)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+
             }
             // Point d'accès unique bonus — 3 états gérés dans le composant.
             Seance3BonusStrip(
