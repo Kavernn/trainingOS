@@ -1,5 +1,64 @@
 import Foundation
 
+/// Ephemeral presentation input, owned by Programme. Preview data never enters
+/// the order store or execution owners before IDs/supersets are validated.
+@MainActor
+final class DayComposerPreparationCandidate {
+    let id = UUID()
+    let preview: DayComposerSnapshot
+    private var enrich: () async throws -> DayComposerSnapshot
+    private var pending: Task<DayComposerSnapshot, Error>?
+    private(set) var validated: DayComposerSnapshot?
+
+    init(preview: DayComposerSnapshot, enrich: @escaping () async throws -> DayComposerSnapshot) {
+        self.preview = preview
+        self.enrich = enrich
+    }
+
+    func matches(_ other: DayComposerSnapshot) -> Bool {
+        preview.date == other.date && preview.activeProgramID == other.activeProgramID
+            && (try? preview.fingerprint) == (try? other.fingerprint)
+    }
+
+    func updateEnrichment(_ enrich: @escaping () async throws -> DayComposerSnapshot) {
+        self.enrich = enrich // Keep visible/validated state and any in-flight work.
+    }
+
+    func canPresent(on date: String) -> Bool {
+        preview.date == date && !preview.morning.units.isEmpty && !preview.evening.units.isEmpty
+    }
+
+    struct Presentation {
+        let snapshot: DayComposerSnapshot
+        let units: [DayComposerUnit]
+        let verified: Bool
+        let incompatible: Bool
+    }
+
+    func initialPresentation(store: DayComposerStore = DayComposerStore()) -> Presentation {
+        let snapshot = validated ?? preview
+        guard validated != nil else {
+            return Presentation(snapshot: snapshot, units: snapshot.initialUnits, verified: false, incompatible: false)
+        }
+        switch try? store.load(snapshot) {
+        case .restored(let units): return Presentation(snapshot: snapshot, units: units, verified: true, incompatible: false)
+        case .initial: return Presentation(snapshot: snapshot, units: snapshot.initialUnits, verified: true, incompatible: false)
+        default: return Presentation(snapshot: snapshot, units: snapshot.initialUnits, verified: true, incompatible: true)
+        }
+    }
+
+    func resolve(refresh: Bool = false) async throws -> DayComposerSnapshot {
+        if let pending { return try await pending.value }
+        if !refresh, let validated { return validated }
+        let task = Task { try await enrich() }
+        pending = task
+        defer { pending = nil }
+        let result = try await task.value
+        validated = result
+        return result
+    }
+}
+
 /// The snapshot and DTOs are produced together, never reconstructed by owners.
 struct DayComposerLoadedBundle {
     let snapshot: DayComposerSnapshot
@@ -50,6 +109,77 @@ enum DayComposerLoader {
     struct Completion: Decodable {
         let today_date: String
         let second_session_completed: Bool
+    }
+
+    /// Planning-only representation: no weights, completion or execution reads.
+    static func preparationPreview(programme data: Data, evening: [String: String], date: Date) throws -> DayComposerSnapshot? {
+        let context = try APIService.decoder.decode(Context.self, from: data)
+        guard context.active_program_id == context.current_program_id, !context.active_program_id.isEmpty,
+              let am = context.schedule[TrainingDoctrine.dayName(on: date)],
+              let pm = evening[TrainingDoctrine.dayName(on: date)],
+              let amExercises = context.full_program[am], !amExercises.isEmpty,
+              let pmExercises = context.full_program[pm], !pmExercises.isEmpty else { return nil }
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let tracking = json["inventory_tracking"] as? [String: String] ?? [:]
+        let unilateral = json["inventory_unilateral"] as? [String: Bool] ?? [:]
+        return try DayComposerSnapshot(date: DateFormatter.isoDate.string(from: date), activeProgramID: context.active_program_id,
+            morning: DayComposerPlan(source: .morning, session: am, schemes: amExercises.mapValues(\.value),
+                order: context.exercise_order[am] ?? [], tracking: tracking, unilateral: unilateral),
+            evening: DayComposerPlan(source: .evening, session: pm, schemes: pmExercises.mapValues(\.value),
+                order: context.exercise_order[pm] ?? [], tracking: tracking, unilateral: unilateral),
+            morningCompleted: false, eveningCompleted: false)
+    }
+
+    /// Enrichment reuses Programme's AM read. It never refetches the initial
+    /// programme or weekly schedule. Execution still uses loadExecution afresh.
+    static func enrichPreparation(preview: DayComposerSnapshot, programme: Data,
+                                  morning: Task<Data, Error>, transport: @escaping Transport) async throws -> DayComposerSnapshot {
+        let before = try APIService.decoder.decode(Context.self, from: programme)
+        // Explicit Tasks avoid the async-let lifetime issue documented on iOS beta.
+        let pm = Task { () throws -> SeanceSoirData in
+            try await read("/api/seance_soir_data", date: preview.date, transport: transport)
+        }
+        let completion = Task { () throws -> Completion in
+            try await read("/api/dashboard", date: preview.date, transport: transport)
+        }
+        return try await withTaskCancellationHandler {
+            defer { pm.cancel(); completion.cancel() }
+            let morningData: Data
+            do { morningData = try await morning.value }
+            catch {
+                try Task.checkCancellation()
+                // Retry only a failed supporting read; never duplicate a successful one.
+                let url = try APIService.shared.buildURL(path: "/api/seance_data", queryItems: [
+                    URLQueryItem(name: "date", value: preview.date),
+                    URLQueryItem(name: "program_id", value: preview.activeProgramID),
+                    URLQueryItem(name: "session_name", value: preview.morning.session)])
+                let (bytes, response) = try await transport(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData))
+                guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                    throw DayComposerError.unavailable
+                }
+                morningData = bytes
+            }
+            let am = try APIService.decoder.decode(SeanceData.self, from: morningData)
+            guard let evening = try await pm.value.asSeanceData() else { throw DayComposerError.unavailable }
+            let done = try await completion.value
+            let after: Context = try await read("/api/programme_data", transport: transport)
+            guard am.today == preview.morning.session, evening.today == preview.evening.session,
+                  let date = DateFormatter.isoDate.date(from: preview.date),
+                  let index = TrainingDoctrine.dayNames.firstIndex(of: TrainingDoctrine.dayName(on: date)) else {
+                throw DayComposerError.contextChanged
+            }
+            let result = try validate(program: preview.activeProgramID, date: preview.date,
+                currentDate: DateFormatter.isoDate.string(from: Date()), weekdayIndex: index,
+                before: before, after: after, morning: am, evening: evening, completion: done).snapshot
+            for (expected, actual) in [(preview.morning, result.morning), (preview.evening, result.evening)] {
+                let expectedItems = Dictionary(uniqueKeysWithValues: expected.units.flatMap(\.items).map { ($0.name, $0.scheme) })
+                let actualItems = Dictionary(uniqueKeysWithValues: actual.units.flatMap(\.items).map { ($0.name, $0.scheme) })
+                guard expectedItems == actualItems else {
+                    throw DayComposerError.contextChanged
+                }
+            }
+            return result
+        } onCancel: { pm.cancel(); completion.cancel() }
     }
 
     private static func read<T: Decodable>(_ path: String, date: String? = nil,

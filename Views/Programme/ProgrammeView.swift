@@ -272,14 +272,7 @@ struct ProgrammeView: View {
     }
 
     private var todaySessionName: String? {
-        if let current = vm.currentExecutionMorning, current.date == todayDateStr {
-            return current.name.isEmpty || current.name == "Repos" ? nil : current.name
-        }
-        let weekday = Calendar.mtl.component(.weekday, from: Date())
-        let idx = (weekday + 5) % 7  // 1=Sun → idx=6, 2=Mon → idx=0, …, 7=Sat → idx=5
-        guard idx < TrainingDoctrine.dayNames.count else { return nil }
-        let day = TrainingDoctrine.dayNames[idx]
-        return vm.schedule[day].flatMap { $0 == "Repos" ? nil : $0 }
+        vm.plannedMorning(on: Date())
     }
 
     private var todayDateStr: String {
@@ -544,16 +537,27 @@ struct ProgrammeView: View {
         .onDisappear { commitPendingDelete() }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { commitPendingDelete() }
+            else if selectedTab != .structure { Task { await vm.refreshActiveProgramme() } }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .activeProgrammePlanningDidChange)) { _ in
+            guard selectedTab != .structure else { return }
+            Task { await vm.refreshActiveProgramme(invalidate: true) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            guard selectedTab != .structure else { return }
+            Task { await vm.refreshActiveProgramme() }
         }
         .onChange(of: vm.selectedProgramId) { _, newId in
             guard selectedTab == .structure, !newId.isEmpty else { return }
-            vm.isLoading = true
             Task { await vm.loadData(programId: newId); await vm.loadSuggestions() }
         }
         .onChange(of: selectedTab) { _, newTab in
+            if newTab != .structure {
+                Task { await vm.refreshActiveProgramme(); await vm.loadSuggestions() }
+                return
+            }
             let targetId = newTab == .structure ? vm.selectedProgramId : vm.activeProgramId
             guard !targetId.isEmpty, targetId != vm.loadedProgramId else { return }
-            vm.isLoading = true
             Task {
                 await vm.loadData(programId: targetId)
                 await vm.loadSuggestions()
@@ -806,9 +810,13 @@ struct ProgrammeView: View {
                 emptyProgrammePlaceholder
             } else {
                 VStack(spacing: .appSectionSpacing) {
+                    if let candidate = vm.dayComposerCandidate,
+                       candidate.preview.activeProgramID == vm.activeProgramId {
+                        DayComposerTodayEntry(candidate: candidate)
+                            .padding(.horizontal, .appPagePadding)
+                    }
                     heroMatin
                     heroSoir
-                    DayComposerTodayEntry(activeProgramID: vm.activeProgramId)
                     volumeRow
                     mesocycleRow
                 }
@@ -817,9 +825,8 @@ struct ProgrammeView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .refreshable {
-            CacheService.shared.clear(for: "programme_data")
             seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? []
-            await vm.loadData(programId: vm.activeProgramId.isEmpty ? nil : vm.activeProgramId)
+            await vm.refreshActiveProgramme()
         }
     }
 
@@ -1700,7 +1707,7 @@ struct ProgrammeView: View {
         .refreshable {
             CacheService.shared.clear(for: "programme_data")
             seance2ExosToday = APIService.shared.dashboard?.pushedToEvening ?? []
-            await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId)
+            await vm.loadData(programId: vm.selectedProgramId.isEmpty ? nil : vm.selectedProgramId, mode: .refresh)
         }
         .onChange(of: expandedSeance) { _, new in
             guard let s = new else { return }

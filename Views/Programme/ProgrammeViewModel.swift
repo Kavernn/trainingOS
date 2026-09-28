@@ -21,13 +21,46 @@ import Combine
 ///    serveur ni de miroir apiSessionOrder (supprimés D5).
 @MainActor
 final class ProgrammeViewModel: ObservableObject {
+    private let transport: (URLRequest) async throws -> (Data, URLResponse)
+    private let cache: CacheService
+    private let now: () -> Date
+
+    init(transport: @escaping (URLRequest) async throws -> (Data, URLResponse) = {
+        try await URLSession.authed.data(for: $0)
+    }, cache: CacheService = .shared, now: @escaping () -> Date = { Date() }) {
+        self.transport = transport
+        self.cache = cache
+        self.now = now
+    }
+
+    private func read(_ url: URL) async throws -> (Data, URLResponse) {
+        let result = try await transport(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData))
+        try Task.checkCancellation()
+        guard let response = result.1 as? HTTPURLResponse, (200..<300).contains(response.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        return result
+    }
+
+    /// The same path is used by Programme's pull-to-refresh and context updates.
+    func refreshActiveProgramme(invalidate: Bool = false) async {
+        await loadData(programId: nil, mode: .refresh, invalidate: invalidate)
+    }
+
+    func plannedMorning(on date: Date) -> String? {
+        // Programme presents planning, not a dated execution override/recovery.
+        // This is the same active/date/weekly identity used by DashboardPlan.
+        guard !activeProgramId.isEmpty, loadedProgramId == activeProgramId,
+              let name = schedule[TrainingDoctrine.dayName(on: date)],
+              !name.isEmpty, name != "Repos", fullProgram[name] != nil else { return nil }
+        return name
+    }
 
     // MARK: - Inventaire (SERVEUR — hydraté par applyJSON)
 
     @Published var fullProgram: [String: [String: String]] = [:]
     @Published var exerciseOrder: [String: [String]] = [:]
     @Published var schedule: [String: String] = [:]
-    @Published private(set) var currentExecutionMorning: (date: String, name: String)?
     @Published var eveningSchedule: [String: String] = [:]
     /// Date début mésocycle (YYYY-MM-DD) — source serveur (programs.cycle_start_date).
     /// Hydratée par applyJSON depuis /api/programme_data. Écrite via
@@ -59,6 +92,8 @@ final class ProgrammeViewModel: ObservableObject {
     // MARK: - Runtime chargement
 
     @Published var isLoading = true
+    @Published private(set) var planningRevision = 0
+    @Published private(set) var dayComposerCandidate: DayComposerPreparationCandidate?
     @Published var programSuggestions: [String: [String: ProgressionSuggestion]] = [:]
     @Published var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
 
@@ -74,6 +109,8 @@ final class ProgrammeViewModel: ObservableObject {
     @Published var saveSuccessMsg: String?
     /// Invalide les réponses tardives lors d'un switch rapide d'onglet/programme.
     private var loadGeneration = 0
+    private var pendingLoad: (id: UUID, key: String, task: Task<Void, Never>)?
+    enum LoadMode { case initial, refresh }
 
     // MARK: - Doctrine dérivée
 
@@ -236,77 +273,84 @@ final class ProgrammeViewModel: ObservableObject {
         // resynchronise via .onChange (sync explicite VM ↔ vue, commit 1).
     }
 
-    /// Charge /api/programme_data (cache d'abord, puis réseau), puis
-    /// /api/evening_schedule et /api/seance_data. Séquentiel : async let LIFO crash
-    /// sur iOS 26 beta (lessons.md).
-    func loadData(programId: String? = nil) async {
-        currentExecutionMorning = nil
+    /// Local single-flight. Context/mutation notifications explicitly supersede
+    /// a pending read; routine appearance/refresh callers share it.
+    func loadData(programId: String? = nil, mode: LoadMode = .initial, invalidate: Bool = false) async {
+        let date = DateFormatter.isoDate.string(from: now())
+        let key = "\(programId.map { "selected:\($0)" } ?? "active"):\(date)"
+        if !invalidate, let pendingLoad, pendingLoad.key == key {
+            await pendingLoad.task.value
+            return
+        }
+        pendingLoad?.task.cancel()
         loadGeneration += 1
         let generation = loadGeneration
-        isLoading = true
-        // Switch explicite de programme → suggestions du programme précédent
-        // sont stale (autres séances). Reset le guard de loadSuggestions.
-        if programId != nil { programSuggestions = [:] }
-        var urlStr = "\(APIConfig.base)/api/programme_data"
-        // nil signifie désormais réellement « programme actif backend ».
-        // Les chargements Structure passent toujours leur sélection explicitement.
-        let pid = programId
-        if let pid = pid { urlStr += "?program_id=\(pid)" }
-        guard let url = URL(string: urlStr) else { isLoading = false; return }
-        if pid == nil,
-           let cached = CacheService.shared.load(for: "programme_data"),
-           let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any],
-           let currentId = json["current_program_id"] as? String,
-           let activeId = json["active_program_id"] as? String,
-           currentId == activeId {
+        let id = UUID()
+        let task = Task { await self.performLoad(programId: programId, mode: mode, generation: generation) }
+        pendingLoad = (id, key, task)
+        await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+        if pendingLoad?.id == id { pendingLoad = nil }
+    }
+
+    private func performLoad(programId: String?, mode: LoadMode, generation: Int) async {
+        let capturedDate = now()
+        let date = DateFormatter.isoDate.string(from: now())
+        func current() -> Bool {
+            generation == loadGeneration && !Task.isCancelled && date == DateFormatter.isoDate.string(from: now())
+        }
+        // No placeholder or cache replay over an already coherent presentation.
+        isLoading = loadedProgramId.isEmpty || (mode == .initial && programId != nil && programId != loadedProgramId)
+        defer { if generation == loadGeneration { isLoading = false } }
+        do {
+            let url = try APIService.shared.buildURL(path: "/api/programme_data",
+                queryItems: programId.map { [URLQueryItem(name: "program_id", value: $0)] } ?? [])
+            let eveningURL = try APIService.shared.buildURL(path: "/api/evening_schedule")
+            // Independent reads, explicit task lifetimes (no async-let beta issue).
+            let programmeRead = Task { try await self.read(url).0 }
+            let eveningRead = Task { try await self.read(eveningURL).0 }
+            let (data, eveningData) = try await withTaskCancellationHandler {
+                defer { programmeRead.cancel(); eveningRead.cancel() }
+                return try await (programmeRead.value, eveningRead.value)
+            } onCancel: { programmeRead.cancel(); eveningRead.cancel() }
+            guard current(), let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let currentId = json["current_program_id"] as? String,
+                  let activeId = json["active_program_id"] as? String,
+                  currentId == (programId ?? activeId) else { return }
+            let evening = try JSONDecoder().decode([String: String].self, from: eveningData)
+            let preview = try DayComposerLoader.preparationPreview(programme: data, evening: evening, date: capturedDate)
+            var query = [URLQueryItem(name: "date", value: date), URLQueryItem(name: "program_id", value: activeId)]
+            if let preview { query.append(URLQueryItem(name: "session_name", value: preview.morning.session)) }
+            let weightsURL = try APIService.shared.buildURL(path: "/api/seance_data", queryItems: query)
+            let morning = Task { try await self.read(weightsURL).0 }
+            // Publish the whole planning replacement on MainActor, without an
+            // intervening await. Supporting weights cannot clear the candidate.
+            if loadedProgramId != currentId { programSuggestions = [:] }
             applyJSON(json)
+            eveningSchedule = currentId == activeId ? evening.filter { fullProgram[$0.value] != nil } : evening
+            if let preview {
+                let transport = self.transport
+                let enrich = {
+                    try await DayComposerLoader.enrichPreparation(preview: preview, programme: data,
+                        morning: morning, transport: transport)
+                }
+                if let existing = dayComposerCandidate, existing.matches(preview) {
+                    existing.updateEnrichment(enrich)
+                } else { dayComposerCandidate = DayComposerPreparationCandidate(preview: preview, enrich: enrich) }
+            } else { dayComposerCandidate = nil }
+            planningRevision += 1
             isLoading = false
-        }
-        if let (data, _) = try? await URLSession.authed.data(from: url),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            guard generation == loadGeneration else { return }
-            if let currentId = json["current_program_id"] as? String,
-               let activeId = json["active_program_id"] as? String,
-               currentId == activeId {
-                CacheService.shared.save(data, for: "programme_data")
+            if currentId == activeId { cache.save(data, for: "programme_data") }
+            // No cancellation of this shared read by a disappearing refresh
+            // waiter: the preparation may already be using its result.
+            if let wData = try? await morning.value, current(),
+               let wJson = try JSONSerialization.jsonObject(with: wData) as? [String: Any],
+               let weights = wJson["weights"] as? [String: [String: Any]] {
+                exerciseWeights = weights.compactMapValues { d in
+                    (d["current_weight"] as? Double, d["last_reps"] as? String, d["last_logged"] as? String)
+                }
             }
-            applyJSON(json); isLoading = false
-        } else {
-            guard generation == loadGeneration else { return }
-            isLoading = false
-        }
-        await migrateLegacyCycleStartDateIfNeeded()
-        guard generation == loadGeneration else { return }
-        if let eURL = URL(string: "\(APIConfig.base)/api/evening_schedule") {
-            do {
-                let (eData, _) = try await URLSession.authed.data(from: eURL)
-                guard generation == loadGeneration else { return }
-                let incomingEvening = try JSONDecoder().decode([String: String].self, from: eData)
-                eveningSchedule = loadedProgramId == activeProgramId
-                    ? incomingEvening.filter { fullProgram[$0.value] != nil }
-                    : incomingEvening
-            } catch {
-                print("⚠️ evening_schedule decode failed: \(error)")
-            }
-        }
-        if let wURL = URL(string: "\(APIConfig.base)/api/seance_data?date=\(DateFormatter.isoDate.string(from: Date()))"),
-           let (wData, _) = try? await URLSession.authed.data(from: wURL),
-           generation == loadGeneration,
-           let wJson = try? JSONSerialization.jsonObject(with: wData) as? [String: Any],
-           let weights = wJson["weights"] as? [String: [String: Any]] {
-            if loadedProgramId == activeProgramId,
-               let date = wJson["today_date"] as? String,
-               date == DateFormatter.isoDate.string(from: Date()),
-               let name = wJson["today"] as? String {
-                currentExecutionMorning = (date, name)
-            }
-            exerciseWeights = weights.compactMapValues { d in
-                let w  = d["current_weight"] as? Double
-                let r  = d["last_reps"]      as? String
-                let dt = d["last_logged"]    as? String
-                return (w, r, dt)
-            }
-        }
+            if current() { await migrateLegacyCycleStartDateIfNeeded() }
+        } catch { /* A cancelled/failed refresh retains the entire last presentation. */ }
     }
 
     func loadSuggestions() async {

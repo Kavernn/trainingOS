@@ -1,20 +1,14 @@
 import SwiftUI
 
-/// Merely displaying Today reads eligibility; it never creates a saved order.
+/// Pure presentation of Programme's validated planning. No eligibility request.
 struct DayComposerTodayEntry: View {
-    let activeProgramID: String
-    var loadSnapshot: (String) async throws -> DayComposerSnapshot = { try await DayComposerLoader.load(program: $0) }
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var eligible = false
-    @State private var refresh = UUID()
+    let candidate: DayComposerPreparationCandidate
 
     var body: some View {
-        // Keep a mounted host while eligibility is unknown. A Group whose only
-        // child is absent cannot run the task that would make that child appear.
         VStack(spacing: 0) {
-            if eligible {
+            if candidate.canPresent(on: DateFormatter.isoDate.string(from: Date())) {
                 NavigationLink {
-                    DayComposerView(activeProgramID: activeProgramID, loadSnapshot: loadSnapshot)
+                    DayComposerView(candidate: candidate)
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
@@ -22,12 +16,16 @@ struct DayComposerTodayEntry: View {
                             Spacer()
                             Image(systemName: "chevron.right").accessibilityHidden(true)
                         }
-                        Text("Matin + Soir · L’ordre d’aujourd’hui seulement")
+                        Text("Aujourd’hui seulement · ton programme reste inchangé")
                             .font(.appCaption).foregroundColor(.appTextSecondary)
                     }
                         .font(.appLabel.weight(.semibold))
                         .foregroundColor(.forge)
                         .frame(maxWidth: .infinity, minHeight: 44)
+                        .padding(14)
+                        .background(Color.appCard, in: RoundedRectangle(cornerRadius: .appCardRadius))
+                        .overlay(RoundedRectangle(cornerRadius: .appCardRadius)
+                            .stroke(Color.forge.opacity(0.3), lineWidth: 1))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -35,41 +33,12 @@ struct DayComposerTodayEntry: View {
                 .accessibilityHint("Change l’ordre pour aujourd’hui seulement. Ton programme reste inchangé.")
             }
         }
-        .task(id: "\(activeProgramID):\(refresh)") {
-            eligible = false
-            do {
-                let snapshot = try await loadSnapshot(activeProgramID)
-                guard !Task.isCancelled else { return }
-                eligible = snapshot.isRelevant(hasSavedOrder: DayComposerStore().hasSavedOrder(
-                    date: snapshot.date, program: snapshot.activeProgramID))
-            } catch {
-                guard !Task.isCancelled else { return }
-                eligible = false
-            }
-        }
-        .onAppear { refresh = UUID() }
-        .onChange(of: scenePhase) { _, phase in
-            eligible = false
-            if phase == .active { refresh = UUID() }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange)) { _ in
-            eligible = false
-            refresh = UUID()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .activeProgrammePlanningDidChange)) { _ in
-            eligible = false
-            refresh = UUID()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
-            eligible = false
-            refresh = UUID()
-        }
     }
 }
 
 struct DayComposerView: View {
-    let activeProgramID: String
-    var loadSnapshot: (String) async throws -> DayComposerSnapshot = { try await DayComposerLoader.load(program: $0) }
+    let candidate: DayComposerPreparationCandidate
+    private var activeProgramID: String { candidate.preview.activeProgramID }
     @ObservedObject private var appTheme = AppTheme.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var snapshot: DayComposerSnapshot?
@@ -82,6 +51,22 @@ struct DayComposerView: View {
     @State private var launch: DayComposerLaunch?
     @State private var starting = false
     @State private var executionAllowed = false
+    @State private var verified = false
+    @State private var refreshing = false
+    @State private var didValidate = false
+    @State private var validationToken = UUID()
+    @State private var representedCandidateID: UUID
+
+    init(candidate: DayComposerPreparationCandidate) {
+        self.candidate = candidate
+        _representedCandidateID = State(initialValue: candidate.id)
+        let initial = candidate.initialPresentation()
+        _snapshot = State(initialValue: initial.snapshot)
+        _units = State(initialValue: initial.units)
+        _incompatible = State(initialValue: initial.incompatible)
+        _verified = State(initialValue: initial.verified)
+        _loading = State(initialValue: false)
+    }
 
     var body: some View {
         List {
@@ -91,13 +76,23 @@ struct DayComposerView: View {
                 Section {
                     Text("2 séances · \(snapshot.initialIDs.count) exercices")
                         .font(.appBody.weight(.semibold))
+                    if refreshing {
+                        ProgressView("Vérification des identifiants et supersets…")
+                            .font(.appCaption)
+                    }
                     Text("Ton programme reste inchangé. Chaque exercice garde sa séance Matin ou Soir, même si tu changes l’ordre.")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
+                    if snapshot.initialUnits.flatMap(\.items).contains(where: {
+                        !["reps", "time", "carry", "plyo", "protocol"].contains($0.tracking)
+                    }) {
+                        Text("Tu peux préparer l’ordre. Commencer reste indisponible : certains exercices, dont la mobilité, ne sont pas encore pris en charge dans Ma journée.")
+                            .font(.appCaption).foregroundColor(.appTextSecondary)
+                    }
                     if incompatible {
                         Text("La journée a changé ou l’ordre sauvegardé est incompatible. L’ordre source est affiché. Réinitialise-le pour reprendre la préparation.")
                             .foregroundColor(.appTextSecondary)
                     }
-                    if !executionAllowed {
+                    if !executionAllowed && !refreshing {
                         Text("Des données de séance doivent être vérifiées avant de démarrer cette journée. Les saisies existantes sont conservées.")
                             .font(.appCaption).foregroundColor(.appTextSecondary)
                     }
@@ -108,7 +103,7 @@ struct DayComposerView: View {
                         .font(.appCaption).foregroundColor(.appTextSecondary)
                     ForEach(Array(units.enumerated()), id: \.element.id) { index, unit in
                         unitRow(unit, index: index, snapshot: snapshot)
-                            .moveDisabled(incompatible || loading)
+                            .moveDisabled(incompatible || loading || !verified)
                     }
                     .onMove { offsets, destination in
                         move(from: offsets, to: destination)
@@ -129,6 +124,7 @@ struct DayComposerView: View {
                         .frame(minHeight: 44)
                         .foregroundColor(.forge)
                         .buttonStyle(.borderless)
+                        .disabled(!verified)
                 }
                 .listRowBackground(Color.appCard)
             }
@@ -151,15 +147,15 @@ struct DayComposerView: View {
                     finishCoordinator: session.finish, onDismiss: { launch = nil })
             }
         }
-        .task(id: refresh) { await reload() }
+        .task(id: "\(candidate.id):\(refresh)") { await reload() }
         .onChange(of: scenePhase) { _, phase in
-            loading = true
             if phase == .active { refresh = UUID() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .planOverridesDidChange)) { _ in
-            loading = true
             refresh = UUID()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .activeProgrammePlanningDidChange)) { _ in refresh = UUID() }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in refresh = UUID() }
     }
 
     @MainActor private func start() async {
@@ -202,12 +198,12 @@ struct DayComposerView: View {
                     Label("Monter", systemImage: "arrow.up")
                 }
                     .frame(minWidth: 44, minHeight: 44)
-                    .disabled(index == 0 || incompatible)
+                    .disabled(index == 0 || incompatible || !verified)
                 Button { move(from: IndexSet(integer: index), to: index + 2) } label: {
                     Label("Descendre", systemImage: "arrow.down")
                 }
                     .frame(minWidth: 44, minHeight: 44)
-                    .disabled(index == units.count - 1 || incompatible)
+                    .disabled(index == units.count - 1 || incompatible || !verified)
             }
             .font(.appCaption).buttonStyle(.borderless)
             .frame(minHeight: 44).accessibilityHidden(true)
@@ -217,17 +213,17 @@ struct DayComposerView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(unit.items.map(\.name).joined(separator: ", ")). \(unit.source.title). \(unit.group == nil ? "" : "Superset. ")Position \(index + 1) sur \(units.count).\(snapshot.completed(unit.source) ? " Séance terminée." : "")")
         .accessibilityActions {
-            if !incompatible && index > 0 {
+            if verified && !incompatible && index > 0 {
                 Button("Monter") { move(from: IndexSet(integer: index), to: index - 1) }
             }
-            if !incompatible && index < units.count - 1 {
+            if verified && !incompatible && index < units.count - 1 {
                 Button("Descendre") { move(from: IndexSet(integer: index), to: index + 2) }
             }
         }
     }
 
     private func move(from offsets: IndexSet, to destination: Int) {
-        guard !loading, !incompatible, let snapshot,
+        guard verified, !loading, !incompatible, let snapshot,
               snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
         let updated = DayComposerSnapshot.moving(units, from: offsets, to: destination)
         guard updated != units else { return }
@@ -239,7 +235,7 @@ struct DayComposerView: View {
     }
 
     private func reset(_ snapshot: DayComposerSnapshot) {
-        guard !loading, snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
+        guard verified, !loading, snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
         do {
             try store.reset(snapshot)
             units = snapshot.initialUnits
@@ -250,18 +246,32 @@ struct DayComposerView: View {
 
     @MainActor
     private func reload() async {
-        loading = true
-        snapshot = nil
+        let token = UUID()
+        validationToken = token
+        defer { if validationToken == token { refreshing = false } }
+        if representedCandidateID != candidate.id {
+            let initial = candidate.initialPresentation()
+            snapshot = initial.snapshot
+            units = initial.units
+            incompatible = initial.incompatible
+            verified = initial.verified
+            representedCandidateID = candidate.id
+            didValidate = false
+        }
+        refreshing = true
         executionAllowed = false
         error = nil
         do {
-            let fresh = try await loadSnapshot(activeProgramID)
+            let refreshValidated = didValidate
+            didValidate = true
+            let fresh = try await candidate.resolve(refresh: refreshValidated)
             guard !Task.isCancelled else { return }
             guard fresh.isRelevant(hasSavedOrder: store.hasSavedOrder(date: fresh.date, program: fresh.activeProgramID)) else {
                 throw DayComposerError.unavailable
             }
             let resolution = try store.load(fresh)
             snapshot = fresh
+            verified = true
             units = fresh.initialUnits
             incompatible = false
             switch resolution {
@@ -279,6 +289,7 @@ struct DayComposerView: View {
             }
         } catch {
             guard !Task.isCancelled else { return }
+            verified = false
             self.error = "La préparation nécessite deux séances compatibles et le programme actif actuel. Reviens à Aujourd’hui ou réessaie."
         }
         loading = false
