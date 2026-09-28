@@ -42,8 +42,15 @@ struct DayComposerFinalizationRequestAdapter {
         guard expected == snapshot.sourceVersion, requests.count == snapshot.exerciseVersions.count,
               requests.count == snapshot.payloads.count else { throw DayComposerFinalizationError.invalidRecord }
         let summary = WorkoutPayloadBuilder.summaries(projection)
+        let exos = projection.keys.sorted().compactMap { name -> String? in
+            guard let value = projection[name] else { return nil }
+            if items.contains(where: { $0.name == name && $0.tracking == "mobility" }) {
+                return "\(name) · mobilité réalisée"
+            }
+            return "\(value.name) \(value.weight)lbs \(value.reps)"
+        }
         let bytes = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.session(
-            exos: summary.exos, rpe: capture.finalInputs.values.rpe, comment: local.comment,
+            exos: exos, rpe: capture.finalInputs.values.rpe, comment: local.comment,
             durationMin: nil, energyPre: nil, secondSession: local.source == .evening,
             bonusSession: false, sessionName: local.identity.session(for: local.source),
             exerciseLogs: summary.exerciseLogs, date: local.identity.date))

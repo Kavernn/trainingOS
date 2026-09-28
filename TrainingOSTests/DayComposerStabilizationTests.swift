@@ -25,14 +25,14 @@ final class DayComposerStabilizationFixture {
     }
 
     init(morning names: [String] = ["A"], evening eveningNames: [String] = ["A"],
-         tracking: [String: String] = [:], observed: [String] = [],
+         tracking: [String: String] = [:], schemes: [String: String] = [:], observed: [String] = [],
          supersets: [String: [String: SupersetEntry]] = [:],
          finalInputsStore: DayComposerFinalInputsStore = DayComposerFinalInputsStore()) throws {
         date = try Self.unusedDate()
         let date = date
         let sharedID = UUID().uuidString
-        let program = ["AM": Dictionary(uniqueKeysWithValues: names.map { ($0, SafeString("1x5")) }),
-                       "PM": Dictionary(uniqueKeysWithValues: eveningNames.map { ($0, SafeString("1x5")) })]
+        let program = ["AM": Dictionary(uniqueKeysWithValues: names.map { ($0, SafeString(schemes[$0] ?? "1x5")) }),
+                       "PM": Dictionary(uniqueKeysWithValues: eveningNames.map { ($0, SafeString(schemes[$0] ?? "1x5")) })]
         let order = ["AM": names, "PM": eveningNames]
         func dto(_ session: String) -> SeanceData {
             .init(today: session, todayDate: date, alreadyLogged: false,

@@ -21,7 +21,7 @@ struct PersistedSet: Codable {
         let meaningful: Bool
         switch trackingType {
         case "carry": meaningful = (distance ?? 0) > 0
-        case "protocol": meaningful = payload.count == 1 && weight == 0
+        case "protocol", "mobility": meaningful = payload.count == 1 && weight == 0
         default: meaningful = reps != nil && reps != ""
         }
         guard meaningful else { return nil }

@@ -122,10 +122,14 @@ def api_log():
             if first_weights:
                 weight = round(first_weights[0], 1)
 
+        _exo_row = _db.get_exercise_by_name(exercise) or {}
+        _tracking_type = _exo_row.get("tracking_type") or "reps"
+        _is_mobility = _tracking_type == "mobility"
+
         reps_list = parse_reps(reps_str)
         reps      = ",".join(map(str, reps_list))
         status    = progression_status(reps, exercise)
-        if rpe is None:
+        if rpe is None and not _is_mobility:
             last_entry = weights.get(exercise, {}).get("history", [{}])[0] if weights.get(exercise, {}).get("history") else {}
             rpe = last_entry.get("rpe")
             if rpe is not None:
@@ -137,13 +141,19 @@ def api_log():
                 avg_rir = round(sum(rir_vals) / len(rir_vals), 1)
 
         fatigue_score = get_cached_fatigue_score()
-        new_w, action = suggest_next_weight(
-            exercise, weight, reps, rpe,
-            history=existing_history, avg_rir=avg_rir,
-            fatigue_score=fatigue_score,
-        )
+        if _is_mobility:
+            # Binary completion uses the established zero-load sentinel, not a
+            # strength performance. Never inherit historical effort or progress load.
+            rpe = None
+            new_w, action = weight, "maintain"
+        else:
+            new_w, action = suggest_next_weight(
+                exercise, weight, reps, rpe,
+                history=existing_history, avg_rir=avg_rir,
+                fatigue_score=fatigue_score,
+            )
         increase  = action == "increase"
-        onerm     = estimate_1rm(weight, reps) or 0.0
+        onerm     = 0.0 if _is_mobility else (estimate_1rm(weight, reps) or 0.0)
 
         # Compare vs all-time PR from table (state before this write)
         _pr_row = None
@@ -161,8 +171,6 @@ def api_log():
         # Sans ce check, l'injection bodyweight L150 fait 181.5 × 30s = 5445
         # par set → volume core gonflé (bug diagnostiqué 2026-08-02, audit
         # 227K → attendu ~13K après fix + backfill).
-        _exo_row = _db.get_exercise_by_name(exercise) or {}
-        _tracking_type = _exo_row.get("tracking_type") or "reps"
         # Seule 'reps' calcule un volume tonnage (charge × reps). Les 6 autres modalités
         # (time/carry/plyo/cardio/interval/protocol) SKIPPENT le tonnage — set_volume=0.
         # Chaque modalité aura SA métrique au chantier 4 ; aucune métrique commune ici.
@@ -227,7 +235,7 @@ def api_log():
 
         weights[exercise].setdefault("history", []).insert(0, history_entry)
         weights[exercise]["history"] = weights[exercise]["history"][:20]
-        if not (equipment_type == "bodyweight" and weight == 0):
+        if not _is_mobility and not (equipment_type == "bodyweight" and weight == 0):
             weights[exercise]["current_weight"] = round(new_w, 1)
         weights[exercise]["last_reps"] = reps
         weights[exercise]["last_logged"]    = _now_mtl().strftime("%Y-%m-%d %H:%M")
@@ -256,7 +264,7 @@ def api_log():
             if not ok:
                 return jsonify({"error": "Échec de l'enregistrement en base"}), 500
             try:
-                if _is_force_overwrite:
+                if _is_force_overwrite and not _is_mobility:
                     _db.recompute_exercise_pr(exercise)
                 elif onerm > 0:
                     _db.upsert_exercise_pr(exercise, onerm, weight, reps, today)
@@ -269,7 +277,7 @@ def api_log():
                     _db.update_workout_session_by_type(today, "evening", {"session_name": session_name})
                 else:
                     _db.update_workout_session_by_type(today, "morning", {"session_name": session_name})
-        if not (equipment_type == "bodyweight" and weight == 0):
+        if not _is_mobility and not (equipment_type == "bodyweight" and weight == 0):
             _db.update_exercise_current_weight(exercise, round(new_w, 1))
         achieved = check_goals_achieved(weights)
 

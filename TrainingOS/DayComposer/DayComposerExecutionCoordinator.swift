@@ -61,7 +61,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     private var items: [DayComposerItem] { orderedUnits.flatMap(\.items) }
 
     static func isSupported(_ tracking: String) -> Bool {
-        ["reps", "time", "carry", "plyo", "protocol"].contains(tracking)
+        ["reps", "time", "carry", "plyo", "protocol", "mobility"].contains(tracking)
     }
 
     /// All asynchronous reads are already complete. Keep prepare/create/bind in
@@ -228,6 +228,11 @@ final class DayComposerExecutionCoordinator: ObservableObject {
               let state = status(for: id), !state.draftCorrupt,
               state.status != .serverObserved else { return report(.failed) }
         if let result {
+            if item.tracking == "mobility",
+               ExerciseRecoveryHydration.make(result, equipment: result.equipmentType,
+                   tracking: item.tracking, unilateral: item.unilateral, displayWeight: { $0 }) == nil {
+                return report(.failed)
+            }
             guard result.name == item.name, result.isSecond == (id.source == .evening), !result.isBonus else {
                 return report(.rejectedContext)
             }
@@ -526,6 +531,11 @@ final class DayComposerExecutionCoordinator: ObservableObject {
             let result = consultationResult(for: item.id)
             let local: DayComposerLocalResultFact
             if let result {
+                if item.tracking == "mobility",
+                   ExerciseRecoveryHydration.make(result, equipment: result.equipmentType,
+                       tracking: item.tracking, unilateral: item.unilateral, displayWeight: { $0 }) == nil {
+                    throw Failure.invalidResult
+                }
                 guard result.name == item.name, !result.isBonus, result.isSecond == (source == .evening) else {
                     throw Failure.invalidResult
                 }

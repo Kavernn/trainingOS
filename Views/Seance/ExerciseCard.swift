@@ -223,10 +223,9 @@ struct ExerciseCard: View {
         ["cardio", "interval"].contains(trackingType)
     }
 
-    // mobility : stretch/CARs/wall slides/pull-apart. Rappel visuel, case à cocher.
-    // Aucune saisie, aucun log en base, aucun volume/stats. Étape 1 = catalogue
-    // (migration 094), étape 2 = check local piloté par le parent.
-    private var isCheckOnly: Bool { trackingType == "mobility" }
+    // Classic mobility remains a parent-owned reminder. Day Composer uses the
+    // existing accepted-result lifecycle with an explicit binary completion.
+    private var isCheckOnly: Bool { trackingType == "mobility" && !requiresAcceptance }
 
     private var hasSetLevelAction: Bool {
         switch trackingType {
@@ -369,7 +368,7 @@ struct ExerciseCard: View {
         if !requiresAcceptance { onLogged?() }
         triggerNotificationFeedback(.success)
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        if autoStartTimer, let secs = restSeconds, secs > 0 {
+        if trackingType != "mobility", autoStartTimer, let secs = restSeconds, secs > 0 {
             RestTimerManager.shared.start(seconds: secs, exerciseName: name)
         }
         undoCountdown = 8
@@ -1149,23 +1148,48 @@ struct ExerciseCard: View {
         .animation(.easeInOut(duration: 0.25), value: isChecked)
     }
 
+    @ViewBuilder private var mobilityContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(name).font(.headline)
+            Text(isSecondSession ? "Soir" : "Matin").font(.caption)
+            Text("Prescrit : \(scheme)")
+            persistenceIssueBanner
+            if alreadyLogged {
+                Text("Mobilité enregistrée")
+                if !evm.sessionNote.isEmpty { Text(evm.sessionNote) }
+                Button("Annuler l’enregistrement") { _ = removeLog(undo: true) }
+            } else {
+                Text("Validation simple : aucune durée ni répétition mesurée.").font(.caption)
+                protocolCard()
+                Text("Brouillon — enregistre pour confirmer.").font(.caption)
+                TextField("Note de séance…", text: controlled($evm.sessionNote), axis: .vertical)
+                Button("Enregistrer la mobilité", action: doLog)
+                    .disabled(evm.logBlockedReason() != nil)
+            }
+        }.padding(16)
+    }
+
     @ViewBuilder private var fullCard: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            // Bandeau accessoire (bouton déplacement matin↔soir/bonus, étape 4).
-            // Intégré au flux pour ne pas chevaucher headerTrailing (poids/reps).
-            if let topAccessory {
-                HStack { Spacer(); topAccessory }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
+            if trackingType == "mobility" && requiresAcceptance {
+                mobilityContent
+            } else {
+                // Bandeau accessoire (bouton déplacement matin↔soir/bonus, étape 4).
+                // Intégré au flux pour ne pas chevaucher headerTrailing (poids/reps).
+                if let topAccessory {
+                    HStack { Spacer(); topAccessory }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                }
+
+                // MARK: Header — always visible, tap to expand/collapse
+                headerButton
+                persistenceIssueBanner
+
+                // MARK: Expanded content
+                if isExpanded { expandedContent }
             }
-
-            // MARK: Header — always visible, tap to expand/collapse
-            headerButton
-            persistenceIssueBanner
-
-            // MARK: Expanded content
-            if isExpanded { expandedContent }
         }
         .glassCard(cornerRadius: 14)
         .overlay(

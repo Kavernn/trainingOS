@@ -65,6 +65,14 @@ struct ExerciseRecoveryHydration {
     static func make(_ log: ExerciseLogResult, equipment: String,
                      tracking: String, unilateral: Bool,
                      displayWeight: (Double) -> Double) -> Self? {
+        if tracking == "mobility" {
+            guard log.trackingType == tracking, log.equipmentType == equipment,
+                  log.weight == 0, log.reps == "1", log.rpe == nil,
+                  log.sets.count == 1, log.sets[0].count == 1,
+                  (log.sets[0]["weight"] as? NSNumber)?.doubleValue == 0 else { return nil }
+            return Self(sets: [SetInput(duration: 0, protocolCompleted: true)],
+                        note: log.notes, painZone: log.painZone)
+        }
         guard tracking == "reps", !unilateral,
               log.trackingType == nil || log.trackingType == tracking,
               log.equipmentType == equipment,
@@ -365,7 +373,7 @@ enum ExerciseCalculator {
             }.joined(separator: ",")
         case "carry":
             return sets.compactMap { $0.distance.isEmpty ? nil : $0.distance }.joined(separator: ",")
-        case "protocol", "interval", "cardio":
+        case "protocol", "mobility", "interval", "cardio":
             // Placeholder canLog + backend reps_str NOT NULL (workout_logging.py:83).
             // Vraie donnée = duration/intensity/distance (colonnes top-level 087a).
             return "1"
@@ -513,7 +521,7 @@ final class ExerciseViewModel: ObservableObject {
     var lastReps: String { weightData?.lastReps ?? "—" }
     var isFirstTime: Bool { weightData?.history?.isEmpty ?? true }
 
-    var setsCount: Int { ExerciseCalculator.setsCount(scheme: scheme, prescription: prescription) }
+    var setsCount: Int { trackingType == "mobility" ? 1 : ExerciseCalculator.setsCount(scheme: scheme, prescription: prescription) }
 
     var avgWeight: Double? {
         var sum = 0.0; var count = 0
@@ -801,7 +809,7 @@ final class ExerciseViewModel: ObservableObject {
                          rir: $0.rir, rpe: $0.rpe, protocolCompleted: $0.protocolCompleted ?? false)
             }
         } else {
-            sets = Array(repeating: SetInput(), count: setsCount)
+            sets = Array(repeating: SetInput(duration: trackingType == "mobility" ? 0 : 30), count: setsCount)
         }
         sessionNote = draft?.sessionNote ?? ""
         if !isTimeBased && !sets.isEmpty {
@@ -928,6 +936,13 @@ final class ExerciseViewModel: ObservableObject {
             return (sets.first?.duration ?? 0) > 0 ? nil : "Durée requise"
         case "interval":
             return sets.first?.protocolCompleted == true ? nil : "Marquer comme fait"
+        case "mobility":
+            guard sets.count <= 1, sets.allSatisfy({
+                $0.weight.isEmpty && $0.reps.isEmpty && $0.duration == 0 &&
+                $0.durationLeft == nil && $0.durationRight == nil &&
+                $0.distance.isEmpty && $0.intensity.isEmpty && $0.rir == 3 && $0.rpe == nil
+            }) else { return "Brouillon incompatible avec une validation simple de mobilité" }
+            return sets.first?.protocolCompleted == true ? nil : "Marquer comme fait"
         case "protocol":
             return sets.first?.protocolCompleted == true ? nil : "Marquer comme fait"
         default:
@@ -974,7 +989,7 @@ final class ExerciseViewModel: ObservableObject {
             if metadata.trackingType == trackingType { result.trackingType = metadata.trackingType }
         }
         // These branches cannot be entered through the default UI "reps" fallback.
-        if ["time", "plyo", "carry", "protocol"].contains(trackingType) {
+        if ["time", "plyo", "carry", "protocol", "mobility"].contains(trackingType) {
             result.trackingType = trackingType
         }
         return result
@@ -1000,13 +1015,15 @@ final class ExerciseViewModel: ObservableObject {
 
         let noteForResult = sessionNote
 
-        if trackingType == "protocol" {
+        if trackingType == "protocol" || trackingType == "mobility" {
             // ponytail: log protocol = fait par définition. reps="1" placeholder canLog + NOT NULL,
             // PAS 1 rep. _skip_tonnage backend ignore le volume. Source vérité = colonne top-level
             // protocol_completed (dérivée backend via P9 sur base du tracking_type). setsPayload
             // volontairement minimal — pas de protocol_completed dans sets_json (jamais lu).
+            // Mobility reuses this technical sentinel: the accepted row means done,
+            // with no measured reps, duration, load or inherited effort.
             let setsPayload: [[String: Any]] = [["weight": 0]]
-            let result = ExerciseLogResult(name: name, weight: 0, reps: "1", rpe: exerciseRPE,
+            let result = ExerciseLogResult(name: name, weight: 0, reps: "1", rpe: trackingType == "mobility" ? nil : exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: equipmentType, painZone: painZone, notes: noteForResult, trackingType: trackingType)
             return withReconstructionMetadata(result)

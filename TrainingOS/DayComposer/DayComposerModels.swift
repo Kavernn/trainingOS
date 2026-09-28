@@ -141,7 +141,7 @@ struct DayComposerSnapshot {
         !loading && !incompatible && activeProgramID == activeProgram && self.date == date
             && !morning.units.isEmpty && !evening.units.isEmpty
             && units(for: orderedIDs)?.isEmpty == false
-            && initialUnits.flatMap(\.items).allSatisfy { ["reps", "time", "carry", "plyo", "protocol"].contains($0.tracking) }
+            && initialUnits.flatMap(\.items).allSatisfy { ["reps", "time", "carry", "plyo", "protocol", "mobility"].contains($0.tracking) }
     }
 
     /// Reject duplicate/missing/foreign IDs and any attempt to split or reverse a superset.

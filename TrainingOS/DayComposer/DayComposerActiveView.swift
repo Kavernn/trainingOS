@@ -426,7 +426,9 @@ private struct DayComposerLocalSummary: View {
     @ObservedObject private var units = UnitSettings.shared
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if result.sets.isEmpty {
+            if tracking == "mobility" {
+                Text("Mobilité enregistrée")
+            } else if result.sets.isEmpty {
                 Text(summaryMetric(result.reps))
                 if result.weight.isFinite && result.weight > 0 { Text(units.format(result.weight)) }
             } else {

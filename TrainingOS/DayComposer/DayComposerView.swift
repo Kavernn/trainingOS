@@ -82,10 +82,10 @@ struct DayComposerView: View {
                     }
                     Text("Ton programme reste inchangé. Chaque exercice garde sa séance Matin ou Soir, même si tu changes l’ordre.")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
-                    if snapshot.initialUnits.flatMap(\.items).contains(where: {
-                        !["reps", "time", "carry", "plyo", "protocol"].contains($0.tracking)
-                    }) {
-                        Text("Tu peux préparer l’ordre. Commencer reste indisponible : certains exercices, dont la mobilité, ne sont pas encore pris en charge dans Ma journée.")
+                    ForEach(snapshot.initialUnits.flatMap(\.items).filter {
+                        !DayComposerExecutionCoordinator.isSupported($0.tracking)
+                    }, id: \.id) { item in
+                        Text("Commencer indisponible : \(item.name) · \(item.id.source.title) · type non pris en charge : \(item.tracking)")
                             .font(.appCaption).foregroundColor(.appTextSecondary)
                     }
                     if incompatible {

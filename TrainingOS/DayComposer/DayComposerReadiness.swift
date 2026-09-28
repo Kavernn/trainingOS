@@ -61,7 +61,7 @@ struct DayComposerSourceReadiness: Equatable {
 
 enum DayComposerReadiness {
     static func supports(_ item: DayComposerItem) -> Bool {
-        ["reps", "time", "carry", "plyo", "protocol"].contains(item.tracking)
+        ["reps", "time", "carry", "plyo", "protocol", "mobility"].contains(item.tracking)
     }
 
     static func evaluate(_ input: DayComposerSourceFinalizationInput) -> DayComposerSourceReadiness {
