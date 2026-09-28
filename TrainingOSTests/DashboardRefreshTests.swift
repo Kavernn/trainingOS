@@ -26,7 +26,7 @@ final class DashboardRefreshTests: XCTestCase {
     private func reply(_ request: URLRequest, program: String = "A", override: String = "Jeudi AM — Push B") throws -> (Data, URLResponse) {
         let payload: String
         switch request.url!.path {
-        case "/api/programme_data":
+        case "/api/dashboard_context", "/api/programme_data":
             payload = """
             {"active_program_id":"\(program)","current_program_id":"\(program)",
              "schedule":{"Dim":"\(program) dimanche","Lun":"\(program) lundi"},
@@ -39,7 +39,18 @@ final class DashboardRefreshTests: XCTestCase {
              "schedule":{},"sessions":{},"goals":{},"full_program":{},"nutrition_totals":{},"profile":{}}
             """
         }
-        return (Data(payload.utf8), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        var bytes = Data(payload.utf8)
+        if request.url!.path == "/api/dashboard_context" {
+            var json = try! JSONSerialization.jsonObject(with: bytes) as! [String: Any]
+            let full = json["full_program"] as! [String: [String: String]]
+            json["schema_version"] = 1
+            json["date"] = "2026-09-27"
+            json["evening_schedule"] = ["Dim": "\(program) soir"] as [String: String]
+            json["session_order"] = full.keys.sorted()
+            json["exercise_order"] = full.mapValues { $0.keys.sorted() }
+            bytes = try! JSONSerialization.data(withJSONObject: json, options: .sortedKeys)
+        }
+        return (bytes, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
 
     private func seed() async {
@@ -82,7 +93,7 @@ final class DashboardRefreshTests: XCTestCase {
         let loaded = await task.value
         XCTAssertTrue(loaded)
         XCTAssertEqual(paths.count, 5)
-        XCTAssertEqual(paths.filter { $0 == "/api/programme_data" }.count, 3)
+        XCTAssertEqual(paths.filter { $0 == "/api/dashboard_context" }.count, 3)
         api.invalidateDashboardContext()
         XCTAssertFalse(api.dashboardPlanIsCurrent(on: date))
     }
@@ -197,7 +208,7 @@ final class DashboardRefreshTests: XCTestCase {
         await seed()
         await api.fetchDashboard(mode: .refresh, now: { self.date }, transport: { request in
             var (data, response) = try self.reply(request)
-            if request.url!.path == "/api/programme_data" {
+            if request.url!.path == "/api/dashboard_context" {
                 data = Data(String(decoding: data, as: UTF8.self).replacingOccurrences(of: "\"current_program_id\":\"A\"", with: "\"current_program_id\":\"B\"").utf8)
             }
             return (data, response)
@@ -251,19 +262,186 @@ final class DashboardRefreshTests: XCTestCase {
     func testCancellationAfterMetricsReadDoesNotPublish() async {
         await seed()
         let entered = expectation(description: "metrics request in flight")
+        var gate: CheckedContinuation<Void, Never>?
         let task = Task {
             await self.api.fetchDashboard(mode: .refresh, now: { self.date }, transport: { request in
                 if request.url!.path == "/api/dashboard" {
-                    entered.fulfill()
-                    try await Task.sleep(nanoseconds: 60_000_000_000)
+                    await withCheckedContinuation { gate = $0; entered.fulfill() }
                 }
                 return try self.reply(request)
             })
         }
         await fulfillment(of: [entered], timeout: 5)
         task.cancel()
+        gate?.resume()
         await task.value
         XCTAssertNotNil(api.dashboard)
         XCTAssertNil(APILoadingState.shared.error)
     }
+
+    private let missingRoute = "The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."
+
+    private func response(_ request: URLRequest, status: Int, body: [String: Any]) throws -> (Data, URLResponse) {
+        (try JSONSerialization.data(withJSONObject: body),
+         HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil,
+                         headerFields: ["Content-Type": "application/json"])!)
+    }
+
+    func testLightContextCarriesExplicitDateAndBypassesCacheOnEveryFence() async {
+        var count = 0
+        let loaded = await api.fetchDashboard(now: { self.date }, transport: { request in
+            if request.url!.path == "/api/dashboard_context" {
+                count += 1
+                XCTAssertEqual(URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems,
+                               [URLQueryItem(name: "date", value: "2026-09-27")])
+                XCTAssertEqual(request.cachePolicy, .reloadIgnoringLocalCacheData)
+            }
+            return try self.reply(request)
+        })
+        XCTAssertTrue(loaded)
+        XCTAssertEqual(count, 3)
+    }
+
+    func testSameProgramChangesAtPlanningAndFinalFencesAreRejected() async throws {
+        for fence in [2, 3] {
+            for field in ["schedule", "content", "exercise_order", "session_order", "evening_schedule"] {
+                api.invalidateDashboardContext()
+                var reads = 0
+                let loaded = await api.fetchDashboard(now: { self.date }, transport: { request in
+                    let (bytes, response) = try self.reply(request)
+                    guard request.url!.path == "/api/dashboard_context" else { return (bytes, response) }
+                    reads += 1
+                    var json = try JSONSerialization.jsonObject(with: bytes) as! [String: Any]
+                    var full = json["full_program"] as! [String: [String: String]]
+                    full["A dimanche"] = ["Squat": "3x10", "Row": "3x8"]
+                    json["full_program"] = full
+                    var order = json["exercise_order"] as! [String: [String]]
+                    order["A dimanche"] = ["Squat", "Row"]
+                    json["exercise_order"] = order
+                    if reads >= fence {
+                        switch field {
+                        case "schedule": json["schedule"] = ["Dim": "A lundi", "Lun": "A lundi"]
+                        case "content":
+                            full["A dimanche"]?["Squat"] = "2x8"
+                            json["full_program"] = full
+                        case "exercise_order":
+                            order["A dimanche"] = ["Row", "Squat"]
+                            json["exercise_order"] = order
+                        case "session_order": json["session_order"] = Array((json["session_order"] as! [String]).reversed())
+                        default: json["evening_schedule"] = ["Dim": "A lundi"]
+                        }
+                    }
+                    return (try JSONSerialization.data(withJSONObject: json), response)
+                })
+                XCTAssertFalse(loaded, "\(field) at fence \(fence)")
+                XCTAssertNil(api.dashboard)
+                XCTAssertNil(api.dashboardPlan)
+            }
+        }
+    }
+
+    func testEveningReadMustAgreeWithValidatedContext() async {
+        let loaded = await api.fetchDashboard(now: { self.date }, transport: { request in
+            if request.url!.path == "/api/evening_schedule" {
+                return try self.response(request, status: 200, body: ["Dim": "A lundi"])
+            }
+            return try self.reply(request)
+        })
+        XCTAssertFalse(loaded)
+        XCTAssertNil(api.dashboardPlan)
+        XCTAssertNil(api.dashboard)
+    }
+
+    func testMalformedIncompleteWrongDateAndInconsistentContextsNeverDowngrade() async throws {
+        for mutation in ["missing", "date", "schema", "type", "order", "inactive", "unknown_session"] {
+            api.invalidateDashboardContext()
+            var paths: [String] = []
+            let loaded = await api.fetchDashboard(now: { self.date }, transport: { request in
+                paths.append(request.url!.path)
+                let (bytes, response) = try self.reply(request)
+                var json = try JSONSerialization.jsonObject(with: bytes) as! [String: Any]
+                switch mutation {
+                case "missing": json.removeValue(forKey: "schedule")
+                case "date": json["date"] = "2026-09-28"
+                case "schema": json["schema_version"] = 99
+                case "type": json["full_program"] = ["A dimanche": ["Squat": NSNull()]]
+                case "order": json["exercise_order"] = [:]
+                case "inactive": json["current_program_id"] = "B"
+                default: json["schedule"] = ["Dim": "Missing"]
+                }
+                return (try JSONSerialization.data(withJSONObject: json), response)
+            })
+            XCTAssertFalse(loaded, mutation)
+            XCTAssertEqual(paths, ["/api/dashboard_context"])
+            XCTAssertNil(api.dashboardPlan)
+        }
+    }
+
+    func testOnlyEstablishedRouteAbsenceEnablesLegacyForThisLoad() async {
+        var paths: [String] = []
+        let loaded = await api.fetchDashboard(now: { self.date }, transport: { request in
+            paths.append(request.url!.path)
+            if request.url!.path == "/api/dashboard_context" {
+                return try self.response(request, status: 404, body: ["error": self.missingRoute])
+            }
+            return try self.reply(request)
+        })
+        XCTAssertTrue(loaded)
+        XCTAssertEqual(paths.count, 6)
+        XCTAssertEqual(paths.filter { $0 == "/api/dashboard_context" }.count, 1)
+        XCTAssertEqual(paths.filter { $0 == "/api/programme_data" }.count, 3)
+        XCTAssertEqual(api.dashboardPlan?.morning(on: date), "A dimanche")
+    }
+
+    func testDomainErrorsAndUnknown404NeverUseHeavyFallback() async {
+        for (status, error) in [(404, "active_program_not_found"), (409, "no_active_program"),
+                                 (401, "Unauthorized"), (503, "dashboard_context_unavailable"),
+                                 (404, "Not Found"), (500, missingRoute)] {
+            api.invalidateDashboardContext()
+            var paths: [String] = []
+            let loaded = await api.fetchDashboard(now: { self.date }, transport: { request in
+                paths.append(request.url!.path)
+                return try self.response(request, status: status, body: ["error": error])
+            })
+            XCTAssertFalse(loaded)
+            XCTAssertEqual(paths, ["/api/dashboard_context"])
+        }
+    }
+
+    func testLegacyFallbackStillRejectsSameProgramScheduleChange() async {
+        var reads = 0
+        let loaded = await api.fetchDashboard(now: { self.date }, transport: { request in
+            if request.url!.path == "/api/dashboard_context" {
+                return try self.response(request, status: 404, body: ["error": self.missingRoute])
+            }
+            let (bytes, response) = try self.reply(request)
+            if request.url!.path == "/api/programme_data" {
+                reads += 1
+                if reads >= 2 {
+                    var json = try JSONSerialization.jsonObject(with: bytes) as! [String: Any]
+                    json["schedule"] = ["Dim": "A lundi"]
+                    return (try JSONSerialization.data(withJSONObject: json), response)
+                }
+            }
+            return (bytes, response)
+        })
+        XCTAssertFalse(loaded)
+        XCTAssertNil(api.dashboard)
+        XCTAssertNil(api.dashboardPlan)
+    }
+
+    func testRouteDisappearanceAfterFirstFenceCannotDowngradeMidLoad() async {
+        var reads = 0
+        let loaded = await api.fetchDashboard(now: { self.date }, transport: { request in
+            XCTAssertNotEqual(request.url!.path, "/api/programme_data")
+            if request.url!.path == "/api/dashboard_context" {
+                reads += 1
+                if reads > 1 { return try self.response(request, status: 404, body: ["error": self.missingRoute]) }
+            }
+            return try self.reply(request)
+        })
+        XCTAssertFalse(loaded)
+        XCTAssertNil(api.dashboard)
+    }
+
 }

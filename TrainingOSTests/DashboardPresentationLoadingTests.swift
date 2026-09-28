@@ -54,7 +54,7 @@ final class DashboardPresentationLoadingTests: XCTestCase {
             return self.reply(request)
         })
         XCTAssertTrue(loaded)
-        XCTAssertEqual(paths.filter { $0 == "/api/programme_data" }.count, 3)
+        XCTAssertEqual(paths.filter { $0 == "/api/dashboard_context" }.count, 3)
         XCTAssertEqual(paths.filter { $0 == "/api/dashboard" }.count, 1)
         XCTAssertEqual(paths.filter { $0 == "/api/evening_schedule" }.count, 1)
         print("Dashboard controlled transport: VM publication \(start.duration(to: clock.now)); \(paths.count) reads. Not UI latency.")
@@ -135,7 +135,7 @@ final class DashboardPresentationLoadingTests: XCTestCase {
     private func reply(_ request: URLRequest) -> (Data, URLResponse) {
         let payload: String
         switch request.url!.path {
-        case "/api/programme_data":
+        case "/api/dashboard_context", "/api/programme_data":
             payload = """
             {"active_program_id":"fixture","current_program_id":"fixture",
              "schedule":{"Lun":"Lundi — Force"},
@@ -148,6 +148,17 @@ final class DashboardPresentationLoadingTests: XCTestCase {
              "schedule":{},"sessions":{},"goals":{},"full_program":{},"nutrition_totals":{},"profile":{}}
             """
         }
-        return (Data(payload.utf8), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        var bytes = Data(payload.utf8)
+        if request.url!.path == "/api/dashboard_context" {
+            var json = try! JSONSerialization.jsonObject(with: bytes) as! [String: Any]
+            let full = json["full_program"] as! [String: [String: String]]
+            json["schema_version"] = 1
+            json["date"] = "2026-09-28"
+            json["evening_schedule"] = [:] as [String: String]
+            json["session_order"] = full.keys.sorted()
+            json["exercise_order"] = full.mapValues { $0.keys.sorted() }
+            bytes = try! JSONSerialization.data(withJSONObject: json, options: .sortedKeys)
+        }
+        return (bytes, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
 }

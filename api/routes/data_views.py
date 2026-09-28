@@ -297,6 +297,47 @@ def api_notes_data():
     })
 
 
+@data_views_bp.route("/api/dashboard_context")
+def api_dashboard_context():
+    """Uncached active planning projection; no inventory sync or execution override.
+
+    Strict helper mode preserves the existing active-program resolution and
+    projections, but does not turn read failures into a valid empty/rest plan.
+    """
+    from db_programs import (get_active_program_id, get_full_program,
+                             get_relational_week_schedule, get_evening_week_schedule)
+    from blocks import get_strength_exercises
+    from utils import cap_scheme_sets
+
+    date = request.args.get("date", "")
+    try:
+        if datetime.strptime(date, "%Y-%m-%d").strftime("%Y-%m-%d") != date:
+            raise ValueError()
+    except ValueError:
+        return jsonify({"error": "invalid_date"}), 400
+    try:
+        active = get_active_program_id(strict=True)
+        if not active:
+            return jsonify({"error": "no_active_program"}), 409
+        program = get_full_program(active, strict=True)
+        schedule = get_relational_week_schedule(strict=True)
+        evening = get_evening_week_schedule(strict=True)
+        flat = {name: {ex: cap_scheme_sets(scheme)
+                       for ex, scheme in get_strength_exercises(session).items()}
+                for name, session in program.items()}
+        response = jsonify({"schema_version": 1, "date": date,
+                            "active_program_id": active, "current_program_id": active,
+                            "schedule": schedule, "evening_schedule": evening,
+                            "full_program": flat, "session_order": list(flat),
+                            "exercise_order": {name: list(exercises) for name, exercises in flat.items()}})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except LookupError:
+        return jsonify({"error": "active_program_not_found"}), 404
+    except Exception:
+        return jsonify({"error": "dashboard_context_unavailable"}), 503
+
+
 @data_views_bp.route("/api/programme_data")
 def api_programme_data():
     import db as _db

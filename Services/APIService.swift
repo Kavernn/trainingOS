@@ -80,6 +80,60 @@ struct DashboardPlan: Codable {
     }
 }
 
+/// Strict wire projection for the lightweight route. Legacy Programme remains
+/// unchanged for other consumers and for explicitly detected older backends.
+private struct DashboardContextRead: Decodable {
+    let schema_version: Int
+    let date: String
+    let active_program_id: String
+    let current_program_id: String
+    let schedule: [String: String]
+    let evening_schedule: [String: String]
+    let full_program: [String: [String: String]]
+    let session_order: [String]
+    let exercise_order: [String: [String]]
+
+    var programme: DashboardPlan.Programme {
+        .init(active_program_id: active_program_id, current_program_id: current_program_id,
+              schedule: schedule, full_program: full_program.mapValues { $0.mapValues(SafeString.init) })
+    }
+    func validate(date expectedDate: String) throws {
+        let days = Set(["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"])
+        guard schema_version == 1, date == expectedDate, programme.isActive,
+              Set(session_order) == Set(full_program.keys), session_order.count == full_program.count,
+              Set(exercise_order.keys) == Set(full_program.keys),
+              full_program.allSatisfy({ name, exercises in
+                  !name.isEmpty && exercises.keys.allSatisfy { !$0.isEmpty } &&
+                  Set(exercise_order[name] ?? []) == Set(exercises.keys) &&
+                  exercise_order[name]?.count == exercises.count
+              }),
+              [schedule, evening_schedule].allSatisfy({ slots in
+                  Set(slots.keys).isSubset(of: days) && slots.values.allSatisfy {
+                      $0 == "Repos" || full_program[$0] != nil
+                  }
+              }) else { throw URLError(.cannotParseResponse) }
+    }
+    func matches(_ other: Self) -> Bool {
+        programme.matches(other.programme) && date == other.date &&
+        evening_schedule == other.evening_schedule && session_order == other.session_order &&
+        exercise_order == other.exercise_order
+    }
+}
+
+private enum DashboardContextReadError: Error { case routeUnavailable }
+private struct DashboardContextSnapshot {
+    let programme: DashboardPlan.Programme
+    let light: DashboardContextRead?
+    func matches(_ other: Self) -> Bool {
+        guard programme.matches(other.programme) else { return false }
+        switch (light, other.light) {
+        case (nil, nil): return true // The unchanged legacy validation contract.
+        case let (a?, b?): return a.matches(b)
+        default: return false
+        }
+    }
+}
+
 enum DashboardLoadMode {
     case initial
     case refresh
@@ -358,13 +412,38 @@ class APIService: ObservableObject {
             request.timeoutInterval = 15
             let (data, response) = try await transport(request)
             try Task.checkCancellation()
+            // Only Flask's known route-missing response establishes absence.
+            // Domain 404s, auth errors, malformed JSON and outages never downgrade.
+            if path == "/api/dashboard_context",
+               (response as? HTTPURLResponse)?.statusCode == 404,
+               let body = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+               body == ["error": "The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."] {
+                throw DashboardContextReadError.routeUnavailable
+            }
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 throw URLError(.badServerResponse)
             }
             return try JSONDecoder().decode(T.self, from: data)
         }
+        var useLegacyContext = false
+        func context(allowFallback: Bool = false) async throws -> DashboardContextSnapshot {
+            if useLegacyContext {
+                let value: DashboardPlan.Programme = try await read("/api/programme_data")
+                return .init(programme: value, light: nil)
+            }
+            do {
+                let value: DashboardContextRead = try await read("/api/dashboard_context", dated: true)
+                try value.validate(date: date)
+                return .init(programme: value.programme, light: value)
+            } catch DashboardContextReadError.routeUnavailable where allowFallback {
+                // Pin this load to legacy; C/E still issue fresh, heavy validations.
+                useLegacyContext = true
+                return try await context()
+            }
+        }
         do {
-            let before: DashboardPlan.Programme = try await read("/api/programme_data")
+            let beforeContext = try await context(allowFallback: true)
+            let before = beforeContext.programme
             guard current(), before.isActive else { return false }
             if dashboardScope?.program != before.active_program_id {
                 dashboard = nil; dashboardScope = nil
@@ -374,7 +453,7 @@ class APIService: ObservableObject {
                 dashboardDefaults.removeObject(forKey: Self.dashboardPlanKey)
             }
             enum InitialRead {
-                case plan(Result<DashboardPlan, Error>)
+                case plan(Result<(DashboardPlan, DashboardContextSnapshot), Error>)
                 case metrics(Result<DashboardData, Error>)
             }
             // Metrics need the explicit date and the active-program snapshot, not
@@ -383,8 +462,8 @@ class APIService: ObservableObject {
                 group.addTask { @MainActor in
                     do {
                         let evening: [String: String] = try await read("/api/evening_schedule")
-                        let after: DashboardPlan.Programme = try await read("/api/programme_data")
-                        return .plan(.success(DashboardPlan(programme: after, eveningSchedule: evening)))
+                        let after = try await context()
+                        return .plan(.success((DashboardPlan(programme: after.programme, eveningSchedule: evening), after)))
                     } catch { return .plan(.failure(error)) }
                 }
                 group.addTask { @MainActor in
@@ -397,8 +476,9 @@ class APIService: ObservableObject {
                     // Superseding this generation must not cancel that new owner.
                     guard current() else { continue }
                     switch value {
-                    case .plan(.success(let plan)):
-                        guard before.matches(plan.programme) else {
+                    case .plan(.success(let (plan, afterContext))):
+                        guard beforeContext.matches(afterContext),
+                              afterContext.light == nil || afterContext.light?.evening_schedule == plan.eveningSchedule else {
                             invalidateDashboardContext(); group.cancelAll(); return nil
                         }
                         dashboardPlanValidation = (generation, date)
@@ -415,9 +495,9 @@ class APIService: ObservableObject {
             }
             guard current(), let metrics else { return false }
             let decoded = try metrics.get()
-            let finalContext: DashboardPlan.Programme = try await read("/api/programme_data")
+            let finalContext = try await context()
             guard current() else { return false }
-            guard before.matches(finalContext) else { invalidateDashboardContext(); return false }
+            guard beforeContext.matches(finalContext) else { invalidateDashboardContext(); return false }
             guard decoded.todayDate == date else { throw URLError(.badServerResponse) }
             dashboardScope = (before.active_program_id, date)
             dashboard = decoded

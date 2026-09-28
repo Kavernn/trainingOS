@@ -32,7 +32,7 @@ def get_all_programs() -> list:
         return []
 
 
-def get_active_program_id() -> str | None:
+def get_active_program_id(*, strict: bool = False) -> str | None:
     """Return the active program_id.
 
     Priority:
@@ -41,15 +41,25 @@ def get_active_program_id() -> str | None:
     3. Oldest program (default fallback)
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
-        return get_default_program_id()
+        if strict:
+            raise RuntimeError("Program context unavailable")
+        return get_default_program_id(strict=strict)
 
     # 1. Explicit choice stored in user_profile
     try:
-        profile = get_profile()
+        if strict:
+            rows = db_core._client.table("user_profile").select("active_program_id").eq("id", 1).limit(1).execute().data
+            if rows is None:
+                raise RuntimeError("Profile unavailable")
+            profile = rows[0] if rows else {}
+        else:
+            profile = get_profile()
         pid = profile.get("active_program_id")
         if pid:
             return str(pid)
     except Exception:
+        if strict:
+            raise
         pass
 
     # 2. Schedule-based detection — only conclusive when all morning slots agree
@@ -61,6 +71,8 @@ def get_active_program_id() -> str | None:
             .not_.is_("session_id", "null")
             .execute()
         )
+        if strict and resp.data is None:
+            raise RuntimeError("Schedule unavailable")
         pids = {
             str(row["program_sessions"]["program_id"])
             for row in (resp.data or [])
@@ -73,6 +85,8 @@ def get_active_program_id() -> str | None:
         if result is not None:
             return result
     except Exception as e:
+        if strict:
+            raise
         if db_core._is_disconnect(e) and db_core._reconnect():
             try:
                 result = _do()
@@ -82,7 +96,7 @@ def get_active_program_id() -> str | None:
                 db_core.logger.error("get_active_program_id retry error: %s", e2)
         else:
             db_core.logger.error("get_active_program_id error: %s", e)
-    return get_default_program_id()
+    return get_default_program_id(strict=strict)
 
 
 def set_active_program_id(program_id: str) -> bool:
@@ -123,8 +137,13 @@ def set_session_override(session: str | None) -> bool:
     return update_profile({"session_override": _json.dumps(payload)})
 
 
-def get_default_program_id() -> str | None:
+def get_default_program_id(*, strict: bool = False) -> str | None:
     """Return the UUID of the first (oldest) program, or None if none exist."""
+    if strict:
+        rows = db_core._client.table("programs").select("id").order("created_at").limit(1).execute().data
+        if rows is None:
+            raise RuntimeError("Programs unavailable")
+        return rows[0]["id"] if rows else None
     programs = get_all_programs()
     return programs[0]["id"] if programs else None
 
@@ -276,7 +295,7 @@ def get_all_session_names() -> list[str]:
         return []
 
 
-def get_full_program(program_id: str | None = None) -> dict | None:
+def get_full_program(program_id: str | None = None, *, strict: bool = False) -> dict | None:
     """Return {session_name: {"blocks": [{"type", "order", "exercises": {name: scheme}}]}}.
 
     If program_id is None, uses the first/oldest program.
@@ -286,6 +305,8 @@ def get_full_program(program_id: str | None = None) -> dict | None:
     callers must treat None as "unknown state, do NOT overwrite existing data".
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
+        if strict:
+            raise RuntimeError("Program context unavailable")
         return None
 
     def _do() -> dict | None:
@@ -300,8 +321,17 @@ def get_full_program(program_id: str | None = None) -> dict | None:
         ).order("order_index")
         if program_id:
             q = q.eq("program_id", program_id)
-        sessions = q.execute().data or []
+        rows = q.execute().data
+        if strict and rows is None:
+            raise RuntimeError("Program unavailable")
+        sessions = rows or []
         if not sessions:
+            if strict:
+                existing = db_core._client.table("programs").select("id").eq("id", program_id).limit(1).execute().data
+                if existing is None:
+                    raise RuntimeError("Program lookup unavailable")
+                if not existing:
+                    raise LookupError("Active program not found")
             return {}
         program: dict = {}
         for session in sorted(sessions, key=lambda s: s.get("order_index", 0)):
@@ -344,6 +374,8 @@ def get_full_program(program_id: str | None = None) -> dict | None:
     try:
         return _do()
     except Exception as e:
+        if strict:
+            raise
         if db_core._is_disconnect(e) and db_core._reconnect():
             try:
                 return _do()
@@ -621,13 +653,15 @@ def delete_program_session(name: str, program_id: str | None = None) -> bool:
         return False
 
 
-def get_relational_week_schedule() -> dict:
+def get_relational_week_schedule(*, strict: bool = False) -> dict:
     """Return {"Lun": "Push A", "Mar": "Pull A", ...} from weekly_schedule JOIN program_sessions.
 
     Days with no session assigned are omitted.
     Returns {} if relational layer is unavailable.
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
+        if strict:
+            raise RuntimeError("Program context unavailable")
         return {}
 
     def _do() -> dict:
@@ -637,6 +671,8 @@ def get_relational_week_schedule() -> dict:
             .eq("slot", "morning")
             .execute()
         )
+        if strict and resp.data is None:
+            raise RuntimeError("Schedule unavailable")
         result: dict = {}
         for row in (resp.data or []):
             session = row.get("program_sessions")
@@ -650,6 +686,8 @@ def get_relational_week_schedule() -> dict:
     try:
         return _do()
     except Exception as e:
+        if strict:
+            raise
         if db_core._is_disconnect(e) and db_core._reconnect():
             try:
                 return _do()
@@ -709,9 +747,11 @@ def set_relational_week_schedule(schedule: dict) -> bool:
         return False
 
 
-def get_evening_week_schedule() -> dict:
+def get_evening_week_schedule(*, strict: bool = False) -> dict:
     """Return {"Lun": "Core", ...} for slot='evening' from weekly_schedule."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
+        if strict:
+            raise RuntimeError("Program context unavailable")
         return {}
 
     def _do() -> dict:
@@ -721,6 +761,8 @@ def get_evening_week_schedule() -> dict:
             .eq("slot", "evening")
             .execute()
         )
+        if strict and resp.data is None:
+            raise RuntimeError("Schedule unavailable")
         result: dict = {}
         for row in (resp.data or []):
             session = row.get("program_sessions")
@@ -731,6 +773,8 @@ def get_evening_week_schedule() -> dict:
     try:
         return _do()
     except Exception as e:
+        if strict:
+            raise
         if db_core._is_disconnect(e) and db_core._reconnect():
             try:
                 return _do()
