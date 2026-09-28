@@ -123,8 +123,15 @@ struct DayComposerSnapshot {
     }
 
     func isRelevant(hasSavedOrder: Bool) -> Bool {
-        !activeProgramID.isEmpty && !morning.units.isEmpty && !evening.units.isEmpty
-            && (hasSavedOrder || (!morningCompleted && !eveningCompleted))
+        // One completed source can still be represented alongside the other.
+        // A wholly completed day is only offered as an existing saved recovery,
+        // not as a new execution. Unsupported-only sources are not candidates.
+        let executable = ["reps", "time", "carry", "plyo", "protocol"]
+        return !activeProgramID.isEmpty
+            && [morning, evening].allSatisfy { plan in
+                plan.units.flatMap(\.items).contains { executable.contains($0.tracking) }
+            }
+            && (hasSavedOrder || !morningCompleted || !eveningCompleted)
     }
 
     func completed(_ source: DayComposerSource) -> Bool {

@@ -1336,7 +1336,7 @@ final class DayComposerTests: XCTestCase {
     func testIrrelevantEntry() throws {
         XCTAssertFalse(try snapshot(evening: []).isRelevant(hasSavedOrder: false))
         XCTAssertFalse(try snapshot(morning: []).isRelevant(hasSavedOrder: true))
-        XCTAssertFalse(try snapshot(completed: true).isRelevant(hasSavedOrder: false))
+        XCTAssertTrue(try snapshot(completed: true).isRelevant(hasSavedOrder: false))
         XCTAssertTrue(try snapshot(completed: true).isRelevant(hasSavedOrder: true))
         XCTAssertTrue(try snapshot().isRelevant(hasSavedOrder: false))
         XCTAssertFalse(try snapshot(program: "").isRelevant(hasSavedOrder: false))

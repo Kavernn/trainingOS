@@ -39,6 +39,7 @@ struct DayComposerValidatedExecutionInput {
 /// associate a previous active program's payload with today's captured program.
 @MainActor
 enum DayComposerLoader {
+    typealias Transport = (URLRequest) async throws -> (Data, URLResponse)
     struct Context: Decodable {
         let active_program_id: String
         let current_program_id: String
@@ -51,11 +52,13 @@ enum DayComposerLoader {
         let second_session_completed: Bool
     }
 
-    private static func read<T: Decodable>(_ path: String, date: String? = nil) async throws -> T {
+    private static func read<T: Decodable>(_ path: String, date: String? = nil,
+                                         transport: Transport) async throws -> T {
         let url = try APIService.shared.buildURL(path: path,
             queryItems: date.map { [URLQueryItem(name: "date", value: $0)] } ?? [])
         let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
-        let (data, response) = try await URLSession.authed.data(for: request)
+        let (data, response) = try await transport(request)
+        try Task.checkCancellation()
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw DayComposerError.unavailable
         }
@@ -66,21 +69,34 @@ enum DayComposerLoader {
         try await loadBundle(program: program).snapshot
     }
 
-    static func loadBundle(program: String) async throws -> DayComposerLoadedBundle {
+    static func loadBundle(program: String, now: () -> Date = { Date() },
+                           transport: Transport = { try await URLSession.authed.data(for: $0) },
+                           hasRecovery: (String) throws -> Bool = {
+                               try DayComposerProvenanceStore.shared.inventory(date: $0, source: .morning).hasState
+                           }) async throws -> DayComposerLoadedBundle {
         guard !program.isEmpty else { throw DayComposerError.contextChanged }
-        let date = DateFormatter.isoDate.string(from: Date())
-        let before: Context = try await read("/api/programme_data")
+        let capturedDate = now()
+        let date = DateFormatter.isoDate.string(from: capturedDate)
+        guard let weekdayIndex = TrainingDoctrine.dayNames.firstIndex(of: TrainingDoctrine.dayName(on: capturedDate)) else {
+            throw DayComposerError.contextChanged
+        }
+        let before: Context = try await read("/api/programme_data", transport: transport)
         guard before.active_program_id == program, before.current_program_id == program else {
             throw DayComposerError.contextChanged
         }
-        let morning: SeanceData = try await read("/api/seance_data", date: date)
-        let eveningResponse: SeanceSoirData = try await read("/api/seance_soir_data", date: date)
+        // Same active-program/date resolver as the real Séance tab. Preserve
+        // existing recovery; a passive planning refresh must never relabel it.
+        let resolved = try await APIService.shared.fetchCurrentPlannedSeance(
+            date: capturedDate, preserveRecovery: hasRecovery(date), transport: transport)
+        guard resolved.program == program else { throw DayComposerError.contextChanged }
+        let morning = resolved.data
+        let eveningResponse: SeanceSoirData = try await read("/api/seance_soir_data", date: date, transport: transport)
         guard let evening = eveningResponse.asSeanceData() else { throw DayComposerError.unavailable }
-        let completion: Completion = try await read("/api/dashboard", date: date)
-        let after: Context = try await read("/api/programme_data")
+        let completion: Completion = try await read("/api/dashboard", date: date, transport: transport)
+        let after: Context = try await read("/api/programme_data", transport: transport)
         return try validate(program: program, date: date,
-            currentDate: DateFormatter.isoDate.string(from: Date()),
-            weekdayIndex: (Calendar.mtl.component(.weekday, from: Date()) + 5) % 7,
+            currentDate: DateFormatter.isoDate.string(from: now()),
+            weekdayIndex: weekdayIndex,
             before: before, after: after, morning: morning, evening: evening, completion: completion)
     }
 

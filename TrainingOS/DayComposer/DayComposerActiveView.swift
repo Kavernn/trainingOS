@@ -63,8 +63,10 @@ struct DayComposerActiveView: View {
                     units
                     commentPanel
                     finishPanel
-                    DayComposerActiveCommands(coordinator: coordinator, navigate: navigate, dismiss: leave)
-                        .disabled(stabilizationBarrier.isInteractionFrozen)
+                    if !finishCoordinator.dayCompleted {
+                        DayComposerActiveCommands(coordinator: coordinator, navigate: navigate, dismiss: leave)
+                            .disabled(stabilizationBarrier.isInteractionFrozen)
+                    }
                 }
                 .padding(16)
             }
@@ -110,30 +112,22 @@ struct DayComposerActiveView: View {
     private var finishPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             if finishCoordinator.dayCompleted {
-                Label("Journée terminée", systemImage: "checkmark.circle.fill")
-                    .font(.headline).accessibilityAddTraits(.isHeader)
-                Button("Retour au Programme", action: leave).frame(minHeight: 44)
+                DayComposerCompletedSummary(leave: leave)
             } else {
                 ForEach([DayComposerSource.morning, .evening], id: \.self) { source in
                     let state = finishCoordinator.productState(source)
+                    let copy = DayComposerFinishPresentation(state: state)
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("\(source.title) · \(state.title)").font(.headline)
-                        if state == .processing { ProgressView() }
-                        if state == .pending {
-                            Text("Les données sont conservées. Vérifie leur synchronisation une fois la connexion rétablie.")
-                                .font(.subheadline).foregroundStyle(Color.appTextSecondary)
-                        } else if state == .review || state == .failed {
-                            Text("Vérifie les exercices et le commentaire. Aucun renvoi automatique n’est effectué.")
-                                .font(.subheadline).foregroundStyle(Color.appTextSecondary)
-                        }
+                        DayComposerFinishStatus(source: source, state: state)
                         if state == .pending || state == .review || state == .failed {
-                            Button("Vérifier l’état — \(source.title)") {
+                            Button("\(copy.checkTitle) · \(source.title)") {
                                 operations[source] = Task { await finishCoordinator.refreshSource(source) }
                             }.frame(minHeight: 44)
                         }
                         if state == .ready {
-                            Button("Terminer — \(source.title)") { selectedRPE = nil; rpeSource = source }
+                            Button("Terminer \(source.title)") { selectedRPE = nil; rpeSource = source }
                                 .frame(minHeight: 44)
+                                .buttonStyle(.borderedProminent)
                                 .disabled(!coordinator.canOfferFinish(source))
                             if !coordinator.canOfferFinish(source) {
                                 Text("Enregistre les exercices de cette séance avant de la terminer.")
@@ -150,30 +144,22 @@ struct DayComposerActiveView: View {
     private var rpeSheet: some View {
         NavigationStack {
             Form {
-                Section {
-                    Text("Effort global de la séance \(rpeSource?.title ?? "")")
-                    Text("Choisis ton RPE de séance, de 6 à 10. Aucun effort n’est estimé automatiquement.")
-                        .foregroundStyle(Color.appTextSecondary)
-                    ForEach(6...10, id: \.self) { value in
-                        Button { selectedRPE = value } label: {
-                            HStack {
-                                Text("RPE \(value)")
-                                Spacer()
-                                if selectedRPE == value { Image(systemName: "checkmark").accessibilityHidden(true) }
-                            }.frame(minHeight: 44)
-                        }
-                        .accessibilityAddTraits(selectedRPE == value ? .isSelected : [])
-                    }
+                if let source = rpeSource {
+                    DayComposerRPEChoices(source: source, selection: $selectedRPE)
                 }
-                Button("Confirmer et terminer") {
+                Button("Confirmer et terminer \(rpeSource?.title ?? "la séance")") {
                     guard let source = rpeSource, let selectedRPE else { return }
                     endEditing()
                     rpeSource = nil
                     operations[source] = Task { await finishCoordinator.finishSource(source, rpe: Double(selectedRPE)) }
                 }
                 .frame(minHeight: 44).disabled(selectedRPE == nil)
+                .buttonStyle(.borderedProminent)
+                .listRowBackground(Color.appCard)
             }
-            .navigationTitle("RPE de séance")
+            .scrollContentBackground(.hidden)
+            .background(Color.appBg)
+            .navigationTitle("RPE de la séance")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { rpeSource = nil } } }
             .tint(Color.forge)
         }
@@ -183,7 +169,7 @@ struct DayComposerActiveView: View {
         if coordinator.isLocked {
             DayComposerLockedState(close: leave)
                 .disabled(stabilizationBarrier.isInteractionFrozen)
-        } else if !coordinator.hasActionableItems || coordinator.currentMemberID == nil {
+        } else if !finishCoordinator.dayCompleted && (!coordinator.hasActionableItems || coordinator.currentMemberID == nil) {
             DayComposerSummaryState()
         }
         if coordinator.localPersistenceIssue == .failed {
@@ -253,14 +239,23 @@ private struct DayComposerActiveHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Ma journée").font(.title2.bold()).accessibilityAddTraits(.isHeader)
-            Text("\(coordinator.treatedCount)/\(coordinator.executableCount) exercices traités")
-                .accessibilityLabel("\(coordinator.treatedCount) sur \(coordinator.executableCount) exercices traités")
+            HStack {
+                if let source = coordinator.selectedSource { DayComposerSourceChip(source: source) }
+                Spacer()
+                Text("\(coordinator.treatedCount) / \(coordinator.executableCount) enregistrés")
+                    .font(.appCaption.monospacedDigit())
+                    .accessibilityLabel("\(coordinator.treatedCount) sur \(coordinator.executableCount) exercices enregistrés")
+            }
+            ProgressView(value: Double(coordinator.treatedCount), total: Double(max(1, coordinator.executableCount)))
+                .tint(Color.forge).accessibilityHidden(true)
             if let index = coordinator.orderedUnits.flatMap(\.items).firstIndex(where: { $0.id == coordinator.currentMemberID }) {
+                Text(coordinator.orderedUnits.flatMap(\.items)[index].name)
+                    .font(.appHeadline)
                 Text("Exercice \(index + 1) sur \(coordinator.orderedUnits.flatMap(\.items).count)")
                     .font(.subheadline)
             }
-            Text([coordinator.selectedSource?.title, coordinator.context.date].compactMap { $0 }.joined(separator: " · "))
-                .font(.subheadline).foregroundStyle(Color.appTextSecondary)
+            Text("\(max(0, coordinator.executableCount - coordinator.treatedCount)) exercices restants")
+                .font(.appCaption).foregroundStyle(Color.appTextSecondary)
         }
         .foregroundStyle(Color.appTextPrimary)
     }
@@ -268,20 +263,23 @@ private struct DayComposerActiveHeader: View {
 
 private struct DayComposerNavigator: View {
     @ObservedObject var coordinator: DayComposerExecutionCoordinator
+    @State private var expanded = false
     let select: (DayComposerItemID) -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Parcourir la journée").font(.headline).accessibilityAddTraits(.isHeader)
+            DisclosureGroup("Parcourir la journée", isExpanded: $expanded) {
             ForEach(coordinator.orderedUnits) { unit in
                 ForEach(unit.items) { item in
                     if let presentation = coordinator.presentation(for: item.id) {
                         Button { select(item.id) } label: {
                             HStack(alignment: .top, spacing: 10) {
-                                Image(systemName: coordinator.currentMemberID == item.id ? "checkmark.circle.fill" : "circle")
+                                let logged = coordinator.status(for: item.id)?.status == .localLogged || coordinator.status(for: item.id)?.status == .serverObserved
+                                Image(systemName: logged ? "checkmark.circle.fill" : coordinator.currentMemberID == item.id ? "arrow.right.circle.fill" : "circle")
                                     .foregroundStyle(Color.forge).accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.name).foregroundStyle(Color.appTextPrimary)
-                                    Text("\(item.id.source.title) · \(presentation.label)\(unit.group == nil ? "" : " · Superset")")
+                                    DayComposerSourceChip(source: item.id.source)
+                                    Text("\(coordinator.currentMemberID == item.id ? "En cours · " : "")\(presentation.label)\(unit.group == nil ? "" : " · Superset")")
                                         .font(.subheadline).foregroundStyle(Color.appTextSecondary)
                                 }
                                 Spacer(minLength: 0)
@@ -295,6 +293,7 @@ private struct DayComposerNavigator: View {
                     }
                 }
             }
+            }.tint(Color.forge).font(.appLabel)
         }
         .dayComposerSurface()
     }
@@ -352,8 +351,10 @@ private struct DayComposerExerciseContent: View {
     var body: some View {
         if let presentation = coordinator.presentation(for: item.id) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("\(item.id.source.title) · \(presentation.label)")
-                    .font(.subheadline).foregroundStyle(Color.appTextSecondary)
+                HStack {
+                    DayComposerSourceChip(source: item.id.source)
+                    Text(presentation.label).font(.appCaption).foregroundStyle(Color.appTextSecondary)
+                }
                 if presentation.rendering == .mutable, let token = presentation.authorization {
                     mutableCard(presentation, token: token).id(presentation.identity)
                 } else {
@@ -411,9 +412,9 @@ private struct DayComposerReadOnlyContent: View {
         case .observed: return "Observé dans l’historique"
         case .corruptDraft: return "Brouillon local à vérifier. Données conservées."
         case .conflict: return "Observé dans l’historique. Brouillon local conservé."
-        case .unsupported: return "Non pris en charge dans Ma journée · \(presentation.item.tracking)"
-        case .locked: return "Lecture seule — contexte modifié"
-        case .localReadOnly: return "Récupération locale en lecture seule"
+        case .unsupported: return "Cet exercice ne peut pas être saisi dans Ma journée. Consulte-le depuis sa séance habituelle."
+        case .locked: return "La journée a changé. Tes saisies enregistrées restent disponibles."
+        case .localReadOnly: return "Saisie conservée sur cet appareil, disponible en consultation."
         case .mutable: return ""
         }
     }
@@ -512,8 +513,8 @@ private struct DayComposerLockedState: View {
 private struct DayComposerSummaryState: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Aucun exercice à saisir automatiquement ici.").font(.headline)
-            Text("Tu peux consulter les éléments de la journée.").foregroundStyle(Color.appTextSecondary)
+            Text("Saisies à consulter").font(.headline)
+            Text("Vérifie l’état de Matin et Soir ci-dessous pour terminer ta journée.").foregroundStyle(Color.appTextSecondary)
         }
         .foregroundStyle(Color.appTextPrimary).dayComposerSurface()
     }
