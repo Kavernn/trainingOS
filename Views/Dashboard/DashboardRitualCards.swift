@@ -140,6 +140,9 @@ struct QuickBattleSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isSaving = false
     @State private var saved = false
+    @State private var message: String?
+    @State private var queued = false
+    var onConfirmed: (String?) -> Void = { _ in }
 
     var body: some View {
         NavigationStack {
@@ -173,6 +176,9 @@ struct QuickBattleSheet: View {
                             .foregroundColor(Color.appSuccess)
                     }
 
+                    if let message {
+                        Text(message).font(.appCaption).foregroundColor(.appTextSecondary)
+                    }
                     Spacer()
                 }
                 .padding(24)
@@ -187,7 +193,7 @@ struct QuickBattleSheet: View {
                 }
             }
         }
-        .presentationDetents([.height(280)])
+        .presentationDetents([.medium])
         .presentationBackground(Color.appBg)
     }
 
@@ -197,16 +203,23 @@ struct QuickBattleSheet: View {
             guard !isSaving, !saved else { return }
             isSaving = true
             Task {
-                _ = try? await APIService.shared.upsertBattle(
-                    date: DateFormatter.isoDate.string(from: Date()),
-                    status: status
-                )
-                await MainActor.run {
-                    isSaving = false
+                let store = WarRoomProgressStore.shared
+                if store.progress == nil { await store.refresh() }
+                let before = store.progress
+                let date = DateFormatter.isoDate.string(from: Date())
+                do {
+                    _ = try await APIService.shared.upsertBattle(date: date, status: status)
                     saved = true
+                    let feedback = await store.confirmedVictory(date: date, status: status, before: before)
+                    onConfirmed(feedback)
+                    dismiss()
+                } catch APIError.queuedOffline {
+                    queued = true
+                    message = "En attente de synchronisation. La victoire sera comptée après confirmation."
+                } catch {
+                    message = error.localizedDescription
                 }
-                try? await Task.sleep(nanoseconds: 700_000_000)
-                dismiss()
+                isSaving = false
             }
         } label: {
             VStack(spacing: 10) {
@@ -228,7 +241,7 @@ struct QuickBattleSheet: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
-        .disabled(isSaving || saved)
+        .disabled(isSaving || saved || queued)
     }
 }
 

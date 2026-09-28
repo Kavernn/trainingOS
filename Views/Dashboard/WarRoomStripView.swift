@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct WarRoomStripView: View {
+    @ObservedObject private var progressStore = WarRoomProgressStore.shared
     let hasResult: Bool
     let hasTemptation: Bool
     let onResultTap: () -> Void
@@ -30,6 +31,24 @@ struct WarRoomStripView: View {
                 }
             }
 
+            NavigationLink {
+                WarRoomGateView()
+            } label: {
+                HStack {
+                    if let progress = progressStore.progress, progress.complete, let week = progress.weeks.last {
+                        Text("War Room · \(week.victories) victoires cette semaine")
+                    } else {
+                        Text("Voir mes victoires")
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.forge)
+                .frame(minHeight: 44)
+            }
+            .buttonStyle(.plain)
+
             if hasResult && hasTemptation {
                 HStack(spacing: 5) {
                     Image(systemName: "checkmark.circle.fill")
@@ -46,6 +65,7 @@ struct WarRoomStripView: View {
                 }
             }
         }
+        .task { await progressStore.refresh() }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
         .overlay(
@@ -64,7 +84,7 @@ struct WarRoomStripView: View {
                     .font(.appCaption).fontWeight(.semibold)
             }
             .foregroundColor(hasResult ? Color.appTextMuted : Color.appOnSurface)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
             .padding(.horizontal, 10).padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 9)
@@ -88,7 +108,7 @@ struct WarRoomStripView: View {
                     .font(.appCaption).fontWeight(.semibold)
             }
             .foregroundColor(hasTemptation ? Color.appTextMuted : Color.appOnSurface)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
             .padding(.horizontal, 10).padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 9)

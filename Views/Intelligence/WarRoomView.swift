@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 
 struct WarRoomView: View {
+    @ObservedObject private var progressStore = WarRoomProgressStore.shared
     @StateObject private var vm = WarRoomViewModel()
     @State private var tab: WarRoomTab = .counter
     @State private var showTriggerSheet  = false
@@ -15,25 +16,18 @@ struct WarRoomView: View {
 
                 VStack(spacing: 0) {
                     tabBar
-                    tabContent
-                }
-
-                // Emergency FAB — always accessible
-                if tab != .arsenal {
                     Button {
                         tab = .arsenal
                     } label: {
-                        Image(systemName: "bolt.shield.fill")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 52, height: 52)
-                            .background(Color.forge, in: Circle())
-                            .shadow(color: Color.forge.opacity(0.40), radius: 10, y: 4)
+                        Label("Besoin d’un coup de main", systemImage: "bolt.shield.fill")
+                            .font(.body.weight(.semibold))
+                            .frame(maxWidth: .infinity, minHeight: 44)
                     }
-                    .accessibilityLabel("Arsenal — ouvrir mes armes contre le craving")
-                    .padding(.trailing, 20)
-                    .padding(.bottom, fabBottomPadding)
+                    .foregroundStyle(Color.forge)
+                    .padding(.horizontal, 16)
+                    tabContent
                 }
+
             }
             .navigationTitle("War Room")
             .navigationBarTitleDisplayMode(.inline)
@@ -108,15 +102,13 @@ struct WarRoomView: View {
     private var tabContent: some View {
         switch tab {
         case .counter:
-            BattleCounterView(vm: vm)
+            WarRoomProgressView(store: progressStore)
         case .trigger:
             TriggerHistoryView(vm: vm, showSheet: $showTriggerSheet)
         case .arsenal:
             ArsenalView(vm: vm, showAdd: $showAddArsenal)
         case .patterns:
             PatternReportView(vm: vm)
-        case .map:
-            WarMapView(vm: vm)
         }
     }
 }
@@ -124,15 +116,14 @@ struct WarRoomView: View {
 // MARK: - Tabs
 
 enum WarRoomTab: CaseIterable {
-    case counter, trigger, arsenal, patterns, map
+    case counter, trigger, arsenal, patterns
 
     var label: String {
         switch self {
-        case .counter:  return "Compteur"
+        case .counter:  return "Victoires"
         case .trigger:  return "Journal"
         case .arsenal:  return "Arsenal"
         case .patterns: return "Patterns"
-        case .map:      return "Carte"
         }
     }
 
@@ -142,7 +133,6 @@ enum WarRoomTab: CaseIterable {
         case .trigger:  return "exclamationmark.triangle.fill"
         case .arsenal:  return "bolt.fill"
         case .patterns: return "waveform.path.ecg"
-        case .map:      return "map.fill"
         }
     }
 }
@@ -168,8 +158,7 @@ class WarRoomViewModel: ObservableObject {
         isLoading = true
         error = nil
         await withTaskGroup(of: Void.self) { g in
-            g.addTask { await self.loadSummary() }
-            g.addTask { await self.loadBattles() }
+            g.addTask { await WarRoomProgressStore.shared.refresh() }
             g.addTask { await self.loadTriggers() }
             g.addTask { await self.loadArsenal() }
             g.addTask { await self.loadOath() }
@@ -186,15 +175,16 @@ class WarRoomViewModel: ObservableObject {
     }
 
     func loadBattles() async {
-        battles = (try? await api.getWarRoomBattles()) ?? []
+        await WarRoomProgressStore.shared.refresh(force: true)
+        if let progress = WarRoomProgressStore.shared.progress { battles = progress.history.battles }
     }
 
     func loadTriggers() async {
-        triggers = (try? await api.getWarRoomTriggers()) ?? []
+        if let result = try? await api.getWarRoomTriggers() { triggers = result }
     }
 
     func loadArsenal() async {
-        arsenal = (try? await api.getWarRoomArsenal()) ?? []
+        if let result = try? await api.getWarRoomArsenal() { arsenal = result }
     }
 
     func loadPatterns() async {
@@ -207,7 +197,7 @@ class WarRoomViewModel: ObservableObject {
 
     func logBattle(_ status: BattleStatus, force: Bool = false) async {
         let prevStreak = summary?.victoryStreak ?? 0
-        let today = ISO8601DateFormatter().string(from: Date()).prefix(10).description
+        let today = DateFormatter.isoDate.string(from: Date())
         do {
             let s = try await api.upsertBattle(date: today, status: status, force: force)
             if status == .lost && prevStreak > 0 && s.victoryStreak == 0 {

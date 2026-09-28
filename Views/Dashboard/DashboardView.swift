@@ -25,6 +25,7 @@ struct DashboardView: View {
     @State private var showNutritionAddSheet = false
     @State private var showQuickTrigger = false
     @State private var showQuickBattle = false
+    @Environment(\.accessibilityReduceMotion) private var reduceWarRoomMotion
     @State private var warRoomToastMessage: String? = nil
     @State private var educationalCapsules: [EducationalCapsule] = []
     @State private var educationalLoadedDate: String? = nil
@@ -430,7 +431,9 @@ struct DashboardView: View {
         .sheet(isPresented: $showQuickBattle, onDismiss: {
             Task { await vm.refreshWarRoomTodayStatus() }
         }) {
-            QuickBattleSheet()
+            QuickBattleSheet { feedback in
+                if let feedback { warRoomToastMessage = feedback }
+            }
         }
         .overlay(alignment: .top) {
             if let msg = warRoomToastMessage {
@@ -443,14 +446,14 @@ struct DashboardView: View {
                     .cornerRadius(20)
                     .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
                     .padding(.top, 12)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .transition(reduceWarRoomMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
                     .onAppear {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                            withAnimation(.easeOut(duration: 0.3)) { warRoomToastMessage = nil }
+                            withAnimation(reduceWarRoomMotion ? nil : .easeOut(duration: 0.3)) { warRoomToastMessage = nil }
                         }
                     }
-                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: warRoomToastMessage)
+                    .animation(reduceWarRoomMotion ? nil : .spring(response: 0.35, dampingFraction: 0.8), value: warRoomToastMessage)
             }
         }
         .alert("Erreur", isPresented: Binding(

@@ -13,6 +13,7 @@ extension APIService {
     func updateWarRoomConfig(_ fields: [String: Any]) async throws {
         _ = try await offlinePost(endpoint: "/api/war_room/config", payload: fields)
         CacheInvalidation.warRoomConfigUpdated.invalidate()
+        await WarRoomProgressStore.shared.configurationChanged()
     }
 
     // MARK: Summary
@@ -24,6 +25,16 @@ extension APIService {
     }
 
     // MARK: Battles
+
+    /// Uncached, date-complete history. Failed reads must not become an empty journal.
+    func getWarRoomProgress() async throws -> WarRoomHistory {
+        let url = try buildURL(path: "/api/war_room/progress")
+        let (data, response) = try await URLSession.authed.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 503, "Historique indisponible")
+        }
+        return try APIService.decoder.decode(WarRoomHistory.self, from: data)
+    }
 
     func getWarRoomBattles(limit: Int = 90) async throws -> [WarRoomBattle] {
         let url  = try buildURL(path: "/api/war_room/battles", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])

@@ -65,6 +65,55 @@ def api_wr_battles():
     return jsonify(db.get_war_room_battles(limit=limit) or [])
 
 
+@war_room_bp.route("/api/war_room/progress", methods=["GET"])
+def api_wr_progress():
+    """Read-only history of the existing single-user journal, with honest coverage.
+
+    Keyset pagination avoids Supabase's implicit row cap. Never convert a DB
+    failure into zero victories. No config-based filtering of historical results.
+    """
+    import db_core
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return jsonify({"error": "Historique indisponible"}), 503
+    try:
+        config = (db_core._client.table("war_room_config")
+                  .select("war_start_date, updated_at").eq("id", 1).limit(1).execute()).data or []
+        config = config[0] if config else {}
+        today = _today_mtl()
+        rows = []
+        cursor = None
+        complete = False
+        # A bounded response remains explicitly partial if this safety cap is hit.
+        for _ in range(20):
+            query = (db_core._client.table("war_room_battles")
+                     .select("id, date, status, notes, created_at, updated_at", count="exact")
+                     .lte("date", today).order("date", desc=True).limit(500))
+            if cursor:
+                query = query.lt("date", cursor)
+            page = query.execute()
+            batch = page.data
+            if batch is None or page.count is None:
+                raise ValueError("Couverture de l'historique inconnue")
+            rows.extend(batch)
+            if len(batch) == page.count:
+                complete = True
+                break
+            if not batch:
+                raise ValueError("Page d'historique incomplète")
+            cursor = batch[-1]["date"]
+        latest = (db_core._client.table("war_room_config")
+                  .select("war_start_date, updated_at").eq("id", 1).limit(1).execute()).data or []
+        if (latest[0] if latest else {}) != config:
+            return jsonify({"error": "Configuration modifiée, réessaie"}), 409
+        return jsonify({"battles": rows, "complete": complete,
+                        "start_date": config.get("war_start_date"),
+                        "context": str(config.get("updated_at") or "personal"),
+                        "through_date": today})
+    except Exception:
+        logger.exception("War Room history unavailable")
+        return jsonify({"error": "Historique indisponible, réessaie"}), 503
+
+
 @war_room_bp.route("/api/war_room/battle", methods=["POST"])
 def api_wr_battle_upsert():
     import db

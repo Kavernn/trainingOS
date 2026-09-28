@@ -30,10 +30,12 @@ struct WarRoomBattle: Codable, Identifiable {
     var status: BattleStatus
     var notes: String?
     let createdAt: String?
+    var updatedAt: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, date, status, notes
         case createdAt = "created_at"
+        case updatedAt = "updated_at"
     }
 }
 
