@@ -3,8 +3,9 @@ import SwiftUI
 
 
 struct SeanceView: View {
-    @StateObject private var vm = SeanceViewModel(draftSessionType: "morning")
+    @StateObject private var vm = SeanceViewModel(draftSessionType: "morning", followsActivePlanning: true)
     @ObservedObject private var appTheme = AppTheme.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
@@ -15,14 +16,24 @@ struct SeanceView: View {
                     AppLoadingView()
                 } else if let data = vm.seanceData {
                     seanceContent(data: data)
+                        .id(vm.contentIdentity)
                 } else if let err = vm.error {
-                    ErrorView(message: err) { Task { await vm.load() } }
+                    ErrorView(message: err) { Task { await vm.reloadCurrentPlanning() } }
                 }
             }
             .navigationTitle("Séance")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .task { await vm.load() }
+        .task { await vm.reloadCurrentPlanning() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await vm.reloadCurrentPlanning() } }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            Task { await vm.reloadCurrentPlanning() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            Task { await vm.reloadCurrentPlanning() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .sessionCompleted)) { _ in
             ActionFeedbackManager.shared.show(.sessionComplete(streak: nil))
         }

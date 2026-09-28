@@ -1537,6 +1537,85 @@ class SeanceViewModel: ObservableObject {
     let chrono = WorkoutChronoViewModel()
 
     var cacheService: CacheService = .shared
+    private var followsActivePlanning = false
+    private var planningObserver: NSObjectProtocol?
+    private var planningGeneration = 0
+    @Published private(set) var plannedProgramID: String?
+    struct ContentIdentity: Hashable {
+        let program: String?
+        let date: String
+        let source: String
+        let session: String
+    }
+    var contentIdentity: ContentIdentity? {
+        guard let data = seanceData else { return nil }
+        return ContentIdentity(program: plannedProgramID, date: data.todayDate,
+                               source: draftSessionType, session: data.today)
+    }
+    var planningNow: () -> Date = { Date() }
+    var currentPlanningLoader: (Date, Bool) async throws -> (program: String, data: SeanceData) = {
+        try await APIService.shared.fetchCurrentPlannedSeance(date: $0, preserveRecovery: $1)
+    }
+
+    private func hasPlanningRecovery(date: String) -> Bool {
+        SessionDraftStore.loadStartedAt(date: date, sessionType: draftSessionType) != nil ||
+        SessionDraftStore.hasDraft(date: date, sessionType: draftSessionType) ||
+        !(SessionDraftStore.loadComment(date: date, sessionType: draftSessionType) ?? "").isEmpty ||
+        UserDefaults.standard.dictionaryRepresentation().keys.contains { key in
+            let prefix = "\(ExerciseDraftPersistence.keyPrefix)\(date)_\(draftSessionType)_"
+            guard key.hasPrefix(prefix) else { return false }
+            let store = ExerciseDraftPersistence(date: date, sessionType: draftSessionType,
+                                                 exerciseName: String(key.dropFirst(prefix.count)))
+            // Classic cards persist their blank initial sets on appearance. That is
+            // not execution. Protect unreadable recovery and every non-default input;
+            // this check never deletes or rewrites a draft.
+            guard let draft = store.loadCard() else { return true }
+            if !(draft.sessionNote ?? "").isEmpty { return true }
+            let blank = SetInput()
+            return draft.sets.contains {
+                !$0.weight.isEmpty || !$0.reps.isEmpty || $0.rir != blank.rir ||
+                $0.duration != blank.duration || $0.rpe != nil ||
+                !($0.distance ?? "").isEmpty || !($0.intensity ?? "").isEmpty ||
+                $0.durationLeft != nil || $0.durationRight != nil ||
+                ($0.protocolCompleted ?? false)
+            }
+        }
+    }
+
+    var preservesCurrentExecution: Bool {
+        guard let data = seanceData else { return false }
+        // Mirrored server logs in a completed recap are not a running workout.
+        // Unacknowledged local recovery remains protected even after completion.
+        return isFinishing || hasPlanningRecovery(date: data.todayDate) ||
+            (!data.alreadyLogged && (sessionStarted || chrono.hasTimingContext ||
+                                    !logResults.isEmpty || !sessionComment.isEmpty))
+    }
+
+    /// Only the root tab opts in. Recheck after awaits: an edit/start made during
+    /// the request must win over a new plan. No recovery is deleted here.
+    func reloadCurrentPlanning(now: Date = Date()) async {
+        guard followsActivePlanning, !isDayComposerLocal, !preservesCurrentExecution else { return }
+        planningGeneration += 1
+        let generation = planningGeneration
+        let day = DateFormatter.isoDate.string(from: now)
+        let wallDay = DateFormatter.isoDate.string(from: Date())
+        if seanceData == nil { isLoading = true }
+        defer { if generation == planningGeneration { isLoading = false } }
+        do {
+            let loaded = try await currentPlanningLoader(now, hasPlanningRecovery(date: day))
+            guard generation == planningGeneration, !Task.isCancelled,
+                  !preservesCurrentExecution, loaded.data.todayDate == day,
+                  wallDay == DateFormatter.isoDate.string(from: Date()) else { return }
+            plannedProgramID = loaded.program
+            seanceData = loaded.data
+            restoreLogResults(from: loaded.data, serverSessionType: "morning", serverCompleted: loaded.data.alreadyLogged)
+            error = nil
+        } catch {
+            guard generation == planningGeneration, !Task.isCancelled,
+                  !(error is CancellationError), (error as? URLError)?.code != .cancelled else { return }
+            if seanceData == nil { self.error = error.localizedDescription }
+        }
+    }
 
     // Init obligatoire (2026-07-20) : retirer le default "morning" élimine le
     // piège permanent d'un futur écran qui ferait `SeanceViewModel()` en pensant
@@ -1547,8 +1626,29 @@ class SeanceViewModel: ObservableObject {
         self.draftSessionType = draftSessionType
     }
 
+    convenience init(draftSessionType: String, followsActivePlanning: Bool) {
+        self.init(draftSessionType: draftSessionType)
+        self.followsActivePlanning = followsActivePlanning
+        if followsActivePlanning {
+            planningObserver = NotificationCenter.default.addObserver(forName: .activeProgrammePlanningDidChange, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self else { return }
+                    await self.reloadCurrentPlanning(now: self.planningNow())
+                }
+            }
+        }
+    }
+
+    deinit { if let planningObserver { NotificationCenter.default.removeObserver(planningObserver) } }
+
     func load() async {
         guard !isDayComposerLocal else { return }
+        // Explicit workout actions (move/refusion, finish recap) retain their
+        // execution reload semantics. Passive planning events use the guarded
+        // reloadCurrentPlanning entry point instead.
+        if followsActivePlanning && !preservesCurrentExecution {
+            await reloadCurrentPlanning(now: planningNow()); return
+        }
         if seanceData == nil,
            let cached = cacheService.load(for: "seance_data"),
            let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {

@@ -63,7 +63,7 @@ struct DashboardView: View {
                 }
                 .allowsHitTesting(false)
 
-                if loadingState.isLoading && api.dashboard == nil {
+                if loadingState.isLoading && api.dashboard == nil && api.dashboardPlan == nil {
                     VStack(spacing: 0) {
                         DashboardSkeletonView()
                         // D-B2: show retry button alongside slow-load message
@@ -88,7 +88,7 @@ struct DashboardView: View {
                             .padding(.top, 8)
                         }
                     }
-                } else if let dash = api.dashboard {
+                } else if let dash = api.dashboard, dash.todayDate == todayStr {
                     ScrollView(showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 14) {
                                 // SYSTÈME — avertissement chargement partiel
@@ -140,8 +140,11 @@ struct DashboardView: View {
                                 .appearAnimation(delay: 0.08)
 
                                 // 4 — Séance du jour
+                                if let plan = api.dashboardPlan {
                                 TodayCardView(
                                     dash: dash,
+                                    plan: plan,
+                                    plannedDate: Date(),
                                     showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
                                     onOpenSession: onOpenSession,
                                     readiness: vm.readinessData,
@@ -149,6 +152,7 @@ struct DashboardView: View {
                                 )
                                 .appearAnimation(delay: 0.06)
                                 .padding(.vertical, 8)
+                                }
 
                                 // 5 — Carte de la période (matin : Humeur ~6h-14h si isDue, soir : Routine sommeil ≥20h)
                                 let hour = Calendar.current.component(.hour, from: Date())
@@ -354,11 +358,28 @@ struct DashboardView: View {
                             .padding(.bottom, 8)
                         }
                         .refreshable {
-                            await vm.loadAll()
+                            await vm.loadAll(mode: .refresh)
+                            guard !Task.isCancelled else { return }
                             await loadEducationalIfNeeded()
                             lastRefresh = Date()
                             checkAndShowMorningReveal()
                         }
+                } else if let plan = api.dashboardPlan {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Aujourd’hui · Planning").font(.appHeadline)
+                            Text(plan.morning(on: Date())).font(.appTitle)
+                            if let evening = plan.evening(on: Date()) {
+                                Text("Soir · \(evening)").font(.appBody)
+                            }
+                            Text("Planning enregistré. Les données de suivi sont indisponibles.")
+                                .font(.appCaption).foregroundColor(.appTextSecondary)
+                            Button("Réessayer") { Task { await vm.loadAll() } }
+                                .frame(minHeight: 44)
+                        }
+                        .foregroundColor(.appTextPrimary).padding()
+                    }
+                    .refreshable { await vm.loadAll(mode: .refresh) }
                 } else if let err = loadingState.error {
                     VStack(spacing: 16) {
                         Image(systemName: "wifi.exclamationmark")
@@ -383,7 +404,7 @@ struct DashboardView: View {
             .navigationBarHidden(true)
         }
         .task {
-            await vm.loadAll()
+            await vm.loadAll(mode: .initial)
             await loadEducationalIfNeeded()
             lastRefresh = Date()
             checkAndShowMorningReveal()
@@ -500,7 +521,7 @@ struct DashboardView: View {
     }
 
     private var dailyAccent: Color {
-        Color.sessionTypeColor(api.dashboard?.today ?? "")
+        Color.sessionTypeColor(api.dashboardPlan?.morning(on: Date()) ?? "")
     }
 
     private func handleAlertAction(signal: CriticalSignal, dash: DashboardData) {

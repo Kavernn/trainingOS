@@ -43,6 +43,48 @@ enum APIError: LocalizedError {
 //  SLEEP        APIService+Sleep.swift
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Display-only weekly plan. Never resolves dated execution overrides.
+struct DashboardPlan: Codable {
+    struct Programme: Codable {
+        let active_program_id: String
+        let current_program_id: String
+        let schedule: [String: String]
+        let full_program: [String: [String: SafeString]]
+
+        var isActive: Bool {
+            !active_program_id.isEmpty && active_program_id == current_program_id
+        }
+
+        func matches(_ other: Programme) -> Bool {
+            active_program_id == other.active_program_id && other.isActive &&
+            schedule == other.schedule &&
+            full_program.mapValues { $0.mapValues(\.value) } ==
+                other.full_program.mapValues { $0.mapValues(\.value) }
+        }
+    }
+
+    let programme: Programme
+    let eveningSchedule: [String: String]
+
+    func morning(on date: Date) -> String {
+        validSession(programme.schedule[TrainingDoctrine.dayName(on: date)]) ?? "Repos"
+    }
+
+    func evening(on date: Date) -> String? {
+        validSession(eveningSchedule[TrainingDoctrine.dayName(on: date)])
+    }
+
+    private func validSession(_ name: String?) -> String? {
+        guard let name, !name.isEmpty, name != "Repos", programme.full_program[name] != nil else { return nil }
+        return name
+    }
+}
+
+enum DashboardLoadMode {
+    case initial
+    case refresh
+}
+
 /// Loading state separated from data so views that only read dashboard
 /// don't re-render when isLoading/isSlow/error toggle during fetchDashboard.
 @MainActor
@@ -50,6 +92,7 @@ final class APILoadingState: ObservableObject {
     static let shared = APILoadingState()
     private init() {}
     @Published var isLoading = false
+    @Published var isRefreshing = false
     @Published var isSlow = false
     @Published var error: String?
 }
@@ -60,6 +103,13 @@ class APIService: ObservableObject {
     let baseURL = APIConfig.base
 
     @Published var dashboard: DashboardData?
+    @Published private(set) var dashboardPlan: DashboardPlan?
+    @MainActor private var dashboardGeneration = 0
+    @MainActor var dashboardContextVersion: Int { dashboardGeneration }
+    @MainActor private var dashboardRequestRunning = false
+    @MainActor private var dashboardScope: (program: String, date: String)?
+    private let dashboardDefaults: UserDefaults
+    private static let dashboardPlanKey = "dashboard_active_weekly_plan_v1"
     /// Optimistic flag — set immediately when logSession is called (online OR offline queued).
     /// Prevents "Commencer la séance" from reappearing while the fresh dashboard is loading.
     @Published var sessionLoggedToday = false
@@ -78,7 +128,13 @@ class APIService: ObservableObject {
 
     private let logger = Logger(subsystem: "TrainingOS", category: "api")
     private var consecutiveDashboardFailures = 0
-    private init() {}
+    init(dashboardDefaults: UserDefaults = .standard) {
+        self.dashboardDefaults = dashboardDefaults
+        if let data = dashboardDefaults.data(forKey: Self.dashboardPlanKey),
+           let plan = try? JSONDecoder().decode(DashboardPlan.self, from: data), plan.programme.isActive {
+            dashboardPlan = plan
+        }
+    }
 
     private let baseHost: String = URL(string: APIConfig.base)?.host ?? ""
     private let baseScheme: String = URL(string: APIConfig.base)?.scheme ?? "https"
@@ -197,73 +253,148 @@ class APIService: ObservableObject {
     }
 
     // MARK: - Dashboard
-    func fetchDashboard() async {
-        // An unscoped cache cannot certify the active program or local day.
-        // Never present an old workout as today's executable session.
-        await MainActor.run { self.dashboard = nil }
+    @MainActor func publishActivePlanningChange() {
+        // Drop in-flight Dashboard responses, but retain the visible plan until
+        // its replacement is validated. This event concerns active planning only.
+        dashboardGeneration += 1
+        dashboardRequestRunning = false
+        NotificationCenter.default.post(name: .activeProgrammePlanningDidChange, object: nil)
+        Task { await self.fetchDashboard(mode: .refresh) }
+    }
 
-        await MainActor.run {
-            APILoadingState.shared.isLoading = true
-            APILoadingState.shared.isSlow = false
-            APILoadingState.shared.error = nil
+    /// Root Séance tab only. Other execution owners keep their existing loaders.
+    @MainActor func fetchCurrentPlannedSeance(
+        date: Date, preserveRecovery: Bool,
+        transport: (URLRequest) async throws -> (Data, URLResponse) = { try await URLSession.authed.data(for: $0) }
+    ) async throws -> (program: String, data: SeanceData) {
+        let day = DateFormatter.isoDate.string(from: date)
+        func read<T: Decodable>(_ path: String, query: [URLQueryItem] = []) async throws -> T {
+            var request = URLRequest(url: try buildURL(path: path, queryItems: query), cachePolicy: .reloadIgnoringLocalCacheData)
+            request.timeoutInterval = 15
+            let (bytes, response) = try await transport(request)
+            try Task.checkCancellation()
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
+            return try JSONDecoder().decode(T.self, from: bytes)
         }
-        guard let url = try? buildURL(path: "/api/dashboard",
-                                      queryItems: [URLQueryItem(name: "date", value: DateFormatter.isoDate.string(from: Date()))]) else {
-            await MainActor.run {
+        let before: DashboardPlan.Programme = try await read("/api/programme_data")
+        guard before.isActive else { throw URLError(.cancelled) }
+        let query = [URLQueryItem(name: "date", value: day), URLQueryItem(name: "program_id", value: before.active_program_id)]
+        let execution: SeanceData = try await read("/api/seance_data", query: query)
+        let hasServerProgress = execution.weights.values.contains { weight in
+            weight.history?.contains { $0.date == day && ($0.sessionType ?? "morning") == "morning" } == true
+        }
+        let planned = DashboardPlan(programme: before, eveningSchedule: [:]).morning(on: date)
+        let result: SeanceData
+        if preserveRecovery || hasServerProgress || execution.alreadyLogged || execution.today == planned {
+            result = execution
+        } else {
+            // Explicit read-only selector bypasses the dated override. Do not
+            // mutate it. Completed/partial execution above retains its identity.
+            result = try await read("/api/seance_data", query: query + [URLQueryItem(name: "session_name", value: planned)])
+            guard result.today == planned else { throw URLError(.badServerResponse) }
+        }
+        let after: DashboardPlan.Programme = try await read("/api/programme_data")
+        guard before.matches(after), result.todayDate == day else { throw URLError(.cancelled) }
+        return (before.active_program_id, result)
+    }
+
+    /// Activation/deletion invalidates context, not a routine refresh. Old requests
+    /// cannot republish their results after this boundary.
+    @MainActor func invalidateDashboardContext() {
+        dashboardGeneration += 1
+        dashboardRequestRunning = false
+        dashboardScope = nil
+        dashboard = nil
+        dashboardPlan = nil
+        sessionLoggedToday = false
+        dashboardDefaults.removeObject(forKey: Self.dashboardPlanKey)
+        APILoadingState.shared.isLoading = false
+        APILoadingState.shared.isRefreshing = false
+        APILoadingState.shared.isSlow = false
+        APILoadingState.shared.error = nil
+    }
+
+    @discardableResult
+    @MainActor func fetchDashboard(
+        mode: DashboardLoadMode = .initial,
+        now: () -> Date = { Date() },
+        transport: (URLRequest) async throws -> (Data, URLResponse) = { try await URLSession.authed.data(for: $0) }
+    ) async -> Bool {
+        guard !dashboardRequestRunning else { return false }
+        dashboardRequestRunning = true
+        dashboardGeneration += 1
+        let generation = dashboardGeneration
+        let date = DateFormatter.isoDate.string(from: now())
+        // Retain only certified metrics for this day. Refresh never tears down a
+        // coherent ScrollView; initial load alone uses the empty/loading branch.
+        if dashboardScope?.date != date { dashboard = nil; dashboardScope = nil }
+        // A refresh has its own activity state. Only an initial load (or a
+        // refresh without any usable content) can request the loading surface.
+        APILoadingState.shared.isRefreshing = mode == .refresh
+        APILoadingState.shared.isLoading = mode == .initial || (dashboard == nil && dashboardPlan == nil)
+        APILoadingState.shared.isSlow = false
+        APILoadingState.shared.error = nil
+        defer {
+            if generation == dashboardGeneration {
+                dashboardRequestRunning = false
                 APILoadingState.shared.isLoading = false
-                APILoadingState.shared.error = "URL invalide — /api/dashboard"
-            }
-            return
-        }
-        var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
-        req.timeoutInterval = 15
-        let slowTask = Task {
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            if !Task.isCancelled {
-                await MainActor.run { APILoadingState.shared.isSlow = true }
+                APILoadingState.shared.isRefreshing = false
+                APILoadingState.shared.isSlow = false
             }
         }
-        do {
-            let data: Data
-            let (d, response) = try await URLSession.authed.data(for: req)
+        func current() -> Bool {
+            generation == dashboardGeneration && date == DateFormatter.isoDate.string(from: now()) && !Task.isCancelled
+        }
+        func read<T: Decodable>(_ path: String, dated: Bool = false) async throws -> T {
+            let url = try buildURL(path: path, queryItems: dated ? [URLQueryItem(name: "date", value: date)] : [])
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+            request.timeoutInterval = 15
+            let (data, response) = try await transport(request)
+            try Task.checkCancellation()
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 throw URLError(.badServerResponse)
             }
-            data = d
-            slowTask.cancel()
-            await MainActor.run { APILoadingState.shared.isSlow = false }
-            let decoded = try APIService.decoder.decode(DashboardData.self, from: data)
-            guard decoded.todayDate == DateFormatter.isoDate.string(from: Date()) else {
-                throw URLError(.badServerResponse)
+            return try JSONDecoder().decode(T.self, from: data)
+        }
+        do {
+            let before: DashboardPlan.Programme = try await read("/api/programme_data")
+            guard current(), before.isActive else { return false }
+            if dashboardScope?.program != before.active_program_id {
+                dashboard = nil; dashboardScope = nil
             }
-            await MainActor.run {
-                self.dashboard = decoded
-                APILoadingState.shared.isLoading = false
-                if decoded.alreadyLoggedToday { self.sessionLoggedToday = true }
-                else { self.sessionLoggedToday = false }
-                self.consecutiveDashboardFailures = 0
+            if dashboardPlan?.programme.active_program_id != before.active_program_id {
+                dashboardPlan = nil
+                dashboardDefaults.removeObject(forKey: Self.dashboardPlanKey)
             }
+            let evening: [String: String] = try await read("/api/evening_schedule")
+            let after: DashboardPlan.Programme = try await read("/api/programme_data")
+            guard current() else { return false }
+            guard before.matches(after) else { invalidateDashboardContext(); return false }
+            let plan = DashboardPlan(programme: before, eveningSchedule: evening)
+            // Persist the weekly plan independently: even a failed metrics request
+            // can leave a correct, date-resolved offline presentation.
+            dashboardPlan = plan
+            dashboardDefaults.set(try JSONEncoder().encode(plan), forKey: Self.dashboardPlanKey)
+            let decoded: DashboardData = try await read("/api/dashboard", dated: true)
+            let finalContext: DashboardPlan.Programme = try await read("/api/programme_data")
+            guard current() else { return false }
+            guard before.matches(finalContext) else { invalidateDashboardContext(); return false }
+            guard decoded.todayDate == date else { throw URLError(.badServerResponse) }
+            dashboardScope = (before.active_program_id, date)
+            dashboard = decoded
+            sessionLoggedToday = decoded.alreadyLoggedToday
+            consecutiveDashboardFailures = 0
             NotificationScheduler.shared.scheduleMorningNotification(for: decoded)
-        } catch let decodingError as DecodingError {
-            slowTask.cancel()
-            let _ = decodingError  // keep for logging
-            logger.error("❌ Dashboard decoding error: \(decodingError, privacy: .public)")
-            await MainActor.run {
-                if self.dashboard == nil { APILoadingState.shared.error = "Données incompatibles — mise à jour requise" }
-                APILoadingState.shared.isLoading = false
-                APILoadingState.shared.isSlow = false
-                self.consecutiveDashboardFailures += 1
-                if self.consecutiveDashboardFailures >= 3 { self.sessionLoggedToday = false }
-            }
+            return true
         } catch {
-            slowTask.cancel()
-            await MainActor.run {
-                if self.dashboard == nil { APILoadingState.shared.error = error.localizedDescription }
-                APILoadingState.shared.isLoading = false
-                APILoadingState.shared.isSlow = false
-                self.consecutiveDashboardFailures += 1
-                if self.consecutiveDashboardFailures >= 3 { self.sessionLoggedToday = false }
+            guard current(), !(error is CancellationError),
+                  (error as? URLError)?.code != .cancelled else { return false }
+            // Full-page failure is only appropriate without prior coherent data.
+            if dashboard == nil {
+                APILoadingState.shared.error = error is DecodingError
+                    ? "Données incompatibles — mise à jour requise" : error.localizedDescription
             }
+            return false
         }
     }
 

@@ -1,0 +1,16 @@
+{
+  "today": "B",
+  "today_date": "2088-09-26",
+  "already_logged": false,
+  "session_type": "morning",
+  "schedule": {"Dim": "B"},
+  "full_program": {
+    "A": {"A1": "3x10", "A2": "3x10"},
+    "B": {"B1": "3x10", "B2": "3x10", "B3": "3x10"},
+    "PM": {"P1": "3x10"}
+  },
+  "exercise_order": {"A": ["A1", "A2"], "B": ["B1", "B2", "B3"], "PM": ["P1"]},
+  "weights": {},
+  "week": 1,
+  "inventory_types": {}
+}

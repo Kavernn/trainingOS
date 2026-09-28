@@ -174,29 +174,24 @@ final class DashboardViewModel: ObservableObject {
         if let sessionObserver { NotificationCenter.default.removeObserver(sessionObserver) }
     }
 
-    func loadAll() async {
-        guard !APILoadingState.shared.isLoading else { return }
+    private var refreshRunning = false
+
+    func loadAll(mode: DashboardLoadMode = .refresh) async {
+        guard !refreshRunning else { return }
+        refreshRunning = true
+        defer { refreshRunning = false }
         partialLoadWarning = false
         morningBriefFailed = false
 
-        // D-B1: timeout safety net — runs concurrently, fires only if performLoad hangs
-        let timeoutTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 15_000_000_000)
-            guard !Task.isCancelled, let self else { return }
-            if APIService.shared.dashboard == nil {
-                APILoadingState.shared.isLoading = false
-                APILoadingState.shared.error = "Connexion trop lente — tire vers le bas pour réessayer"
-            }
-        }
-
-        await performLoad()
-        timeoutTask.cancel()
+        // Each Dashboard request owns its timeout and loading state. A second
+        // timer must not reopen the gate or turn cancellation into an error.
+        await performLoad(mode: mode)
     }
 
-    private func performLoad() async {
+    private func performLoad(mode: DashboardLoadMode) async {
         // Phase 1: dashboard first — populates skeleton UI immediately
-        do { _ = try await APIService.shared.fetchDashboard() }
-        catch { logger.error("fetchDashboard: \(error, privacy: .public)") }
+        guard await APIService.shared.fetchDashboard(mode: mode), !Task.isCancelled else { return }
+        let contextVersion = APIService.shared.dashboardContextVersion
 
         // Single source of truth: dashboard.todayDate echoes the device date sent via ?date=.
         // Falls back to device date if dashboard failed to load (network + cache both failed).
@@ -299,6 +294,9 @@ final class DashboardViewModel: ObservableObject {
             for await failures in group { p2.criticalFailures += failures }
         }
 
+        guard !Task.isCancelled,
+              APIService.shared.dashboardContextVersion == contextVersion,
+              today == DateFormatter.isoDate.string(from: Date()) else { return }
         // Phase 2 batch-publish — all synchronous, coalesced by SwiftUI into 1 re-render
         deload             = p2.deload
         moodDue            = p2.moodDue
@@ -363,6 +361,9 @@ final class DashboardViewModel: ObservableObject {
                     }
                 }
             }
+            guard !Task.isCancelled,
+                  APIService.shared.dashboardContextVersion == contextVersion,
+                  today == DateFormatter.isoDate.string(from: Date()) else { return }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             readinessData        = p3.readinessData
             streakData           = p3.streakData

@@ -149,16 +149,19 @@ def get_today_evening() -> str | None:
 # Weight suggestions
 # ---------------------------------------------------------------------------
 
-def get_suggested_weights_for_today(weights: dict, program: dict | None = None, date: str | None = None) -> List[dict]:
+def get_suggested_weights_for_today(weights: dict, program: dict | None = None, date: str | None = None,
+                                     *, exercise_plan: dict | None = None) -> List[dict]:
     from inventory import load_inventory
-    if program is None:
-        program = load_program()
-    today_session = sessions_for_date(date or get_today_date(), program)[0]
-    if today_session not in program:
-        return []
+    if exercise_plan is None:
+        if program is None:
+            program = load_program()
+        today_session = sessions_for_date(date or get_today_date(), program)[0]
+        if today_session not in program:
+            return []
+        exercise_plan = get_strength_exercises(program[today_session])
 
     inventory = load_inventory() or {}
-    exercises = get_strength_exercises(program[today_session])
+    exercises = exercise_plan
     result: List[dict] = []
     for exercise in exercises:
         data      = weights.get(exercise, {})

@@ -415,6 +415,7 @@ extension APIService {
 // listen pour refetch leur payload (source unique backend). Ancien nom
 // .seanceSplitStoreDidChange renommé au retrait de SeanceSplitStore (commit 3).
 extension Notification.Name {
+    static let activeProgrammePlanningDidChange = Notification.Name("activeProgrammePlanningDidChange")
     static let planOverridesDidChange = Notification.Name("planOverridesDidChange")
 }
 
@@ -661,6 +662,7 @@ extension APIService {
     func saveEveningSchedule(_ schedule: [String: String]) async throws {
         _ = try await postProgrammeDirect(endpoint: "/api/evening_schedule", payload: schedule as [String: Any])
         CacheInvalidation.programmeMutated.invalidate()
+        await publishActivePlanningChange()
     }
 
     // MARK: - Bonus session creation (étape 2b)
@@ -717,6 +719,7 @@ extension APIService {
     func saveMorningSchedule(_ schedule: [String: String]) async throws {
         _ = try await postProgrammeDirect(endpoint: "/api/morning_schedule", payload: ["schedule": schedule])
         CacheInvalidation.programmeMutated.invalidate()
+        await publishActivePlanningChange()
     }
 
     func postProgrammeMutation(_ body: [String: Any]) async throws {
@@ -740,6 +743,8 @@ extension APIService {
         _ = try await postProgrammeDirect(endpoint: "/api/programs",
                                            payload: ["action": "set_active", "program_id": id])
         CacheInvalidation.programmeMutated.invalidate()
+        await invalidateDashboardContext()
+        await publishActivePlanningChange()
     }
 
     func renameProgram(id: String, name: String) async throws {
@@ -752,6 +757,8 @@ extension APIService {
         _ = try await postProgrammeDirect(endpoint: "/api/programs",
                                            payload: ["action": "delete", "program_id": id])
         CacheInvalidation.programmeMutated.invalidate()
+        await invalidateDashboardContext()
+        await publishActivePlanningChange()
     }
 
     func deleteHIIT(date: String, sessionType: String) async throws {

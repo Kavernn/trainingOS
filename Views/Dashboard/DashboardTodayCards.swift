@@ -3,6 +3,11 @@ import SwiftUI
 // MARK: - Today Card
 struct TodayCardView: View {
     let dash: DashboardData
+    let plan: DashboardPlan
+    let plannedDate: Date
+
+    private var plannedMorning: String { plan.morning(on: plannedDate) }
+    private var plannedEvening: String? { plan.evening(on: plannedDate) }
     var showGreatDayBadge: Bool = false
     var onOpenSession: (() -> Void)? = nil
     var readiness: ReadinessResponse? = nil
@@ -30,7 +35,7 @@ struct TodayCardView: View {
         dash.hasPartialLogs || SessionDraftStore.hasAnyDraft(date: dash.todayDate)
     }
 
-    var todayColor: Color { Color.sessionTypeColor(dash.today) }
+    var todayColor: Color { Color.sessionTypeColor(plannedMorning) }
 
     /// Étape 3b — source unique backend (dash.pushedToEvening dérivée du payload).
     /// Remplace SeanceSplitStore.load(date:) — même sémantique, même type.
@@ -41,13 +46,13 @@ struct TodayCardView: View {
         dash.pushedToEvening.count
     }
     private var seance2Label: String {
-        if let name = dash.eveningSessionName { return "Commencer la séance 2 · \(name)" }
+        if let name = plannedEvening { return "Commencer la séance 2 · \(name)" }
         if pushedCount > 0 { return "Commencer la séance 2 · \(pushedCount) exo\(pushedCount > 1 ? "s" : "")" }
         return "Commencer la séance 2"
     }
 
     var todayIcon: String {
-        let low = dash.today.lowercased()
+        let low = plannedMorning.lowercased()
         if low.contains("yoga")  { return "figure.mind.and.body" }
         if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return "moon.fill" }
         if low.contains("upper") || low.contains("lower") ||
@@ -57,15 +62,15 @@ struct TodayCardView: View {
     }
 
     var exercises: [(String, String)] {
-        guard let program = dash.fullProgram[dash.today] else { return [] }
+        guard let program = plan.programme.full_program[plannedMorning] else { return [] }
         // On convertit la valeur en String ici pour respecter la promesse [(String, String)]
         return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
     }
 
     /// Données d'affichage uniquement — ne participe jamais au choix de branche AM/PM.
     private var eveningPreview: [(String, String)] {
-        if let name = dash.eveningSessionName,
-           let program = dash.fullProgram[name] {
+        if let name = plannedEvening,
+           let program = plan.programme.full_program[name] {
             return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
         }
         return exercises.filter { dash.pushedToEvening.contains($0.0) }
@@ -111,11 +116,11 @@ struct TodayCardView: View {
                         .foregroundColor(isLoggedToday ? Color.appSuccess : todayColor)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(dash.today.isEmpty ? "Repos" : dash.today)
+                    Text(plannedMorning.isEmpty ? "Repos" : plannedMorning)
                         .font(.appTitle.weight(.bold))
                         .foregroundColor(Color.appOnSurface)
                         .lineLimit(1)
-                    if let pm = dash.eveningSessionName, !pm.isEmpty {
+                    if let pm = plannedEvening, !pm.isEmpty {
                         HStack(spacing: 4) {
                             Image(systemName: "moon.stars.fill")
                                 .font(.appCaption)
@@ -169,12 +174,12 @@ struct TodayCardView: View {
                 if let session = todaySession {
                     TodaySessionRecap(
                         session: session,
-                        sessionName: dash.today,
+                        sessionName: plannedMorning,
                         color: todayColor,
                         totalWorkoutMin: dash.totalWorkoutMinToday,
                         presentation: recapPresentation
                     )
-                    if recapPresentation == .dayCompleted, dash.today != "Repos" {
+                    if recapPresentation == .dayCompleted, plannedMorning != "Repos" {
                         muscleMap(for: todaySession?.exos ?? [])
                             .padding(.horizontal, 16)
                             .padding(.bottom, 12)
@@ -186,7 +191,7 @@ struct TodayCardView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         TodayPriorityHeader(
                             title: "À FAIRE MAINTENANT",
-                            subtitle: dash.eveningSessionName ?? "Séance 2",
+                            subtitle: plannedEvening ?? "Séance 2",
                             icon: "moon.stars.fill"
                         )
                         if !eveningPreview.isEmpty {
@@ -223,7 +228,7 @@ struct TodayCardView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         TodayPriorityHeader(
                             title: "À FAIRE MAINTENANT",
-                            subtitle: dash.today,
+                            subtitle: plannedMorning,
                             icon: todayIcon
                         )
                         TodayExercisePreview(exercises: exercises, accent: todayColor)
@@ -241,7 +246,7 @@ struct TodayCardView: View {
                 }
 
                 // Jour de repos → pas de CTA principal ici, Seance3BonusStrip (fin VStack) suffit.
-                if dash.today != "Repos" {
+                if plannedMorning != "Repos" {
                     Group {
                         if let onOpenSession {
                             Button(action: {

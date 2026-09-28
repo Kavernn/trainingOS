@@ -12,6 +12,11 @@ enum TrainingDoctrine {
     /// Source unique pour toute grille hebdo (programme, stats, séance).
     static let dayNames: [String] = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 
+    /// Same MTL weekday convention as the Structure weekly grid.
+    static func dayName(on date: Date) -> String {
+        dayNames[(Calendar.mtl.component(.weekday, from: date) + 5) % 7]
+    }
+
     /// Nom de la séance de demain d'après le schedule hebdo (clés "Lun"…"Dim").
     /// Weekday en timezone MTL (Calendar.mtl) — cohérent avec _today_mtl backend.
     /// "Repos" si la clé de demain est absente du schedule.

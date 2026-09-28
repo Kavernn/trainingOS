@@ -37,6 +37,8 @@ def api_seance_data():
 
     session_name_override = request.args.get("session_name", "").strip()
     if session_name_override:
+        if session_name_override not in (full_program or {}):
+            return jsonify({"error": "Session not found in programme"}), 404
         today_str     = session_name_override
         already_logged = False
     else:
@@ -72,9 +74,16 @@ def api_seance_data():
     # UNIQUE, cf. planner.py). Un exo déplacé matin→soir disparaît d'ici.
     from planner import get_day_plan
     _day_plan = get_day_plan(today_date, full_program)
-    if today_str and today_str in flat_program:
+    morning_name, evening_name = sessions_for_date(today_date, full_program)
+    # A named read is not a rename of the dated morning override. Reuse the
+    # effective slot's moved exercises only when that slot actually names it.
+    # A different explicit session retains its own template (read-only).
+    source = ("evening" if session_name_override and today_str != morning_name
+              and today_str == evening_name else "morning")
+    use_day_plan = not session_name_override or today_str in (morning_name, evening_name)
+    if use_day_plan and today_str and today_str in flat_program:
         flat_program[today_str] = {
-            ex: cap_scheme_sets(s) for ex, s in _day_plan["morning"].items()
+            ex: cap_scheme_sets(s) for ex, s in _day_plan[source].items()
         }
 
     today_exercises = list((flat_program.get(today_str) or {}).keys())
@@ -95,7 +104,11 @@ def api_seance_data():
         | set(_day_plan.get("pushed_to_bonus") or [])
     )
     weights = load_weights(sorted(weights_names), limit_per=20)
-    suggestions = get_suggested_weights_for_today(weights, full_program, today_date)
+    if session_name_override:
+        suggestions = get_suggested_weights_for_today(
+            weights, full_program, today_date, exercise_plan=flat_program[today_str])
+    else:
+        suggestions = get_suggested_weights_for_today(weights, full_program, today_date)
 
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
@@ -141,6 +154,7 @@ def api_seance_data():
 
     return jsonify({
         "today": today_str,
+        "session_type": source,
         "today_date": today_date,
         "already_logged": already_logged,
         "schedule": schedule,
