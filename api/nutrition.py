@@ -92,26 +92,28 @@ _REST_KEYWORDS = frozenset({
 })
 
 
-def _get_day_intensity() -> tuple[str, str]:
-    """Return (intensity, session_name).
+def _get_day_intensity(date: str | None = None, *, strict: bool = False) -> tuple[str, str]:
+    """Nutrition's classifier, using actual session then active planning for date.
 
-    Intensity: 'light' | 'moderate' | 'heavy' | 'rest'.
-    Session name: actual session started today, or today's scheduled session.
-    Order: pattern match first, then program membership for rest detection.
+    Historical planning is the current active programme, not a versioned archive.
+    Strict callers must never turn failed planning reads into a moderate target.
     """
     try:
-        from planner import load_program, get_today, get_today_date
+        from planner import load_program, sessions_for_date, get_today_date
 
-        # Prefer the session actually started today over the schedule
-        actual = db.get_workout_session_by_type(get_today_date(), "morning")
-        session_name = (actual or {}).get("session_name") or get_today()
+        target_date = date or get_today_date()
+        actual = db.get_workout_session_by_type(target_date, "morning")
+        program = load_program()
+        if strict and not program:
+            raise ValueError("Programme actif indisponible")
+        session_name = (actual or {}).get("session_name") or sessions_for_date(target_date, program)[0]
 
         if not session_name:
             return "rest", ""
 
         name = session_name.lower()
 
-        # Pattern match first — before any program lookup
+        # Preserve Nutrition classification rules (distinct from morning_brief).
         if any(k in name for k in _HEAVY_SESSIONS):
             return "heavy", session_name
         if any(k in name for k in _LIGHT_SESSIONS):
@@ -120,13 +122,51 @@ def _get_day_intensity() -> tuple[str, str]:
             return "rest", session_name
 
         # Only use program membership as fallback for ambiguous names
-        program = load_program()
         if session_name not in program:
             return "rest", session_name
 
         return "moderate", session_name
     except Exception:
+        if strict:
+            raise
         return "moderate", ""
+
+
+def resolve_daily_target(date: str) -> dict:
+    """Read-only projection of configured settings; no universal default targets."""
+    import json
+    import math
+    from datetime import date as calendar_date
+
+    if calendar_date.fromisoformat(date).isoformat() != date:
+        raise ValueError("Date invalide")
+    day_type, session = _get_day_intensity(date, strict=True)
+    settings = db.get_nutrition_settings()
+    if not isinstance(settings, dict):
+        raise ValueError("Réglages nutrition indisponibles")
+    targets = settings.get("day_type_targets") or {}
+    if isinstance(targets, str):
+        targets = json.loads(targets)
+    target = targets.get(day_type) or {}
+
+    def number(value, *, required=False):
+        if value is None and not required:
+            return None
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            raise ValueError("Cibles nutrition non configurées")
+        if not math.isfinite(value) or value < 0 or (required and value == 0):
+            raise ValueError("Cibles nutrition invalides")
+        return value
+
+    return {
+        "date": date, "day_type": day_type, "workout_label": session,
+        "calories": number(target.get("calories"), required=True),
+        "proteines": number(settings.get("objectif_proteines") or settings.get("protein_target"), required=True),
+        "glucides": number(target.get("glucides")),
+        "lipides": number(settings.get("lipides")),
+    }
 
 
 # ── Entries ───────────────────────────────────────────────────────────────────
@@ -186,15 +226,12 @@ def get_recent_days(n: int = 7) -> list:
 _ESTIMATE_MAX_PCT = 200  # borne haute permissive (surestimation possible)
 
 
-def replace_day_with_estimate(pct_calories: float, pct_proteines: float) -> dict:
-    """Remplace le total nutrition de la VEILLE (MTL) par une estimation en %
-    des cibles courantes. Delete-all-yesterday PUIS insert, bundlé côté domaine.
+def replace_day_with_estimate(pct_calories: float, pct_proteines: float, *,
+                              date: str | None = None, calories=None, proteines=None) -> dict:
+    """Keep replacement semantics; explicit-date clients persist their visible estimate.
 
-    Fail loud :
-      - pct hors [0, _ESTIMATE_MAX_PCT] → ValueError.
-      - delete échoue → ValueError, aucun insert, état inchangé.
-      - insert échoue après delete réussi → ValueError explicite,
-        journée à 0 et le caller doit le savoir.
+    Legacy percentage-only clients resolve the recovered day's configured target.
+    All validation precedes the existing delete/insert sequence.
     """
     for name, v in (("pct_calories", pct_calories), ("pct_proteines", pct_proteines)):
         if not (0 <= v <= _ESTIMATE_MAX_PCT):
@@ -203,11 +240,24 @@ def replace_day_with_estimate(pct_calories: float, pct_proteines: float) -> dict
     from datetime import date as _date, timedelta
     yesterday = (_date.fromisoformat(_today_mtl()) - timedelta(days=1)).isoformat()
 
-    settings    = load_settings()
-    cal_target  = settings["limite_calories"]
-    prot_target = settings["objectif_proteines"]
-    cal  = round(cal_target  * pct_calories  / 100)
-    prot = round(prot_target * pct_proteines / 100, 1)
+    if date is not None:
+        if not isinstance(date, str) or _date.fromisoformat(date).isoformat() != date or date > yesterday:
+            raise ValueError("La date doit être une journée passée")
+        yesterday = date
+    if calories is not None or proteines is not None:
+        import math
+        if date is None:
+            raise ValueError("Date requise pour une estimation explicite")
+        try:
+            cal, prot = float(calories), float(proteines)
+        except (TypeError, ValueError):
+            raise ValueError("Estimation invalide")
+        if not (math.isfinite(cal) and math.isfinite(prot) and 0 <= cal <= 100000 and 0 <= prot <= 10000):
+            raise ValueError("Estimation hors bornes")
+    else:
+        target = resolve_daily_target(yesterday)
+        cal = round(target["calories"] * pct_calories / 100)
+        prot = round(target["proteines"] * pct_proteines / 100, 1)
 
     if not db.delete_nutrition_entries_for_date(yesterday):
         raise ValueError(

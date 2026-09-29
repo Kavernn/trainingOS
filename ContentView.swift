@@ -181,45 +181,77 @@ private struct NutritionCatchupSheet: View {
     @State private var isCommitting = false
     @State private var errorMessage: String? = nil
 
-    private var estimatedCalories: Int {
-        Int((prompt.targetCalories * pctCalories / 100).rounded())
+    @State private var target: DailyNutritionTarget?
+    @State private var isLoadingTarget = false
+    @State private var targetError: String?
+
+    init(prompt: NutritionCatchupPrompt) {
+        self.prompt = prompt
+        _target = State(initialValue: prompt.target.flatMap {
+            $0.isValid && $0.date == prompt.catchupDate ? $0 : nil
+        })
     }
-    private var estimatedProteines: Int {
-        Int((prompt.targetProteines * pctProteines / 100).rounded())
+
+    private var estimate: NutritionCatchupEstimate? {
+        target?.estimate(pctCalories: pctCalories, pctProteines: pctProteines)
+    }
+
+    private var dateLabel: String {
+        if let date = DateFormatter.isoDate.date(from: prompt.catchupDate), Calendar.current.isDateInYesterday(date) {
+            return "Hier"
+        }
+        return prompt.catchupDate
     }
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Hier, tu as loggué \(prompt.entriesCount) entrée(s) totalisant \(Int(prompt.currentCalories)) kcal / \(Int(prompt.currentProteines)) g prot.")
+                Text("\(dateLabel), tu as loggué \(prompt.entriesCount) entrée(s) totalisant \(Int(prompt.currentCalories)) kcal / \(Int(prompt.currentProteines)) g prot.")
                     .font(.appBody).foregroundColor(.gray)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("% des calories cibles (\(Int(prompt.targetCalories)) kcal)")
-                        .font(.appCaption.weight(.bold)).tracking(1).foregroundColor(.gray)
-                    HStack {
-                        Slider(value: $pctCalories, in: 0...200, step: 5)
-                        Text("\(Int(pctCalories))%")
-                            .font(.appHeadline).frame(width: 60, alignment: .trailing)
+                if let target, let estimate {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(dateLabel) · \(target.workoutLabel ?? "")")
+                            .font(.appHeadline)
+                        Text(target.dayLabel)
+                            .font(.appCaption).foregroundColor(.appTextMuted)
                     }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("% des calories cibles (\(Int(target.calories)) kcal)")
+                            .font(.appCaption.weight(.bold)).tracking(1).foregroundColor(.gray)
+                        HStack {
+                            Slider(value: $pctCalories, in: 0...200, step: 5)
+                                .disabled(isCommitting)
+                            Text("\(Int(pctCalories))%")
+                                .font(.appHeadline).frame(width: 60, alignment: .trailing)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("% des protéines cibles (\(Int(target.proteines)) g)")
+                            .font(.appCaption.weight(.bold)).tracking(1).foregroundColor(.gray)
+                        HStack {
+                            Slider(value: $pctProteines, in: 0...200, step: 5)
+                                .disabled(isCommitting)
+                            Text("\(Int(pctProteines))%")
+                                .font(.appHeadline).frame(width: 60, alignment: .trailing)
+                        }
+                    }
+
+                    Divider()
+
+                    Text("Estimation : \(estimate.calories) kcal · \(estimate.proteines) g prot")
+                        .font(.appHeadline).foregroundColor(Color.forge)
+
+                } else if isLoadingTarget {
+                    ProgressView("Chargement de la cible nutrition…")
+                } else {
+                    Text(targetError ?? "Cible nutrition indisponible pour cette date.")
+                        .font(.appCaption).foregroundColor(.appTextMuted)
+                    Button("Réessayer") { Task { await loadTarget() } }
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("% des protéines cibles (\(Int(prompt.targetProteines)) g)")
-                        .font(.appCaption.weight(.bold)).tracking(1).foregroundColor(.gray)
-                    HStack {
-                        Slider(value: $pctProteines, in: 0...200, step: 5)
-                        Text("\(Int(pctProteines))%")
-                            .font(.appHeadline).frame(width: 60, alignment: .trailing)
-                    }
-                }
-
-                Divider()
-
-                Text("Estimation : \(estimatedCalories) kcal · \(estimatedProteines) g prot")
-                    .font(.appHeadline).foregroundColor(Color.forge)
-
-                Text("Cette estimation remplace les \(prompt.entriesCount) entrée(s) actuelles de la veille.")
+                Text("Cette estimation remplace les \(prompt.entriesCount) entrée(s) actuelles du \(prompt.catchupDate).")
                     .font(.appCaption).foregroundColor(.gray.opacity(0.7))
 
                 if let msg = errorMessage {
@@ -240,9 +272,9 @@ private struct NutritionCatchupSheet: View {
                     .background(Color.forge).foregroundColor(.white)
                     .cornerRadius(12)
                 }
-                .disabled(isCommitting)
+                .disabled(isCommitting || estimate == nil)
 
-                Button("Non, hier était complet") {
+                Button(dateLabel == "Hier" ? "Non, hier était complet" : "Non, cette journée était complète") {
                     appState.dismissNutritionCatchup(ackForToday: true)
                 }
                 .font(.appBody).foregroundColor(.gray)
@@ -250,16 +282,34 @@ private struct NutritionCatchupSheet: View {
                 .disabled(isCommitting)
             }
             .padding()
+            .task { if target == nil { await loadTarget() } }
             .navigationTitle("Rattrapage nutrition")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 
+    private func loadTarget() async {
+        isLoadingTarget = true
+        defer { isLoadingTarget = false }
+        do {
+            let day = try await APIService.shared.fetchNutritionDay(date: prompt.catchupDate, includeTarget: true)
+            if let resolved = day.target, resolved.isValid, resolved.date == prompt.catchupDate {
+                target = resolved
+                targetError = nil
+            } else {
+                targetError = day.targetError ?? "Cible nutrition indisponible pour cette date."
+            }
+        } catch {
+            targetError = "Impossible de charger la cible nutrition. Réessaie."
+        }
+    }
+
     private func commit() async {
+        guard let estimate else { return }
         errorMessage = nil
         isCommitting = true
         do {
-            try await appState.commitYesterdayEstimate(pctCal: pctCalories, pctProt: pctProteines)
+            try await appState.commitYesterdayEstimate(estimate: estimate, pctCal: pctCalories, pctProt: pctProteines)
         } catch {
             errorMessage = "Écriture échouée — réessaie. \(error.localizedDescription)"
         }

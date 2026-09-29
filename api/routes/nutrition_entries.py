@@ -41,7 +41,7 @@ def api_nutrition_add():
 @nutrition_bp.route("/api/nutrition/estimate_yesterday", methods=["POST"])
 def api_nutrition_estimate_yesterday():
     """Remplace le total nutrition de la veille par une estimation en % des cibles.
-    Server-computed date (yesterday MTL) — iOS ne peut jamais viser un autre jour.
+    Date explicite et estimation affichée pour iOS; veille MTL pour anciens clients.
     """
     from nutrition import replace_day_with_estimate
     data = request.get_json() or {}
@@ -51,7 +51,10 @@ def api_nutrition_estimate_yesterday():
     except (TypeError, ValueError):
         return jsonify({"error": "pct_calories et pct_proteines doivent être numériques"}), 422
     try:
-        result = replace_day_with_estimate(pct_cal, pct_prot)
+        result = replace_day_with_estimate(
+            pct_cal, pct_prot, date=data.get("date"),
+            calories=data.get("calories"), proteines=data.get("proteines"),
+        )
     except ValueError as e:
         return jsonify({"error": str(e)}), 422
     import readiness as _readiness
@@ -201,11 +204,22 @@ def api_nutrition_day():
     try:
         _dt.strptime(date_param, "%Y-%m-%d")
         date = date_param
-    except (ValueError, Exception):
+    except ValueError:
+        if request.args.get("include_target") == "true":
+            return jsonify({"error": "Date explicite requise (YYYY-MM-DD)"}), 422
         from utils import _today_mtl
         date = _today_mtl()
     entries = _db.get_nutrition_entries(date)
+    target_payload = {}
+    if request.args.get("include_target") == "true":
+        from nutrition import resolve_daily_target
+        try:
+            target_payload["target"] = resolve_daily_target(date)
+        except Exception:
+            logger.warning("Nutrition target unavailable for %s", date, exc_info=True)
+            target_payload.update(target=None, target_error="Cible nutrition indisponible. Vérifie tes réglages puis réessaie.")
     return jsonify({
+        **target_payload,
         "date":          date,
         "calories":      round(sum(e.get("calories", 0) for e in entries)),
         "proteines":     round(sum(e.get("proteines", 0) for e in entries), 1),
@@ -238,7 +252,7 @@ def api_nutrition_data():
     }
     days    = min(int(request.args.get("days", 7)), 90)
     history = get_recent_days(days)
-    intensity, today_session = _get_day_intensity()
+    intensity, today_session = _get_day_intensity(today)
     return jsonify({
         "settings":      settings,
         "entries":       entries,

@@ -20,22 +20,25 @@ extension APIService {
         return try APIService.decoder.decode(NutritionDataResponse.self, from: data)
     }
 
-    func fetchNutritionDay(date: String) async throws -> NutritionDaySummary {
+    func fetchNutritionDay(date: String, includeTarget: Bool = false) async throws -> NutritionDaySummary {
         let url = try buildURL(path: "/api/nutrition",
-                               queryItems: [URLQueryItem(name: "date", value: date)])
+                               queryItems: [URLQueryItem(name: "date", value: date),
+                                            URLQueryItem(name: "include_target", value: includeTarget ? "true" : "false")])
         let (data, _) = try await URLSession.authed.data(from: url)
         return try APIService.decoder.decode(NutritionDaySummary.self, from: data)
     }
 
-    func postYesterdayEstimate(pctCalories: Double, pctProteines: Double) async throws {
-        // Bypass offlinePost : le serveur calcule "yesterday" à l'exécution.
-        // Un replay différé (SyncManager) écrirait pour la mauvaise date.
+    func postYesterdayEstimate(estimate: NutritionCatchupEstimate, pctCalories: Double, pctProteines: Double) async throws {
+        // Bypass offlinePost : conserver le retry manuel de cette écriture datée.
         // Fail loud sur réseau ; le sheet gère le retry manuel.
         let url = try buildURL(path: "/api/nutrition/estimate_yesterday")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: [
+            "date": estimate.date,
+            "calories": estimate.calories,
+            "proteines": estimate.proteines,
             "pct_calories":  pctCalories,
             "pct_proteines": pctProteines,
         ])

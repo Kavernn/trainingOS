@@ -2,18 +2,17 @@ import SwiftUI
 import Combine
 
 // Seuil sous lequel on propose une estimation rétroactive pour la veille.
-// Appliqué à calories ET protéines vs cibles courantes (TDEE).
+// Appliqué à calories ET protéines vs cibles de la date récupérée.
 private let LOW_NUTRITION_THRESHOLD: Double = 0.6
 
 // Prompt affiché à l'ouverture app quand la nutrition de la veille est basse.
 struct NutritionCatchupPrompt: Identifiable, Equatable {
     let id = UUID()
-    let yesterday: String        // "YYYY-MM-DD"
+    let catchupDate: String      // "YYYY-MM-DD", fixed when the prompt is created
     let currentCalories: Double
     let currentProteines: Double
     let entriesCount: Int
-    let targetCalories: Double
-    let targetProteines: Double
+    let target: DailyNutritionTarget?
 }
 
 // Hint affiché dans la card coaching de séance — calculé par DashboardViewModel après chargement.
@@ -113,33 +112,23 @@ final class AppState: ObservableObject {
         guard let ydayDate = cal.date(byAdding: .day, value: -1, to: Date()) else { return }
         let yesterday = DateFormatter.isoDate.string(from: ydayDate)
 
-        // sequential — iOS 26 beta async let LIFO crash
-        // Fetch settings + day summary. Si l'un échoue → NE PAS poser la clé.
-        let resp: NutritionDataResponse? = await {
-            guard let url = try? APIService.shared.buildURL(path: "/api/nutrition_data"),
-                  let (data, _) = try? await URLSession.authed.data(from: url) else { return nil }
-            return try? APIService.decoder.decode(NutritionDataResponse.self, from: data)
-        }()
-        let day: NutritionDaySummary? = try? await APIService.shared.fetchNutritionDay(date: yesterday)
-
-        guard let resp,
-              let day,
-              let calT     = resp.settings?.calories,  calT  > 0,
-              let protT    = resp.settings?.proteines, protT > 0 else {
-            return
+        // One date-scoped read returns both logged totals and the target snapshot.
+        guard let day = try? await APIService.shared.fetchNutritionDay(date: yesterday, includeTarget: true) else {
+            return // No acknowledgement on failure; retry on next check.
         }
+        let target = day.target.flatMap { $0.isValid && $0.date == yesterday ? $0 : nil }
+        let needsCatchup = target.map {
+            day.calories / $0.calories < LOW_NUTRITION_THRESHOLD
+                || day.proteines / $0.proteines < LOW_NUTRITION_THRESHOLD
+        } ?? true
 
-        let calRatio  = day.calories  / calT
-        let protRatio = day.proteines / protT
-
-        if calRatio < LOW_NUTRITION_THRESHOLD || protRatio < LOW_NUTRITION_THRESHOLD {
+        if needsCatchup {
             enqueueLaunchPrompt(.nutritionCatchup(NutritionCatchupPrompt(
-                yesterday: yesterday,
-                currentCalories:  day.calories,
+                catchupDate: yesterday,
+                currentCalories: day.calories,
                 currentProteines: day.proteines,
-                entriesCount:     day.entriesCount,
-                targetCalories:   calT,
-                targetProteines:  protT
+                entriesCount: day.entriesCount,
+                target: target
             )))
             // PAS de UserDefaults ici — on attend la décision user.
         } else {
@@ -160,9 +149,9 @@ final class AppState: ObservableObject {
 
     /// Écriture de l'estimation. Sur throw : NI pending clear NI guard posé —
     /// le sheet reste ouvert avec message d'erreur pour retry manuel.
-    func commitYesterdayEstimate(pctCal: Double, pctProt: Double) async throws {
+    func commitYesterdayEstimate(estimate: NutritionCatchupEstimate, pctCal: Double, pctProt: Double) async throws {
         try await APIService.shared.postYesterdayEstimate(
-            pctCalories: pctCal, pctProteines: pctProt
+            estimate: estimate, pctCalories: pctCal, pctProteines: pctProt
         )
         dismissNutritionCatchup(ackForToday: true)
     }

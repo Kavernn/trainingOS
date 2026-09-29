@@ -106,11 +106,58 @@ struct NutritionDaySummary: Codable {
     let calories: Double
     let proteines: Double
     let entriesCount: Int
+    var target: DailyNutritionTarget? = nil
+    var targetError: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case date, calories, proteines
         case entriesCount = "entries_count"
+        case target
+        case targetError = "target_error"
     }
+}
+
+// Read-only snapshot for one recovered date; never persisted as settings.
+struct DailyNutritionTarget: Codable, Equatable {
+    let date: String
+    let dayType: String
+    let calories: Double
+    let proteines: Double
+    let glucides: Double?
+    let lipides: Double?
+    let workoutLabel: String?
+
+    enum CodingKeys: String, CodingKey {
+        case date, calories, proteines, glucides, lipides
+        case dayType = "day_type"
+        case workoutLabel = "workout_label"
+    }
+
+    var isValid: Bool {
+        ["heavy", "moderate", "light", "rest"].contains(dayType)
+            && calories.isFinite && calories > 0 && proteines.isFinite && proteines > 0
+    }
+
+    var dayLabel: String {
+        switch dayType {
+        case "heavy": return "Journée lourde"
+        case "moderate": return "Journée modérée"
+        case "light": return "Journée légère"
+        default: return "Repos"
+        }
+    }
+
+    func estimate(pctCalories: Double, pctProteines: Double) -> NutritionCatchupEstimate {
+        NutritionCatchupEstimate(date: date,
+            calories: Int((calories * pctCalories / 100).rounded()),
+            proteines: Int((proteines * pctProteines / 100).rounded()))
+    }
+}
+
+struct NutritionCatchupEstimate: Encodable, Equatable {
+    let date: String
+    let calories: Int
+    let proteines: Int
 }
 
 // MARK: - Nutrition Data Response
