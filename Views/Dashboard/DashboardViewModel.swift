@@ -4,7 +4,7 @@ import OSLog
 
 // MARK: - Main-actor phase results, published as each structured child completes
 
-private final class P2State: @unchecked Sendable {
+final class P2State: @unchecked Sendable {
     var deload: DeloadReport? = nil
     var moodDue: MoodDueStatus? = nil
     var morningBrief: MorningBriefData? = nil
@@ -24,13 +24,21 @@ private final class P2State: @unchecked Sendable {
     var receivedNutrition = false
 }
 
-private final class P3State: @unchecked Sendable {
+final class P3State: @unchecked Sendable {
     var readinessData: ReadinessResponse? = nil
     var streakData: StreakResponse? = nil
     var warRoomEnabled: Bool?
     var warRoomHasResult: Bool?
     var warRoomHasTemptation: Bool?
     var weeklyTonnage: Int? = nil
+}
+
+enum DashboardDayField: Sendable {
+    case deload, moodDue, morningBrief, recovery, hrv, nutrition, alerts, pattern, ritual, cardio, budget
+}
+
+enum DashboardAnalyticsField: Sendable {
+    case readiness, streak, tonnage, warRoomConfig, warRoomStatus, effects
 }
 
 // MARK: - DashboardSignalEngine
@@ -177,8 +185,12 @@ final class DashboardViewModel: ObservableObject {
             && now.timeIntervalSince(lastLoad) >= 0 && now.timeIntervalSince(lastLoad) < 300
     }
 
+    private let publicationPermission: ((Int, String) -> Bool)?
+    private let publishMacroHint: @MainActor (MacroNutritionHint?) -> Void
+
     private func canPublish(_ version: Int, today: String) -> Bool {
-        !Task.isCancelled && APIService.shared.dashboardContextVersion == version
+        if let publicationPermission { return !Task.isCancelled && publicationPermission(version, today) }
+        return !Task.isCancelled && APIService.shared.dashboardContextVersion == version
             && today == DateFormatter.isoDate.string(from: Date())
     }
 
@@ -193,7 +205,10 @@ final class DashboardViewModel: ObservableObject {
 
     private var sessionObserver: (any NSObjectProtocol)?
 
-    init() {
+    init(publicationPermission: ((Int, String) -> Bool)? = nil,
+         publishMacroHint: @escaping @MainActor (MacroNutritionHint?) -> Void = { AppState.shared.macroSessionHint = $0 }) {
+        self.publicationPermission = publicationPermission
+        self.publishMacroHint = publishMacroHint
         sessionObserver = NotificationCenter.default.addObserver(
             forName: .sessionCompleted,
             object: nil,
@@ -256,8 +271,9 @@ final class DashboardViewModel: ObservableObject {
         let program = APIService.shared.dashboardPlan?.programme.active_program_id
         if publishedProgram != program || publishedDate != today {
             deload = nil; moodDue = nil; morningBrief = nil; todayRecovery = nil
-            readinessData = nil; dailyPattern = nil; ritualToday = nil; hrvAnalysis = nil
-            yesterdayNutrition = nil; todayNutritionType = nil; cardioToday = nil
+            readinessData = nil; ritualToday = nil; hrvAnalysis = nil
+            resetMacroInputs()
+            todayNutritionType = nil; cardioToday = nil
             budgetStatus = nil; streakData = nil; weeklyTonnage = nil
             warRoomEnabled = false; warRoomHasResult = false; warRoomHasTemptation = false
             analyticsLoadedDate = ""
@@ -283,22 +299,21 @@ final class DashboardViewModel: ObservableObject {
     }
 
     private func loadDay(today: String, yesterdayStr: String, contextVersion: Int) async {
-        let p2 = P2State()
-        await withTaskGroup(of: Int.self) { group in
+        await receiveDay(today: today, contextVersion: contextVersion) { group, p2 in
             group.addTask { @MainActor in
-                do { p2.deload = try await APIService.shared.fetchDeloadData(); return 0 }
-                catch { self.logger.error("fetchDeload: \(error, privacy: .public)"); return 0 }
+                do { p2.deload = try await APIService.shared.fetchDeloadData(); return (.deload, 0) }
+                catch { self.logger.error("fetchDeload: \(error, privacy: .public)"); return (.deload, 0) }
             }
             group.addTask { @MainActor in
-                do { p2.moodDue = try await APIService.shared.checkMoodDue(); return 0 }
-                catch { self.logger.error("checkMoodDue: \(error, privacy: .public)"); return 0 }
+                do { p2.moodDue = try await APIService.shared.checkMoodDue(); return (.moodDue, 0) }
+                catch { self.logger.error("checkMoodDue: \(error, privacy: .public)"); return (.moodDue, 0) }
             }
             group.addTask { @MainActor in
-                do { p2.morningBrief = try await APIService.shared.fetchMorningBrief(); return 0 }
+                do { p2.morningBrief = try await APIService.shared.fetchMorningBrief(); return (.morningBrief, 0) }
                 catch {
                     self.logger.error("fetchMorningBrief: \(error, privacy: .public)")
                     p2.morningBriefFailed = true
-                    return 0
+                    return (.morningBrief, 0)
                 }
             }
             // CRITICAL: drives the readiness score displayed on the dashboard
@@ -308,24 +323,24 @@ final class DashboardViewModel: ObservableObject {
                     let entry = log.first(where: { $0.date == today })
                     p2.todayRecovery = entry
                     p2.receivedRecovery = true
-                    return 0
+                    return (.recovery, 0)
                 } catch let e as URLError where e.code == .cancelled {
-                    return 0  // task cancelled (navigation) — not an error
+                    return (.recovery, 0)  // task cancelled (navigation) — not an error
                 } catch {
                     self.logger.error("fetchRecovery: \(error, privacy: .public)")
-                    return 1
+                    return (.recovery, 1)
                 }
             }
             group.addTask { @MainActor in
                 do {
                     // sequential — async let LIFO crash on iOS 26 beta
                     p2.hrvAnalysis = try await APIService.shared.fetchHRVAnalysis()
-                    return 0
+                    return (.hrv, 0)
                 } catch let e as URLError where e.code == .cancelled {
-                    return 0  // task cancelled (navigation) — not an error
+                    return (.hrv, 0)  // task cancelled (navigation) — not an error
                 } catch {
                     self.logger.error("fetchHRVAnalysis: \(error, privacy: .public)")
-                    return 0
+                    return (.hrv, 0)
                 }
             }
             group.addTask { @MainActor [yesterdayStr] in
@@ -337,31 +352,31 @@ final class DashboardViewModel: ObservableObject {
                     p2.todayNutritionType = detail.todayType
                     p2.yesterdayNutrition = detail.history.first(where: { $0.date == yesterdayStr })
                 }
-                return 0
+                return (.nutrition, 0)
             }
             group.addTask { @MainActor in
                 await AlertService.shared.fetch()
-                return 0
+                return (.alerts, 0)
             }
             group.addTask { @MainActor in
                 do {
                     let resp = try await APIService.shared.fetchPatterns()
                     p2.dailyPattern = resp.daily
                     p2.receivedPattern = true
-                    return 0
+                    return (.pattern, 0)
                 } catch {
                     self.logger.error("fetchPatterns: \(error, privacy: .public)")
-                    return 0
+                    return (.pattern, 0)
                 }
             }
             group.addTask { @MainActor in
                 do {
                     let ritual = try await APIService.shared.fetchRitualToday()
                     p2.ritualToday = ritual
-                    return 0
+                    return (.ritual, 0)
                 } catch {
                     self.logger.error("fetchRitualToday: \(error, privacy: .public)")
-                    return 0
+                    return (.ritual, 0)
                 }
             }
             group.addTask { @MainActor in
@@ -369,30 +384,61 @@ final class DashboardViewModel: ObservableObject {
                     p2.cardioToday = all.first(where: { $0.date == today })
                     p2.receivedCardio = true
                 }
-                return 0
+                return (.cardio, 0)
             }
             group.addTask { @MainActor in
                 p2.budgetStatus = try? await APIService.shared.fetchBudgetStatus()
-                return 0
+                return (.budget, 0)
             }
-            for await failures in group {
+        }
+    }
+
+    // Same production receiver, with isolated child operations available to focused tests.
+    func receiveDay(today: String, contextVersion: Int,
+                    addTasks: (inout TaskGroup<(DashboardDayField, Int)>, P2State) -> Void) async {
+        let p2 = P2State()
+        await withTaskGroup(of: (DashboardDayField, Int).self) { group in
+            addTasks(&group, p2)
+            for await (field, failures) in group {
                 guard canPublish(contextVersion, today: today) else { group.cancelAll(); continue }
                 p2.criticalFailures += failures
-                // Retain successful values on a failed same-context refresh.
-                if let value = p2.deload { deload = value }
-                if let value = p2.moodDue { moodDue = value }
-                if let value = p2.morningBrief { morningBrief = value }
-                morningBriefFailed = p2.morningBriefFailed && morningBrief == nil
-                if p2.receivedRecovery { todayRecovery = p2.todayRecovery }
-                if let value = p2.hrvAnalysis { hrvAnalysis = value }
-                if p2.receivedNutrition { yesterdayNutrition = p2.yesterdayNutrition }
-                if let value = p2.todayNutritionType { todayNutritionType = value }
-                if p2.receivedPattern { dailyPattern = p2.dailyPattern }
-                if let value = p2.ritualToday { ritualToday = value }
-                if p2.receivedCardio { cardioToday = p2.cardioToday }
-                if let value = p2.budgetStatus { budgetStatus = value }
-                partialLoadWarning = p2.criticalFailures > 0
-                AppState.shared.macroSessionHint = computeMacroHint()
+                // Only this child's destination may change. Pending/failed children retain
+                // their previous value; a successful optional response can explicitly clear it.
+                switch field {
+                case .deload:
+                    if let value = p2.deload { deload = value }
+                case .moodDue:
+                    if let value = p2.moodDue { moodDue = value }
+                case .morningBrief:
+                    if let value = p2.morningBrief { morningBrief = value }
+                    let failed = p2.morningBriefFailed && morningBrief == nil
+                    if morningBriefFailed != failed { morningBriefFailed = failed }
+                case .recovery:
+                    if p2.receivedRecovery { todayRecovery = p2.todayRecovery }
+                case .hrv:
+                    if let value = p2.hrvAnalysis { hrvAnalysis = value }
+                case .nutrition:
+                    if p2.receivedNutrition {
+                        yesterdayNutrition = p2.yesterdayNutrition
+                        todayNutritionType = p2.todayNutritionType
+                        publishMacroHint(computeMacroHint())
+                    }
+                case .pattern:
+                    if p2.receivedPattern {
+                        dailyPattern = p2.dailyPattern
+                        publishMacroHint(computeMacroHint())
+                    }
+                case .ritual:
+                    if let value = p2.ritualToday { ritualToday = value }
+                case .cardio:
+                    if p2.receivedCardio { cardioToday = p2.cardioToday }
+                case .budget:
+                    if let value = p2.budgetStatus { budgetStatus = value }
+                case .alerts:
+                    break
+                }
+                let warning = p2.criticalFailures > 0
+                if partialLoadWarning != warning { partialLoadWarning = warning }
             }
         }
     }
@@ -400,14 +446,22 @@ final class DashboardViewModel: ObservableObject {
     private func loadAnalytics(today: String, contextVersion: Int) async {
         // Analytics — once per calendar day
         if analyticsLoadedDate != today {
-            let p3 = P3State()
-            await withTaskGroup(of: Void.self) { group in
-                group.addTask { @MainActor in p3.readinessData = try? await APIService.shared.fetchReadiness() }
-                group.addTask { @MainActor in p3.streakData      = try? await APIService.shared.fetchStreaks(date: today) }
-                group.addTask { @MainActor in p3.weeklyTonnage   = try? await APIService.shared.fetchWeeklyTonnage().volume }
+            await receiveAnalytics(today: today, contextVersion: contextVersion) { group, p3 in
+                group.addTask { @MainActor in
+                    p3.readinessData = try? await APIService.shared.fetchReadiness()
+                    return .readiness
+                }
+                group.addTask { @MainActor in
+                    p3.streakData      = try? await APIService.shared.fetchStreaks(date: today)
+                    return .streak
+                }
+                group.addTask { @MainActor in
+                    p3.weeklyTonnage   = try? await APIService.shared.fetchWeeklyTonnage().volume
+                    return .tonnage
+                }
                 group.addTask { @MainActor in
                     if let config = try? await APIService.shared.getWarRoomConfig() {
-                        guard self.canPublish(contextVersion, today: today) else { return }
+                        guard self.canPublish(contextVersion, today: today) else { return .warRoomConfig }
                         let enabled = config.warStartDate != nil
                         p3.warRoomEnabled = enabled
                         UserDefaults.standard.set(enabled, forKey: "warRoomEnabled")
@@ -416,50 +470,73 @@ final class DashboardViewModel: ObservableObject {
                             isEnabled: enabled && notificationEnabled
                         )
                     }
+                    return .warRoomConfig
                 }
                 group.addTask { @MainActor in
                     if let ts = try? await APIService.shared.getWarRoomTodayStatus() {
                         p3.warRoomHasResult     = ts.hasResult
                         p3.warRoomHasTemptation = ts.hasTemptation
                     }
+                    return .warRoomStatus
                 }
                 // Notification-only side effects (no @Published needed)
                 group.addTask { @MainActor in
                     if let report = try? await APIService.shared.fetchWeeklyReport() {
-                        guard self.canPublish(contextVersion, today: today) else { return }
+                        guard self.canPublish(contextVersion, today: today) else { return .effects }
                         NotificationService.scheduleWeeklyRecapWithData(report: report, tracker: BehaviorTracker.shared)
                     }
+                    return .effects
                 }
                 group.addTask { @MainActor in
                     if let s = try? await APIService.shared.getActiveSeason() {
-                        guard self.canPublish(contextVersion, today: today) else { return }
+                        guard self.canPublish(contextVersion, today: today) else { return .effects }
                         NotificationService.scheduleSeasonMilestones(seasonStartISO: s.startedAt, seasonNumber: s.number)
                     }
+                    return .effects
                 }
                 group.addTask { @MainActor in
                     if let dna = try? await APIService.shared.fetchWorkoutDNA() {
-                        guard self.canPublish(contextVersion, today: today) else { return }
+                        guard self.canPublish(contextVersion, today: today) else { return .effects }
                         NotificationService.notifyDNAArchetypeChange(newKey: dna.archetype.key, newLabel: dna.archetype.label)
                     }
+                    return .effects
                 }
                 group.addTask { @MainActor in
                     if let capsules = try? await APIService.shared.fetchTimeCapsules() {
-                        guard self.canPublish(contextVersion, today: today) else { return }
+                        guard self.canPublish(contextVersion, today: today) else { return .effects }
                         NotificationService.scheduleTimeCapsuleSoon(capsules: capsules)
                     }
-                }
-                for await _ in group {
-                    guard canPublish(contextVersion, today: today) else { group.cancelAll(); continue }
-                    if let value = p3.readinessData { readinessData = value }
-                    if let value = p3.streakData { streakData = value }
-                    if let value = p3.weeklyTonnage { weeklyTonnage = value }
-                    if let value = p3.warRoomEnabled { warRoomEnabled = value }
-                    if let value = p3.warRoomHasResult { warRoomHasResult = value }
-                    if let value = p3.warRoomHasTemptation { warRoomHasTemptation = value }
+                    return .effects
                 }
             }
             guard canPublish(contextVersion, today: today) else { return }
-            analyticsLoadedDate  = today
+            analyticsLoadedDate = today
+        }
+    }
+
+    func receiveAnalytics(today: String, contextVersion: Int,
+                          addTasks: (inout TaskGroup<DashboardAnalyticsField>, P3State) -> Void) async {
+        let p3 = P3State()
+        await withTaskGroup(of: DashboardAnalyticsField.self) { group in
+            addTasks(&group, p3)
+            for await field in group {
+                guard canPublish(contextVersion, today: today) else { group.cancelAll(); continue }
+                switch field {
+                case .readiness:
+                    if let value = p3.readinessData { readinessData = value }
+                case .streak:
+                    if let value = p3.streakData { streakData = value }
+                case .tonnage:
+                    if let value = p3.weeklyTonnage { weeklyTonnage = value }
+                case .warRoomConfig:
+                    if let value = p3.warRoomEnabled { warRoomEnabled = value }
+                case .warRoomStatus:
+                    if let value = p3.warRoomHasResult { warRoomHasResult = value }
+                    if let value = p3.warRoomHasTemptation { warRoomHasTemptation = value }
+                case .effects:
+                    break
+                }
+            }
         }
     }
 
@@ -498,6 +575,13 @@ final class DashboardViewModel: ObservableObject {
         DashboardSignalEngine().criticalSignal(
             dash: dash, deload: deload, readiness: readinessData, streakData: streakData
         )
+    }
+
+    // A new day/program removes both inputs even if their next requests fail.
+    func resetMacroInputs() {
+        dailyPattern = nil
+        yesterdayNutrition = nil
+        publishMacroHint(computeMacroHint())
     }
 
     private func computeMacroHint() -> MacroNutritionHint? {
