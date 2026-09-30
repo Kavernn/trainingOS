@@ -1,0 +1,3322 @@
+{
+  "head": "f30c3c3",
+  "date": "2026-09-28",
+  "scenarios": {
+    "empty": {
+      "status": 200,
+      "json": {
+        "already_logged_today": false,
+        "bonus_session_completed": false,
+        "bonus_session_name": null,
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 0,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": false,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": false,
+        "sessions": {},
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": null,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 0,
+          "error": false
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 0,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 0,
+          "error": true
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    "no_logs": {
+      "status": 200,
+      "json": {
+        "already_logged_today": true,
+        "bonus_session_completed": false,
+        "bonus_session_name": null,
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 0,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": false,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": true,
+        "sessions": {
+          "2026-09-20": {
+            "comment": null,
+            "completed": true,
+            "duration_min": 40.0,
+            "energy_pre": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 6.0,
+            "session_name": "Same name",
+            "session_type": "morning",
+            "session_volume": 1000.0
+          },
+          "2026-09-28": {
+            "comment": "AM: First | PM: Second",
+            "completed": true,
+            "duration_min": 50,
+            "energy_pre": 4,
+            "exos": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 7,
+            "session_count": 2,
+            "session_name": "Same name",
+            "session_volume": 2000.0,
+            "slots": [
+              {
+                "duration_min": 30,
+                "label": "AM",
+                "rpe": 7,
+                "type": "morning"
+              },
+              {
+                "duration_min": 20,
+                "label": "PM",
+                "rpe": 5,
+                "type": "evening"
+              }
+            ]
+          }
+        },
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": 50,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "am"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 0,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "pm"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 0,
+          "error": false
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    "morning_evening": {
+      "status": 200,
+      "json": {
+        "already_logged_today": true,
+        "bonus_session_completed": false,
+        "bonus_session_name": null,
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 100,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": false,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": true,
+        "sessions": {
+          "2026-09-20": {
+            "comment": null,
+            "completed": true,
+            "duration_min": 40.0,
+            "energy_pre": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 6.0,
+            "session_name": "Same name",
+            "session_type": "morning",
+            "session_volume": 1000.0
+          },
+          "2026-09-28": {
+            "comment": "AM: First | PM: Second",
+            "completed": true,
+            "duration_min": 50,
+            "energy_pre": 4,
+            "exos": [
+              "Bench Press",
+              "Evening only"
+            ],
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 7,
+            "session_count": 2,
+            "session_name": "Same name",
+            "session_volume": 2000.0,
+            "slots": [
+              {
+                "duration_min": 30,
+                "label": "AM",
+                "rpe": 7,
+                "type": "morning"
+              },
+              {
+                "duration_min": 20,
+                "label": "PM",
+                "rpe": 5,
+                "type": "evening"
+              }
+            ]
+          }
+        },
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "30.0 par cote (total 105.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": 50,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 4,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "am"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "pm"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    "pagination": {
+      "status": 200,
+      "json": {
+        "already_logged_today": true,
+        "bonus_session_completed": false,
+        "bonus_session_name": "Same name",
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 0,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": true,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": true,
+        "sessions": {
+          "2026-09-20": {
+            "comment": null,
+            "completed": true,
+            "duration_min": 40.0,
+            "energy_pre": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 6.0,
+            "session_name": "Same name",
+            "session_type": "morning",
+            "session_volume": 1000.0
+          },
+          "2026-09-28": {
+            "comment": "AM: First | PM: Second",
+            "completed": false,
+            "duration_min": 50,
+            "energy_pre": 4,
+            "exos": [
+              "Exercise 000",
+              "Exercise 001",
+              "Exercise 002",
+              "Exercise 003",
+              "Exercise 004",
+              "Exercise 005",
+              "Exercise 006",
+              "Exercise 007",
+              "Exercise 008",
+              "Exercise 009",
+              "Exercise 010",
+              "Exercise 011",
+              "Exercise 012",
+              "Exercise 013",
+              "Exercise 014",
+              "Exercise 015",
+              "Exercise 016",
+              "Exercise 017",
+              "Exercise 018",
+              "Exercise 019",
+              "Exercise 020",
+              "Exercise 021",
+              "Exercise 022",
+              "Exercise 023",
+              "Exercise 024",
+              "Exercise 025",
+              "Exercise 026",
+              "Exercise 027",
+              "Exercise 028",
+              "Exercise 029",
+              "Exercise 030",
+              "Exercise 031",
+              "Exercise 032",
+              "Exercise 033",
+              "Exercise 034",
+              "Exercise 035",
+              "Exercise 036",
+              "Exercise 037",
+              "Exercise 038",
+              "Exercise 039",
+              "Exercise 040",
+              "Exercise 041",
+              "Exercise 042",
+              "Exercise 043",
+              "Exercise 044",
+              "Exercise 045",
+              "Exercise 046",
+              "Exercise 047",
+              "Exercise 048",
+              "Exercise 049",
+              "Exercise 050",
+              "Exercise 051",
+              "Exercise 052",
+              "Exercise 053",
+              "Exercise 054",
+              "Exercise 055",
+              "Exercise 056",
+              "Exercise 057",
+              "Exercise 058",
+              "Exercise 059",
+              "Exercise 060",
+              "Exercise 061",
+              "Exercise 062",
+              "Exercise 063",
+              "Exercise 064",
+              "Exercise 065",
+              "Exercise 066",
+              "Exercise 067",
+              "Exercise 068",
+              "Exercise 069",
+              "Exercise 070",
+              "Exercise 071",
+              "Exercise 072",
+              "Exercise 073",
+              "Exercise 074",
+              "Exercise 075",
+              "Exercise 076",
+              "Exercise 077",
+              "Exercise 078",
+              "Exercise 079",
+              "Exercise 080",
+              "Exercise 081",
+              "Exercise 082",
+              "Exercise 083",
+              "Exercise 084",
+              "Exercise 085",
+              "Exercise 086",
+              "Exercise 087",
+              "Exercise 088",
+              "Exercise 089",
+              "Exercise 090",
+              "Exercise 091",
+              "Exercise 092",
+              "Exercise 093",
+              "Exercise 094",
+              "Exercise 095",
+              "Exercise 096",
+              "Exercise 097",
+              "Exercise 098",
+              "Exercise 099",
+              "Exercise 100",
+              "Exercise 101",
+              "Exercise 102",
+              "Exercise 103",
+              "Exercise 104",
+              "Exercise 105",
+              "Exercise 106",
+              "Exercise 107",
+              "Exercise 108",
+              "Exercise 109",
+              "Exercise 110",
+              "Exercise 111",
+              "Exercise 112",
+              "Exercise 113",
+              "Exercise 114",
+              "Exercise 115",
+              "Exercise 116",
+              "Exercise 117",
+              "Exercise 118",
+              "Exercise 119",
+              "Exercise 120",
+              "Exercise 121",
+              "Exercise 122",
+              "Exercise 123",
+              "Exercise 124",
+              "Exercise 125",
+              "Exercise 126",
+              "Exercise 127",
+              "Exercise 128",
+              "Exercise 129",
+              "Exercise 130",
+              "Exercise 131",
+              "Exercise 132",
+              "Exercise 133",
+              "Exercise 134",
+              "Exercise 135",
+              "Exercise 136",
+              "Exercise 137",
+              "Exercise 138",
+              "Exercise 139",
+              "Exercise 140",
+              "Exercise 141",
+              "Exercise 142",
+              "Exercise 143",
+              "Exercise 144",
+              "Exercise 145",
+              "Exercise 146",
+              "Exercise 147",
+              "Exercise 148",
+              "Exercise 149",
+              "Exercise 150",
+              "Exercise 151",
+              "Exercise 152",
+              "Exercise 153",
+              "Exercise 154",
+              "Exercise 155",
+              "Exercise 156",
+              "Exercise 157",
+              "Exercise 158",
+              "Exercise 159",
+              "Exercise 160",
+              "Exercise 161",
+              "Exercise 162",
+              "Exercise 163",
+              "Exercise 164",
+              "Exercise 165",
+              "Exercise 166",
+              "Exercise 167",
+              "Exercise 168",
+              "Exercise 169",
+              "Exercise 170",
+              "Exercise 171",
+              "Exercise 172",
+              "Exercise 173",
+              "Exercise 174",
+              "Exercise 175",
+              "Exercise 176",
+              "Exercise 177",
+              "Exercise 178",
+              "Exercise 179",
+              "Exercise 180",
+              "Exercise 181",
+              "Exercise 182",
+              "Exercise 183",
+              "Exercise 184",
+              "Exercise 185",
+              "Exercise 186",
+              "Exercise 187",
+              "Exercise 188",
+              "Exercise 189",
+              "Exercise 190",
+              "Exercise 191",
+              "Exercise 192",
+              "Exercise 193",
+              "Exercise 194",
+              "Exercise 195",
+              "Exercise 196",
+              "Exercise 197",
+              "Exercise 198",
+              "Exercise 199",
+              "Exercise 200",
+              "Exercise 201",
+              "Exercise 202",
+              "Exercise 203",
+              "Exercise 204",
+              "Exercise 205",
+              "Exercise 206",
+              "Exercise 207",
+              "Exercise 208",
+              "Exercise 209",
+              "Exercise 210",
+              "Exercise 211",
+              "Exercise 212",
+              "Exercise 213",
+              "Exercise 214",
+              "Exercise 215",
+              "Exercise 216",
+              "Exercise 217",
+              "Exercise 218",
+              "Exercise 219",
+              "Exercise 220",
+              "Exercise 221",
+              "Exercise 222",
+              "Exercise 223",
+              "Exercise 224",
+              "Exercise 225",
+              "Exercise 226",
+              "Exercise 227",
+              "Exercise 228",
+              "Exercise 229",
+              "Exercise 230",
+              "Exercise 231",
+              "Exercise 232",
+              "Exercise 233",
+              "Exercise 234",
+              "Exercise 235",
+              "Exercise 236",
+              "Exercise 237",
+              "Exercise 238",
+              "Exercise 239",
+              "Exercise 240",
+              "Exercise 241",
+              "Exercise 242",
+              "Exercise 243",
+              "Exercise 244",
+              "Exercise 245",
+              "Exercise 246",
+              "Exercise 247",
+              "Exercise 248",
+              "Exercise 249",
+              "Exercise 250",
+              "Exercise 251",
+              "Exercise 252",
+              "Exercise 253",
+              "Exercise 254",
+              "Exercise 255",
+              "Exercise 256",
+              "Exercise 257",
+              "Exercise 258",
+              "Exercise 259",
+              "Exercise 260",
+              "Exercise 261",
+              "Exercise 262",
+              "Exercise 263",
+              "Exercise 264",
+              "Exercise 265",
+              "Exercise 266",
+              "Exercise 267",
+              "Exercise 268",
+              "Exercise 269",
+              "Exercise 270",
+              "Exercise 271",
+              "Exercise 272",
+              "Exercise 273",
+              "Exercise 274",
+              "Exercise 275",
+              "Exercise 276",
+              "Exercise 277",
+              "Exercise 278",
+              "Exercise 279",
+              "Exercise 280",
+              "Exercise 281",
+              "Exercise 282",
+              "Exercise 283",
+              "Exercise 284",
+              "Exercise 285",
+              "Exercise 286",
+              "Exercise 287",
+              "Exercise 288",
+              "Exercise 289",
+              "Exercise 290",
+              "Exercise 291",
+              "Exercise 292",
+              "Exercise 293",
+              "Exercise 294",
+              "Exercise 295",
+              "Exercise 296",
+              "Exercise 297",
+              "Exercise 298",
+              "Exercise 299",
+              "Exercise 300",
+              "Exercise 301",
+              "Exercise 302",
+              "Exercise 303",
+              "Exercise 304",
+              "Exercise 305",
+              "Exercise 306",
+              "Exercise 307",
+              "Exercise 308",
+              "Exercise 309",
+              "Exercise 310",
+              "Exercise 311",
+              "Exercise 312",
+              "Exercise 313",
+              "Exercise 314",
+              "Exercise 315",
+              "Exercise 316",
+              "Exercise 317",
+              "Exercise 318",
+              "Exercise 319",
+              "Exercise 320",
+              "Exercise 321",
+              "Exercise 322",
+              "Exercise 323",
+              "Exercise 324",
+              "Exercise 325",
+              "Exercise 326",
+              "Exercise 327",
+              "Exercise 328",
+              "Exercise 329",
+              "Exercise 330",
+              "Exercise 331",
+              "Exercise 332",
+              "Exercise 333",
+              "Exercise 334",
+              "Exercise 335",
+              "Exercise 336",
+              "Exercise 337",
+              "Exercise 338",
+              "Exercise 339",
+              "Exercise 340",
+              "Exercise 341",
+              "Exercise 342",
+              "Exercise 343",
+              "Exercise 344",
+              "Exercise 345",
+              "Exercise 346",
+              "Exercise 347",
+              "Exercise 348",
+              "Exercise 349",
+              "Exercise 350",
+              "Exercise 351",
+              "Exercise 352",
+              "Exercise 353",
+              "Exercise 354",
+              "Exercise 355",
+              "Exercise 356",
+              "Exercise 357",
+              "Exercise 358",
+              "Exercise 359",
+              "Exercise 360",
+              "Exercise 361",
+              "Exercise 362",
+              "Exercise 363",
+              "Exercise 364",
+              "Exercise 365",
+              "Exercise 366",
+              "Exercise 367",
+              "Exercise 368",
+              "Exercise 369",
+              "Exercise 370",
+              "Exercise 371",
+              "Exercise 372",
+              "Exercise 373",
+              "Exercise 374",
+              "Exercise 375",
+              "Exercise 376",
+              "Exercise 377",
+              "Exercise 378",
+              "Exercise 379",
+              "Exercise 380",
+              "Exercise 381",
+              "Exercise 382",
+              "Exercise 383",
+              "Exercise 384",
+              "Exercise 385",
+              "Exercise 386",
+              "Exercise 387",
+              "Exercise 388",
+              "Exercise 389",
+              "Exercise 390",
+              "Exercise 391",
+              "Exercise 392",
+              "Exercise 393",
+              "Exercise 394",
+              "Exercise 395",
+              "Exercise 396",
+              "Exercise 397",
+              "Exercise 398",
+              "Exercise 399",
+              "Tail after page 1000"
+            ],
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 7,
+            "session_count": 3,
+            "session_name": "Same name",
+            "session_volume": 3000.0,
+            "slots": [
+              {
+                "duration_min": 30,
+                "label": "AM",
+                "rpe": 7,
+                "type": "morning"
+              },
+              {
+                "duration_min": 20,
+                "label": "PM",
+                "rpe": 5,
+                "type": "evening"
+              },
+              {
+                "duration_min": null,
+                "label": "Bonus",
+                "rpe": null,
+                "type": "bonus"
+              }
+            ]
+          }
+        },
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": 50,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 1000,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            1000,
+            2000
+          ],
+          "count": null,
+          "rows": 201,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 4,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "am"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 400,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "pm"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 400,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "bonus"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 400,
+          "error": false
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 4,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 1,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    "partial": {
+      "status": 200,
+      "json": {
+        "already_logged_today": true,
+        "bonus_session_completed": false,
+        "bonus_session_name": "Same name",
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 0,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": true,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": false,
+        "sessions": {
+          "2026-09-20": {
+            "comment": null,
+            "completed": true,
+            "duration_min": 40.0,
+            "energy_pre": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 6.0,
+            "session_name": "Same name",
+            "session_type": "morning"
+          },
+          "2026-09-28": {
+            "comment": null,
+            "completed": false,
+            "duration_min": 0,
+            "energy_pre": 4,
+            "exos": [
+              "Bench Press"
+            ],
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": null,
+            "session_count": 3,
+            "session_name": "Same name",
+            "session_volume": null,
+            "slots": [
+              {
+                "duration_min": null,
+                "label": "AM",
+                "rpe": null,
+                "type": "morning"
+              },
+              {
+                "duration_min": 0,
+                "label": "PM",
+                "rpe": null,
+                "type": "evening"
+              },
+              {
+                "duration_min": null,
+                "label": "Bonus",
+                "rpe": null,
+                "type": "bonus"
+              }
+            ]
+          }
+        },
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": null,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 4,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "am"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "pm"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 0,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "bonus"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 0,
+          "error": false
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 4,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 1,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    "read_error": {
+      "status": 200,
+      "json": {
+        "already_logged_today": true,
+        "bonus_session_completed": false,
+        "bonus_session_name": null,
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 100,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": false,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": true,
+        "sessions": {
+          "2026-09-20": {
+            "comment": null,
+            "completed": true,
+            "duration_min": 40.0,
+            "energy_pre": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 6.0,
+            "session_name": "Same name",
+            "session_type": "morning",
+            "session_volume": 1000.0
+          },
+          "2026-09-28": {
+            "comment": "AM: First | PM: Second",
+            "completed": true,
+            "duration_min": 50,
+            "energy_pre": 4,
+            "exos": [
+              "Bench Press"
+            ],
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 7,
+            "session_count": 2,
+            "session_name": "Same name",
+            "session_volume": 2000.0,
+            "slots": [
+              {
+                "duration_min": 30,
+                "label": "AM",
+                "rpe": 7,
+                "type": "morning"
+              },
+              {
+                "duration_min": 20,
+                "label": "PM",
+                "rpe": 5,
+                "type": "evening"
+              }
+            ]
+          }
+        },
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "30.0 par cote (total 105.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": 50,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 4,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "am"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "pm"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 0,
+          "error": true
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    "corrected": {
+      "status": 200,
+      "json": {
+        "already_logged_today": true,
+        "bonus_session_completed": false,
+        "bonus_session_name": null,
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 125,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": false,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": true,
+        "sessions": {
+          "2026-09-20": {
+            "comment": null,
+            "completed": true,
+            "duration_min": 40.0,
+            "energy_pre": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 6.0,
+            "session_name": "Same name",
+            "session_type": "morning",
+            "session_volume": 1000.0
+          },
+          "2026-09-28": {
+            "comment": "AM: First | PM: Second",
+            "completed": true,
+            "duration_min": 50,
+            "energy_pre": 4,
+            "exos": [
+              "Bench Press",
+              "Corrected evening"
+            ],
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 7,
+            "session_count": 2,
+            "session_name": "Same name",
+            "session_volume": 2000.0,
+            "slots": [
+              {
+                "duration_min": 30,
+                "label": "AM",
+                "rpe": 7,
+                "type": "morning"
+              },
+              {
+                "duration_min": 20,
+                "label": "PM",
+                "rpe": 5,
+                "type": "evening"
+              }
+            ]
+          }
+        },
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "42.5 par cote (total 130.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": 50,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 4,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "am"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "pm"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    "other_user": {
+      "status": 200,
+      "json": {
+        "already_logged_today": true,
+        "bonus_session_completed": false,
+        "bonus_session_name": null,
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 100,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": false,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": true,
+        "sessions": {
+          "2026-09-20": {
+            "comment": null,
+            "completed": true,
+            "duration_min": 40.0,
+            "energy_pre": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 6.0,
+            "session_name": "Same name",
+            "session_type": "morning",
+            "session_volume": 1000.0
+          },
+          "2026-09-28": {
+            "comment": "AM: First | PM: Second",
+            "completed": true,
+            "duration_min": 50,
+            "energy_pre": 4,
+            "exos": [
+              "Bench Press",
+              "Evening only"
+            ],
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 7,
+            "session_count": 2,
+            "session_name": "Same name",
+            "session_volume": 2000.0,
+            "slots": [
+              {
+                "duration_min": 30,
+                "label": "AM",
+                "rpe": 7,
+                "type": "morning"
+              },
+              {
+                "duration_min": 20,
+                "label": "PM",
+                "rpe": 5,
+                "type": "evening"
+              }
+            ]
+          }
+        },
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "30.0 par cote (total 105.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": 50,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 4,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "am"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "pm"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    },
+    "history_error": {
+      "status": 200,
+      "json": {
+        "already_logged_today": true,
+        "bonus_session_completed": false,
+        "bonus_session_name": null,
+        "cycle_start_date": null,
+        "evening_session_name": "Evening plan",
+        "exercise_ids": {},
+        "exercise_muscle_metadata": {},
+        "full_program": {
+          "Lower": {
+            "Back Squat": "4x5-7",
+            "Bench Press": "3x8-10",
+            "Romanian Deadlift": "3x8-10"
+          },
+          "Upper A": {
+            "Bench Press": "4x5-7"
+          }
+        },
+        "goals": {
+          "Bench Press": {
+            "achieved": false,
+            "current": 0,
+            "goal": 150
+          }
+        },
+        "has_bonus_session": false,
+        "has_evening_session": true,
+        "has_partial_logs": false,
+        "nutrition_settings": {
+          "activity_factor": null,
+          "bmr_kcal": null,
+          "day_type_targets": {
+            "heavy": {
+              "calories": 2550,
+              "glucides": 270
+            },
+            "light": {
+              "calories": 2200,
+              "glucides": 185
+            },
+            "moderate": {
+              "calories": 2400,
+              "glucides": 235
+            },
+            "rest": {
+              "calories": 2100,
+              "glucides": 160
+            }
+          },
+          "formula_used": null,
+          "glucides": 235,
+          "goal_phase": null,
+          "limite_calories": 2200,
+          "lipides": 75,
+          "nutrition_end_time": null,
+          "objectif_proteines": 160,
+          "tdee_kcal": null
+        },
+        "nutrition_totals": {
+          "calories": 0,
+          "glucides": 0,
+          "lipides": 0,
+          "proteines": 0
+        },
+        "profile": {
+          "age": 30,
+          "height": 175,
+          "level": "intermediate",
+          "name": "Test User",
+          "weight": 180.0
+        },
+        "pushed_to_bonus": [],
+        "pushed_to_evening": [],
+        "schedule": {},
+        "second_session_completed": true,
+        "sessions": {
+          "2026-09-20": {
+            "comment": null,
+            "completed": true,
+            "duration_min": 40.0,
+            "energy_pre": null,
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 6.0,
+            "session_name": "Same name",
+            "session_type": "morning",
+            "session_volume": 1000.0
+          },
+          "2026-09-28": {
+            "comment": "AM: First | PM: Second",
+            "completed": true,
+            "duration_min": 50,
+            "energy_pre": 4,
+            "exos": [
+              "Bench Press",
+              "Evening only"
+            ],
+            "logged_at": "2026-09-28T12:00:00Z",
+            "rpe": 7,
+            "session_count": 2,
+            "session_name": "Same name",
+            "session_volume": 2000.0,
+            "slots": [
+              {
+                "duration_min": 30,
+                "label": "AM",
+                "rpe": 7,
+                "type": "morning"
+              },
+              {
+                "duration_min": 20,
+                "label": "PM",
+                "rpe": 5,
+                "type": "evening"
+              }
+            ]
+          }
+        },
+        "smart_goals_count": 0,
+        "suggestions": [
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Bench Press"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Barbell Row"
+          },
+          {
+            "display": "0.0 par cote (total 0.0 lbs)",
+            "exercise": "Overhead Press"
+          }
+        ],
+        "target_calories": 2345,
+        "today": "Upper A",
+        "today_date": "2026-09-28",
+        "total_workout_min_today": 50,
+        "week": 30
+      },
+      "calls": [
+        {
+          "table": "exercise_logs",
+          "select": "weight, reps, sets_json, exercises(name), workout_sessions(date, session_type)",
+          "filters": [
+            [
+              "gte",
+              "workout_sessions.date",
+              "2026-04-01"
+            ]
+          ],
+          "bounds": [
+            0,
+            1000
+          ],
+          "count": null,
+          "rows": 0,
+          "error": true
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [],
+          "bounds": [
+            0,
+            500
+          ],
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "am"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "exercise_logs",
+          "select": "exercises(name)",
+          "filters": [
+            [
+              "eq",
+              "session_id",
+              "pm"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 2,
+          "error": false
+        },
+        {
+          "table": "v_session_volume",
+          "select": "date, total_volume",
+          "filters": [
+            [
+              "gte",
+              "date",
+              "2025-05-16"
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 3,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "is_second",
+              true
+            ]
+          ],
+          "bounds": null,
+          "count": null,
+          "rows": 1,
+          "error": false
+        },
+        {
+          "table": "workout_sessions",
+          "select": "id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at",
+          "filters": [
+            [
+              "eq",
+              "date",
+              "2026-09-28"
+            ],
+            [
+              "eq",
+              "session_type",
+              "bonus"
+            ]
+          ],
+          "bounds": [
+            0,
+            1
+          ],
+          "count": null,
+          "rows": 0,
+          "error": false
+        }
+      ],
+      "helpers": {
+        "get_all_exercise_history": [
+          {
+            "args": [],
+            "kwargs": {
+              "cutoff_days": 180
+            }
+          }
+        ],
+        "get_workout_sessions": [
+          {
+            "args": [],
+            "kwargs": {
+              "limit": 500
+            }
+          }
+        ],
+        "get_today_sessions_all": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_daily_session_volumes": [
+          {
+            "args": [],
+            "kwargs": {
+              "days": 500
+            }
+          }
+        ],
+        "get_workout_session_second": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ],
+        "get_workout_session_bonus": [
+          {
+            "args": [
+              "2026-09-28"
+            ],
+            "kwargs": {}
+          }
+        ]
+      }
+    }
+  }
+}

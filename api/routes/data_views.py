@@ -5,6 +5,58 @@ from utils import _now_mtl
 data_views_bp = Blueprint("data_views", __name__)
 
 
+def _dashboard_logged_names(db, sessions):
+    """Batch the day's name union; retain legacy partial results on failure.
+
+    Use the same client and exact session IDs, never exercise/session names as
+    scope. An exact count detects transport caps; stable ID ordering lets the
+    remaining pages complete the union without changing its final sorted order.
+    """
+    session_ids = [s["id"] for s in sessions if s.get("id")]
+    if len(session_ids) > 1:
+        try:
+            def query(count=None):
+                return (db._client.table("exercise_logs")
+                        .select("session_id,exercises(name)", count=count)
+                        .in_("session_id", session_ids).order("id"))
+
+            response = query(count="exact").execute()
+            rows = list(response.data or [])
+            total = response.count
+            if not isinstance(total, int) or total < len(rows):
+                raise ValueError("Incomplete name count")
+            page_size = len(rows)
+            while len(rows) < total:
+                if not page_size:
+                    raise ValueError("Empty name page")
+                page = query().range(len(rows), len(rows) + page_size - 1).execute().data or []
+                if not page or len(rows) + len(page) > total:
+                    raise ValueError("Incomplete name page")
+                rows.extend(page)
+            if total > page_size:
+                # Preserve the old per-session response when one session itself
+                # exceeds the transport cap; this pass must not expand its contract.
+                from collections import Counter
+                if max(Counter(r["session_id"] for r in rows).values()) > page_size:
+                    raise ValueError("Per-session transport cap")
+            return {r["exercises"]["name"] for r in rows
+                    if (r.get("exercises") or {}).get("name")}
+        except Exception:
+            pass  # Replay the original ordered reads, including partial failures.
+
+    names = set()
+    try:
+        for sid in session_ids:
+            response = db._client.table("exercise_logs").select("exercises(name)").eq("session_id", sid).execute()
+            for row in response.data or []:
+                name = (row.get("exercises") or {}).get("name")
+                if name:
+                    names.add(name)
+    except Exception:
+        pass
+    return names
+
+
 
 @data_views_bp.route("/api/dashboard")
 def api_dashboard():
@@ -54,19 +106,7 @@ def api_dashboard():
 
     _today_all = _db.get_today_sessions_all(today_date)
     # Séance terminée si : une session du jour a completed=True / rpe set, OU au moins 1 exercice loggué
-    _today_logged_names: set[str] = set()
-    try:
-        for s in _today_all:
-            sid = s.get("id")
-            if not sid:
-                continue
-            resp = _db._client.table("exercise_logs").select("exercises(name)").eq("session_id", sid).execute()
-            for r in (resp.data or []):
-                n = (r.get("exercises") or {}).get("name")
-                if n:
-                    _today_logged_names.add(n)
-    except Exception:
-        pass
+    _today_logged_names = _dashboard_logged_names(_db, _today_all)
     already_logged_today = bool(
         any(s.get("completed") or s.get("rpe") is not None for s in _today_all)
         or _today_logged_names
