@@ -13,6 +13,9 @@ final class CacheService {
         let key = "cache_schema_version"
         guard UserDefaults.standard.string(forKey: key) != schemaVersion else { return }
         let c = CacheService.shared
+        c.keysLock.lock()
+        defer { c.keysLock.unlock() }
+        for key in c.revisions.keys { c.revisions[key, default: 0] &+= 1 }
         if let files = try? FileManager.default.contentsOfDirectory(
             at: c.directory, includingPropertiesForKeys: nil
         ) {
@@ -30,7 +33,10 @@ final class CacheService {
         return c
     }()
     private var memoryKeys = Set<String>()
-    private let keysLock   = NSLock()
+    private let keysLock = NSRecursiveLock()
+    // Versions belong to the existing clear operations, including prefix clears.
+    // They are in-memory write fences, not another cache or freshness policy.
+    private var revisions: [String: UInt64] = [:]
 
     /// TTL in seconds per cache key (default: 3600s / 1h)
     private static let ttls: [String: TimeInterval] = [
@@ -118,6 +124,8 @@ final class CacheService {
     }
 
     func save(_ data: Data, for key: String) {
+        keysLock.lock()
+        defer { keysLock.unlock() }
         mem.setObject(data as NSData, forKey: key as NSString, cost: data.count)
         keysLock.withLock { memoryKeys.insert(key) }
         let now    = Date().timeIntervalSince1970
@@ -130,6 +138,8 @@ final class CacheService {
     }
 
     func load(for key: String) -> Data? {
+        keysLock.lock()
+        defer { keysLock.unlock() }
         // L1: memory hit — no disk I/O
         if let hit = mem.object(forKey: key as NSString) { return hit as Data }
 
@@ -144,12 +154,20 @@ final class CacheService {
     }
 
     func clear(for key: String) {
+        keysLock.lock()
+        defer { keysLock.unlock() }
+        revisions[key, default: 0] &+= 1
         mem.removeObject(forKey: key as NSString)
         keysLock.withLock { memoryKeys.remove(key) }
         try? FileManager.default.removeItem(at: fileURL(for: key))
     }
 
     func clear(prefix: String) {
+        keysLock.lock()
+        defer { keysLock.unlock() }
+        for key in revisions.keys where key.hasPrefix(prefix) {
+            revisions[key, default: 0] &+= 1
+        }
         let safe = prefix.replacingOccurrences(of: "/", with: "_")
                          .replacingOccurrences(of: "?", with: "_")
         guard let files = try? FileManager.default.contentsOfDirectory(
@@ -169,6 +187,8 @@ final class CacheService {
     /// Reads disk cache regardless of expiry — never promotes stale data to mem cache.
     /// Use in stale-while-revalidate paths: show old value while background refresh runs.
     func loadIncludingStale(for key: String) -> (data: Data?, isExpired: Bool, savedAt: Date?) {
+        keysLock.lock()
+        defer { keysLock.unlock() }
         guard let file = try? Data(contentsOf: fileURL(for: key)),
               file.count > Self.headerSize else { return (nil, true, nil) }
         let expiry  = file.withUnsafeBytes { $0.load(as: Double.self) }
@@ -176,5 +196,22 @@ final class CacheService {
         let payload = file.subdata(in: Self.headerSize..<file.count)
         let isExpired = Date().timeIntervalSince1970 > expiry
         return (payload, isExpired, Date(timeIntervalSince1970: savedAt))
+    }
+
+    func revision(for key: String) -> UInt64 {
+        keysLock.withLock {
+            let revision = revisions[key, default: 0]
+            revisions[key] = revision // Register disk-only keys for prefix invalidation.
+            return revision
+        }
+    }
+
+    @discardableResult
+    func save(_ data: Data, for key: String, ifRevision revision: UInt64) -> Bool {
+        keysLock.withLock {
+            guard revisions[key, default: 0] == revision else { return false }
+            save(data, for: key)
+            return true
+        }
     }
 }

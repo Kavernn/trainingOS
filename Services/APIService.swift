@@ -189,8 +189,30 @@ class APIService: ObservableObject {
 
     private let logger = Logger(subsystem: "TrainingOS", category: "api")
     private var consecutiveDashboardFailures = 0
-    init(dashboardDefaults: UserDefaults = .standard) {
+    private let cache: CacheService
+    private let cacheTransport: @Sendable (URLRequest) async throws -> (Data, URLResponse)
+    private let cacheNow: @MainActor () -> Date
+    private struct CacheRefreshContext: Equatable {
+        let url: URL
+        let date: String
+        let program: String?
+        let generation: Int
+        let revision: UInt64
+    }
+    private struct CacheRefresh {
+        let token: UUID
+        let context: CacheRefreshContext
+        let task: Task<Void, Never>
+    }
+    @MainActor private var cacheRefreshes: [String: CacheRefresh] = [:]
+    init(dashboardDefaults: UserDefaults = .standard, cache: CacheService = .shared,
+         cacheTransport: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse) = {
+             try await URLSession.authed.data(for: $0)
+         }, cacheNow: @escaping @MainActor () -> Date = { Date() }) {
         self.dashboardDefaults = dashboardDefaults
+        self.cache = cache
+        self.cacheTransport = cacheTransport
+        self.cacheNow = cacheNow
         if let data = dashboardDefaults.data(forKey: Self.dashboardPlanKey),
            let plan = try? JSONDecoder().decode(DashboardPlan.self, from: data), plan.programme.isActive {
             dashboardPlan = plan
@@ -204,21 +226,50 @@ class APIService: ObservableObject {
     // Stratégie : cache-first (TTL respecté) + stale-while-revalidate sur expiration.
     // Le refresh background ne se déclenche QUE si le cache est périmé — pas à chaque hit.
     // Fraîcheur garantie par : TTL par clé (CacheService.ttls) + invalidation explicite post-mutation.
-    func fetchWithCache(url: URL, key: String) async throws -> Data {
-        if let cached = CacheService.shared.load(for: key) {
+    @MainActor private func cacheRefreshContext(url: URL, key: String) -> CacheRefreshContext {
+        .init(url: url, date: DateFormatter.isoDate.string(from: cacheNow()),
+              program: dashboardPlan?.programme.active_program_id,
+              generation: dashboardGeneration, revision: cache.revision(for: key))
+    }
+
+    // Exposes the owned task internally so focused tests can await cleanup without sleeps.
+    @MainActor func cacheRefreshTask(for key: String) -> Task<Void, Never>? {
+        cacheRefreshes[key]?.task
+    }
+
+    @MainActor func fetchWithCache(url: URL, key: String) async throws -> Data {
+        let context = cacheRefreshContext(url: url, key: key)
+        if let flight = cacheRefreshes[key], flight.context != context {
+            flight.task.cancel()
+            cacheRefreshes.removeValue(forKey: key)
+        }
+        if let cached = cache.load(for: key) {
             return cached
         }
         // Expired: serve stale data immediately + background refresh — never block
-        let (stale, _, _) = CacheService.shared.loadIncludingStale(for: key)
+        let (stale, _, _) = cache.loadIncludingStale(for: key)
         if let stale {
-            Task.detached(priority: .utility) {
-                var req = URLRequest(url: url)
-                req.timeoutInterval = 15
-                req.cachePolicy = .reloadIgnoringLocalCacheData
-                if let (fresh, resp) = try? await URLSession.authed.data(for: req),
-                   (200...299).contains((resp as? HTTPURLResponse)?.statusCode ?? 0) {
-                    CacheService.shared.save(fresh, for: key)
+            if cacheRefreshes[key] == nil {
+                let token = UUID()
+                let task = Task(priority: .utility) { [weak self] in
+                    guard let self else { return }
+                    defer {
+                        if self.cacheRefreshes[key]?.token == token {
+                            self.cacheRefreshes.removeValue(forKey: key)
+                        }
+                    }
+                    var req = URLRequest(url: url)
+                    req.timeoutInterval = 15
+                    req.cachePolicy = .reloadIgnoringLocalCacheData
+                    if let (fresh, resp) = try? await self.cacheTransport(req),
+                       !Task.isCancelled,
+                       self.cacheRefreshes[key]?.token == token,
+                       self.cacheRefreshContext(url: url, key: key) == context,
+                       (200...299).contains((resp as? HTTPURLResponse)?.statusCode ?? 0) {
+                        self.cache.save(fresh, for: key, ifRevision: context.revision)
+                    }
                 }
+                cacheRefreshes[key] = CacheRefresh(token: token, context: context, task: task)
             }
             return stale
         }
@@ -226,11 +277,13 @@ class APIService: ObservableObject {
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         req.cachePolicy = .reloadIgnoringLocalCacheData
-        let (data, response) = try await URLSession.authed.data(for: req)
+        let (data, response) = try await cacheTransport(req)
         guard (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
             throw URLError(.badServerResponse)
         }
-        CacheService.shared.save(data, for: key)
+        if cacheRefreshContext(url: url, key: key) == context {
+            cache.save(data, for: key, ifRevision: context.revision)
+        }
         return data
     }
 
@@ -239,12 +292,12 @@ class APIService: ObservableObject {
     // est mis en cache par fetchWithCache. Ici on tente le decode ; s'il throw,
     // on clear (mémoire + disque) et on refetch le réseau une fois. Adoption
     // opt-in — les callers qui veulent le filet migrent, les autres restent.
-    func fetchWithCacheDecoded<T: Decodable>(url: URL, key: String, as type: T.Type) async throws -> T {
+    @MainActor func fetchWithCacheDecoded<T: Decodable>(url: URL, key: String, as type: T.Type) async throws -> T {
         let data = try await fetchWithCache(url: url, key: key)
         do {
             return try APIService.decoder.decode(T.self, from: data)
         } catch {
-            CacheService.shared.clear(for: key)
+            cache.clear(for: key)
             let fresh = try await fetchWithCache(url: url, key: key)
             return try APIService.decoder.decode(T.self, from: fresh)
         }
