@@ -310,6 +310,8 @@ final class DashboardViewModel: ObservableObject {
             }
             group.addTask { @MainActor in
                 do { p2.morningBrief = try await APIService.shared.fetchMorningBrief(); return (.morningBrief, 0) }
+                catch is CancellationError { return (.morningBrief, 0) }
+                catch let error as URLError where error.code == .cancelled { return (.morningBrief, 0) }
                 catch {
                     self.logger.error("fetchMorningBrief: \(error, privacy: .public)")
                     p2.morningBriefFailed = true
@@ -563,6 +565,10 @@ final class DashboardViewModel: ObservableObject {
         morningBriefFailed = false
         do {
             morningBrief = try await APIService.shared.fetchMorningBrief()
+        } catch is CancellationError {
+            return
+        } catch let error as URLError where error.code == .cancelled {
+            return
         } catch {
             logger.error("refreshMorningBrief: \(error, privacy: .public)")
             morningBriefFailed = true

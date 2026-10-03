@@ -1936,7 +1936,10 @@ struct WorkoutSeanceView: View {
                 Text("Tous les exercices sont loggués.")
             }
         }
-        partialSecondSessionDialog(content)
+        // Bound the accumulated modifier value at this existing boundary. Keeping
+        // its full generic type in the remaining chain exhausts the iPhone stack
+        // while ScrollView builds its content, before any workout interaction.
+        partialSecondSessionDialog(AnyView(content))
         // W-D11 — abandon session alert
         .alert("Quitter la séance ?", isPresented: $showAbandonAlert) {
             if vm.logResults.count > 0 {
