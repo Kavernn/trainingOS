@@ -295,3 +295,7 @@ from db_features import (
     get_coach_war_room_shared,
     set_coach_war_room_shared,
 )
+
+# Atomic coaching contract (migration 096).
+from db_exercises import apply_progression_atomic
+from db_sessions import get_progression_session

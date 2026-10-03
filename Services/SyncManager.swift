@@ -146,8 +146,22 @@ final class SyncManager: ObservableObject {
             try queue.finishAttempt(original, state: .uncertain, reason: "nonHTTPResponse")
             throw OfflineCorrelationError.existing(queue.status(for: receipt.operationKey))
         }
+        if original.endpoint == "/api/apply_progression", (500...599).contains(http.statusCode) {
+            // A server failure is not an offline acknowledgement. Do not replay
+            // automatically: a failed response alone cannot prove rollback.
+            try queue.finishAttempt(original, state: .uncertain, statusCode: http.statusCode, reason: "progressionServerFailure")
+            throw APIError.serverError(http.statusCode, "Progression non confirmée")
+        }
         switch Self.correlatedDisposition(statusCode: http.statusCode) {
         case .delivered(let code):
+            if original.endpoint == "/api/apply_progression" {
+                guard let payload = original.payloadDict, ProgressionApplied.confirmed(response.0, for: payload) != nil else {
+                    try queue.finishAttempt(original, state: .uncertain, statusCode: code, reason: "invalidProgressionACK")
+                    throw OfflineCorrelationError.existing(queue.status(for: receipt.operationKey))
+                }
+                // Includes replay: invalidate only after a valid application ACK.
+                CacheInvalidation.progressionApplied.invalidate()
+            }
             try queue.finishAttempt(original, state: .delivered, statusCode: code)
             return .response(response.0)
         case .discarded(let code):

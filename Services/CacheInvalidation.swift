@@ -11,6 +11,7 @@ enum CacheInvalidation {
     case hiitLogged
     case programmeMutated        // create / rename / delete / setActive / structure / schedule
     case inventaireMutated       // save / delete / classify exercise dans le catalogue
+    case progressionApplied
     case deloadApplied
 
     // MARK: - Wellness
@@ -92,6 +93,8 @@ enum CacheInvalidation {
                     "stats_data", "dashboard", "morning_brief", "mesocycle_status"]
         case .inventaireMutated:
             return ["inventaire_data", "programme_data", "seance_data", "seance_soir_data"]
+        case .progressionApplied:
+            return ["seance_data", "seance_soir_data", "programme_data"]
         case .deloadApplied:
             return ["seance_data", "dashboard", "morning_brief"]
         case .recoveryLogged:
@@ -176,7 +179,7 @@ enum CacheInvalidation {
         // de séances. exerciseLogged NON : les suggestions ciblent la prochaine
         // séance, pas la courante — pas de refresh en cours de log.
         case .sessionLogged:     return ["progression_suggestions", "health_weekly"]
-        case .programmeMutated:  return ["progression_suggestions"]
+        case .programmeMutated, .progressionApplied: return ["progression_suggestions"]
         default: return []
         }
     }

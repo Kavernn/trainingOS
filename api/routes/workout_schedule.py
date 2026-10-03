@@ -125,6 +125,9 @@ def api_seance_data():
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     exercise_supersets = _db.get_session_supersets(program_id_param or _db.get_active_program_id())
 
+    from weights import coaching_references, restore_coaching_schemes, overlay_coaching_weights
+    refs = coaching_references({n for plan in flat_program.values() for n in plan})
+    restore_coaching_schemes(flat_program, full_program, refs, program_id_param or _db.get_active_program_id())
     fatigue_score = get_cached_fatigue_score()
     prescriptions = {}
     for session_exos in flat_program.values():
@@ -151,6 +154,8 @@ def api_seance_data():
             if sug.get("suggestion_type") == "increase_weight" and sug.get("suggested_weight"):
                 if ex_name in weights:
                     weights[ex_name] = {**weights[ex_name], "current_weight": sug["suggested_weight"]}
+
+    overlay_coaching_weights(weights, suggestions, refs)
 
     return jsonify({
         "today": today_str,
@@ -276,6 +281,9 @@ def api_seance_soir_data():
     # Prescriptions : scope au plan du SOIR uniquement (exos affichés côté iOS).
     # Divergence assumée avec le matin (L103-115) qui itère tout flat_program —
     # le matin garde son comportement historique, le soir n'a pas besoin de ce sur-calcul.
+    from weights import coaching_references, restore_coaching_schemes, overlay_coaching_weights
+    refs = coaching_references({n for plan in flat_program.values() for n in plan})
+    restore_coaching_schemes(flat_program, full_program, refs, _db.get_active_program_id())
     fatigue_score = get_cached_fatigue_score()
     prescriptions = {}
     today_soir_plan = flat_program.get(today_soir) or {}
@@ -299,6 +307,8 @@ def api_seance_soir_data():
             if sug.get("suggestion_type") == "increase_weight" and sug.get("suggested_weight"):
                 if ex_name in weights:
                     weights[ex_name] = {**weights[ex_name], "current_weight": sug["suggested_weight"]}
+
+    overlay_coaching_weights(weights, suggestions, refs)
 
     return jsonify({
         "has_evening_session": True,
@@ -487,42 +497,54 @@ def api_session_override():
 
 @workout_schedule_bp.route("/api/progression_suggestions")
 def api_progression_suggestions():
-    """Return per-exercise progression suggestions for a given session."""
-    import smart_progression as _sp
-    from utils import _today_mtl
-    from planner import load_program
-
-    date         = request.args.get("date") or _today_mtl()
-    session_type = request.args.get("session_type", "morning")
-    session_name = request.args.get("session_name", "")
-
-    try:
-        program   = load_program()
-        # Étape 3+4 — respect des overrides via get_day_plan (SOURCE UNIQUE).
-        # matin/soir/bonus consomment le slot post-override. Fallback session_name
-        # pour tout autre session_type inconnu.
-        if session_type in ("morning", "evening", "bonus"):
-            from planner import get_day_plan
-            _day_plan = get_day_plan(date, program)
-            exercises = list(_day_plan[session_type].keys())
-        else:
-            exercises = list(program.get(session_name, {}).keys()) if session_name else []
-    except Exception:
-        exercises = []
-
+    import smart_progression as sp
+    import db
+    from progression_contract import validate_context
+    from planner import load_program, get_day_plan
     from utils import get_mesocycle_info
-    meso  = get_mesocycle_info()
-    phase = meso.get("phase")
+    context = dict(session_date=request.args.get("date"),
+                   session_type=request.args.get("session_type"),
+                   session_name=request.args.get("session_name"))
+    try:
+        validate_context(context)
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+    try:
+        program_id = db.get_active_program_id(strict=True)
+        if not program_id:
+            raise RuntimeError("Active programme unavailable")
+        exercises = list(get_day_plan(context["session_date"], load_program())[context["session_type"]])
+        suggestions = sp.generate_suggestions(
+            context["session_date"], context["session_type"], context["session_name"],
+            exercises, get_mesocycle_info().get("phase"), strict=True)
+        if program_id != db.get_active_program_id(strict=True):
+            return jsonify(error="Programme modifié pendant le chargement"), 409
+        return jsonify(suggestions=suggestions)
+    except Exception:
+        logger.exception("Progression suggestions unavailable")
+        return jsonify(error="Suggestions temporairement indisponibles"), 503
 
-    suggestions = _sp.generate_suggestions(
-        session_date=date,
-        session_type=session_type,
-        session_name=session_name,
-        session_exercises=exercises,
-        phase=phase,
-    )
-    return jsonify({"suggestions": suggestions})
 
+@workout_schedule_bp.route("/api/apply_progression", methods=["POST"])
+def api_apply_progression():
+    # Auth remains the app-wide before_request policy, like the workout routes.
+    from progression_contract import validate_apply
+    import smart_progression as sp
+    import db
+    payload = request.get_json(silent=True)
+    try:
+        validate_apply(payload)
+    except ValueError as error:
+        return jsonify(success=False, error=str(error)), 400
+    try:
+        if payload["program_id"] != db.get_active_program_id(strict=True):
+            return jsonify(success=False, error="Programme modifié"), 409
+        result = sp.apply_suggestion(payload["exercise_name"], payload.get("suggested_weight"),
+                                     payload.get("suggested_scheme"), context=payload)
+        return jsonify(result), result.get("status", 200 if result.get("success") else 500)
+    except Exception:
+        logger.exception("Progression transaction failed")
+        return jsonify(success=False, error="Progression non confirmée"), 503
 
 @workout_schedule_bp.route("/api/move_planned_exercise", methods=["POST"])
 def api_move_planned_exercise():

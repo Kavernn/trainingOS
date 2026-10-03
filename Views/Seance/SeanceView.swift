@@ -1492,7 +1492,10 @@ struct FinishRemainingSheet: View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
-                WorkoutSeanceView(data: patchedData, vm: finishVM)
+                WorkoutSeanceView(data: patchedData, vm: finishVM, onDidFinish: {
+                    dismiss()
+                    Task { await onDone() }
+                })
                     .safeAreaInset(edge: .top, spacing: 0) {
                         if !loggedExercises.isEmpty {
                             VStack(spacing: 0) {
@@ -1561,19 +1564,14 @@ struct FinishRemainingSheet: View {
                     rpe: $exitRpe, comment: $finishVM.sessionComment,
                     preEnergy: energyPreDate == data.todayDate ? energyPreValue : nil,
                     onSubmit: { energy in
+                        showFinishFromExit = false
                         let dur = Double(finishVM.chrono.stop())
                         Task { await finishVM.finish(rpe: exitRpe, comment: finishVM.sessionComment, durationMin: dur, energyPre: energy, sessionName: data.today) }
                     }
                 )
             }
         }
-        .onChange(of: finishVM.showSuccess) { success in
-            guard success else { return }
-            finishVM.showSuccess = false
-            showFinishFromExit = false
-            dismiss()
-            Task { await onDone() }
-        }
+
     }
 }
 

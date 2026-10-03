@@ -64,6 +64,26 @@ if MODE != "OFFLINE":
             MODE = "HYBRID"
 
 
+_service_client = None
+_SERVICE_CLIENT_LOCK = threading.Lock()
+
+
+def get_service_supabase():
+    """Server-only privileged client; never substitutes for the normal anon client."""
+    global _service_client
+    with _SERVICE_CLIENT_LOCK:
+        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        if MODE == "OFFLINE" or not _SUPABASE_URL or not key or not key.strip():
+            raise RuntimeError("service-role client unavailable")
+        if _service_client is None:
+            try:
+                _service_client = _make_supabase_client(_SUPABASE_URL, key)
+            except Exception:
+                # SDK errors may contain headers or credentials; suppress their context.
+                raise RuntimeError("service-role client unavailable") from None
+        return _service_client
+
+
 def _reconnect() -> bool:
     """Recreate the Supabase client after a server-disconnected error."""
     global _client

@@ -1215,8 +1215,10 @@ struct EnergyPreWorkoutSheet: View {
 
 struct CoachingChip: View {
     let suggestion: ProgressionSuggestion
+    var context: ProgressionContext? = nil
+    @StateObject private var rows = ProgressionRows()
 
-    @State private var applied = false
+    private var applied: Bool { rows.state(suggestion) == .confirmed }
     @State private var ignored = false
 
     var body: some View {
@@ -1259,23 +1261,17 @@ struct CoachingChip: View {
                 Spacer()
                 Button("Ignorer") { ignored = true }
                     .font(.appCaption).foregroundColor(.gray)
-                if let w = suggestion.suggestedWeight {
+                // Inline previews have no completed-session/CAS context. Never
+                // offer an unguarded mutation from a recommendation-only payload.
+                if let context, suggestion.canApply {
                     Button("Appliquer") {
-                        triggerImpact(style: .light)
-                        Task {
-                            do {
-                                try await APIService.shared.applyProgression(
-                                    exerciseName: suggestion.exerciseName,
-                                    suggestedWeight: w,
-                                    suggestedScheme: suggestion.suggestedScheme
-                                )
-                                applied = true
-                            } catch {
-                                logger.error("apply failed for \(suggestion.exerciseName): \(error)")
-                            }
-                        }
+                        Task { await rows.apply(suggestion, context: context, send: { await APIService.shared.applyProgression($0) }) }
                     }
-                    .font(.appCaption).fontWeight(.semibold).foregroundColor(typeColor)
+                    .disabled(rows.state(suggestion) == .applying || rows.state(suggestion) == .queued)
+                    .font(.appCaption).foregroundColor(typeColor)
+                    if rows.state(suggestion) == .queued { Text("En attente de synchronisation").font(.appCaption) }
+                    if case .failed(let message) = rows.state(suggestion) { Text(message).font(.appCaption) }
+                    if rows.state(suggestion) == .conflict { Text("Recommandation devenue obsolète").font(.appCaption) }
                 }
             }
             .padding(.horizontal, 10).padding(.vertical, 6)

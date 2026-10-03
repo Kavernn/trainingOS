@@ -130,3 +130,39 @@ def save_weights(weights: dict) -> bool:
         return True
     except Exception:
         return False
+
+
+def coaching_references(names):
+    """Explicitly applied references only; classic workout routes opt in.
+
+    Keep other consumers (including Day Composer) on their existing contract.
+    A missing migration fails the classic read rather than returning stale values.
+    """
+    import db_core
+    if not names: return {}
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        raise RuntimeError("Progression references unavailable")
+    rows = db_core._client.table("exercises").select("name,current_weight,default_scheme,progression_schemes").in_("name",list(names)).eq("progression_reference",True).is_("deleted_at","null").execute().data
+    if rows is None: raise RuntimeError("Invalid reference response")
+    return {r["name"]:r for r in rows}
+
+
+def restore_coaching_schemes(flat_program, full_program, references, program_id):
+    """Keep dated overrides and other programmes intact; uncap only approved schemes."""
+    from blocks import get_strength_exercises
+    from utils import cap_scheme_sets
+    for session, definition in full_program.items():
+        for name, scheme in get_strength_exercises(definition).items():
+            approved = references.get(name, {}).get("progression_schemes", {}).get(f"{program_id}/{session}")
+            if approved == scheme and flat_program.get(session, {}).get(name) == cap_scheme_sets(scheme):
+                flat_program[session][name] = scheme
+
+
+def overlay_coaching_weights(weights, suggestions, references):
+    """Run after automatic suggestions: an accepted reference owns the prefill."""
+    for name, ref in references.items():
+        if ref.get("current_weight") is not None:
+            weights[name] = {**weights.get(name, {"history": []}), "current_weight": ref["current_weight"]}
+            for item in suggestions:
+                if item.get("exercise") == name:
+                    item["display"] = f"{ref['current_weight']:g} lbs (référence)"

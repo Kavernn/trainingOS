@@ -775,27 +775,48 @@ extension APIService {
         return data
     }
 
-    func fetchProgressionSuggestions(date: String, sessionType: String,
-                                     sessionName: String = "") async throws -> [ProgressionSuggestion] {
-        var items: [URLQueryItem] = [
-            URLQueryItem(name: "date", value: date),
-            URLQueryItem(name: "session_type", value: sessionType)
-        ]
-        if !sessionName.isEmpty { items.append(URLQueryItem(name: "session_name", value: sessionName)) }
-        let url = try buildURL(path: "/api/progression_suggestions", queryItems: items)
-        let key = "progression_suggestions_\(date)_\(sessionType)_\(sessionName)"
-        let data = try await fetchWithCache(url: url, key: key)
-        return try APIService.decoder.decode(ProgressionSuggestionsResponse.self, from: data).suggestions
+    // Existing programme preview caller keeps its throwing read-only contract.
+    func fetchProgressionSuggestions(date: String, sessionType: String, sessionName: String = "") async throws -> [ProgressionSuggestion] {
+        switch await fetchProgressionSuggestions(context: .init(date: date, sessionType: sessionType, sessionName: sessionName)) {
+        case .actionable(let rows), .maintainOnly(let rows): return rows
+        case .none: return []
+        case .failed: throw URLError(.badServerResponse)
+        }
     }
 
-    func applyProgression(exerciseName: String, suggestedWeight: Double,
-                          suggestedScheme: String?) async throws {
-        var payload: [String: Any] = [
-            "exercise_name": exerciseName,
-            "suggested_weight": suggestedWeight
-        ]
-        if let scheme = suggestedScheme { payload["suggested_scheme"] = scheme }
-        _ = try await offlinePost(endpoint: "/api/apply_progression", payload: payload)
+    func fetchProgressionSuggestions(context: ProgressionContext,
+        transport: (URLRequest) async throws -> (Data, URLResponse) = { try await URLSession.authed.data(for: $0) }
+    ) async -> ProgressionFetchOutcome {
+        do {
+            let url = try buildURL(path: "/api/progression_suggestions", queryItems: [
+                .init(name: "date", value: context.date), .init(name: "session_type", value: context.sessionType),
+                .init(name: "session_name", value: context.sessionName)])
+            // A post-finish recommendation needs a fresh reference snapshot for CAS.
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+            request.timeoutInterval = 15
+            let (bytes, response) = try await transport(request)
+            try Task.checkCancellation()
+            return .decode(bytes, status: (response as? HTTPURLResponse)?.statusCode ?? 0)
+        } catch is CancellationError { return .failed(.cancelled) }
+        catch let error as URLError where error.code == .cancelled { return .failed(.cancelled) }
+        catch { return .failed(.network) }
+    }
+
+    func applyProgression(_ request: ProgressionApplyRequest, manager: SyncManager? = nil,
+        transport: ((URLRequest) async throws -> (Data, URLResponse))? = nil
+    ) async -> ProgressionApplyOutcome {
+        do {
+            let outcome = try await offlinePostCorrelated(endpoint: "/api/apply_progression", payload: request.payload,
+                operationKey: .init(rawValue: request.operationIdentity), manager: manager, transport: transport)
+            switch outcome {
+            case .queued: return .queued
+            case .response(let bytes):
+                let result = ProgressionApplyOutcome.response(bytes)
+                if case .confirmed = result { await MainActor.run { CacheInvalidation.progressionApplied.invalidate() } }
+                return result
+            }
+        } catch APIError.serverError(let code, _) where code == 409 { return .conflict }
+        catch { return .failed("Application non confirmée. Recharge les suggestions avant de réessayer.") }
     }
 
     func fetchSmartDay() async throws -> SmartDayRecommendation {

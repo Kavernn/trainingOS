@@ -529,6 +529,7 @@ def generate_suggestions(
     session_name: str = "",
     session_exercises: Optional[list] = None,
     phase: Optional[str] = None,
+    *, strict: bool = False,
 ) -> list[dict]:
     """
     Return suggestion dicts for each exercise in the current session.
@@ -559,9 +560,13 @@ def generate_suggestions(
         return []
 
     exercises = session_exercises or []
+    program_id = db.get_active_program_id(strict=True) if strict else None
+    read_options = {"strict": True} if strict else {}
 
     def _find_session(ref: str) -> Optional[dict]:
         """Find the most recent matching session strictly before ref."""
+        if strict:
+            return db.get_progression_session(ref, session_type, session_name, exercises, previous=True, program_id=program_id)
         if session_name:
             s = db.get_previous_session_by_name(ref, session_name)
             if s:
@@ -572,7 +577,8 @@ def generate_suggestions(
                 return s
         return db.get_previous_session_of_type(ref, session_type)
 
-    current_session = db.get_workout_session_by_type(session_date, session_type)
+    current_session = (db.get_progression_session(session_date, session_type, session_name, exercises, program_id=program_id)
+                       if strict else db.get_workout_session_by_type(session_date, session_type))
 
     # Pre-session mode: session not yet logged.
     pre_session_mode = False
@@ -590,8 +596,8 @@ def generate_suggestions(
     if not prev_session:
         return []
 
-    current_logs = db.get_exercise_logs_for_session_with_names(current_session["id"])
-    prev_logs_raw = db.get_exercise_logs_for_session_with_names(prev_session["id"])
+    current_logs = db.get_exercise_logs_for_session_with_names(current_session["id"], **read_options)
+    prev_logs_raw = db.get_exercise_logs_for_session_with_names(prev_session["id"], **read_options)
 
     if not current_logs:
         return []
@@ -600,8 +606,9 @@ def generate_suggestions(
 
     # Batch-load info and history for all exercises in one round-trip each
     all_names = [log["exercise_name"] for log in current_logs]
-    info_bulk = db.get_exercises_info_bulk(all_names)
-    history_bulk = db.get_exercise_history_bulk(all_names, limit_per=6)
+    info_bulk = db.get_exercises_info_bulk(all_names, **read_options)
+    history_options = {**read_options, "cutoff": current_session["date"]} if strict else {}
+    history_bulk = db.get_exercise_history_bulk(all_names, limit_per=6, **history_options)
 
     suggestions: list[dict] = []
     regression_count = 0
@@ -609,7 +616,8 @@ def generate_suggestions(
     for log in current_logs:
         name     = log["exercise_name"]
         info     = info_bulk.get(name)
-        if not info:
+        if not info or not info.get("load_profile"):
+            logger.info("Progression exclusion: metadata/load_profile absent")
             continue
         prev_log = prev_by_name.get(name)
         if not prev_log:
@@ -620,6 +628,12 @@ def generate_suggestions(
             continue
         if s["suggestion_type"] == "regression":
             regression_count += 1
+        if strict:
+            # Freeze the reference read used for this calculation; never replace
+            # its CAS expectation with a later database read.
+            s.update(expected_current_weight=info.get("current_weight"),
+                     expected_current_scheme=info.get("default_scheme"),
+                     program_id=program_id, reference_available=True)
         suggestions.append(s)
 
     # Global fatigue flag
@@ -630,20 +644,11 @@ def generate_suggestions(
     return suggestions
 
 
-def apply_suggestion(exercise_name: str, suggested_weight: float, suggested_scheme: Optional[str]) -> bool:
-    """
-    Persist an approved suggestion:
-      1. Update exercises.default_scheme in Supabase (if scheme changed)
-      2. Update weights KV current_weight (used by SeanceView pre-fill)
-    """
-    ok = True
-
-    if suggested_scheme:
-        ok = db.update_exercise_default_scheme(exercise_name, suggested_scheme) and ok
-
-    weight_ok = db.update_exercise_current_weight(exercise_name, suggested_weight)
-    if not weight_ok:
-        logger.warning("apply_suggestion: failed to update current_weight for %r", exercise_name)
-    ok = ok and bool(weight_ok)
-
-    return ok
+def apply_suggestion(exercise_name: str, suggested_weight: Optional[float],
+                     suggested_scheme: Optional[str], *, context: dict) -> dict:
+    """Persist one validated CAS operation; recommendation rules are unchanged."""
+    from progression_contract import validate_apply
+    payload = dict(context, exercise_name=exercise_name,
+                   suggested_weight=suggested_weight, suggested_scheme=suggested_scheme)
+    validate_apply(payload)
+    return db.apply_progression_atomic(payload)

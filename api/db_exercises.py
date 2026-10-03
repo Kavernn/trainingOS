@@ -294,3 +294,19 @@ def get_exercise_use_counts() -> dict:
                 return {}
         db_core.logger.error("get_exercise_use_counts error: %s", e)
         return {}
+
+
+def apply_progression_atomic(payload: dict) -> dict:
+    """One Postgres transaction; no split writes or compensation on RPC failure.
+
+    Migration 096 is required. A missing RPC fails closed, never falls back to
+    the old non-atomic setters. The service-role client owns this API operation.
+    """
+    client = db_core.get_service_supabase()
+    try:
+        response = client.rpc('apply_progression', {'p': payload}).execute()
+    except Exception:
+        raise RuntimeError('Progression transaction unavailable') from None
+    if not isinstance(response.data, dict) or 'success' not in response.data:
+        raise RuntimeError('Invalid progression transaction response')
+    return response.data

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SessionRecapSnapshot {
     let sessionName: String
+    let coachingContext: ProgressionContext
     let durationMin: Double
     let logResults: [String: ExerciseLogResult]
     let exercises: [String]
@@ -105,7 +106,11 @@ struct WorkoutSeanceView: View {
 
     // Progression
     @State private var showProgressionSheet = false
-    @State private var progressionSuggestions: [ProgressionSuggestion] = []
+    @StateObject private var progressionFlow = ProgressionFlow()
+    @State private var showProgressionError = false
+    private var progressionContext: ProgressionContext {
+        .init(date: data.todayDate, sessionType: ProgressionContext.sessionType(second: isSecondSession, bonus: isBonusSession), sessionName: data.today)
+    }
 
     // Session recap
     @State private var showRecap = false
@@ -1231,6 +1236,7 @@ struct WorkoutSeanceView: View {
                 let dur = Double(vm.chrono.stop())
                 recapSnapshot = SessionRecapSnapshot(
                     sessionName: data.today,
+                    coachingContext: progressionContext,
                     durationMin: dur,
                     logResults: vm.logResults,
                     exercises: exercises.map(\.0),
@@ -1251,11 +1257,10 @@ struct WorkoutSeanceView: View {
 
     private var progressionSheet: some View {
         ProgressionSuggestionsSheet(
-            suggestions: progressionSuggestions,
-            sessionName: data.today
+            suggestions: progressionFlow.suggestions,
+            context: progressionFlow.context ?? progressionContext
         ) {
             showProgressionSheet = false
-            Task { await vm.load() }
         }
     }
 
@@ -1865,27 +1870,40 @@ struct WorkoutSeanceView: View {
             }
             // Lot F : plus de court-circuit — le récap s'affiche toujours, les PRs
             // apparaissent dans le bandeau du récap (fullScreenCover PR supprimé).
+            progressionFlow.begin(recapSnapshot?.coachingContext ?? progressionContext) {
+                if let onDidFinish { onDidFinish() }
+                else { Task { await vm.load() } }
+            }
             showRecap = true
         }
         .sheet(isPresented: $showRecap, onDismiss: {
             vm.prCelebrations = []
-            Task {
-                let sType = isSecondSession ? "evening" : "morning"
-                let todayStr = data.todayDate
-                if let suggestions = try? await APIService.shared.fetchProgressionSuggestions(
-                    date: todayStr, sessionType: sType, sessionName: data.today
-                ), !suggestions.filter({ $0.suggestionType != "maintain" }).isEmpty {
-                    progressionSuggestions = suggestions
-                    showProgressionSheet = true
-                } else {
-                    await vm.load()
-                }
-                onDidFinish?()
-            }
+            Task { await progressionFlow.fetch { await APIService.shared.fetchProgressionSuggestions(context: $0) } }
         }) {
             recapSheetContent
         }
-        .sheet(isPresented: $showProgressionSheet) { progressionSheet }
+        .sheet(isPresented: $showProgressionSheet, onDismiss: { progressionFlow.finish() }) { progressionSheet }
+        .overlay(alignment: .bottom) {
+            if progressionFlow.phase == .loading {
+                ProgressView("Chargement du Coaching…")
+                    .padding().background(Color.appCard).cornerRadius(12).padding()
+            }
+        }
+        .onChange(of: progressionFlow.phase) { _, phase in
+            if phase == .coaching { showProgressionSheet = true }
+            if case .failed(let error) = phase, error != .cancelled, error != .staleContext { showProgressionError = true }
+        }
+        .alert("Coaching indisponible", isPresented: $showProgressionError) {
+            Button("Réessayer") { Task { await progressionFlow.fetch { await APIService.shared.fetchProgressionSuggestions(context: $0) } } }
+            Button("Terminer", role: .cancel) { progressionFlow.finish() }
+        } message: {
+            if case .failed(let error) = progressionFlow.phase { Text(error.message) }
+        }
+        .onChange(of: progressionContext) { _, context in
+            progressionFlow.contextChanged(to: context)
+            showProgressionSheet = false
+        }
+        .onDisappear { progressionFlow.invalidate() }
         .alert(vm.failedExerciseNames.isEmpty ? "Erreur d'enregistrement" : "Certains exercices n’ont pas été sauvegardés", isPresented: Binding(
             get: { vm.submitError != nil },
             set: { if !$0 { vm.submitError = nil } }

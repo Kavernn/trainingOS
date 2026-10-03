@@ -987,13 +987,14 @@ def get_all_exercise_history(cutoff_days: int = 180, full_history: bool = False)
         return {}
 
 
-def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) -> dict:
+def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20, *, strict: bool = False, cutoff: str | None = None) -> dict:
     """Return {exercise_name: [{date, weight, reps, sets_json}]} for a subset of exercises.
 
     This is a performance-critical helper for /api/seance_data: we only need
     today's exercises, not the full training history for every exercise.
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
+        if strict: raise RuntimeError("Progression data unavailable")
         return {}
     names = [n for n in exercise_names if isinstance(n, str) and n.strip()]
     if not names:
@@ -1027,7 +1028,7 @@ def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) ->
             if not name:
                 continue
             d = (r.get("workout_sessions") or {}).get("date")
-            if not d:
+            if not d or (cutoff is not None and d > cutoff):
                 continue
             lst = result.setdefault(name, [])
             if len(lst) >= limit_per:
@@ -1043,6 +1044,7 @@ def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) ->
     try:
         return _do()
     except Exception as e:
+        if strict: raise
         if db_core._is_disconnect(e) and db_core._reconnect():
             try:
                 return _do()
@@ -1158,9 +1160,10 @@ def get_workout_session_by_type(date: str, session_type: str) -> Optional[dict]:
         return None
 
 
-def get_exercise_logs_for_session_with_names(session_id: str) -> List[dict]:
+def get_exercise_logs_for_session_with_names(session_id: str, *, strict: bool = False) -> List[dict]:
     """Return [{exercise_name, weight, reps, sets_json}] for a session_id."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
+        if strict: raise RuntimeError("Progression data unavailable")
         return []
 
     def _do() -> List[dict]:
@@ -1185,6 +1188,7 @@ def get_exercise_logs_for_session_with_names(session_id: str) -> List[dict]:
     try:
         return _do()
     except Exception as e:
+        if strict: raise
         if db_core._is_disconnect(e) and db_core._reconnect():
             try:
                 return _do()
@@ -1376,12 +1380,13 @@ def get_exercise_info(exercise_name: str) -> Optional[dict]:
         return None
 
 
-def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
+def get_exercises_info_bulk(exercise_names: list[str], *, strict: bool = False) -> dict[str, dict]:
     """Batch fetch exercise info for multiple exercises.
 
     Returns: {exercise_name: {category, load_profile, default_scheme, muscles}}
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
+        if strict: raise RuntimeError("Progression data unavailable")
         return {}
     names = [n for n in exercise_names if isinstance(n, str) and n.strip()]
     if not names:
@@ -1390,7 +1395,7 @@ def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
     def _do() -> dict[str, dict]:
         resp = (
             db_core._client.table("exercises")
-            .select("name, category, load_profile, default_scheme, muscles, muscle_group, muscle_specific, secondary_muscles, movement_pattern, weight_type")
+            .select("name, type, current_weight, category, load_profile, default_scheme, muscles, muscle_group, muscle_specific, secondary_muscles, movement_pattern, weight_type")
             .in_("name", names)
             .is_("deleted_at", "null")
             .execute()
@@ -1400,6 +1405,7 @@ def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
     try:
         return _do()
     except Exception as e:
+        if strict: raise
         if db_core._is_disconnect(e) and db_core._reconnect():
             try:
                 return _do()
@@ -2232,3 +2238,36 @@ def exercise_has_log_on(date: str, exercise_id: str) -> bool:
                 return False
         db_core.logger.error("exercise_has_log_on error: %s", e)
         return False
+
+
+def get_progression_session(day, session_type, session_name, exercises, *, previous=False, program_id=None):
+    """Strict coaching lookup. Prefer same slot, retain legacy/moved-session fallback.
+
+    Older workout rows have no program identity. Never claim those are isolated
+    by program; known identities are checked if supplied by the schema.
+    """
+    if db_core._client is None or db_core.MODE == 'OFFLINE':
+        raise RuntimeError('Progression sessions unavailable')
+    query = db_core._client.table('workout_sessions').select('*')
+    query = query.lt('date', day) if previous else query.eq('date', day)
+    rows=[]
+    offset = 0
+    while True:
+        batch=query.order('date', desc=True).order('id').range(offset,offset+999).execute().data
+        if batch is None: raise RuntimeError('Invalid session response')
+        rows.extend(batch)
+        if len(batch)<1000: break
+        offset += 1000
+    candidates=[r for r in rows if not r.get('program_id') or not program_id or str(r['program_id'])==str(program_id)]
+    exact=[r for r in candidates if r.get('session_type')==session_type and r.get('session_name')==session_name]
+    if exact: return exact[0]
+    if not previous:
+        return next((r for r in candidates if r.get('session_type')==session_type and not r.get('session_name')),None)
+    wanted=set(exercises)
+    for r in candidates:
+        # Overlap is required for a named session moved AM→PM or a legacy name.
+        if r.get('session_type')!=session_type and r.get('session_name')!=session_name: continue
+        if wanted:
+            names={v['exercise_name'] for v in get_exercise_logs_for_session_with_names(r['id'],strict=True)}
+            if len(wanted & names)>=max(1,len(wanted)*0.4): return r
+    return next((r for r in candidates if r.get('session_type')==session_type and not r.get('session_name')),None)
