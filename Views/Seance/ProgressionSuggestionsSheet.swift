@@ -8,6 +8,7 @@ struct ProgressionSuggestionsSheet: View {
     let context: ProgressionContext
     private var sessionName: String { context.sessionName }
     var onDone: () -> Void
+    var sourceTitle: String? = nil
 
     @StateObject private var rows = ProgressionRows()
     @State private var ignored: Set<String> = []
@@ -101,7 +102,7 @@ struct ProgressionSuggestionsSheet: View {
                     .padding(.top, 8)
                 }
             }
-            .navigationTitle("Coaching — \(sessionName)")   // F1
+            .navigationTitle(sourceTitle.map { "Coaching · \($0) — \(sessionName)" } ?? "Coaching — \(sessionName)")   // F1
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 // W-C4 — leading cancel button to dismiss without applying any suggestion

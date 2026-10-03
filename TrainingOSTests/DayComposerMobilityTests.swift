@@ -116,6 +116,9 @@ final class DayComposerMobilityTests: XCTestCase {
         XCTAssertEqual(r.engine.productState(.morning), .completed)
         XCTAssertEqual(r.engine.productState(.evening), .ready)
         await r.engine.finishSource(.evening, rpe: 8)
+        XCTAssertFalse(r.engine.dayCompleted)
+        await r.engine.coaching.fetch { _ in .none }
+        await r.engine.coaching.fetch { _ in .none }
         XCTAssertTrue(r.engine.dayCompleted)
         XCTAssertEqual(r.posted.count, 6) // Two exercises and one final intent per source.
     }

@@ -58,25 +58,34 @@ final class DayComposerFinishCoordinator: ObservableObject {
         let final: (NeutralSourceFinalizationRequest) async -> NeutralSubmissionOutcome<LogSessionResponse>
         let completion: (DayComposerSource, String) async -> SourceCompletionObservation
 
+        var serverWithCompletedPlans: ((DayComposerExecutionIdentity, DayComposerSource,
+            [DayComposerSource: DayComposerPlan]) async throws -> DayComposerSourceServerFacts)? = nil
+
+        private static func readServer(_ identity: DayComposerExecutionIdentity, _ source: DayComposerSource,
+            _ completedPlans: [DayComposerSource: DayComposerPlan]) async throws -> DayComposerSourceServerFacts {
+            let bundle = try await DayComposerLoader.loadBundle(program: identity.activeProgramID)
+            let projection = try await DayComposerServerProjection.load(date: identity.date)
+            let snapshot = DayComposerCoachingCoordinator.snapshotForFinalization(bundle.snapshot, completedPlans: completedPlans)
+            guard try DayComposerExecutionIdentity(executionID: identity.executionID,
+                context: DayComposerExecutionContext(snapshot: snapshot)) == identity else { throw Failure.contextRejected }
+            let items = (source == .morning ? snapshot.morning : snapshot.evening).units.flatMap(\.items)
+            let completed = source == .morning ? snapshot.morningCompleted : snapshot.eveningCompleted
+            return .init(source: source, date: identity.date, freshness: .fresh,
+                observedNames: Set(items.filter { projection.presence(of: $0.name, source: source) == .observed }.map(\.name)),
+                completion: completed ? .completedObserved : .notCompleted)
+        }
+
         static var live: Self {
-            .init(server: { identity, source in
-                let bundle = try await DayComposerLoader.loadBundle(program: identity.activeProgramID)
-                let projection = try await DayComposerServerProjection.load(date: identity.date)
-                guard try DayComposerExecutionIdentity(executionID: identity.executionID,
-                    context: DayComposerExecutionContext(snapshot: bundle.snapshot)) == identity else {
-                    throw Failure.contextRejected
-                }
-                let items = (source == .morning ? bundle.snapshot.morning : bundle.snapshot.evening).units.flatMap(\.items)
-                let completed = source == .morning ? bundle.snapshot.morningCompleted : bundle.snapshot.eveningCompleted
-                return .init(source: source, date: identity.date, freshness: .fresh,
-                    observedNames: Set(items.filter { projection.presence(of: $0.name, source: source) == .observed }.map(\.name)),
-                    completion: completed ? .completedObserved : .notCompleted)
-            }, status: { SyncManager.shared.status(for: $0) },
-            exercise: { await APIService.shared.submitExerciseCorrelated($0) },
-            final: { await APIService.shared.submitSourceFinalCorrelated($0) },
-            completion: { await APIService.shared.observeSourceCompletion(source: $0, date: $1) })
+            .init(server: { try await readServer($0, $1, [:]) },
+                status: { SyncManager.shared.status(for: $0) },
+                exercise: { await APIService.shared.submitExerciseCorrelated($0) },
+                final: { await APIService.shared.submitSourceFinalCorrelated($0) },
+                completion: { await APIService.shared.observeSourceCompletion(source: $0, date: $1) },
+                serverWithCompletedPlans: { try await readServer($0, $1, $2) })
         }
     }
+
+    let coaching: DayComposerCoachingCoordinator
 
     private weak var execution: DayComposerExecutionCoordinator?
     private let barrier: DayComposerLocalStabilizationBarrier
@@ -84,6 +93,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
     private let inputs: DayComposerFinalInputsStore
     private let dependencies: Dependencies
     private var busy: Set<DayComposerSource> = []
+    private var refreshingSources = false
     @Published private(set) var phases: [DayComposerSource: Phase] = [:]
     @Published private(set) var productResults: [DayComposerSource: Result] = [:]
     @Published private var preparing: Set<DayComposerSource> = []
@@ -92,13 +102,20 @@ final class DayComposerFinishCoordinator: ObservableObject {
         if preparing.contains(source) || (phases[source] ?? .idle) != .idle { return .processing }
         return .from(productResults[source])
     }
-    var dayCompleted: Bool { productState(.morning) == .completed && productState(.evening) == .completed }
+    var dayCompleted: Bool {
+        productState(.morning) == .completed && productState(.evening) == .completed && coaching.allResolved
+    }
 
     /// Explicit user command. Every invocation obtains a NEW stabilized capture;
     /// no cached UI artifact survives editing, leaving the screen, or relaunch.
     func finishSource(_ source: DayComposerSource, rpe: Double) async {
         guard preparing.insert(source).inserted else { return }
-        defer { preparing.remove(source) }
+        defer {
+            // Application ACK and completion remain finalization-owned. Coaching
+            // is admitted synchronously before processing becomes completed.
+            coaching.observe(productResults[source]?.reconciliation)
+            preparing.remove(source)
+        }
         do {
             guard let execution else { throw Failure.contextRejected }
             try execution.setFinalRPE(rpe, for: source)
@@ -114,16 +131,40 @@ final class DayComposerFinishCoordinator: ObservableObject {
         }
     }
 
+    /// Serialize restoration so a faster Evening read cannot present before
+    /// Morning. Appearance and foreground may request this same read together.
+    func refreshSources() async {
+        guard !refreshingSources else { return }
+        refreshingSources = true
+        defer { refreshingSources = false }
+        await refreshSource(.morning)
+        guard !Task.isCancelled else { return }
+        await refreshSource(.evening)
+    }
+
     /// Reopen/foreground is observation, NEVER an implicit retry/POST. Missing
     /// RPE remains incomplete; no default is written on behalf of the user.
     func refreshSource(_ source: DayComposerSource) async {
         guard !preparing.contains(source), !busy.contains(source), let execution,
               (try? execution.finalInputsParticipant(for: source).prepare()) != nil else { return }
+        if let confirmed = productResults[source]?.reconciliation,
+           confirmed.isResolved, confirmed.finalOperation.application == .confirmed {
+            // Foreground/offline Coaching is not another workout finalization.
+            // Keep this owner's durable confirmed completion on network failure.
+            guard execution.revalidateExecutionContext() else { return }
+            coaching.observe(confirmed)
+            return
+        }
         preparing.insert(source)
-        defer { preparing.remove(source) }
+        defer {
+            // Application ACK and completion remain finalization-owned. Coaching
+            // is admitted synchronously before processing becomes completed.
+            coaching.observe(productResults[source]?.reconciliation)
+            preparing.remove(source)
+        }
         do {
             let artifact = try await prepareSource(source)
-            let server = try await dependencies.server(artifact.reference.executionIdentity, source)
+            let server = try await readServer(artifact.reference.executionIdentity, source)
             try verify(artifact)
             productResults[source] = .init(reconciliation: try reconcile(artifact, server: server), actions: [], error: nil)
         } catch {
@@ -133,11 +174,28 @@ final class DayComposerFinishCoordinator: ObservableObject {
 
     init(execution: DayComposerExecutionCoordinator, barrier: DayComposerLocalStabilizationBarrier,
          store: DayComposerFinalizationStore, inputs: DayComposerFinalInputsStore, dependencies: Dependencies) {
+        let context = execution.context
+        self.coaching = DayComposerCoachingCoordinator(context: context) { [weak execution] in
+            guard let execution else { return false }
+            return execution.context == context && execution.revalidateExecutionContext()
+        }
         self.execution = execution
         self.barrier = barrier
         self.store = store
         self.inputs = inputs
         self.dependencies = dependencies
+    }
+
+    private func readServer(_ identity: DayComposerExecutionIdentity,
+                            _ source: DayComposerSource) async throws -> DayComposerSourceServerFacts {
+        guard let read = dependencies.serverWithCompletedPlans, let execution else {
+            return try await dependencies.server(identity, source)
+        }
+        let original = execution.input.snapshot
+        let completed = Dictionary(uniqueKeysWithValues: coaching.required.keys.map {
+            ($0, $0 == .morning ? original.morning : original.evening)
+        })
+        return try await read(identity, source, completed)
     }
 
     private func history(identity: DayComposerExecutionIdentity, source: DayComposerSource,
@@ -170,7 +228,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
     func prepareSource(_ source: DayComposerSource) async throws -> DayComposerPreparedFinalization {
         guard let execution, execution.revalidateExecutionContext() else { throw Failure.contextRejected }
         let identity = execution.finalInputsParticipant(for: source).identity
-        let server = try await dependencies.server(identity, source)
+        let server = try await readServer(identity, source)
         try Task.checkCancellation()
         return try prepareSource(source, server: server)
     }
@@ -275,7 +333,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
             phases[source] = .reconciling
             try verify(artifact)
             var server: DayComposerSourceServerFacts
-            do { server = try await dependencies.server(snapshot.identity, source) }
+            do { server = try await readServer(snapshot.identity, source) }
             catch {
                 try verify(artifact)
                 try Task.checkCancellation()

@@ -32,6 +32,9 @@ final class DayComposerProductFlowTests: XCTestCase {
         XCTAssertEqual(try r.inputs.load(executionIdentity: r.fixture.coordinator.morningFinalInputs.identity,
             source: .morning)?.values.rpe, 8)
         await r.engine.finishSource(.evening, rpe: 9)
+        XCTAssertFalse(r.engine.dayCompleted)
+        await r.engine.coaching.fetch { _ in .none }
+        await r.engine.coaching.fetch { _ in .none }
         XCTAssertTrue(r.engine.dayCompleted)
         XCTAssertEqual(try original.fingerprint, try r.fixture.coordinator.input.snapshot.fingerprint)
         XCTAssertEqual(r.fixture.coordinator.context.date, original.date)

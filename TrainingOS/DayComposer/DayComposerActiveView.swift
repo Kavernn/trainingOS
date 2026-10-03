@@ -34,9 +34,22 @@ struct DayComposerActiveView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var morningComment: DayComposerCommentParticipant
     @StateObject private var eveningComment: DayComposerCommentParticipant
-    @State private var rpeSource: DayComposerSource?
+    @ObservedObject private var coaching: DayComposerCoachingCoordinator
+    @ObservedObject private var progression: ProgressionFlow
+    private enum Decision: Equatable, Identifiable {
+        case rpe(DayComposerSource), recap(DayComposerSource), coaching(DayComposerSource)
+        var id: String { String(describing: self) }
+    }
+    @State private var decision: Decision?
+    @State private var presentedDecision: Decision?
+    @State private var finishAfterDismiss: (DayComposerSource, Int)?
+    private var rpeSource: DayComposerSource? {
+        if case .rpe(let source) = presentedDecision { return source }
+        return nil
+    }
     @State private var selectedRPE: Int?
     @State private var operations: [DayComposerSource: Task<Void, Never>] = [:]
+    @State private var refreshOperation: Task<Void, Never>?
 
     init(coordinator: DayComposerExecutionCoordinator, stabilizationBarrier: DayComposerLocalStabilizationBarrier,
          finishCoordinator: DayComposerFinishCoordinator,
@@ -46,6 +59,8 @@ struct DayComposerActiveView: View {
         self.coordinator = coordinator
         self.stabilizationBarrier = stabilizationBarrier
         self.finishCoordinator = finishCoordinator
+        self.coaching = finishCoordinator.coaching
+        self.progression = finishCoordinator.coaching.flow
         self.bodyWeight = bodyWeight
         self.onDismiss = onDismiss
         _morningComment = StateObject(wrappedValue: .init(source: .morning, text: coordinator.comment(for: .morning)))
@@ -81,29 +96,127 @@ struct DayComposerActiveView: View {
             }
         }
         .background(Color.appSurfaceInset)
-        .sheet(isPresented: Binding(get: { rpeSource != nil }, set: { if !$0 { rpeSource = nil } })) {
-            rpeSheet
+        .sheet(item: $decision, onDismiss: decisionDismissed) { value in
+            switch value {
+            case .rpe: rpeSheet
+            case .recap(let source):
+                NavigationStack {
+                    VStack(alignment: .leading, spacing: 16) {
+                        DayComposerFinishStatus(source: source, state: .completed)
+                        Text(source == .morning ? coordinator.context.morningSession : coordinator.context.eveningSession)
+                            .font(.appHeadline)
+                        Button("Continuer après le récapitulatif") { decision = nil }
+                            .frame(minHeight: 44).buttonStyle(.borderedProminent)
+                    }
+                    .padding().frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .background(Color.appBg).tint(Color.forge)
+                    .navigationTitle("Récap · \(source.title)")
+                }
+            case .coaching(let source):
+                if let context = progression.context {
+                    ProgressionSuggestionsSheet(suggestions: progression.suggestions, context: context,
+                        onDone: { decision = nil }, sourceTitle: source.title)
+                }
+            }
+        }
+        .onChange(of: coaching.activeSource) { _, _ in presentCoachingDecision() }
+        .onChange(of: progression.phase) { _, _ in presentCoachingDecision() }
+        .onChange(of: coordinator.isLocked) { _, locked in
+            if locked { coaching.suspend(); decision = nil }
         }
         .onAppear {
             coordinator.revalidateExecutionContext()
+            coaching.resume()
+            presentCoachingDecision()
             stabilizationBarrier.registerComment(morningComment)
             stabilizationBarrier.registerComment(eveningComment)
         }
         .onDisappear {
+            coaching.suspend()
+            refreshOperation?.cancel()
+            refreshOperation = nil
             for operation in operations.values { operation.cancel() }
             stabilizationBarrier.unregisterComment(source: .morning, token: morningComment.instance)
             stabilizationBarrier.unregisterComment(source: .evening, token: eveningComment.instance)
         }
         .task {
             // Cards/comment participants register on appearance before this async read.
-            await finishCoordinator.refreshSource(.morning)
-            await finishCoordinator.refreshSource(.evening)
+            await finishCoordinator.refreshSources()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 coordinator.revalidateExecutionContext()
-                for source in [DayComposerSource.morning, .evening] where finishCoordinator.productState(source) != .processing {
-                    operations[source] = Task { await finishCoordinator.refreshSource(source) }
+                coaching.resume()
+                if refreshOperation == nil {
+                    refreshOperation = Task {
+                        defer { refreshOperation = nil }
+                        await finishCoordinator.refreshSources()
+                    }
+                }
+            } else if phase == .background && progression.phase == .loading {
+                coaching.suspend()
+            }
+        }
+    }
+
+    private func present(_ value: Decision) {
+        guard decision == nil, presentedDecision == nil else { return }
+        presentedDecision = value
+        decision = value
+    }
+
+    private func presentCoachingDecision() {
+        guard !coordinator.isLocked, let source = coaching.activeSource else { return }
+        switch progression.phase {
+        case .recap: present(.recap(source))
+        case .coaching: present(.coaching(source))
+        default: break
+        }
+    }
+
+    private func decisionDismissed() {
+        let dismissed = presentedDecision
+        presentedDecision = nil
+        decision = nil
+        switch dismissed {
+        case .rpe:
+            if let (source, rpe) = finishAfterDismiss {
+                finishAfterDismiss = nil
+                operations[source] = Task { await finishCoordinator.finishSource(source, rpe: Double(rpe)) }
+            }
+        case .recap(let source):
+            if coaching.activeSource == source { fetchCoaching(); return }
+        case .coaching(let source):
+            if coaching.activeSource == source { coaching.finishDecision(for: source) }
+        case nil: break
+        }
+        presentCoachingDecision()
+    }
+
+    private func fetchCoaching() {
+        guard let source = coaching.activeSource else { return }
+        operations[source] = Task {
+            await coaching.fetch { await APIService.shared.fetchProgressionSuggestions(context: $0) }
+        }
+    }
+
+    @ViewBuilder private var coachingStatus: some View {
+        if coaching.contextRejected {
+            Text("Le programme du Coaching a changé. La séance reste enregistrée. Reviens au Programme avant de poursuivre.")
+                .font(.subheadline).foregroundStyle(Color.appTextSecondary)
+            Button("Revenir au Programme", action: leave).frame(minHeight: 44)
+        }
+        if let source = coaching.activeSource {
+            if progression.phase == .loading {
+                ProgressView("Chargement du Coaching · \(source.title)…")
+            } else if case .failed(let error) = progression.phase {
+                if error != .cancelled && error != .staleContext {
+                    Text("Séance \(source.title) terminée. \(error.message)")
+                        .font(.subheadline).foregroundStyle(Color.appTextSecondary)
+                    Button("Réessayer le Coaching · \(source.title)", action: fetchCoaching)
+                        .frame(minHeight: 44)
+                    Button("Continuer sans Coaching") { coaching.finishDecision(for: source) }
+                        .frame(minHeight: 44)
                 }
             }
         }
@@ -114,6 +227,7 @@ struct DayComposerActiveView: View {
             if finishCoordinator.dayCompleted {
                 DayComposerCompletedSummary(leave: leave)
             } else {
+                coachingStatus
                 ForEach([DayComposerSource.morning, .evening], id: \.self) { source in
                     let state = finishCoordinator.productState(source)
                     let copy = DayComposerFinishPresentation(state: state)
@@ -125,10 +239,10 @@ struct DayComposerActiveView: View {
                             }.frame(minHeight: 44)
                         }
                         if state == .ready {
-                            Button("Terminer \(source.title)") { selectedRPE = nil; rpeSource = source }
+                            Button("Terminer \(source.title)") { selectedRPE = nil; present(.rpe(source)) }
                                 .frame(minHeight: 44)
                                 .buttonStyle(.borderedProminent)
-                                .disabled(!coordinator.canOfferFinish(source))
+                                .disabled(!coordinator.canOfferFinish(source) || coaching.activeSource != nil)
                             if !coordinator.canOfferFinish(source) {
                                 Text("Enregistre les exercices de cette séance avant de la terminer.")
                                     .font(.subheadline).foregroundStyle(Color.appTextSecondary)
@@ -150,8 +264,8 @@ struct DayComposerActiveView: View {
                 Button("Confirmer et terminer \(rpeSource?.title ?? "la séance")") {
                     guard let source = rpeSource, let selectedRPE else { return }
                     endEditing()
-                    rpeSource = nil
-                    operations[source] = Task { await finishCoordinator.finishSource(source, rpe: Double(selectedRPE)) }
+                    finishAfterDismiss = (source, selectedRPE)
+                    decision = nil
                 }
                 .frame(minHeight: 44).disabled(selectedRPE == nil)
                 .buttonStyle(.borderedProminent)
@@ -160,7 +274,7 @@ struct DayComposerActiveView: View {
             .scrollContentBackground(.hidden)
             .background(Color.appBg)
             .navigationTitle("RPE de la séance")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { rpeSource = nil } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { decision = nil } } }
             .tint(Color.forge)
         }
     }
