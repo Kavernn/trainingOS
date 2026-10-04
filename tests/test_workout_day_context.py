@@ -7,6 +7,11 @@ from conftest import BaseRouteTest
 class TestWorkoutDayContext(BaseRouteTest):
     def setUp(self):
         super().setUp()
+        # Isolate planning from the R11 reference query; no applied references
+        # exist in this fixture (the query has its own DatabaseContracts tests).
+        references = patch("weights.coaching_references", return_value={})
+        references.start()
+        self.addCleanup(references.stop)
         self.store["active_program_id"] = "program-a"
         self.program = {"Jambes B": {"Squat": "3x5"}, "Thursday AM": {"Bench": "3x5"},
                         "Sunday PM": {"Carry": "3x10"}}

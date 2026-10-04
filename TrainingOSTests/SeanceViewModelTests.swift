@@ -623,6 +623,34 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertEqual(preparationBytes(date), before)
     }
 
+    func testRepeatedRejectedPublishedWritesKeepBothPassiveOwnersAndRecoveryIntact() throws {
+        let date = "rollback-\(UUID().uuidString)"
+        defer {
+            SessionDraftStore.clear(date: date, sessionType: "morning")
+            SessionDraftStore.clear(date: date, sessionType: "evening")
+        }
+        for source in ["morning", "evening"] {
+            seedPreparationRecovery(date, source: source, weight: 80)
+            let before = preparationBytes(date)
+            let vm = SeanceViewModel(draftSessionType: source)
+            try prepare(vm, extraData(date), admission: .deny)
+            for _ in 0..<3 {
+                vm.sessionComment = "Rejected"
+                vm.logResults["Other"] = .init(name: "Other", weight: 10, reps: "5")
+                vm.seanceData = try extraData("wrong-date")
+                vm.seanceData = nil
+                vm.showSuccess = true
+                vm.showSuccess = false
+                XCTAssertEqual(vm.sessionComment, "")
+                XCTAssertTrue(vm.logResults.isEmpty)
+                XCTAssertEqual(vm.seanceData?.todayDate, date)
+                XCTAssertEqual(vm.draftSessionType, source)
+                XCTAssertFalse(vm.showSuccess)
+                XCTAssertEqual(preparationBytes(date), before)
+            }
+        }
+    }
+
     func testPassiveAdmissionDenyPreservesRecoveryAndRejectsWrites() throws {
         let date = "denied-\(UUID().uuidString)"
         defer { SessionDraftStore.clear(date: date, sessionType: "morning") }
@@ -2421,8 +2449,27 @@ final class SeanceViewModelTests: XCTestCase {
         }
     }
 
+    /// Exercise the cache restoration branch used by load(), without its second
+    /// APIService.shared read replacing the fixture from a different cache.
+    private func restoreCachedFixture(_ bytes: Data) throws -> SeanceViewModel {
+        let vm = makeViewModel(cacheData: bytes)
+        let cached = try XCTUnwrap(vm.cacheService.load(for: "seance_data"))
+        XCTAssertEqual(cached, bytes)
+        let data = try APIService.decoder.decode(SeanceData.self, from: cached)
+        XCTAssertTrue(SessionDraftStore.load(date: data.todayDate, sessionType: "morning").isEmpty)
+        XCTAssertTrue(vm.logResults.isEmpty)
+        XCTAssertFalse(vm.isDayComposerLocal)
+        vm.seanceData = data
+        vm.restoreLogResults(from: data, serverSessionType: "morning", serverCompleted: data.alreadyLogged)
+        XCTAssertEqual(vm.contentIdentity?.date, data.todayDate)
+        XCTAssertEqual(vm.contentIdentity?.session, data.today)
+        XCTAssertEqual(vm.contentIdentity?.source, "morning")
+        return vm
+    }
+
     func testRestoreLogResultsFromCache() async throws {
-        let todayDate = "2026-03-15"
+        let todayDate = "2088-03-15"
+        defer { SessionDraftStore.clear(date: todayDate, sessionType: "morning") }
         let data = Fixtures.seanceDataJSON(
             today: "Push A",
             todayDate: todayDate,
@@ -2431,15 +2478,28 @@ final class SeanceViewModelTests: XCTestCase {
             historyWeight: 80.0,
             historyReps: "5"
         )
-        let vm = makeViewModel(cacheData: data)
-
-        await vm.load()
+        let vm = try restoreCachedFixture(data)
 
         XCTAssertNotNil(vm.logResults["Bench Press"],
                         "logResults should contain Bench Press because history[0].date == todayDate")
         let result = vm.logResults["Bench Press"]
         XCTAssertEqual(result?.weight, 80.0)
         XCTAssertEqual(result?.reps, "5")
+        XCTAssertEqual(result?.isSecond, false)
+
+        // Missing session_type remains an intentional legacy-morning fallback.
+        // An explicit modern morning row must restore the identical values.
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        var weights = try XCTUnwrap(object["weights"] as? [String: [String: Any]])
+        var exercise = try XCTUnwrap(weights["Bench Press"])
+        exercise["history"] = [["date": todayDate, "weight": 80.0, "reps": "5",
+                                "session_type": "morning", "session_name": "Push A"]]
+        weights["Bench Press"] = exercise
+        object["weights"] = weights
+        let modern = try restoreCachedFixture(JSONSerialization.data(withJSONObject: object))
+        XCTAssertEqual(modern.logResults["Bench Press"]?.weight, 80.0)
+        XCTAssertEqual(modern.logResults["Bench Press"]?.reps, "5")
+        XCTAssertEqual(modern.logResults["Bench Press"]?.isSecond, false)
     }
 
     func testNoRestoreIfHistoryOlderThanToday() async throws {
@@ -2487,7 +2547,8 @@ final class SeanceViewModelTests: XCTestCase {
         // history par (date DESC, len(sets) DESC) — la row soir (plus riche) remonte
         // en tête. Sans le filtre session_type, restoreLogResults matin ramènerait
         // le log soir sous la clé matin, puis finish() le ré-posterait (crime 4).
-        let todayDate = "2026-03-15"
+        let todayDate = "2088-03-16"
+        defer { SessionDraftStore.clear(date: todayDate, sessionType: "morning") }
         let json = """
         {
             "today": "Push A",
@@ -2518,8 +2579,7 @@ final class SeanceViewModelTests: XCTestCase {
             "exercise_order": {}
         }
         """
-        let vm = makeViewModel(cacheData: Data(json.utf8))
-        await vm.load()
+        let vm = try restoreCachedFixture(Data(json.utf8))
 
         let result = vm.logResults["Bench Press"]
         XCTAssertNotNil(result,
@@ -2527,5 +2587,17 @@ final class SeanceViewModelTests: XCTestCase {
         XCTAssertEqual(result?.weight, 185.0,
             "restore matin doit prendre la row session_type=morning (185lbs), pas la row evening (195lbs) même si elle est en tête via tri (date DESC, len(sets) DESC)")
         XCTAssertEqual(result?.reps, "5,5,5")
+        XCTAssertEqual(result?.isSecond, false)
+        XCTAssertEqual(Set(vm.logResults.keys), ["Bench Press"])
+
+        // Neither an evening-only history nor a morning row from another date
+        // can supply the missing morning log.
+        let eveningOnly = json.replacingOccurrences(of: "\"session_type\": \"morning\"",
+                                                    with: "\"session_type\": \"evening\"")
+        XCTAssertTrue(try restoreCachedFixture(Data(eveningOnly.utf8)).logResults.isEmpty)
+        let wrongDate = json.replacingOccurrences(
+            of: "\"date\": \"\(todayDate)\", \"weight\": 185.0",
+            with: "\"date\": \"2088-03-15\", \"weight\": 185.0")
+        XCTAssertTrue(try restoreCachedFixture(Data(wrongDate.utf8)).logResults.isEmpty)
     }
 }

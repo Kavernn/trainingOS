@@ -82,7 +82,7 @@ final class DayComposerEligibilityTests: XCTestCase {
         let pmOnly = try await f.load()
         XCTAssertFalse(pmOnly.snapshot.isRelevant(hasSavedOrder: false))
         f.hasMorning = true
-        f.tracking = "mobility"
+        f.tracking = "future-mobility"
         let unsupported = try await f.load()
         XCTAssertTrue(unsupported.snapshot.isRelevant(hasSavedOrder: false))
         XCTAssertFalse(unsupported.snapshot.canStart(orderedIDs: unsupported.snapshot.initialIDs,
@@ -148,7 +148,7 @@ final class DayComposerEligibilityTests: XCTestCase {
         XCTAssertEqual(candidate.initialPresentation(store: store).units, moved)
     }
 
-    func testMobilityAllowsProductionEntryAndPreparationButNeverStart() async throws {
+    func testMobilityAllowsProductionEntryPreparationAndStart() async throws {
         let f = PlanningFixture()
         f.date = Date()
         f.tracking = "mobility"
@@ -159,7 +159,7 @@ final class DayComposerEligibilityTests: XCTestCase {
         XCTAssertEqual(initial.units, snapshot.initialUnits)
         _ = DayComposerView(candidate: candidate)
         XCTAssertEqual(snapshot.initialIDs.map(\.source), [.morning, .evening])
-        XCTAssertFalse(snapshot.canStart(orderedIDs: snapshot.initialIDs, activeProgram: f.active,
+        XCTAssertTrue(snapshot.canStart(orderedIDs: snapshot.initialIDs, activeProgram: f.active,
             date: snapshot.date, loading: false, incompatible: false))
     }
 

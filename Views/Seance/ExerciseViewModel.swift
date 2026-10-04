@@ -1350,9 +1350,17 @@ class SeanceViewModel: ObservableObject {
         return true
     }
 
+    // @Published assignments re-enter didSet. Rollback must not recursively
+    // reject its own write or run persistence for the rejected value.
+    private var rollingBackSeanceData = false
+    private var rollingBackSessionComment = false
+    private var rollingBackLogResults = false
     @Published var seanceData: SeanceData? {
         didSet {
+            guard !rollingBackSeanceData else { return }
             if isDayComposerLocal && !preparingLocalExecution {
+                rollingBackSeanceData = true
+                defer { rollingBackSeanceData = false }
                 seanceData = oldValue // The injected DTO/date cannot be replaced by a reload.
                 return
             }
@@ -1362,7 +1370,10 @@ class SeanceViewModel: ObservableObject {
     private var restoringSessionComment = false
     @Published var sessionComment = "" {
         didSet {
+            guard !rollingBackSessionComment else { return }
             if isDayComposerLocal && !localRecoveryAdmitted {
+                rollingBackSessionComment = true
+                defer { rollingBackSessionComment = false }
                 sessionComment = oldValue
                 return
             }
@@ -1386,7 +1397,10 @@ class SeanceViewModel: ObservableObject {
     private var restoringProtectedLogs = false
     @Published var logResults: [String: ExerciseLogResult] = [:] {
         didSet {
+            guard !rollingBackLogResults else { return }
             if isDayComposerLocal && !localRecoveryAdmitted {
+                rollingBackLogResults = true
+                defer { rollingBackLogResults = false }
                 logResults = oldValue
                 return
             }
@@ -1395,7 +1409,10 @@ class SeanceViewModel: ObservableObject {
     }
     @Published var showSuccess = false {
         didSet {
-            if isDayComposerLocal { showSuccess = false; return }
+            if isDayComposerLocal {
+                if showSuccess { showSuccess = false }
+                return
+            }
             if showSuccess {
                 finishExerciseSaves.removeAll()
                 retryFinishAction = nil

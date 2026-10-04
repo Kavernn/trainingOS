@@ -12,6 +12,11 @@ from conftest import BaseRouteTest
 class TestSeanceExplicitSelection(BaseRouteTest):
     def setUp(self):
         super().setUp()
+        # This planning fixture has no applied Coaching references. The reference
+        # query itself is covered by DatabaseContracts in test_progression_coaching.
+        references = patch("weights.coaching_references", return_value={})
+        references.start()
+        self.addCleanup(references.stop)
         self.db = sys.modules["db"]
         self.program = {"A": {"A1": "3x10", "A2": "3x10"},
                         "B": {"B1": "3x10", "B2": "3x10", "B3": "3x10"},
