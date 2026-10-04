@@ -113,7 +113,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
         defer {
             // Application ACK and completion remain finalization-owned. Coaching
             // is admitted synchronously before processing becomes completed.
-            coaching.observe(productResults[source]?.reconciliation)
+            coaching.observe(productResults[source]?.reconciliation, currentFinalization: true)
             preparing.remove(source)
         }
         do {

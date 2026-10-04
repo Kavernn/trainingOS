@@ -9,6 +9,7 @@ struct ActionFeedback {
     let storageKey: String?
     let haptic: HapticKind
     let duration: Double
+    var accessibilityAnnouncement: String? = nil
 
     enum HapticKind {
         case impact(UIImpactFeedbackGenerator.FeedbackStyle)
@@ -92,6 +93,15 @@ final class ActionFeedbackManager: ObservableObject {
     static let shared = ActionFeedbackManager()
     @Published var current: ActionFeedback? = nil
 
+    /// The app-level owner survives dismissal of Evening/Bonus workout sheets.
+    /// Publish before their completion callback, with no extra modal or delay.
+    @MainActor func showCoachingResult(_ result: ProgressionResultFeedback) {
+        var feedback = ActionFeedback(message: result.announcement, storageKey: nil,
+                                      haptic: .none, duration: 6)
+        feedback.accessibilityAnnouncement = result.announcement
+        current = feedback
+    }
+
     func show(_ feedback: ActionFeedback) {
         guard feedback.shouldShow else { return }
         feedback.markShown()
@@ -101,6 +111,7 @@ final class ActionFeedbackManager: ObservableObject {
 }
 
 private struct ActionFeedbackModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var manager = ActionFeedbackManager.shared
     @State private var workItem: DispatchWorkItem?
 
@@ -125,7 +136,13 @@ private struct ActionFeedbackModifier: ViewModifier {
                     .overlay(Capsule().stroke(Color.statusOrange.opacity(0.28), lineWidth: 1))
                     .shadow(color: .black.opacity(0.45), radius: 14, y: 5)
                     .padding(.bottom, 88)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                    .accessibilityElement(children: .combine)
+                    .onAppear {
+                        if let announcement = fb.accessibilityAnnouncement {
+                            UIAccessibility.post(notification: .announcement, argument: announcement)
+                        }
+                    }
                     .onTapGesture { dismiss() }
                     .id(fb.id)
                 }
@@ -133,7 +150,7 @@ private struct ActionFeedbackModifier: ViewModifier {
             .onChange(of: manager.current?.id) { _, _ in
                 if let fb = manager.current, !fb.message.isEmpty { schedule(fb.duration) }
             }
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: manager.current?.id)
+            .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8), value: manager.current?.id)
     }
 
     private func schedule(_ duration: Double) {

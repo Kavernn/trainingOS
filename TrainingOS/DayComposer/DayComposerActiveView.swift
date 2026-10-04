@@ -201,6 +201,17 @@ struct DayComposerActiveView: View {
     }
 
     @ViewBuilder private var coachingStatus: some View {
+        ForEach([DayComposerSource.morning, .evening], id: \.self) { source in
+            if let feedback = coaching.resultFeedback[source] {
+                Text("Coaching · \(source.title) — \(feedback.message)")
+                    .font(.subheadline).foregroundStyle(Color.appTextSecondary)
+                    .accessibilityLabel("Coaching analysé · \(source.title). \(feedback.message)")
+                    .onAppear {
+                        UIAccessibility.post(notification: .announcement,
+                            argument: "Coaching analysé · \(source.title). \(feedback.message)")
+                    }
+            }
+        }
         if coaching.contextRejected {
             Text("Le programme du Coaching a changé. La séance reste enregistrée. Reviens au Programme avant de poursuivre.")
                 .font(.subheadline).foregroundStyle(Color.appTextSecondary)
@@ -224,10 +235,10 @@ struct DayComposerActiveView: View {
 
     private var finishPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
+            coachingStatus
             if finishCoordinator.dayCompleted {
                 DayComposerCompletedSummary(leave: leave)
             } else {
-                coachingStatus
                 ForEach([DayComposerSource.morning, .evening], id: \.self) { source in
                     let state = finishCoordinator.productState(source)
                     let copy = DayComposerFinishPresentation(state: state)

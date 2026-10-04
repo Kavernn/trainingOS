@@ -86,6 +86,18 @@ enum ProgressionFetchOutcome {
     }
 }
 
+/// Only successful non-actionable outcomes; an empty response carries no cause.
+enum ProgressionResultFeedback: Equatable {
+    case maintain, none
+    var message: String {
+        switch self {
+        case .maintain: return "Maintien recommandé"
+        case .none: return "Aucun ajustement recommandé"
+        }
+    }
+    var announcement: String { "Coaching analysé · \(message)" }
+}
+
 /// Local to one workout owner; no global navigation state.
 @MainActor final class ProgressionFlow: ObservableObject {
     enum Phase: Equatable { case idle, recap, loading, coaching, failed(ProgressionFetchFailure), finished }
@@ -96,9 +108,14 @@ enum ProgressionFetchOutcome {
     private var valid = true
     private var task: Task<ProgressionFetchOutcome, Never>?
     private var completion: (() -> Void)?
+    private var resultFeedback: (@MainActor (ProgressionResultFeedback) -> Void)?
 
-    func begin(_ context: ProgressionContext, onFinish: @escaping () -> Void) {
+    func begin(_ context: ProgressionContext,
+               onFeedback: @escaping @MainActor (ProgressionResultFeedback) -> Void = {
+                   ActionFeedbackManager.shared.showCoachingResult($0)
+               }, onFinish: @escaping () -> Void) {
         task?.cancel(); generation += 1; valid = true
+        resultFeedback = onFeedback
         self.context = context; completion = onFinish; suggestions = []; phase = .recap
     }
     func fetch(using read: @escaping (ProgressionContext) async -> ProgressionFetchOutcome) async {
@@ -110,9 +127,11 @@ enum ProgressionFetchOutcome {
         task = work
         let outcome = await withTaskCancellationHandler(operation: { await work.value }, onCancel: { work.cancel() })
         guard valid, generation == token, self.context == context else { return }
+        guard !Task.isCancelled, !work.isCancelled else { phase = .failed(.cancelled); return }
         switch outcome {
         case .actionable(let rows): suggestions = rows; phase = .coaching
-        case .maintainOnly, .none: finish()
+        case .maintainOnly: resultFeedback?(.maintain); finish()
+        case .none: resultFeedback?(.none); finish()
         case .failed(let error): phase = .failed(error)
         }
     }
@@ -120,9 +139,10 @@ enum ProgressionFetchOutcome {
     func finish() {
         guard valid, phase != .finished else { return }
         phase = .finished
+        resultFeedback = nil
         let callback = completion; completion = nil; callback?()
     }
-    func invalidate() { valid = false; generation += 1; task?.cancel(); task = nil; completion = nil }
+    func invalidate() { valid = false; generation += 1; task?.cancel(); task = nil; completion = nil; resultFeedback = nil }
     func contextChanged(to value: ProgressionContext) {
         if let context, context != value { invalidate(); phase = .failed(.staleContext) }
     }

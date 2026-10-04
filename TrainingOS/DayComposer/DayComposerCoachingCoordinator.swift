@@ -11,6 +11,8 @@ final class DayComposerCoachingCoordinator: ObservableObject {
     @Published private(set) var activeSource: DayComposerSource?
     @Published private(set) var required: [DayComposerSource: ProgressionContext] = [:]
     @Published private(set) var resolved: Set<DayComposerSource> = []
+    @Published private(set) var resultFeedback: [DayComposerSource: ProgressionResultFeedback] = [:]
+    private var feedbackEligible: Set<DayComposerSource> = []
     private var order: [DayComposerSource] = []
     private let defaults: UserDefaults
     private let ownerIsValid: () -> Bool
@@ -28,7 +30,7 @@ final class DayComposerCoachingCoordinator: ObservableObject {
 
     /// Only durable business-confirmed finalization plus completion observation
     /// can admit a source. Pending/unverified/failed cannot request Coaching.
-    func observe(_ state: DayComposerSourceFinishState?) {
+    func observe(_ state: DayComposerSourceFinishState?, currentFinalization: Bool = false) {
         guard let state, state.isResolved, state.finalOperation.application == .confirmed,
               state.identity.date == context.date,
               state.identity.activeProgramID == context.activeProgramID,
@@ -42,6 +44,7 @@ final class DayComposerCoachingCoordinator: ObservableObject {
         let value = ProgressionContext(date: context.date, sessionType: source.rawValue, sessionName: name)
         guard required[source] == nil else { return }
         required[source] = value
+        if currentFinalization { feedbackEligible.insert(source) }
         if defaults.bool(forKey: marker(value)) { resolved.insert(source) }
         else { order.append(source) }
         presentNext()
@@ -83,7 +86,11 @@ final class DayComposerCoachingCoordinator: ObservableObject {
               let source = order.first(where: { !resolved.contains($0) }),
               let value = required[source] else { return }
         activeSource = source
-        flow.begin(value) { [weak self] in self?.resolve(source, context: value) }
+        flow.begin(value, onFeedback: { [weak self] feedback in
+            guard let self, self.mounted, self.ownerIsValid(), self.activeSource == source,
+                  self.feedbackEligible.remove(source) != nil else { return }
+            self.resultFeedback[source] = feedback
+        }) { [weak self] in self?.resolve(source, context: value) }
     }
 
     private func resolve(_ source: DayComposerSource, context value: ProgressionContext) {
@@ -123,7 +130,7 @@ final class DayComposerCoachingCoordinator: ObservableObject {
                 flow.phase == .failed(.cancelled) || flow.phase == .failed(.staleContext) {
             // A normal cancellation offers the recap again, never a silent
             // unresolved failure with no way forward.
-            suspend()
+            suspend(preservingFeedback: true)
             resume()
         }
     }
@@ -133,8 +140,12 @@ final class DayComposerCoachingCoordinator: ObservableObject {
         flow.finish()
     }
 
-    func suspend() {
+    func suspend(preservingFeedback: Bool = false) {
         generation += 1
+        if !preservingFeedback {
+            resultFeedback.removeAll()
+            feedbackEligible.removeAll()
+        }
         mounted = false
         flow.invalidate()
         activeSource = nil
