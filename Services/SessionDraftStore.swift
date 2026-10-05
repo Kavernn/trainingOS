@@ -59,6 +59,7 @@ struct PersistedExerciseLogResult: Codable {
     var notes: String? = nil
     var scheme: String? = nil
     var isUnilateral: Bool? = nil
+    var occurrenceKey: String? = nil
 }
 
 enum SessionDraftStore {
@@ -104,7 +105,7 @@ enum SessionDraftStore {
     private static func canonicalLogs(_ values: [PersistedExerciseLogResult]) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        return try encoder.encode(values.sorted { $0.name < $1.name })
+        return try encoder.encode(values.sorted { ($0.occurrenceKey ?? $0.name) < ($1.occurrenceKey ?? $1.name) })
     }
     private static func key(date: String, sessionType: String) -> String {
         "session_draft_\(sessionType)_\(date)"

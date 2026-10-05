@@ -403,7 +403,7 @@ private struct DayComposerNavigator: View {
                                     .foregroundStyle(Color.forge).accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.name).foregroundStyle(Color.appTextPrimary)
-                                    DayComposerSourceChip(source: item.id.source)
+                                    DayComposerSourceChip(source: item.assignedSource)
                                     Text("\(coordinator.currentMemberID == item.id ? "En cours · " : "")\(presentation.label)\(unit.group == nil ? "" : " · Superset")")
                                         .font(.subheadline).foregroundStyle(Color.appTextSecondary)
                                 }
@@ -477,7 +477,7 @@ private struct DayComposerExerciseContent: View {
         if let presentation = coordinator.presentation(for: item.id) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    DayComposerSourceChip(source: item.id.source)
+                    DayComposerSourceChip(source: item.assignedSource)
                     Text(presentation.label).font(.appCaption).foregroundStyle(Color.appTextSecondary)
                 }
                 if presentation.rendering == .mutable, let token = presentation.authorization {
@@ -491,10 +491,10 @@ private struct DayComposerExerciseContent: View {
 
     private func mutableCard(_ p: DayComposerExecutionCoordinator.Presentation,
                              token: DayComposerProvenanceStore.Authorization) -> some View {
-        let data = coordinator.data(for: item.id.source)
+        let data = coordinator.data(for: item.originSource)
         return ExerciseCard(name: item.name, scheme: item.scheme, weightData: data.weights[item.name],
             equipmentType: p.equipment, trackingType: item.tracking, isUnilateral: item.unilateral,
-            bodyWeight: bodyWeight, isSecondSession: item.id.source == .evening, isBonusSession: false,
+            bodyWeight: bodyWeight, isSecondSession: item.assignedSource == .evening, isBonusSession: false,
             restSeconds: p.restSeconds, prescription: data.prescriptions?[item.name],
             suggestion: data.exerciseSuggestions?[item.name], hint: data.inventoryHints[item.name],
             logResult: Binding(get: { coordinator.consultationResult(for: item.id) }, set: { value in
@@ -514,7 +514,7 @@ private struct DayComposerExerciseContent: View {
             onPersistenceRefused: { coordinator.reportPersistenceRefusal($0) },
             allowsManualRest: p.allowsManualRest,
             onDraftPersisted: { coordinator.refreshDerivedState() },
-            sourceRegistration: .init(barrier: barrier, identity: p.identity))
+            sourceRegistration: .init(barrier: barrier, identity: p.identity), occurrenceKey: item.occurrenceKey)
     }
 }
 

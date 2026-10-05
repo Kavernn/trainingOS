@@ -31,6 +31,8 @@ struct SetInput: Identifiable {
 enum LogStatus { case success(Double), stagné, loading, error(String) }
 
 struct ExerciseLogResult {
+    var occurrenceKey: String? = nil
+    var storageKey: String { occurrenceKey ?? name }
     let name: String
     let weight: Double
     let reps: String
@@ -391,6 +393,7 @@ enum ExerciseCalculator {
 final class ExerciseViewModel: ObservableObject {
 
     // Config (immutable after init)
+    let occurrenceKey: String?
     let name: String
     let scheme: String
     let weightData: WeightData?
@@ -480,7 +483,8 @@ final class ExerciseViewModel: ObservableObject {
          suggestion: ProgressionSuggestion? = nil,
          sessionDate: String = "", reconstructionMetadata: ExerciseReconstructionMetadata? = nil,
          draftAuthorization: DayComposerProvenanceStore.Authorization? = nil,
-         validateLocalPersistence: (() -> LocalPersistenceResult)? = nil) {
+         validateLocalPersistence: (() -> LocalPersistenceResult)? = nil, occurrenceKey: String? = nil) {
+        self.occurrenceKey = occurrenceKey
         self.draftAuthorization = draftAuthorization
         self.validateLocalPersistence = validateLocalPersistence
         self.reconstructionMetadata = reconstructionMetadata
@@ -631,7 +635,7 @@ final class ExerciseViewModel: ObservableObject {
         return "morning"
     }
     private var draftStore: ExerciseDraftPersistence {
-        ExerciseDraftPersistence(date: sessionDate, sessionType: sessionTypeForDraft, exerciseName: name,
+        ExerciseDraftPersistence(date: sessionDate, sessionType: sessionTypeForDraft, exerciseName: occurrenceKey ?? name,
                                  authorization: draftAuthorization)
     }
 
@@ -991,6 +995,7 @@ final class ExerciseViewModel: ObservableObject {
     // Caller is responsible for: setting logResult binding, calling onLogged, triggering haptic.
     private func withReconstructionMetadata(_ log: ExerciseLogResult) -> ExerciseLogResult {
         var result = log
+        result.occurrenceKey = occurrenceKey
         // Certify only values matching the configuration actually used by this VM.
         if let metadata = reconstructionMetadata {
             result.scheme = metadata.scheme == scheme ? metadata.scheme : nil
@@ -1772,7 +1777,8 @@ class SeanceViewModel: ObservableObject {
         var restored: [String: ExerciseLogResult] = [:]
         for pending in SessionDraftStore.load(date: date, sessionType: draftSessionType) {
             let restoredSets = pending.sets.map(\.payload)
-            restored[pending.name] = ExerciseLogResult(
+            restored[pending.occurrenceKey ?? pending.name] = ExerciseLogResult(
+                occurrenceKey: pending.occurrenceKey,
                 name: pending.name,
                 weight: pending.weight,
                 reps: pending.reps,
@@ -1963,7 +1969,7 @@ class SeanceViewModel: ObservableObject {
                 trackingType: log.trackingType,
                 notes: log.notes,
                 scheme: log.scheme,
-                isUnilateral: log.isUnilateral
+                isUnilateral: log.isUnilateral, occurrenceKey: log.occurrenceKey
             )
         }
     }
@@ -1974,9 +1980,9 @@ class SeanceViewModel: ObservableObject {
         guard let date = seanceData?.todayDate else { return false }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        guard let expected = try? encoder.encode(persistedLogValues().sorted { $0.name < $1.name }),
+        guard let expected = try? encoder.encode(persistedLogValues().sorted { ($0.occurrenceKey ?? $0.name) < ($1.occurrenceKey ?? $1.name) }),
               let actual = try? encoder.encode(SessionDraftStore.load(date: date, sessionType: draftSessionType)
-                .sorted { $0.name < $1.name }) else { return false }
+                .sorted { ($0.occurrenceKey ?? $0.name) < ($1.occurrenceKey ?? $1.name) }) else { return false }
         return expected == actual
     }
 

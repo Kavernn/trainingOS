@@ -94,6 +94,14 @@ class SuggestionContracts(unittest.TestCase):
     def test_maintain_only_valid(self):
         self.db.get_exercise_logs_for_session_with_names=lambda *a,**kw:[{'exercise_name':'X'}]
         r=self.suggestions();self.assertEqual(r.status_code,200);self.assertEqual(r.json['suggestions'][0]['suggestion_type'],'maintain')
+    def test_duplicate_occurrences_do_not_apply_two_recommendations(self):
+        self.db.get_exercise_logs_for_session_with_names=lambda *a,**kw:[
+            dict(exercise_name='X', occurrence_key=key, weight=100, reps='12', sets_json=[])
+            for key in ['morning-origin', 'evening-origin']]
+        r=self.suggestions()
+        self.assertEqual(r.status_code,200)
+        self.assertEqual(r.json['suggestions'],[])
+
     def test_empty_insufficient_history(self):
         self.db.get_progression_session=lambda *a,**kw:None
         self.assertEqual(self.suggestions().json,{'suggestions':[]})

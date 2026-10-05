@@ -27,15 +27,15 @@ struct DayComposerFinalizationRequestAdapter {
         var requests: [NeutralExerciseSubmissionRequest] = []
         for item in items {
             guard let bytes = snapshot.payloads[item.id] else { continue }
-            let version = try DayComposerExerciseVersion(itemID: item.id, date: local.identity.date, payloadData: bytes)
+            let version = try DayComposerExerciseVersion(itemID: item.id, date: local.identity.date, payloadData: bytes, source: local.source)
             guard snapshot.exerciseVersions.contains(version),
                   local.itemFacts.first(where: { $0.itemID == item.id })?.local.payload == bytes,
                   let json = try JSONSerialization.jsonObject(with: bytes) as? [String: Any],
                   let weight = json["weight"] as? NSNumber, let reps = json["reps"] as? String,
-                  projection[item.name] == nil else { throw DayComposerFinalizationError.invalidRecord }
-            requests.append(try .init(itemIdentity: item.name, source: local.source, date: local.identity.date,
+                  projection[item.storageKey] == nil else { throw DayComposerFinalizationError.invalidRecord }
+            requests.append(try .init(itemIdentity: item.storageKey, source: local.source, date: local.identity.date,
                 payloadData: bytes, operationKey: version.operationKey(identity: local.identity)))
-            projection[item.name] = .init(name: item.name, weight: weight.doubleValue, reps: reps)
+            projection[item.storageKey] = .init(name: item.name, weight: weight.doubleValue, reps: reps, occurrenceKey: item.occurrenceKey)
         }
         let expected = try DayComposerSourceVersion(source: local.source, sessionName: local.identity.session(for: local.source),
             items: items, exerciseVersions: snapshot.exerciseVersions, comment: local.comment)
@@ -44,8 +44,8 @@ struct DayComposerFinalizationRequestAdapter {
         let summary = WorkoutPayloadBuilder.summaries(projection)
         let exos = projection.keys.sorted().compactMap { name -> String? in
             guard let value = projection[name] else { return nil }
-            if items.contains(where: { $0.name == name && $0.tracking == "mobility" }) {
-                return "\(name) · mobilité réalisée"
+            if items.contains(where: { $0.storageKey == name && $0.tracking == "mobility" }) {
+                return "\(value.name) · mobilité réalisée"
             }
             return "\(value.name) \(value.weight)lbs \(value.reps)"
         }

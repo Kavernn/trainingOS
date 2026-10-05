@@ -65,13 +65,21 @@ final class DayComposerFinishCoordinator: ObservableObject {
             _ completedPlans: [DayComposerSource: DayComposerPlan]) async throws -> DayComposerSourceServerFacts {
             let bundle = try await DayComposerLoader.loadBundle(program: identity.activeProgramID)
             let projection = try await DayComposerServerProjection.load(date: identity.date)
-            let snapshot = DayComposerCoachingCoordinator.snapshotForFinalization(bundle.snapshot, completedPlans: completedPlans)
+            let planning = DayComposerCoachingCoordinator.planningForFinalization(bundle.snapshot, completedPlans: completedPlans)
+            let effective: DayComposerSnapshot
+            switch try DayComposerStore().load(planning) {
+            case .initial: effective = planning
+            case .restored(let units):
+                effective = try units.flatMap(\.items).contains { $0.assignedSourceOverride != nil } ? planning.assigning(units) : planning
+            case .incompatible: throw Failure.contextRejected
+            }
+            let snapshot = DayComposerCoachingCoordinator.snapshotForFinalization(effective, completedPlans: completedPlans)
             guard try DayComposerExecutionIdentity(executionID: identity.executionID,
                 context: DayComposerExecutionContext(snapshot: snapshot)) == identity else { throw Failure.contextRejected }
             let items = (source == .morning ? snapshot.morning : snapshot.evening).units.flatMap(\.items)
             let completed = source == .morning ? snapshot.morningCompleted : snapshot.eveningCompleted
             return .init(source: source, date: identity.date, freshness: .fresh,
-                observedNames: Set(items.filter { projection.presence(of: $0.name, source: source) == .observed }.map(\.name)),
+                observedNames: Set(items.filter { projection.presence(of: $0.name, source: source, occurrenceKey: $0.occurrenceKey) == .observed }.map(\.storageKey)),
                 completion: completed ? .completedObserved : .notCompleted)
         }
 

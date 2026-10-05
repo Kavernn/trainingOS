@@ -90,7 +90,7 @@ enum DayComposerReadiness {
         }
         let items: [DayComposerSourceReadiness.Item] = input.planItems.map { item in
             let fact = input.facts(for: item.id)
-            let observed = fresh && input.server.observedNames.contains(item.name)
+            let observed = fresh && input.server.observedNames.contains(item.storageKey)
             func result(_ satisfaction: DayComposerSourceReadiness.Satisfaction) -> DayComposerSourceReadiness.Item {
                 .init(id: item.id, satisfaction: satisfaction)
             }

@@ -32,7 +32,7 @@ struct DayComposerSourceFinalizationInput {
         guard provenanceCompatible,
               (try? provenanceGuard.validate(identity: identity, source: source)) != nil else { return .provenanceMismatch }
         let ids = planItems.map(\.id)
-        guard Set(ids).count == ids.count, ids.allSatisfy({ $0.source == source }),
+        guard Set(ids).count == ids.count, planItems.allSatisfy({ $0.assignedSource == source }),
               Set(itemFacts.map(\.itemID)).count == itemFacts.count,
               itemFacts.allSatisfy({ ids.contains($0.itemID) }) else { return .invalidFacts }
         return nil
@@ -48,6 +48,7 @@ struct DayComposerSourceFinalizationInput {
         guard let bytes = fact.local.payload else { return fact.local == .none }
         guard let json = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
               json["exercise"] as? String == item.name,
+              json["occurrence_key"] as? String == item.occurrenceKey,
               json["session_date"] as? String == identity.date,
               (json["is_second"] as? Bool ?? false) == (source == .evening),
               (json["is_bonus"] as? Bool ?? false) == false,
@@ -114,7 +115,7 @@ struct DayComposerFinalizationSnapshot: Equatable {
                 guard input.validPayload(for: item, fact: fact) else { return .failure(.invalidPayload(item.id)) }
                 if let bytes = fact.local.payload {
                     payloads[item.id] = bytes
-                    versions.append(try .init(itemID: item.id, date: input.identity.date, payloadData: bytes))
+                    versions.append(try .init(itemID: item.id, date: input.identity.date, payloadData: bytes, source: input.source))
                 }
             }
             let version = try DayComposerSourceVersion(source: input.source, sessionName: input.sessionName,

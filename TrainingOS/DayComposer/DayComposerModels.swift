@@ -9,6 +9,10 @@ enum DayComposerSource: String, Codable {
 struct DayComposerItemID: Codable, Hashable {
     let source: DayComposerSource
     let exercise: String
+    var occurrenceKey: String {
+        "dc1:" + SHA256.hash(data: Data("\(source.rawValue)|\(exercise)".utf8))
+            .map { String(format: "%02x", $0) }.joined()
+    }
 
     init(source: DayComposerSource, name: String, exerciseID: String?) {
         self.source = source
@@ -25,6 +29,11 @@ struct DayComposerItem: Codable, Equatable, Identifiable {
     let sourceOrder: Int
     let tracking: String
     let unilateral: Bool
+    var assignedSourceOverride: DayComposerSource? = nil
+    var originSource: DayComposerSource { id.source }
+    var assignedSource: DayComposerSource { assignedSourceOverride ?? originSource }
+    var occurrenceKey: String? { assignedSourceOverride == nil ? nil : id.occurrenceKey }
+    var storageKey: String { occurrenceKey ?? name }
 }
 
 /// A superset is ONE movable unit, with its original A/B order retained.
@@ -33,13 +42,17 @@ struct DayComposerUnit: Codable, Equatable, Identifiable {
     let group: String?
     let rest: Int?
     var id: DayComposerItemID { items[0].id }
-    var source: DayComposerSource { id.source }
+    var source: DayComposerSource { items[0].assignedSource }
 }
 
 struct DayComposerPlan: Codable, Equatable {
     let source: DayComposerSource
     let session: String
     let units: [DayComposerUnit]
+
+    init(source: DayComposerSource, session: String, units: [DayComposerUnit]) {
+        self.source = source; self.session = session; self.units = units
+    }
 
     struct Pair {
         let group: String
@@ -99,7 +112,7 @@ struct DayComposerPlan: Codable, Equatable {
 }
 
 enum DayComposerError: Error {
-    case invalidPlan, contextChanged, unavailable
+    case invalidPlan, contextChanged, unavailable, executionStarted, emptySource
 }
 
 struct DayComposerSnapshot {
@@ -161,6 +174,47 @@ struct DayComposerSnapshot {
         return result
     }
 
+    func assigning(_ units: [DayComposerUnit]) throws -> DayComposerSnapshot {
+        guard self.units(for: units.flatMap { $0.items.map(\.id) }) != nil,
+              units.allSatisfy({ unit in unit.items.allSatisfy { $0.assignedSource == unit.source } }),
+              [DayComposerSource.morning, .evening].allSatisfy({ source in
+                  units.contains { $0.source == source && $0.items.contains { ["reps", "time", "carry", "plyo", "protocol", "mobility"].contains($0.tracking) } }
+              }) else { throw DayComposerError.invalidPlan }
+        let originals = Dictionary(uniqueKeysWithValues: initialUnits.map { ($0.id, $0) })
+        for unit in units {
+            guard let original = originals[unit.id], unit.group == original.group, unit.rest == original.rest,
+                  unit.items.count == original.items.count else { throw DayComposerError.invalidPlan }
+            for (item, expected) in zip(unit.items, original.items) {
+                var a = item; var b = expected
+                a.assignedSourceOverride = nil; b.assignedSourceOverride = nil
+                guard a == b else { throw DayComposerError.invalidPlan }
+            }
+        }
+        return .init(date: date, activeProgramID: activeProgramID,
+            morning: .init(source: .morning, session: morning.session, units: units.filter { $0.source == .morning }),
+            evening: .init(source: .evening, session: evening.session, units: units.filter { $0.source == .evening }),
+            morningCompleted: morningCompleted, eveningCompleted: eveningCompleted)
+    }
+
+    static func transferring(_ units: [DayComposerUnit], id: DayComposerItemID,
+                             locked: Bool) throws -> [DayComposerUnit] {
+        guard !locked else { throw DayComposerError.executionStarted }
+        guard let unit = units.first(where: { $0.id == id }),
+              unit.items.allSatisfy({ $0.assignedSource == unit.source }) else { throw DayComposerError.invalidPlan }
+        guard units.contains(where: { $0.id != id && $0.source == unit.source && $0.items.contains {
+            ["reps", "time", "carry", "plyo", "protocol", "mobility"].contains($0.tracking)
+        } }) else { throw DayComposerError.emptySource }
+        let target: DayComposerSource = unit.source == .morning ? .evening : .morning
+        let updated: [DayComposerUnit] = units.map { current in
+            .init(items: current.items.map { item in
+                var value = item
+                value.assignedSourceOverride = current.id == id ? target : item.assignedSource
+                return value
+            }, group: current.group, rest: current.rest)
+        }
+        return updated.filter { $0.source == .morning } + updated.filter { $0.source == .evening }
+    }
+
     /// Drag and accessible moves share this pure, unit-based operation.
     static func moving(_ units: [DayComposerUnit], from offsets: IndexSet, to destination: Int) -> [DayComposerUnit] {
         guard destination >= 0, destination <= units.count,
@@ -180,4 +234,9 @@ struct DayComposerState: Codable {
     let activeProgramID: String
     let sourceFingerprint: String
     let orderedItemIDs: [DayComposerItemID]
+    var assignments: [Assignment]? = nil
+    struct Assignment: Codable {
+        let id: DayComposerItemID
+        let source: DayComposerSource
+    }
 }

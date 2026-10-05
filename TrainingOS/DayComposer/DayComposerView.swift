@@ -30,7 +30,7 @@ struct DayComposerTodayEntry: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .combine)
-                .accessibilityHint("Change l’ordre pour aujourd’hui seulement. Ton programme reste inchangé.")
+                .accessibilityHint("Change l’ordre et les créneaux pour aujourd’hui seulement. Ton programme reste inchangé.")
             }
         }
     }
@@ -48,11 +48,13 @@ struct DayComposerView: View {
     @State private var error: String?
     @State private var refresh = UUID()
     private let store = DayComposerStore()
+    private var fixtureOnly = false
     @State private var launch: DayComposerLaunch?
     @State private var starting = false
     @State private var executionAllowed = false
     @State private var verified = false
     @State private var refreshing = false
+    @State private var sourcesLocked = true
     @State private var didValidate = false
     @State private var validationToken = UUID()
     @State private var representedCandidateID: UUID
@@ -68,6 +70,28 @@ struct DayComposerView: View {
         _loading = State(initialValue: false)
     }
 
+    #if DEBUG
+    static func preparationFixture(moved: Bool, locked: Bool = false, superset: Bool = false) throws -> DayComposerView {
+        let date = DateFormatter.isoDate.string(from: Date())
+        let snapshot = try DayComposerSnapshot(date: date, activeProgramID: "r13-visual-fixture",
+            morning: .init(source: .morning, session: "AM",
+                schemes: superset ? ["Curl": "3×8", "Press": "3×8", "Squat": "3×5"] : ["Curl": "3×8", "Squat": "3×5"],
+                order: ["Curl", "Press", "Squat"],
+                pairs: superset ? [.init(group: "SS", a: "Curl", b: "Press", rest: 90)] : []),
+            evening: .init(source: .evening, session: "PM", schemes: ["Curl": "3×8", "Row": "3×8"], order: ["Curl", "Row"]),
+            morningCompleted: false, eveningCompleted: false)
+        let candidate = DayComposerPreparationCandidate(preview: snapshot, enrich: { snapshot })
+        var view = DayComposerView(candidate: candidate)
+        view.fixtureOnly = true
+        view._verified = State(initialValue: true)
+        view._executionAllowed = State(initialValue: true)
+        view._sourcesLocked = State(initialValue: locked)
+        view._units = State(initialValue: moved ? try DayComposerSnapshot.transferring(snapshot.initialUnits,
+            id: snapshot.evening.units[0].id, locked: false) : snapshot.initialUnits)
+        return view
+    }
+    #endif
+
     var body: some View {
         List {
             if loading {
@@ -76,16 +100,22 @@ struct DayComposerView: View {
                 Section {
                     Text("2 séances · \(snapshot.initialIDs.count) exercices")
                         .font(.appBody.weight(.semibold))
+                    Text("Matin : \(units.filter { $0.source == .morning }.flatMap(\.items).count) · Soir : \(units.filter { $0.source == .evening }.flatMap(\.items).count)")
+                        .font(.appCaption)
+                    if sourcesLocked {
+                        Text("Les créneaux ne peuvent plus être modifiés après le début de la journée.")
+                            .font(.appCaption).foregroundColor(.appTextSecondary)
+                    }
                     if refreshing {
                         ProgressView("Vérification des identifiants et supersets…")
                             .font(.appCaption)
                     }
-                    Text("Ton programme reste inchangé. Chaque exercice garde sa séance Matin ou Soir, même si tu changes l’ordre.")
+                    Text("Ton programme reste inchangé. Change l’ordre ou déplace une unité vers Matin ou Soir, pour aujourd’hui seulement.")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
                     ForEach(snapshot.initialUnits.flatMap(\.items).filter {
                         !DayComposerExecutionCoordinator.isSupported($0.tracking)
                     }, id: \.id) { item in
-                        Text("Commencer indisponible : \(item.name) · \(item.id.source.title) · type non pris en charge : \(item.tracking)")
+                        Text("Commencer indisponible : \(item.name) · \(item.assignedSource.title) · type non pris en charge : \(item.tracking)")
                             .font(.appCaption).foregroundColor(.appTextSecondary)
                     }
                     if incompatible {
@@ -103,7 +133,7 @@ struct DayComposerView: View {
                         .font(.appCaption).foregroundColor(.appTextSecondary)
                     ForEach(Array(units.enumerated()), id: \.element.id) { index, unit in
                         unitRow(unit, index: index, snapshot: snapshot)
-                            .moveDisabled(incompatible || loading || !verified)
+                            .moveDisabled(incompatible || loading || !verified || sourcesLocked)
                     }
                     .onMove { offsets, destination in
                         move(from: offsets, to: destination)
@@ -120,11 +150,11 @@ struct DayComposerView: View {
                     .disabled(starting || !executionAllowed || !snapshot.canStart(orderedIDs: units.flatMap { $0.items.map(\.id) },
                         activeProgram: activeProgramID, date: DateFormatter.isoDate.string(from: Date()),
                         loading: loading, incompatible: incompatible))
-                    Button("Réinitialiser l’ordre") { reset(snapshot) }
+                    Button("Restaurer la journée") { reset(snapshot) }
                         .frame(minHeight: 44)
                         .foregroundColor(.forge)
                         .buttonStyle(.borderless)
-                        .disabled(!verified)
+                        .disabled(!verified || sourcesLocked)
                 }
                 .listRowBackground(Color.appCard)
             }
@@ -147,7 +177,7 @@ struct DayComposerView: View {
                     finishCoordinator: session.finish, onDismiss: { launch = nil })
             }
         }
-        .task(id: "\(candidate.id):\(refresh)") { await reload() }
+        .task(id: "\(candidate.id):\(refresh)") { if !fixtureOnly { await reload() } }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refresh = UUID() }
         }
@@ -165,10 +195,12 @@ struct DayComposerView: View {
         starting = true
         defer { starting = false }
         do {
-            try store.save(units, for: snapshot)
+            if !DayComposerStore.sourcesLocked(snapshot) { try store.save(units, for: snapshot) }
             let input = try await DayComposerLoader.loadExecution(program: activeProgramID, orderStore: store)
             guard !Task.isCancelled, input.context.date == snapshot.date,
-                  try input.snapshot.fingerprint == snapshot.fingerprint else { throw DayComposerError.contextChanged }
+                  input.planningFingerprint == (try snapshot.fingerprint),
+                  input.snapshot.morning.session == snapshot.morning.session,
+                  input.snapshot.evening.session == snapshot.evening.session else { throw DayComposerError.contextChanged }
             let coordinator = try DayComposerExecutionCoordinator.make(validatedInput: input)
             let barrier = try coordinator.makeStabilizationBarrier()
             let finish = try coordinator.makeFinishCoordinator()
@@ -192,18 +224,27 @@ struct DayComposerView: View {
             ForEach(unit.items) { item in
                 Text(item.name).font(.appBody)
             }
+            Button("Déplacer vers \(unit.source == .morning ? "Soir" : "Matin")") { transfer(unit) }
+                .buttonStyle(.borderless).frame(minHeight: 44)
+                .disabled(sourcesLocked || !verified || incompatible)
+            if unit.group != nil {
+                Text("Tout le superset sera déplacé.").font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+            if unit.items.contains(where: { $0.originSource != $0.assignedSource }) {
+                Text("Déplacé depuis \(unit.items[0].originSource.title)").font(.appCaption).foregroundColor(.appTextSecondary)
+            }
             // Visible alternatives support keyboard use without dragging.
             HStack {
                 Button { move(from: IndexSet(integer: index), to: index - 1) } label: {
                     Label("Monter", systemImage: "arrow.up")
                 }
                     .frame(minWidth: 44, minHeight: 44)
-                    .disabled(index == 0 || incompatible || !verified)
+                    .disabled(index == 0 || incompatible || !verified || sourcesLocked)
                 Button { move(from: IndexSet(integer: index), to: index + 2) } label: {
                     Label("Descendre", systemImage: "arrow.down")
                 }
                     .frame(minWidth: 44, minHeight: 44)
-                    .disabled(index == units.count - 1 || incompatible || !verified)
+                    .disabled(index == units.count - 1 || incompatible || !verified || sourcesLocked)
             }
             .font(.appCaption).buttonStyle(.borderless)
             .frame(minHeight: 44).accessibilityHidden(true)
@@ -213,18 +254,38 @@ struct DayComposerView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(unit.items.map(\.name).joined(separator: ", ")). \(unit.source.title). \(unit.group == nil ? "" : "Superset. ")Position \(index + 1) sur \(units.count).\(snapshot.completed(unit.source) ? " Séance terminée." : "")")
         .accessibilityActions {
-            if verified && !incompatible && index > 0 {
+            if verified && !incompatible && !sourcesLocked {
+                Button("Déplacer \(unit.items.map(\.name).joined(separator: ", ")) vers \(unit.source == .morning ? "Soir" : "Matin")") { transfer(unit) }
+            }
+            if verified && !incompatible && !sourcesLocked && index > 0 {
                 Button("Monter") { move(from: IndexSet(integer: index), to: index - 1) }
             }
-            if verified && !incompatible && index < units.count - 1 {
+            if verified && !incompatible && !sourcesLocked && index < units.count - 1 {
                 Button("Descendre") { move(from: IndexSet(integer: index), to: index + 2) }
             }
         }
     }
 
+    private func transfer(_ unit: DayComposerUnit) {
+        guard verified, !loading, !incompatible, let snapshot,
+              snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
+        do {
+            sourcesLocked = sourcesLocked || DayComposerStore.sourcesLocked(snapshot)
+            let updated = try DayComposerSnapshot.transferring(units, id: unit.id, locked: sourcesLocked)
+            try store.save(updated, for: snapshot)
+            units = updated
+            error = nil
+        } catch DayComposerError.emptySource {
+            error = "Garde au moins un exercice dans chaque séance."
+        } catch DayComposerError.executionStarted {
+            error = "Les créneaux ne peuvent plus être modifiés après le début de la journée."
+        } catch { self.error = "Ce groupe ne peut pas être déplacé en sécurité. Les données sont conservées." }
+    }
+
     private func move(from offsets: IndexSet, to destination: Int) {
         guard verified, !loading, !incompatible, let snapshot,
               snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
+        guard !sourcesLocked, !DayComposerStore.sourcesLocked(snapshot) else { return }
         let updated = DayComposerSnapshot.moving(units, from: offsets, to: destination)
         guard updated != units else { return }
         do {
@@ -236,6 +297,7 @@ struct DayComposerView: View {
 
     private func reset(_ snapshot: DayComposerSnapshot) {
         guard verified, !loading, snapshot.date == DateFormatter.isoDate.string(from: Date()) else { return }
+        guard !sourcesLocked, !DayComposerStore.sourcesLocked(snapshot) else { return }
         do {
             try store.reset(snapshot)
             units = snapshot.initialUnits
@@ -259,6 +321,7 @@ struct DayComposerView: View {
             didValidate = false
         }
         refreshing = true
+        sourcesLocked = true
         executionAllowed = false
         error = nil
         do {
@@ -279,7 +342,10 @@ struct DayComposerView: View {
             case .restored(let saved): units = saved
             case .incompatible: incompatible = true
             }
-            let context = try DayComposerExecutionContext(snapshot: fresh)
+            let history = try await DayComposerServerProjection.load(date: fresh.date)
+            guard !Task.isCancelled else { return }
+            sourcesLocked = DayComposerStore.sourcesLocked(fresh) || !history.positivelyObserved.isEmpty
+            let context = try DayComposerExecutionContext(snapshot: units.flatMap(\.items).contains { $0.assignedSourceOverride != nil } ? fresh.assigning(units) : fresh)
             let provenance = DayComposerProvenanceStore.shared
             switch (provenance.admission(context: context, source: .morning),
                     provenance.admission(context: context, source: .evening)) {

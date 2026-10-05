@@ -54,6 +54,28 @@ final class DayComposerCoachingCoordinator: ObservableObject {
     /// Freeze only its scheme for the current execution identity; date/programme,
     /// names, IDs, order, groups, tracking and unfinished prescriptions still
     /// have to match. A fresh completion observation is mandatory.
+    /// Reapply only completed-source prescriptions to the ORIGINAL planning before
+    /// checking the preparation fingerprint. Occurrence IDs retain origin source.
+    static func planningForFinalization(_ current: DayComposerSnapshot,
+        completedPlans: [DayComposerSource: DayComposerPlan]) -> DayComposerSnapshot {
+        let completedItems = completedPlans.filter { current.completed($0.key) }.values.flatMap { $0.units.flatMap(\.items) }
+        func plan(_ actual: DayComposerPlan) -> DayComposerPlan {
+            let units = actual.units.map { unit in
+                DayComposerUnit(items: unit.items.map { item in
+                    guard let old = completedItems.first(where: { $0.id == item.id }),
+                          old.name == item.name, old.sourceOrder == item.sourceOrder,
+                          old.tracking == item.tracking, old.unilateral == item.unilateral else { return item }
+                    return DayComposerItem(id: item.id, name: item.name, scheme: old.scheme,
+                        sourceOrder: item.sourceOrder, tracking: item.tracking, unilateral: item.unilateral)
+                }, group: unit.group, rest: unit.rest)
+            }
+            return .init(source: actual.source, session: actual.session, units: units)
+        }
+        return .init(date: current.date, activeProgramID: current.activeProgramID,
+            morning: plan(current.morning), evening: plan(current.evening),
+            morningCompleted: current.morningCompleted, eveningCompleted: current.eveningCompleted)
+    }
+
     static func snapshotForFinalization(_ current: DayComposerSnapshot,
         completedPlans: [DayComposerSource: DayComposerPlan]) -> DayComposerSnapshot {
         func plan(_ actual: DayComposerPlan, completed: Bool) -> DayComposerPlan {
@@ -64,7 +86,7 @@ final class DayComposerCoachingCoordinator: ObservableObject {
                 guard a.group == b.group, a.rest == b.rest, a.items.count == b.items.count else { return actual }
                 for (x, y) in zip(a.items, b.items) {
                     guard x.id == y.id, x.name == y.name, x.sourceOrder == y.sourceOrder,
-                          x.tracking == y.tracking, x.unilateral == y.unilateral else { return actual }
+                          x.tracking == y.tracking, x.unilateral == y.unilateral, x.assignedSource == y.assignedSource else { return actual }
                 }
             }
             return original

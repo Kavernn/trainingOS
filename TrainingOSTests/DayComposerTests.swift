@@ -1246,7 +1246,15 @@ final class DayComposerTests: XCTestCase {
         try withStore { store in
             try store.save(moved, for: s)
             guard case .restored(let restored) = try store.load(s) else { return XCTFail("Not restored") }
-            XCTAssertEqual(restored, moved)
+            XCTAssertEqual(restored, explicitAssignments(moved))
+        }
+    }
+
+    private func explicitAssignments(_ units: [DayComposerUnit]) -> [DayComposerUnit] {
+        units.map { unit in
+            .init(items: unit.items.map { item in
+                var value = item; value.assignedSourceOverride = item.assignedSource; return value
+            }, group: unit.group, rest: unit.rest)
         }
     }
 
@@ -1257,7 +1265,7 @@ final class DayComposerTests: XCTestCase {
             try store.save(moved, for: s)
             let recreated = DayComposerStore(defaults: store.defaults)
             guard case .restored(let restored) = try recreated.load(s) else { return XCTFail("Not restored") }
-            XCTAssertEqual(restored, moved)
+            XCTAssertEqual(restored, explicitAssignments(moved))
         }
     }
 
@@ -1275,7 +1283,7 @@ final class DayComposerTests: XCTestCase {
             try store.save(moved, for: s)
             guard case .initial = try store.load(snapshot(program: "B")) else { return XCTFail("Cross-program order") }
             guard case .restored(let restored) = try store.load(s) else { return XCTFail("Lost A") }
-            XCTAssertEqual(restored, moved)
+            XCTAssertEqual(restored, explicitAssignments(moved))
         }
     }
 
@@ -1298,7 +1306,7 @@ final class DayComposerTests: XCTestCase {
             try store.save(s.initialUnits.reversed(), for: s)
             try store.reset(s)
             guard case .restored(let restored) = try store.load(s) else { return XCTFail("Missing reset") }
-            XCTAssertEqual(restored, s.initialUnits)
+            XCTAssertEqual(restored, explicitAssignments(s.initialUnits))
             XCTAssertEqual(store.defaults.string(forKey: "session_recovery"), "keep")
         }
     }

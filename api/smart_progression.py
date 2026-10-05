@@ -599,6 +599,16 @@ def generate_suggestions(
     current_logs = db.get_exercise_logs_for_session_with_names(current_session["id"], **read_options)
     prev_logs_raw = db.get_exercise_logs_for_session_with_names(prev_session["id"], **read_options)
 
+    # Progression remains exercise-level. Ambiguous repeated occurrences are
+    # excluded rather than selecting an arbitrary performance or applying twice.
+    def unambiguous(logs):
+        counts = {}
+        for log in logs:
+            name = log["exercise_name"]
+            counts[name] = counts.get(name, 0) + 1
+        return [log for log in logs if counts[log["exercise_name"]] == 1]
+    current_logs = unambiguous(current_logs)
+    prev_logs_raw = unambiguous(prev_logs_raw)
     if not current_logs:
         return []
 

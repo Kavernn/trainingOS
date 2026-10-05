@@ -582,8 +582,11 @@ def upsert_exercise_log_direct(
     notes: str | None = None,
     distance_m: float | None = None,
     protocol_completed: bool | None = None,
+    occurrence_key: str = "",
 ) -> bool:
     """Insert/update an exercise_log row using session_id directly (bypasses date lookup)."""
+    if not isinstance(occurrence_key, str) or len(occurrence_key.encode("utf-8")) > 160:
+        return False
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
 
@@ -596,6 +599,7 @@ def upsert_exercise_log_direct(
             "session_id": session_id,
             "exercise_id": exercise_id,
             "side": "both",
+            "occurrence_key": occurrence_key,
             "weight": weight,
             "reps": reps,
         }
@@ -613,7 +617,7 @@ def upsert_exercise_log_direct(
             payload["protocol_completed"] = protocol_completed
         resp = (
             db_core._client.table("exercise_logs")
-            .upsert(payload, on_conflict="session_id,exercise_id,side")
+            .upsert(payload, on_conflict="session_id,exercise_id,side,occurrence_key")
             .execute()
         )
         return bool(resp.data)
@@ -650,7 +654,8 @@ def get_exercise_history_grouped_by_session(session_ids: list | None = None) -> 
         while True:
             q = (
                 db_core._client.table("exercise_logs")
-                .select("weight, reps, sets_json, session_id, exercises(name)")
+                .select("weight, reps, sets_json, session_id, occurrence_key, exercises(name)")
+                .order("id")
                 .range(offset, offset + page_size - 1)
             )
             if session_ids:
@@ -664,6 +669,7 @@ def get_exercise_history_grouped_by_session(session_ids: list | None = None) -> 
                     continue
                 result.setdefault(sid, []).append({
                     "exercise": name,
+                    "occurrence_key": r.get("occurrence_key", ""),
                     "weight":   r.get("weight", 0),
                     "reps":     r.get("reps", ""),
                     "sets":     r.get("sets_json") or [],
@@ -1081,6 +1087,7 @@ def get_session_exercise_logs(session_date: str) -> List[dict]:
         return [
             {
                 "exercise_name": r["exercises"]["name"],
+                "occurrence_key": r.get("occurrence_key", ""),
                 "weight": r["weight"],
                 "reps": r["reps"],
             }
@@ -1167,22 +1174,23 @@ def get_exercise_logs_for_session_with_names(session_id: str, *, strict: bool = 
         return []
 
     def _do() -> List[dict]:
-        resp = (
-            db_core._client.table("exercise_logs")
-            .select("weight, reps, sets_json, exercises(name)")
-            .eq("session_id", session_id)
-            .execute()
-        )
-        rows = resp.data or []
+        rows = []
+        offset = 0
+        while True:
+            page = (db_core._client.table("exercise_logs")
+                    .select("id, weight, reps, sets_json, occurrence_key, exercises(name)")
+                    .eq("session_id", session_id).order("id")
+                    .range(offset, offset + 999).execute()).data or []
+            rows.extend(page)
+            if len(page) < 1000:
+                break
+            offset += 1000
         return [
-            {
-                "exercise_name": r["exercises"]["name"],
-                "weight": r["weight"],
-                "reps": r["reps"],
-                "sets_json": r.get("sets_json") or [],
-            }
-            for r in rows
-            if r.get("exercises")
+            {"exercise_name": r["exercises"]["name"],
+             "occurrence_key": r.get("occurrence_key", ""),
+             "weight": r["weight"], "reps": r["reps"],
+             "sets_json": r.get("sets_json") or []}
+            for r in rows if r.get("exercises")
         ]
 
     try:
@@ -1520,7 +1528,7 @@ def upsert_exercise_log(
             payload["sets_json"] = sets_json
         resp = (
             db_core._client.table("exercise_logs")
-            .upsert(payload, on_conflict="session_id,exercise_id,side")
+            .upsert(payload, on_conflict="session_id,exercise_id,side,occurrence_key")
             .execute()
         )
         return bool(resp.data)
@@ -1613,7 +1621,7 @@ def upsert_exercise_log_by_type(
             payload["protocol_completed"] = protocol_completed
         resp = (
             db_core._client.table("exercise_logs")
-            .upsert(payload, on_conflict="session_id,exercise_id,side")
+            .upsert(payload, on_conflict="session_id,exercise_id,side,occurrence_key")
             .execute()
         )
         return bool(resp.data)
@@ -1753,7 +1761,7 @@ def bulk_upsert_exercise_logs(entries: list[dict]) -> bool:
 
         resp = (
             db_core._client.table("exercise_logs")
-            .upsert(payloads, on_conflict="session_id,exercise_id,side")
+            .upsert(payloads, on_conflict="session_id,exercise_id,side,occurrence_key")
             .execute()
         )
         return bool(resp.data)
@@ -1853,7 +1861,7 @@ def bulk_apply_session_exercise_patches(
         if upsert_rows:
             resp = (
                 db_core._client.table("exercise_logs")
-                .upsert(upsert_rows, on_conflict="session_id,exercise_id,side")
+                .upsert(upsert_rows, on_conflict="session_id,exercise_id,side,occurrence_key")
                 .execute()
             )
             if not resp.data:

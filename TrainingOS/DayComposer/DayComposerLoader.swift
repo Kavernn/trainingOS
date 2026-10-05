@@ -72,6 +72,7 @@ struct DayComposerLoadedBundle {
 }
 
 struct DayComposerValidatedExecutionInput {
+    let planningFingerprint: String
     let snapshot: DayComposerSnapshot
     let orderedUnits: [DayComposerUnit]
     let context: DayComposerExecutionContext
@@ -80,13 +81,14 @@ struct DayComposerValidatedExecutionInput {
     let serverProjection: DayComposerServerProjection
 
     init(bundle: DayComposerLoadedBundle, orderedItemIDs: [DayComposerItemID],
-         serverProjection: DayComposerServerProjection) throws {
+         serverProjection: DayComposerServerProjection, assignedUnits: [DayComposerUnit]? = nil) throws {
         guard let units = bundle.snapshot.units(for: orderedItemIDs),
               serverProjection.date == bundle.snapshot.date else {
             throw DayComposerError.contextChanged
         }
-        snapshot = bundle.snapshot
-        orderedUnits = units
+        planningFingerprint = try bundle.snapshot.fingerprint
+        snapshot = try assignedUnits.map { try bundle.snapshot.assigning($0) } ?? bundle.snapshot
+        orderedUnits = assignedUnits ?? units
         context = try DayComposerExecutionContext(snapshot: snapshot)
         morningData = bundle.morningData
         eveningData = bundle.eveningData
@@ -291,9 +293,12 @@ enum DayComposerLoader {
                                currentDate: () -> String = { DateFormatter.isoDate.string(from: Date()) }) async throws
         -> DayComposerValidatedExecutionInput {
         let ids: [DayComposerItemID]
+        var assigned: [DayComposerUnit]?
         switch try orderStore.load(bundle.snapshot) {
         case .initial: ids = bundle.snapshot.initialIDs
-        case .restored(let units): ids = units.flatMap { $0.items.map(\.id) }
+        case .restored(let units):
+            ids = units.flatMap { $0.items.map(\.id) }
+            if units.flatMap(\.items).contains(where: { $0.assignedSourceOverride != nil }) { assigned = units }
         case .incompatible: throw DayComposerError.contextChanged
         }
         let observed = try await projection(bundle.snapshot.date)
@@ -301,6 +306,6 @@ enum DayComposerLoader {
             throw DayComposerError.contextChanged
         }
         return try DayComposerValidatedExecutionInput(bundle: bundle, orderedItemIDs: ids,
-                                                       serverProjection: observed)
+                                                       serverProjection: observed, assignedUnits: assigned)
     }
 }

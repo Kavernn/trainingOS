@@ -51,25 +51,31 @@ enum WorkoutPayloadBuilder {
         let name: String
         let weight: Double
         let reps: String
+        var occurrenceKey: String? = nil
     }
 
     static func summaries(_ resultsByIdentity: [String: ExerciseLogResult])
         -> (exos: [String], exerciseLogs: [[String: Any]]) {
-        summaries(resultsByIdentity.mapValues { Summary(name: $0.name, weight: $0.weight, reps: $0.reps) })
+        summaries(resultsByIdentity.mapValues { Summary(name: $0.name, weight: $0.weight, reps: $0.reps, occurrenceKey: $0.occurrenceKey) })
     }
 
     static func summaries(_ resultsByIdentity: [String: Summary])
         -> (exos: [String], exerciseLogs: [[String: Any]]) {
         let results = resultsByIdentity.keys.sorted().compactMap { resultsByIdentity[$0] }
         return (results.map { "\($0.name) \($0.weight)lbs \($0.reps)" },
-                results.map { ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps] })
+                results.map { value in
+                    var log: [String: Any] = ["exercise": value.name, "weight": value.weight, "reps": value.reps]
+                    if let key = value.occurrenceKey { log["occurrence_key"] = key }
+                    return log
+                })
     }
 
     static func exercise(exercise: String, weight: Double, reps: String, rpe: Double?,
                          sets: [[String: Any]], force: Bool, isSecond: Bool, isBonus: Bool,
                          equipmentType: String, painZone: String, notes: String,
-                         date: String?) -> [String: Any] {
+                         date: String?, occurrenceKey: String? = nil) -> [String: Any] {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
+        if let occurrenceKey { body["occurrence_key"] = occurrenceKey }
         if let date { body["session_date"] = date }
         if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
@@ -187,7 +193,7 @@ struct NeutralExerciseSubmissionRequest {
          payloadData: Data, operationKey: OfflineOperationKey) throws {
         try NeutralSubmissionValidation.check(date: date, identity: itemIdentity, key: operationKey)
         guard let body = try JSONSerialization.jsonObject(with: payloadData) as? [String: Any],
-              body["exercise"] as? String == itemIdentity,
+              (body["occurrence_key"] as? String ?? body["exercise"] as? String) == itemIdentity,
               body["session_date"] as? String == date,
               (body["is_second"] as? Bool ?? false) == (source == .evening),
               (body["is_bonus"] as? Bool ?? false) == false,

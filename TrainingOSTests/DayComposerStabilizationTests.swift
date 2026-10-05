@@ -27,7 +27,8 @@ final class DayComposerStabilizationFixture {
     init(morning names: [String] = ["A"], evening eveningNames: [String] = ["A"],
          tracking: [String: String] = [:], schemes: [String: String] = [:], observed: [String] = [],
          supersets: [String: [String: SupersetEntry]] = [:],
-         finalInputsStore: DayComposerFinalInputsStore = DayComposerFinalInputsStore()) throws {
+         finalInputsStore: DayComposerFinalInputsStore = DayComposerFinalInputsStore(),
+         reassignment: (([DayComposerUnit]) throws -> [DayComposerUnit])? = nil) throws {
         date = try Self.unusedDate()
         let date = date
         let sharedID = UUID().uuidString
@@ -48,7 +49,8 @@ final class DayComposerStabilizationFixture {
         let history: [String: Any] = ["session_list": [["date": date, "session_type": "morning",
                                                       "exos": observed.map { ["exercise": $0] }]]]
         let input = try DayComposerValidatedExecutionInput(bundle: bundle, orderedItemIDs: bundle.snapshot.initialIDs,
-            serverProjection: DayComposerServerProjection(date: date, historyData: JSONSerialization.data(withJSONObject: history)))
+            serverProjection: DayComposerServerProjection(date: date, historyData: JSONSerialization.data(withJSONObject: history)),
+            assignedUnits: try reassignment?(bundle.snapshot.initialUnits))
         coordinator = try .make(validatedInput: input, currentDate: { date }, finalInputsStore: finalInputsStore)
         barrier = try coordinator.makeStabilizationBarrier()
         morning = .init(source: .morning, text: coordinator.comment(for: .morning))
@@ -62,7 +64,7 @@ final class DayComposerStabilizationFixture {
             let c = coordinator
             let vm = ExerciseViewModel(name: p.item.name, scheme: p.item.scheme, weightData: nil,
                 trackingType: p.item.tracking, isSecondSession: source == .evening, sessionDate: date,
-                draftAuthorization: p.authorization, validateLocalPersistence: validator ?? { c.validateLocalPersistence() })
+                draftAuthorization: p.authorization, validateLocalPersistence: validator ?? { c.validateLocalPersistence() }, occurrenceKey: p.item.occurrenceKey)
             if let hydration = p.hydration { vm.initializeRecovery(hydration) } else { vm.initializeSets() }
             let handle = ExerciseEditorPreparationController()
             handle.attach(vm)

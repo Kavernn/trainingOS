@@ -64,6 +64,9 @@ def api_log():
         import db as _db
 
         data     = request.get_json(silent=True) or {}
+        occurrence_key = data.get("occurrence_key", "")
+        if not isinstance(occurrence_key, str) or len(occurrence_key.encode("utf-8")) > 160:
+            return jsonify({"error": "Invalid occurrence_key"}), 400
         exercise = data.get("exercise")
         weight   = float(data.get("weight", 0))
         reps_str = data.get("reps", "")
@@ -254,6 +257,7 @@ def api_log():
         if sid:
             ok = _db.upsert_exercise_log_direct(
                 sid, exercise, round(weight, 1), reps,
+                occurrence_key=occurrence_key,
                 sets_json=sets_data or None,
                 rpe=rpe,
                 pain_zone=pain_zone or None,

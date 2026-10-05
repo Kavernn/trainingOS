@@ -118,10 +118,10 @@ struct DayComposerExerciseVersion: Codable, Hashable {
     let date: String
     let payloadDigest: String
 
-    init(itemID: DayComposerItemID, date: String, payloadData: Data) throws {
+    init(itemID: DayComposerItemID, date: String, payloadData: Data, source: DayComposerSource? = nil) throws {
         formatVersion = 1
         operation = "exercise"
-        source = itemID.source
+        self.source = source ?? itemID.source
         self.itemID = itemID
         self.date = date
         payloadDigest = DayComposerFinalizationCoding.hash(payloadData)
@@ -134,7 +134,7 @@ struct DayComposerExerciseVersion: Codable, Hashable {
     func validate() throws {
         try DayComposerFinalizationCoding.validate(itemID)
         try DayComposerFinalizationCoding.require(formatVersion == 1 && operation == "exercise"
-            && source == itemID.source && DayComposerFinalizationCoding.isDate(date)
+            && DayComposerFinalizationCoding.isDate(date)
             && DayComposerFinalizationCoding.isHash(payloadDigest))
     }
 
@@ -152,6 +152,7 @@ struct DayComposerSourceVersion: Codable, Hashable {
     struct PlanReference: Codable, Hashable {
         let itemID: DayComposerItemID
         let sourceOrder: Int
+        var assignedSource: DayComposerSource? = nil
     }
 
     let formatVersion: Int
@@ -163,10 +164,11 @@ struct DayComposerSourceVersion: Codable, Hashable {
 
     init(source: DayComposerSource, sessionName: String, items: [DayComposerItem],
          exerciseVersions: [DayComposerExerciseVersion], comment: String) throws {
+        try DayComposerFinalizationCoding.require(items.allSatisfy { $0.assignedSource == source })
         formatVersion = 1
         self.source = source
         self.sessionName = sessionName
-        orderedItems = items.map { PlanReference(itemID: $0.id, sourceOrder: $0.sourceOrder) }
+        orderedItems = items.map { PlanReference(itemID: $0.id, sourceOrder: $0.sourceOrder, assignedSource: $0.assignedSourceOverride) }
             .sorted(by: Self.planOrder)
         self.exerciseVersions = exerciseVersions.sorted {
             DayComposerFinalizationCoding.precedes($0.itemID, $1.itemID)
@@ -191,7 +193,7 @@ struct DayComposerSourceVersion: Codable, Hashable {
             && exerciseVersions == exerciseVersions.sorted { DayComposerFinalizationCoding.precedes($0.itemID, $1.itemID) })
         for item in orderedItems {
             try DayComposerFinalizationCoding.validate(item.itemID)
-            try DayComposerFinalizationCoding.require(item.itemID.source == source && item.sourceOrder >= 0)
+            try DayComposerFinalizationCoding.require((item.assignedSource ?? item.itemID.source) == source && item.sourceOrder >= 0)
         }
         for exercise in exerciseVersions {
             try exercise.validate()

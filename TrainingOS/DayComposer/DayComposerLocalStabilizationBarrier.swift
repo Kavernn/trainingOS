@@ -174,14 +174,14 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
         var entries = cards[identity, default: [:]].filter { $0.value.handle != nil }
         entries[handle.instance] = CardEntry(handle)
         cards[identity] = entries
-        generations[identity.itemID.source, default: 0] &+= 1
+        generations[identity.source, default: 0] &+= 1
         return entries.count == 1
     }
 
     func unregister(identity: DayComposerExecutionItemIdentity, token: UUID) {
         guard cards[identity]?.removeValue(forKey: token) != nil else { return }
         if cards[identity]?.isEmpty == true { cards.removeValue(forKey: identity) }
-        generations[identity.itemID.source, default: 0] &+= 1
+        generations[identity.source, default: 0] &+= 1
     }
 
     @discardableResult
@@ -253,11 +253,11 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
     private func coverage(_ source: DayComposerSource,
                           expected: [DayComposerExecutionItemIdentity]) throws -> [any DayComposerCardParticipant] {
         guard Set(expected).count == expected.count, expected.allSatisfy({ id in
-            id.itemID.source == source && id.executionID == identity.executionID && id.date == identity.date
+            id.source == source && id.executionID == identity.executionID && id.date == identity.date
                 && id.version == identity.contextVersion && id.activeProgramID == identity.activeProgramID
                 && id.sourceFingerprint == identity.sourceFingerprint
         }) else { throw DayComposerStabilizationError.contextRejected }
-        let registered = Set(cards.keys.filter { $0.itemID.source == source })
+        let registered = Set(cards.keys.filter { $0.source == source })
         guard Set(expected).isSubset(of: registered) else { throw DayComposerStabilizationError.missingParticipant }
         guard registered == Set(expected) else { throw DayComposerStabilizationError.unexpectedParticipant }
         return try expected.map { id in

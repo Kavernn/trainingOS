@@ -56,7 +56,8 @@ final class DayComposerFinishRig {
         .init(operationKey: key, receipt: receipt(key), state: state, createdAt: Date(), updatedAt: Date())
     }
     init(names: [String] = ["A"], tracking: [String: String] = [:], schemes: [String: String] = [:], writer: ((Data, URL) throws -> Void)? = nil,
-         inputWriter: ((Data, URL) throws -> Void)? = nil) throws {
+         inputWriter: ((Data, URL) throws -> Void)? = nil,
+         reassignment: (([DayComposerUnit]) throws -> [DayComposerUnit])? = nil) throws {
         directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         let inputDirectory = directory.appendingPathComponent("inputs", isDirectory: true)
         let historyDirectory = directory.appendingPathComponent("history", isDirectory: true)
@@ -66,16 +67,16 @@ final class DayComposerFinishRig {
             writeRecord: inputWriter ?? { try $0.write(to: $1, options: .atomic) })
         store = .init(baseDirectory: historyDirectory,
             writeRecord: writer ?? { try $0.write(to: $1, options: .atomic) })
-        fixture = try .init(morning: names, evening: names, tracking: tracking, schemes: schemes, finalInputsStore: inputs)
+        fixture = try .init(morning: names, evening: names, tracking: tracking, schemes: schemes, finalInputsStore: inputs, reassignment: reassignment)
         for source in [DayComposerSource.morning, .evening] {
-            for item in fixture.coordinator.orderedUnits.flatMap(\.items).filter({ $0.id.source == source }) {
+            for item in fixture.coordinator.orderedUnits.flatMap(\.items).filter({ $0.assignedSource == source }) {
                 if item.tracking == "mobility" {
                     let presentation = try XCTUnwrap(fixture.coordinator.presentation(for: item.id))
                     let vm = ExerciseViewModel(name: item.name, scheme: item.scheme, weightData: nil,
                         trackingType: item.tracking, isSecondSession: source == .evening, sessionDate: fixture.date,
                         reconstructionMetadata: .init(scheme: item.scheme, trackingType: item.tracking, isUnilateral: false),
                         draftAuthorization: presentation.authorization,
-                        validateLocalPersistence: { [fixture] in fixture.coordinator.validateLocalPersistence() })
+                        validateLocalPersistence: { [fixture] in fixture.coordinator.validateLocalPersistence() }, occurrenceKey: item.occurrenceKey)
                     vm.initializeSets()
                     XCTAssertNil(vm.buildLogCandidate(alreadyLoggedViaBinding: false))
                     vm.sets[0].protocolCompleted = true
@@ -84,7 +85,9 @@ final class DayComposerFinishRig {
                         fixture.coordinator.submit(candidate: $0, for: item.id)
                     }, .accepted)
                 } else {
-                    XCTAssertEqual(fixture.coordinator.submit(candidate: Self.log(item.name, source: source), for: item.id), .accepted)
+                    var log = Self.log(item.name, source: source)
+                    log.occurrenceKey = item.occurrenceKey
+                    XCTAssertEqual(fixture.coordinator.submit(candidate: log, for: item.id), .accepted)
                 }
             }
             try fixture.mount(source)

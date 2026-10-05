@@ -8,6 +8,8 @@ struct DayComposerExecutionItemIdentity: Hashable {
     let activeProgramID: String
     let sourceFingerprint: String
     let itemID: DayComposerItemID
+    var routingSource: DayComposerSource? = nil
+    var source: DayComposerSource { routingSource ?? itemID.source }
 }
 
 /// Internal Phase E only. No public route, finalization, networking or clocks.
@@ -51,7 +53,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
 
     var context: DayComposerExecutionContext { input.context }
     func canOfferFinish(_ source: DayComposerSource) -> Bool {
-        let required = items.filter { $0.id.source == source }
+        let required = items.filter { $0.assignedSource == source }
         return !isLocked && !required.isEmpty && required.allSatisfy { item in
             guard let state = status(for: item.id), !state.hasDraft else { return false }
             return consultationResult(for: item.id) != nil || state.serverObserved
@@ -180,7 +182,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
             for unit in plan.units {
                 guard unit.items.count == (unit.group == nil ? 1 : 2),
                       Set(unit.items.map(\.id)).count == unit.items.count,
-                      unit.items.allSatisfy({ $0.id.source == plan.source }),
+                      unit.items.allSatisfy({ $0.assignedSource == plan.source }),
                       unit.group == nil || unit.items.allSatisfy({ isSupported($0.tracking) }) else {
                     throw Failure.invalidPlan
                 }
@@ -189,9 +191,10 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     }
 
     private static func validateResults(_ owner: SeanceViewModel, plan: DayComposerPlan) throws {
-        let names = Set(plan.units.flatMap { $0.items.map(\.name) })
+        let planItems = plan.units.flatMap(\.items)
+        let names = Set(planItems.map(\.storageKey))
         guard owner.logResults.allSatisfy({ key, result in
-            names.contains(key) && result.name == key && !result.isBonus
+            names.contains(key) && result.storageKey == key && planItems.contains { $0.storageKey == key && $0.name == result.name } && !result.isBonus
                 && result.isSecond == (plan.source == .evening)
         }) else { throw Failure.invalidResult }
     }
@@ -206,7 +209,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     func owner(for id: DayComposerItemID) throws -> SeanceViewModel {
         guard item(for: id) != nil else { throw Failure.invalidItem }
         guard revalidateExecutionContext() else { throw Failure.incompatible }
-        return sourceOwner(id.source)
+        return sourceOwner(item(for: id)!.assignedSource)
     }
     func authorization(for source: DayComposerSource) throws -> DayComposerProvenanceStore.Authorization {
         guard revalidateExecutionContext() else { throw Failure.incompatible }
@@ -214,7 +217,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     }
     func result(for id: DayComposerItemID) throws -> ExerciseLogResult? {
         guard let item = item(for: id) else { throw Failure.invalidItem }
-        return try owner(for: id).logResults[item.name]
+        return try owner(for: id).logResults[item.storageKey]
     }
     func setResult(_ result: ExerciseLogResult?, for id: DayComposerItemID) throws {
         guard submit(candidate: result, for: id) == .accepted else { throw Failure.invalidResult }
@@ -228,18 +231,19 @@ final class DayComposerExecutionCoordinator: ObservableObject {
               let state = status(for: id), !state.draftCorrupt,
               state.status != .serverObserved else { return report(.failed) }
         if let result {
+            guard result.occurrenceKey == item.occurrenceKey else { return report(.rejectedContext) }
             if item.tracking == "mobility",
                ExerciseRecoveryHydration.make(result, equipment: result.equipmentType,
                    tracking: item.tracking, unilateral: item.unilateral, displayWeight: { $0 }) == nil {
                 return report(.failed)
             }
-            guard result.name == item.name, result.isSecond == (id.source == .evening), !result.isBonus else {
+            guard result.name == item.name, result.isSecond == (item.assignedSource == .evening), !result.isBonus else {
                 return report(.rejectedContext)
             }
         }
-        let owner = sourceOwner(id.source)
+        let owner = sourceOwner(item.assignedSource)
         let previous = owner.logResults
-        owner.logResults[item.name] = result
+        owner.logResults[item.storageKey] = result
         let matches = owner.persistedLogsMatchCurrentState()
         guard revalidateExecutionContext() else {
             if !matches { owner.restoreUnacceptedLocalResults(previous) }
@@ -277,8 +281,8 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     func advanceAfterAcceptedLog(itemID: DayComposerItemID) {
         guard permitsNavigation, revalidateExecutionContext(), currentMemberID == itemID,
               awaitingAdvance.contains(itemID), let item = item(for: itemID),
-              ExerciseDraftPersistence(date: context.date, sessionType: itemID.source.rawValue,
-                exerciseName: item.name).presence() == .absent else { return }
+              ExerciseDraftPersistence(date: context.date, sessionType: item.assignedSource.rawValue,
+                exerciseName: item.storageKey).presence() == .absent else { return }
         awaitingAdvance.remove(itemID)
         next()
     }
@@ -296,12 +300,12 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     /// Read-only projection. No synthetic logs, cleanup, ACK or copies of owner state.
     func status(for id: DayComposerItemID) -> ItemState? {
         guard let item = item(for: id) else { return nil }
-        let draft = ExerciseDraftPersistence(date: context.date, sessionType: id.source.rawValue,
-                                             exerciseName: item.name).presence()
-        let observed = input.serverProjection.presence(of: item.name, source: id.source) == .observed
+        let draft = ExerciseDraftPersistence(date: context.date, sessionType: item.assignedSource.rawValue,
+                                             exerciseName: item.storageKey).presence()
+        let observed = input.serverProjection.presence(of: item.name, source: item.assignedSource, occurrenceKey: item.occurrenceKey) == .observed
         let status: Status
         if !Self.isSupported(item.tracking) { status = .unsupported }
-        else if sourceOwner(id.source).logResults[item.name] != nil { status = .localLogged }
+        else if sourceOwner(item.assignedSource).logResults[item.storageKey] != nil { status = .localLogged }
         else if observed { status = .serverObserved }
         else if draft != .absent { status = .draftOnly }
         else { status = .unknown }
@@ -381,24 +385,24 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         let restSeconds: Int?
         let allowsManualRest: Bool
     }
-    var selectedSource: DayComposerSource? { currentMemberID?.source ?? selectedUnit?.source }
+    var selectedSource: DayComposerSource? { currentMemberID.flatMap { item(for: $0)?.assignedSource } ?? selectedUnit?.source }
     var selectedUnit: DayComposerUnit? { orderedUnits.first { $0.id == currentUnitID } }
     var hasActionableItems: Bool { items.contains { status(for: $0.id)?.isActionable == true } }
 
     func consultationResult(for id: DayComposerItemID) -> ExerciseLogResult? {
         guard let item = item(for: id) else { return nil }
-        return sourceOwner(id.source).logResults[item.name]
+        return sourceOwner(item.assignedSource).logResults[item.storageKey]
     }
     func executionIdentity(for id: DayComposerItemID) -> DayComposerExecutionItemIdentity? {
         guard item(for: id) != nil else { return nil }
         return .init(executionID: morningAuthorization.executionID, version: context.version,
                      date: context.date, activeProgramID: context.activeProgramID,
-                     sourceFingerprint: context.sourceFingerprint, itemID: id)
+                     sourceFingerprint: context.sourceFingerprint, itemID: id, routingSource: item(for: id)?.assignedSourceOverride)
     }
     func presentation(for id: DayComposerItemID) -> Presentation? {
         guard let item = item(for: id), let state = status(for: id), let identity = executionIdentity(for: id),
               let unit = orderedUnits.first(where: { $0.items.contains { $0.id == id } }) else { return nil }
-        let dto = data(for: id.source)
+        let dto = data(for: item.originSource)
         let equipment = dto.inventoryTypes[item.name] ?? "machine"
         let result = consultationResult(for: id)
         let hydration = result.flatMap {
@@ -420,13 +424,13 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         let rest = unit.group == nil ? dto.inventoryRest[item.name] : (firstInPair ? nil : 120)
         return .init(item: item, identity: identity, rendering: rendering, label: label,
                      result: result, hydration: hydration,
-                     authorization: rendering == .mutable ? (id.source == .morning ? morningAuthorization : eveningAuthorization) : nil,
+                     authorization: rendering == .mutable ? (item.assignedSource == .morning ? morningAuthorization : eveningAuthorization) : nil,
                      equipment: equipment, restSeconds: rest, allowsManualRest: !firstInPair)
     }
     func nextActionableName(after id: DayComposerItemID) -> String? {
         guard let index = items.firstIndex(where: { $0.id == id }),
               let next = items.dropFirst(index + 1).first(where: { status(for: $0.id)?.isActionable == true }) else { return nil }
-        return "\(next.name) · \(next.id.source.title)"
+        return "\(next.name) · \(next.assignedSource.title)"
     }
 
     // Consultation never authorizes writes, persists position or unlocks an execution.
@@ -478,7 +482,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
 
     /// Mirrors actual rendering, including local-log precedence. Selection is irrelevant.
     func expectedMutableParticipantIDs(for source: DayComposerSource) -> [DayComposerExecutionItemIdentity] {
-        items.filter { $0.id.source == source }.compactMap { item in
+        items.filter { $0.assignedSource == source }.compactMap { item in
             guard let p = presentation(for: item.id), p.rendering == .mutable else { return nil }
             return p.identity
         }
@@ -542,7 +546,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
                 let bytes = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.exercise(
                     exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
                     sets: result.sets, force: true, isSecond: result.isSecond, isBonus: false,
-                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes, date: context.date))
+                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes, date: context.date, occurrenceKey: result.occurrenceKey))
                 local = .persisted(payload: bytes, readOnly: presentation(for: item.id)?.rendering != .mutable)
             } else { local = .none }
             // Cached name-level observation cannot prove exact payload agreement.
@@ -589,7 +593,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
                 bytes = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.exercise(
                     exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
                     sets: result.sets, force: true, isSecond: result.isSecond, isBonus: result.isBonus,
-                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes, date: context.date))
+                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes, date: context.date, occurrenceKey: result.occurrenceKey))
             } else { bytes = nil }
             guard bytes == fact.local.payload else { throw DayComposerStabilizationError.staleEvidence }
         }

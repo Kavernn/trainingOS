@@ -113,7 +113,7 @@ struct ExerciseCard: View {
          onDraftPersisted: (() -> Void)? = nil,
          editorPreparation: ExerciseEditorPreparationController? = nil,
          sourceRegistration: DayComposerCardRegistration? = nil,
-         onSkippedChanged: ((Bool) -> Void)? = nil) {
+         onSkippedChanged: ((Bool) -> Void)? = nil, occurrenceKey: String? = nil) {
         self.onSkippedChanged = onSkippedChanged
         self.sourceRegistration = sourceRegistration
         self.preparesEditors = editorPreparation != nil || sourceRegistration != nil
@@ -163,7 +163,7 @@ struct ExerciseCard: View {
             // Authorized cards require the parent's live gate as well as their
             // immutable token (a local lock need not invalidate the store).
             validateLocalPersistence: draftAuthorization == nil ? validateLocalPersistence
-                : (validateLocalPersistence ?? { .failed })))
+                : (validateLocalPersistence ?? { .failed }), occurrenceKey: occurrenceKey))
     }
 
     #if DEBUG

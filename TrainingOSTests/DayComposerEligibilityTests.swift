@@ -113,6 +113,46 @@ final class DayComposerEligibilityTests: XCTestCase {
         let complete = try await f.load()
         XCTAssertFalse(complete.snapshot.isRelevant(hasSavedOrder: false))
         XCTAssertTrue(complete.snapshot.isRelevant(hasSavedOrder: true))
+        XCTAssertTrue(DayComposerStore.sourcesLocked(partial.snapshot))
+        XCTAssertTrue(DayComposerStore.sourcesLocked(complete.snapshot))
+        let samePlanningBeforeCompletion = DayComposerSnapshot(date: complete.snapshot.date,
+            activeProgramID: complete.snapshot.activeProgramID, morning: complete.snapshot.morning,
+            evening: complete.snapshot.evening, morningCompleted: false, eveningCompleted: false)
+        XCTAssertEqual(try samePlanningBeforeCompletion.fingerprint, try complete.snapshot.fingerprint,
+                       "Completion flags alone must not invalidate the planning identity")
+        let suite = "CompletedDay-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = DayComposerStore(defaults: defaults)
+        // Existing execution data must survive passive preparation checks byte-for-byte.
+        defaults.set(Data("accepted log".utf8), forKey: "execution-log")
+        defaults.set(Data("confirmed finalization".utf8), forKey: "finalization")
+        let before = defaults.dictionaryRepresentation() as NSDictionary
+        XCTAssertFalse(store.hasSavedOrder(date: complete.snapshot.date, program: f.active))
+        guard case .initial = try store.load(complete.snapshot) else {
+            return XCTFail("A completed classic day must not manufacture a saved preparation")
+        }
+        let units = complete.snapshot.initialUnits
+        XCTAssertThrowsError(try DayComposerSnapshot.transferring(units, id: units[0].id,
+            locked: DayComposerStore.sourcesLocked(complete.snapshot))) { error in
+            guard case DayComposerError.executionStarted = error else {
+                return XCTFail("Must reject for execution, not empty-source or planning failure")
+            }
+        }
+        XCTAssertEqual(complete.snapshot.initialUnits, units)
+        XCTAssertEqual(units.flatMap(\.items).map(\.assignedSource), units.flatMap(\.items).map(\.originSource))
+        XCTAssertEqual(defaults.dictionaryRepresentation() as NSDictionary, before)
+        XCTAssertTrue(f.requests.allSatisfy { ($0.httpMethod ?? "GET") == "GET" },
+                      "Eligibility must never rewrite logs or finalization")
+        // A saved recovery may be consulted, but never becomes editable.
+        try store.save(units, for: complete.snapshot)
+        let savedBefore = defaults.dictionaryRepresentation() as NSDictionary
+        guard case .restored(let restored) = try store.load(complete.snapshot) else {
+            return XCTFail("Existing recovery must remain available")
+        }
+        XCTAssertThrowsError(try DayComposerSnapshot.transferring(restored, id: restored[0].id,
+            locked: DayComposerStore.sourcesLocked(complete.snapshot)))
+        XCTAssertEqual(defaults.dictionaryRepresentation() as NSDictionary, savedBefore)
     }
 
     func testPreparationInitialPresentationDoesNotAwaitEnrichment() async throws {

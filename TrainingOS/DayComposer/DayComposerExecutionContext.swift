@@ -42,6 +42,7 @@ struct DayComposerServerProjection {
         let source: DayComposerSource
         let date: String
         let exactName: String
+        var occurrenceKey: String? = nil
     }
     enum Presence: Equatable { case observed, unknown }
     let date: String
@@ -49,7 +50,7 @@ struct DayComposerServerProjection {
 
     private struct Page: Decodable {
         struct Session: Decodable {
-            struct Exercise: Decodable { let exercise: String }
+            struct Exercise: Decodable { let exercise: String; let occurrence_key: String? }
             let date: String
             let session_type: String
             let exos: [Exercise]
@@ -62,12 +63,12 @@ struct DayComposerServerProjection {
         let page = try JSONDecoder().decode(Page.self, from: historyData)
         positivelyObserved = Set(page.session_list.flatMap { session -> [ObservedExercise] in
             guard session.date == date, let source = DayComposerSource(rawValue: session.session_type) else { return [] }
-            return session.exos.map { .init(source: source, date: date, exactName: $0.exercise) }
+            return session.exos.map { .init(source: source, date: date, exactName: $0.exercise, occurrenceKey: $0.occurrence_key.flatMap { $0.isEmpty ? nil : $0 }) }
         })
     }
 
-    func presence(of exactName: String, source: DayComposerSource) -> Presence {
-        positivelyObserved.contains(.init(source: source, date: date, exactName: exactName)) ? .observed : .unknown
+    func presence(of exactName: String, source: DayComposerSource, occurrenceKey: String? = nil) -> Presence {
+        positivelyObserved.contains(.init(source: source, date: date, exactName: exactName, occurrenceKey: occurrenceKey)) ? .observed : .unknown
     }
 
     /// A bounded historical page gives positive evidence only. Pagination, ghost
