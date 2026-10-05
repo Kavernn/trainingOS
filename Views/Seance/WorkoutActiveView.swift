@@ -98,6 +98,7 @@ struct WorkoutSeanceView: View {
     @State private var isEditMode = false
     @State private var orderSaveError = false
     @State private var expandedExercises: Set<String> = []
+    @State private var skippedExercises: Set<String> = []
     @State private var collapsedCompleted = false   // D1 — section Complétés (repli manuel)
     @State private var lastOpenedExercise: String? = nil
     @State private var scrollProxy: ScrollViewProxy? = nil
@@ -420,11 +421,12 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder private var activeExerciseSection: some View {
         VStack(spacing: 8) {
-            ForEach(Array(partitionedItems.enumerated()), id: \.element.id) { idx, item in
-                if idx == loggedStartIndex && loggedCount > 0 {
+            ForEach(partitionedItems.map { (identity: renderIdentity($0), item: $0) }, id: \.identity) { row in
+                let item = row.item
+                if item.id == partitionedItems.first(where: { presentationState($0) == .logged })?.id {
                     completedHeader
                 }
-                let isInCompleted = idx >= loggedStartIndex
+                let isInCompleted = presentationState(item) == .logged
                 let hidden = collapsedCompleted && isInCompleted
                 renderExerciseItem(item)
                     .frame(height: hidden ? 0 : nil)
@@ -526,14 +528,28 @@ struct WorkoutSeanceView: View {
 
     // MARK: - Partition Complétés (D1)
 
-    private var partitionedItems: [ExerciseRenderItem] {
-        let notLogged = exerciseRenderItems.filter { !isItemLogged($0) }
-        let logged    = exerciseRenderItems.filter {  isItemLogged($0) }
-        return notLogged + logged
+    private func presentationState(_ item: ExerciseRenderItem) -> ActiveExercisePresentation {
+        func state(_ name: String) -> ActiveExercisePresentation {
+            if vm.logResults[name] != nil || mobilityChecked.contains(name) { return .logged }
+            return skippedExercises.contains(name) ? .skipped : .pending
+        }
+        switch item {
+        case .solo(let name, _, _): return state(name)
+        case .superset(_, _, let entry, _, _, _): return .unit([state(entry.a), state(entry.b)])
+        }
     }
 
-    private var loggedStartIndex: Int {
-        exerciseRenderItems.filter { !isItemLogged($0) }.count
+    private func renderIdentity(_ item: ExerciseRenderItem) -> String {
+        let scope = "\(data.todayDate)|\(vm.draftSessionType)|\(data.today)"
+        switch item {
+        case .solo(let name, _, _): return "\(scope)|\(data.exerciseIds[name] ?? name)"
+        case .superset(_, let group, let entry, _, _, _):
+            return "\(scope)|superset|\(group)|\(data.exerciseIds[entry.a] ?? entry.a)|\(data.exerciseIds[entry.b] ?? entry.b)"
+        }
+    }
+
+    private var partitionedItems: [ExerciseRenderItem] {
+        ActiveExercisePresentation.ordered(exerciseRenderItems, state: presentationState)
     }
 
     private var loggedCount: Int {
@@ -543,11 +559,7 @@ struct WorkoutSeanceView: View {
     // MARK: - Sticky header (D2)
 
     private var firstUnloggedName: String? {
-        guard let item = exerciseRenderItems.first(where: { !isItemLogged($0) }) else { return nil }
-        switch item {
-        case .solo(let name, _, _): return name
-        case .superset(_, _, let entry, _, _, _): return entry.a
-        }
+        return exercises.first { vm.logResults[$0.0] == nil && !mobilityChecked.contains($0.0) && !skippedExercises.contains($0.0) }?.0
     }
 
     private var currentExerciseName: String {
@@ -785,7 +797,7 @@ struct WorkoutSeanceView: View {
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                     expandedExercises.remove(name)
                 }
-                if let next = exercises.first(where: { !loggedNames.contains($0.0) && $0.0 != name }) {
+                if let next = exercises.first(where: { !loggedNames.contains($0.0) && !skippedExercises.contains($0.0) && $0.0 != name }) {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                         expandedExercises.insert(next.0)
                         lastOpenedExercise = next.0
@@ -825,7 +837,16 @@ struct WorkoutSeanceView: View {
                 if mobilityChecked.contains(name) { mobilityChecked.remove(name) }
                 else { mobilityChecked.insert(name) }
             },
-            sessionDate: data.todayDate
+            sessionDate: data.todayDate,
+            onSkippedChanged: { skipped in
+                if skipped {
+                    skippedExercises.insert(name)
+                    expandedExercises.remove(name)
+                    if lastOpenedExercise == name { lastOpenedExercise = firstUnloggedName }
+                } else {
+                    skippedExercises.remove(name)
+                }
+            }
         )
 
         card

@@ -433,6 +433,15 @@ final class ExerciseViewModel: ObservableObject {
     @Published var isLogged = false
     @Published var isEditing = false
     @Published var isSkipped = false
+
+    /// Existing in-memory skip state; never creates a log or touches entered sets.
+    @discardableResult
+    func setSkipped(_ value: Bool, alreadyLoggedViaBinding: Bool = false) -> Bool {
+        guard !isLogged, !alreadyLoggedViaBinding, writePermission() == .accepted else { return false }
+        isSkipped = value
+        return true
+    }
+
     @Published var sessionNote: String = "" {
         didSet {
             if !isClearingDraft && !isHydratingRecovery {

@@ -13,6 +13,85 @@ import SwiftUI
 @MainActor
 final class SeanceViewModelTests: XCTestCase {
 
+    func testSkippedExerciseRealCardCompactRendering() throws {
+        let previousTheme = AppTheme.shared.selectedTheme
+        defer { AppTheme.shared.applyTheme(previousTheme) }
+        for theme in [AppThemeOption.electricLight, .electric] {
+            AppTheme.shared.applyTheme(theme)
+            let renderer = ImageRenderer(content: ExerciseCard.skippedPresentationFixture()
+                .frame(width: 360)
+                .padding(16)
+                .background(Color.appBg)
+                .environment(\.colorScheme, theme == .electricLight ? .light : .dark))
+            let image = try XCTUnwrap(renderer.uiImage)
+            // The expanded editor is much taller; this checks the actual card tree.
+            XCTAssertLessThan(image.size.height, 180)
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("skipped-\(theme.rawValue).png")
+            try XCTUnwrap(image.pngData()).write(to: url)
+            print("SKIPPED_CARD_SNAPSHOT \(url.path)")
+        }
+    }
+
+    func testSkippedExercisePresentationOrderAndResume() {
+        let reference = ["A", "B", "C"]
+        var skipped: Set<String> = ["B"]
+        var logged: Set<String> = []
+        func projected() -> [String] {
+            ActiveExercisePresentation.ordered(reference) {
+                logged.contains($0) ? .logged : skipped.contains($0) ? .skipped : .pending
+            }
+        }
+        XCTAssertEqual(projected(), ["A", "C", "B"])
+        logged.insert("A")
+        XCTAssertEqual(projected(), ["C", "A", "B"])
+        skipped.remove("B")
+        XCTAssertEqual(projected(), ["B", "C", "A"])
+        XCTAssertEqual(reference, ["A", "B", "C"])
+        XCTAssertEqual(ActiveExercisePresentation.unit([.skipped, .pending]), .pending)
+        XCTAssertEqual(ActiveExercisePresentation.unit([.skipped, .logged]), .skipped)
+        XCTAssertEqual(ActiveExercisePresentation.unit([.logged, .logged]), .logged)
+    }
+
+    func testSkippedExerciseAcceptedStateIsIndependentAndPreservesInputs() {
+        let owners = [(false, false), (true, false), (false, true)].map { second, bonus in
+            ExerciseViewModel(name: "Skip fixture", scheme: "1x5", weightData: nil,
+                              isSecondSession: second, isBonusSession: bonus,
+                              sessionDate: "skip-fixture-\(UUID().uuidString)")
+        }
+        for owner in owners {
+            owner.initializeRecovery(.init(sets: [SetInput(weight: "80", reps: "5")], note: "Keep", painZone: ""))
+            XCTAssertTrue(owner.setSkipped(true))
+            XCTAssertTrue(owner.isSkipped)
+            XCTAssertFalse(owner.isLogged)
+            XCTAssertNil(owner.logStatus)
+            XCTAssertEqual(owner.sets.first?.weight, "80")
+            XCTAssertEqual(owner.sessionNote, "Keep")
+            // Reappearance initialization must not clear skip or entered values.
+            owner.initializeSets()
+            XCTAssertTrue(owner.isSkipped)
+            XCTAssertEqual(owner.sets.first?.reps, "5")
+            XCTAssertTrue(owner.setSkipped(false))
+            XCTAssertFalse(owner.isSkipped)
+            XCTAssertEqual(owner.sessionNote, "Keep")
+        }
+        XCTAssertTrue(owners[0].setSkipped(true))
+        XCTAssertFalse(owners[1].isSkipped)
+        XCTAssertFalse(owners[2].isSkipped)
+    }
+
+    func testSkippedExerciseRefusedGateAndRealLogRemainUnchanged() {
+        let refused = ExerciseViewModel(name: "Skip refused", scheme: "1x5", weightData: nil,
+                                       validateLocalPersistence: { .failed })
+        XCTAssertFalse(refused.setSkipped(true))
+        XCTAssertFalse(refused.isSkipped)
+        let logged = ExerciseViewModel(name: "Logged fixture", scheme: "1x5", weightData: nil)
+        XCTAssertFalse(logged.setSkipped(true, alreadyLoggedViaBinding: true))
+        logged.isLogged = true
+        XCTAssertFalse(logged.setSkipped(true))
+        XCTAssertFalse(logged.isSkipped)
+        XCTAssertTrue(logged.isLogged)
+    }
+
     private func flushReceipt(_ vm: ExerciseViewModel, file: StaticString = #filePath,
                               line: UInt = #line) throws -> ExerciseLocalFlushReceipt {
         guard case .stable(let receipt) = vm.flushPendingLocalPersistence() else {

@@ -222,6 +222,7 @@ struct BonusSeanceView: View {
     @State private var sessionStart = Date()
     @State private var sessionStarted = false
     @State private var expandedExercises: Set<String> = []
+    @State private var skippedExercises: Set<String> = []
     @State private var lastScrollY: CGFloat? = nil
     // Étape 4b-iii — exos poussés depuis matin/soir (SOURCE UNIQUE
     // /api/seance_bonus_data.pushedToBonus). Distincts des exos ajoutés
@@ -242,6 +243,17 @@ struct BonusSeanceView: View {
         return BonusRecoveryPresentation.reconcile(order: exerciseOrder, snapshotOrder: snapshot,
             local: localExercises, logs: vm.logResults, resolve: recoveryConfiguration,
             displayWeight: UnitSettings.shared.display)
+    }
+
+    private var presentationExercises: [BonusVisibleExercise] {
+        ActiveExercisePresentation.ordered(visibleExercises) { item in
+            if vm.logResults[item.id] != nil { return .logged }
+            return skippedExercises.contains(item.id) ? .skipped : .pending
+        }
+    }
+
+    private func cardIdentity(_ name: String) -> String {
+        "\(vm.seanceData?.todayDate ?? todayDateStr)|bonus|\(exerciseIdsMap[name] ?? name)"
     }
 
     private func recoveryConfiguration(name: String, log: ExerciseLogResult) -> BonusRecoveryConfiguration? {
@@ -306,7 +318,15 @@ struct BonusSeanceView: View {
             reconstructionMetadata: ExerciseReconstructionMetadata(
                 scheme: trustedScheme(for: name, configuration: configuration),
                 trackingType: configuration?.tracking ?? inventoryTracking[name],
-                isUnilateral: configuration?.unilateral ?? inventoryUnilateral[name])
+                isUnilateral: configuration?.unilateral ?? inventoryUnilateral[name]),
+            onSkippedChanged: { skipped in
+                if skipped {
+                    skippedExercises.insert(name)
+                    expandedExercises.remove(name)
+                } else {
+                    skippedExercises.remove(name)
+                }
+            }
         )
         .padding(.horizontal, 16)
         // Étape 4b-iii — retour bonus→matin/soir (bidir, décidé à froid).
@@ -538,7 +558,8 @@ struct BonusSeanceView: View {
                             .padding(.vertical, 40)
                         } else {
                             VStack(spacing: 8) {
-                                ForEach(visibleExercises) { item in
+                                ForEach(presentationExercises.map { (identity: cardIdentity($0.id), item: $0) }, id: \.identity) { row in
+                                    let item = row.item
                                     switch item.content {
                                     case .editable(let configuration, let hydration):
                                         exerciseCard(for: item.id, configuration: configuration, hydration: hydration)

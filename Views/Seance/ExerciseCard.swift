@@ -3,6 +3,20 @@ import Charts
 import AVFoundation
 import UserNotifications
 
+/// Read-only list projection; mixed supersets stay active until every member is handled.
+enum ActiveExercisePresentation: Int {
+    case pending, logged, skipped
+
+    static func unit(_ members: [Self]) -> Self {
+        if members.contains(.pending) { return .pending }
+        return members.contains(.skipped) ? .skipped : .logged
+    }
+
+    static func ordered<Item>(_ items: [Item], state: (Item) -> Self) -> [Item] {
+        [.pending, .logged, .skipped].flatMap { group in items.filter { state($0) == group } }
+    }
+}
+
 // MARK: - Exercise Card
 
 struct ExerciseCard: View {
@@ -22,6 +36,7 @@ struct ExerciseCard: View {
     @Binding var logResult: ExerciseLogResult?
     private var recoveredInitialState: ExerciseRecoveryHydration?
     var onLogged: (() -> Void)? = nil
+    private let onSkippedChanged: ((Bool) -> Void)?
     private let onSubmitLogCandidate: ((ExerciseLogResult?) -> LocalPersistenceResult)?
     private let onPersistenceRefused: ((LocalPersistenceResult) -> Void)?
     private let requiresAcceptance: Bool
@@ -97,7 +112,9 @@ struct ExerciseCard: View {
          allowsManualRest: Bool = true,
          onDraftPersisted: (() -> Void)? = nil,
          editorPreparation: ExerciseEditorPreparationController? = nil,
-         sourceRegistration: DayComposerCardRegistration? = nil) {
+         sourceRegistration: DayComposerCardRegistration? = nil,
+         onSkippedChanged: ((Bool) -> Void)? = nil) {
+        self.onSkippedChanged = onSkippedChanged
         self.sourceRegistration = sourceRegistration
         self.preparesEditors = editorPreparation != nil || sourceRegistration != nil
         _editorController = StateObject(wrappedValue: editorPreparation ?? ExerciseEditorPreparationController())
@@ -148,6 +165,21 @@ struct ExerciseCard: View {
             validateLocalPersistence: draftAuthorization == nil ? validateLocalPersistence
                 : (validateLocalPersistence ?? { .failed })))
     }
+
+    #if DEBUG
+    /// Isolated real-card fixture: deliberately expanded parent, accepted skipped owner.
+    static func skippedPresentationFixture() -> ExerciseCard {
+        let owner = ExerciseViewModel(name: "Exercice B", scheme: "3×8", weightData: nil,
+                                      sessionDate: "skipped-presentation-fixture")
+        owner.initializeRecovery(.init(sets: [SetInput(weight: "80", reps: "8")],
+                                       note: "Saisie conservée", painZone: ""))
+        owner.setSkipped(true)
+        var card = ExerciseCard(name: "Exercice B", scheme: "3×8", weightData: nil,
+                                logResult: .constant(nil), isExpanded: true)
+        card._evm = StateObject(wrappedValue: owner)
+        return card
+    }
+    #endif
 
     // MARK: - View-layer computed
 
@@ -240,6 +272,15 @@ struct ExerciseCard: View {
         return isLower ? incrementLowerLbs : incrementUpperLbs
     }
 
+    private var isSkippedCompact: Bool { evm.isSkipped && !evm.isLogged && logResult == nil }
+    private var cardExpanded: Bool { isExpanded && !isSkippedCompact }
+
+    private func changeSkipped(_ skipped: Bool) {
+        guard allowAction(), evm.setSkipped(skipped, alreadyLoggedViaBinding: logResult != nil) else { return }
+        onSkippedChanged?(evm.isSkipped)
+        triggerImpact(style: .light)
+    }
+
     private var alreadyLogged: Bool {
         if requiresAcceptance && evm.cleanupPending { return false }
         return evm.isLogged || logResult != nil || evm.isSkipped
@@ -252,7 +293,7 @@ struct ExerciseCard: View {
     private var isUpcomingCompact: Bool { !alreadyLogged && !isExpanded && !isCurrentHero }
 
     /// Presentation-only compact state for an exercise already completed.
-    private var isCompletedCompact: Bool { alreadyLogged && !isExpanded }
+    private var isCompletedCompact: Bool { isSkippedCompact || (alreadyLogged && !isExpanded) }
 
     private func adjustAllWeights(_ direction: Int) {
         guard mayEdit else { return }
@@ -269,6 +310,7 @@ struct ExerciseCard: View {
     }
 
     private var borderColor: Color {
+        if isSkippedCompact { return Color.appDanger.opacity(0.6) }
         if isCompletedCompact { return Color.appSeparatorSubtle }
         if alreadyLogged { return Color.appSuccess.opacity(0.42) }
         if isCurrentHero  { return Color.forge.opacity(0.58) }
@@ -1176,7 +1218,7 @@ struct ExerciseCard: View {
             } else {
                 // Bandeau accessoire (bouton déplacement matin↔soir/bonus, étape 4).
                 // Intégré au flux pour ne pas chevaucher headerTrailing (poids/reps).
-                if let topAccessory {
+                if let topAccessory, !isSkippedCompact {
                     HStack { Spacer(); topAccessory }
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
@@ -1184,10 +1226,17 @@ struct ExerciseCard: View {
 
                 // MARK: Header — always visible, tap to expand/collapse
                 headerButton
+                if isSkippedCompact {
+                    Button("Reprendre cet exercice") { changeSkipped(false) }
+                        .font(.appCaption).foregroundColor(Color.appDanger)
+                        .frame(minHeight: 44)
+                        .padding(.horizontal, 16)
+                        .accessibilityLabel("Reprendre \(name), exercice sauté")
+                }
                 persistenceIssueBanner
 
                 // MARK: Expanded content
-                if isExpanded { expandedContent }
+                if cardExpanded { expandedContent }
             }
         }
         .glassCard(cornerRadius: 14)
@@ -1269,9 +1318,7 @@ struct ExerciseCard: View {
         }
         .confirmationDialog(Text("Sauter \(name) ?"), isPresented: $confirmSkip, titleVisibility: .visible) {
             Button("Sauter cet exercice", role: .destructive) {
-                guard allowAction() else { return }
-                evm.isSkipped = true
-                triggerImpact(style: .light)
+                changeSkipped(true)
             }
             Button("Continuer", role: .cancel) {}
         }
@@ -1279,7 +1326,7 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var headerButton: some View {
-        Button(action: { guard allowAction() else { return }; onToggle() }) {
+        Button(action: { guard !isSkippedCompact, allowAction() else { return }; onToggle() }) {
             HStack(alignment: isCurrentHero ? .top : .center,
                    spacing: (isUpcomingCompact || isCompletedCompact) ? 8 : 12) {
                 if isUpcomingCompact {
@@ -1287,14 +1334,14 @@ struct ExerciseCard: View {
                 } else {
                     ZStack {
                         Circle()
-                            .fill(alreadyLogged
+                            .fill(isSkippedCompact ? Color.appDanger.opacity(0.14) : alreadyLogged
                                   ? Color.appSuccess.opacity(0.14)
                                   : isCurrentHero ? Color.forge.opacity(0.14) : Color.gray.opacity(0.11))
                             .frame(width: isCompletedCompact ? 28 : 34,
                                    height: isCompletedCompact ? 28 : 34)
-                        Image(systemName: alreadyLogged ? "checkmark" : "dumbbell")
+                        Image(systemName: isSkippedCompact ? "forward.fill" : alreadyLogged ? "checkmark" : "dumbbell")
                             .font(isCompletedCompact ? .appMicro : .appLabel).fontWeight(.semibold)
-                            .foregroundColor(alreadyLogged
+                            .foregroundColor(isSkippedCompact ? Color.appDanger : alreadyLogged
                                              ? Color.appTextMuted
                                              : isCurrentHero ? Color.forge : Color.gray)
                     }
@@ -1309,12 +1356,12 @@ struct ExerciseCard: View {
                     HStack(spacing: 8) {
                         let titleFont: Font = isCurrentHero
                             ? .appCardMetric
-                            : (isExpanded ? .appTitle : ((isUpcomingCompact || isCompletedCompact) ? .appBody : .appHeadline))
-                        let titleWeight: Font.Weight = isExpanded ? .heavy : (isCompletedCompact ? .semibold : .bold)
+                            : (cardExpanded ? .appTitle : ((isUpcomingCompact || isCompletedCompact) ? .appBody : .appHeadline))
+                        let titleWeight: Font.Weight = cardExpanded ? .heavy : (isCompletedCompact ? .semibold : .bold)
                         Text(name)
                             .font(titleFont)
                             .fontWeight(titleWeight)
-                            .tracking(isExpanded ? 0.3 : 0)
+                            .tracking(cardExpanded ? 0.3 : 0)
                             .foregroundColor(isCompletedCompact ? Color.appTextSecondary : Color.appTextPrimary)
                             .lineLimit(isCurrentHero ? 2 : nil)
                             .minimumScaleFactor(isCurrentHero ? 0.82 : 1)
@@ -1338,12 +1385,12 @@ struct ExerciseCard: View {
                                 .clipShape(Circle())
                         }
                     }
-                    Text(scheme)
+                    Text(isSkippedCompact ? "Sauté" : scheme)
                         .font(isCurrentHero
                               ? .appLabel
                               : ((isUpcomingCompact || isCompletedCompact) ? .appMicro : .appCaption))
                         .fontWeight(isCurrentHero ? .semibold : .regular)
-                        .foregroundColor(isCurrentHero
+                        .foregroundColor(isSkippedCompact ? Color.appDanger : isCurrentHero
                                          ? Color.appTextSecondary
                                          : ((isUpcomingCompact || isCompletedCompact) ? Color.appTextMuted : Color.gray))
                 }
@@ -1369,7 +1416,9 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var headerTrailing: some View {
-        if isCompletedCompact {
+        if isSkippedCompact {
+            Image(systemName: "forward.fill").foregroundColor(Color.appDanger)
+        } else if isCompletedCompact {
             HStack(spacing: 8) {
                 if let r = logResult {
                     HStack(spacing: 4) {
@@ -1648,7 +1697,7 @@ struct ExerciseCard: View {
                 Image(systemName: "forward.fill").font(.appLabel).foregroundColor(.gray)
                 Text("Sauté").font(.appLabel).foregroundColor(.gray)
                 Spacer()
-                Button(action: { guard allowAction() else { return }; evm.isSkipped = false }) {
+                Button(action: { changeSkipped(false) }) {
                     Image(systemName: "arrow.counterclockwise").font(.appCaption).foregroundColor(.gray.opacity(0.5))
                 }
             }
