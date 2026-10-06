@@ -1236,7 +1236,7 @@ struct ExerciseCard: View {
                 persistenceIssueBanner
 
                 // MARK: Expanded content
-                if cardExpanded { expandedContent }
+                if cardExpanded { ExpandedSection(card: self) }
             }
         }
         .glassCard(cornerRadius: 14)
@@ -1514,6 +1514,27 @@ struct ExerciseCard: View {
         }
     }
 
+    // The iOS background snapshot rebuilds this editor on the main-thread stack.
+    // Calling all three builders inline accumulated their large generic values
+    // until the stack guard was hit (2026-10-06 device crash reports). Nominal
+    // child views let SwiftUI evaluate each body after its parent has returned.
+    // The card remains the sole state owner: these values reuse its installed
+    // State/StateObject/Binding storage, without creating or restoring an EVM.
+    private struct ExpandedSection: View {
+        let card: ExerciseCard
+        var body: some View { card.expandedContent }
+    }
+
+    private struct FormSection: View {
+        let card: ExerciseCard
+        var body: some View { card.formView }
+    }
+
+    private struct SetRowsSection: View {
+        let card: ExerciseCard
+        var body: some View { card.setRows() }
+    }
+
     @ViewBuilder private var expandedContent: some View {
         Divider().background(Color.appSurfaceInset)
         VStack(alignment: .leading, spacing: isCurrentHero ? 20 : 16) {
@@ -1537,7 +1558,7 @@ struct ExerciseCard: View {
             if alreadyLogged && !evm.isEditing {
                 loggedStateDisplay
             } else {
-                formView
+                FormSection(card: self)
                     .padding(isCurrentHero ? 12 : 0)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
@@ -1868,7 +1889,7 @@ struct ExerciseCard: View {
                     deliverDuration(idx, side: side, duration: dur)
                 } : nil
             )
-        } else { setRows() }
+        } else { SetRowsSection(card: self) }
         HStack(spacing: 12) {
             Button {
                 guard allowAction() else { return }
