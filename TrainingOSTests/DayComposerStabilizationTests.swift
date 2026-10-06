@@ -25,7 +25,7 @@ final class DayComposerStabilizationFixture {
     }
 
     init(morning names: [String] = ["A"], evening eveningNames: [String] = ["A"],
-         tracking: [String: String] = [:], schemes: [String: String] = [:], observed: [String] = [],
+         tracking: [String: String] = [:], equipment: [String: String] = [:], schemes: [String: String] = [:], observed: [String] = [],
          supersets: [String: [String: SupersetEntry]] = [:],
          finalInputsStore: DayComposerFinalInputsStore = DayComposerFinalInputsStore(),
          reassignment: (([DayComposerUnit]) throws -> [DayComposerUnit])? = nil) throws {
@@ -38,7 +38,7 @@ final class DayComposerStabilizationFixture {
         func dto(_ session: String) -> SeanceData {
             .init(today: session, todayDate: date, alreadyLogged: false,
                 schedule: [TrainingDoctrine.dayNames[0]: session], fullProgram: program, weights: [:], week: 1,
-                inventoryTypes: [:], inventoryTracking: tracking, exerciseOrder: order,
+                inventoryTypes: equipment, inventoryTracking: tracking, exerciseOrder: order,
                 exerciseSupersets: supersets, exerciseIds: ["A": sharedID])
         }
         let context = DayComposerLoader.Context(active_program_id: "A", current_program_id: "A",
@@ -62,7 +62,7 @@ final class DayComposerStabilizationFixture {
         for id in coordinator.expectedMutableParticipantIDs(for: source) {
             let p = try XCTUnwrap(coordinator.presentation(for: id.itemID))
             let c = coordinator
-            let vm = ExerciseViewModel(name: p.item.name, scheme: p.item.scheme, weightData: nil,
+            let vm = ExerciseViewModel(name: p.item.name, scheme: p.item.scheme, weightData: nil, equipmentType: p.equipment,
                 trackingType: p.item.tracking, isSecondSession: source == .evening, sessionDate: date,
                 draftAuthorization: p.authorization, validateLocalPersistence: validator ?? { c.validateLocalPersistence() }, occurrenceKey: p.item.occurrenceKey)
             if let hydration = p.hydration { vm.initializeRecovery(hydration) } else { vm.initializeSets() }

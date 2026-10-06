@@ -168,6 +168,18 @@ struct ExerciseCard: View {
 
     #if DEBUG
     /// Isolated real-card fixture: deliberately expanded parent, accepted skipped owner.
+    static func landminePresentationFixture(state: String) -> ExerciseCard {
+        let owner = ExerciseViewModel(name: "Meadows Row", scheme: "1x8", weightData: nil,
+            equipmentType: "landmine", sessionDate: "landmine-presentation-fixture")
+        owner.initializeRecovery(.init(sets: [SetInput(weight: "70", reps: "8")], note: "", painZone: "", barWeight: 45))
+        let result = state == "logged" ? owner.buildLogCandidate(alreadyLoggedViaBinding: false) : nil
+        if state == "skipped" { owner.setSkipped(true) }
+        var card = ExerciseCard(name: "Meadows Row", scheme: "1x8", weightData: nil,
+            equipmentType: "landmine", logResult: .constant(result), isExpanded: state == "expanded")
+        card._evm = StateObject(wrappedValue: owner)
+        return card
+    }
+
     static func skippedPresentationFixture() -> ExerciseCard {
         let owner = ExerciseViewModel(name: "Exercice B", scheme: "3×8", weightData: nil,
                                       sessionDate: "skipped-presentation-fixture")
@@ -351,6 +363,7 @@ struct ExerciseCard: View {
 
     private var equipmentLabel: String {
         switch evm.equipmentType {
+        case "landmine":     return "Landmine"
         case "barbell":      return "Barre"
         case "ez-bar":       return "EZ-Bar"
         case "dumbbell":     return "Haltères"
@@ -365,6 +378,7 @@ struct ExerciseCard: View {
 
     private var weightColumnLabel: String {
         switch evm.equipmentType {
+        case "landmine":     return "CHARGE (\(units.label.uppercased()))"
         case "barbell":      return "POIDS PAR CÔTÉ (\(units.label.uppercased()))"
         case "dumbbell":     return "POIDS PAR HALTÈRE (\(units.label.uppercased()))"
         case "cable_double": return "POIDS PAR CÂBLE (\(units.label.uppercased()))"
@@ -378,7 +392,7 @@ struct ExerciseCard: View {
 
     private func equipmentIcon(_ type: String) -> String {
         switch type {
-        case "barbell", "ez-bar":        return "minus.circle.fill"
+        case "landmine", "barbell", "ez-bar":        return "minus.circle.fill"
         case "dumbbell":                 return "dumbbell.fill"
         case "bodyweight":               return "figure.walk"
         case "cable":                    return "arrow.up.and.down.circle"
@@ -654,13 +668,13 @@ struct ExerciseCard: View {
             .frame(width: 28, alignment: .leading)
         Text(weightColumnLabel)
             .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
-        if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
+        if evm.equipmentType == "landmine" || evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
             let activeIdx = evm.setBySetMode ? evm.currentSetIndex : 0
             if evm.sets.indices.contains(activeIdx) {
                 let rawVal = Double(evm.sets[activeIdx].weight.replacingOccurrences(of: ",", with: ".")) ?? 0
                 let totalLbs = evm.totalWeight(for: units.toStorage(rawVal))
                 if totalLbs > 0 {
-                    Text("= \(units.format(totalLbs, decimals: 0))")
+                    Text("= \(units.format(totalLbs, decimals: evm.equipmentType == "landmine" ? 1 : 0))")
                         .font(.appMicro).fontWeight(.medium)
                         .foregroundColor(.gray.opacity(0.55))
                 }
@@ -1106,7 +1120,7 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var avgTotalRow: some View {
         switch evm.equipmentType {
-        case "barbell", "dumbbell", "cable_double":
+        case "landmine", "barbell", "dumbbell", "cable_double":
             if let avg = evm.avgWeight {
                 let avgLbs = units.toStorage(avg)
                 let total  = evm.totalWeight(for: avgLbs)
@@ -1688,6 +1702,7 @@ struct ExerciseCard: View {
             }
             Spacer()
             Menu {
+                Button { changeEquipment("landmine") } label: { Label("Landmine", systemImage: "minus.circle.fill") }
                 Button { changeEquipment("barbell") }      label: { Label("Barre",        systemImage: "minus.circle.fill") }
                 Button { changeEquipment("ez-bar") }       label: { Label("EZ-Bar",       systemImage: "waveform") }
                 Button { changeEquipment("dumbbell") }     label: { Label("Haltères",     systemImage: "dumbbell.fill") }
@@ -1777,6 +1792,10 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var formView: some View {
+        if evm.equipmentType == "landmine" {
+            Text("Barre \(units.format(evm.barWeight)) · charge sur une extrémité")
+                .font(.appCaption).foregroundColor(.appTextSecondary)
+        }
         // Rappel note dernière séance
         if let prev = evm.weightData?.history?.first(where: { ($0.sessionNotes ?? "").isEmpty == false }),
            let prevNote = prev.sessionNotes, !hidePreviousNote {

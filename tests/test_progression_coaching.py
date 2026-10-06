@@ -116,7 +116,7 @@ class SuggestionContracts(unittest.TestCase):
         self.db.get_progression_session=Mock(side_effect=RuntimeError('fixture DB'))
         self.assertEqual(self.suggestions().status_code,503)
     def test_equipment_matrix_keeps_existing_rules(self):
-        for equipment,increment in [('barbell',5),('dumbbell',5),('machine',5),('cable',2.5),('bodyweight',5)]:
+        for equipment,increment in [('barbell',5),('landmine',5),('dumbbell',5),('machine',5),('cable',2.5),('bodyweight',5)]:
             with self.subTest(equipment=equipment):
                 self.db.get_exercises_info_bulk=lambda *a,equipment=equipment,**kw:{'X':dict(self.state,load_profile='compound_hypertrophy',type=equipment)}
                 self.assertEqual(self.suggestions().json['suggestions'][0]['suggested_weight'],100+increment)

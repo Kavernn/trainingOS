@@ -171,7 +171,9 @@ def get_suggested_weights_for_today(weights: dict, program: dict | None = None, 
         # Derive input_type from inventory (source of truth) with KV fallback
         inv_entry  = inventory.get(exercise, {})
         inv_type   = inv_entry.get("type", "")
-        if inv_type == "barbell":
+        if inv_type == "landmine":
+            input_type = "landmine"
+        elif inv_type == "barbell":
             input_type = "barbell"
         elif inv_type in ("dumbbell", "cable_double"):
             input_type = "dumbbell"
@@ -190,7 +192,12 @@ def get_suggested_weights_for_today(weights: dict, program: dict | None = None, 
                     pass
 
         suggested, _ = suggest_next_weight(exercise, current, last_reps, last_rpe, inventory=inventory)
-        if input_type == "barbell":
+        if input_type == "landmine":
+            bar = inv_entry.get("bar_weight")
+            bar = 45.0 if bar is None else float(bar)
+            end = max(0, suggested - bar)
+            display = f"{end:.1f} charge (total {suggested:.1f} lbs)"
+        elif input_type == "barbell":
             bar    = inv_entry.get("bar_weight") or 45.0
             side   = (suggested - bar) / 2 if suggested >= bar else 0
             display = f"{side:.1f} par cote (total {suggested:.1f} lbs)"

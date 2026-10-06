@@ -111,6 +111,8 @@ def api_seance_data():
         suggestions = get_suggested_weights_for_today(weights, full_program, today_date)
 
     inv = inventory if isinstance(inventory, dict) else {}
+    from inventory import attach_load_metadata
+    attach_load_metadata(weights, inv)
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_unilateral = {name: bool(info.get("is_unilateral")) for name, info in inv.items()}
@@ -250,6 +252,8 @@ def api_seance_soir_data():
     }
 
     inv = inventory if isinstance(inventory, dict) else {}
+    from inventory import attach_load_metadata
+    attach_load_metadata(weights, inv)
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_unilateral = {name: bool(info.get("is_unilateral")) for name, info in inv.items()}
@@ -389,6 +393,8 @@ def api_seance_bonus_data():
     flat_program[today_bonus] = {ex: cap_scheme_sets(s) for ex, s in _bonus_plan.items()}
 
     inv = inventory if isinstance(inventory, dict) else {}
+    from inventory import attach_load_metadata
+    attach_load_metadata(weights, inv)
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_unilateral = {name: bool(info.get("is_unilateral")) for name, info in inv.items()}

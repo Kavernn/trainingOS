@@ -45,6 +45,7 @@ struct ExerciseLogResult {
     var notes: String = ""
     // Local draft metadata only; never added to the API payload.
     var trackingType: String? = nil
+    var barWeight: Double? = nil
     var scheme: String? = nil
     var isUnilateral: Bool? = nil
 }
@@ -63,6 +64,7 @@ struct ExerciseRecoveryHydration {
     let sets: [SetInput]
     let note: String
     let painZone: String
+    var barWeight: Double? = nil
 
     static func make(_ log: ExerciseLogResult, equipment: String,
                      tracking: String, unilateral: Bool,
@@ -78,7 +80,7 @@ struct ExerciseRecoveryHydration {
         guard tracking == "reps", !unilateral,
               log.trackingType == nil || log.trackingType == tracking,
               log.equipmentType == equipment,
-              ["machine", "bodyweight", "barbell", "dumbbell", "cable_double"].contains(equipment),
+              ["machine", "bodyweight", "barbell", "landmine", "dumbbell", "cable_double"].contains(equipment),
               !log.sets.isEmpty else { return nil }
         var inputs: [SetInput] = []
         for raw in log.sets {
@@ -89,6 +91,9 @@ struct ExerciseRecoveryHydration {
                   let rpe = raw["rpe"] as? Double, rpe.isFinite else { return nil }
             let input: Double
             switch equipment {
+            case "landmine":
+                guard let bar = log.barWeight, bar.isFinite, bar >= 0, weight >= bar else { return nil }
+                input = ExerciseCalculator.inputHint(currentWeight: weight, equipmentType: equipment, barWeight: bar)
             case "barbell":
                 guard weight >= 45 else { return nil }
                 input = (weight - 45) / 2
@@ -102,7 +107,7 @@ struct ExerciseRecoveryHydration {
                                    duration: 0, rir: rir, rpe: rpe))
         }
         guard inputs.map(\.reps).joined(separator: ",") == log.reps else { return nil }
-        return Self(sets: inputs, note: log.notes, painZone: log.painZone)
+        return Self(sets: inputs, note: log.notes, painZone: log.painZone, barWeight: log.barWeight)
     }
 }
 
@@ -124,6 +129,8 @@ struct DraftSet: Codable {
 struct ExerciseCardDraft: Codable {
     var sets: [DraftSet]
     var sessionNote: String? = nil
+    var equipmentType: String? = nil
+    var barWeight: Double? = nil
 }
 
 // Draft par carte d'exercice. Scopé par (date, session_type, name) pour éviter
@@ -181,9 +188,9 @@ struct ExerciseDraftPersistence {
         return id == authorization.executionID
     }
 
-    func saveResult(_ drafts: [DraftSet], sessionNote: String? = nil) -> LocalPersistenceResult {
+    func saveResult(_ drafts: [DraftSet], sessionNote: String? = nil, equipmentType: String? = nil, barWeight: Double? = nil) -> LocalPersistenceResult {
         guard authorizationIsValid else { return .rejectedContext }
-        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(sets: drafts, sessionNote: sessionNote)) else { return .failed }
+        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(sets: drafts, sessionNote: sessionNote, equipmentType: equipmentType, barWeight: barWeight)) else { return .failed }
         // An unchanged restoration/debounce is a no-op, not a classic edit.
         if let previous = UserDefaults.standard.data(forKey: key),
            let oldJSON = try? JSONSerialization.jsonObject(with: previous),
@@ -279,19 +286,21 @@ enum ExerciseCalculator {
         return RPEHelper.rirToRPE(min(avgRIR, 4))
     }
 
-    static func totalWeight(for input: Double, equipmentType: String) -> Double {
+    static func totalWeight(for input: Double, equipmentType: String, barWeight: Double = 45) -> Double {
         switch equipmentType {
         case "bodyweight":               return input
-        case "barbell":                  return input * 2 + 45
+        case "landmine":                 return input + barWeight
+        case "barbell":                  return input * 2 + barWeight
         case "dumbbell", "cable_double": return input * 2
         default:                         return input
         }
     }
 
-    static func inputHint(currentWeight: Double, equipmentType: String) -> Double {
+    static func inputHint(currentWeight: Double, equipmentType: String, barWeight: Double = 45) -> Double {
         guard currentWeight > 0 else { return 0 }
         switch equipmentType {
-        case "barbell":                  return max(0, (currentWeight - 45) / 2)
+        case "landmine":                 return max(0, currentWeight - barWeight)
+        case "barbell":                  return max(0, (currentWeight - barWeight) / 2)
         case "dumbbell", "cable_double": return currentWeight / 2
         case "bodyweight":               return 0
         default:                         return currentWeight
@@ -315,13 +324,14 @@ enum ExerciseCalculator {
     /// disponibles pour ce set). "0.0" est une valeur exacte légitime — ex : barbell à la
     /// barre seule (45 lbs total → 0 par côté), bodyweight sans charge additionnelle.
     /// Sert la restitution stricte (fillFromLastSession) ET le hint indicatif (perSetHint).
-    static func perSideExact(for index: Int, weightData: WeightData?, equipmentType: String) -> String? {
+    static func perSideExact(for index: Int, weightData: WeightData?, equipmentType: String, barWeight: Double = 45) -> String? {
         guard let lastSets = weightData?.history?.first?.sets,
               index < lastSets.count else { return nil }
         let w = lastSets[index].weight
         let perSide: Double
         switch equipmentType {
-        case "barbell":                  perSide = w > 45 ? (w - 45) / 2 : 0
+        case "landmine":                 perSide = max(0, w - barWeight)
+        case "barbell":                  perSide = max(0, (w - barWeight) / 2)
         case "dumbbell", "cable_double": perSide = w / 2
         case "bodyweight":               perSide = w
         default:                         perSide = w
@@ -329,18 +339,18 @@ enum ExerciseCalculator {
         return UnitSettings.shared.inputStr(perSide)
     }
 
-    static func perSetHint(for index: Int, weightData: WeightData?, equipmentType: String) -> String {
+    static func perSetHint(for index: Int, weightData: WeightData?, equipmentType: String, barWeight: Double = 45) -> String {
         // Comportement strictement inchangé vs pré-refactor :
         // - sets absents → tombe sur hint (moyenne / currentWeight).
         // - sets présents + bodyweight → "0.0" (usage attendu par les suggestions).
         // - sets présents + perSide = 0 (barre seule) → hint fallback (perSide 0 n'est pas
         //   une SUGGESTION utile ; la restitution stricte utilise perSideExact directement).
-        if let exact = perSideExact(for: index, weightData: weightData, equipmentType: equipmentType),
+        if let exact = perSideExact(for: index, weightData: weightData, equipmentType: equipmentType, barWeight: barWeight),
            equipmentType == "bodyweight" || (Double(exact) ?? 0) > 0 {
             return exact
         }
         let units = UnitSettings.shared
-        let hint = inputHint(currentWeight: weightData?.currentWeight ?? 0, equipmentType: equipmentType)
+        let hint = inputHint(currentWeight: weightData?.currentWeight ?? 0, equipmentType: equipmentType, barWeight: barWeight)
         return hint > 0 ? units.inputStr(hint) : "0.0"
     }
 
@@ -397,6 +407,8 @@ final class ExerciseViewModel: ObservableObject {
     let name: String
     let scheme: String
     let weightData: WeightData?
+    var barWeight: Double { equipmentType == "landmine" ? (restoredBarWeight ?? weightData?.barWeight ?? 45) : 45 }
+    private var restoredBarWeight: Double?
     @Published var equipmentType: String
     let trackingType: String
     let isUnilateral: Bool
@@ -539,7 +551,7 @@ final class ExerciseViewModel: ObservableObject {
     var avgWeight: Double? {
         var sum = 0.0; var count = 0
         for s in sets {
-            if let v = Double(s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")), v > 0 {
+            if let v = Double(s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")), v > 0 || (equipmentType == "landmine" && v == 0) {
                 sum += v; count += 1
             }
         }
@@ -554,7 +566,7 @@ final class ExerciseViewModel: ObservableObject {
 
     var warmupSets: [(pct: Int, weight: Double)] { ExerciseCalculator.warmupSets(currentWeight: currentWeight) }
 
-    var inputHint: Double { ExerciseCalculator.inputHint(currentWeight: currentWeight, equipmentType: equipmentType) }
+    var inputHint: Double { ExerciseCalculator.inputHint(currentWeight: currentWeight, equipmentType: equipmentType, barWeight: barWeight) }
 
     // MARK: - Progressive Overload (comparaison live vs dernière séance)
 
@@ -611,9 +623,9 @@ final class ExerciseViewModel: ObservableObject {
         var total = 0.0
         for s in sets {
             let wStr = s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
-            guard let wDisplay = Double(wStr), wDisplay > 0 else { continue }
+            guard let wDisplay = Double(wStr), wDisplay > 0 || (equipmentType == "landmine" && wDisplay == 0) else { continue }
             guard let reps = Int(s.reps.trimmingCharacters(in: .whitespaces)), reps > 0 else { continue }
-            let setTotal = ExerciseCalculator.totalWeight(for: units.toStorage(wDisplay), equipmentType: equipmentType)
+            let setTotal = ExerciseCalculator.totalWeight(for: units.toStorage(wDisplay), equipmentType: equipmentType, barWeight: barWeight)
             total += setTotal * Double(reps)
         }
         return total
@@ -655,7 +667,9 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     private var currentDraft: ExerciseCardDraft {
-        ExerciseCardDraft(sets: draftSets(sets), sessionNote: sessionNote)
+        ExerciseCardDraft(sets: draftSets(sets), sessionNote: sessionNote,
+            equipmentType: equipmentType == "landmine" ? equipmentType : nil,
+            barWeight: equipmentType == "landmine" ? barWeight : nil)
     }
 
     private func canonical(_ draft: ExerciseCardDraft) -> Data? {
@@ -739,7 +753,8 @@ final class ExerciseViewModel: ObservableObject {
             return permission
         }
         let projection = currentDraft
-        let result = draftStore.saveResult(projection.sets, sessionNote: projection.sessionNote)
+        let result = draftStore.saveResult(projection.sets, sessionNote: projection.sessionNote,
+            equipmentType: projection.equipmentType, barWeight: projection.barWeight)
         if draftAuthorization != nil { recordPersistenceResult(result) }
         if result == .accepted {
             baselineEditor = canonical(projection)
@@ -779,8 +794,8 @@ final class ExerciseViewModel: ObservableObject {
 
     // MARK: - Methods
 
-    func totalWeight(for input: Double) -> Double { ExerciseCalculator.totalWeight(for: input, equipmentType: equipmentType) }
-    func perSetHint(for index: Int) -> String { ExerciseCalculator.perSetHint(for: index, weightData: weightData, equipmentType: equipmentType) }
+    func totalWeight(for input: Double) -> Double { ExerciseCalculator.totalWeight(for: input, equipmentType: equipmentType, barWeight: barWeight) }
+    func perSetHint(for index: Int) -> String { ExerciseCalculator.perSetHint(for: index, weightData: weightData, equipmentType: equipmentType, barWeight: barWeight) }
     func formatDuration(_ secs: Int) -> String { ExerciseCalculator.formatDuration(secs) }
 
     func initializeRecovery(_ recovery: ExerciseRecoveryHydration) {
@@ -790,6 +805,10 @@ final class ExerciseViewModel: ObservableObject {
         defer { establishHydratedBaseline(); isHydratingRecovery = false }
         // A real edit saved after recovery takes precedence on a later recreation.
         if let draft = draftStore.loadCard(), !draft.sets.isEmpty {
+            if draft.equipmentType == "landmine", let bar = draft.barWeight, bar.isFinite, bar >= 0 {
+                equipmentType = "landmine"
+                restoredBarWeight = bar
+            }
             sets = draft.sets.map {
                 SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration,
                          durationLeft: $0.durationLeft, durationRight: $0.durationRight,
@@ -798,6 +817,7 @@ final class ExerciseViewModel: ObservableObject {
             }
             sessionNote = draft.sessionNote ?? recovery.note
         } else {
+            restoredBarWeight = recovery.barWeight
             sets = recovery.sets
             sessionNote = recovery.note
         }
@@ -815,6 +835,10 @@ final class ExerciseViewModel: ObservableObject {
         }
         let draft = draftStore.loadCard()
         if let draft, !draft.sets.isEmpty {
+            if draft.equipmentType == "landmine", let bar = draft.barWeight, bar.isFinite, bar >= 0 {
+                equipmentType = "landmine"
+                restoredBarWeight = bar
+            }
             sets = draft.sets.map {
                 SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration,
                          durationLeft: $0.durationLeft, durationRight: $0.durationRight,
@@ -855,7 +879,7 @@ final class ExerciseViewModel: ObservableObject {
             // la moyenne. Restituer une moyenne (currentWeight agrégé) comme "ce que tu as
             // fait" est un mensonge (crime prouvé : Bench 71,7 lbs uniformes sur 3 sets).
             // "0.0" reste une restitution valide (barre seule, bodyweight).
-            sets[i].weight = ExerciseCalculator.perSideExact(for: i, weightData: weightData, equipmentType: equipmentType) ?? ""
+            sets[i].weight = ExerciseCalculator.perSideExact(for: i, weightData: weightData, equipmentType: equipmentType, barWeight: barWeight) ?? ""
             sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
         }
     }
@@ -895,6 +919,8 @@ final class ExerciseViewModel: ObservableObject {
         switch equipmentType {
         case "bodyweight":
             return !repsTrimmed.isEmpty
+        case "landmine":
+            return (Double(weightStr) ?? -1) >= 0 && !repsTrimmed.isEmpty
         case "fixed_weight":
             return (Double(weightStr) ?? 0) > 0
         default:
@@ -981,6 +1007,9 @@ final class ExerciseViewModel: ObservableObject {
             switch equipmentType {
             case "bodyweight":
                 if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
+            case "landmine":
+                if (Double(weightStr) ?? -1) < 0 { return "Set \(n) : charge requise" }
+                if repsTrimmed.isEmpty { return "Set \(n) : reps requises" }
             case "fixed_weight":
                 if (Double(weightStr) ?? 0) <= 0 { return "Set \(n) : poids requis" }
             default:
@@ -996,6 +1025,7 @@ final class ExerciseViewModel: ObservableObject {
     private func withReconstructionMetadata(_ log: ExerciseLogResult) -> ExerciseLogResult {
         var result = log
         result.occurrenceKey = occurrenceKey
+        result.barWeight = equipmentType == "landmine" ? barWeight : nil
         // Certify only values matching the configuration actually used by this VM.
         if let metadata = reconstructionMetadata {
             result.scheme = metadata.scheme == scheme ? metadata.scheme : nil
@@ -1116,7 +1146,7 @@ final class ExerciseViewModel: ObservableObject {
                 let lest = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
                 return ["weight": units.toStorage(lest), "reps": reps, "rir": s.rir, "rpe": setRPE]
             }
-            guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")), sw > 0 else { return nil }
+            guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")), sw > 0 || (equipmentType == "landmine" && sw == 0) else { return nil }
             let setTotal = totalWeight(for: units.toStorage(sw))
             return ["weight": setTotal, "reps": reps, "rir": s.rir, "rpe": setRPE]
         }
@@ -1790,6 +1820,7 @@ class SeanceViewModel: ObservableObject {
                 painZone: pending.painZone,
                 notes: pending.notes ?? "",
                 trackingType: pending.trackingType,
+                barWeight: pending.barWeight,
                 scheme: pending.scheme,
                 isUnilateral: pending.isUnilateral
             )
@@ -1968,6 +1999,7 @@ class SeanceViewModel: ObservableObject {
                 },
                 trackingType: log.trackingType,
                 notes: log.notes,
+                barWeight: log.barWeight,
                 scheme: log.scheme,
                 isUnilateral: log.isUnilateral, occurrenceKey: log.occurrenceKey
             )

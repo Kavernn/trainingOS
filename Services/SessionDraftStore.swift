@@ -57,6 +57,7 @@ struct PersistedExerciseLogResult: Codable {
     var sets: [PersistedSet]
     var trackingType: String? = nil
     var notes: String? = nil
+    var barWeight: Double? = nil
     var scheme: String? = nil
     var isUnilateral: Bool? = nil
     var occurrenceKey: String? = nil

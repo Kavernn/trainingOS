@@ -306,9 +306,13 @@ def api_dashboard():
 def api_weights():
     from weights import load_weights
     exercise = request.args.get("exercise")
+    from inventory import load_inventory, attach_load_metadata
+    weights = load_weights(exercise_names=[exercise]) if exercise else load_weights()
+    inventory = load_inventory() or {}
     if exercise:
-        return jsonify(load_weights(exercise_names=[exercise]))
-    return jsonify(load_weights())
+        inventory = {exercise: inventory[exercise]} if exercise in inventory else {}
+    attach_load_metadata(weights, inventory)
+    return jsonify(weights)
 
 
 @data_views_bp.route("/api/inventory")

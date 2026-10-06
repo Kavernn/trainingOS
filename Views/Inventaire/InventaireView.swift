@@ -84,7 +84,7 @@ struct CatalogueView: View {
     }
     @State private var sortOrder: SortOrder = .alpha
 
-    let types      = ["Tous", "barbell", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight", "endurance"]
+    let types      = ["Tous", "barbell", "landmine", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight", "endurance"]
     let categories = ["Tous", "push", "pull", "legs", "core", "mobility"]
 
     var filtered: [InventoryItem] {
@@ -436,6 +436,7 @@ struct CatalogueView: View {
 
     private func typeLabel(_ t: String) -> String {
         switch t {
+        case "landmine": return "Landmine"
         case "barbell": return "Barre"; case "ez-bar": return "EZ-Bar"
         case "dumbbell": return "Haltère"; case "cable": return "Câble"
         case "cable_double": return "Câble ×2"
@@ -652,6 +653,7 @@ private struct WeightTypeOption {
 }
 
 private let kWeightTypes: [WeightTypeOption] = [
+    WeightTypeOption(key: "landmine", label: "Landmine", note: "Barre chargée d’un côté", color: Color.forge),
     WeightTypeOption(key: "barbell",      label: "Barre",        note: "Poids par côté + barre",   color: Color.forge),
     WeightTypeOption(key: "dumbbell",     label: "Haltères",     note: "Poids par haltère",         color: .statusBlue),
     WeightTypeOption(key: "cable_single", label: "Câble",        note: "Poids de la pile",          color: .teal),
@@ -688,8 +690,9 @@ private func muscleGroupToEnglish(_ g: String) -> String {
     }
 }
 
-private func weightTypeToLegacy(_ wt: String) -> String {
+func weightTypeToLegacy(_ wt: String) -> String {
     switch wt {
+    case "landmine":     return "landmine"
     case "barbell":      return "barbell"
     case "dumbbell":     return "dumbbell"
     case "cable_single": return "cable"
@@ -952,6 +955,7 @@ struct InventoryFormSheet: View {
     private func legacyTypeToWeightType(_ t: String, tracking: String) -> String {
         if tracking == "time" { return "endurance" }
         switch t {
+        case "landmine": return "landmine"
         case "barbell", "ez-bar": return "barbell"
         case "dumbbell":          return "dumbbell"
         case "cable":             return "cable_single"
@@ -1181,7 +1185,7 @@ struct InventoryFormSheet: View {
                         .font(.appCaption).foregroundColor(.gray)
                 }
             }
-            if weightType == "barbell" {
+            if weightType == "barbell" || weightType == "landmine" {
                 HStack {
                     Text("Poids barre (lbs)").foregroundColor(.gray)
                     Spacer()

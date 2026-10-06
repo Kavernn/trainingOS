@@ -64,3 +64,14 @@ def calculate_plates(total: float, bar: float = 45.0) -> list:
             result.append(p)
             temp = round(temp - p, 2)
     return result
+
+
+def attach_load_metadata(weights: dict, inventory: dict) -> None:
+    """Carry catalog bar configuration with existing per-exercise weight data.
+
+    Totals and history remain untouched; no weight is inferred from a bar.
+    """
+    for name, info in inventory.items():
+        if info.get("type") == "landmine":
+            bar = info.get("bar_weight")
+            weights.setdefault(name, {})["bar_weight"] = 45.0 if bar is None else float(bar)

@@ -642,12 +642,14 @@ struct SeanceBonusData: Codable {
 }
 
 struct WeightData: Codable {
+    var barWeight: Double? = nil
     let currentWeight: Double?
     let lastReps: String?
     let lastLogged: String?
     let history: [WeightHistoryEntry]?
 
     enum CodingKeys: String, CodingKey {
+        case barWeight = "bar_weight"
         case currentWeight = "current_weight"
         case lastReps = "last_reps"
         case lastLogged = "last_logged"
