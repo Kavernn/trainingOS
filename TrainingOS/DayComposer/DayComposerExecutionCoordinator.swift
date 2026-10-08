@@ -55,7 +55,9 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     func canOfferFinish(_ source: DayComposerSource) -> Bool {
         let required = items.filter { $0.assignedSource == source }
         return !isLocked && !required.isEmpty && required.allSatisfy { item in
-            guard let state = status(for: item.id), !state.hasDraft else { return false }
+            guard let state = status(for: item.id) else { return false }
+            if !WorkoutCompletion.tracks(item.tracking) { return state.draft != .presentUnreadable }
+            guard !state.hasDraft else { return false }
             return consultationResult(for: item.id) != nil || state.serverObserved
         }
     }
@@ -311,9 +313,10 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         else { status = .unknown }
         return ItemState(status: status, draft: draft, serverObserved: observed)
     }
-    var executableCount: Int { items.filter { Self.isSupported($0.tracking) }.count }
+    var executableCount: Int { items.filter { Self.isSupported($0.tracking) && WorkoutCompletion.tracks($0.tracking) }.count }
     var treatedCount: Int {
         items.filter { item in
+            guard WorkoutCompletion.tracks(item.tracking) else { return false }
             let itemStatus = status(for: item.id)?.status
             return itemStatus == .localLogged || itemStatus == .serverObserved
         }.count

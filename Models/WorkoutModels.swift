@@ -1137,3 +1137,20 @@ struct HIITCompletionEntry: Codable, Identifiable {
         case roundsCompleted = "rounds_completed"
     }
 }
+
+/// Checklist state is independent of performed workout evidence.
+enum WorkoutCompletion {
+    static func tracks(_ tracking: String?) -> Bool { tracking != "mobility" }
+
+    static func trackedNames(_ names: [String], tracking: [String: String]) -> [String] {
+        names.filter { tracks(tracking[$0]) }
+    }
+
+    static func performed(_ results: [String: ExerciseLogResult], tracking: [String: String] = [:]) -> [String: ExerciseLogResult] {
+        results.filter { tracks($0.value.trackingType) && tracks(tracking[$0.value.name]) }
+    }
+
+    static func missing(_ names: [String], results: [String: ExerciseLogResult], tracking: [String: String]) -> [String] {
+        trackedNames(names, tracking: tracking).filter { results[$0] == nil }
+    }
+}

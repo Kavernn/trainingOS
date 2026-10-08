@@ -58,7 +58,12 @@ struct DayComposerSourceFinalizationInput {
 
     var hasAcknowledgedLocalWork: Bool {
         guard history.globalBlock(identity: identity) == nil,
-              itemFacts.allSatisfy({ $0.draft == .absent && !$0.localConflictsWithServer && $0.local != .invalid }) else { return false }
+              itemFacts.allSatisfy({ fact in
+                  if let item = planItems.first(where: { $0.id == fact.itemID }), !WorkoutCompletion.tracks(item.tracking) {
+                      return fact.draft != .corrupt && fact.local != .invalid
+                  }
+                  return fact.draft == .absent && !fact.localConflictsWithServer && fact.local != .invalid
+              }) else { return false }
         let hasLocal = !comment.isEmpty || itemFacts.contains { $0.local != .none }
             || history.current?.contains(source: source) == true
         guard hasLocal else { return true }
@@ -111,6 +116,7 @@ struct DayComposerFinalizationSnapshot: Equatable {
         do {
             for item in input.planItems {
                 let fact = input.facts(for: item.id)
+                if !WorkoutCompletion.tracks(item.tracking), fact.local == .none, fact.draft != .corrupt { continue }
                 guard fact.draft == .absent, !fact.localConflictsWithServer else { return .failure(.draft(item.id)) }
                 guard input.validPayload(for: item, fact: fact) else { return .failure(.invalidPayload(item.id)) }
                 if let bytes = fact.local.payload {

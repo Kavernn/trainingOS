@@ -166,9 +166,7 @@ struct WorkoutSeanceView: View {
 
     // Split de séance — exos envoyés vers la séance 2 (Set local UserDefaults)
     @State private var assignments: Set<String> = []
-    // Exos mobility cochés — local à l'instance (non persisté, remis à zéro à
-    // la prochaine ouverture). Aucun log en base — juste un rappel visuel qui
-    // avance la barre de progression via isItemLogged.
+    // Restored from the existing card draft; checklist state never counts as performance.
     @State private var mobilityChecked: Set<String> = []
     @State private var showSeanceSoir = false
     @State private var showRefusionConfirm = false
@@ -180,14 +178,19 @@ struct WorkoutSeanceView: View {
         return (vals.reduce(0, +) / Double(vals.count) * 2).rounded() / 2  // arrondi au 0.5
     }
 
-    private var progressDone: Int {
-        exerciseRenderItems.filter { isItemLogged($0) }.count
+    private var trackedExercises: [(String, String)] {
+        exercises.filter { WorkoutCompletion.tracks(inventoryTracking[$0.0] ?? data.inventoryTracking[$0.0]) }
     }
-    private var progressTotal: Int { exerciseRenderItems.count }
+    private var trackedResults: [String: ExerciseLogResult] {
+        WorkoutCompletion.performed(vm.logResults, tracking: inventoryTracking.merging(data.inventoryTracking) { local, _ in local })
+    }
+    private var progressDone: Int { trackedExercises.filter { trackedResults[$0.0] != nil }.count }
+    private var progressTotal: Int { trackedExercises.count }
     private var progressComplete: Bool { progressTotal > 0 && progressDone >= progressTotal }
+    private var canFinishChecklist: Bool { !exercises.isEmpty && trackedExercises.isEmpty }
 
     private func abandonMessage() -> String {
-        let logged = vm.logResults.count
+        let logged = trackedResults.count
         if logged == 0 {
             return "La séance n'a pas encore commencé. Aucune donnée ne sera perdue."
         }
@@ -351,9 +354,9 @@ struct WorkoutSeanceView: View {
                 Text("VUE RÉSUMÉ")
                     .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                 Spacer()
-                Text("\(vm.logResults.count)/\(exercises.count)")
+                Text(progressTotal == 0 ? "Checklist" : "\(progressDone)/\(progressTotal)")
                     .font(.appCaption).fontWeight(.bold)
-                    .foregroundColor(vm.logResults.count == exercises.count ? Color.appSuccess : .gray)
+                    .foregroundColor(progressComplete ? Color.appSuccess : .gray)
             }
             .padding(.horizontal, 16).padding(.bottom, 8)
             ForEach(exercises, id: \.0) { name, scheme in
@@ -578,7 +581,7 @@ struct WorkoutSeanceView: View {
                     .font(.appMicro).fontWeight(.bold).tracking(2)
                     .foregroundColor(Color.appTextMuted)
             } else {
-                Text("EXO COURANT · \(progressDone)/\(progressTotal)")
+                Text(progressTotal == 0 ? "MOBILITÉ" : "EXO COURANT · \(progressDone)/\(progressTotal)")
                     .font(.appMicro).fontWeight(.bold).tracking(2)
                     .foregroundColor(Color.appTextMuted)
             }
@@ -834,8 +837,11 @@ struct WorkoutSeanceView: View {
             showsReorderHandle: true,
             isChecked: mobilityChecked.contains(name),
             onCheckToggle: {
-                if mobilityChecked.contains(name) { mobilityChecked.remove(name) }
-                else { mobilityChecked.insert(name) }
+                let checked = !mobilityChecked.contains(name)
+                let store = ExerciseDraftPersistence(date: data.todayDate, sessionType: vm.draftSessionType, exerciseName: name)
+                if store.saveMobilityChecked(checked) {
+                    if checked { mobilityChecked.insert(name) } else { mobilityChecked.remove(name) }
+                }
             },
             sessionDate: data.todayDate,
             onSkippedChanged: { skipped in
@@ -1237,8 +1243,8 @@ struct WorkoutSeanceView: View {
 
     private var unloggedWarningSheet: some View {
         WorkoutSummarySheet(
-            exercises: exercises.map(\.0),
-            logResults: vm.logResults
+            exercises: trackedExercises.map(\.0),
+            logResults: trackedResults
         ) {
             confirmedFromWarning = true
         }
@@ -1247,8 +1253,8 @@ struct WorkoutSeanceView: View {
 
     private var finishSheet: some View {
         FinishSessionSheet(
-            exercises: exercises.map(\.0),
-            logResults: vm.logResults,
+            exercises: trackedExercises.map(\.0),
+            logResults: trackedResults,
             elapsedMin: Double(vm.chrono.elapsedSeconds) / 60.0,
             rpe: $rpe,
             comment: commentBinding,
@@ -1259,9 +1265,9 @@ struct WorkoutSeanceView: View {
                     sessionName: data.today,
                     coachingContext: progressionContext,
                     durationMin: dur,
-                    logResults: vm.logResults,
-                    exercises: exercises.map(\.0),
-                    rpe: rpe,
+                    logResults: trackedResults,
+                    exercises: trackedExercises.map(\.0),
+                    rpe: trackedResults.isEmpty ? 0 : rpe,
                     comment: comment,
                     energyPre: energyPre,
                     previousVolume: ghostData?.volume
@@ -1552,7 +1558,7 @@ struct WorkoutSeanceView: View {
 
     private var finishSessionButton: some View {
         VStack(spacing: 0) {
-            if vm.logResults.isEmpty {
+            if (trackedResults.isEmpty && !canFinishChecklist) {
                 Text("Loggue au moins 1 exercice pour terminer")
                     .font(.appCaption)
                     .foregroundColor(Color.appTextMuted)
@@ -1561,11 +1567,11 @@ struct WorkoutSeanceView: View {
                     .transition(.opacity)
             }
             Button(action: {
-                let unlogged = exercises.filter { vm.logResults[$0.0] == nil }
+                let unlogged = trackedExercises.filter { trackedResults[$0.0] == nil }
                 if unlogged.isEmpty {
                     showFinishConfirm = true
                 } else if isSecondSession {
-                    let total = data.fullProgram[data.today]?.count ?? exercises.count
+                    let total = trackedExercises.count
                     partialTotalCount = total
                     partialDoneCount = total - unlogged.count
                     showPartialSecondDialog = true
@@ -1583,17 +1589,17 @@ struct WorkoutSeanceView: View {
                         .font(.appBody).fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity, minHeight: 44).padding(.vertical, 16)
-                .background(vm.logResults.isEmpty || vm.isFinishing ? Color.appCard : Color.forge)
-                .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? Color.onAccent : Color.appTextMuted)
+                .background((trackedResults.isEmpty && !canFinishChecklist) || vm.isFinishing ? Color.appCard : Color.forge)
+                .foregroundColor(!(trackedResults.isEmpty && !canFinishChecklist) && !vm.isFinishing ? Color.onAccent : Color.appTextMuted)
                 .cornerRadius(14)
                 .overlay(
-                    !vm.logResults.isEmpty && !vm.isFinishing ? nil :
+                    !(trackedResults.isEmpty && !canFinishChecklist) && !vm.isFinishing ? nil :
                         RoundedRectangle(cornerRadius: 14)
                             .stroke(Color.appSeparator, lineWidth: .appHairline)
                 )
             }
-            .disabled(vm.logResults.isEmpty || vm.isFinishing || showFinishConfirm || showUnloggedWarning || showFinish || showPartialSecondDialog)
-            .animation(.easeInOut(duration: 0.25), value: vm.logResults.isEmpty)
+            .disabled((trackedResults.isEmpty && !canFinishChecklist) || vm.isFinishing || showFinishConfirm || showUnloggedWarning || showFinish || showPartialSecondDialog)
+            .animation(.easeInOut(duration: 0.25), value: (trackedResults.isEmpty && !canFinishChecklist))
             .animation(.spring(response: 0.4, dampingFraction: 0.7), value: completionGlow)
         }
         .padding(.horizontal, 16)
@@ -1696,7 +1702,7 @@ struct WorkoutSeanceView: View {
                         .foregroundColor(allDone ? Color.appSuccess : Color.appTextMuted)
                         .animation(.easeInOut(duration: 0.2), value: allDone)
                     Spacer()
-                    Text("\(done) / \(total)")
+                    Text(total == 0 ? "Checklist" : "\(done) / \(total)")
                         .font(.appCaption).fontWeight(.bold)
                         .foregroundColor(allDone ? Color.appSuccess : Color.appTextPrimary)
                         .monospacedDigit()
@@ -1870,9 +1876,7 @@ struct WorkoutSeanceView: View {
         .onChange(of: vm.logResults.count) { count in
             guard count > 0 else { completionGlow = false; return }
             triggerImpact(style: .light)
-            let done = exerciseRenderItems.filter { isItemLogged($0) }.count
-            let total = exerciseRenderItems.count
-            let allDone = total > 0 && done >= total
+            let allDone = progressComplete
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { completionGlow = allDone }
             guard allDone else { return }
             allLoggedPulse = true
@@ -1899,7 +1903,8 @@ struct WorkoutSeanceView: View {
         }
         .sheet(isPresented: $showRecap, onDismiss: {
             vm.prCelebrations = []
-            Task { await progressionFlow.fetch { await APIService.shared.fetchProgressionSuggestions(context: $0) } }
+            if trackedResults.isEmpty { progressionFlow.finish() }
+            else { Task { await progressionFlow.fetch { await APIService.shared.fetchProgressionSuggestions(context: $0) } } }
         }) {
             recapSheetContent
         }
@@ -1949,9 +1954,11 @@ struct WorkoutSeanceView: View {
             Button("Terminer") { showFinish = true }
             Button("Annuler", role: .cancel) {}
         } message: {
-            let logged = vm.logResults.count
-            let total = exercises.count
-            if logged < total {
+            let logged = trackedResults.count
+            let total = trackedExercises.count
+            if total == 0 {
+                Text("Terminer cette checklist de mobilité ?")
+            } else if logged < total {
                 Text("\(logged) / \(total) exercices loggués. Les exercices non loggués ne seront pas enregistrés.")
             } else {
                 Text("Tous les exercices sont loggués.")
@@ -1994,7 +2001,7 @@ struct WorkoutSeanceView: View {
         .sheet(isPresented: $showCreateVariant) { createVariantSheet }
         .onAppear(perform: handleWorkoutAppear)
         .onAppear(perform: restoreComment)
-        .onChange(of: data.todayDate) { _, _ in restoreComment() }
+        .onChange(of: data.todayDate) { _, _ in restoreComment(); restoreMobilityChecklist() }
         .onChange(of: data.inventoryTypes) { fresh in
             if !fresh.isEmpty { inventoryTypes = fresh }
         }
@@ -2094,7 +2101,15 @@ struct WorkoutSeanceView: View {
         }
     }
 
+    private func restoreMobilityChecklist() {
+        mobilityChecked = Set((data.fullProgram[data.today] ?? [:]).keys.filter { name in
+            !WorkoutCompletion.tracks(data.inventoryTracking[name]) &&
+            ExerciseDraftPersistence(date: data.todayDate, sessionType: vm.draftSessionType, exerciseName: name).loadCard()?.mobilityChecked == true
+        })
+    }
+
     private func handleWorkoutAppear() {
+        restoreMobilityChecklist()
         // W-C3 — restore ghost dismissal state for this session
         if UserDefaults.standard.bool(forKey: "ghostDismissed_\(data.today)") {
             showGhost = false

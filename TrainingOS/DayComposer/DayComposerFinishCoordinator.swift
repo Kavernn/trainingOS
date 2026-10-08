@@ -93,6 +93,13 @@ final class DayComposerFinishCoordinator: ObservableObject {
         }
     }
 
+    private func observeCoaching(_ state: DayComposerSourceFinishState?, currentFinalization: Bool = false) {
+        guard let state, let execution, execution.orderedUnits.flatMap(\.items).contains(where: {
+            $0.assignedSource == state.source && WorkoutCompletion.tracks($0.tracking)
+        }) else { return }
+        coaching.observe(state, currentFinalization: currentFinalization)
+    }
+
     let coaching: DayComposerCoachingCoordinator
 
     private weak var execution: DayComposerExecutionCoordinator?
@@ -121,12 +128,16 @@ final class DayComposerFinishCoordinator: ObservableObject {
         defer {
             // Application ACK and completion remain finalization-owned. Coaching
             // is admitted synchronously before processing becomes completed.
-            coaching.observe(productResults[source]?.reconciliation, currentFinalization: true)
+            observeCoaching(productResults[source]?.reconciliation, currentFinalization: true)
             preparing.remove(source)
         }
         do {
             guard let execution else { throw Failure.contextRejected }
-            try execution.setFinalRPE(rpe, for: source)
+            let tracks = execution.orderedUnits.flatMap(\.items).contains {
+                $0.assignedSource == source && WorkoutCompletion.tracks($0.tracking)
+            }
+            guard !tracks || rpe != 0 else { throw DayComposerFinalInputsError.invalidRPE }
+            try execution.setFinalRPE(tracks ? rpe : 0, for: source)
             let artifact = try await prepareSource(source)
             let result = await advanceSource(artifact)
             productResults[source] = result
@@ -160,14 +171,14 @@ final class DayComposerFinishCoordinator: ObservableObject {
             // Foreground/offline Coaching is not another workout finalization.
             // Keep this owner's durable confirmed completion on network failure.
             guard execution.revalidateExecutionContext() else { return }
-            coaching.observe(confirmed)
+            observeCoaching(confirmed)
             return
         }
         preparing.insert(source)
         defer {
             // Application ACK and completion remain finalization-owned. Coaching
             // is admitted synchronously before processing becomes completed.
-            coaching.observe(productResults[source]?.reconciliation)
+            observeCoaching(productResults[source]?.reconciliation)
             preparing.remove(source)
         }
         do {

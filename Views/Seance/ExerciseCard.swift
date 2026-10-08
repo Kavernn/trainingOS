@@ -54,7 +54,7 @@ struct ExerciseCard: View {
     var topAccessory: AnyView? = nil
     var showsReorderHandle: Bool = false
     // Mode check-only (trackingType="mobility") : état géré par le parent
-    // (WorkoutSeanceView.mobilityChecked, non persisté). Ignorés si !isCheckOnly.
+    // (parent, restauré depuis le draft de carte). Ignorés si !isCheckOnly.
     var isChecked: Bool = false
     var onCheckToggle: (() -> Void)? = nil
 
@@ -1209,18 +1209,20 @@ struct ExerciseCard: View {
             Text(isSecondSession ? "Soir" : "Matin").font(.caption)
             Text("Prescrit : \(scheme)")
             persistenceIssueBanner
-            if alreadyLogged {
-                Text("Mobilité enregistrée")
-                if !evm.sessionNote.isEmpty { Text(evm.sessionNote) }
-                Button("Annuler l’enregistrement") { _ = removeLog(undo: true) }
-            } else {
-                Text("Validation simple : aucune durée ni répétition mesurée.").font(.caption)
-                protocolCard()
-                Text("Brouillon — enregistre pour confirmer.").font(.caption)
-                TextField("Note de séance…", text: controlled($evm.sessionNote), axis: .vertical)
-                Button("Enregistrer la mobilité", action: doLog)
-                    .disabled(evm.logBlockedReason() != nil)
+            Button {
+                guard allowAction() else { return }
+                if alreadyLogged { _ = removeLog(undo: true) }
+                else {
+                    evm.sets[0].protocolCompleted = true
+                    doLog()
+                }
+            } label: {
+                Label(alreadyLogged ? "Mobilité faite" : "Marquer comme faite",
+                      systemImage: alreadyLogged ? "checkmark.circle.fill" : "circle")
             }
+            .frame(minHeight: 44)
+            Text("Checklist facultative · ne compte pas dans la complétion.").font(.caption)
+
         }.padding(16)
     }
 

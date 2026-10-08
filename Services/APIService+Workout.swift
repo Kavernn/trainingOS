@@ -56,7 +56,7 @@ enum WorkoutPayloadBuilder {
 
     static func summaries(_ resultsByIdentity: [String: ExerciseLogResult])
         -> (exos: [String], exerciseLogs: [[String: Any]]) {
-        summaries(resultsByIdentity.mapValues { Summary(name: $0.name, weight: $0.weight, reps: $0.reps, occurrenceKey: $0.occurrenceKey) })
+        summaries(WorkoutCompletion.performed(resultsByIdentity).mapValues { Summary(name: $0.name, weight: $0.weight, reps: $0.reps, occurrenceKey: $0.occurrenceKey) })
     }
 
     static func summaries(_ resultsByIdentity: [String: Summary])
@@ -91,8 +91,9 @@ enum WorkoutPayloadBuilder {
     static func session(exos: [String], rpe: Double, comment: String,
                         durationMin: Double?, energyPre: Int?, secondSession: Bool,
                         bonusSession: Bool, sessionName: String?, exerciseLogs: [[String: Any]],
-                        date: String?) -> [String: Any] {
-        var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment]
+                        date: String?, tracksPerformance: Bool? = nil) -> [String: Any] {
+        var body: [String: Any] = ["exos": exos, "comment": comment]
+        if tracksPerformance ?? (!exos.isEmpty || !exerciseLogs.isEmpty) { body["rpe"] = rpe }
         if let durationMin { body["duration_min"] = durationMin }
         if let energyPre { body["energy_pre"] = energyPre }
         if secondSession { body["second_session"] = true }
@@ -293,7 +294,9 @@ struct NeutralSourceFinalizationRequest {
               body["date"] as? String == date, body["session_name"] as? String == sessionName,
               (body["second_session"] as? Bool ?? false) == (source == .evening),
               (body["bonus_session"] as? Bool ?? false) == false,
-              body["exos"] is [String], body["comment"] is String, body["rpe"] is NSNumber else {
+              body["exos"] is [String], body["comment"] is String,
+              body["rpe"] is NSNumber || (body["rpe"] == nil && (body["exos"] as? [String]) == []
+                  && (body["exercise_logs"] == nil || (body["exercise_logs"] as? [[String: Any]])?.isEmpty == true)) else {
             throw NeutralSubmissionValidationError.inconsistentSource
         }
         self.source = source

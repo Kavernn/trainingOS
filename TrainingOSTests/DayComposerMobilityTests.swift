@@ -65,14 +65,14 @@ final class DayComposerMobilityTests: XCTestCase {
         XCTAssertEqual(vm.submitLog(alreadyLoggedViaBinding: false) {
             f.coordinator.submit(candidate: $0, for: id)
         }, .accepted)
-        XCTAssertEqual(f.coordinator.treatedCount, 1)
+        XCTAssertEqual(f.coordinator.treatedCount, 0)
         XCTAssertNil(f.coordinator.eveningVM.logResults[mobility])
         XCTAssertEqual(f.coordinator.morningVM.logResults[mobility]?.notes, "note exacte\n")
         f.coordinator.advanceAfterAcceptedLog(itemID: id)
         let next = f.coordinator.currentMemberID
         f.coordinator.advanceAfterAcceptedLog(itemID: id)
         XCTAssertEqual(f.coordinator.currentMemberID, next)
-        XCTAssertEqual(f.coordinator.treatedCount, 1)
+        XCTAssertEqual(f.coordinator.treatedCount, 0)
         XCTAssertEqual(vm.removeAcceptedLog { _ in f.coordinator.submit(candidate: nil, for: id) }, .accepted)
         XCTAssertEqual(f.coordinator.treatedCount, 0)
         vm.isSkipped = true
@@ -104,7 +104,7 @@ final class DayComposerMobilityTests: XCTestCase {
             let prepared = try engine.prepareSource(source, server: r.server(source))
             XCTAssertEqual(before[index], DayComposerFinalCaptureTests.Oracle(prepared))
             let json = try XCTUnwrap(JSONSerialization.jsonObject(with: prepared.adapter.finalData) as? [String: Any])
-            XCTAssertTrue((json["exos"] as? [String])?.contains("\(mobility) · mobilité réalisée") == true)
+            XCTAssertFalse((json["exos"] as? [String] ?? []).contains { $0.contains(mobility) })
             XCTAssertEqual(prepared.adapter.exercises.count, 2)
         }
     }

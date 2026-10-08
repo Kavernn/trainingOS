@@ -193,7 +193,7 @@ struct FinishSessionSheet: View {
                         VStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundColor(Color.forge)
                             Text("Terminer la séance").font(.appTitle).foregroundColor(.appTextPrimary)
-                            Text("\(loggedCount) / \(exercises.count) exercices loggés").font(.appLabel).foregroundColor(.gray)
+                            Text(exercises.isEmpty ? "Checklist · aucun exercice tracké" : "\(loggedCount) / \(exercises.count) exercices loggés").font(.appLabel).foregroundColor(.gray)
                         }.padding(.top, 20)
 
                         // Durée auto-calculée
@@ -218,7 +218,7 @@ struct FinishSessionSheet: View {
                                 Text("EXERCICES")
                                     .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 Spacer()
-                                Text("\(loggedCount)/\(exercises.count)")
+                                Text(exercises.isEmpty ? "—" : "\(loggedCount)/\(exercises.count)")
                                     .font(.appCaption).fontWeight(.bold)
                                     .foregroundColor(loggedCount == exercises.count ? .statusGreen : .statusOrange)
                             }
@@ -231,7 +231,7 @@ struct FinishSessionSheet: View {
                                         .foregroundColor(result != nil ? .statusGreen : Color.statusOrange.opacity(0.6))
                                     Text(name)
                                         .font(.appLabel)
-                                        .foregroundColor(result != nil ? .white : .gray)
+                                        .foregroundColor(result != nil ? Color.appTextPrimary : .gray)
                                     Spacer()
                                     if let r = result {
                                         Text("\(UnitSettings.shared.format(r.weight)) · \(r.reps)")
@@ -247,6 +247,7 @@ struct FinishSessionSheet: View {
                         }
                         .background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
 
+                        if !exercises.isEmpty {
                         // Effort global — saisie via RIR tiles
                         VStack(alignment: .leading, spacing: 10) {
                             Text("EFFORT GLOBAL").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
@@ -273,6 +274,7 @@ struct FinishSessionSheet: View {
                             }
                         }
                         .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
+                        }
 
                         // Énergie — affichage inline si déjà saisie pendant la séance
                         if let pre = preEnergy {
@@ -294,7 +296,7 @@ struct FinishSessionSheet: View {
                         }
 
                         // Extras collapsible (notes, IA — ou énergie si pas encore saisie)
-                        let extrasLabel = preEnergy != nil ? "Notes · Analyse IA" : "Énergie · Notes · Analyse IA"
+                        let extrasLabel = exercises.isEmpty ? (preEnergy != nil ? "Notes" : "Énergie · Notes") : (preEnergy != nil ? "Notes · Analyse IA" : "Énergie · Notes · Analyse IA")
                         Button(action: { withAnimation(.easeInOut(duration: 0.2)) { showExtras.toggle() } }) {
                             HStack(spacing: 6) {
                                 Image(systemName: showExtras ? "chevron.up" : "chevron.down")
@@ -523,7 +525,7 @@ struct SessionRecapSheet: View {
 
     private var exerciseSummary: String? {
         let logged = snapshot.logResults.count
-        guard logged > 0 else { return nil }
+        guard logged > 0 else { return snapshot.exercises.isEmpty ? "Checklist · aucun exercice tracké" : nil }
         let planned = snapshot.exercises.count
         let loggedPlural = logged == 1 ? "" : "s"
         let loggedLabel = "\(logged) exercice\(loggedPlural) renseigné\(loggedPlural)"

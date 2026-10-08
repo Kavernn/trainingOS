@@ -49,7 +49,7 @@ enum DayComposerReadinessReason: Equatable {
 
 struct DayComposerSourceReadiness: Equatable {
     enum State: Equatable { case untouched, partial, ready, alreadyCompletedClean, reviewRequired, blockedContext }
-    enum Satisfaction: Equatable { case local, serverObserved, incomplete, review }
+    enum Satisfaction: Equatable { case local, serverObserved, incomplete, review, checklist }
     struct Item: Equatable {
         let id: DayComposerItemID
         let satisfaction: Satisfaction
@@ -93,6 +93,9 @@ enum DayComposerReadiness {
             let observed = fresh && input.server.observedNames.contains(item.storageKey)
             func result(_ satisfaction: DayComposerSourceReadiness.Satisfaction) -> DayComposerSourceReadiness.Item {
                 .init(id: item.id, satisfaction: satisfaction)
+            }
+            if !WorkoutCompletion.tracks(item.tracking), fact.draft != .corrupt, fact.local != .invalid {
+                return result(.checklist)
             }
             if fact.draft == .corrupt {
                 reasons.append(.corruptDraft(item.id)); review = true; return result(.review)

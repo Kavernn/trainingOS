@@ -84,7 +84,7 @@ struct AlreadyLoggedSeanceView: View {
         guard let program = data.fullProgram[data.today] else { return [] }
         let order = data.exerciseOrder[data.today] ?? program.keys.sorted()
         return order.compactMap { name -> (String, String)? in
-            guard let scheme = program[name] else { return nil }
+            guard let scheme = program[name], WorkoutCompletion.tracks(data.inventoryTracking[name]) else { return nil }
             let loggedToday = data.weights[name]?.history?.first?.date == data.todayDate
             return loggedToday ? nil : (name, scheme.value)
         }

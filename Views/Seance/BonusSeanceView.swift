@@ -158,10 +158,7 @@ class BonusSeanceViewModel: SeanceViewModel {
         defer { isFinishing = false }
         prepareFinishRetry(rpe: rpe, comment: comment, durationMin: durationMin, energyPre: energyPre,
                            sessionName: sessionName, bonusSession: bonusSession, closeSession: closeSession)
-        let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
-        let exerciseLogs: [[String: Any]] = logResults.values.map {
-            ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
-        }
+        let (exos, exerciseLogs) = WorkoutPayloadBuilder.summaries(logResults)
         guard await saveExercisesForFinish(isSecond: false, isBonus: true, collectPRs: false) else { return }
 
         do {
@@ -178,7 +175,7 @@ class BonusSeanceViewModel: SeanceViewModel {
         }
 
         await refreshBonusDashboard()
-        await recordBonusWorkout()
+        if hasPerformedTrackedWork { await recordBonusWorkout() }
         showSuccess = true
     }
 }
@@ -187,6 +184,7 @@ class BonusSeanceViewModel: SeanceViewModel {
 struct BonusSeanceView: View {
     var isRestDay: Bool = false
     @StateObject private var vm = BonusSeanceViewModel()
+    @State private var mobilityChecked: Set<String> = []
     @State private var localExercises: [String: String] = [:]
     @State private var exerciseOrder: [String] = []
     @State private var inventoryTypes: [String: String] = [:]
@@ -269,6 +267,13 @@ struct BonusSeanceView: View {
             unilateral: [inventoryUnilateral[name], vm.seanceData?.inventoryUnilateral[name], pushedUnilateral[name]].compactMap { $0 })
     }
 
+    private var trackedExercises: [String] {
+        orderedExercises.filter { WorkoutCompletion.tracks(inventoryTracking[$0] ?? vm.seanceData?.inventoryTracking[$0]) }
+    }
+    private var trackedResults: [String: ExerciseLogResult] {
+        WorkoutCompletion.performed(vm.logResults, tracking: inventoryTracking)
+    }
+
     private var orderedExercises: [String] {
         visibleExercises.map(\.id)
     }
@@ -313,6 +318,14 @@ struct BonusSeanceView: View {
                 }
             },
             nextExerciseName: next,
+            isChecked: mobilityChecked.contains(name),
+            onCheckToggle: {
+                let checked = !mobilityChecked.contains(name)
+                let store = ExerciseDraftPersistence(date: vm.seanceData?.todayDate ?? todayDateStr, sessionType: "bonus", exerciseName: name)
+                if store.saveMobilityChecked(checked) {
+                    if checked { mobilityChecked.insert(name) } else { mobilityChecked.remove(name) }
+                }
+            },
             sessionDate: vm.seanceData?.todayDate ?? todayDateStr,
             recoveredInitialState: hydration,
             reconstructionMetadata: ExerciseReconstructionMetadata(
@@ -420,9 +433,9 @@ struct BonusSeanceView: View {
                     .foregroundColor(Color.forge)
             }
             .padding(.horizontal, 16)
-        } else if !vm.logResults.isEmpty {
+        } else if !trackedResults.isEmpty || (!orderedExercises.isEmpty && trackedExercises.isEmpty) {
             Button {
-                let unlogged = orderedExercises.filter { vm.logResults[$0] == nil }
+                let unlogged = trackedExercises.filter { trackedResults[$0] == nil }
                 if unlogged.isEmpty {
                     showFinish = true
                 } else {
@@ -448,8 +461,8 @@ struct BonusSeanceView: View {
 
     private var unloggedWarningSheet: some View {
         WorkoutSummarySheet(
-            exercises: orderedExercises,
-            logResults: vm.logResults
+            exercises: trackedExercises,
+            logResults: trackedResults
         ) {
             confirmedFromWarning = true
         }
@@ -474,8 +487,8 @@ struct BonusSeanceView: View {
 
     private var finishSheet: some View {
         FinishSessionSheet(
-            exercises: orderedExercises,
-            logResults: vm.logResults,
+            exercises: trackedExercises,
+            logResults: trackedResults,
             elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
             rpe: $rpe,
             comment: commentBinding,
@@ -714,6 +727,13 @@ struct BonusSeanceView: View {
     private func loadBonusPlan() async {
         let bonusState = await vm.loadBonusState()
         restoreComment()
+        let date = vm.seanceData?.todayDate ?? todayDateStr
+        mobilityChecked = Set(UserDefaults.standard.dictionaryRepresentation().keys.compactMap { key in
+            let prefix = "\(ExerciseDraftPersistence.keyPrefix)\(date)_bonus_"
+            guard key.hasPrefix(prefix) else { return nil }
+            let name = String(key.dropFirst(prefix.count))
+            return ExerciseDraftPersistence(date: date, sessionType: "bonus", exerciseName: name).loadCard()?.mobilityChecked == true ? name : nil
+        })
         guard let bonus = bonusState else { return }
 
         let newPushed = bonus.pushedToBonus

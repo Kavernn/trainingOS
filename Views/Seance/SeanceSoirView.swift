@@ -129,7 +129,7 @@ class SeanceSoirViewModel: SeanceViewModel {
         }
         await refreshEveningDashboard()
         guard seanceData?.todayDate == date else { return }
-        await recordEveningWorkout()
+        if hasPerformedTrackedWork { await recordEveningWorkout() }
         // completed is server status only. Never retire unacknowledged local content.
         if SessionDraftStore.isAutomaticCleanupAllowed(date: date, sessionType: draftSessionType) {
             SessionDraftStore.clear(date: date, sessionType: draftSessionType)

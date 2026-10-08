@@ -250,7 +250,15 @@ struct DayComposerActiveView: View {
                             }.frame(minHeight: 44)
                         }
                         if state == .ready {
-                            Button("Terminer \(source.title)") { selectedRPE = nil; present(.rpe(source)) }
+                            Button("Terminer \(source.title)") {
+                                let hasTracked = coordinator.orderedUnits.flatMap(\.items).contains {
+                                    $0.assignedSource == source && WorkoutCompletion.tracks($0.tracking)
+                                }
+                                if hasTracked { selectedRPE = nil; present(.rpe(source)) }
+                                else {
+                                    operations[source] = Task { await finishCoordinator.finishSource(source, rpe: 0) }
+                                }
+                            }
                                 .frame(minHeight: 44)
                                 .buttonStyle(.borderedProminent)
                                 .disabled(!coordinator.canOfferFinish(source) || coaching.activeSource != nil)
@@ -367,7 +375,7 @@ private struct DayComposerActiveHeader: View {
             HStack {
                 if let source = coordinator.selectedSource { DayComposerSourceChip(source: source) }
                 Spacer()
-                Text("\(coordinator.treatedCount) / \(coordinator.executableCount) enregistrés")
+                Text(coordinator.executableCount == 0 ? "Checklist · aucun exercice tracké" : "\(coordinator.treatedCount) / \(coordinator.executableCount) enregistrés")
                     .font(.appCaption.monospacedDigit())
                     .accessibilityLabel("\(coordinator.treatedCount) sur \(coordinator.executableCount) exercices enregistrés")
             }

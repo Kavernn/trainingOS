@@ -127,6 +127,7 @@ struct DraftSet: Codable {
 // MARK: - ExerciseDraftPersistence
 
 struct ExerciseCardDraft: Codable {
+    var mobilityChecked: Bool? = nil
     var sets: [DraftSet]
     var sessionNote: String? = nil
     var equipmentType: String? = nil
@@ -190,7 +191,7 @@ struct ExerciseDraftPersistence {
 
     func saveResult(_ drafts: [DraftSet], sessionNote: String? = nil, equipmentType: String? = nil, barWeight: Double? = nil) -> LocalPersistenceResult {
         guard authorizationIsValid else { return .rejectedContext }
-        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(sets: drafts, sessionNote: sessionNote, equipmentType: equipmentType, barWeight: barWeight)) else { return .failed }
+        guard let data = try? APIService.encoder.encode(ExerciseCardDraft(mobilityChecked: loadCard()?.mobilityChecked, sets: drafts, sessionNote: sessionNote, equipmentType: equipmentType, barWeight: barWeight)) else { return .failed }
         // An unchanged restoration/debounce is a no-op, not a classic edit.
         if let previous = UserDefaults.standard.data(forKey: key),
            let oldJSON = try? JSONSerialization.jsonObject(with: previous),
@@ -214,6 +215,19 @@ struct ExerciseDraftPersistence {
         // Existing drafts stored only the set array under this same key.
         guard let sets = try? APIService.decoder.decode([DraftSet].self, from: data) else { return nil }
         return ExerciseCardDraft(sets: sets)
+    }
+
+    /// Uses the existing card draft, without manufacturing a set or a log.
+    @discardableResult
+    func saveMobilityChecked(_ checked: Bool) -> Bool {
+        guard authorizationIsValid, presence() != .presentUnreadable else { return false }
+        var card = loadCard() ?? ExerciseCardDraft(sets: [])
+        card.mobilityChecked = checked
+        guard let data = try? APIService.encoder.encode(card) else { return false }
+        let saved = DayComposerProvenanceStore.shared.mutate(date: date, sessionType: sessionType, authorization: authorization) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+        return saved && loadCard()?.mobilityChecked == checked
     }
 
     @discardableResult
@@ -1614,6 +1628,10 @@ class SeanceViewModel: ObservableObject {
     }
     let chrono = WorkoutChronoViewModel()
 
+    var hasPerformedTrackedWork: Bool {
+        !WorkoutCompletion.performed(logResults, tracking: seanceData?.inventoryTracking ?? [:]).isEmpty
+    }
+
     var cacheService: CacheService = .shared
     private var followsActivePlanning = false
     private var planningObserver: NSObjectProtocol?
@@ -1648,7 +1666,7 @@ class SeanceViewModel: ObservableObject {
             // not execution. Protect unreadable recovery and every non-default input;
             // this check never deletes or rewrites a draft.
             guard let draft = store.loadCard() else { return true }
-            if !(draft.sessionNote ?? "").isEmpty { return true }
+            if draft.mobilityChecked == true || !(draft.sessionNote ?? "").isEmpty { return true }
             let blank = SetInput()
             return draft.sets.contains {
                 !$0.weight.isEmpty || !$0.reps.isEmpty || $0.rir != blank.rir ||
@@ -1941,7 +1959,9 @@ class SeanceViewModel: ObservableObject {
         } else {
             applyCompletedSessionRecoveryPolicy()
             BehaviorTracker.shared.record(.sessionEnd)
-            await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
+            if hasPerformedTrackedWork {
+                await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
+            }
             showSuccess = true
         }
     }

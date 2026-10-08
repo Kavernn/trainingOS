@@ -41,19 +41,20 @@ struct DayComposerFinalizationRequestAdapter {
             items: items, exerciseVersions: snapshot.exerciseVersions, comment: local.comment)
         guard expected == snapshot.sourceVersion, requests.count == snapshot.exerciseVersions.count,
               requests.count == snapshot.payloads.count else { throw DayComposerFinalizationError.invalidRecord }
-        let summary = WorkoutPayloadBuilder.summaries(projection)
-        let exos = projection.keys.sorted().compactMap { name -> String? in
-            guard let value = projection[name] else { return nil }
-            if items.contains(where: { $0.storageKey == name && $0.tracking == "mobility" }) {
-                return "\(value.name) · mobilité réalisée"
-            }
-            return "\(value.name) \(value.weight)lbs \(value.reps)"
+        let tracked = projection.filter { key, _ in
+            items.contains { $0.storageKey == key && WorkoutCompletion.tracks($0.tracking) }
         }
+        let tracksPerformance = items.contains { WorkoutCompletion.tracks($0.tracking) }
+        guard !tracksPerformance || capture.finalInputs.values.rpe != 0 else {
+            throw DayComposerFinalInputsError.invalidRPE
+        }
+        let summary = WorkoutPayloadBuilder.summaries(tracked)
+        let exos = summary.exos
         let bytes = try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.session(
             exos: exos, rpe: capture.finalInputs.values.rpe, comment: local.comment,
             durationMin: nil, energyPre: nil, secondSession: local.source == .evening,
             bonusSession: false, sessionName: local.identity.session(for: local.source),
-            exerciseLogs: summary.exerciseLogs, date: local.identity.date))
+            exerciseLogs: summary.exerciseLogs, date: local.identity.date, tracksPerformance: tracksPerformance))
         self.snapshot = snapshot
         exercises = requests
         finalData = bytes

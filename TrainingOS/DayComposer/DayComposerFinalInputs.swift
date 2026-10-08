@@ -20,7 +20,8 @@ struct DayComposerFinalInputs: Codable, Equatable {
     }
 
     func validate() throws {
-        guard rpe.isFinite, [6.0, 7, 8, 9, 10].contains(rpe) else {
+        // Zero is the local neutral checklist marker; never sent as a performance RPE.
+        guard rpe.isFinite, [0.0, 6, 7, 8, 9, 10].contains(rpe) else {
             throw DayComposerFinalInputsError.invalidRPE
         }
         // No producer for either optional exists in p1, including non-finite durations.
