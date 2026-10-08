@@ -56,6 +56,15 @@ final class ProgrammeViewModel: ObservableObject {
         return name
     }
 
+    // Today's cards use the dated execution endpoints, never the editable template.
+    @Published private(set) var todayPlans: [String: SeanceData] = [:]
+
+    func todayPlan(session: String, source: DayComposerSource) -> SeanceData? {
+        guard loadedProgramId == activeProgramId, let plan = todayPlans[source.rawValue],
+              plan.today == session, plan.todayDate == DateFormatter.isoDate.string(from: now()) else { return nil }
+        return plan
+    }
+
     // MARK: - Inventaire (SERVEUR — hydraté par applyJSON)
 
     @Published var fullProgram: [String: [String: String]] = [:]
@@ -322,10 +331,21 @@ final class ProgrammeViewModel: ObservableObject {
             if let preview { query.append(URLQueryItem(name: "session_name", value: preview.morning.session)) }
             let weightsURL = try APIService.shared.buildURL(path: "/api/seance_data", queryItems: query)
             let morning = Task { try await self.read(weightsURL).0 }
+            let pmName = currentId == activeId ? evening[TrainingDoctrine.dayName(on: capturedDate)] : nil
+            let pmURL = try pmName.map { name in
+                try APIService.shared.buildURL(path: "/api/seance_data", queryItems: [
+                    URLQueryItem(name: "date", value: date), URLQueryItem(name: "program_id", value: activeId),
+                    URLQueryItem(name: "session_name", value: name)])
+            }
+            let eveningPlan = Task<Data?, Never> {
+                guard let pmURL else { return nil }
+                return try? await self.read(pmURL).0
+            }
             // Publish the whole planning replacement on MainActor, without an
             // intervening await. Supporting weights cannot clear the candidate.
             if loadedProgramId != currentId { programSuggestions = [:] }
             applyJSON(json)
+            todayPlans = [:]
             eveningSchedule = currentId == activeId ? evening.filter { fullProgram[$0.value] != nil } : evening
             if let preview {
                 let transport = self.transport
@@ -342,7 +362,17 @@ final class ProgrammeViewModel: ObservableObject {
             if currentId == activeId { cache.save(data, for: "programme_data") }
             // No cancellation of this shared read by a disappearing refresh
             // waiter: the preparation may already be using its result.
-            if let wData = try? await morning.value, current(),
+            let morningData = try? await morning.value
+            let eveningPlanData = await eveningPlan.value
+            if current(), currentId == activeId {
+                var plans: [String: SeanceData] = [:]
+                for (source, bytes) in [("morning", morningData), ("evening", eveningPlanData)] {
+                    if let bytes, let plan = try? APIService.decoder.decode(SeanceData.self, from: bytes),
+                       plan.todayDate == date { plans[source] = plan }
+                }
+                todayPlans = plans
+            }
+            if let wData = morningData, current(),
                let wJson = try JSONSerialization.jsonObject(with: wData) as? [String: Any],
                let weights = wJson["weights"] as? [String: [String: Any]] {
                 exerciseWeights = weights.compactMapValues { d in

@@ -24,11 +24,18 @@ struct DayComposerStore {
               let saved = try? JSONDecoder().decode(DayComposerState.self, from: data),
               (saved.version == 1 || saved.version == 2), saved.date == snapshot.date,
               saved.activeProgramID == snapshot.activeProgramID,
-              saved.sourceFingerprint == (try snapshot.fingerprint),
-              let units = snapshot.units(for: saved.orderedItemIDs) else { return .incompatible }
+              saved.sourceFingerprint == (try snapshot.fingerprint) else { return .incompatible }
+        let savedIDs = Set(saved.orderedItemIDs)
+        guard savedIDs.count == saved.orderedItemIDs.count,
+              savedIDs.isSubset(of: Set(snapshot.initialIDs)) else { return .incompatible }
+        // An order is not a whitelist. Keep compatible items absent from an
+        // older/partial order; execution/save validation remains exhaustive.
+        let mergedIDs = saved.orderedItemIDs + snapshot.initialIDs.filter { !savedIDs.contains($0) }
+        guard let units = snapshot.units(for: mergedIDs) else { return .incompatible }
         if saved.version == 1 { return .restored(units) }
-        guard let assignments = saved.assignments, assignments.count == snapshot.initialIDs.count,
-              Set(assignments.map(\.id)) == Set(snapshot.initialIDs) else { return .incompatible }
+        guard let assignments = saved.assignments,
+              Set(assignments.map(\.id)).count == assignments.count,
+              Set(assignments.map(\.id)).isSubset(of: Set(snapshot.initialIDs)) else { return .incompatible }
         let mapping = Dictionary(uniqueKeysWithValues: assignments.map { ($0.id, $0.source) })
         let assigned = units.map { unit in
             DayComposerUnit(items: unit.items.map { item in

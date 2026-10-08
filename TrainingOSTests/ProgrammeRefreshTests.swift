@@ -254,7 +254,8 @@ final class ProgrammeRefreshTests: XCTestCase {
         await load.value
         _ = try await candidate.resolve()
         _ = try await candidate.resolve()
-        XCTAssertEqual(f.requests.filter { $0.url?.path == "/api/seance_data" }.count, 1)
+        XCTAssertEqual(f.requests.filter { $0.url?.path == "/api/seance_data" }.count, 2,
+                       "One named AM and one named PM read for Today cards")
         XCTAssertEqual(f.requests.filter { $0.url?.path == "/api/evening_schedule" }.count, 1)
         XCTAssertEqual(f.requests.filter { $0.url?.path == "/api/programme_data" }.count, 2,
                        "One initial read and one final context validation, no duplicated initial reads")

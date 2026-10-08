@@ -834,7 +834,7 @@ struct ProgrammeView: View {
     private var heroMatin: some View {
         if let name = todaySessionName {
             let displayedName = displaySessionName(name)
-            heroCard(sessionName: name, badge: "MATIN", role: .info) {
+            heroCard(sessionName: name, source: .morning, badge: "MATIN", role: .info) {
                 NavigationLink(destination: SeanceView()) {
                     heroCTA
                 }
@@ -853,7 +853,7 @@ struct ProgrammeView: View {
                 inheritedHeroSoir(morningName: resolved.name)
             } else {
                 let displayedName = displaySessionName(resolved.name)
-                heroCard(sessionName: resolved.name, badge: "SOIR", role: .evening) {
+                heroCard(sessionName: resolved.name, source: .evening, badge: "SOIR", role: .evening) {
                     Button {
                         showSeanceSoirSheet = true
                     } label: {
@@ -920,13 +920,17 @@ struct ProgrammeView: View {
     @ViewBuilder
     private func heroCard<Cta: View>(
         sessionName: String,
+        source: DayComposerSource,
         badge: String,
         role: BadgeRole,
         @ViewBuilder cta: () -> Cta
     ) -> some View {
-        let exercises = vm.fullProgram[sessionName] ?? [:]
+        let plan = vm.todayPlan(session: sessionName, source: source)
+        let exercises = plan?.fullProgram[sessionName]?.mapValues(\.value) ?? [:]
         let displayedName = displaySessionName(sessionName)
-        let ordered = vm.exerciseOrder[sessionName] ?? exercises.keys.sorted()
+        let savedOrder = plan?.exerciseOrder[sessionName] ?? []
+        let ordered = savedOrder.filter { exercises[$0] != nil }
+            + exercises.keys.filter { !savedOrder.contains($0) }.sorted()
         let isExpanded = expandedTodayCard == badge
         let visibleExercises = isExpanded ? ordered : Array(ordered.prefix(3))
         let remainingCount = max(exercises.count - 3, 0)
@@ -941,7 +945,11 @@ struct ProgrammeView: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(badge.capitalized). \(displayedName). \(exercisesCountLabel(exercises.count)).")
-            if exercises.isEmpty {
+            if plan == nil {
+                Text("Actualiser pour charger la séance du jour.")
+                    .font(.appLabel).foregroundColor(.appTextSecondary)
+                cta()
+            } else if exercises.isEmpty {
                 Text("Aucun exercice programmé.")
                     .font(.appLabel).foregroundColor(.appTextSecondary)
                     .accessibilityHidden(true)

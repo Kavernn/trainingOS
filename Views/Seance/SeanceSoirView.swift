@@ -36,11 +36,8 @@ class SeanceSoirViewModel: SeanceViewModel {
     func recordEveningWorkout() async {
         await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
     }
-    /// Nom soir override manuel — passé par les call sites qui affichent
-    /// eveningSessionName (Dashboard, hero SOIR ProgrammeView). nil = héritage
-    /// matin (comportement historique : charge la séance matin, filtrée par
-    /// SeanceSplitStore). Non-nil = vrai override, charge cette séance-là et
-    /// bypass le filtre split côté WorkoutSeanceView.
+    /// Explicit PM planning name from Dashboard/Programme. Without a name,
+    /// the server resolves the evening slot, including exercises sent from AM.
     let overrideSessionName: String?
 
     init(sessionName: String? = nil) {
@@ -48,24 +45,19 @@ class SeanceSoirViewModel: SeanceViewModel {
         super.init(draftSessionType: "evening")
     }
 
-    override func load() async {
-        // Cache "seance_data" (matin) ne s'applique QUE si override matin (chemin
-        // fetchSeanceData conservé — backend soir n'accepte pas encore session_name,
-        // report carnet voie A v2). Sans override : /api/seance_soir_data sert le vrai
-        // plan evening (slot='evening' seedé), pas de cache soir dédié pour l'instant.
-        if seanceData == nil, overrideSessionName != nil,
-           let cached = cacheService.load(for: "seance_data"),
-           let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
-            seanceData = decoded
-            restoreLogResults(from: decoded, serverSessionType: "morning", serverCompleted: decoded.alreadyLogged)
-        }
+    func fetchNamedSession(_ name: String) async throws -> SeanceData {
+        try await APIService.shared.fetchSeanceData(sessionName: name)
+    }
 
+    override func load() async {
+        // Never seed a PM owner from the AM cache: WorkoutSeanceView captures
+        // its editable plan on appearance, before the named PM read completes.
         if seanceData == nil { isLoading = true }
         error = nil
         do {
             let fresh: SeanceData
             if let name = overrideSessionName {
-                fresh = try await APIService.shared.fetchSeanceData(sessionName: name)
+                fresh = try await fetchNamedSession(name)
             } else {
                 let soir = try await APIService.shared.fetchSeanceSoirData()
                 guard let bridged = soir.asSeanceData() else {
