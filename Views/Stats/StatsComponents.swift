@@ -2217,3 +2217,307 @@ struct PeriodPicker: View {
 
 // MARK: - Smart Insights Banner
 // MARK: - Adherence Rings Card
+
+// MARK: - Ma semaine (en tête de la Vue d'ensemble)
+//
+// Deux dimensions motivation :
+//  a) semaine courante vs semaine passée AU MÊME JOUR — volume cumulé + séances
+//  b) avancement vs objectif de la semaine — slots faits / prévus + volume fait / ref
+//
+// Source unique : trainingLoad.daily (backend cockpit, mêmes filtres que weekly).
+// Zéro somme locale d'exerciseVolume. Semaines deload détectées via daily.isDeload.
+struct StatsMySevenDaysCard: View {
+    let trainingLoad: StatsCockpitTrainingLoad
+    let sessions: [String: SessionEntry]
+    let plan: DashboardPlan?
+
+    private static let isoCal: Calendar = {
+        var cal = Calendar(identifier: .iso8601)
+        cal.timeZone = TimeZone(identifier: "America/Montreal") ?? .current
+        return cal
+    }()
+    private static let fmt = DateFormatter.isoDate
+
+    // ── Fenêtres ─────────────────────────────────────────────────────────────
+
+    private var monday: Date { thisMonday() }
+    private var mondayStr: String { Self.fmt.string(from: monday) }
+    private var sundayStr: String { Self.fmt.string(from: Self.isoCal.date(byAdding: .day, value: 6, to: monday) ?? monday) }
+    private var prevMondayStr: String { Self.fmt.string(from: Self.isoCal.date(byAdding: .day, value: -7, to: monday) ?? monday) }
+    private var todayIdx: Int { // 0 = Lun … 6 = Dim, borné à 6
+        let w = Self.isoCal.component(.weekday, from: Date())
+        return (w + 5) % 7
+    }
+
+    private func thisMonday() -> Date {
+        let today = Date()
+        var comps = Self.isoCal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
+        comps.weekday = 2
+        return Self.isoCal.date(from: comps) ?? today
+    }
+
+    // ── Courbes cumulées ─────────────────────────────────────────────────────
+
+    private struct Point: Identifiable {
+        let id: String   // "cur-0", "prev-3"
+        let series: String
+        let dayIdx: Int
+        let volume: Double
+    }
+
+    private func cumulative(from startStr: String, upTo endIdx: Int) -> [(dayIdx: Int, volume: Double)] {
+        guard let start = Self.fmt.date(from: startStr) else { return [] }
+        var running = 0.0
+        var out: [(Int, Double)] = []
+        for i in 0...endIdx {
+            let d = Self.fmt.string(from: Self.isoCal.date(byAdding: .day, value: i, to: start) ?? start)
+            running += trainingLoad.daily.first(where: { $0.date == d })?.tonnage.value ?? 0
+            out.append((i, running))
+        }
+        return out
+    }
+
+    private var currentCurve: [(dayIdx: Int, volume: Double)] { cumulative(from: mondayStr, upTo: todayIdx) }
+    private var previousCurve: [(dayIdx: Int, volume: Double)] { cumulative(from: prevMondayStr, upTo: 6) }
+
+    private var chartPoints: [Point] {
+        var all: [Point] = []
+        for (i, v) in currentCurve  { all.append(.init(id: "cur-\(i)",  series: "Cette semaine",   dayIdx: i, volume: v)) }
+        for (i, v) in previousCurve { all.append(.init(id: "prev-\(i)", series: "Semaine passée",  dayIdx: i, volume: v)) }
+        return all
+    }
+
+    // ── Deload (semaine courante / passée) ───────────────────────────────────
+
+    private func anyDeload(from startStr: String, days: Int = 7) -> Bool {
+        guard let start = Self.fmt.date(from: startStr) else { return false }
+        for i in 0..<days {
+            let d = Self.fmt.string(from: Self.isoCal.date(byAdding: .day, value: i, to: start) ?? start)
+            if trainingLoad.daily.first(where: { $0.date == d })?.isDeload == true { return true }
+        }
+        return false
+    }
+
+    private var isCurrentDeload: Bool { anyDeload(from: mondayStr, days: todayIdx + 1) }
+    private var isPreviousDeload: Bool { anyDeload(from: prevMondayStr) }
+
+    // ── Référence 4 semaines ─────────────────────────────────────────────────
+
+    private struct WeekRef { let tonnage: Double; let sessions: Int }
+
+    /// Détecte si une semaine ISO (weekStart "YYYY-MM-DD") a au moins un jour en deload.
+    private func weekIsDeload(_ weekStart: String) -> Bool { anyDeload(from: weekStart) }
+
+    private var reference: (volume: Double, sessions: Double)? {
+        let completeNonDeload = trainingLoad.weekly
+            .filter { !$0.isPartial && !weekIsDeload($0.weekStart) }
+            .sorted { $0.weekStart > $1.weekStart }   // plus récentes en premier
+        guard completeNonDeload.count >= 2 else { return nil }
+        let last4 = Array(completeNonDeload.prefix(4))
+        let vols = last4.compactMap { $0.tonnage.value }
+        let sess = last4.map { Double($0.sessionCount) }
+        guard !vols.isEmpty else { return nil }
+        return (volume: vols.reduce(0, +) / Double(vols.count),
+                sessions: sess.reduce(0, +) / Double(sess.count))
+    }
+
+    // ── Séances prévues / faites ─────────────────────────────────────────────
+
+    private var plannedSlotsThisWeek: Int {
+        guard let plan else { return 0 }
+        return TrainingDoctrine.dayNames.reduce(0) { acc, day in
+            let am = plan.programme.schedule[day]
+            let pm = plan.eveningSchedule[day]
+            return acc
+                + (isActive(am) ? 1 : 0)
+                + (isActive(pm) ? 1 : 0)
+        }
+    }
+
+    private func isActive(_ name: String?) -> Bool {
+        guard let name, !name.isEmpty, name.lowercased() != "repos" else { return false }
+        return true
+    }
+
+    private var doneSlotsThisWeek: Int {
+        var total = 0
+        for i in 0...todayIdx {
+            let d = Self.fmt.string(from: Self.isoCal.date(byAdding: .day, value: i, to: monday) ?? monday)
+            total += sessions[d]?.sessionCount ?? 0
+        }
+        return total
+    }
+
+    private var doneSlotsPrevWeek: Int {
+        var total = 0
+        for i in 0...todayIdx {
+            let d = Self.fmt.string(from: Self.isoCal.date(byAdding: .day, value: i, to: Self.isoCal.date(byAdding: .day, value: -7, to: monday) ?? monday) ?? monday)
+            total += sessions[d]?.sessionCount ?? 0
+        }
+        return total
+    }
+
+    // ── Delta volume au même jour ────────────────────────────────────────────
+
+    private var currentVolumeToday: Double { currentCurve.last?.volume ?? 0 }
+    private var previousVolumeSameDay: Double {
+        previousCurve.first(where: { $0.dayIdx == todayIdx })?.volume ?? 0
+    }
+    private var volumeDelta: Double { currentVolumeToday - previousVolumeSameDay }
+
+    // ── UI ───────────────────────────────────────────────────────────────────
+
+    private func formatKg(_ v: Double) -> String {
+        if v >= 10_000 { return String(format: "%.1ft", v / 1_000) }
+        if v >= 1_000  { return "\(Int(v.rounded() / 10) * 10)" }
+        return "\(Int(v.rounded()))"
+    }
+
+    private var dateRangeLabel: String {
+        let sun = Self.isoCal.date(byAdding: .day, value: 6, to: monday) ?? monday
+        let f = DateFormatter(); f.dateFormat = "d MMM"; f.locale = Locale(identifier: "fr_CA")
+        return "\(f.string(from: monday)) → \(f.string(from: sun))"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Header
+            HStack(alignment: .firstTextBaseline) {
+                Text("MA SEMAINE")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                Spacer()
+                Text(dateRangeLabel)
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+
+            // Chiffre clé + delta au même jour
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(formatKg(currentVolumeToday))
+                        .font(.appHero).foregroundColor(.appTextPrimary)
+                    Text("kg").font(.appLabel).foregroundColor(.appTextSecondary)
+                }
+                deltaLine
+            }
+
+            if isCurrentDeload {
+                Label("Semaine de décharge — volume réduit volontairement",
+                      systemImage: "arrow.down.circle.fill")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.statusBlue)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(Color.statusBlue.opacity(0.1))
+                    .overlay(Capsule().stroke(Color.statusBlue.opacity(0.3), lineWidth: 1))
+                    .clipShape(Capsule())
+            }
+
+            chart
+                .frame(height: 120)
+
+            // Jauges fait/prévu
+            VStack(spacing: 10) {
+                gauge(label: "Séances",
+                      done: Double(doneSlotsThisWeek),
+                      target: Double(max(plannedSlotsThisWeek, 1)),
+                      targetAvailable: plan != nil && plannedSlotsThisWeek > 0,
+                      format: { String(Int($0.rounded())) })
+                if let ref = reference {
+                    gauge(label: "Volume",
+                          done: currentVolumeToday,
+                          target: ref.volume,
+                          targetAvailable: true,
+                          format: { formatKg($0) + " kg" })
+                } else {
+                    Text("Référence volume disponible après 2 semaines complètes")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                }
+            }
+        }
+        .padding(.appCardInsetV)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+    }
+
+    @ViewBuilder private var deltaLine: some View {
+        if previousVolumeSameDay <= 0 {
+            Text("Pas de référence au même jour")
+                .font(.appCaption).foregroundColor(.appTextSecondary)
+        } else {
+            let diff = volumeDelta
+            let color: Color = diff >= 0 ? .statusGreen : .forge
+            HStack(spacing: 4) {
+                Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down").font(.appCaption)
+                Text("\(formatKg(abs(diff))) kg vs la semaine passée au même jour")
+                    .font(.appCaption)
+            }
+            .foregroundColor(color)
+        }
+    }
+
+    @ViewBuilder private var chart: some View {
+        Chart(chartPoints) { pt in
+            if pt.series == "Cette semaine" {
+                LineMark(
+                    x: .value("Jour", TrainingDoctrine.dayNames[pt.dayIdx]),
+                    y: .value("Cumul", pt.volume)
+                )
+                .foregroundStyle(Color.forge)
+                .lineStyle(StrokeStyle(lineWidth: 2.5))
+                .interpolationMethod(.monotone)
+            } else {
+                LineMark(
+                    x: .value("Jour", TrainingDoctrine.dayNames[pt.dayIdx]),
+                    y: .value("Cumul", pt.volume)
+                )
+                .foregroundStyle(Color.appTextSecondary.opacity(0.5))
+                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                .interpolationMethod(.monotone)
+            }
+        }
+        .chartXScale(domain: TrainingDoctrine.dayNames)
+        .chartForegroundStyleScale([
+            "Cette semaine":  Color.forge,
+            "Semaine passée": Color.appTextSecondary.opacity(0.5),
+        ])
+        .chartLegend(.hidden)
+        .chartYAxis { AxisMarks(position: .leading) { _ in
+            AxisGridLine().foregroundStyle(Color.appTextSecondary.opacity(0.1))
+            AxisValueLabel().font(.appMicro).foregroundStyle(Color.appTextSecondary)
+        }}
+        .chartXAxis { AxisMarks(values: TrainingDoctrine.dayNames) { _ in
+            AxisValueLabel().font(.appMicro).foregroundStyle(Color.appTextSecondary)
+        }}
+    }
+
+    @ViewBuilder private func gauge(label: String, done: Double, target: Double,
+                                    targetAvailable: Bool, format: (Double) -> String) -> some View {
+        let pct = targetAvailable && target > 0 ? min(done / target, 1.5) : 0
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label).font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+                Spacer()
+                if targetAvailable {
+                    Text("\(format(done)) / \(format(target))")
+                        .font(.appCaption).foregroundColor(.appTextPrimary)
+                    Text("· \(Int((done / target * 100).rounded())) %")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(done >= target ? .statusGreen : .appTextSecondary)
+                } else {
+                    Text(format(done)).font(.appCaption).foregroundColor(.appTextPrimary)
+                }
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.appTextSecondary.opacity(0.15))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.forge)
+                        .frame(width: targetAvailable ? geo.size.width * CGFloat(min(pct, 1.0)) : 0)
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+}

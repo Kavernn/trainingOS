@@ -150,13 +150,13 @@ struct StatsView: View {
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
-        sessions.values.reduce(0) { $0 + ($1.sessionCount ?? 1) }
+        sessions.values.reduce(0) { $0 + $1.sessionCount }
     }
 
     var sessionsThisMonth: Int {
         let key = DateFormatter.isoYearMonth.string(from: Date())
         return sessions.reduce(0) { acc, kv in
-            kv.key.hasPrefix(key) ? acc + (kv.value.sessionCount ?? 1) : acc
+            kv.key.hasPrefix(key) ? acc + kv.value.sessionCount : acc
         }
     }
 

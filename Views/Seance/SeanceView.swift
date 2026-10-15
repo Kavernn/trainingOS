@@ -158,7 +158,7 @@ struct AlreadyLoggedSeanceView: View {
 
     private var isMultiSlot: Bool {
         let slotCount = todaySession?.slots?.count ?? 0
-        let sessionCount = todaySession?.sessionCount ?? 1
+        let sessionCount = todaySession?.sessionCount ?? 0
         return max(slotCount, sessionCount) > 1
     }
 
@@ -230,7 +230,7 @@ struct AlreadyLoggedSeanceView: View {
 
                 if let session = todaySession {
                     // ── Breakdown AM/PM (si double séance + slots dispo) ─
-                    if (session.sessionCount ?? 1) >= 2,
+                    if session.sessionCount >= 2,
                        let slots = session.slots,
                        let amSlot = slots.first(where: { $0.type == "morning" }),
                        let pmSlot = slots.first(where: { $0.type == "evening" }) {
@@ -249,7 +249,7 @@ struct AlreadyLoggedSeanceView: View {
                         let pmKeys = Set((data.fullProgram[pmName] ?? [:]).keys)
                         let pmExos = exos.filter { pmKeys.contains($0) }
                         let amExos = exos.filter { !pmKeys.contains($0) }
-                        let showSplit = (session.sessionCount ?? 1) >= 2 && !pmExos.isEmpty
+                        let showSplit = session.sessionCount >= 2 && !pmExos.isEmpty
 
                         if showSplit {
                             VStack(alignment: .leading, spacing: 12) {

@@ -265,6 +265,12 @@ extension StatsView {
                     .padding(.horizontal, .appPagePadding)
             }
 
+            StatsMySevenDaysCard(
+                trainingLoad: cockpit.trainingLoad,
+                sessions: sessions,
+                plan: APIService.shared.dashboardPlan
+            )
+
             StatsProgressionHero(
                 progression: cockpit.progression,
                 onOpen: { selectedTab = .strength },

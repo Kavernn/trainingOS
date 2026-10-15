@@ -235,7 +235,12 @@ struct SessionEntry: Codable {
     let sessionVolume: Double?
     let totalReps: Int?
     let totalSets: Int?
-    let sessionCount: Int?
+    /// Nombre de slots agrégés ce jour (matin+soir+bonus). Backend garantit
+    /// `session_count: len(entries)` sans fallback (analytics_stats.py:108).
+    /// Un cache périmé pré-session_count décoderait en nil → le `try?` au niveau
+    /// de StatsView.loadData() retombe sur un cache miss silencieux + refetch,
+    /// pas de crash. Donc on garde requis ici pour aligner "fait = prévu" en slots.
+    let sessionCount: Int
     let slots: [SessionSlot]?
 
     enum CodingKeys: String, CodingKey {
@@ -275,7 +280,13 @@ struct SessionEntry: Codable {
         energyPre = decodeInt(.energyPre)
         totalReps = decodeInt(.totalReps)
         totalSets = decodeInt(.totalSets)
-        sessionCount = decodeInt(.sessionCount)
+        guard let count = decodeInt(.sessionCount) else {
+            throw DecodingError.keyNotFound(CodingKeys.sessionCount, .init(
+                codingPath: c.codingPath,
+                debugDescription: "session_count is required (backend always emits it)"
+            ))
+        }
+        sessionCount = count
     }
 }
 

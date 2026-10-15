@@ -285,10 +285,22 @@ struct StatsWeeklyTrainingLoad: Codable, Equatable {
     }
 }
 
+struct StatsDailyTrainingLoad: Codable, Equatable {
+    let date: String
+    let tonnage: StatsTonnageAggregate
+    let isDeload: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case date, tonnage
+        case isDeload = "is_deload"
+    }
+}
+
 struct StatsCockpitTrainingLoad: Codable, Equatable {
     let period: StatsDateWindow
     let summary: StatsTrainingLoadSummary
     let weekly: [StatsWeeklyTrainingLoad]
+    let daily: [StatsDailyTrainingLoad]
 }
 
 struct StatsMuscleMappingCoverage: Codable, Equatable {
