@@ -381,6 +381,16 @@ def api_stats_streaks():
             "success":     days >= WEEKLY_TARGET,
         })
 
+    # week_at_risk — source unique côté serveur.
+    # jours restants = (6 - weekday_today) + (1 si today pas encore actif).
+    # Vrai uniquement quand il ne reste PLUS de marge pour atteindre le target.
+    # Semaine déjà perdue (restants < manquants) → false (pas de relance inutile).
+    today_weekday = today_date.weekday()  # Mon=0, Sun=6
+    today_active_in_week = today_date in days_by_week.get(current_monday, set())
+    days_remaining = (6 - today_weekday) + (0 if today_active_in_week else 1)
+    days_missing = max(0, WEEKLY_TARGET - current_week_days)
+    week_at_risk = days_missing > 0 and days_remaining == days_missing
+
     return jsonify({
         "current_streak":        current_streak,
         "best_streak":           best_streak,
@@ -389,6 +399,7 @@ def api_stats_streaks():
         "weekly_target":         WEEKLY_TARGET,
         "weekly_streak_current": weekly_streak_current,
         "weekly_streak_best":    weekly_streak_best,
+        "week_at_risk":          week_at_risk,
         "current_week": {
             "week_start":  current_monday.isoformat(),
             "days_active": current_week_days,
