@@ -157,9 +157,12 @@ struct AlreadyLoggedSeanceView: View {
     }
 
     private var isMultiSlot: Bool {
-        let slotCount = todaySession?.slots?.count ?? 0
-        let sessionCount = todaySession?.sessionCount ?? 0
-        return max(slotCount, sessionCount) > 1
+        // Compte les slots WORKOUT (AM/PM/bonus) via la liste `slots` posée par
+        // l'override multi-slot du backend. On n'utilise plus sessionCount ici :
+        // depuis que sessionCount inclut HIIT (invariant /api/dashboard ⇔
+        // /api/stats_data), il mélangerait un slot HIIT avec les slots workout
+        // et déclencherait le breakdown AM/PM à tort sur AM+HIIT.
+        return (todaySession?.slots?.count ?? 0) > 1
     }
 
     private var completionMeta: String? {

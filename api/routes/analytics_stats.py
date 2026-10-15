@@ -60,10 +60,10 @@ def _strict_query_days(name: str) -> int:
     return parsed
 
 
-def _aggregate_sessions_by_date(rows: list[dict]) -> dict[str, dict]:
+def _aggregate_sessions_by_date(rows: list[dict], hiit_rows: list[dict] | None = None) -> dict[str, dict]:
     """Regroupe 1..N workout_sessions par date en UNE entry agrégée.
 
-    Filtre d'entrée : (completed OR rpe not None) — mêmes séances "loggées" qu'avant.
+    Filtre d'entrée workout : (completed OR rpe not None).
     Tri intra-groupe : logged_at ASC (matin → soir).
 
     Règles par champ (cf. audit Stats Lot B) :
@@ -73,9 +73,9 @@ def _aggregate_sessions_by_date(rows: list[dict]) -> dict[str, dict]:
       comment      : première non-vide (matin)
       logged_at    : max
       completed    : any
-      session_count: len(entries) — nombre de slots workout (AM/PM/bonus) loggés.
-                     Partagé par /api/dashboard via sessions.load_sessions() qui
-                     applique le même filtre et compte à l'identique.
+      session_count: workout slots (len(entries)) + HIIT slots du jour.
+                     Partagé par /api/dashboard qui ajoute HIIT en passe finale →
+                     invariant d'égalité tient sur les mêmes dates.
 
     NE PAS produire session_volume : le volume Stats vient de weights.history
     (exercise_logs), l'ajouter ici doublerait le comptage.
@@ -89,6 +89,14 @@ def _aggregate_sessions_by_date(rows: list[dict]) -> dict[str, dict]:
         d = s.get("date")
         if d:
             groups[d].append(s)
+
+    hiit_count_by_date: dict[str, int] = {}
+    for h in hiit_rows or ():
+        if not isinstance(h, dict):
+            continue
+        d = h.get("date")
+        if d:
+            hiit_count_by_date[d] = hiit_count_by_date.get(d, 0) + 1
 
     out: dict[str, dict] = {}
     for date, entries in groups.items():
@@ -107,7 +115,7 @@ def _aggregate_sessions_by_date(rows: list[dict]) -> dict[str, dict]:
             "comment":       comments[0]                       if comments else None,
             "logged_at":     max((e.get("logged_at") or "") for e in entries) or None,
             "completed":     any(bool(e.get("completed")) for e in entries),
-            "session_count": len(entries),
+            "session_count": len(entries) + hiit_count_by_date.get(date, 0),
         }
     return out
 
@@ -133,8 +141,8 @@ def api_stats_data():
     weights      = load_weights()
     _cutoff_180  = (_date.fromisoformat(_today_mtl()) - timedelta(days=180)).isoformat()
     all_sessions = _db.get_workout_sessions(limit=500, since=_cutoff_180)
-    sessions     = _aggregate_sessions_by_date(all_sessions)
     hiit_log     = load_hiit_log()
+    sessions     = _aggregate_sessions_by_date(all_sessions, hiit_log)
     body_weight  = load_body_weight()
     recovery_log = _db.get_recovery_logs() or []
     nutr_settings = load_nutrition_settings()

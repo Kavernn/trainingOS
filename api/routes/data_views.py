@@ -142,11 +142,10 @@ def api_dashboard():
     for entry in hiit_log:
         d = entry.get("date")
         # Garde "d not in merged_sessions" : si un workout existe ce jour,
-        # son entrée (avec son session_count workout) reste. session_count=1
-        # pour HIIT-seul = 1 slot HIIT loggé.
+        # son entrée (avec son session_count workout) reste. session_count
+        # est injecté en passe finale ci-dessous (= workout + hiit).
         if d and d not in merged_sessions:
-            merged_sessions[d] = {"session_type": entry.get("session_type", "HIIT"),
-                                  "session_count": 1}
+            merged_sessions[d] = {"session_type": entry.get("session_type", "HIIT")}
 
     # Enrich merged_sessions with session_volume from v_session_volume view
     # (session_volume was removed from workout_sessions schema — lives in the view)
@@ -209,6 +208,18 @@ def api_dashboard():
             "completed":      all(s.get("completed") for s in _today_all),
             "logged_at":      _main.get("logged_at"),
         }
+
+    # Passe finale session_count : workout slots (déjà posés par
+    # load_sessions ou l'override multi-slot aujourd'hui) + HIIT slots du jour.
+    # Même formule que _aggregate_sessions_by_date côté /api/stats_data →
+    # invariant d'égalité par construction.
+    _hiit_count_by_date: dict[str, int] = {}
+    for _h in hiit_log:
+        _d = _h.get("date") if isinstance(_h, dict) else None
+        if _d:
+            _hiit_count_by_date[_d] = _hiit_count_by_date.get(_d, 0) + 1
+    for _d, _entry in merged_sessions.items():
+        _entry["session_count"] = (_entry.get("session_count") or 0) + _hiit_count_by_date.get(_d, 0)
 
     smart_goals_count = 0
     try:

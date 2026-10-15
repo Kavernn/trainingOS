@@ -137,19 +137,18 @@ class SessionCountInvariant(BaseRouteTest):
         self.assertEqual(stats[AM_PM_DATE]["session_count"], 2,
                          "/api/stats_data AM+PM doit valoir 2")
 
-    # ── HIIT merge ne perd pas l'entry workout d'une date pré-existante ─────
+    # ── HIIT compte comme slot sur les deux endpoints ───────────────────────
 
-    def test_hiit_on_workout_day_does_not_overwrite_entry(self):
+    def test_hiit_on_workout_day_adds_to_count_without_overwriting_entry(self):
         dash = self.json(self.get("/api/dashboard"))["sessions"]
         stats = self.json(self.get("/api/stats_data"))["sessions"]
-        # AM_HIIT_DATE : 1 workout slot workout_sessions. session_count ne
-        # compte QUE les slots workout (règle commune aux deux endpoints).
-        # Le HIIT du même jour est tracké séparément via hiit_log — pas dans
-        # sessions.session_count. L'invariant workout count tient : 1 == 1.
-        self.assertEqual(dash[AM_HIIT_DATE]["session_count"], 1)
-        self.assertEqual(stats[AM_HIIT_DATE]["session_count"], 1)
+        # AM_HIIT_DATE : 1 workout + 1 HIIT → 2 slots au total sur les deux
+        # endpoints (règle "une HIIT = 1 slot" commune).
+        self.assertEqual(dash[AM_HIIT_DATE]["session_count"], 2)
+        self.assertEqual(stats[AM_HIIT_DATE]["session_count"], 2)
         # L'entry dashboard reste celle du workout (le merge HIIT ligne 142
-        # est skippé parce que la date est déjà dans merged_sessions).
+        # est skippé parce que la date est déjà dans merged_sessions). Le
+        # compte +1 vient de la passe finale, pas de l'écrasement.
         self.assertNotEqual(dash[AM_HIIT_DATE].get("session_type"), "Tabata",
                             "le merge HIIT a écrasé l'entrée workout — régression")
 
