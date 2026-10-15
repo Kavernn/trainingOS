@@ -19,7 +19,6 @@ struct LogRecoverySheet: View {
     @State private var soreness: Double = 0
     @State private var fatigue: Double = 0
     @State private var energyPre: Double = 0
-    @State private var moodScore: Int = 0          // 0 = unset, 1–5 emoji
     @State private var bedtime = Date()
     @State private var wakeTime = Date()
     @State private var hasBedtime = false
@@ -34,8 +33,6 @@ struct LogRecoverySheet: View {
     @State private var initialSnapshot: RecoverySnapshot? = nil
     @State private var confirmDiscard = false
 
-    private let moodEmojis = ["😴", "😕", "😐", "😊", "😄"]
-
     private var isEditing: Bool { prefillEntry != nil }
 
     private var currentSnapshot: RecoverySnapshot {
@@ -47,7 +44,6 @@ struct LogRecoverySheet: View {
             hrMorningStr: hrMorningStr, hrPostWorkoutStr: hrPostWorkoutStr,
             hrEveningStr: hrEveningStr,
             soreness: soreness, fatigue: fatigue, energyPre: energyPre,
-            moodScore: moodScore,
             hasBedtime: hasBedtime, hasWakeTime: hasWakeTime,
             bedtime: bedtime, wakeTime: wakeTime,
             notes: notes
@@ -69,7 +65,6 @@ struct LogRecoverySheet: View {
                soreness          != snap.soreness          ||
                fatigue           != snap.fatigue           ||
                energyPre         != snap.energyPre         ||
-               moodScore         != snap.moodScore         ||
                hasBedtime        != snap.hasBedtime        ||
                hasWakeTime       != snap.hasWakeTime       ||
                (hasBedtime  && bedtime  != snap.bedtime)   ||
@@ -140,15 +135,6 @@ struct LogRecoverySheet: View {
                                     RecoveryField(label: "DURÉE (h)", placeholder: "7.5", text: $sleepHoursStr)
                                     RecoveryField(label: "FC REPOS (bpm)", placeholder: "58", text: $restingHrStr)
                                 }
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Spacer()
-                                        Text(String(format: "%.0f / 10", sleepQuality))
-                                            .font(.appLabel.weight(.bold)).foregroundColor(.statusBlue)
-                                    }
-                                    Slider(value: $sleepQuality, in: 1...10, step: 1).tint(Color.forge)
-                                }
                                 Divider().background(Color.appSeparator)
                                 // Bedtime
                                 HStack {
@@ -180,59 +166,11 @@ struct LogRecoverySheet: View {
                             .padding(14).background(Color.appCard).cornerRadius(12)
                             .transition(.opacity.combined(with: .move(edge: .top)))
 
-                            // Douleurs + Fatigue + Énergie
-                            VStack(alignment: .leading, spacing: 14) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Spacer()
-                                        Text(String(format: "%.0f / 10", soreness)).font(.appLabel.weight(.bold)).foregroundColor(sorenessColor(soreness))
-                                    }
-                                    Slider(value: $soreness, in: 0...10, step: 1).tint(sorenessColor(soreness))
-                                    HStack {
-                                        Text("0 = Aucune").font(.appMicro).foregroundColor(.gray)
-                                        Spacer()
-                                        Text("10 = Sévère").font(.appMicro).foregroundColor(.gray)
-                                    }
-                                }
-                                Divider().background(Color.appSeparator)
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("FATIGUE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Spacer()
-                                        if fatigue == 0 {
-                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
-                                        } else {
-                                            Text(String(format: "%.0f / 10", fatigue)).font(.appLabel.weight(.bold)).foregroundColor(fatigueColor(fatigue))
-                                        }
-                                    }
-                                    Slider(value: $fatigue, in: 0...10, step: 1).tint(fatigue == 0 ? .gray : fatigueColor(fatigue))
-                                    HStack {
-                                        Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
-                                        Spacer()
-                                        Text("10 = Épuisé(e)").font(.appMicro).foregroundColor(.gray)
-                                    }
-                                }
-                                Divider().background(Color.appSeparator)
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("ÉNERGIE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Spacer()
-                                        if energyPre == 0 {
-                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
-                                        } else {
-                                            Text(String(format: "%.0f / 10", energyPre)).font(.appLabel.weight(.bold)).foregroundColor(energyPreColor(energyPre))
-                                        }
-                                    }
-                                    Slider(value: $energyPre, in: 0...10, step: 1).tint(energyPre == 0 ? .gray : energyPreColor(energyPre))
-                                    HStack {
-                                        Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
-                                        Spacer()
-                                        Text("10 = Excellent").font(.appMicro).foregroundColor(.gray)
-                                    }
-                                }
-                            }
-                            .padding(14).background(Color.appCard).cornerRadius(12)
+                            // Check-in subjectif — composant partagé (4 sliders 0-10)
+                            MorningCheckInBlock(sleepQuality: $sleepQuality,
+                                                fatigue: $fatigue,
+                                                soreness: $soreness,
+                                                energyPre: $energyPre)
                             .transition(.opacity.combined(with: .move(edge: .top)))
 
                             // HRV & dépense
@@ -291,109 +229,18 @@ struct LogRecoverySheet: View {
                         } else {
                             // ── MODE RAPIDE ───────────────────────────────
 
-                            // Sommeil (heures + qualité)
+                            // Sommeil (durée seule — qualité est dans le check-in)
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("SOMMEIL").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                 RecoveryField(label: "DURÉE (h)", placeholder: "7.5", text: $sleepHoursStr)
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Spacer()
-                                        if sleepQuality == 0 {
-                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
-                                        } else {
-                                            Text(String(format: "%.0f / 10", sleepQuality))
-                                                .font(.appLabel.weight(.bold)).foregroundColor(.statusBlue)
-                                        }
-                                    }
-                                    Slider(value: $sleepQuality, in: 0...10, step: 1).tint(Color.forge)
-                                    HStack {
-                                        Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
-                                        Spacer()
-                                        Text("10 = Excellent").font(.appMicro).foregroundColor(.gray)
-                                    }
-                                }
                             }
                             .padding(14).background(Color.appCard).cornerRadius(12)
 
-                            // Humeur
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text("HUMEUR DU JOUR").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                    Spacer()
-                                    if moodScore > 0 {
-                                        Text(moodEmojis[moodScore - 1])
-                                            .font(.system(size: 18))
-                                            .transition(.scale.combined(with: .opacity))
-                                    }
-                                }
-                                HStack(spacing: 0) {
-                                    ForEach(1...5, id: \.self) { score in
-                                        let emoji = moodEmojis[score - 1]
-                                        let selected = moodScore == score
-                                        Button {
-                                            withAnimation(.spring(response: 0.25)) {
-                                                moodScore = selected ? 0 : score
-                                            }
-                                        } label: {
-                                            VStack(spacing: 4) {
-                                                Text(emoji)
-                                                    .font(.system(size: selected ? 30 : 24))
-                                                    .scaleEffect(selected ? 1.15 : 1.0)
-                                                    .opacity(moodScore == 0 || selected ? 1.0 : 0.4)
-                                                Circle()
-                                                    .fill(selected ? Color.forge : Color.clear)
-                                                    .frame(width: 5, height: 5)
-                                            }
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 6)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .animation(.spring(response: 0.25), value: moodScore)
-                                    }
-                                }
-                            }
-                            .padding(14).background(Color.appCard).cornerRadius(12)
-
-                            // Fatigue + Douleurs
-                            VStack(alignment: .leading, spacing: 16) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("FATIGUE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Spacer()
-                                        if fatigue == 0 {
-                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
-                                        } else {
-                                            Text(String(format: "%.0f / 10", fatigue)).font(.appLabel.weight(.bold)).foregroundColor(fatigueColor(fatigue))
-                                        }
-                                    }
-                                    Slider(value: $fatigue, in: 0...10, step: 1).tint(fatigue == 0 ? .gray : fatigueColor(fatigue))
-                                    HStack {
-                                        Text("0 = Non renseigné").font(.appMicro).foregroundColor(.gray)
-                                        Spacer()
-                                        Text("10 = Épuisé(e)").font(.appMicro).foregroundColor(.gray)
-                                    }
-                                }
-                                Divider().background(Color.appSeparator)
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Spacer()
-                                        if soreness == 0 {
-                                            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
-                                        } else {
-                                            Text(String(format: "%.0f / 10", soreness)).font(.appLabel.weight(.bold)).foregroundColor(sorenessColor(soreness))
-                                        }
-                                    }
-                                    Slider(value: $soreness, in: 0...10, step: 1).tint(soreness == 0 ? .gray : sorenessColor(soreness))
-                                    HStack {
-                                        Text("0 = Aucune").font(.appMicro).foregroundColor(.gray)
-                                        Spacer()
-                                        Text("10 = Sévère").font(.appMicro).foregroundColor(.gray)
-                                    }
-                                }
-                            }
-                            .padding(14).background(Color.appCard).cornerRadius(12)
+                            // Check-in subjectif — composant partagé (4 sliders 0-10)
+                            MorningCheckInBlock(sleepQuality: $sleepQuality,
+                                                fatigue: $fatigue,
+                                                soreness: $soreness,
+                                                energyPre: $energyPre)
                         }
 
                         // Bouton Logger — toujours visible
@@ -488,18 +335,6 @@ struct LogRecoverySheet: View {
         }
     }
 
-    private func sorenessColor(_ v: Double) -> Color {
-        if v >= 7 { return .statusRed }; if v >= 4 { return .statusOrange }; return .statusGreen
-    }
-
-    private func fatigueColor(_ v: Double) -> Color {
-        if v >= 7 { return .statusRed }; if v >= 4 { return .statusOrange }; return .statusGreen
-    }
-
-    private func energyPreColor(_ v: Double) -> Color {
-        if v >= 7 { return .statusGreen }; if v >= 4 { return .statusOrange }; return .statusRed
-    }
-
     private func fillFromHealthKit() {
         isLoadingHK = true
         let date = selectedDate
@@ -527,10 +362,6 @@ struct LogRecoverySheet: View {
             fullUseCount += 1
             if fullUseCount >= 3 { prefersFull = true }
         }
-        // In quick mode, moodScore (1-5) maps to energyPre (2,4,6,8,10)
-        let resolvedEnergyPre: Double? = showFullMode
-            ? (energyPre == 0 ? nil : energyPre)
-            : (moodScore == 0 ? nil : Double(moodScore * 2))
         Task {
             do {
                 try await APIService.shared.logRecovery(
@@ -541,7 +372,7 @@ struct LogRecoverySheet: View {
                     steps:         stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
                     soreness:      soreness == 0 ? nil : soreness,
                     fatigue:       fatigue == 0 ? nil : fatigue,
-                    energyPre:     resolvedEnergyPre,
+                    energyPre:     energyPre == 0 ? nil : energyPre,
                     activeEnergy:  activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr),
                     hrMorning:     hrMorningStr.isEmpty ? nil : Double(hrMorningStr),
                     hrPostWorkout: hrPostWorkoutStr.isEmpty ? nil : Double(hrPostWorkoutStr),
@@ -578,7 +409,6 @@ private struct RecoverySnapshot {
     var soreness: Double
     var fatigue: Double
     var energyPre: Double
-    var moodScore: Int
     var hasBedtime: Bool
     var hasWakeTime: Bool
     var bedtime: Date
@@ -603,5 +433,70 @@ struct RecoveryField: View {
                 .cornerRadius(8)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Morning Check-In Block (4 sliders subjectifs 0-10)
+// Source unique partagée par LogRecoverySheet (Santé) et MorningRevealView.
+// Convention : 0 = non renseigné → nil envoyé à /api/log_recovery.
+struct MorningCheckInBlock: View {
+    @Binding var sleepQuality: Double
+    @Binding var fatigue: Double
+    @Binding var soreness: Double
+    @Binding var energyPre: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sliderRow(label: "QUALITÉ SOMMEIL", value: $sleepQuality,
+                      color: Color.statusBlue,
+                      low: "0 = Non renseigné", high: "10 = Excellent")
+            Divider().background(Color.appSeparator)
+            sliderRow(label: "FATIGUE PERÇUE", value: $fatigue,
+                      color: Self.fatigueColor(fatigue),
+                      low: "0 = Non renseigné", high: "10 = Épuisé(e)")
+            Divider().background(Color.appSeparator)
+            sliderRow(label: "DOULEURS MUSCULAIRES", value: $soreness,
+                      color: Self.sorenessColor(soreness),
+                      low: "0 = Aucune", high: "10 = Sévère")
+            Divider().background(Color.appSeparator)
+            sliderRow(label: "ÉNERGIE PERÇUE", value: $energyPre,
+                      color: Self.energyPreColor(energyPre),
+                      low: "0 = Non renseigné", high: "10 = Excellent")
+        }
+        .padding(14).background(Color.appCard).cornerRadius(12)
+    }
+
+    @ViewBuilder
+    private func sliderRow(label: String, value: Binding<Double>, color: Color,
+                           low: String, high: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(label).font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if value.wrappedValue == 0 {
+                    Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray)
+                } else {
+                    Text(String(format: "%.0f / 10", value.wrappedValue))
+                        .font(.appLabel.weight(.bold)).foregroundColor(color)
+                }
+            }
+            Slider(value: value, in: 0...10, step: 1)
+                .tint(value.wrappedValue == 0 ? .gray : color)
+            HStack {
+                Text(low).font(.appMicro).foregroundColor(.gray)
+                Spacer()
+                Text(high).font(.appMicro).foregroundColor(.gray)
+            }
+        }
+    }
+
+    static func sorenessColor(_ v: Double) -> Color {
+        if v >= 7 { return .statusRed }; if v >= 4 { return .statusOrange }; return .statusGreen
+    }
+    static func fatigueColor(_ v: Double) -> Color {
+        if v >= 7 { return .statusRed }; if v >= 4 { return .statusOrange }; return .statusGreen
+    }
+    static func energyPreColor(_ v: Double) -> Color {
+        if v >= 7 { return .statusGreen }; if v >= 4 { return .statusOrange }; return .statusRed
     }
 }
