@@ -2367,10 +2367,18 @@ struct StatsMySevenDaysCard: View {
 
     // ── UI ───────────────────────────────────────────────────────────────────
 
-    private func formatKg(_ v: Double) -> String {
-        if v >= 10_000 { return String(format: "%.1ft", v / 1_000) }
-        if v >= 1_000  { return "\(Int(v.rounded() / 10) * 10)" }
-        return "\(Int(v.rounded()))"
+    /// Formatte un tonnage brut (lbs backend) comme l'onglet Charge
+    /// (`StatsExternalLoadSection` et `latestTonnageLabel`,
+    /// StatsComponents.swift:647-652 / 1736-1741) : conversion via UnitSettings,
+    /// séparateur espace insécable, label kg/lbs.
+    private func tonnageWithUnit(_ v: Double) -> String {
+        "\(tonnageNumber(v)) \(UnitSettings.shared.label)"
+    }
+
+    private func tonnageNumber(_ v: Double) -> String {
+        let displayed = UnitSettings.shared.display(v)
+        return NumberFormatter.spaceGrouped.string(from: NSNumber(value: displayed))
+            ?? String(format: "%.0f", displayed)
     }
 
     private var dateRangeLabel: String {
@@ -2390,13 +2398,12 @@ struct StatsMySevenDaysCard: View {
                     .font(.appCaption).foregroundColor(.appTextSecondary)
             }
 
-            // Chiffre clé + delta au même jour
+            // Chiffre clé + delta au même jour — même formatage que l'onglet
+            // Charge (nombre groupé par espace insécable + label unité).
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(formatKg(currentVolumeToday))
-                        .font(.appHero).foregroundColor(.appTextPrimary)
-                    Text("kg").font(.appLabel).foregroundColor(.appTextSecondary)
-                }
+                Text(tonnageWithUnit(currentVolumeToday))
+                    .font(.appHero).foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
                 deltaLine
             }
 
@@ -2426,7 +2433,7 @@ struct StatsMySevenDaysCard: View {
                           done: currentVolumeToday,
                           target: ref.volume,
                           targetAvailable: true,
-                          format: { formatKg($0) + " kg" })
+                          format: { tonnageWithUnit($0) })
                 } else {
                     Text("Référence volume disponible après 2 semaines complètes")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
@@ -2449,7 +2456,7 @@ struct StatsMySevenDaysCard: View {
             let color: Color = diff >= 0 ? .statusGreen : .forge
             HStack(spacing: 4) {
                 Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down").font(.appCaption)
-                Text("\(formatKg(abs(diff))) kg vs la semaine passée au même jour")
+                Text("\(tonnageWithUnit(abs(diff))) vs la semaine passée au même jour")
                     .font(.appCaption)
             }
             .foregroundColor(color)
