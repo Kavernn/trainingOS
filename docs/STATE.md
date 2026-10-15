@@ -430,7 +430,7 @@ Commit : `f37c331`.
 - **Ez-bar** : nouveau type d'équipement (poids total, pas par côté), champ bar_weight, couleur jaune
 - **CardInfoButton** : bouton ⓘ sur cards LSS/Coach du matin, Prévision 7j, Déload, Volume Landmarks
 - **Système d'alertes proactives** : `api/alerts.py` + `AlertService.swift` + `ProactiveBannerCard` + notification 19h30
-- **Nutrition intelligence** : settings glucides/lipides, DailyRemainingCard, AdherenceScoreCard, WorkoutBonusBadge, meal_type sur entrées
+- **Nutrition intelligence** : settings glucides/lipides, WorkoutBonusBadge, meal_type sur entrées
 - **Migrations** : 004_food_catalog, 005_nutrition_intel appliquées
 
 ## Complété récemment (2026-03-29) — Phase 2 todos

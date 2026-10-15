@@ -176,7 +176,6 @@
 		NA0006NA0006NA0006NA0006 /* AddNutritionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0006NR0006NR0006NR0006 /* AddNutritionSheet.swift */; };
 		NA0007NA0007NA0007NA0007 /* EditNutritionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0007NR0007NR0007NR0007 /* EditNutritionSheet.swift */; };
 		NA0008NA0008NA0008NA0008 /* DayTypeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */; };
-		NA0009NA0009NA0009NA0009 /* NutritionAnalyticsCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */; };
 		NA0010NA0010NA0010NA0010 /* NutritionSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */; };
 		NA0012NA0012NA0012NA0012 /* MealTemplateSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */; };
 		NA0014NA0014NA0014NA0014 /* MacroParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0014NR0014NR0014NR0014 /* MacroParser.swift */; };
@@ -468,7 +467,6 @@
 		NR0006NR0006NR0006NR0006 /* AddNutritionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNutritionSheet.swift; sourceTree = "<group>"; };
 		NR0007NR0007NR0007NR0007 /* EditNutritionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditNutritionSheet.swift; sourceTree = "<group>"; };
 		NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTypeBadge.swift; sourceTree = "<group>"; };
-		NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionAnalyticsCards.swift; sourceTree = "<group>"; };
 		NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionSettingsSheet.swift; sourceTree = "<group>"; };
 		NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealTemplateSheets.swift; sourceTree = "<group>"; };
 		NR0014NR0014NR0014NR0014 /* MacroParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroParser.swift; sourceTree = "<group>"; };
@@ -736,7 +734,6 @@
 				NR0006NR0006NR0006NR0006 /* AddNutritionSheet.swift */,
 				NR0007NR0007NR0007NR0007 /* EditNutritionSheet.swift */,
 				NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */,
-				NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */,
 				NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */,
 				NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */,
 				NR0014NR0014NR0014NR0014 /* MacroParser.swift */,
@@ -1476,7 +1473,6 @@
 				NA0006NA0006NA0006NA0006 /* AddNutritionSheet.swift in Sources */,
 				NA0007NA0007NA0007NA0007 /* EditNutritionSheet.swift in Sources */,
 				NA0008NA0008NA0008NA0008 /* DayTypeBadge.swift in Sources */,
-				NA0009NA0009NA0009NA0009 /* NutritionAnalyticsCards.swift in Sources */,
 				NA0010NA0010NA0010NA0010 /* NutritionSettingsSheet.swift in Sources */,
 				NA0012NA0012NA0012NA0012 /* MealTemplateSheets.swift in Sources */,
 				NA0014NA0014NA0014NA0014 /* MacroParser.swift in Sources */,
