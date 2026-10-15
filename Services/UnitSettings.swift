@@ -28,4 +28,17 @@ final class UnitSettings: ObservableObject {
             ? "\(Int(v))"
             : String(format: "%.1f", v)
     }
+
+    /// Formatte un tonnage (lbs backend) en "82 050 lbs" / "37 220 kg".
+    /// Conversion via `display`, groupage par espace insécable, label kg/lbs.
+    /// Source unique pour tous les call sites Stats/Séance (Charge,
+    /// Ma Semaine, SessionReportMetric). Jamais de division par 1000 ni
+    /// de suffixe "t" codé en dur — ces chiffres sont des sommes de poids
+    /// stockées en lbs, pas des tonnes.
+    func formatTonnage(_ lbs: Double) -> String {
+        let displayed = display(lbs)
+        let number = NumberFormatter.spaceGrouped.string(from: NSNumber(value: displayed))
+            ?? String(format: "%.0f", displayed)
+        return "\(number) \(label)"
+    }
 }

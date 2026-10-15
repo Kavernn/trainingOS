@@ -646,10 +646,7 @@ struct StatsExternalLoadSection: View {
 
     private var tonnageLabel: String {
         guard let tonnage = trainingLoad.summary.tonnage.value else { return "—" }
-        let displayValue = UnitSettings.shared.display(tonnage)
-        let formatted = NumberFormatter.spaceGrouped.string(from: NSNumber(value: displayValue))
-            ?? String(format: "%.0f", displayValue)
-        return "\(formatted) \(UnitSettings.shared.label)"
+        return UnitSettings.shared.formatTonnage(tonnage)
     }
 
     private var coverageLabel: String {
@@ -1735,10 +1732,7 @@ struct StatsOverviewExternalLoadCard: View {
 
     private var latestTonnageLabel: String {
         guard let value = latestComplete?.bucket.tonnage.value else { return "Indisponible" }
-        let displayValue = UnitSettings.shared.display(value)
-        let formatted = NumberFormatter.spaceGrouped.string(from: NSNumber(value: displayValue))
-            ?? String(format: "%.0f", displayValue)
-        return "\(formatted) \(UnitSettings.shared.label)"
+        return UnitSettings.shared.formatTonnage(value)
     }
 
     private var currentResultSummary: String {
@@ -2367,20 +2361,6 @@ struct StatsMySevenDaysCard: View {
 
     // ── UI ───────────────────────────────────────────────────────────────────
 
-    /// Formatte un tonnage brut (lbs backend) comme l'onglet Charge
-    /// (`StatsExternalLoadSection` et `latestTonnageLabel`,
-    /// StatsComponents.swift:647-652 / 1736-1741) : conversion via UnitSettings,
-    /// séparateur espace insécable, label kg/lbs.
-    private func tonnageWithUnit(_ v: Double) -> String {
-        "\(tonnageNumber(v)) \(UnitSettings.shared.label)"
-    }
-
-    private func tonnageNumber(_ v: Double) -> String {
-        let displayed = UnitSettings.shared.display(v)
-        return NumberFormatter.spaceGrouped.string(from: NSNumber(value: displayed))
-            ?? String(format: "%.0f", displayed)
-    }
-
     private var dateRangeLabel: String {
         let sun = Self.isoCal.date(byAdding: .day, value: 6, to: monday) ?? monday
         let f = DateFormatter(); f.dateFormat = "d MMM"; f.locale = Locale(identifier: "fr_CA")
@@ -2401,7 +2381,7 @@ struct StatsMySevenDaysCard: View {
             // Chiffre clé + delta au même jour — même formatage que l'onglet
             // Charge (nombre groupé par espace insécable + label unité).
             VStack(alignment: .leading, spacing: 4) {
-                Text(tonnageWithUnit(currentVolumeToday))
+                Text(UnitSettings.shared.formatTonnage(currentVolumeToday))
                     .font(.appHero).foregroundColor(.appTextPrimary)
                     .lineLimit(1)
                 deltaLine
@@ -2433,7 +2413,7 @@ struct StatsMySevenDaysCard: View {
                           done: currentVolumeToday,
                           target: ref.volume,
                           targetAvailable: true,
-                          format: { tonnageWithUnit($0) })
+                          format: { UnitSettings.shared.formatTonnage($0) })
                 } else {
                     Text("Référence volume disponible après 2 semaines complètes")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
@@ -2456,7 +2436,7 @@ struct StatsMySevenDaysCard: View {
             let color: Color = diff >= 0 ? .statusGreen : .forge
             HStack(spacing: 4) {
                 Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down").font(.appCaption)
-                Text("\(tonnageWithUnit(abs(diff))) vs la semaine passée au même jour")
+                Text("\(UnitSettings.shared.formatTonnage(abs(diff))) vs la semaine passée au même jour")
                     .font(.appCaption)
             }
             .foregroundColor(color)

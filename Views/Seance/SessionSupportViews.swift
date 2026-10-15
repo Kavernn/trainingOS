@@ -465,14 +465,11 @@ struct SessionRecapSheet: View {
 
     // Compact hero format: "4.2t" if ≥ 1000 in display unit, else "832".
     // ponytail: divergence assumée avec UnitSettings.format() qui garde l'unité —
-    // ici on veut un chiffre hero très lisible, pas un affichage précis.
+    // Source unique formatage tonnage (identique Charge, Ma Semaine, Scoreboard).
+    // Chiffre complet avec unité (lbs/kg) ; SessionReportMetric gère son
+    // minimumScaleFactor et lineLimit si la colonne est serrée.
     private var totalVolumeCompact: String {
-        let units = UnitSettings.shared
-        let display = units.isKg ? totalVolume * 0.453592 : totalVolume
-        if display >= 1000 {
-            return String(format: "%.1ft", display / 1000)
-        }
-        return "\(Int(display.rounded()))"
+        UnitSettings.shared.formatTonnage(totalVolume)
     }
 
     private var shareText: String {

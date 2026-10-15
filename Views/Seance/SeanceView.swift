@@ -191,11 +191,8 @@ struct AlreadyLoggedSeanceView: View {
             )
         }
         if let volume = session.sessionVolume, volume > 0 {
-            let display = UnitSettings.shared.isKg ? volume * 0.453592 : volume
-            let value = display >= 1000
-                ? String(format: "%.1ft", display / 1000)
-                : "\(Int(display.rounded()))"
-            metrics.append(SessionReportMetric(label: "VOLUME", value: value))
+            metrics.append(SessionReportMetric(label: "VOLUME",
+                                               value: UnitSettings.shared.formatTonnage(volume)))
         }
         if !isMultiSlot, let rpe = session.rpe, rpe > 0 {
             metrics.append(
