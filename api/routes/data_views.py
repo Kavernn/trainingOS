@@ -141,8 +141,12 @@ def api_dashboard():
     }
     for entry in hiit_log:
         d = entry.get("date")
+        # Garde "d not in merged_sessions" : si un workout existe ce jour,
+        # son entrée (avec son session_count workout) reste. session_count=1
+        # pour HIIT-seul = 1 slot HIIT loggé.
         if d and d not in merged_sessions:
-            merged_sessions[d] = {"session_type": entry.get("session_type", "HIIT")}
+            merged_sessions[d] = {"session_type": entry.get("session_type", "HIIT"),
+                                  "session_count": 1}
 
     # Enrich merged_sessions with session_volume from v_session_volume view
     # (session_volume was removed from workout_sessions schema — lives in the view)

@@ -12,16 +12,28 @@ def load_sessions() -> dict:
         rows = db.get_workout_sessions(limit=500)
         if isinstance(rows, list):
             result = {}
+            counts: dict[str, int] = {}
             for row in rows:
                 if not isinstance(row, dict):
                     continue
                 date = row.get("date")
-                if date:
-                    entry = {k: v for k, v in row.items() if k not in ("date", "id", "is_second", "user_id")}
-                    for field in ("rpe", "duration_min", "session_volume"):
-                        if field in entry and entry[field] is not None:
-                            entry[field] = float(entry[field])
-                    result[date] = entry
+                if not date:
+                    continue
+                # Compte les slots filtrés (completed OR rpe not None) — même règle
+                # que analytics_stats._aggregate_sessions_by_date, pour que /api/dashboard
+                # et /api/stats_data produisent le même session_count sur les mêmes dates.
+                if row.get("completed") or row.get("rpe") is not None:
+                    counts[date] = counts.get(date, 0) + 1
+                entry = {k: v for k, v in row.items() if k not in ("date", "id", "is_second", "user_id")}
+                for field in ("rpe", "duration_min", "session_volume"):
+                    if field in entry and entry[field] is not None:
+                        entry[field] = float(entry[field])
+                # Last-write-wins préservé (comportement historique). Les slots AM/PM
+                # multiples se perdent dans entry, mais session_count ci-dessous les
+                # restaure comme compte réel.
+                result[date] = entry
+            for date, entry in result.items():
+                entry["session_count"] = counts.get(date, 0)
             return result
     except Exception as e:
         logger.error("load_sessions failed: %s", e)

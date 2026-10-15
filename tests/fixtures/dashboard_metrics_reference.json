@@ -342,6 +342,7 @@
             "energy_pre": null,
             "logged_at": "2026-09-28T12:00:00Z",
             "rpe": 6.0,
+            "session_count": 1,
             "session_name": "Same name",
             "session_type": "morning",
             "session_volume": 1000.0
@@ -665,6 +666,7 @@
             "energy_pre": null,
             "logged_at": "2026-09-28T12:00:00Z",
             "rpe": 6.0,
+            "session_count": 1,
             "session_name": "Same name",
             "session_type": "morning",
             "session_volume": 1000.0
@@ -991,6 +993,7 @@
             "energy_pre": null,
             "logged_at": "2026-09-28T12:00:00Z",
             "rpe": 6.0,
+            "session_count": 1,
             "session_name": "Same name",
             "session_type": "morning",
             "session_volume": 1000.0
@@ -1755,6 +1758,7 @@
             "energy_pre": null,
             "logged_at": "2026-09-28T12:00:00Z",
             "rpe": 6.0,
+            "session_count": 1,
             "session_name": "Same name",
             "session_type": "morning"
           },
@@ -2100,6 +2104,7 @@
             "energy_pre": null,
             "logged_at": "2026-09-28T12:00:00Z",
             "rpe": 6.0,
+            "session_count": 1,
             "session_name": "Same name",
             "session_type": "morning",
             "session_volume": 1000.0
@@ -2425,6 +2430,7 @@
             "energy_pre": null,
             "logged_at": "2026-09-28T12:00:00Z",
             "rpe": 6.0,
+            "session_count": 1,
             "session_name": "Same name",
             "session_type": "morning",
             "session_volume": 1000.0
@@ -2751,6 +2757,7 @@
             "energy_pre": null,
             "logged_at": "2026-09-28T12:00:00Z",
             "rpe": 6.0,
+            "session_count": 1,
             "session_name": "Same name",
             "session_type": "morning",
             "session_volume": 1000.0
@@ -3077,6 +3084,7 @@
             "energy_pre": null,
             "logged_at": "2026-09-28T12:00:00Z",
             "rpe": 6.0,
+            "session_count": 1,
             "session_name": "Same name",
             "session_type": "morning",
             "session_volume": 1000.0

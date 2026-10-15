@@ -73,7 +73,9 @@ def _aggregate_sessions_by_date(rows: list[dict]) -> dict[str, dict]:
       comment      : première non-vide (matin)
       logged_at    : max
       completed    : any
-      session_count: len(entries) — champ nouveau lu par iOS pour compter les vraies séances
+      session_count: len(entries) — nombre de slots workout (AM/PM/bonus) loggés.
+                     Partagé par /api/dashboard via sessions.load_sessions() qui
+                     applique le même filtre et compte à l'identique.
 
     NE PAS produire session_volume : le volume Stats vient de weights.history
     (exercise_logs), l'ajouter ici doublerait le comptage.
