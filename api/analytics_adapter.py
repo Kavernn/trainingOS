@@ -157,6 +157,15 @@ def _is_deload(day: date, cycle_start_date: date | None) -> bool:
     return ((day - cycle_start_date).days % 77) // 7 + 1 == 11
 
 
+def is_deload_day(day: date, cycle_start_date: date | None) -> bool:
+    """Public wrapper for the deload calendar rule.
+
+    Expose la règle doctrinaire (11ᵉ semaine d'un cycle 11-sem) pour les callers
+    hors adapter (cockpit daily tonnage, UI). Garde ``_is_deload`` privé pour
+    préserver son usage interne — un seul chemin de calcul."""
+    return _is_deload(day, cycle_start_date)
+
+
 def _adapt_row(row: dict[str, Any], cycle_start_date: date | None):
     exercise = _nested(row, "exercises")
     session = _nested(row, "workout_sessions")

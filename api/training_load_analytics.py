@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import Enum
-from typing import Iterable
+from typing import Callable, Iterable
 
 from metric_semantics import (
     DateWindow,
@@ -88,6 +88,13 @@ class WeeklyTrainingLoad:
     reps_exposure_count: int
     valid_reps_set_count: int
     tonnage: TonnageAggregate
+
+
+@dataclass(frozen=True)
+class DailyTrainingLoad:
+    date: date
+    tonnage: TonnageAggregate
+    is_deload: bool
 
 
 def _validate_period(period: DateWindow) -> None:
@@ -253,3 +260,42 @@ def weekly_training_load(
             )
         week_start += timedelta(days=7)
     return buckets
+
+
+def daily_training_load(
+    exposures: Iterable[TrainingLoadExposure],
+    *,
+    period: DateWindow,
+    is_deload: Callable[[date], bool] | None = None,
+) -> list[DailyTrainingLoad]:
+    """One entry per day in ``period`` with the same tonnage filters as weekly.
+
+    Invariant : pour toute semaine ISO Lundi→Dimanche entièrement couverte par
+    ``period``, la somme des daily.tonnage.value égale weekly.tonnage.value
+    (mêmes exposures, même ``_deduplicate``, même ``_aggregate_tonnage``).
+
+    ``is_deload`` est un prédicat optionnel (par exemple
+    ``lambda d: is_deload_day(d, cycle_start_date)``). Faute de prédicat, tous
+    les jours sont marqués non-deload — pas de duplication de la règle
+    calendaire ici.
+    """
+    _validate_period(period)
+    in_period = [exposure for exposure in exposures if period.contains(exposure.date)]
+    unique = _deduplicate(in_period)
+    by_day: dict[date, list[TrainingLoadExposure]] = {}
+    for exposure in unique:
+        by_day.setdefault(exposure.date, []).append(exposure)
+
+    predicate = is_deload or (lambda _d: False)
+    out: list[DailyTrainingLoad] = []
+    day = period.start
+    while day <= period.end:
+        out.append(
+            DailyTrainingLoad(
+                date=day,
+                tonnage=_aggregate_tonnage(by_day.get(day, [])),
+                is_deload=predicate(day),
+            )
+        )
+        day += timedelta(days=1)
+    return out

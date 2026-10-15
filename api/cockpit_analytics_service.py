@@ -10,11 +10,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from analytics_adapter import AnalyticsAdapterDiagnostics, UnmappedExerciseDiagnostic, adapt_analytics_rows, fetch_raw_analytics_rows, unmapped_exercise_diagnostics
+from analytics_adapter import AnalyticsAdapterDiagnostics, UnmappedExerciseDiagnostic, adapt_analytics_rows, fetch_raw_analytics_rows, is_deload_day, unmapped_exercise_diagnostics
 from metric_semantics import ComparisonWindows, DateWindow, comparison_windows
 from muscle_workload_analytics import MuscleMappingCoverage, MuscleWorkload, summarize_muscle_workload
 from progression_comparison import AttentionObservation, ProgressionComparison, ProgressionStatus, compare_progression, no_recent_improvement, top_movers
-from training_load_analytics import TrainingLoadSummary, WeeklyTrainingLoad, summarize_training_load, weekly_training_load
+from training_load_analytics import DailyTrainingLoad, TrainingLoadSummary, WeeklyTrainingLoad, daily_training_load, summarize_training_load, weekly_training_load
 
 
 SUPPORTED_PROGRESSION_DAYS = frozenset({30, 90})
@@ -81,6 +81,7 @@ class CockpitTrainingLoad:
     period: DateWindow
     summary: TrainingLoadSummary
     weekly: tuple[WeeklyTrainingLoad, ...]
+    daily: tuple[DailyTrainingLoad, ...]
 
 
 @dataclass(frozen=True)
@@ -141,6 +142,11 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
             period=config.weekly_period,
             summary=load_summary,
             weekly=tuple(weekly_training_load(adapted.training_load_exposures, period=config.weekly_period, include_empty=True)),
+            daily=tuple(daily_training_load(
+                adapted.training_load_exposures,
+                period=config.weekly_period,
+                is_deload=lambda day: is_deload_day(day, cycle_start_date),
+            )),
         ),
         muscles=CockpitMuscles(
             period=config.muscle_period,

@@ -161,7 +161,7 @@ def test_rich_response_serializes_statuses_dates_coverage_zero_and_sections(app,
     assert payload["progression"]["status_counts"]["improving"] == 1
     assert payload["progression"]["comparisons"][0]["status"] == "improving"
     assert payload["progression"]["baseline_window"]["start"] == "2026-08-02"
-    assert set(payload["training_load"]) == {"period", "summary", "weekly"}
+    assert set(payload["training_load"]) == {"period", "summary", "weekly", "daily"}
     assert payload["training_load"]["summary"]["tonnage"]["value"] == 1100.0
     assert payload["training_load"]["summary"]["tonnage"]["coverage"] == "complete"
     assert set(payload["muscles"]) == {"period", "coverage", "workloads", "unmapped_exercises"}

@@ -1,12 +1,14 @@
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
+from analytics_adapter import is_deload_day
 from metric_semantics import DateWindow
 from training_load_analytics import (
     TonnageCoverage,
     TrainingLoadExposure,
     TrainingLoadSet,
+    daily_training_load,
     summarize_training_load,
     weekly_training_load,
 )
@@ -277,3 +279,86 @@ def test_weekly_can_omit_empty_weeks_explicitly():
         include_empty=False,
     )
     assert [bucket.week_start for bucket in result] == [date(2026, 9, 14)]
+
+
+# ── daily_training_load ──────────────────────────────────────────────────────
+
+def test_daily_covers_every_day_in_period():
+    period = DateWindow(date(2026, 9, 7), date(2026, 9, 13))
+    result = daily_training_load(
+        [exposure("a", "s1", date(2026, 9, 8), sets=((100, 5),))],
+        period=period,
+    )
+    assert [entry.date for entry in result] == [
+        date(2026, 9, 7), date(2026, 9, 8), date(2026, 9, 9),
+        date(2026, 9, 10), date(2026, 9, 11), date(2026, 9, 12), date(2026, 9, 13),
+    ]
+    # Empty days are reported with UNAVAILABLE tonnage (not zero).
+    assert result[0].tonnage.coverage is TonnageCoverage.UNAVAILABLE
+    assert result[0].tonnage.value is None
+    assert result[1].tonnage.value == pytest.approx(500)
+    assert result[1].tonnage.coverage is TonnageCoverage.COMPLETE
+
+
+def test_daily_sum_matches_weekly_tonnage_invariant():
+    """Pour chaque semaine ISO complète dans ``period``, somme(daily) == weekly."""
+    period = DateWindow(date(2026, 8, 31), date(2026, 9, 20))  # 3 semaines Lun→Dim
+    exposures = [
+        exposure("mon-a", "s1", date(2026, 8, 31), sets=((100, 5), (80, 10))),  # 1300
+        exposure("mon-b", "s1", date(2026, 8, 31), sets=((60, 12),)),           # 720
+        exposure("wed",   "s2", date(2026, 9, 2),  sets=((120, 3),)),           # 360
+        exposure("sun",   "s3", date(2026, 9, 6),  sets=((95, 8),)),            # 760
+        exposure("w2-tue","s4", date(2026, 9, 8),  sets=((110, 5),)),           # 550
+        exposure("w2-fri","s5", date(2026, 9, 11), sets=((70, 10), (70, 8))),   # 1260
+        exposure("w3-mon","s6", date(2026, 9, 14), sets=((100, 6),)),           # 600
+        # Non-reps: must be excluded from tonnage.
+        exposure("time",  "s6", date(2026, 9, 14), tracking_type="time", sets=((999, 999),)),
+    ]
+    weekly = weekly_training_load(exposures, period=period)
+    daily  = daily_training_load(exposures, period=period)
+
+    for week in weekly:
+        if week.is_partial:
+            continue
+        week_daily_sum = sum(
+            (entry.tonnage.value or 0.0)
+            for entry in daily
+            if week.week_start <= entry.date <= week.week_end
+        )
+        week_total = week.tonnage.value or 0.0
+        assert week_daily_sum == pytest.approx(week_total), (
+            f"invariant broken for week starting {week.week_start}: "
+            f"daily sum {week_daily_sum} vs weekly {week_total}"
+        )
+
+
+def test_daily_marks_deload_days_from_predicate():
+    """Les 7 jours de la 11ᵉ semaine du cycle sont flaggués is_deload=True."""
+    cycle_start = date(2026, 1, 5)  # un lundi
+    # Semaine 11 commence 10 × 7 = 70 jours plus tard.
+    deload_monday = cycle_start + timedelta(days=70)
+    deload_sunday = deload_monday + timedelta(days=6)
+    # Fenêtre couvre : semaine précédente (non-deload) + semaine deload complète.
+    period = DateWindow(deload_monday - timedelta(days=7), deload_sunday)
+
+    result = daily_training_load(
+        [],  # pas d'exposure nécessaire pour tester le flag
+        period=period,
+        is_deload=lambda d: is_deload_day(d, cycle_start),
+    )
+    by_date = {entry.date: entry for entry in result}
+
+    # Semaine précédente : aucun jour en deload.
+    for i in range(7):
+        day = deload_monday - timedelta(days=7 - i)
+        assert by_date[day].is_deload is False, f"{day} should not be deload"
+    # Semaine deload : les 7 jours flaggués.
+    for i in range(7):
+        day = deload_monday + timedelta(days=i)
+        assert by_date[day].is_deload is True, f"{day} should be deload"
+
+
+def test_daily_without_predicate_marks_no_day_as_deload():
+    period = DateWindow(date(2026, 9, 7), date(2026, 9, 13))
+    result = daily_training_load([], period=period)
+    assert all(entry.is_deload is False for entry in result)
