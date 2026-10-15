@@ -165,7 +165,7 @@ def compute_target_calories(date: Optional[str] = None) -> Optional[int]:
     retomber sur un fallback inventé.
     """
     from energy import compute_energy_history  # lazy — évite cycle tdee ↔ energy
-    prior = compute_energy_history(days=8)[:-1]
+    prior = compute_energy_history(days=8, end_date=date)[:-1]
     if not prior:
         return None
     profile = db.get_profile() or {}

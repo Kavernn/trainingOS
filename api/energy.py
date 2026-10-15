@@ -308,16 +308,20 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
 
 # ── Historique 7j ─────────────────────────────────────────────────────────────
 
-def compute_energy_history(days: int = 7) -> list[dict]:
+def compute_energy_history(days: int = 7, end_date: Optional[str] = None) -> list[dict]:
     """
     Calcule le bilan énergétique pour chaque jour des N derniers jours.
     Retourne une liste du plus ancien au plus récent.
     BMR constant (profil ne change pas jour à jour).
     EAT/NEAT/Intake recalculés depuis les logs archivés.
+
+    `end_date` (YYYY-MM-DD) borne la fenêtre : résultat = [end_date-days+1 … end_date].
+    Défaut aujourd'hui MTL. Aucune logique "jour courant" ici (BMR plein appliqué
+    à tous les jours, pas de bmr_elapsed/is_too_early) → safe pour un jour révolu.
     """
     from datetime import date as date_cls, timedelta
 
-    today   = _today_mtl()
+    today   = end_date or _today_mtl()
     profile = db.get_profile() or {}
 
     latest_bw = db.get_body_weight_logs(limit=1)

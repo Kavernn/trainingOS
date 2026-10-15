@@ -133,7 +133,9 @@ def _get_day_intensity(date: str | None = None, *, strict: bool = False) -> tupl
 
 
 def resolve_daily_target(date: str) -> dict:
-    """Read-only projection of configured settings; no universal default targets."""
+    """Calories = cible adaptative unique (tdee.compute_target_calories).
+    Protéines/glucides/lipides restent lus depuis les settings (migration future).
+    Aucun fallback caché sur day_type_targets pour les calories."""
     import json
     import math
     from datetime import date as calendar_date
@@ -160,9 +162,14 @@ def resolve_daily_target(date: str) -> dict:
             raise ValueError("Cibles nutrition invalides")
         return value
 
+    from tdee import compute_target_calories
+    adaptive_cal = compute_target_calories(date)
+    if adaptive_cal is None:
+        raise ValueError("Historique TDEE insuffisant (<7j) — cible adaptative indisponible")
+
     return {
         "date": date, "day_type": day_type, "workout_label": session,
-        "calories": number(target.get("calories"), required=True),
+        "calories": float(adaptive_cal),
         "proteines": number(settings.get("objectif_proteines") or settings.get("protein_target"), required=True),
         "glucides": number(target.get("glucides")),
         "lipides": number(settings.get("lipides")),
