@@ -1309,9 +1309,25 @@ struct WorkoutSeanceView: View {
             inventoryMuscleGroups: inventoryMuscleGroups,
             recentExercises: recentAdHocExercises
         ) { list in
-            // Local-only: adds to this session without modifying the programme
-            for (ex, scheme) in list {
-                localProgram[ex] = scheme
+            // Local-only: adds to this session without modifying the programme.
+            // Mirror pattern swap L2285 : fetch l'historique AVANT d'écrire
+            // dans localProgram — ExerciseCard L61 lock weightData dans son
+            // @StateObject au premier init, donc la map doit être prête avant
+            // que la carte apparaisse.
+            Task {
+                await withTaskGroup(of: (String, String, WeightData?).self) { group in
+                    for (ex, scheme) in list {
+                        group.addTask {
+                            (ex, scheme, try? await APIService.shared.fetchExerciseWeightData(name: ex))
+                        }
+                    }
+                    for await (ex, scheme, fetched) in group {
+                        await MainActor.run {
+                            if let fetched { swapWeightData[ex] = fetched }
+                            localProgram[ex] = scheme
+                        }
+                    }
+                }
             }
         }
     }
