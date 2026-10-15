@@ -12,13 +12,18 @@ extension APIService {
         return try APIService.decoder.decode(Resp.self, from: data).recoveryLog
     }
 
+    /// Retourne `true` si l'écriture a atteint le serveur, `false` si elle a été
+    /// mise en file offline (le serveur n'a PAS recalculé readiness/brief).
+    /// Les callers qui dépendent d'un recalcul serveur-side (ex: refetch du
+    /// morning brief) doivent vérifier le retour.
+    @discardableResult
     func logRecovery(sleepHours: Double?, sleepQuality: Double?, restingHr: Double?,
                      hrv: Double?, steps: Int?, soreness: Double?,
                      fatigue: Double? = nil, energyPre: Double? = nil,
                      activeEnergy: Double? = nil, hrMorning: Double? = nil,
                      hrPostWorkout: Double? = nil, hrEvening: Double? = nil,
                      notes: String? = nil, date: String? = nil,
-                     bedtime: String? = nil, wakeTime: String? = nil) async throws {
+                     bedtime: String? = nil, wakeTime: String? = nil) async throws -> Bool {
         var body: [String: Any] = [:]
         if let v = notes         { body["notes"]              = v }
         if let v = sleepHours    { body["sleep_hours"]        = v }
@@ -36,9 +41,10 @@ extension APIService {
         if let d = date          { body["date"]               = d }
         if let v = bedtime       { body["bedtime"]            = v }
         if let v = wakeTime      { body["wake_time"]          = v }
-        _ = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
+        let data = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
         CacheInvalidation.recoveryLogged.invalidate()
         CacheInvalidation.energyLogged.invalidate()
+        return data != nil
     }
 
     // MARK: - iOS-side manual > HK protection

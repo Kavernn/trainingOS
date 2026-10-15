@@ -105,6 +105,8 @@ def api_log_recovery():
     _readiness.invalidate_cache()
     from routes.daily_brief import invalidate_cache as _brief_invalidate
     _brief_invalidate()
+    from morning_brief import invalidate_cache as _mb_invalidate
+    _mb_invalidate()
     return jsonify({"ok": True})
 
 @wellness_recovery_bp.route("/api/delete_recovery", methods=["POST"])
@@ -116,6 +118,8 @@ def api_delete_recovery():
     _readiness.invalidate_cache()
     from routes.daily_brief import invalidate_cache as _brief_invalidate
     _brief_invalidate()
+    from morning_brief import invalidate_cache as _mb_invalidate
+    _mb_invalidate()
     return jsonify({"ok": True})
 
 

@@ -554,11 +554,12 @@ struct DashboardView: View {
     }
 
     private func checkAndShowMorningReveal() {
+        // Check-in matinal indépendant du brief : enqueue dès que la date du jour
+        // n'a pas été consommée. La vue fetch le brief elle-même après le check-in.
         let hour = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         guard hour < 14,
-              UserDefaults.standard.string(forKey: "morningRevealDate") != todayStr,
-              let brief = vm.morningBrief else { return }
-        AppState.shared.enqueueLaunchPrompt(.morningReveal(brief))
+              UserDefaults.standard.string(forKey: "morningRevealDate") != todayStr else { return }
+        AppState.shared.enqueueLaunchPrompt(.morningReveal)
     }
 
     private var dailyAccent: Color {

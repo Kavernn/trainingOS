@@ -27,7 +27,7 @@ struct MacroNutritionHint: Equatable {
 // File d'attente unifiée des prompts de lancement. Priorité stricte : séance > nutrition > DNA.
 // Identifiable via caseKey stable → un seul case-type peut coexister (idempotence naturelle).
 enum LaunchPrompt: Identifiable {
-    case morningReveal(MorningBriefData)
+    case morningReveal
     case nutritionCatchup(NutritionCatchupPrompt)
     case dnaEvolution(DNAEvolutionEvent)
 

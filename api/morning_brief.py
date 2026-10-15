@@ -10,6 +10,13 @@ _CACHE: dict = {}
 _CACHE_TTL = 5 * 60  # 5 min — absorbs burst calls; Watch sync propagates on next miss
 
 
+def invalidate_cache() -> None:
+    """Vide le cache local pour forcer un recalcul au prochain appel.
+    Appelé par les mutations qui modifient un signal lu par get_morning_brief
+    (recovery_logs, nutrition, mood/pss, workout_sessions...)."""
+    _CACHE.clear()
+
+
 def _get_hrv_context():
     """Return (today_hrv_ms, pct_vs_baseline) or (None, None)."""
     try:

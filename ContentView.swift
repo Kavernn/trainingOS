@@ -87,9 +87,9 @@ private struct iOSContentView: View {
             set: { _ in }  // fullScreenCover non-dismissable interactivement — side-effect via onDismiss du modal
         )) { prompt in
             switch prompt {
-            case .morningReveal(let brief):
-                MorningRevealView(morningBrief: brief) {
-                    appState.dismissLaunchPrompt(.morningReveal(brief))
+            case .morningReveal:
+                MorningRevealView {
+                    appState.dismissLaunchPrompt(.morningReveal)
                 }
             case .dnaEvolution(let event):
                 DNAEvolutionSheet(event: event, onDismiss: appState.acknowledgeDNAEvolution)
