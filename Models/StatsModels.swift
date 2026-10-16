@@ -1,11 +1,11 @@
 import Foundation
 
-// MARK: - Streak
+// MARK: - Streak hebdo (source unique côté iOS)
+// Les champs daily (current_streak/best_streak/today_logged/streak_at_risk)
+// restent dans le payload serveur tant que /api/stats/streaks ne les a pas
+// retirés (déploiement en deux temps). Ne pas réintroduire ici — le concept
+// daily est déprécié, le streak hebdo est l'unique narrative dans l'app.
 struct StreakResponse: Codable {
-    let currentStreak: Int
-    let bestStreak:    Int
-    let todayLogged:   Bool
-    let streakAtRisk:  Bool
     let weeklyTarget:         Int
     let weeklyStreakCurrent:  Int
     let weeklyStreakBest:     Int
@@ -26,10 +26,6 @@ struct StreakResponse: Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case currentStreak = "current_streak"
-        case bestStreak    = "best_streak"
-        case todayLogged   = "today_logged"
-        case streakAtRisk  = "streak_at_risk"
         case weeklyTarget         = "weekly_target"
         case weeklyStreakCurrent  = "weekly_streak_current"
         case weeklyStreakBest     = "weekly_streak_best"
