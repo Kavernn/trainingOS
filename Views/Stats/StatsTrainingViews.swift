@@ -269,22 +269,44 @@ struct SessionHeatmapView: View {
         let date: String
         let type: CellType
         let weekMonday: String
+        let isFuture: Bool
         var id: String { date }
     }
 
+    /// Ordre : semaine la plus ancienne d'abord, puis Lun→Dim à l'intérieur.
+    /// Consommé par cellsByWeek qui regroupe en 13 bundles de 7 ; rendu par
+    /// un HStack de 13 VStack (une colonne = une semaine) pour permettre
+    /// l'encadrement vertical compact des semaines réussies via .overlay.
     private var cells: [Cell] {
-        let base = Date().timeIntervalSince1970
-        return (0..<days).reversed().map { offset in
-            let d = Date(timeIntervalSince1970: base - Double(offset) * 86400.0)
-            let key = DateFormatter.isoDate.string(from: d)
-            let hasMuscu = sessions[key] != nil
-            let hasOther = hiitDates.contains(key) || cardioDates.contains(key)
-            let type: CellType = hasMuscu && hasOther ? .both
-                               : hasMuscu ? .muscu
-                               : hasOther ? .other
-                               : .none
-            return Cell(date: key, type: type, weekMonday: mondayKey(for: d))
+        let today = Date()
+        let todayKey = DateFormatter.isoDate.string(from: today)
+        var comps = Self.isoCal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
+        comps.weekday = 2  // Monday
+        guard let currentMonday = Self.isoCal.date(from: comps),
+              let oldestMonday = Self.isoCal.date(byAdding: .day, value: -12 * 7, to: currentMonday)
+        else { return [] }
+
+        var out: [Cell] = []
+        for weekIdx in 0..<13 {
+            guard let weekMondayDate = Self.isoCal.date(byAdding: .day, value: weekIdx * 7, to: oldestMonday)
+            else { continue }
+            let mondayStr = DateFormatter.isoDate.string(from: weekMondayDate)
+            for dayIdx in 0..<7 {
+                guard let dayDate = Self.isoCal.date(byAdding: .day, value: dayIdx, to: weekMondayDate)
+                else { continue }
+                let dayKey = DateFormatter.isoDate.string(from: dayDate)
+                let isFuture = dayKey > todayKey
+                let hasMuscu = sessions[dayKey] != nil
+                let hasOther = hiitDates.contains(dayKey) || cardioDates.contains(dayKey)
+                let type: CellType = isFuture ? .none
+                                   : hasMuscu && hasOther ? .both
+                                   : hasMuscu ? .muscu
+                                   : hasOther ? .other
+                                   : .none
+                out.append(Cell(date: dayKey, type: type, weekMonday: mondayStr, isFuture: isFuture))
+            }
         }
+        return out
     }
 
     private func cellColor(_ t: CellType) -> Color {
@@ -294,6 +316,35 @@ struct SessionHeatmapView: View {
         case .other: return Color.appTextSecondary
         case .both:  return Color.appTextSecondary.opacity(0.5)
         }
+    }
+
+    /// Groupe les 91 cells en 13 bundles de 7, dans l'ordre chronologique.
+    /// LazyVGrid n'est pas utilisé : HStack(VStack) donne un contrôle direct
+    /// sur l'encadrement d'une semaine entière via .overlay sur la VStack.
+    private var cellsByWeek: [(monday: String, cells: [Cell])] {
+        let groups = Dictionary(grouping: cells) { $0.weekMonday }
+        return groups.keys.sorted().map { monday in
+            (monday, (groups[monday] ?? []).sorted { $0.date < $1.date })
+        }
+    }
+
+    @ViewBuilder
+    private func cellView(_ cell: Cell) -> some View {
+        ZStack {
+            if cell.isFuture {
+                // Jour futur de la semaine en cours : contour seul, pas de
+                // fill — visuellement distinct d'un jour inactif passé.
+                RoundedRectangle(cornerRadius: 2)
+                    .stroke(Color.appSurfaceInset, lineWidth: 1)
+            } else {
+                RoundedRectangle(cornerRadius: 2).fill(cellColor(cell.type))
+                if cell.type == .both {
+                    Circle().fill(Color.appTextPrimary).frame(width: 4, height: 4)
+                }
+            }
+        }
+        .frame(height: 16)
+        .accessibilityHidden(true)
     }
 
     private var oldestDateLabel: String {
@@ -312,7 +363,7 @@ struct SessionHeatmapView: View {
     private var accessibilitySummary: String {
         let streak = weeklyCurrent == 1 ? "1 semaine consécutive" : "\(weeklyCurrent) semaines consécutives"
         let progress = weeklyTarget > 0 ? " Cette semaine : \(daysActive) jours actifs sur \(weeklyTarget)." : ""
-        return "\(streak). Record : \(weeklyBest).\(progress) Calendrier d'activité 90 jours."
+        return "\(streak). Record : \(weeklyBest).\(progress) Calendrier d'activité 13 semaines."
     }
 
     var body: some View {
@@ -321,7 +372,7 @@ struct SessionHeatmapView: View {
                 Text("RÉGULARITÉ")
                     .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
                 Spacer()
-                Text("90 JOURS")
+                Text("13 SEMAINES")
                     .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
             }
 
@@ -366,20 +417,25 @@ struct SessionHeatmapView: View {
                 .font(.appMicro).foregroundColor(.appTextMuted)
 
             let successful = successfulWeekMondays
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 15), spacing: 3) {
-                ForEach(cells) { cell in
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 2).fill(cellColor(cell.type))
-                        if cell.type == .both {
-                            Circle().fill(Color.appTextPrimary).frame(width: 4, height: 4)
-                        }
-                        if successful.contains(cell.weekMonday) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .stroke(Color.forge, lineWidth: 1.2)
+            // 13 colonnes (une par entrée weeks[], de la plus ancienne à la plus
+            // récente) × 7 lignes Lun→Dim. Semaine réussie = overlay stroke sur
+            // la VStack entière → encadrement vertical compact de la colonne.
+            HStack(alignment: .top, spacing: 3) {
+                ForEach(cellsByWeek, id: \.monday) { week in
+                    VStack(spacing: 3) {
+                        ForEach(week.cells) { cell in
+                            cellView(cell)
                         }
                     }
-                    .frame(height: 16)
-                    .accessibilityHidden(true)
+                    .overlay(
+                        Group {
+                            if successful.contains(week.monday) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .stroke(Color.forge, lineWidth: 1.2)
+                                    .padding(-2)
+                            }
+                        }
+                    )
                 }
             }
 
