@@ -157,7 +157,7 @@ def test_rich_response_serializes_statuses_dates_coverage_zero_and_sections(app,
     response = app.test_client().get(query(progression_days="30", weekly_days="30", muscle_days="30"))
     assert response.status_code == 200
     payload = response.get_json()
-    assert set(payload["progression"]) == {"comparison_window_days", "baseline_window", "recent_window", "status_counts", "comparisons", "top_movers", "attention"}
+    assert set(payload["progression"]) == {"comparison_window_days", "baseline_window", "recent_window", "status_counts", "comparisons", "top_movers", "top_movers_series", "attention"}
     assert payload["progression"]["status_counts"]["improving"] == 1
     assert payload["progression"]["comparisons"][0]["status"] == "improving"
     assert payload["progression"]["baseline_window"]["start"] == "2026-08-02"

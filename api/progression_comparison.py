@@ -8,7 +8,7 @@ no database, endpoint, presentation, or existing analytics-engine dependencies.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Iterable
@@ -27,6 +27,7 @@ DEFAULT_MIN_EXPOSURES_PER_WINDOW = 2
 DEFAULT_ATTENTION_MIN_EXPOSURES = 3
 DEFAULT_ATTENTION_MIN_COVERED_DAYS = 21
 DEFAULT_NEW_BEST_RESOLUTION_LBS = 0.1
+MOVER_SERIES_DEFAULT_WEEKS = 12
 
 
 class ProgressionStatus(str, Enum):
@@ -315,6 +316,68 @@ def compare_progression(
         )
 
     return comparisons
+
+
+@dataclass(frozen=True)
+class MoverE1RMPoint:
+    date: date
+    best_e1rm: float
+
+
+def movers_e1rm_series(
+    exposures: Iterable[StrengthExposure],
+    movers: Iterable[ProgressionComparison],
+    *,
+    as_of: date,
+    weeks: int = MOVER_SERIES_DEFAULT_WEEKS,
+) -> dict[str, tuple[MoverE1RMPoint, ...]]:
+    """Return per-day best-e1RM points for each mover, over ``weeks`` ending as_of.
+
+    Window : [as_of - weeks*7 + 1, as_of] (inclusive). Un seul point par date,
+    égal au ``best_e1rm_for_exposure`` max de ce jour. Les exposures deload
+    sont ignorés (cohérent avec ``_evaluate``). Les exercices sans mover
+    correspondant sortent du résultat.
+
+    Invariant : pour chaque mover, max(point.best_e1rm) dans mover.recent_window
+    == mover.recent_best_e1rm. Idem pour mover.baseline_window. Les deux
+    côtés dérivent du même ``_evaluate`` sur les mêmes exposures → égalité
+    stricte par construction.
+    """
+    if type(as_of) is not date:
+        raise TypeError("as_of must be a date")
+    if isinstance(weeks, bool) or not isinstance(weeks, int) or weeks <= 0:
+        raise ValueError("weeks must be a positive integer")
+
+    window = DateWindow(start=as_of - timedelta(days=weeks * 7 - 1), end=as_of)
+    mover_names = {m.exercise_name for m in movers}
+    if not mover_names:
+        return {}
+
+    unique = _deduplicate(exposures)
+    best_by_day: dict[str, dict[date, float]] = {}
+    for exposure in unique:
+        if exposure.exercise_name not in mover_names:
+            continue
+        if not window.contains(exposure.date):
+            continue
+        evaluated = _evaluate(exposure)
+        if evaluated is None:
+            continue
+        day_map = best_by_day.setdefault(exposure.exercise_name, {})
+        prev = day_map.get(exposure.date)
+        if prev is None or evaluated.best_e1rm > prev:
+            day_map[exposure.date] = evaluated.best_e1rm
+
+    out: dict[str, tuple[MoverE1RMPoint, ...]] = {}
+    for name, day_map in best_by_day.items():
+        if not day_map:
+            continue
+        points = tuple(
+            MoverE1RMPoint(date=d, best_e1rm=day_map[d])
+            for d in sorted(day_map.keys())
+        )
+        out[name] = points
+    return out
 
 
 def top_movers(

@@ -13,7 +13,7 @@ from datetime import date
 from analytics_adapter import AnalyticsAdapterDiagnostics, UnmappedExerciseDiagnostic, adapt_analytics_rows, fetch_raw_analytics_rows, is_deload_day, unmapped_exercise_diagnostics
 from metric_semantics import ComparisonWindows, DateWindow, comparison_windows
 from muscle_workload_analytics import MuscleMappingCoverage, MuscleWorkload, summarize_muscle_workload
-from progression_comparison import AttentionObservation, ProgressionComparison, ProgressionStatus, compare_progression, no_recent_improvement, top_movers
+from progression_comparison import AttentionObservation, MoverE1RMPoint, ProgressionComparison, ProgressionStatus, compare_progression, movers_e1rm_series, no_recent_improvement, top_movers
 from training_load_analytics import DailyTrainingLoad, TrainingLoadSummary, WeeklyTrainingLoad, daily_training_load, summarize_training_load, weekly_training_load
 
 
@@ -73,6 +73,10 @@ class CockpitProgression:
     status_counts: ProgressionStatusCounts
     comparisons: tuple[ProgressionComparison, ...]
     top_movers: tuple[ProgressionComparison, ...]
+    # Série e1RM 12 semaines par exercice top mover — même source que
+    # ``top_movers`` (strength_exposures complets), zéro troncature. Clés =
+    # exercise_name des top_movers uniquement.
+    top_movers_series: dict[str, tuple[MoverE1RMPoint, ...]]
     attention: tuple[AttentionObservation, ...]
 
 
@@ -124,6 +128,8 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
     adapted = adapt_analytics_rows(raw_rows, period=config.raw_period, cycle_start_date=cycle_start_date)
     windows = config.progression_windows
     comparisons = tuple(compare_progression(adapted.strength_exposures, today=config.as_of, days=config.progression_days))
+    movers = tuple(top_movers(comparisons))
+    movers_series = movers_e1rm_series(adapted.strength_exposures, movers, as_of=config.as_of)
     attention = tuple(no_recent_improvement(adapted.strength_exposures, observation_window=windows.recent, as_of=config.as_of))
     load_summary = summarize_training_load(adapted.training_load_exposures, period=config.weekly_period)
     muscle_summary = summarize_muscle_workload(adapted.training_load_exposures, adapted.assignments, period=config.muscle_period)
@@ -135,7 +141,8 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
             recent_window=windows.recent,
             status_counts=_status_counts(comparisons),
             comparisons=comparisons,
-            top_movers=tuple(top_movers(comparisons)),
+            top_movers=movers,
+            top_movers_series=movers_series,
             attention=attention,
         ),
         training_load=CockpitTrainingLoad(

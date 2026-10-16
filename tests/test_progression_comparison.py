@@ -7,11 +7,13 @@ from metric_semantics import DateWindow, TrackingType
 from progression_comparison import (
     AttentionKind,
     InsufficiencyReason,
+    MoverE1RMPoint,
     ProgressionComparison,
     ProgressionStatus,
     StrengthExposure,
     StrengthSet,
     compare_progression,
+    movers_e1rm_series,
     no_recent_improvement,
     top_movers,
 )
@@ -388,3 +390,107 @@ def test_attention_is_input_order_independent():
     ) == no_recent_improvement(
         reversed(items), observation_window=ATTENTION_WINDOW, as_of=TODAY
     )
+
+
+# ── movers_e1rm_series ──────────────────────────────────────────────────────
+
+def test_mover_series_invariant_recent_and_baseline_max_match_comparison():
+    """max(series dans recent_window) == comparison.recent_best_e1rm.
+    Même règle pour baseline_window — même source _evaluate que compare_progression."""
+    items = [
+        # Baseline window (days 30-59 avant TODAY)
+        exposure("b1", TODAY - timedelta(days=55), weight=100, reps=5),  # 1RM ≈ 116.7
+        exposure("b2", TODAY - timedelta(days=40), weight=110, reps=3),  # 1RM ≈ 121
+        # Recent window (days 0-29 avant TODAY)
+        exposure("r1", TODAY - timedelta(days=15), weight=120, reps=3),  # 1RM ≈ 132
+        exposure("r2", TODAY - timedelta(days=3),  weight=125, reps=3),  # 1RM ≈ 137.5
+    ]
+    comparisons = compare_progression(items, today=TODAY)
+    cmp = comparisons[0]
+    assert cmp.status is ProgressionStatus.IMPROVING
+
+    series = movers_e1rm_series(items, [cmp], as_of=TODAY, weeks=12)
+    pts = series[cmp.exercise_name]
+    assert all(cmp.baseline_window.start <= p.date <= cmp.recent_window.end for p in pts)
+
+    recent_pts   = [p for p in pts if cmp.recent_window.contains(p.date)]
+    baseline_pts = [p for p in pts if cmp.baseline_window.contains(p.date)]
+    assert recent_pts and baseline_pts
+    assert max(p.best_e1rm for p in recent_pts) == pytest.approx(cmp.recent_best_e1rm)
+    assert max(p.best_e1rm for p in baseline_pts) == pytest.approx(cmp.baseline_best_e1rm)
+
+
+def test_mover_series_covers_full_12_weeks_window():
+    """Un point à J-80 (hors 12 sem = 84j) doit sortir. J-83 doit rentrer."""
+    items = [
+        exposure("deep",    TODAY - timedelta(days=83), weight=100, reps=5),
+        exposure("outside", TODAY - timedelta(days=90), weight=200, reps=1),
+        exposure("b1",      TODAY - timedelta(days=40), weight=110, reps=3),
+        exposure("b2",      TODAY - timedelta(days=35), weight=110, reps=3),
+        exposure("r1",      TODAY - timedelta(days=5),  weight=120, reps=3),
+        exposure("r2",      TODAY - timedelta(days=2),  weight=125, reps=3),
+    ]
+    comparisons = compare_progression(items, today=TODAY)
+    series = movers_e1rm_series(items, comparisons, as_of=TODAY, weeks=12)
+    pts = series["Bench Press"]
+    dates = [p.date for p in pts]
+    assert TODAY - timedelta(days=83) in dates, "J-83 doit être dans la fenêtre"
+    assert TODAY - timedelta(days=90) not in dates, "J-90 hors fenêtre"
+
+
+def test_mover_series_deload_days_excluded():
+    """Un exposure deload n'apparaît pas dans la série (parité avec _evaluate)."""
+    items = [
+        exposure("b1", TODAY - timedelta(days=40), weight=110, reps=3),
+        exposure("b2", TODAY - timedelta(days=35), weight=110, reps=3),
+        exposure("r1", TODAY - timedelta(days=10), weight=120, reps=3),
+        exposure("r2", TODAY - timedelta(days=5),  weight=125, reps=3, is_deload=True),
+    ]
+    comparisons = compare_progression(items, today=TODAY)
+    series = movers_e1rm_series(items, comparisons, as_of=TODAY, weeks=12)
+    pts = series.get("Bench Press") or ()
+    assert all(p.date != TODAY - timedelta(days=5) for p in pts), \
+        "jour deload ne doit pas être dans la série"
+
+
+def test_mover_series_only_emits_for_requested_movers():
+    """Les exercices hors movers ne génèrent aucune entrée dans la série."""
+    bench_items = [
+        exposure("b1", TODAY - timedelta(days=40), name="Bench Press", weight=100, reps=5),
+        exposure("b2", TODAY - timedelta(days=35), name="Bench Press", weight=100, reps=5),
+        exposure("r1", TODAY - timedelta(days=10), name="Bench Press", weight=120, reps=3),
+        exposure("r2", TODAY - timedelta(days=5),  name="Bench Press", weight=125, reps=3),
+    ]
+    squat_items = [
+        exposure("s1", TODAY - timedelta(days=10), name="Back Squat", weight=200, reps=5),
+    ]
+    all_items = bench_items + squat_items
+    comparisons = compare_progression(all_items, today=TODAY)
+    bench_cmp = next(c for c in comparisons if c.exercise_name == "Bench Press")
+
+    series = movers_e1rm_series(all_items, [bench_cmp], as_of=TODAY, weeks=12)
+    assert set(series.keys()) == {"Bench Press"}
+    assert "Back Squat" not in series
+
+
+def test_mover_series_empty_when_no_movers():
+    comparisons = compare_progression(comparison_input(105), today=TODAY)
+    assert movers_e1rm_series([], comparisons, as_of=TODAY) == {}
+    assert movers_e1rm_series(comparison_input(105), [], as_of=TODAY) == {}
+
+
+def test_mover_series_one_point_per_day_keeps_max():
+    """Deux exposures le même jour → un seul point avec le max_e1rm."""
+    same_day = TODAY - timedelta(days=5)
+    items = [
+        exposure("b1", TODAY - timedelta(days=40), weight=100, reps=5),
+        exposure("b2", TODAY - timedelta(days=35), weight=100, reps=5),
+        exposure("r1", same_day, weight=120, reps=3),  # ≈ 132
+        exposure("r2", same_day, weight=130, reps=3),  # ≈ 143
+    ]
+    comparisons = compare_progression(items, today=TODAY)
+    series = movers_e1rm_series(items, comparisons, as_of=TODAY)
+    pts = series.get("Bench Press") or ()
+    pts_on_day = [p for p in pts if p.date == same_day]
+    assert len(pts_on_day) == 1
+    assert pts_on_day[0].best_e1rm == pytest.approx(143.0)
