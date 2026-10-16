@@ -137,12 +137,14 @@ class WeeklyStreak(BaseRouteTest):
         self._set_hiit([])
         data = self._get()
         for k in ("weekly_target", "weekly_streak_current", "weekly_streak_best",
-                  "current_week", "weeks",
-                  "current_streak", "best_streak", "today_logged", "streak_at_risk"):
+                  "week_at_risk", "current_week", "weeks"):
             self.assertIn(k, data, f"champ manquant : {k}")
         self.assertEqual(len(data["weeks"]), 13, "doit couvrir 13 semaines ISO")
         self.assertEqual(data["weeks"][-1]["week_start"], WEEKS_BACK_MONDAYS["w0"],
                          "weeks[-1] = semaine courante")
+        # Les champs daily ne doivent plus être émis (déprécation terminée).
+        for k in ("current_streak", "best_streak", "today_logged", "streak_at_risk"):
+            self.assertNotIn(k, data, f"champ daily déprécié toujours émis : {k}")
 
     def test_target_is_single_source_backend(self):
         """weekly_target renvoyé explicitement — iOS ne doit pas coder 5 en dur."""

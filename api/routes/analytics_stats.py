@@ -272,43 +272,12 @@ def api_stats_streaks():
         if d:
             session_dates.add(d)
 
-    # Today: include if exercise logs exist even without rpe/completed
+    # Today: include if exercise logs exist even without rpe/completed.
+    # Permet au streak hebdo de refléter une séance de la journée sans
+    # attendre que la row workout_sessions soit flaggée completed/rpe.
     today_exos = _db.get_session_exercise_logs(today_str)
-    today_logged = today_str in session_dates or bool(today_exos)
-    if today_logged:
+    if today_str in session_dates or bool(today_exos):
         session_dates.add(today_str)
-
-    # Current streak (grace period si pas encore entraîné aujourd'hui)
-    current_streak = 0
-    d = today_date if today_logged else today_date - _td(days=1)
-    for _ in range(730):
-        if d.isoformat() in session_dates:
-            current_streak += 1
-            d -= _td(days=1)
-        else:
-            break
-
-    # Best streak
-    sorted_dates = sorted(_date.fromisoformat(ds) for ds in session_dates)
-    best_streak = current_streak
-    if len(sorted_dates) > 1:
-        cur = 1
-        for i in range(1, len(sorted_dates)):
-            if (sorted_dates[i] - sorted_dates[i - 1]).days == 1:
-                cur += 1
-                if cur > best_streak:
-                    best_streak = cur
-            else:
-                cur = 1
-
-    # streak_at_risk : pas entraîné + après 18h locale
-    streak_at_risk = False
-    if not today_logged and current_streak > 0:
-        try:
-            from zoneinfo import ZoneInfo
-            streak_at_risk = _dtt.now(ZoneInfo("America/Montreal")).hour >= 18
-        except Exception:
-            pass
 
     # ── Streak hebdomadaire ──────────────────────────────────────────────────
     # Semaine ISO lundi→dimanche. Jour actif = même source que session_dates
@@ -392,10 +361,6 @@ def api_stats_streaks():
     week_at_risk = days_missing > 0 and days_remaining == days_missing
 
     return jsonify({
-        "current_streak":        current_streak,
-        "best_streak":           best_streak,
-        "today_logged":          today_logged,
-        "streak_at_risk":        streak_at_risk,
         "weekly_target":         WEEKLY_TARGET,
         "weekly_streak_current": weekly_streak_current,
         "weekly_streak_best":    weekly_streak_best,
