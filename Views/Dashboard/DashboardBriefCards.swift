@@ -1,34 +1,41 @@
 import SwiftUI
 
-// MARK: - Momentum Strip (Streak + WeekProgress fusion)
+// MARK: - Momentum Strip (Weekly streak + weekly progress fusion)
 
 struct MomentumStripView: View {
     let dash: DashboardData
     var streakData: StreakResponse? = nil
     var weeklyTonnage: Int? = nil
 
-    private var currentStreak: Int { streakData?.currentStreak ?? 0 }
-    private var bestStreak: Int    { streakData?.bestStreak ?? 0 }
-    private var showStreak: Bool   { currentStreak > 3 }
+    private var daysActive:  Int    { streakData?.currentWeek.daysActive ?? 0 }
+    private var daysTarget:  Int    { streakData?.weeklyTarget ?? 0 }
+    private var weeksStreak: Int    { streakData?.weeklyStreakCurrent ?? 0 }
+    private var weeksBest:   Int    { streakData?.weeklyStreakBest ?? 0 }
+    private var showStreak:  Bool   { weeksStreak > 0 }
 
     var body: some View {
         HStack(spacing: 0) {
-            // Colonne gauche — semaine
+            // Colonne gauche — progression semaine en jours actifs.
             HStack(spacing: 10) {
                 Image(systemName: "calendar.badge.checkmark")
                     .font(.appLabel.weight(.regular))
                     .foregroundColor(.statusCyan)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(dash.weekSessions) / \(dash.weekTarget) séances")
+                    Text(daysTarget > 0
+                         ? "\(daysActive) / \(daysTarget) jours"
+                         : "\(daysActive) jours")
                         .font(.appLabel.weight(.semibold))
                         .foregroundColor(.appTextPrimary)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.appSurfaceInset).frame(height: 4)
-                            Capsule()
-                                .fill(dash.weekSessions >= dash.weekTarget ? Color.appSuccess : Color.statusCyan)
-                                .frame(width: max(4, geo.size.width * min(Double(dash.weekSessions) / Double(dash.weekTarget), 1.0)), height: 4)
-                                .animation(.easeOut(duration: 0.5), value: dash.weekSessions)
+                            if daysTarget > 0 {
+                                let pct = min(Double(daysActive) / Double(daysTarget), 1.0)
+                                Capsule()
+                                    .fill(daysActive >= daysTarget ? Color.appSuccess : Color.statusCyan)
+                                    .frame(width: max(4, geo.size.width * pct), height: 4)
+                                    .animation(.easeOut(duration: 0.5), value: daysActive)
+                            }
                         }
                     }
                     .frame(height: 4)
@@ -44,25 +51,24 @@ struct MomentumStripView: View {
                     .frame(width: 1)
                     .padding(.vertical, 10)
 
-                // Colonne centre — streak
+                // Colonne centre — streak hebdo.
                 VStack(alignment: .center, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("🔥")
-                            .font(.appBody)
-                        Text("\(currentStreak)")
+                        Text("🔥").font(.appBody)
+                        Text("\(weeksStreak)")
                             .font(.system(size: 22, weight: .black, design: .rounded))
                             .foregroundColor(.forge)
                             .contentTransition(.numericText())
-                        Text("j")
+                        Text("sem.")
                             .font(.appCaption.weight(.semibold))
                             .foregroundColor(.gray)
                     }
-                    let gap = bestStreak - currentStreak
-                    Text(currentStreak >= bestStreak && bestStreak > 0
+                    let gap = weeksBest - weeksStreak
+                    Text(weeksStreak >= weeksBest && weeksBest > 0
                          ? "record ✓"
-                         : gap <= 5 ? "-\(gap) record" : "meilleur: \(bestStreak)")
+                         : gap <= 3 ? "-\(gap) record" : "meilleur: \(weeksBest)")
                         .font(.appMicro)
-                        .foregroundColor(currentStreak >= bestStreak ? Color.forge.opacity(0.7) : .gray.opacity(0.55))
+                        .foregroundColor(weeksStreak >= weeksBest ? Color.forge.opacity(0.7) : .gray.opacity(0.55))
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)

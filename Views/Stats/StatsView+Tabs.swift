@@ -211,21 +211,17 @@ private struct StatsOverviewExplorerSection: View {
 extension StatsView {
 
     // MARK: - Régularité Tab
-    // Shell-only composition of the existing heatmap and server-provided streak.
+    // Hero streak hebdo + heatmap enrichie (serveur-driven).
     @ViewBuilder var consistencyTab: some View {
         if let cockpit = cockpitData {
             StatsRegularityHero(trainingLoad: cockpit.trainingLoad)
         }
 
-        StatsActivityStreakSummary(
-            currentStreak: streakData?.currentStreak,
-            bestStreak: streakData?.bestStreak
-        )
-
         SessionHeatmapView(
             sessions: sessions,
             hiitDates: Set(hiitLog.compactMap(\.date).map { String($0.prefix(10)) }),
-            bestStreak: bestStreak
+            cardioDates: Set(cardioLog.compactMap { $0.date.map { String($0.prefix(10)) } }),
+            streakData: streakData
         )
         .padding(.horizontal, 16)
 

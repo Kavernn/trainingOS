@@ -1,56 +1,6 @@
 import SwiftUI
 import Charts
 
-// MARK: - Activity streaks
-struct StatsActivityStreakSummary: View {
-    let currentStreak: Int?
-    let bestStreak: Int?
-
-    private var accessibilitySummary: String {
-        guard let currentStreak, let bestStreak else {
-            return "Jours consécutifs. Données indisponibles."
-        }
-        return "Jours consécutifs. En cours : \(currentStreak) \(dayLabel(currentStreak)). Meilleure série : \(bestStreak) \(dayLabel(bestStreak)). Compte les jours civils consécutifs avec une activité enregistrée. Plusieurs séances le même jour comptent pour un seul jour. Aujourd’hui ne casse pas la série tant que la journée n’est pas terminée."
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("JOURS CONSÉCUTIFS")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-
-            if let currentStreak, let bestStreak {
-                HStack(spacing: 12) {
-                    metric(value: "\(currentStreak) \(dayLabel(currentStreak))", title: "En cours")
-                    metric(value: "\(bestStreak) \(dayLabel(bestStreak))", title: "Meilleure série")
-                }
-                Text("Compte les jours civils consécutifs avec une activité enregistrée. Plusieurs séances le même jour comptent pour un seul jour.")
-                    .font(.appMicro).foregroundColor(.appTextSecondary)
-                Text("Aujourd’hui ne casse pas la série tant que la journée n’est pas terminée.")
-                    .font(.appMicro).foregroundColor(.appTextSecondary)
-            } else {
-                Text("Données indisponibles")
-                    .font(.appBody).foregroundColor(.appTextSecondary)
-            }
-        }
-        .padding(.appCardInsetV).background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
-        .padding(.horizontal, .appPagePadding)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilitySummary)
-    }
-
-    private func metric(value: String, title: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value).font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
-            Text(title).font(.appCaption).foregroundColor(.appTextSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func dayLabel(_ value: Int) -> String { value == 1 ? "jour" : "jours" }
-}
-
 // MARK: - Canonical regularity
 struct StatsRegularityHero: View {
     let trainingLoad: StatsCockpitTrainingLoad

@@ -101,6 +101,9 @@ struct StatsView: View {
     @State var weights:          [String: WeightData]    = [:]
     @State var sessions:         [String: SessionEntry]  = [:]
     @State var hiitLog:          [HIITEntry]             = []
+    /// Logs cardio pour la heatmap Régularité (parité avec la définition
+    /// serveur du streak qui compte workout + HIIT + cardio).
+    @State var cardioLog:        [CardioEntry]           = []
     @State var bodyWeight:       [BodyWeightEntry]       = []
     @State var recoveryLog:      [RecoveryEntry]         = []
     @State var nutritionTarget:  NutritionSettings?      = nil
@@ -159,9 +162,6 @@ struct StatsView: View {
             kv.key.hasPrefix(key) ? acc + kv.value.sessionCount : acc
         }
     }
-
-    var currentStreak: Int { streakData?.currentStreak ?? 0 }
-    var bestStreak: Int    { streakData?.bestStreak    ?? 0 }
 
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
 
@@ -517,12 +517,15 @@ struct StatsView: View {
         // Streak — source serveur unique (P1.2)
         streakData = try? await APIService.shared.fetchStreaks(date: AppState.shared.todayStr)
 
+        // Cardio log pour la heatmap Régularité (parité streak serveur).
+        cardioLog = (try? await APIService.shared.fetchCardioData()) ?? []
+
         activeDeload = try? await APIService.shared.fetchDeloadStatus()
         isLoading = false
         await APIService.shared.syncDeloadFlag()
         NotificationService.scheduleContextual(
             sessionDates: Array(sessions.keys),
-            currentStreak: currentStreak
+            streak: streakData
         )
 
         Task {

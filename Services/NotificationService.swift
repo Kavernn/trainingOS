@@ -48,13 +48,17 @@ enum NotificationService {
         }
     }
 
-    /// Call after data loads, passing the sorted session dates.
-    static func scheduleContextual(sessionDates: [String], currentStreak: Int) {
+    /// Call after data loads, passing the sorted session dates and the
+    /// authoritative streak payload (backend décide week_at_risk).
+    static func scheduleContextual(sessionDates: [String], streak: StreakResponse?) {
         guard !globalDisabled else { return }
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
-            if isEnabled("notif_on_inactivity")       { scheduleInactivityReminder(sessionDates: sessionDates) }
-            if isEnabled("notif_on_streak_milestone") { scheduleStreakMilestone(streak: currentStreak) }
+            if isEnabled("notif_on_inactivity") { scheduleInactivityReminder(sessionDates: sessionDates) }
+            if let s = streak {
+                if isEnabled("notif_on_streak_milestone") { scheduleWeeklyStreakMilestone(streak: s.weeklyStreakCurrent) }
+                if s.weekAtRisk { scheduleWeekAtRiskReminder(streak: s) }
+            }
         }
     }
 
@@ -289,20 +293,21 @@ enum NotificationService {
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
-    // MARK: - Streak Milestones (7, 14, 30, 60, 100 days)
+    // MARK: - Weekly Streak Milestones (4, 8, 12, 24, 52 weeks)
 
-    private static func scheduleStreakMilestone(streak: Int) {
+    private static func scheduleWeeklyStreakMilestone(streak: Int) {
         let center = UNUserNotificationCenter.current()
         let id = "streak.milestone"
         center.removePendingNotificationRequests(withIdentifiers: [id])
 
-        let milestones = [7: "🔥 Streak de 7 jours !", 14: "🔥🔥 14 jours consécutifs !",
-                          30: "🏆 30 jours — champion !", 60: "⚡ 60 jours de feu !",
-                          100: "💎 100 jours — légende !"]
+        let milestones = [4:  "🔥 1 mois consécutif !",
+                          8:  "🔥🔥 8 semaines de suite !",
+                          12: "🏆 3 mois — niveau pro !",
+                          24: "⚡ 6 mois de feu !",
+                          52: "💎 1 an complet — légende !"]
         guard let message = milestones[streak] else { return }
 
-        // Guard: don't re-fire for the same milestone (prevents re-fire on repeated StatsView loads)
-        let guardKey = "notif_milestone_last"
+        let guardKey = "notif_weekly_milestone_last"
         guard UserDefaults.standard.integer(forKey: guardKey) != streak else { return }
         UserDefaults.standard.set(streak, forKey: guardKey)
 
@@ -312,6 +317,40 @@ enum NotificationService {
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+
+    // MARK: - Week at risk — relance uniquement quand backend l'autorise
+
+    private static func scheduleWeekAtRiskReminder(streak: StreakResponse) {
+        let center = UNUserNotificationCenter.current()
+        let id = "week.at.risk"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        // Guard : au plus une fois par jour civil (backend garantit déjà qu'on
+        // n'arrive ici que si week_at_risk == true).
+        let today = DateFormatter.isoDate.string(from: Date())
+        let guardKey = "notif_week_at_risk_date"
+        guard UserDefaults.standard.string(forKey: guardKey) != today else { return }
+        UserDefaults.standard.set(today, forKey: guardKey)
+
+        let needed = max(0, streak.weeklyTarget - streak.currentWeek.daysActive)
+        guard needed > 0 else { return }
+        let streakPart = streak.weeklyStreakCurrent > 0
+            ? "ton streak de \(streak.weeklyStreakCurrent == 1 ? "1 semaine" : "\(streak.weeklyStreakCurrent) semaines")"
+            : "ta semaine"
+        let needLabel = needed == 1 ? "Il te reste 1 jour, il t'en faut 1"
+                                    : "Il te reste \(needed) jours, il t'en faut \(needed)"
+
+        let content = UNMutableNotificationContent()
+        content.title = "Streak hebdo en jeu 🔥"
+        content.body  = "\(needLabel) pour garder \(streakPart)."
+        content.sound = .default
+
+        let rawHour = BehaviorTracker.shared.preferredHour(for: .sessionEnd) ?? 18
+        let hour = min(max(rawHour, 10), 21)
+        let secondsUntil = nextOccurrence(hour: hour, minute: 0, fromNow: true)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(secondsUntil, 60), repeats: false)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 

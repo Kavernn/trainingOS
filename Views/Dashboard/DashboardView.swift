@@ -298,14 +298,14 @@ struct DashboardView: View {
     }
 
     var appearanceBanner: some View {
-            // 6 — Hero State (salutation, ring readiness, HRV, sommeil, streak, synthèse) — tap → onglet Santé
+            // 6 — Hero State (salutation, ring readiness, HRV, sommeil, streak hebdo, synthèse) — tap → onglet Santé
             Button { onOpenHealth?() } label: {
                 DashboardHeroState(
-                    readiness:   vm.hasCurrentDayContext ? vm.readinessData : nil,
-                    hrvAnalysis: vm.hasCurrentDayContext ? vm.hrvAnalysis : nil,
-                    recovery:    vm.hasCurrentDayContext ? vm.todayRecovery : nil,
-                    streak:      vm.hasCurrentDayContext ? (vm.streakData?.currentStreak ?? 0) : 0,
-                    userName:    api.dashboard?.profile.name
+                    readiness:    vm.hasCurrentDayContext ? vm.readinessData : nil,
+                    hrvAnalysis:  vm.hasCurrentDayContext ? vm.hrvAnalysis : nil,
+                    recovery:     vm.hasCurrentDayContext ? vm.todayRecovery : nil,
+                    weeklyStreak: vm.hasCurrentDayContext ? (vm.streakData?.weeklyStreakCurrent ?? 0) : 0,
+                    userName:     api.dashboard?.profile.name
                 )
             }
             .buttonStyle(.plain)

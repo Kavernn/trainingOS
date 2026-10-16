@@ -11,7 +11,7 @@ struct DashboardHeroState: View {
     let readiness: ReadinessResponse?
     let hrvAnalysis: HRVAnalysis?
     let recovery: RecoveryEntry?
-    let streak: Int
+    let weeklyStreak: Int
     let userName: String?
 
     // MARK: Salutation
@@ -83,12 +83,12 @@ struct DashboardHeroState: View {
                     Text(readiness?.verdictLabel ?? "—")
                         .font(.appHeadline.weight(.bold))
                         .foregroundColor(ringColor)
-                    if streak > 0 {
+                    if weeklyStreak > 0 {
                         HStack(spacing: 4) {
                             Image(systemName: "flame.fill")
                                 .font(.appCaption)
                                 .foregroundColor(.appTextSecondary)
-                            Text("\(streak) jours")
+                            Text(weeklyStreak == 1 ? "1 semaine" : "\(weeklyStreak) semaines")
                                 .font(.appCaption)
                                 .foregroundColor(.appTextSecondary)
                         }

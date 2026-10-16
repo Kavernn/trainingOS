@@ -235,83 +235,167 @@ private struct ACWRSparkline: View {
 }
 
 // MARK: - Heatmap (muscu=orange, HIIT=blue, both=purple)
+// Heatmap enrichie : hero streak hebdo + jauge semaine courante + 90 jours
+// avec encadrement des semaines réussies. Présence = workout OR HIIT OR cardio
+// (parité avec la définition serveur du streak). Aucun calcul de streak
+// côté iOS : weekly_streak_current / best / weeks[] lus depuis streakData.
 struct SessionHeatmapView: View {
     let sessions: [String: SessionEntry]
     var hiitDates: Set<String> = []
-    var bestStreak: Int = 0
+    var cardioDates: Set<String> = []
+    let streakData: StreakResponse?
     private let days = 90
 
-    enum CellType: Equatable { case none, muscu, hiit, both }
+    enum CellType: Equatable { case none, muscu, other, both }
 
-    private var cells: [(String, CellType)] {
+    private static let isoCal: Calendar = {
+        var cal = Calendar(identifier: .iso8601)
+        cal.timeZone = TimeZone(identifier: "America/Montreal") ?? .current
+        return cal
+    }()
+
+    private var successfulWeekMondays: Set<String> {
+        Set(streakData?.weeks.compactMap { $0.success == true ? $0.weekStart : nil } ?? [])
+    }
+
+    private func mondayKey(for date: Date) -> String {
+        var comps = Self.isoCal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+        comps.weekday = 2
+        let m = Self.isoCal.date(from: comps) ?? date
+        return DateFormatter.isoDate.string(from: m)
+    }
+
+    private struct Cell: Identifiable {
+        let date: String
+        let type: CellType
+        let weekMonday: String
+        var id: String { date }
+    }
+
+    private var cells: [Cell] {
         let base = Date().timeIntervalSince1970
         return (0..<days).reversed().map { offset in
-            let date = Date(timeIntervalSince1970: base - Double(offset) * 86400.0)
-            let key = DateFormatter.isoDate.string(from: date)
+            let d = Date(timeIntervalSince1970: base - Double(offset) * 86400.0)
+            let key = DateFormatter.isoDate.string(from: d)
             let hasMuscu = sessions[key] != nil
-            let hasHIIT  = hiitDates.contains(key)
-            let type: CellType = hasMuscu && hasHIIT ? .both : hasMuscu ? .muscu : hasHIIT ? .hiit : .none
-            return (key, type)
+            let hasOther = hiitDates.contains(key) || cardioDates.contains(key)
+            let type: CellType = hasMuscu && hasOther ? .both
+                               : hasMuscu ? .muscu
+                               : hasOther ? .other
+                               : .none
+            return Cell(date: key, type: type, weekMonday: mondayKey(for: d))
         }
-    }
-
-    private var muscuDayCount: Int { cells.filter { $0.1 == .muscu }.count }
-    private var hiitDayCount: Int { cells.filter { $0.1 == .hiit }.count }
-    private var combinedDayCount: Int { cells.filter { $0.1 == .both }.count }
-
-    private var oldestDateLabel: String {
-        guard let rawDate = cells.first?.0,
-              let date = DateFormatter.isoDate.date(from: rawDate) else {
-            return cells.first?.0 ?? ""
-        }
-        return DateFormatter.shortDateFRCA.string(from: date)
-    }
-
-    private var accessibilitySummary: String {
-        "Calendrier d’activité sur 90 jours, du \(oldestDateLabel) à aujourd’hui. \(dayCountLabel(muscuDayCount, singular: "jour avec musculation seulement", plural: "jours avec musculation seulement")), \(dayCountLabel(hiitDayCount, singular: "jour avec HIIT seulement", plural: "jours avec HIIT seulement")) et \(dayCountLabel(combinedDayCount, singular: "jour avec musculation et HIIT", plural: "jours avec musculation et HIIT"))."
     }
 
     private func cellColor(_ t: CellType) -> Color {
         switch t {
         case .none:  return Color.appSurfaceInset
         case .muscu: return Color.forge
-        case .hiit:  return Color.appTextSecondary
+        case .other: return Color.appTextSecondary
         case .both:  return Color.appTextSecondary.opacity(0.5)
         }
     }
 
+    private var oldestDateLabel: String {
+        guard let rawDate = cells.first?.date,
+              let date = DateFormatter.isoDate.date(from: rawDate) else {
+            return cells.first?.date ?? ""
+        }
+        return DateFormatter.shortDateFRCA.string(from: date)
+    }
+
+    private var weeklyCurrent: Int { streakData?.weeklyStreakCurrent ?? 0 }
+    private var weeklyBest:    Int { streakData?.weeklyStreakBest ?? 0 }
+    private var daysActive:    Int { streakData?.currentWeek.daysActive ?? 0 }
+    private var weeklyTarget:  Int { streakData?.weeklyTarget ?? 0 }
+
+    private var accessibilitySummary: String {
+        let streak = weeklyCurrent == 1 ? "1 semaine consécutive" : "\(weeklyCurrent) semaines consécutives"
+        let progress = weeklyTarget > 0 ? " Cette semaine : \(daysActive) jours actifs sur \(weeklyTarget)." : ""
+        return "\(streak). Record : \(weeklyBest).\(progress) Calendrier d'activité 90 jours."
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("CALENDRIER D’ACTIVITÉ")
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("RÉGULARITÉ")
                     .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
                 Spacer()
                 Text("90 JOURS")
                     .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
             }
-            Text("Musculation + HIIT")
-                .font(.appCaption).foregroundColor(.appTextSecondary)
-            Text("\(oldestDateLabel) → Aujourd’hui")
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("\(weeklyCurrent)")
+                        .font(.appHero).foregroundColor(.appTextPrimary)
+                        .lineLimit(1)
+                    Text(weeklyCurrent == 1 ? "SEMAINE D'AFFILÉE" : "SEMAINES D'AFFILÉE")
+                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextSecondary)
+                }
+                if weeklyBest > 0 {
+                    Text("Record : \(weeklyBest) \(weeklyBest == 1 ? "semaine" : "semaines")")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                }
+            }
+
+            if weeklyTarget > 0 {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Cette semaine")
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+                        Spacer()
+                        Text("\(daysActive) / \(weeklyTarget) jours")
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(daysActive >= weeklyTarget ? .statusGreen : .appTextPrimary)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.appSurfaceInset).frame(height: 4)
+                            let pct = min(Double(daysActive) / Double(weeklyTarget), 1.0)
+                            Capsule()
+                                .fill(daysActive >= weeklyTarget ? Color.statusGreen : Color.forge)
+                                .frame(width: max(4, geo.size.width * pct), height: 4)
+                        }
+                    }
+                    .frame(height: 4)
+                }
+            }
+
+            Text("\(oldestDateLabel) → Aujourd'hui")
                 .font(.appMicro).foregroundColor(.appTextMuted)
+
+            let successful = successfulWeekMondays
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 15), spacing: 3) {
-                ForEach(cells, id: \.0) { _, type in
+                ForEach(cells) { cell in
                     ZStack {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(cellColor(type))
-                        if type == .both {
-                            Circle()
-                                .fill(Color.appTextPrimary)
-                                .frame(width: 4, height: 4)
+                        RoundedRectangle(cornerRadius: 2).fill(cellColor(cell.type))
+                        if cell.type == .both {
+                            Circle().fill(Color.appTextPrimary).frame(width: 4, height: 4)
+                        }
+                        if successful.contains(cell.weekMonday) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .stroke(Color.forge, lineWidth: 1.2)
                         }
                     }
                     .frame(height: 16)
                     .accessibilityHidden(true)
                 }
             }
+
             HStack(spacing: 12) {
                 legend(type: .muscu, label: "Muscu")
-                legend(type: .hiit, label: "HIIT")
-                legend(type: .both, label: "Muscu + HIIT")
+                legend(type: .other, label: "HIIT / cardio")
+                legend(type: .both, label: "Les deux")
+            }
+            if weeklyTarget > 0 {
+                HStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(Color.forge, lineWidth: 1.2)
+                        .frame(width: 10, height: 10)
+                    Text("Semaine réussie (≥ \(weeklyTarget) jours actifs)")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                }
             }
         }
         .padding(16).glassCard()
@@ -322,22 +406,13 @@ struct SessionHeatmapView: View {
     private func legend(type: CellType, label: String) -> some View {
         HStack(spacing: 4) {
             ZStack {
-                Circle()
-                    .fill(cellColor(type))
-                    .frame(width: 8, height: 8)
+                Circle().fill(cellColor(type)).frame(width: 8, height: 8)
                 if type == .both {
-                    Circle()
-                        .fill(Color.appTextPrimary)
-                        .frame(width: 3, height: 3)
+                    Circle().fill(Color.appTextPrimary).frame(width: 3, height: 3)
                 }
             }
-            Text(label)
-                .font(.appCaption).foregroundColor(.appTextSecondary)
+            Text(label).font(.appCaption).foregroundColor(.appTextSecondary)
         }
-    }
-
-    private func dayCountLabel(_ value: Int, singular: String, plural: String) -> String {
-        "\(value) \(value == 1 ? singular : plural)"
     }
 }
 

@@ -81,18 +81,23 @@ struct DashboardSignalEngine {
                 icon: "heart.fill"
             )
         }
-        let low = dash.today.lowercased()
-        let isRestDay = low.contains("repos") || low.contains("rest") || low.contains("recovery")
-        if !isRestDay, !dash.today.isEmpty, !dash.alreadyLoggedToday {
-            let streak = streakData?.currentStreak ?? 0
-            if streak > 2 {
-                return CriticalSignal(
-                    message: "Séance prévue aujourd'hui — ton streak de \(streak) jours est en jeu.",
-                    actionLabel: "Commencer la séance",
-                    destination: .workout,
-                    icon: "flame.fill"
-                )
-            }
+        // Semaine en jeu : backend l'indique explicitement via week_at_risk.
+        // Jamais vrai un jour de repos avec marge → pas de relance inutile.
+        if let s = streakData, s.weekAtRisk, !dash.alreadyLoggedToday {
+            let needed = max(0, s.weeklyTarget - s.currentWeek.daysActive)
+            let streak = s.weeklyStreakCurrent
+            let streakPart = streak > 0
+                ? " pour garder ton streak de \(streak == 1 ? "1 semaine" : "\(streak) semaines")"
+                : " pour valider ta semaine"
+            let needPart = needed == 1
+                ? "Il te reste 1 jour à bouger"
+                : "Il te reste \(needed) jours à bouger"
+            return CriticalSignal(
+                message: "\(needPart)\(streakPart).",
+                actionLabel: "Commencer la séance",
+                destination: .workout,
+                icon: "flame.fill"
+            )
         }
         return nil
     }

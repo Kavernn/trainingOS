@@ -6,12 +6,36 @@ struct StreakResponse: Codable {
     let bestStreak:    Int
     let todayLogged:   Bool
     let streakAtRisk:  Bool
+    let weeklyTarget:         Int
+    let weeklyStreakCurrent:  Int
+    let weeklyStreakBest:     Int
+    let weekAtRisk:           Bool
+    let currentWeek:          WeekSummary
+    let weeks:                [WeekSummary]
+
+    struct WeekSummary: Codable {
+        let weekStart:   String
+        let daysActive:  Int
+        let success:     Bool?    // nil pour current_week (sans flag), bool pour weeks[].
+
+        enum CodingKeys: String, CodingKey {
+            case weekStart   = "week_start"
+            case daysActive  = "days_active"
+            case success
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
         case currentStreak = "current_streak"
         case bestStreak    = "best_streak"
         case todayLogged   = "today_logged"
         case streakAtRisk  = "streak_at_risk"
+        case weeklyTarget         = "weekly_target"
+        case weeklyStreakCurrent  = "weekly_streak_current"
+        case weeklyStreakBest     = "weekly_streak_best"
+        case weekAtRisk           = "week_at_risk"
+        case currentWeek          = "current_week"
+        case weeks
     }
 }
 
