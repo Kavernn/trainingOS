@@ -1971,7 +1971,7 @@ struct StatsMoversView: View {
                     .foregroundColor(.appTextPrimary)
                     .lineLimit(1)
                 if points.count >= 2 {
-                    sparkline(points: points)
+                    sparkline(points: points, color: deltaColor(for: mover.status))
                         .frame(height: 24)
                 } else if let recent = mover.recentBestE1RM {
                     Text(units.format(recent, decimals: 0))
@@ -1984,7 +1984,7 @@ struct StatsMoversView: View {
                 if let delta = mover.relativeDelta {
                     Text("\(delta >= 0 ? "+" : "")\(Int((delta * 100).rounded())) %")
                         .font(.appTitle)
-                        .foregroundColor(.statusGreen)
+                        .foregroundColor(deltaColor(for: mover.status))
                         .lineLimit(1)
                         .monospacedDigit()
                 }
@@ -1997,20 +1997,37 @@ struct StatsMoversView: View {
         }
     }
 
-    private func sparkline(points: [StatsMoverE1RMPoint]) -> some View {
-        Chart(points) { p in
+    /// Status drive la couleur du delta ET du trait de sparkline. Backend garantit
+    /// improving-only dans top_movers aujourd'hui (progression_comparison.py:320),
+    /// mais le switch complet reste robuste si la vue est réutilisée ailleurs ou
+    /// si le filtre backend s'élargit un jour. Jamais vert sur delta négatif.
+    private func deltaColor(for status: StatsProgressionStatus) -> Color {
+        switch status {
+        case .improving:                       return .statusGreen
+        case .declining:                       return .forge
+        case .stable, .insufficientData,
+             .unknown:                         return .appTextSecondary
+        }
+    }
+
+    private func sparkline(points: [StatsMoverE1RMPoint], color: Color) -> some View {
+        let dated = points.compactMap { p -> (date: Date, value: Double)? in
+            guard let d = DateFormatter.isoDate.date(from: p.date) else { return nil }
+            return (d, p.bestE1RM)
+        }
+        return Chart(dated, id: \.date) { entry in
             LineMark(
-                x: .value("Date", p.date),
-                y: .value("e1RM", p.bestE1RM)
+                x: .value("Date", entry.date),
+                y: .value("e1RM", entry.value)
             )
-            .foregroundStyle(Color.forge)
+            .foregroundStyle(color)
             .lineStyle(StrokeStyle(lineWidth: 1.8))
             .interpolationMethod(.monotone)
             PointMark(
-                x: .value("Date", p.date),
-                y: .value("e1RM", p.bestE1RM)
+                x: .value("Date", entry.date),
+                y: .value("e1RM", entry.value)
             )
-            .foregroundStyle(Color.forge)
+            .foregroundStyle(color)
             .symbolSize(6)
         }
         .chartXAxis(.hidden)
