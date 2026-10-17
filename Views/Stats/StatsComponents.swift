@@ -1,6 +1,15 @@
 import SwiftUI
 import Charts
 
+/// Normalisation partagée pour comparer les noms d'exercices entre carte top
+/// movers et liste progression (trim + case- + diacritic-insensitive, locale
+/// fr_CA). Un seul endroit — toute vue qui dédoublonne par exercise_name
+/// doit passer par ici pour éviter la divergence.
+fileprivate func statsNormalizedExerciseName(_ name: String) -> String {
+    name.trimmingCharacters(in: .whitespacesAndNewlines)
+        .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "fr_CA"))
+}
+
 // MARK: - Canonical regularity
 struct StatsRegularityHero: View {
     let trainingLoad: StatsCockpitTrainingLoad
@@ -815,10 +824,23 @@ struct StatsForceProgressionHero: View {
 struct StatsStrengthProgressionSection: View {
     let comparisons: [StatsProgressionComparison]
     let comparisonWindowDays: Int
+    /// Exercices déjà présents dans StatsMoversView (top movers hero). On les
+    /// retire de la section "en hausse" ici pour éviter le double affichage ;
+    /// la section reste intitulée "AUSSI EN HAUSSE" pour signaler le lien.
+    /// Vide par défaut = pas de filtre (ex. appel hors Force tab).
+    var moverExerciseNames: Set<String> = []
     var onSelectExercise: ((String) -> Void)? = nil
     @State private var isShowingAllProgressionRows = false
     private let compactRowLimit = 10
-    private var improving: [StatsProgressionComparison] { comparisons.filter { $0.status == .improving } }
+    private var normalizedMoverSet: Set<String> {
+        Set(moverExerciseNames.map(statsNormalizedExerciseName))
+    }
+    private var improving: [StatsProgressionComparison] {
+        comparisons.filter {
+            $0.status == .improving
+            && !normalizedMoverSet.contains(statsNormalizedExerciseName($0.exerciseName))
+        }
+    }
     private var stable: [StatsProgressionComparison] { comparisons.filter { $0.status == .stable } }
     private var declining: [StatsProgressionComparison] { comparisons.filter { $0.status == .declining } }
     private var insufficient: [StatsProgressionComparison] { comparisons.filter { $0.status == .insufficientData } }
@@ -851,7 +873,8 @@ struct StatsStrengthProgressionSection: View {
             if comparisons.isEmpty {
                 Text("Pas encore assez de données comparables.").font(.appBody).foregroundColor(.appTextSecondary)
             } else {
-                group("EN HAUSSE", comparisons: visibleRows(in: improving, after: 0))
+                group(normalizedMoverSet.isEmpty ? "EN HAUSSE" : "AUSSI EN HAUSSE",
+                      comparisons: visibleRows(in: improving, after: 0))
                 group("STABLE", comparisons: visibleRows(in: stable, after: improving.count))
                 group("EN BAISSE", comparisons: visibleRows(in: declining, after: improving.count + stable.count))
                 group("DONNÉES INSUFFISANTES", comparisons: visibleRows(in: insufficient, after: improving.count + stable.count + declining.count))
@@ -2012,7 +2035,12 @@ struct StatsMoversView: View {
 
     private func sparkline(points: [StatsMoverE1RMPoint], color: Color) -> some View {
         let dated = points.compactMap { p -> (date: Date, value: Double)? in
-            guard let d = DateFormatter.isoDate.date(from: p.date) else { return nil }
+            guard let d = DateFormatter.isoDate.date(from: p.date) else {
+                // Backend émet des ISO YYYY-MM-DD stricts. Un fail = contrat
+                // rompu — crash loud en DEBUG, silent compactMap en release.
+                assertionFailure("StatsMoversView: date mover non parsable \(p.date)")
+                return nil
+            }
             return (d, p.bestE1RM)
         }
         return Chart(dated, id: \.date) { entry in
@@ -2304,8 +2332,7 @@ struct StatsOverviewNotableCard: View {
     }
 
     private func normalizedExerciseName(_ name: String) -> String {
-        name.trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "fr_CA"))
+        statsNormalizedExerciseName(name)
     }
 
     private func detail(for fact: Fact) -> String {

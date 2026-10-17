@@ -491,16 +491,20 @@ extension StatsView {
 
         if let cockpit = cockpitData {
             StatsForceProgressionHero(progression: cockpit.progression)
-            StatsStrengthProgressionSection(
-                comparisons: cockpit.progression.comparisons,
-                comparisonWindowDays: cockpit.progression.comparisonWindowDays,
-                onSelectExercise: { selectedExercise = $0 }
-            )
 
             // Top movers avec mini-sparkline 12 sem + delta en gros.
             StatsMoversView(movers: cockpit.progression.topMovers,
                             series: cockpit.progression.topMoversSeries)
                 .padding(.horizontal, 16)
+
+            // Section progression par exercice : exclut les top movers déjà
+            // couverts au-dessus → "AUSSI EN HAUSSE" (ou masquée si vide).
+            StatsStrengthProgressionSection(
+                comparisons: cockpit.progression.comparisons,
+                comparisonWindowDays: cockpit.progression.comparisonWindowDays,
+                moverExerciseNames: Set(cockpit.progression.topMovers.map { $0.exerciseName }),
+                onSelectExercise: { selectedExercise = $0 }
+            )
         }
 
         // 1. PRs récents — composant partagé (empty state géré en interne
