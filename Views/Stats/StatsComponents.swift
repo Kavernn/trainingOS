@@ -1972,14 +1972,14 @@ struct StatsPRTimelineView: View {
 
     @ViewBuilder private var countLine: some View {
         if compact {
-            Text(prs.count == 1 ? "1 PR ce mois-ci" : "\(prs.count) PR ce mois-ci")
+            Text(prs.count == 1 ? "1 PR sur 30 jours" : "\(prs.count) PR sur 30 jours")
                 .font(.appLabel.weight(.semibold))
                 .foregroundColor(.appTextPrimary)
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("\(prs.count)")
                     .font(.appHero).foregroundColor(.appTextPrimary)
-                Text(prs.count == 1 ? "PR CE MOIS-CI" : "PR CE MOIS-CI")
+                Text("PR SUR 30 JOURS")
                     .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextSecondary)
             }
         }
@@ -2032,7 +2032,7 @@ struct StatsPRTimelineView: View {
 
     private func emptyWithLast(_ last: LastPROverall) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Pas de PR ce mois")
+            Text("Aucun PR sur 30 jours")
                 .font(compact ? .appLabel.weight(.semibold) : .appHeadline.weight(.semibold))
                 .foregroundColor(.appTextPrimary)
             Text("Dernier : \(last.name) · \(units.format(last.est1RM, decimals: 0)) · \(formattedDate(last.date))")
@@ -2058,7 +2058,7 @@ struct StatsPRTimelineView: View {
 
     private var accessibilityLabel: String {
         if prs.isEmpty, let last = lastPR {
-            return "Records récents. Pas de PR ce mois. Dernier record : \(last.name), \(Int(last.est1RM.rounded())) \(units.label), \(formattedDate(last.date))."
+            return "Records récents. Aucun PR sur 30 jours. Dernier record : \(last.name), \(Int(last.est1RM.rounded())) \(units.label), \(formattedDate(last.date))."
         }
         if prs.isEmpty { return "Records récents. Pas assez de données." }
         let base = "\(prs.count) records sur \(windowDays) jours."
