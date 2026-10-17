@@ -496,6 +496,11 @@ extension StatsView {
                 comparisonWindowDays: cockpit.progression.comparisonWindowDays,
                 onSelectExercise: { selectedExercise = $0 }
             )
+
+            // Top movers avec mini-sparkline 12 sem + delta en gros.
+            StatsMoversView(movers: cockpit.progression.topMovers,
+                            series: cockpit.progression.topMoversSeries)
+                .padding(.horizontal, 16)
         }
 
         // 1. PRs récents — composant partagé (empty state géré en interne

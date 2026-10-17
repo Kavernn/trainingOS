@@ -1928,6 +1928,108 @@ private extension View {
     }
 }
 
+// MARK: - Top Movers avec sparkline 12 sem
+// Composant Force : chaque mover = nom + mini-sparkline 12 semaines + delta en gros.
+// Série lue depuis cockpit.progression.topMoversSeries (backend e799aec,
+// source complète strength_exposures, zéro troncature contrairement à
+// weights.history limited à 20 entries).
+struct StatsMoversView: View {
+    let movers: [StatsProgressionComparison]
+    let series: [String: [StatsMoverE1RMPoint]]
+    @ObservedObject private var units = UnitSettings.shared
+
+    var body: some View {
+        if !movers.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("TOP MOVERS")
+                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                    Spacer()
+                    Text("12 SEMAINES")
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+                }
+                ForEach(Array(movers.enumerated()), id: \.element.exerciseName) { index, mover in
+                    moverRow(mover)
+                    if index < movers.count - 1 {
+                        Divider().overlay(Color.appSeparator)
+                    }
+                }
+            }
+            .padding(16).glassCard()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityLabel)
+        }
+    }
+
+    @ViewBuilder
+    private func moverRow(_ mover: StatsProgressionComparison) -> some View {
+        let points = series[mover.exerciseName] ?? []
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(mover.exerciseName)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                    .lineLimit(1)
+                if points.count >= 2 {
+                    sparkline(points: points)
+                        .frame(height: 24)
+                } else if let recent = mover.recentBestE1RM {
+                    Text(units.format(recent, decimals: 0))
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                        .monospacedDigit()
+                }
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 2) {
+                if let delta = mover.relativeDelta {
+                    Text("\(delta >= 0 ? "+" : "")\(Int((delta * 100).rounded())) %")
+                        .font(.appTitle)
+                        .foregroundColor(.statusGreen)
+                        .lineLimit(1)
+                        .monospacedDigit()
+                }
+                if let recent = mover.recentBestE1RM, let baseline = mover.baselineBestE1RM {
+                    Text("\(units.format(baseline, decimals: 0)) → \(units.format(recent, decimals: 0))")
+                        .font(.appCaption).foregroundColor(.appTextSecondary)
+                        .monospacedDigit()
+                }
+            }
+        }
+    }
+
+    private func sparkline(points: [StatsMoverE1RMPoint]) -> some View {
+        Chart(points) { p in
+            LineMark(
+                x: .value("Date", p.date),
+                y: .value("e1RM", p.bestE1RM)
+            )
+            .foregroundStyle(Color.forge)
+            .lineStyle(StrokeStyle(lineWidth: 1.8))
+            .interpolationMethod(.monotone)
+            PointMark(
+                x: .value("Date", p.date),
+                y: .value("e1RM", p.bestE1RM)
+            )
+            .foregroundStyle(Color.forge)
+            .symbolSize(6)
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+    }
+
+    private var accessibilityLabel: String {
+        let count = movers.count
+        let header = count == 1 ? "1 top mover sur 12 semaines." : "\(count) top movers sur 12 semaines."
+        let details = movers.map { m -> String in
+            let delta = (m.relativeDelta ?? 0) * 100
+            let pct = Int(delta.rounded())
+            let recent = m.recentBestE1RM.map { "\(Int($0.rounded())) \(units.label)" } ?? "—"
+            return "\(m.exerciseName), \(pct >= 0 ? "+" : "")\(pct) pour cent, 1RM estimé récent \(recent)"
+        }.joined(separator: ". ")
+        return "\(header) \(details)."
+    }
+}
+
 // MARK: - PR Timeline (shared Vue d'ensemble compact + Force full)
 // Composant unique pour les 2 call sites PR (StatsPRTimelineView). Si recentPRs
 // est vide, affiche "Dernier PR : <exo>, il y a N jours" via lastPR (source

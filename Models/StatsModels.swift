@@ -228,6 +228,17 @@ struct StatsAttentionObservation: Codable, Equatable {
     }
 }
 
+struct StatsMoverE1RMPoint: Codable, Equatable, Identifiable {
+    let date: String
+    let bestE1RM: Double
+    var id: String { date }
+
+    enum CodingKeys: String, CodingKey {
+        case date
+        case bestE1RM = "best_e1rm"
+    }
+}
+
 struct StatsCockpitProgression: Codable, Equatable {
     let comparisonWindowDays: Int
     let baselineWindow: StatsDateWindow
@@ -235,6 +246,11 @@ struct StatsCockpitProgression: Codable, Equatable {
     let statusCounts: StatsProgressionStatusCounts
     let comparisons: [StatsProgressionComparison]
     let topMovers: [StatsProgressionComparison]
+    /// Série e1RM 12 semaines par exercice top mover (backend commit e799aec).
+    /// Clés = StatsProgressionComparison.exerciseName. Vide pour les exercices
+    /// hors movers. Jamais réémis en cas de limit_per troncature : la série
+    /// vient de strength_exposures bruts côté serveur, pas de weights.history.
+    let topMoversSeries: [String: [StatsMoverE1RMPoint]]
     let attention: [StatsAttentionObservation]
 
     enum CodingKeys: String, CodingKey {
@@ -244,6 +260,7 @@ struct StatsCockpitProgression: Codable, Equatable {
         case statusCounts = "status_counts"
         case comparisons, attention
         case topMovers = "top_movers"
+        case topMoversSeries = "top_movers_series"
     }
 }
 
