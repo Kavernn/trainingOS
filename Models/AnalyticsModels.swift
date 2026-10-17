@@ -827,6 +827,10 @@ struct PRTrackerData: Codable {
     let totalPRs:         Int
     let exercisesTracked: Int
     let message:          String?
+    /// Dernier PR tout exercice confondu (max pr_date dans exercise_prs).
+    /// Alimente l'état vide "Dernier PR : <exo>, il y a N jours" quand
+    /// recent_prs est vide. nil si aucun exercise_prs en base.
+    let lastPR:           LastPROverall?
 
     enum CodingKeys: String, CodingKey {
         case hasData          = "has_data"
@@ -834,5 +838,17 @@ struct PRTrackerData: Codable {
         case totalPRs         = "total_prs"
         case exercisesTracked = "exercises_tracked"
         case message
+        case lastPR           = "last_pr"
+    }
+}
+
+struct LastPROverall: Codable, Equatable {
+    let name:   String
+    let date:   String
+    let est1RM: Double
+
+    enum CodingKeys: String, CodingKey {
+        case name, date
+        case est1RM = "est_1rm"
     }
 }

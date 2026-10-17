@@ -143,6 +143,7 @@ struct StatsView: View {
     @State var hasLoadedStatsHRV = false
     @State var forceAccessoryTimeline: [ForceAccessoryPoint]  = []
     @State var recentPRs:              [RecentPR]              = []
+    @State var lastPR:                 LastPROverall?          = nil
 
     // ── New stats data ────────────────────────────────────────────────────
     @State var seasonComparison: SeasonComparisonData?  = nil
@@ -546,7 +547,10 @@ struct StatsView: View {
             // l'accent PR du hero, à la place du calcul iOS naïf sur weights.history
             // qui remontait des 1RM Epley aberrants (calf raise 736 lbs).
             if let r = try? await APIService.shared.fetchPRTracker() {
-                await MainActor.run { recentPRs = r.recentPRs }
+                await MainActor.run {
+                    recentPRs = r.recentPRs
+                    lastPR    = r.lastPR
+                }
             }
         }
         Task {

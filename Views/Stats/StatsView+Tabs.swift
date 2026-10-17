@@ -281,8 +281,10 @@ extension StatsView {
                 selectedTab = .load
             }
 
+            StatsPRTimelineView(prs: recentPRs, lastPR: lastPR, compact: true)
+                .padding(.horizontal, .appPagePadding)
+
             StatsOverviewNotableCard(
-                recentPRs: recentPRs,
                 movers: cockpit.progression.topMovers,
                 attention: cockpit.progression.attention,
                 onSelectExercise: { selectedExercise = $0 }
@@ -496,11 +498,10 @@ extension StatsView {
             )
         }
 
-        // 1. PRs récents
-        if !recentPRs.isEmpty {
-            PersonalRecordsView(records: recentPRs)
-                .padding(.horizontal, 16)
-        }
+        // 1. PRs récents — composant partagé (empty state géré en interne
+        // via lastPR, fallback "Dernier PR : <exo>, il y a N jours").
+        StatsPRTimelineView(prs: recentPRs, lastPR: lastPR, compact: false)
+            .padding(.horizontal, 16)
 
         // 4. 1RM trend par exercice
         if cockpitData == nil && !isLoadingCockpit && cockpitError != nil && !oneRmTrend.isEmpty {

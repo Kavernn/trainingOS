@@ -474,60 +474,8 @@ struct SessionHeatmapView: View {
 
 // MARK: - Badges View
 // MARK: - Week Comparison Card
-// MARK: - Personal Records
-struct PersonalRecordsView: View {
-    let records: [RecentPR]
-    @ObservedObject private var units = UnitSettings.shared
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("RECORDS RÉCENTS")
-                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-                Spacer()
-                Text("30 JOURS")
-                    .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Records récents, 30 jours")
-
-            VStack(spacing: 8) {
-                ForEach(records) { record in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Text(record.name)
-                                .font(.appLabel)
-                                .foregroundColor(.appTextPrimary)
-                                .lineLimit(1)
-                            Spacer()
-                            Text(formattedDate(record.date))
-                                .font(.appCaption)
-                                .foregroundColor(.appTextSecondary)
-                                .lineLimit(1)
-                        }
-
-                        Text("1RM estimé · \(units.format(record.est1RM, decimals: 0))")
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundColor(Color.domainAccent(.training))
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(
-                        "\(record.name). Record récent. 1RM estimé \(units.format(record.est1RM, decimals: 0)). \(formattedDate(record.date))."
-                    )
-                }
-            }
-        }
-        .padding(16).glassCard()
-    }
-
-    private func formattedDate(_ rawDate: String) -> String {
-        guard let date = DateFormatter.isoDate.date(from: rawDate) else { return rawDate }
-        let calendar = Calendar.mtl
-        if calendar.isDateInToday(date) { return "Aujourd’hui" }
-        if calendar.isDateInYesterday(date) { return "Hier" }
-        return DateFormatter.shortDateFRCA.string(from: date)
-    }
-}
+// PersonalRecordsView supprimée — remplacée par StatsPRTimelineView
+// (composant partagé Vue d'ensemble + Force, StatsComponents.swift).
 
 // MARK: - Simple Bar Chart
 struct SimpleBarChart: View {

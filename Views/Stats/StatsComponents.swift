@@ -1928,21 +1928,159 @@ private extension View {
     }
 }
 
+// MARK: - PR Timeline (shared Vue d'ensemble compact + Force full)
+// Composant unique pour les 2 call sites PR (StatsPRTimelineView). Si recentPRs
+// est vide, affiche "Dernier PR : <exo>, il y a N jours" via lastPR (source
+// serveur /api/pr-tracker, backend commit 5c1d916). Formatage via UnitSettings.
+struct StatsPRTimelineView: View {
+    let prs: [RecentPR]
+    let lastPR: LastPROverall?
+    let compact: Bool
+    @ObservedObject private var units = UnitSettings.shared
+
+    private static let fmt = DateFormatter.isoDate
+    private let windowDays = 30
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 10 : 14) {
+            header
+            if !prs.isEmpty {
+                countLine
+                timeline
+                if !compact { detailList }
+            } else if let last = lastPR {
+                emptyWithLast(last)
+            } else {
+                Text("Pas assez de données — accumule 2+ séances par exercice pour tracker tes PRs.")
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+        }
+        .padding(16).glassCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("RECORDS RÉCENTS")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+            Spacer()
+            Text("\(windowDays) JOURS")
+                .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+        }
+    }
+
+    @ViewBuilder private var countLine: some View {
+        if compact {
+            Text(prs.count == 1 ? "1 PR ce mois-ci" : "\(prs.count) PR ce mois-ci")
+                .font(.appLabel.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("\(prs.count)")
+                    .font(.appHero).foregroundColor(.appTextPrimary)
+                Text(prs.count == 1 ? "PR CE MOIS-CI" : "PR CE MOIS-CI")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextSecondary)
+            }
+        }
+    }
+
+    private var timeline: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .center) {
+                Rectangle()
+                    .fill(Color.appSurfaceInset)
+                    .frame(height: 2)
+                ForEach(prs) { pr in
+                    let x = positionX(for: pr.date, totalWidth: geo.size.width)
+                    Circle()
+                        .fill(Color.forge)
+                        .frame(width: 10, height: 10)
+                        .offset(x: x - geo.size.width / 2)
+                }
+                HStack {
+                    Text("J-\(windowDays)")
+                    Spacer()
+                    Text("Aujourd'hui")
+                }
+                .font(.appMicro).foregroundColor(.appTextMuted)
+                .offset(y: 14)
+            }
+        }
+        .frame(height: 28)
+    }
+
+    private var detailList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(prs.sorted { $0.date > $1.date }) { pr in
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(pr.name)
+                        .font(.appLabel).foregroundColor(.appTextPrimary)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(units.format(pr.est1RM, decimals: 0))
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(Color.forge)
+                        .monospacedDigit()
+                    Text(formattedDate(pr.date))
+                        .font(.appCaption)
+                        .foregroundColor(.appTextSecondary)
+                }
+            }
+        }
+    }
+
+    private func emptyWithLast(_ last: LastPROverall) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Pas de PR ce mois")
+                .font(compact ? .appLabel.weight(.semibold) : .appHeadline.weight(.semibold))
+                .foregroundColor(.appTextPrimary)
+            Text("Dernier : \(last.name) · \(units.format(last.est1RM, decimals: 0)) · \(formattedDate(last.date))")
+                .font(.appCaption).foregroundColor(.appTextSecondary)
+        }
+    }
+
+    private func positionX(for isoDate: String, totalWidth: CGFloat) -> CGFloat {
+        guard let date = Self.fmt.date(from: isoDate) else { return totalWidth }
+        let days = Calendar.mtl.dateComponents([.day], from: date, to: Date()).day ?? 0
+        let clamped = max(0, min(windowDays, days))
+        return totalWidth * (1 - CGFloat(clamped) / CGFloat(windowDays))
+    }
+
+    private func formattedDate(_ rawDate: String) -> String {
+        guard let date = Self.fmt.date(from: rawDate) else { return rawDate }
+        let cal = Calendar.mtl
+        if cal.isDateInToday(date) { return "aujourd'hui" }
+        if cal.isDateInYesterday(date) { return "hier" }
+        let days = cal.dateComponents([.day], from: date, to: Date()).day ?? 0
+        return "il y a \(days) j"
+    }
+
+    private var accessibilityLabel: String {
+        if prs.isEmpty, let last = lastPR {
+            return "Records récents. Pas de PR ce mois. Dernier record : \(last.name), \(Int(last.est1RM.rounded())) \(units.label), \(formattedDate(last.date))."
+        }
+        if prs.isEmpty { return "Records récents. Pas assez de données." }
+        let base = "\(prs.count) records sur \(windowDays) jours."
+        let detail = prs.sorted { $0.date > $1.date }
+            .map { "\($0.name), \(Int($0.est1RM.rounded())) \(units.label), \(formattedDate($0.date))" }
+            .joined(separator: ". ")
+        return base + " " + detail
+    }
+}
+
 struct StatsOverviewNotableCard: View {
-    let recentPRs: [RecentPR]
     let movers: [StatsProgressionComparison]
     let attention: [StatsAttentionObservation]
     let onSelectExercise: (String) -> Void
     @ObservedObject private var units = UnitSettings.shared
 
     private enum Fact: Identifiable {
-        case recentPR(RecentPR)
         case mover(StatsProgressionComparison)
         case attention(StatsAttentionObservation)
 
         var exerciseName: String {
             switch self {
-            case .recentPR(let record): return record.name
             case .mover(let mover): return mover.exerciseName
             case .attention(let observation): return observation.exerciseName
             }
@@ -1950,7 +2088,6 @@ struct StatsOverviewNotableCard: View {
 
         var id: String {
             switch self {
-            case .recentPR: return "pr-\(exerciseName)"
             case .mover: return "mover-\(exerciseName)"
             case .attention: return "attention-\(exerciseName)"
             }
@@ -1958,9 +2095,6 @@ struct StatsOverviewNotableCard: View {
     }
 
     private var facts: [Fact] {
-        let prFacts = recentPRs
-            .sorted { $0.date > $1.date }
-            .map(Fact.recentPR)
         let moverFacts = movers.compactMap { mover -> Fact? in
             guard mover.baselineBestE1RM != nil,
                   mover.recentBestE1RM != nil,
@@ -1986,12 +2120,11 @@ struct StatsOverviewNotableCard: View {
             }
         }
 
-        appendFirstAvailable(from: prFacts)
         appendFirstAvailable(from: moverFacts)
         appendFirstAvailable(from: attentionFacts)
 
         if selected.count < 3 {
-            for candidates in [prFacts, moverFacts, attentionFacts] {
+            for candidates in [moverFacts, attentionFacts] {
                 for candidate in candidates where selected.count < 3 {
                     let key = normalizedExerciseName(candidate.exerciseName)
                     if seenExercises.insert(key).inserted {
@@ -2058,8 +2191,6 @@ struct StatsOverviewNotableCard: View {
 
     private func detail(for fact: Fact) -> String {
         switch fact {
-        case .recentPR(let record):
-            return "Record récent · 1RM estimé \(units.format(record.est1RM, decimals: 0)) · \(formattedDate(record.date))"
         case .mover(let mover):
             guard let baseline = mover.baselineBestE1RM,
                   let recent = mover.recentBestE1RM,
@@ -2072,8 +2203,6 @@ struct StatsOverviewNotableCard: View {
 
     private func accessibilityLabel(for fact: Fact) -> String {
         switch fact {
-        case .recentPR(let record):
-            return "\(record.name). Record récent. 1RM estimé \(units.format(record.est1RM, decimals: 0)). \(formattedDate(record.date))."
         case .mover(let mover):
             guard let baseline = mover.baselineBestE1RM,
                   let recent = mover.recentBestE1RM,
