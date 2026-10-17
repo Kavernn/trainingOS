@@ -35,14 +35,17 @@ class PRTrackerLastPR(unittest.TestCase):
     def test_last_pr_none_when_no_rows(self):
         self.assertIsNone(self._run(pr_rows=[], history={})["last_pr"])
 
-    def test_last_pr_skips_rows_without_valid_e1rm_or_date(self):
+    def test_last_pr_skips_rows_without_valid_e1rm_or_date_or_name(self):
         rows = [
             {"exercise_name": "No Date",    "pr_e1rm_lbs": 100.0, "pr_date": None,         "baseline_count": 5},
             {"exercise_name": "Zero E1RM",  "pr_e1rm_lbs": 0,     "pr_date": "2026-09-01", "baseline_count": 5},
+            {"exercise_name": None,         "pr_e1rm_lbs": 200.0, "pr_date": "2026-10-01", "baseline_count": 5},
+            {"exercise_name": "   ",        "pr_e1rm_lbs": 180.0, "pr_date": "2026-10-02", "baseline_count": 5},
             {"exercise_name": "Valid Only", "pr_e1rm_lbs": 150.0, "pr_date": "2026-06-15", "baseline_count": 5},
         ]
         result = self._run(rows, history={})
-        self.assertEqual(result["last_pr"]["name"], "Valid Only")
+        self.assertEqual(result["last_pr"]["name"], "Valid Only",
+                         "name null/vide doit être exclu — pas de 'Dernier : null' côté iOS")
         self.assertEqual(result["last_pr"]["est_1rm"], 150.0)
 
 

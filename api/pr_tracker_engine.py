@@ -127,16 +127,20 @@ def _compute() -> dict:
 
     # Dernier PR tout exercice confondu — alimente l'état "aucun PR dans
     # la fenêtre" du composant iOS StatsPRTimelineView. Source : exercise_prs.
+    # Filtre defensif : name/date/e1rm doivent tous être valides (name null
+    # casserait l'affichage iOS "Dernier : <exo>").
     last_pr: dict | None = None
     valid_pr_rows = [
         r for r in pr_rows
-        if r.get("pr_date") and float(r.get("pr_e1rm_lbs") or 0) > 0
+        if (r.get("exercise_name") or "").strip()
+        and r.get("pr_date")
+        and float(r.get("pr_e1rm_lbs") or 0) > 0
     ]
     if valid_pr_rows:
         latest = max(valid_pr_rows, key=lambda r: str(r["pr_date"]))
         last_pr = {
-            "name":    latest.get("exercise_name"),
-            "date":    latest.get("pr_date"),
+            "name":    latest["exercise_name"],
+            "date":    latest["pr_date"],
             "est_1rm": round(float(latest["pr_e1rm_lbs"]), 1),
         }
 
