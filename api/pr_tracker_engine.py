@@ -67,7 +67,9 @@ def compute() -> dict:
         return _compute()
     except Exception:
         logger.exception("pr_tracker compute error")
-        return {"has_data": False, "recent_prs": [], "total_prs": 0, "exercises_tracked": 0, "message": "Erreur serveur"}
+        return {"has_data": False, "recent_prs": [], "total_prs": 0,
+                "exercises_tracked": 0, "message": "Erreur serveur",
+                "last_pr": None}
 
 
 def _compute() -> dict:
@@ -88,6 +90,7 @@ def _compute() -> dict:
             "total_prs": 0,
             "exercises_tracked": 0,
             "message": "Pas assez de données d'exercices.",
+            "last_pr": None,
         }
 
     prs = []
@@ -122,10 +125,26 @@ def _compute() -> dict:
     else:
         message = f"{total_prs} nouveaux records personnels ce mois-ci — progression validée."
 
+    # Dernier PR tout exercice confondu — alimente l'état "aucun PR dans
+    # la fenêtre" du composant iOS StatsPRTimelineView. Source : exercise_prs.
+    last_pr: dict | None = None
+    valid_pr_rows = [
+        r for r in pr_rows
+        if r.get("pr_date") and float(r.get("pr_e1rm_lbs") or 0) > 0
+    ]
+    if valid_pr_rows:
+        latest = max(valid_pr_rows, key=lambda r: str(r["pr_date"]))
+        last_pr = {
+            "name":    latest.get("exercise_name"),
+            "date":    latest.get("pr_date"),
+            "est_1rm": round(float(latest["pr_e1rm_lbs"]), 1),
+        }
+
     return {
         "has_data":          total_prs > 0 or tracked >= 3,
         "recent_prs":        prs[:_MAX_RESULTS],
         "total_prs":         total_prs,
         "exercises_tracked": tracked,
         "message":           message,
+        "last_pr":           last_pr,
     }
