@@ -1,60 +1,17 @@
 import SwiftUI
 import Charts
 
-// MARK: - BodyProgressionColor
-/// Palette unique pour les deltas Body (poids, masse grasse, tour de taille).
-///
-/// Règle : vert si le delta va dans le sens de l'objectif, forge sinon,
-/// neutre (appTextSecondary) si |delta| ≤ zone morte OU si le goal est inconnu.
-///
-/// Zones mortes (absorbent le bruit de mesure) :
-///  - weight   : ±1 % de `start` (eau/glycogène/sodium). Repli ±1 lb si start absent.
-///  - bodyFat  : ±0,5 pp absolu (bruit Navy ±3 pp sur mesure isolée, systématique si conditions constantes).
-///  - waist    : ±1 cm absolu (respiration, technique de mesure).
-///
-/// Goal :
-///  - cut      → perte alignée, prise contrariée
-///  - bulk     → prise alignée, perte contrariée
-///  - maintain, recomp → tout écart hors zone morte = contrarié (dérive)
-///  - nil / inconnu    → neutre (jamais d'objectif par défaut)
-///
-/// Masse grasse et tour de taille : toujours "lower is better", indépendants du goal.
-enum BodyProgressionColor {
-    enum Metric { case weight, bodyFat, waist }
-    enum Direction { case aligned, misaligned, neutral }
-
-    static func direction(delta: Double, start: Double?, metric: Metric, goal: String?) -> Direction {
-        if inDeadZone(delta: delta, start: start, metric: metric) { return .neutral }
-        switch metric {
-        case .bodyFat, .waist:
-            return delta < 0 ? .aligned : .misaligned
-        case .weight:
-            guard let g = goal?.lowercased() else { return .neutral }
-            switch g {
-            case "cut":                return delta < 0 ? .aligned : .misaligned
-            case "bulk":               return delta > 0 ? .aligned : .misaligned
-            case "maintain", "recomp": return .misaligned
-            default:                   return .neutral
-            }
-        }
-    }
-
+// MARK: - BodyProgressionColor (SwiftUI mapping)
+// Logique pure dans Utilities/BodyProgressionCore.swift (Foundation only), partagée
+// avec le test standalone tests/swift/BodyProgressionColorChecks.swift. Ici on
+// ne garde que le mapping Direction → Color qui dépend de SwiftUI.
+extension BodyProgressionColor {
     static func color(delta: Double, start: Double?, metric: Metric, goal: String?) -> Color {
         switch direction(delta: delta, start: start, metric: metric, goal: goal) {
         case .aligned:    return .statusGreen
         case .misaligned: return .forge
         case .neutral:    return .appTextSecondary
         }
-    }
-
-    private static func inDeadZone(delta: Double, start: Double?, metric: Metric) -> Bool {
-        let threshold: Double
-        switch metric {
-        case .weight:  threshold = (start.map { abs($0) * 0.01 }) ?? 1.0
-        case .bodyFat: threshold = 0.5
-        case .waist:   threshold = 1.0
-        }
-        return abs(delta) <= threshold
     }
 }
 
