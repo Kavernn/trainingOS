@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+from datetime import timedelta
 from analytics_adapter import AnalyticsAdapterDiagnostics, UnmappedExerciseDiagnostic, adapt_analytics_rows, fetch_raw_analytics_rows, is_deload_day, unmapped_exercise_diagnostics
 from metric_semantics import ComparisonWindows, DateWindow, comparison_windows
 from muscle_workload_analytics import MuscleMappingCoverage, MuscleWorkload, summarize_muscle_workload
@@ -33,6 +34,10 @@ class CockpitAnalyticsConfig:
     progression_days: int
     weekly_period: DateWindow
     muscle_period: DateWindow
+    # Fenêtre précédente de même longueur que `muscle_period`, pour afficher
+    # "courant vs précédent" dans "Détail musculaire". None → l'endpoint
+    # n'expose pas de previous_workloads (backward-compat).
+    muscle_previous_period: DateWindow | None = None
 
     def __post_init__(self) -> None:
         if type(self.as_of) is not date:
@@ -41,6 +46,10 @@ class CockpitAnalyticsConfig:
             raise ValueError("progression_days must be 30 or 90")
         _validate_window(self.weekly_period, "weekly_period")
         _validate_window(self.muscle_period, "muscle_period")
+        if self.muscle_previous_period is not None:
+            _validate_window(self.muscle_previous_period, "muscle_previous_period")
+            if self.muscle_previous_period.end >= self.muscle_period.start:
+                raise ValueError("muscle_previous_period must end strictly before muscle_period starts")
         if self.weekly_period.end > self.as_of:
             raise ValueError("weekly_period cannot end after as_of")
         if self.muscle_period.end > self.as_of:
@@ -53,7 +62,9 @@ class CockpitAnalyticsConfig:
     @property
     def raw_period(self) -> DateWindow:
         windows = self.progression_windows
-        periods = (windows.baseline, windows.recent, self.weekly_period, self.muscle_period)
+        periods = [windows.baseline, windows.recent, self.weekly_period, self.muscle_period]
+        if self.muscle_previous_period is not None:
+            periods.append(self.muscle_previous_period)
         return DateWindow(start=min(period.start for period in periods), end=max(period.end for period in periods))
 
 
@@ -94,6 +105,24 @@ class CockpitMuscles:
     coverage: MuscleMappingCoverage
     workloads: tuple[MuscleWorkload, ...]
     unmapped_exercises: tuple[UnmappedExerciseDiagnostic, ...]
+    # Fenêtre précédente (même longueur) et son résumé. None si le config
+    # ne la demande pas. Les flags `*_includes_deload` servent au visuel iOS
+    # pour griser la zone et neutraliser le verdict MEV/MAV/MRV sur une
+    # fenêtre contaminée par une semaine de décharge.
+    previous_period: DateWindow | None = None
+    previous_workloads: tuple[MuscleWorkload, ...] = ()
+    current_includes_deload: bool = False
+    previous_includes_deload: bool = False
+
+
+def _period_includes_deload(period: DateWindow, cycle_start_date: date | None) -> bool:
+    """Any day of the window falls on a programmed deload week?"""
+    if cycle_start_date is None:
+        return False
+    for i in range(period.day_count):
+        if is_deload_day(period.start + timedelta(days=i), cycle_start_date):
+            return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -133,6 +162,12 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
     attention = tuple(no_recent_improvement(adapted.strength_exposures, observation_window=windows.recent, as_of=config.as_of))
     load_summary = summarize_training_load(adapted.training_load_exposures, period=config.weekly_period)
     muscle_summary = summarize_muscle_workload(adapted.training_load_exposures, adapted.assignments, period=config.muscle_period)
+    previous_summary = None
+    if config.muscle_previous_period is not None:
+        previous_summary = summarize_muscle_workload(
+            adapted.training_load_exposures, adapted.assignments,
+            period=config.muscle_previous_period,
+        )
     return CockpitAnalyticsResponse(
         as_of=config.as_of,
         progression=CockpitProgression(
@@ -161,6 +196,13 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
             workloads=muscle_summary.muscles,
             unmapped_exercises=unmapped_exercise_diagnostics(
                 raw_rows, period=config.muscle_period, cycle_start_date=cycle_start_date
+            ),
+            previous_period=config.muscle_previous_period,
+            previous_workloads=previous_summary.muscles if previous_summary else (),
+            current_includes_deload=_period_includes_deload(config.muscle_period, cycle_start_date),
+            previous_includes_deload=(
+                _period_includes_deload(config.muscle_previous_period, cycle_start_date)
+                if config.muscle_previous_period is not None else False
             ),
         ),
         data_quality=CockpitDataQuality(requested_raw_period=config.raw_period, adapter=adapted.diagnostics),

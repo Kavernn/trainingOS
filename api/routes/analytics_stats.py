@@ -215,11 +215,20 @@ def api_stats_cockpit():
         progression_days = _strict_query_days("progression_days")
         weekly_days = _strict_query_days("weekly_days")
         muscle_days = _strict_query_days("muscle_days")
+        muscle_period = DateWindow(as_of - timedelta(days=muscle_days - 1), as_of)
+        # Fenêtre précédente de même longueur, collée à muscle_period :
+        # [start − N, start − 1]. Permet le visuel "courant vs précédent"
+        # dans "Détail musculaire" sans paramètre additionnel iOS.
+        muscle_previous_period = DateWindow(
+            muscle_period.start - timedelta(days=muscle_days),
+            muscle_period.start - timedelta(days=1),
+        )
         config = CockpitAnalyticsConfig(
             as_of=as_of,
             progression_days=progression_days,
             weekly_period=DateWindow(as_of - timedelta(days=weekly_days - 1), as_of),
-            muscle_period=DateWindow(as_of - timedelta(days=muscle_days - 1), as_of),
+            muscle_period=muscle_period,
+            muscle_previous_period=muscle_previous_period,
         )
     except (TypeError, ValueError) as exc:
         return jsonify({"error": str(exc)}), 400
