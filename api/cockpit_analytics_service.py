@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from datetime import timedelta
 from analytics_adapter import AnalyticsAdapterDiagnostics, UnmappedExerciseDiagnostic, adapt_analytics_rows, fetch_raw_analytics_rows, is_deload_day, unmapped_exercise_diagnostics
 from metric_semantics import ComparisonWindows, DateWindow, comparison_windows
 from muscle_workload_analytics import MuscleMappingCoverage, MuscleWorkload, summarize_muscle_workload
@@ -112,8 +111,11 @@ class CockpitMuscles:
     # fenêtre contaminée par une semaine de décharge.
     previous_period: DateWindow | None = None
     previous_workloads: tuple[MuscleWorkload, ...] = ()
-    current_includes_deload: bool = False
-    previous_includes_deload: bool = False
+    # Nombre de jours de la fenêtre détectés comme décharge et retirés du
+    # calcul de weekly_effective_sets. iOS affiche un badge discret
+    # "Décharge exclue" si > 0, mais la zone MEV/MAV/MRV reste évaluée.
+    current_deload_days_excluded: int = 0
+    previous_deload_days_excluded: int = 0
     # Pour chaque muscle apparaissant dans workloads ∪ previous_workloads,
     # ses plages hebdo MEV/MAV/MRV ou None si hors doctrine. L'iOS compare
     # weekly_effective_sets à ces bornes pour le badge de zone.
@@ -147,16 +149,6 @@ def _build_targets_map(
             if landmarks is not None else None
         )
     return seen
-
-
-def _period_includes_deload(period: DateWindow, cycle_start_date: date | None) -> bool:
-    """Any day of the window falls on a programmed deload week?"""
-    if cycle_start_date is None:
-        return False
-    for i in range(period.day_count):
-        if is_deload_day(period.start + timedelta(days=i), cycle_start_date):
-            return True
-    return False
 
 
 @dataclass(frozen=True)
@@ -195,12 +187,16 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
     movers_series = movers_e1rm_series(adapted.strength_exposures, movers, as_of=config.as_of)
     attention = tuple(no_recent_improvement(adapted.strength_exposures, observation_window=windows.recent, as_of=config.as_of))
     load_summary = summarize_training_load(adapted.training_load_exposures, period=config.weekly_period)
-    muscle_summary = summarize_muscle_workload(adapted.training_load_exposures, adapted.assignments, period=config.muscle_period)
+    muscle_is_deload = (lambda day: is_deload_day(day, cycle_start_date)) if cycle_start_date else None
+    muscle_summary = summarize_muscle_workload(
+        adapted.training_load_exposures, adapted.assignments,
+        period=config.muscle_period, is_deload=muscle_is_deload,
+    )
     previous_summary = None
     if config.muscle_previous_period is not None:
         previous_summary = summarize_muscle_workload(
             adapted.training_load_exposures, adapted.assignments,
-            period=config.muscle_previous_period,
+            period=config.muscle_previous_period, is_deload=muscle_is_deload,
         )
     return CockpitAnalyticsResponse(
         as_of=config.as_of,
@@ -233,11 +229,8 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
             ),
             previous_period=config.muscle_previous_period,
             previous_workloads=previous_summary.muscles if previous_summary else (),
-            current_includes_deload=_period_includes_deload(config.muscle_period, cycle_start_date),
-            previous_includes_deload=(
-                _period_includes_deload(config.muscle_previous_period, cycle_start_date)
-                if config.muscle_previous_period is not None else False
-            ),
+            current_deload_days_excluded=muscle_summary.deload_days_excluded,
+            previous_deload_days_excluded=previous_summary.deload_days_excluded if previous_summary else 0,
             targets_by_muscle=_build_targets_map(muscle_summary.muscles, previous_summary.muscles if previous_summary else ()),
         ),
         data_quality=CockpitDataQuality(requested_raw_period=config.raw_period, adapter=adapted.diagnostics),

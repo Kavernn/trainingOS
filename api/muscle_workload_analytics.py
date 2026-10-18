@@ -8,8 +8,8 @@ fields, and it contains no hypertrophy or coaching rules.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
-from typing import Iterable
+from datetime import date, timedelta
+from typing import Callable, Iterable
 
 from metric_semantics import DateWindow, TrackingType, analytical_tonnage, tracking_capabilities
 from training_load_analytics import TrainingLoadExposure
@@ -70,9 +70,11 @@ class MuscleWorkload:
     session_count: int
     active_day_count: int
     last_exposure_date: date
-    # Volume comparable aux plages MEV/MAV/MRV (séries hebdo),
-    # calculé via weekly_effective_sets avec INDIRECT_SET_COEFFICIENT.
-    weekly_effective_sets: float
+    # Volume comparable aux plages MEV/MAV/MRV (séries hebdo), calculé sur les
+    # jours HORS décharge uniquement : (direct_hors_décharge + 0,5 ×
+    # indirect_hors_décharge) / (jours_hors_décharge / 7). None si la fenêtre
+    # est 100 % décharge — iOS affiche badge "Décharge" sans verdict.
+    weekly_effective_sets: float | None
 
 
 @dataclass(frozen=True)
@@ -80,12 +82,18 @@ class MuscleWorkloadSummary:
     period: DateWindow
     coverage: MuscleMappingCoverage
     muscles: tuple[MuscleWorkload, ...]
+    # Nombre de jours de la fenêtre détectés comme décharge et retirés du
+    # calcul de weekly_effective_sets. 0 si pas de callable `is_deload`
+    # fourni ou si aucun jour n'est en décharge.
+    deload_days_excluded: int = 0
 
 
 @dataclass
 class _MuscleAccumulator:
     direct_sets: int = 0
     indirect_sets: int = 0
+    direct_sets_non_deload: int = 0
+    indirect_sets_non_deload: int = 0
     direct_exposures: int = 0
     indirect_exposures: int = 0
     sessions: set[str] = None  # type: ignore[assignment]
@@ -166,8 +174,16 @@ def summarize_muscle_workload(
     assignments: Iterable[ExerciseMuscleAssignment],
     *,
     period: DateWindow,
+    is_deload: Callable[[date], bool] | None = None,
 ) -> MuscleWorkloadSummary:
-    """Aggregate mapped muscle facts over the caller-provided date window."""
+    """Aggregate mapped muscle facts over the caller-provided date window.
+
+    `is_deload` : callable optionnel qui retourne True si un jour donné
+    appartient à une semaine de décharge. Les séries des jours de décharge
+    sont encore comptées dans direct_set_count / indirect_set_count (ce qui
+    a été réellement fait), mais weekly_effective_sets normalise sur les
+    jours hors décharge uniquement (volume comparable aux plages Israetel).
+    """
     if period.start > period.end:
         raise ValueError("period start cannot follow period end")
 
@@ -195,6 +211,7 @@ def summarize_muscle_workload(
     for exposure in mapped:
         assignment = assignment_by_name[exposure.exercise_name]
         set_count = _valid_set_count(exposure)
+        exposure_is_deload = bool(is_deload and is_deload(exposure.date))
         direct = set(assignment.direct_muscles)
         indirect = set(assignment.indirect_muscles) - direct
         for muscle in sorted(direct | indirect, key=lambda value: (value.casefold(), value)):
@@ -203,15 +220,24 @@ def summarize_muscle_workload(
             if is_direct:
                 accumulator.direct_exposures += 1
                 accumulator.direct_sets += set_count
+                if not exposure_is_deload:
+                    accumulator.direct_sets_non_deload += set_count
             else:
                 accumulator.indirect_exposures += 1
                 accumulator.indirect_sets += set_count
+                if not exposure_is_deload:
+                    accumulator.indirect_sets_non_deload += set_count
             accumulator.sessions.add(exposure.session_id)
             accumulator.active_days.add(exposure.date)
             if accumulator.last_date is None or exposure.date > accumulator.last_date:
                 accumulator.last_date = exposure.date
 
-    period_days = period.day_count
+    deload_days_excluded = 0
+    if is_deload is not None:
+        for i in range(period.day_count):
+            if is_deload(period.start + timedelta(days=i)):
+                deload_days_excluded += 1
+    non_deload_days = period.day_count - deload_days_excluded
     muscles = tuple(
         MuscleWorkload(
             muscle=muscle,
@@ -222,12 +248,20 @@ def summarize_muscle_workload(
             session_count=len(accumulator.sessions),
             active_day_count=len(accumulator.active_days),
             last_exposure_date=accumulator.last_date,  # type: ignore[arg-type]
-            weekly_effective_sets=weekly_effective_sets(
-                accumulator.direct_sets, accumulator.indirect_sets, period_days
+            weekly_effective_sets=(
+                None if non_deload_days <= 0
+                else weekly_effective_sets(
+                    accumulator.direct_sets_non_deload,
+                    accumulator.indirect_sets_non_deload,
+                    non_deload_days,
+                )
             ),
         )
         for muscle, accumulator in sorted(
             accumulators.items(), key=lambda item: (item[0].casefold(), item[0])
         )
     )
-    return MuscleWorkloadSummary(period=period, coverage=coverage, muscles=muscles)
+    return MuscleWorkloadSummary(
+        period=period, coverage=coverage, muscles=muscles,
+        deload_days_excluded=deload_days_excluded,
+    )

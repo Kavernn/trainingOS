@@ -154,41 +154,55 @@ def test_targets_merge_current_and_previous_muscles():
 
 # ── 4. Correspondance figée des noms de catalogue ─────────────────────────────
 
-# Noms bruts observés dans le catalogue iOS/backend (muscle_group / muscle_specific
-# tels que renvoyés par Supabase). Chaque nom DOIT se résoudre via
-# landmarks_for_muscle en une entrée MUSCLE_LANDMARKS — SAUF ceux listés
-# explicitement dans WITHOUT_LANDMARK_FROZEN (hors doctrine Israetel).
+# Noms bruts observés dans le catalogue Supabase `exercises`
+# (colonnes muscle_group / muscle_specific / secondary_muscles) extraits
+# des migrations 070, 088, 090, 093. Chaque nom passe par
+# `landmarks_for_muscle` → soit il résout vers une entrée MUSCLE_LANDMARKS,
+# soit il est listé dans WITHOUT_LANDMARK_FROZEN (hors doctrine Israetel).
 #
 # Ajouter un muscle au catalogue sans mise à jour ici fera échouer
 # test_frozen_catalog_set_either_has_landmark_or_is_explicitly_without.
 CATALOG_MUSCLES_FROZEN = frozenset({
-    "Chest",         # Pectoraux
-    "Lats",          # Dorsaux
-    "Deltoids",      # Épaules
-    "Rear Delt",     # Deltoïde postérieur
-    "Trapezius",
-    "Biceps",
-    "Triceps",
-    "Quadriceps",
-    "Hamstrings",
-    "Fessiers",      # Glutes
-    "Calves",
-    "Core",
-    "Forearms",
-    "Neck",
-    # Aliases qui doivent se normaliser vers un landmark
-    "pectorals",
-    "quads",
-    "shoulders",
-    "glutes",
-    "obliques",      # → core
-    "upper back",    # → lats
-    "rotator_cuff",  # → rear delt
+    # muscle_group minuscules (anglais)
+    "chest", "lats", "back", "legs", "quads", "hamstrings", "glutes",
+    "triceps", "biceps", "forearms", "calves", "shoulders", "arms",
+    "adductors", "brachialis", "abdominaux",
+    # muscle_specific Title Case (français et anglais, migration 090)
+    "Pectoraux", "Pectoral supérieur", "Pectoral moyen", "Pectoral inférieur",
+    "Dos", "Grand dorsal",
+    "Jambes", "Quadriceps",
+    "Trapèzes", "Trapèze supérieur", "Trapèze inférieur",
+    "Deltoïde antérieur", "Deltoïde postérieur",
+    "Thoracique", "Moyen fessier",
+    "Gainage", "Droit abdominal", "Core", "Obliques", "Abdominaux",
+    "Brachioradialis",
+    # Référencé dans Views/Stats/StatsComponents.swift pour la logique
+    # biceps-femoral-under-hamstrings — doit apparaître dans workloads.
+    "Biceps fémoral",
 })
 
-# Muscles présents dans le catalogue mais explicitement hors doctrine
-# (pas de plage Israetel ciblée). Frozen literal — toute addition est volontaire.
-WITHOUT_LANDMARK_FROZEN = frozenset()
+# Muscles présents dans le catalogue mais sans plage MEV/MAV/MRV connue
+# (manque d'alias de normalisation ou hors doctrine Israetel). Frozen
+# literal — toute addition DOIT être volontaire. Résolution long terme :
+# soit ajouter les aliases dans api/utils.py:_MUSCLE_ALIASES pour les
+# normaliser vers un landmark existant, soit entendre les plages à ces
+# muscles si c'est pertinent physiologiquement.
+WITHOUT_LANDMARK_FROZEN = frozenset({
+    # Pas d'alias "legs" → group générique de bas de corps non résolu
+    "legs",
+    # Pas d'alias "arms" → group générique haut de bras non résolu
+    "arms",
+    # Variantes françaises Title Case (migration 090) jamais aliasées :
+    "Pectoraux", "Pectoral supérieur", "Pectoral moyen", "Pectoral inférieur",
+    "Dos", "Grand dorsal",
+    "Jambes",
+    "Trapèzes", "Trapèze supérieur", "Trapèze inférieur",
+    "Deltoïde antérieur", "Deltoïde postérieur",
+    "Thoracique", "Moyen fessier",
+    "Droit abdominal",
+    # Variante française spécifique des ischio-jambiers, référencée en iOS :
+    "Biceps fémoral",
+})
 
 
 def test_frozen_catalog_set_either_has_landmark_or_is_explicitly_without():
