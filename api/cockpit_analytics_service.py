@@ -14,6 +14,7 @@ from datetime import timedelta
 from analytics_adapter import AnalyticsAdapterDiagnostics, UnmappedExerciseDiagnostic, adapt_analytics_rows, fetch_raw_analytics_rows, is_deload_day, unmapped_exercise_diagnostics
 from metric_semantics import ComparisonWindows, DateWindow, comparison_windows
 from muscle_workload_analytics import MuscleMappingCoverage, MuscleWorkload, summarize_muscle_workload
+from utils import landmarks_for_muscle
 from progression_comparison import AttentionObservation, MoverE1RMPoint, ProgressionComparison, ProgressionStatus, compare_progression, movers_e1rm_series, no_recent_improvement, top_movers
 from training_load_analytics import DailyTrainingLoad, TrainingLoadSummary, WeeklyTrainingLoad, daily_training_load, summarize_training_load, weekly_training_load
 
@@ -113,6 +114,39 @@ class CockpitMuscles:
     previous_workloads: tuple[MuscleWorkload, ...] = ()
     current_includes_deload: bool = False
     previous_includes_deload: bool = False
+    # Pour chaque muscle apparaissant dans workloads ∪ previous_workloads,
+    # ses plages hebdo MEV/MAV/MRV ou None si hors doctrine. L'iOS compare
+    # weekly_effective_sets à ces bornes pour le badge de zone.
+    targets_by_muscle: dict = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        # frozen dataclass : utilise object.__setattr__ pour normaliser le default.
+        if self.targets_by_muscle is None:
+            object.__setattr__(self, "targets_by_muscle", {})
+
+
+def _build_targets_map(
+    current: tuple[MuscleWorkload, ...],
+    previous: tuple[MuscleWorkload, ...],
+) -> dict:
+    """Pour chaque muscle (nom brut de l'attribution), expose ses plages
+    hebdo MEV/MAV/MRV via `landmarks_for_muscle` (normalise + lookup
+    MUSCLE_LANDMARKS). None pour les muscles hors doctrine — iOS doit
+    afficher "Pas de repère" explicitement, pas un silence."""
+    seen: dict = {}
+    for workload in (*current, *previous):
+        if workload.muscle in seen:
+            continue
+        landmarks = landmarks_for_muscle(workload.muscle)
+        seen[workload.muscle] = (
+            {
+                "mev_week": landmarks["mev"],
+                "mav_week": landmarks["mav"],
+                "mrv_week": landmarks["mrv"],
+            }
+            if landmarks is not None else None
+        )
+    return seen
 
 
 def _period_includes_deload(period: DateWindow, cycle_start_date: date | None) -> bool:
@@ -204,6 +238,7 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
                 _period_includes_deload(config.muscle_previous_period, cycle_start_date)
                 if config.muscle_previous_period is not None else False
             ),
+            targets_by_muscle=_build_targets_map(muscle_summary.muscles, previous_summary.muscles if previous_summary else ()),
         ),
         data_quality=CockpitDataQuality(requested_raw_period=config.raw_period, adapter=adapted.diagnostics),
     )

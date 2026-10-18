@@ -377,6 +377,21 @@ def _normalize_muscle(name: str) -> str:
     return _MUSCLE_ALIASES.get(name.lower().strip(), name.lower().strip())
 
 
+def landmarks_for_muscle(muscle: str) -> dict[str, int] | None:
+    """Retourne {"mev": int, "mav": int, "mrv": int} pour la plage hebdo du
+    muscle, ou None si aucune plage n'est connue (muscle hors doctrine
+    Israetel : ex. petits muscles non landmarkés).
+
+    Normalise via `_normalize_muscle` : "Chest" → "chest", "glutes" →
+    "fessiers", etc. Point d'entrée unique côté backend pour que l'iOS
+    reçoive une map figée sans refaire la normalisation.
+    """
+    if not isinstance(muscle, str) or not muscle.strip():
+        return None
+    normalized = _normalize_muscle(muscle)
+    return MUSCLE_LANDMARKS.get(normalized)
+
+
 # Weekly set landmarks per muscle (MEV/MAV/MRV — Israetel et al.)
 # Keys match _normalize_muscle() output
 MUSCLE_LANDMARKS: dict[str, dict] = {

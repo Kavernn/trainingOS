@@ -14,6 +14,24 @@ from typing import Iterable
 from metric_semantics import DateWindow, TrackingType, analytical_tonnage, tracking_capabilities
 from training_load_analytics import TrainingLoadExposure
 
+# Pondération unique des séries indirectes pour l'exposition musculaire effective.
+# Source doctrine : Schoenfeld & al. — une série où le muscle n'est pas moteur
+# principal contribue environ 50 % à l'adaptation hypertrophique vs. une série
+# directe. UN SEUL point d'ajustement. Modifie ici si la doctrine évolue.
+INDIRECT_SET_COEFFICIENT = 0.5
+_DAYS_PER_WEEK = 7
+
+
+def weekly_effective_sets(direct_sets: int, indirect_sets: int, period_days: int) -> float:
+    """Volume effectif en séries / semaine pour une fenêtre de N jours.
+
+    (direct + INDIRECT_SET_COEFFICIENT * indirect) / (period_days / 7).
+    period_days doit être > 0. Comparable à MEV/MAV/MRV (séries hebdo).
+    """
+    if period_days <= 0:
+        raise ValueError("period_days must be positive")
+    return (direct_sets + INDIRECT_SET_COEFFICIENT * indirect_sets) / (period_days / _DAYS_PER_WEEK)
+
 
 @dataclass(frozen=True)
 class ExerciseMuscleAssignment:
@@ -52,6 +70,9 @@ class MuscleWorkload:
     session_count: int
     active_day_count: int
     last_exposure_date: date
+    # Volume comparable aux plages MEV/MAV/MRV (séries hebdo),
+    # calculé via weekly_effective_sets avec INDIRECT_SET_COEFFICIENT.
+    weekly_effective_sets: float
 
 
 @dataclass(frozen=True)
@@ -190,6 +211,7 @@ def summarize_muscle_workload(
             if accumulator.last_date is None or exposure.date > accumulator.last_date:
                 accumulator.last_date = exposure.date
 
+    period_days = period.day_count
     muscles = tuple(
         MuscleWorkload(
             muscle=muscle,
@@ -200,6 +222,9 @@ def summarize_muscle_workload(
             session_count=len(accumulator.sessions),
             active_day_count=len(accumulator.active_days),
             last_exposure_date=accumulator.last_date,  # type: ignore[arg-type]
+            weekly_effective_sets=weekly_effective_sets(
+                accumulator.direct_sets, accumulator.indirect_sets, period_days
+            ),
         )
         for muscle, accumulator in sorted(
             accumulators.items(), key=lambda item: (item[0].casefold(), item[0])
