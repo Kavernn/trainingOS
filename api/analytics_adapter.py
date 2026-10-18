@@ -118,9 +118,16 @@ def _canonical_muscle_value(value: object) -> str | None:
     cleaned = value.strip()
     if not cleaned:
         return None
-    # This is the only exact V1 catalogue correction established by the audit.
-    if cleaned == "glutes":
-        return "Fessiers"
+    # Fusion canonique : si le muscle brut résout vers une clé MUSCLE_LANDMARKS
+    # via _normalize_muscle, on retourne le display name FR canonique. Tous
+    # les noms équivalents (chest, Pectoraux, Pectoral supérieur/moyen/inférieur)
+    # fusionnent en UNE SEULE ligne de workload. Évite les doubles lignes et
+    # les comparaisons sous-estimées contre les plages Israetel.
+    from utils import canonical_muscle_display
+    display = canonical_muscle_display(cleaned)
+    if display is not None:
+        return display
+    # Hors doctrine (legs, arms, Jambes, Thoracique) → nom brut préservé.
     return cleaned
 
 

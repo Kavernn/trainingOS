@@ -89,7 +89,8 @@ def test_catalogue_metadata_maps_cable_pull_over_without_name_reclassification()
         [row(name="Cable Pull Over", muscle_group="Dos", muscle_specific="Grand dorsal")],
         period=PERIOD,
     )
-    assert result.assignments[0].direct_muscles == ("Grand dorsal",)
+    # Fusion canonique : "Grand dorsal" → clé lats → display "Dos"
+    assert result.assignments[0].direct_muscles == ("Dos",)
     assert result.diagnostics.missing_muscle_mapping_count == 0
     assert result.diagnostics.unmapped_exercises == ()
 
@@ -125,7 +126,8 @@ def test_same_name_different_ids_keep_mapped_and_unmapped_diagnostics_distinct()
         ],
         period=PERIOD,
     )
-    assert result.assignments[0].direct_muscles == ("Grand dorsal",)
+    # Fusion canonique : "Grand dorsal" → clé lats → display "Dos"
+    assert result.assignments[0].direct_muscles == ("Dos",)
     assert [(item.exercise_id, item.exercise_name) for item in result.diagnostics.unmapped_exercises] == [
         ("exercise-b", "Cable Pull Over")
     ]

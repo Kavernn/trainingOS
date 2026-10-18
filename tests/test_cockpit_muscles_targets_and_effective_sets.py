@@ -95,12 +95,12 @@ def _config():
 
 
 def test_workload_exposes_weekly_effective_sets():
-    """1 séance Bench (Chest direct, 1 série sur fenêtre 30j) :
+    """1 séance Bench (chest → Pectoraux via fusion, 1 série sur 30j) :
     weekly_effective_sets = (1 + 0.5*0) / (30/7) = 0.233…"""
     rows = [_row(1, "s1", CURRENT.end, name="Bench")]
     response = build_cockpit_analytics(_FakeClient(rows), _config())
-    chest = [w for w in response.muscles.workloads if w.muscle == "Chest"]
-    assert chest, "workload Chest attendu"
+    chest = [w for w in response.muscles.workloads if w.muscle == "Pectoraux"]
+    assert chest, "workload Pectoraux attendu"
     assert chest[0].direct_set_count == 1
     assert chest[0].indirect_set_count == 0
     assert abs(chest[0].weekly_effective_sets - (1 / (30 / 7))) < 0.001
@@ -121,16 +121,16 @@ def test_targets_map_populated_from_landmarks_for_each_muscle():
     workload_muscles = {w.muscle for w in response.muscles.workloads}
     assert workload_muscles.issubset(targets.keys())
 
-    # Valeurs correspondent à MUSCLE_LANDMARKS (via normalisation)
-    assert targets["Chest"]  == {"mev_week": MUSCLE_LANDMARKS["chest"]["mev"],
-                                 "mav_week": MUSCLE_LANDMARKS["chest"]["mav"],
-                                 "mrv_week": MUSCLE_LANDMARKS["chest"]["mrv"]}
-    assert targets["Lats"]   == {"mev_week": MUSCLE_LANDMARKS["lats"]["mev"],
-                                 "mav_week": MUSCLE_LANDMARKS["lats"]["mav"],
-                                 "mrv_week": MUSCLE_LANDMARKS["lats"]["mrv"]}
-    assert targets["Biceps"] == {"mev_week": MUSCLE_LANDMARKS["biceps"]["mev"],
-                                 "mav_week": MUSCLE_LANDMARKS["biceps"]["mav"],
-                                 "mrv_week": MUSCLE_LANDMARKS["biceps"]["mrv"]}
+    # Valeurs correspondent à MUSCLE_LANDMARKS, clefs via display name FR canonique
+    assert targets["Pectoraux"] == {"mev_week": MUSCLE_LANDMARKS["chest"]["mev"],
+                                     "mav_week": MUSCLE_LANDMARKS["chest"]["mav"],
+                                     "mrv_week": MUSCLE_LANDMARKS["chest"]["mrv"]}
+    assert targets["Dos"]       == {"mev_week": MUSCLE_LANDMARKS["lats"]["mev"],
+                                     "mav_week": MUSCLE_LANDMARKS["lats"]["mav"],
+                                     "mrv_week": MUSCLE_LANDMARKS["lats"]["mrv"]}
+    assert targets["Biceps"]    == {"mev_week": MUSCLE_LANDMARKS["biceps"]["mev"],
+                                     "mav_week": MUSCLE_LANDMARKS["biceps"]["mav"],
+                                     "mrv_week": MUSCLE_LANDMARKS["biceps"]["mrv"]}
 
 
 def test_targets_null_for_muscle_outside_landmark_doctrine():
@@ -148,8 +148,8 @@ def test_targets_merge_current_and_previous_muscles():
         _row(2, "s2", PREVIOUS.start + timedelta(days=5),    name="Curl",  group="Biceps"),
     ]
     response = build_cockpit_analytics(_FakeClient(rows), _config())
-    assert "Chest" in response.muscles.targets_by_muscle
-    assert "Biceps" in response.muscles.targets_by_muscle
+    assert "Pectoraux" in response.muscles.targets_by_muscle
+    assert "Biceps"    in response.muscles.targets_by_muscle
 
 
 # ── 4. Correspondance figée des noms de catalogue ─────────────────────────────
@@ -182,26 +182,15 @@ CATALOG_MUSCLES_FROZEN = frozenset({
 })
 
 # Muscles présents dans le catalogue mais sans plage MEV/MAV/MRV connue
-# (manque d'alias de normalisation ou hors doctrine Israetel). Frozen
-# literal — toute addition DOIT être volontaire. Résolution long terme :
-# soit ajouter les aliases dans api/utils.py:_MUSCLE_ALIASES pour les
-# normaliser vers un landmark existant, soit entendre les plages à ces
-# muscles si c'est pertinent physiologiquement.
+# (groupes génériques ambigus par nature — plusieurs muscles réels avec
+# plages différentes). Frozen literal — toute addition DOIT être volontaire.
 WITHOUT_LANDMARK_FROZEN = frozenset({
-    # Pas d'alias "legs" → group générique de bas de corps non résolu
-    "legs",
-    # Pas d'alias "arms" → group générique haut de bras non résolu
-    "arms",
-    # Variantes françaises Title Case (migration 090) jamais aliasées :
-    "Pectoraux", "Pectoral supérieur", "Pectoral moyen", "Pectoral inférieur",
-    "Dos", "Grand dorsal",
-    "Jambes",
-    "Trapèzes", "Trapèze supérieur", "Trapèze inférieur",
-    "Deltoïde antérieur", "Deltoïde postérieur",
-    "Thoracique", "Moyen fessier",
-    "Droit abdominal",
-    # Variante française spécifique des ischio-jambiers, référencée en iOS :
-    "Biceps fémoral",
+    "legs",        # Englobe quads + hams + glutes + calves → ambigu
+    "arms",        # Englobe biceps + triceps + forearms → ambigu
+    "Jambes",      # Idem "legs" en FR
+    "Thoracique",  # Utilisé par un exo mobility (Cat-Cow + Thoracic Rotation),
+                    # filtré en amont par tracking_type='mobility'. Si réemployé
+                    # pour un muscle réel, décision à prendre.
 })
 
 
@@ -219,6 +208,109 @@ def test_landmarks_normalization_covers_common_aliases():
     renvoyer sur une entrée MUSCLE_LANDMARKS (pas None)."""
     for raw in ("Chest", "pectorals", "glutes", "quads", "obliques", "rear deltoid"):
         assert landmarks_for_muscle(raw) is not None, raw
+
+
+# ── 5. Fusion canonique (migration 090 variantes FR) ─────────────────────────
+
+def _row_with_specific(log_id, session_id, day, *, name, group, specific, secondary=None, sets=1):
+    """Variante de _row qui expose muscle_specific séparément."""
+    return {
+        "id": str(log_id),
+        "session_id": session_id,
+        "exercise_id": f"id-{name}",
+        "weight": 100, "reps": "5",
+        "sets_json": [{"weight": 100, "reps": 5} for _ in range(sets)],
+        "workout_sessions": {"date": day.isoformat()},
+        "exercises": {
+            "name": name, "tracking_type": "reps",
+            "muscle_group": group, "muscle_specific": specific,
+            "secondary_muscles": secondary or [],
+        },
+    }
+
+
+def test_fusion_canonical_merges_subregion_and_group_into_one_workload():
+    """Un exercice "chest" sans muscle_specific + un "Incline Cable Fly"
+    (muscle_specific="Pectoral supérieur") la même semaine → UNE ligne
+    "Pectoraux" dont direct_set_count = somme des deux."""
+    rows = [
+        # Exo 1 : muscle_group="chest" (lowercase EN), muscle_specific absent
+        _row_with_specific(1, "s1", CURRENT.end - timedelta(days=1),
+                           name="Flat Bench", group="chest", specific=None, sets=3),
+        # Exo 2 : muscle_group="Pectoraux", muscle_specific="Pectoral supérieur"
+        _row_with_specific(2, "s2", CURRENT.end,
+                           name="Incline Cable Fly", group="Pectoraux",
+                           specific="Pectoral supérieur", sets=2),
+    ]
+    response = build_cockpit_analytics(_FakeClient(rows), _config())
+    muscles = [w.muscle for w in response.muscles.workloads]
+    # UNE SEULE ligne, nom canonique FR
+    assert muscles == ["Pectoraux"], f"attendu une ligne 'Pectoraux', trouvé {muscles}"
+    chest = response.muscles.workloads[0]
+    # 3 + 2 = 5 séries directes agrégées
+    assert chest.direct_set_count == 5
+    assert chest.session_count == 2
+    # Targets map utilise le nom canonique
+    assert response.muscles.targets_by_muscle["Pectoraux"] is not None
+
+
+def test_fusion_no_double_count_when_group_and_specific_fuse_to_same_key():
+    """Un exercice dont muscle_group="Pectoraux" ET muscle_specific="Pectoral
+    supérieur" (déjà fusionnés par `specific or group` dans l'adapter) ne doit
+    compter qu'UNE fois. Pas de double-compte si direct ET indirect fusionnent
+    vers la même clé non plus."""
+    rows = [
+        _row_with_specific(1, "s1", CURRENT.end,
+                           name="Incline Cable Fly", group="Pectoraux",
+                           specific="Pectoral supérieur", sets=4),
+    ]
+    response = build_cockpit_analytics(_FakeClient(rows), _config())
+    chest = response.muscles.workloads[0]
+    assert chest.muscle == "Pectoraux"
+    assert chest.direct_set_count == 4  # pas 8
+
+
+def test_fusion_direct_wins_over_indirect_when_same_canonical_key():
+    """Un exercice direct "Pectoral supérieur" (→ Pectoraux) avec
+    secondary_muscles=["chest", "triceps"] (chest → Pectoraux, triceps → Triceps)
+    compte en DIRECT seulement sur Pectoraux (pas d'indirect Pectoraux), et
+    en indirect sur Triceps. Garantit la règle `indirect = indirect - direct`
+    après fusion canonique."""
+    rows = [
+        _row_with_specific(1, "s1", CURRENT.end,
+                           name="Incline Cable Fly", group="Pectoraux",
+                           specific="Pectoral supérieur",
+                           secondary=["chest", "triceps"], sets=2),
+    ]
+    response = build_cockpit_analytics(_FakeClient(rows), _config())
+    by_name = {w.muscle: w for w in response.muscles.workloads}
+    assert "Pectoraux" in by_name
+    assert "Triceps" in by_name
+    # Pectoraux : direct uniquement, pas d'indirect (fusion absorbe le secondary chest)
+    assert by_name["Pectoraux"].direct_set_count == 2
+    assert by_name["Pectoraux"].indirect_set_count == 0
+    # Triceps : indirect uniquement
+    assert by_name["Triceps"].indirect_set_count == 2
+    assert by_name["Triceps"].direct_set_count == 0
+
+
+def test_display_names_match_canonical_fr_mapping():
+    """Les display names FR exposés dans workloads sont tirés de
+    _LANDMARK_DISPLAY_FR (une seule source). Vérifie les choix validés :
+    deltoids → Épaules, rear delt → Arrière d'épaule, core → Abdominaux."""
+    rows = [
+        _row_with_specific(1, "s1", CURRENT.end, name="OHP",
+                           group="shoulders", specific=None, sets=1),
+        _row_with_specific(2, "s2", CURRENT.end, name="Rear Fly",
+                           group="Deltoïde postérieur", specific=None, sets=1),
+        _row_with_specific(3, "s3", CURRENT.end, name="Plank",
+                           group="Gainage", specific=None, sets=1),
+    ]
+    response = build_cockpit_analytics(_FakeClient(rows), _config())
+    muscles = {w.muscle for w in response.muscles.workloads}
+    assert "Épaules" in muscles
+    assert "Arrière d'épaule" in muscles
+    assert "Abdominaux" in muscles
 
 
 if __name__ == "__main__":

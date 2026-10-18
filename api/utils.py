@@ -364,12 +364,68 @@ _MUSCLE_ALIASES: dict = {
     "fessier":             "fessiers",
     "hip thrust":          "fessiers",
     "adductors":           "fessiers",
+    "biceps fémoral":      "hamstrings",
     # Hamstrings — variantes courantes
     "hams":                "hamstrings",
     "ham":                 "hamstrings",
     "ischio-jambiers":     "hamstrings",
     "ischiojambiers":      "hamstrings",
+    # ── Variantes FR Title Case du catalogue (migrations 070/088/090/093) ──
+    # Pectoraux + sous-régions → chest
+    "pectoraux":           "chest",
+    "pectoral supérieur":  "chest",
+    "pectoral moyen":      "chest",
+    "pectoral inférieur":  "chest",
+    # Dos + accessoires → lats
+    "dos":                 "lats",
+    "grand dorsal":        "lats",
+    # Trapèzes + sous-régions → trapezius
+    "trapèzes":            "trapezius",
+    "trapèze supérieur":   "trapezius",
+    "trapèze inférieur":   "trapezius",
+    # Deltoïdes FR
+    "deltoïde antérieur":  "deltoids",
+    "deltoïde postérieur": "rear delt",
+    # Fessiers FR
+    "moyen fessier":       "fessiers",
+    # Core FR
+    "droit abdominal":     "core",
 }
+
+
+# Nom d'affichage FR unique par clé canonique MUSCLE_LANDMARKS.
+# Défini à UN SEUL endroit — le backend produit ces noms, l'iOS les affiche
+# tels quels (zéro double traduction). Les muscles catalogue qui n'ont pas de
+# clé landmark (legs, arms, Jambes, Thoracique) gardent leur nom brut.
+_LANDMARK_DISPLAY_FR: dict[str, str] = {
+    "chest":      "Pectoraux",
+    "lats":       "Dos",
+    "deltoids":   "Épaules",
+    "rear delt":  "Arrière d'épaule",
+    "trapezius":  "Trapèzes",
+    "biceps":     "Biceps",
+    "triceps":    "Triceps",
+    "quadriceps": "Quadriceps",
+    "hamstrings": "Ischio-jambiers",
+    "fessiers":   "Fessiers",
+    "calves":     "Mollets",
+    "core":       "Abdominaux",
+    "forearms":   "Avant-bras",
+    "neck":       "Cou",
+}
+
+
+def canonical_muscle_display(muscle: str) -> str | None:
+    """Pour un nom brut du catalogue, retourne le nom FR canonique à afficher
+    (ex. "chest" → "Pectoraux", "Pectoral supérieur" → "Pectoraux"), ou None
+    si le muscle ne résout vers aucune clé LANDMARKS (legs, arms, Jambes,
+    Thoracique...). Point d'entrée unique côté backend — permet à l'adapter
+    de fusionner tous les noms équivalents en UNE ligne de workload.
+    """
+    if not isinstance(muscle, str) or not muscle.strip():
+        return None
+    normalized = _normalize_muscle(muscle)
+    return _LANDMARK_DISPLAY_FR.get(normalized)
 
 _MUSCLE_JUNK = {"other", "cardio", "conditioning", "full body", "cardiovascular system"}
 

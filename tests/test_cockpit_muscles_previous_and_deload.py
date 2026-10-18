@@ -98,8 +98,8 @@ def test_previous_workloads_populated_from_previous_period():
         _row(2, "s2", PREVIOUS.start + timedelta(days=5), name="Bench"),        # précédent
     ]
     response = build_cockpit_analytics(_FakeClient(rows), _config(muscle_previous_period=PREVIOUS))
-    cur_bench = [w for w in response.muscles.workloads if "chest" in w.muscle.lower() or "pecto" in w.muscle.lower()]
-    prv_bench = [w for w in response.muscles.previous_workloads if "chest" in w.muscle.lower() or "pecto" in w.muscle.lower()]
+    cur_bench = [w for w in response.muscles.workloads if w.muscle == "Pectoraux"]
+    prv_bench = [w for w in response.muscles.previous_workloads if w.muscle == "Pectoraux"]
     assert cur_bench, "muscle Chest/Pectoraux doit apparaître dans workloads courants"
     assert prv_bench, "même muscle doit apparaître dans previous_workloads"
     # chaque session distincte compte UNE fois
@@ -170,8 +170,8 @@ def test_weekly_effective_sets_excludes_deload_days():
         _FakeClient(rows), _config(muscle_previous_period=PREVIOUS),
         cycle_start_date=cycle_start,
     )
-    chest_a = [w for w in without.muscles.workloads     if w.muscle == "Chest"][0]
-    chest_b = [w for w in with_deload.muscles.workloads if w.muscle == "Chest"][0]
+    chest_a = [w for w in without.muscles.workloads     if w.muscle == "Pectoraux"][0]
+    chest_b = [w for w in with_deload.muscles.workloads if w.muscle == "Pectoraux"][0]
 
     # Compteurs bruts inchangés (ce qui a été fait reste fait)
     assert chest_a.direct_set_count == chest_b.direct_set_count
@@ -200,7 +200,7 @@ def test_weekly_effective_sets_null_when_window_is_entirely_deload():
         _FakeClient(rows), cfg, cycle_start_date=cycle_start,
     )
     assert response.muscles.current_deload_days_excluded == 7
-    chest = [w for w in response.muscles.workloads if w.muscle == "Chest"][0]
+    chest = [w for w in response.muscles.workloads if w.muscle == "Pectoraux"][0]
     assert chest.weekly_effective_sets is None
 
 
