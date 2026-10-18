@@ -241,31 +241,123 @@ struct StatsBodyOverviewHero: View {
         }
     }
 
+    // MARK: - Secondary metrics (waist + body fat sparklines)
+
+    private struct SecondaryPoint: Identifiable {
+        let id: String
+        let date: Date
+        let value: Double
+    }
+
+    private func secondarySeries(_ extract: (BodyWeightEntry) -> Double?) -> [SecondaryPoint] {
+        filteredEntries.reversed().compactMap { entry in
+            guard let v = extract(entry), v > 0,
+                  let date = DateFormatter.isoDate.date(from: entry.date) else { return nil }
+            return SecondaryPoint(id: "\(entry.date)-\(v)", date: date, value: v)
+        }
+    }
+
+    private var waistPoints: [SecondaryPoint]   { secondarySeries { $0.waistCm } }
+    private var bodyFatPoints: [SecondaryPoint] { secondarySeries { $0.bodyFat } }
+
+    /// Nombre de semaines théorique de la période sélectionnée. nil pour `.all`
+    /// (pas de notion de "fenêtre tronquée" à afficher).
+    private var periodWeeks: Int? {
+        switch period {
+        case .month1: return 4
+        case .month3: return 13
+        case .month6: return 26
+        case .all:    return nil
+        }
+    }
+
+    private func seriesDelta(_ pts: [SecondaryPoint]) -> Double? {
+        guard let first = pts.first, let last = pts.last, pts.count >= 2 else { return nil }
+        return last.value - first.value
+    }
+
+    private func coverageWeeks(_ pts: [SecondaryPoint]) -> Int? {
+        guard let oldest = pts.first else { return nil }
+        let days = Calendar.mtl.dateComponents([.day], from: oldest.date, to: Date()).day ?? 0
+        return max(1, Int(ceil(Double(days) / 7.0)))
+    }
+
     private var secondaryMetrics: some View {
         HStack(alignment: .top, spacing: 12) {
             if let waistEntry, let waist = waistEntry.waistCm {
                 secondaryMetric(
                     title: "TOUR DE TAILLE",
                     value: "\(formattedDecimal(waist)) cm",
-                    date: waistEntry.date
+                    date: waistEntry.date,
+                    points: waistPoints,
+                    metric: .waist,
+                    deltaSuffix: "cm",
+                    deltaDecimals: 1
                 )
             }
             if let bodyFatEntry, let bodyFat = bodyFatEntry.bodyFat {
                 secondaryMetric(
                     title: "MASSE GRASSE",
                     value: "\(formattedDecimal(bodyFat)) %",
-                    date: bodyFatEntry.date
+                    date: bodyFatEntry.date,
+                    points: bodyFatPoints,
+                    metric: .bodyFat,
+                    deltaSuffix: "%",
+                    deltaDecimals: 1
                 )
             }
         }
     }
 
-    private func secondaryMetric(title: String, value: String, date: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func secondaryMetric(
+        title: String,
+        value: String,
+        date: String,
+        points: [SecondaryPoint],
+        metric: BodyProgressionColor.Metric,
+        deltaSuffix: String,
+        deltaDecimals: Int
+    ) -> some View {
+        let delta = seriesDelta(points)
+        let start = points.first?.value
+        let color: Color = delta.map {
+            BodyProgressionColor.color(delta: $0, start: start, metric: metric, goal: nil)
+        } ?? .appTextSecondary
+
+        return VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.appMicro.weight(.bold)).foregroundColor(.appTextMuted)
             Text(value)
                 .font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
+            if points.count >= 2 {
+                Chart(points) { p in
+                    LineMark(x: .value("Date", p.date), y: .value("v", p.value))
+                        .foregroundStyle(color)
+                        .lineStyle(StrokeStyle(lineWidth: 1.4))
+                        .interpolationMethod(.monotone)
+                    PointMark(x: .value("Date", p.date), y: .value("v", p.value))
+                        .foregroundStyle(color)
+                        .symbolSize(4)
+                }
+                .chartXAxis(.hidden).chartYAxis(.hidden)
+                .frame(height: 20)
+            }
+            if let delta {
+                let sign = delta > 0 ? "+" : (delta < 0 ? "−" : "")
+                let magnitude = String(
+                    format: "%.\(deltaDecimals)f", locale: Locale(identifier: "fr_CA"), abs(delta)
+                )
+                HStack(spacing: 6) {
+                    Text("\(sign)\(magnitude) \(deltaSuffix)")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(color).monospacedDigit()
+                    if let weeks = coverageWeeks(points),
+                       let periodWeeks, weeks < periodWeeks {
+                        Text("sur \(weeks) sem")
+                            .font(.appMicro).foregroundColor(.appTextMuted)
+                    }
+                }
+            }
             Text(displayDate(date))
                 .font(.appMicro).foregroundColor(.appTextSecondary)
         }
