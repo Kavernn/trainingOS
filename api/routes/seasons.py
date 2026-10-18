@@ -108,10 +108,26 @@ def get_seasons_comparison():
         float(start_snap["body_fat_pct"])
         if start_snap and start_snap.get("body_fat_pct") is not None else None
     )
-    body_fat_end = next(
-        (float(r["body_fat"]) for r in bw_logs if r.get("body_fat") is not None),
-        None,
-    )
+    # body_fat_end : dernière mesure non-null, uniquement si ≤ 14 jours (sinon
+    # on ne présente pas une valeur périmée comme "actuelle"). Symétrique du
+    # garde-fou appliqué à body_fat_pct dans season_engine.compute_snapshot.
+    try:
+        today_date = date.fromisoformat(_today_mtl())
+        bf_cutoff = today_date - timedelta(days=14)
+    except ValueError:
+        bf_cutoff = None
+    def _recent_body_fat(logs):
+        for r in logs:
+            if r.get("body_fat") is None:
+                continue
+            try:
+                d = date.fromisoformat((r.get("date") or "")[:10])
+            except ValueError:
+                continue
+            if bf_cutoff is None or d >= bf_cutoff:
+                return float(r["body_fat"])
+        return None
+    body_fat_end = _recent_body_fat(bw_logs)
 
     # Phoenix: not easily computed live here — skip unless snapshot available
     phoenix_avg = start_snap.get("phoenix_avg") if start_snap else None

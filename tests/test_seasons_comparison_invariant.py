@@ -119,14 +119,15 @@ class TestComparisonInvariant(BaseRouteTest):
 
     def test_body_fat_end_scans_past_null_body_fat(self):
         """body_fat_end prend la dernière entrée body_weight_logs avec
-        body_fat non-null, pas juste la plus récente — anti-fantôme :
-        si la ligne la plus récente a body_fat=null, on remonte la liste
-        au lieu de retourner None sans raison."""
+        body_fat non-null (dans la fenêtre 14j), pas juste la plus récente.
+        Anti-fantôme : si la ligne la plus récente a body_fat=null, on
+        remonte la liste au lieu de retourner None sans raison."""
         logs = [
-            {"date": "2026-10-20", "weight": 186.0, "body_fat": None},   # plus récent
-            {"date": "2026-10-15", "weight": 185.3, "body_fat": 17.0},   # cible
+            {"date": "2026-10-20", "weight": 186.0, "body_fat": None},   # plus récent, null
+            {"date": "2026-10-18", "weight": 185.3, "body_fat": 17.0},   # 2j, cible
         ]
-        with patch("routes.seasons.db.get_season_snapshots", side_effect=self._snapshots_router):
+        with patch("routes.seasons._today_mtl", return_value="2026-10-20"), \
+             patch("routes.seasons.db.get_season_snapshots", side_effect=self._snapshots_router):
             patches = _patch_db(get_body_weight_logs=logs)
             for p in patches: p.start()
             try:
@@ -136,7 +137,26 @@ class TestComparisonInvariant(BaseRouteTest):
 
         cur = self.json(r)["current"]
         self.assertEqual(186.0, cur["weight_end_lbs"], "weight_end reste la ligne la + récente")
-        self.assertEqual(17.0,  cur["body_fat_end"],   "body_fat_end remonte au premier non-null")
+        self.assertEqual(17.0,  cur["body_fat_end"],   "body_fat_end remonte au premier non-null dans 14j")
+
+    def test_body_fat_end_rejects_stale(self):
+        """Si la seule mesure body_fat non-null date de plus de 14 jours,
+        body_fat_end doit être None (pas de valeur périmée)."""
+        logs = [
+            {"date": "2026-10-20", "weight": 186.0, "body_fat": None},   # today, null
+            {"date": "2026-09-20", "weight": 184.0, "body_fat": 18.0},   # 30j, rejeté
+        ]
+        with patch("routes.seasons._today_mtl", return_value="2026-10-20"), \
+             patch("routes.seasons.db.get_season_snapshots", side_effect=self._snapshots_router):
+            patches = _patch_db(get_body_weight_logs=logs)
+            for p in patches: p.start()
+            try:
+                r = self.get("/api/seasons/comparison")
+            finally:
+                for p in patches: p.stop()
+
+        cur = self.json(r)["current"]
+        self.assertIsNone(cur["body_fat_end"], "mesure body_fat 30j doit être rejetée (fantôme)")
 
 
 if __name__ == "__main__":

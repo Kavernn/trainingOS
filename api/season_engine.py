@@ -52,6 +52,25 @@ def compute_snapshot(as_of_date: str | None = None, season_start: str | None = N
     weights = db.get_body_weight_logs(limit=5)
     if weights:
         snap["weight_lbs"] = weights[0].get("weight")
+        # body_fat_pct : dernière mesure non-null, uniquement si ≤ 14 jours
+        # avant la date du snapshot. Évite d'étiqueter une mesure périmée
+        # comme "début/fin de saison" — un %MG d'il y a 2 mois n'est pas
+        # représentatif du corps au moment du snapshot.
+        try:
+            snap_date = date.fromisoformat(today)
+            cutoff = snap_date - timedelta(days=14)
+        except ValueError:
+            cutoff = None
+        for w in weights:
+            if w.get("body_fat") is None:
+                continue
+            try:
+                w_date = date.fromisoformat((w.get("date") or "")[:10])
+            except ValueError:
+                continue
+            if cutoff is None or w_date >= cutoff:
+                snap["body_fat_pct"] = float(w["body_fat"])
+                break
 
     # PSS — most recent score
     pss = db.get_pss_records(limit=1)
