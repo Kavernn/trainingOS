@@ -449,13 +449,6 @@ struct StatsMuscleWorkloadSection: View {
         max(sortedWorkloads.count - 6, 0)
     }
 
-    private var bicepsFemoralHasSets: Bool {
-        guard let workload = muscles.workloads.first(where: { $0.muscle == "Biceps fémoral" }) else {
-            return false
-        }
-        return workload.directSetCount > 0 || workload.indirectSetCount > 0
-    }
-
     private var expandLabel: String {
         if remainingWorkloadCount == 1 { return "Voir 1 autre muscle" }
         return "Voir les \(remainingWorkloadCount) autres muscles"
@@ -498,8 +491,7 @@ struct StatsMuscleWorkloadSection: View {
                         previousWorkload: previousByMuscle[workload.muscle],
                         targets: muscles.targetsByMuscle[workload.muscle] ?? nil,
                         currentDeloadDaysExcluded: muscles.currentDeloadDaysExcluded,
-                        previousDeloadDaysExcluded: muscles.previousDeloadDaysExcluded,
-                        bicepsFemoralHasSets: bicepsFemoralHasSets
+                        previousDeloadDaysExcluded: muscles.previousDeloadDaysExcluded
                     )
                     if workload.muscle != visibleWorkloads.last?.muscle {
                         Divider().overlay(Color.appSeparatorSubtle)
@@ -538,7 +530,6 @@ struct StatsMuscleWorkloadRow: View {
     let targets: StatsMuscleTargets?
     let currentDeloadDaysExcluded: Int
     let previousDeloadDaysExcluded: Int
-    let bicepsFemoralHasSets: Bool
 
     private enum Zone {
         case belowMev, productive, high, overMrv, noTarget, deloaded
@@ -548,12 +539,6 @@ struct StatsMuscleWorkloadRow: View {
         workload.directSetCount == 0
             && workload.indirectSetCount == 0
             && (workload.directExposureCount > 0 || workload.indirectExposureCount > 0)
-    }
-
-    private var showsBicepsFemoralContext: Bool {
-        workload.muscle == "Ischio-jambiers"
-            && hasExposureWithoutValidSets
-            && bicepsFemoralHasSets
     }
 
     /// Déload exclu dans l'une des deux fenêtres → affiche un badge
@@ -616,8 +601,7 @@ struct StatsMuscleWorkloadRow: View {
     private var accessibilitySummary: String {
         let muscle = statsMuscleDisplayName(workload.muscle)
         if hasExposureWithoutValidSets {
-            let suffix = showsBicepsFemoralContext ? " Séries comptées sous Biceps fémoral." : ""
-            return "\(muscle). Aucune série exploitable.\(suffix) \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
+            return "\(muscle). Aucune série exploitable. \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
         }
         let cur = workload.weeklyEffectiveSets.map { "\(formatted($0)) séries par semaine" } ?? "non calculé (fenêtre en décharge)"
         let prev: String
@@ -646,10 +630,6 @@ struct StatsMuscleWorkloadRow: View {
             if hasExposureWithoutValidSets {
                 Text("Aucune série exploitable")
                     .font(.appMicro.weight(.semibold)).foregroundColor(.appTextSecondary)
-                if showsBicepsFemoralContext {
-                    Text("Séries comptées sous Biceps fémoral")
-                        .font(.appMicro).foregroundColor(.appTextMuted)
-                }
             } else {
                 bars
                 if let deltaString {
