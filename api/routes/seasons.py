@@ -86,11 +86,32 @@ def get_seasons_comparison():
     # Weight delta: start snapshot weight vs latest body weight
     start_snaps = _db.get_season_snapshots(active["id"])
     start_snap  = next((s for s in start_snaps if s.get("type") == "start"), None)
-    bw_logs     = _db.get_body_weight_logs(limit=1)
+    # limit=30 : latest weight reste bw_logs[0] (ordre date DESC), mais permet
+    # de retrouver la dernière mesure body_fat non-null quand elle n'est pas
+    # dans l'entrée la plus récente (body_fat est optionnel par ligne).
+    bw_logs     = _db.get_body_weight_logs(limit=30)
     latest_weight = bw_logs[0].get("weight") if bw_logs else None
     weight_delta = None
     if start_snap and start_snap.get("weight_lbs") and latest_weight:
         weight_delta = round(float(latest_weight) - float(start_snap["weight_lbs"]), 1)
+
+    # Start/end values exposed for the "avant → après" UI (commit 4). Pour
+    # body_fat, la série de snapshots ne populate pas encore body_fat_pct
+    # (compute_snapshot ne l'écrit pas), donc body_fat_start sera souvent
+    # None jusqu'à ce que ce soit ajouté — à faire dans un commit séparé.
+    weight_start_lbs = (
+        round(float(start_snap["weight_lbs"]), 1)
+        if start_snap and start_snap.get("weight_lbs") else None
+    )
+    weight_end_lbs = round(float(latest_weight), 1) if latest_weight else None
+    body_fat_start = (
+        float(start_snap["body_fat_pct"])
+        if start_snap and start_snap.get("body_fat_pct") is not None else None
+    )
+    body_fat_end = next(
+        (float(r["body_fat"]) for r in bw_logs if r.get("body_fat") is not None),
+        None,
+    )
 
     # Phoenix: not easily computed live here — skip unless snapshot available
     phoenix_avg = start_snap.get("phoenix_avg") if start_snap else None
@@ -103,12 +124,16 @@ def get_seasons_comparison():
     )
 
     current = {
-        "title":           active.get("custom_title") or active.get("generated_title") or f"Saison {active.get('number', '')}",
-        "volume_avg_week": avg_vol_week,
-        "sessions_count":  sessions_count,
-        "pss_avg":         pss_avg,
-        "weight_delta":    weight_delta,
-        "phoenix_avg":     phoenix_avg,
+        "title":            active.get("custom_title") or active.get("generated_title") or f"Saison {active.get('number', '')}",
+        "volume_avg_week":  avg_vol_week,
+        "sessions_count":   sessions_count,
+        "pss_avg":          pss_avg,
+        "weight_delta":     weight_delta,
+        "weight_start_lbs": weight_start_lbs,
+        "weight_end_lbs":   weight_end_lbs,
+        "body_fat_start":   body_fat_start,
+        "body_fat_end":     body_fat_end,
+        "phoenix_avg":      phoenix_avg,
     }
 
     # ── Previous season — end snapshot ───────────────────────────────────
@@ -122,17 +147,31 @@ def get_seasons_comparison():
         start_snap_prev = next((s for s in prev_snaps if s.get("type") == "start"), None)
         if end_snap:
             prev_weight_delta = None
+            prev_weight_start = None
+            prev_weight_end   = None
             if start_snap_prev and start_snap_prev.get("weight_lbs") and end_snap.get("weight_lbs"):
-                prev_weight_delta = round(
-                    float(end_snap["weight_lbs"]) - float(start_snap_prev["weight_lbs"]), 1
-                )
+                prev_weight_start = round(float(start_snap_prev["weight_lbs"]), 1)
+                prev_weight_end   = round(float(end_snap["weight_lbs"]), 1)
+                prev_weight_delta = round(prev_weight_end - prev_weight_start, 1)
+            prev_bf_start = (
+                float(start_snap_prev["body_fat_pct"])
+                if start_snap_prev and start_snap_prev.get("body_fat_pct") is not None else None
+            )
+            prev_bf_end = (
+                float(end_snap["body_fat_pct"])
+                if end_snap.get("body_fat_pct") is not None else None
+            )
             previous_data = {
-                "title":           prev.get("custom_title") or prev.get("generated_title") or f"Saison {prev.get('number', '')}",
-                "volume_avg_week": None,
-                "sessions_count":  None,
-                "pss_avg":         end_snap.get("pss_score"),
-                "weight_delta":    prev_weight_delta,
-                "phoenix_avg":     end_snap.get("phoenix_avg"),
+                "title":            prev.get("custom_title") or prev.get("generated_title") or f"Saison {prev.get('number', '')}",
+                "volume_avg_week":  None,
+                "sessions_count":   None,
+                "pss_avg":          end_snap.get("pss_score"),
+                "weight_delta":     prev_weight_delta,
+                "weight_start_lbs": prev_weight_start,
+                "weight_end_lbs":   prev_weight_end,
+                "body_fat_start":   prev_bf_start,
+                "body_fat_end":     prev_bf_end,
+                "phoenix_avg":      end_snap.get("phoenix_avg"),
             }
 
     return jsonify({"current": current, "previous": previous_data}), 200
