@@ -618,43 +618,140 @@ struct KPICard: View {
     }
 }
 
-// MARK: - Exercise Stat Row
+// MARK: - Exercise Stat Row (Stage C — sparkline 8 sem + delta 30j)
+// Sparkline sur oneRM stocké (strength) ou max reps du jour (bodyweight).
+// Fenêtre réelle affichée via "sur N sem" quand weights.history (limit_per=20)
+// ne couvre pas 8 sem pour les exos à haute fréquence. Formatage UnitSettings.
 struct ExerciseStatRow: View {
     let name: String
-    @ObservedObject private var units = UnitSettings.shared
     let data: WeightData
+    @ObservedObject private var units = UnitSettings.shared
 
     private var isBodyweight: Bool { (data.currentWeight ?? 0) == 0 }
 
+    private struct Point: Identifiable {
+        let date: Date
+        let value: Double
+        var id: Date { date }
+    }
+
+    /// Points filtrés dans la fenêtre 8 sem, triés chronologiquement.
+    /// Valeur = oneRM pour strength, max reps du jour pour bodyweight.
+    private var windowed: [Point] {
+        guard let history = data.history,
+              let cutoff = Calendar.mtl.date(byAdding: .day, value: -8 * 7, to: Date())
+        else { return [] }
+        return history.compactMap { entry -> Point? in
+            guard let dateStr = entry.date,
+                  let date = DateFormatter.isoDate.date(from: dateStr),
+                  date >= cutoff else { return nil }
+            let v: Double? = isBodyweight ? Double(maxReps(entry)) : entry.oneRM
+            guard let value = v, value > 0 else { return nil }
+            return Point(date: date, value: value)
+        }
+        .sorted { $0.date < $1.date }
+    }
+
+    /// Couverture réelle en semaines (ceil). nil si pas de point.
+    private var coverageWeeks: Int? {
+        guard let oldest = windowed.first else { return nil }
+        let days = Calendar.mtl.dateComponents([.day], from: oldest.date, to: Date()).day ?? 0
+        return max(1, Int(ceil(Double(days) / 7.0)))
+    }
+
+    /// Delta % entre le dernier point et un point proche de 30 jours (± 14 j).
+    /// nil si fenêtre insuffisante ou pas de point ancien pour comparer.
+    private var deltaPct: Double? {
+        let pts = windowed
+        guard pts.count >= 2, let recent = pts.last,
+              let target = Calendar.mtl.date(byAdding: .day, value: -30, to: Date())
+        else { return nil }
+        let within = pts.filter { abs($0.date.timeIntervalSince(target)) <= 14 * 86400 }
+        guard let old = within.min(by: {
+            abs($0.date.timeIntervalSince(target)) < abs($1.date.timeIntervalSince(target))
+        }), old.value > 0, old.date < recent.date else { return nil }
+        return (recent.value - old.value) / old.value * 100
+    }
+
+    private func maxReps(_ entry: WeightHistoryEntry) -> Int {
+        if let sets = entry.sets, !sets.isEmpty {
+            return sets.compactMap { Int($0.reps.trimmingCharacters(in: .whitespaces)) }.max() ?? 0
+        }
+        if let repsStr = entry.reps {
+            return repsStr.split(separator: ",")
+                .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+                .max() ?? 0
+        }
+        return 0
+    }
+
+    private func deltaColor(_ pct: Double) -> Color {
+        if pct >= 0.5  { return .statusGreen }
+        if pct <= -0.5 { return .forge }
+        return .appTextSecondary
+    }
+
     var body: some View {
-        HStack {
+        HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(name).font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
+                Text(name).font(.appBody.weight(.semibold))
+                    .foregroundColor(.appTextPrimary).lineLimit(1)
                 if let reps = data.lastReps, !reps.isEmpty {
-                    Text(reps).font(.appCaption).foregroundColor(.gray)
+                    Text(reps).font(.appCaption).foregroundColor(.appTextSecondary)
+                }
+                if let weeks = coverageWeeks, weeks < 8 {
+                    Text("sur \(weeks) sem")
+                        .font(.appMicro).foregroundColor(.appTextMuted)
                 }
             }
-            Spacer()
+            Spacer(minLength: 4)
+            if windowed.count >= 2 { sparkline.frame(width: 70, height: 22) }
             VStack(alignment: .trailing, spacing: 2) {
-                if let w = data.currentWeight, w > 0 {
-                    Text(units.format(w))
-                        .font(.appHeadline.weight(.black)).foregroundColor(Color.forge)
-                    if let history = data.history, history.count > 1,
-                       let first = history.last?.weight, let last = history.first?.weight,
-                       first > 0, last > 0 {
-                        let diff = last - first
-                        Text(diff >= 0 ? "+\(diff, specifier: "%.1f")" : "\(diff, specifier: "%.1f")")
-                            .font(.appCaption).foregroundColor(diff >= 0 ? .appSuccess : .appDanger)
-                    }
-                } else {
-                    Text("Poids corps")
-                        .font(.appCaption.weight(.medium))
-                        .foregroundColor(Color.gray.opacity(0.7))
+                headlineValue
+                if let delta = deltaPct {
+                    let sign = delta >= 0 ? "+" : ""
+                    Text("\(sign)\(Int(delta.rounded())) %")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(deltaColor(delta))
+                        .monospacedDigit()
                 }
             }
             Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
         }
         .padding(14).glassCard()
+    }
+
+    @ViewBuilder private var headlineValue: some View {
+        if isBodyweight {
+            if let last = windowed.last {
+                Text("\(Int(last.value)) reps")
+                    .font(.appHeadline.weight(.black))
+                    .foregroundColor(Color.forge).monospacedDigit()
+            } else {
+                Text("—").font(.appCaption).foregroundColor(.appTextSecondary)
+            }
+        } else if let w = data.currentWeight, w > 0 {
+            Text(units.format(w, decimals: 0))
+                .font(.appHeadline.weight(.black))
+                .foregroundColor(Color.forge).monospacedDigit()
+        } else {
+            Text("—").font(.appCaption).foregroundColor(.appTextSecondary)
+        }
+    }
+
+    private var sparkline: some View {
+        let color = deltaPct.map(deltaColor) ?? .appTextSecondary
+        return Chart(windowed) { p in
+            LineMark(x: .value("Date", p.date), y: .value("v", p.value))
+                .foregroundStyle(color)
+                .lineStyle(StrokeStyle(lineWidth: 1.6))
+                .interpolationMethod(.monotone)
+            PointMark(x: .value("Date", p.date), y: .value("v", p.value))
+                .foregroundStyle(color)
+                .symbolSize(4)
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
     }
 }
 
