@@ -663,11 +663,15 @@ private enum StatsBodyMeasurementKind: String, CaseIterable, Identifiable {
 // MARK: - Season Comparison Card
 struct SeasonComparisonCard: View {
     let data: SeasonComparisonData
-    /// Goal en cours (profile.goal). Nil → cellule neutre. Option A : seule la
-    /// saison courante est colorée via ce goal ; les précédentes n'ont pas de
-    /// snapshot goal, donc toujours neutres (voir weightCell).
-    let currentGoal: String?
+    /// Goal observé en direct via AppState pour que la carte réagisse à un
+    /// changement d'objectif (switch cut ↔ bulk dans Profil) sans qu'un
+    /// consommateur en haut doive relire+repasser la valeur. Option A :
+    /// seule la saison courante est colorée via ce goal ; les précédentes
+    /// n'ont pas de snapshot goal → toujours neutres (beforeAfterCell dim).
+    @ObservedObject private var appState = AppState.shared
     @ObservedObject private var units = UnitSettings.shared
+
+    private var currentGoal: String? { appState.userProfile?.goal }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

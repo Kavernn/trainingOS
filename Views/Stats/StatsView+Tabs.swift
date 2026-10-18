@@ -441,7 +441,7 @@ extension StatsView {
         }
 
         if let data = seasonComparison, data.current != nil {
-            SeasonComparisonCard(data: data, currentGoal: AppState.shared.userProfile?.goal)
+            SeasonComparisonCard(data: data)
                 .padding(.horizontal, .appPagePadding)
         }
 
