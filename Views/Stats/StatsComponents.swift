@@ -467,16 +467,20 @@ struct StatsMuscleWorkloadSection: View {
         return "Mapping partiel · \(coverage.mappedExposureCount) / \(coverage.totalExposureCount) expositions mappées"
     }
 
+    private var previousByMuscle: [String: StatsMuscleWorkload] {
+        Dictionary(uniqueKeysWithValues: muscles.previousWorkloads.map { ($0.muscle, $0) })
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 Text("DÉTAIL MUSCULAIRE")
                     .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
                 Spacer()
-                Text("30 JOURS")
+                Text("30 JOURS · vs 30 J PRÉCÉDENTS")
                     .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
             }
-            Text("Séries directes et indirectes · séances et récence")
+            Text("Volume effectif = direct + 0,5 × indirect, en séries/sem")
                 .font(.appCaption).foregroundColor(.appTextSecondary)
 
             if let coverageMessage {
@@ -491,6 +495,10 @@ struct StatsMuscleWorkloadSection: View {
                 ForEach(visibleWorkloads, id: \.muscle) { workload in
                     StatsMuscleWorkloadRow(
                         workload: workload,
+                        previousWorkload: previousByMuscle[workload.muscle],
+                        targets: muscles.targetsByMuscle[workload.muscle] ?? nil,
+                        currentIncludesDeload: muscles.currentIncludesDeload,
+                        previousIncludesDeload: muscles.previousIncludesDeload,
                         bicepsFemoralHasSets: bicepsFemoralHasSets
                     )
                     if workload.muscle != visibleWorkloads.last?.muscle {
@@ -526,7 +534,15 @@ struct StatsMuscleWorkloadSection: View {
 
 struct StatsMuscleWorkloadRow: View {
     let workload: StatsMuscleWorkload
+    let previousWorkload: StatsMuscleWorkload?
+    let targets: StatsMuscleTargets?
+    let currentIncludesDeload: Bool
+    let previousIncludesDeload: Bool
     let bicepsFemoralHasSets: Bool
+
+    private enum Zone {
+        case belowMev, productive, high, overMrv, noTarget, deloaded
+    }
 
     private var hasExposureWithoutValidSets: Bool {
         workload.directSetCount == 0
@@ -540,37 +556,88 @@ struct StatsMuscleWorkloadRow: View {
             && bicepsFemoralHasSets
     }
 
+    private var isDeloadContaminated: Bool {
+        currentIncludesDeload || previousIncludesDeload
+    }
+
+    private var zone: Zone {
+        if isDeloadContaminated { return .deloaded }
+        guard let targets else { return .noTarget }
+        let w = workload.weeklyEffectiveSets
+        if w < Double(targets.mevWeek) { return .belowMev }
+        if w < Double(targets.mavWeek) { return .productive }
+        if w <= Double(targets.mrvWeek) { return .high }
+        return .overMrv
+    }
+
+    private var zoneLabel: String {
+        switch zone {
+        case .belowMev:   return "Sous MEV"
+        case .productive: return "Productif"
+        case .high:       return "Haut"
+        case .overMrv:    return "Au-delà MRV"
+        case .noTarget:   return "Pas de repère"
+        case .deloaded:   return "Décharge incluse"
+        }
+    }
+
+    private var zoneColor: Color {
+        switch zone {
+        case .belowMev, .overMrv:              return .forge
+        case .productive:                      return .statusGreen
+        case .high, .noTarget, .deloaded:      return .appTextSecondary
+        }
+    }
+
+    private var maxBarValue: Double {
+        max(workload.weeklyEffectiveSets, previousWorkload?.weeklyEffectiveSets ?? 0, 0.1)
+    }
+
+    private var deltaString: String? {
+        guard let prev = previousWorkload else { return nil }
+        let d = workload.weeklyEffectiveSets - prev.weeklyEffectiveSets
+        let magnitude = String(format: "%.1f", locale: Locale(identifier: "fr_CA"), abs(d))
+        let sign = d > 0 ? "+" : (d < 0 ? "−" : "±")
+        return "\(sign)\(magnitude) séries/sem"
+    }
+
+    private func formatted(_ v: Double) -> String {
+        String(format: "%.1f", locale: Locale(identifier: "fr_CA"), v)
+    }
+
     private var accessibilitySummary: String {
         let muscle = statsMuscleDisplayName(workload.muscle)
-        let sets: String
         if hasExposureWithoutValidSets {
-            sets = showsBicepsFemoralContext
-                ? "Aucune série exploitable. Séries comptées sous Biceps fémoral."
-                : "Aucune série exploitable."
-        } else {
-            sets = "Direct, \(workload.directSetCount) séries. Indirect, \(workload.indirectSetCount) séries."
+            let suffix = showsBicepsFemoralContext ? " Séries comptées sous Biceps fémoral." : ""
+            return "\(muscle). Aucune série exploitable.\(suffix) \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
         }
-        return "\(muscle). \(sets) \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). \(workload.activeDayCount) jour actif\(workload.activeDayCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
+        let cur = formatted(workload.weeklyEffectiveSets)
+        let prev = previousWorkload.map { "Précédent \(formatted($0.weeklyEffectiveSets)) séries par semaine." } ?? "Aucune donnée pour la fenêtre précédente."
+        return "\(muscle). Volume effectif courant \(cur) séries par semaine. \(prev) Zone \(zoneLabel.lowercased()). \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(statsMuscleDisplayName(workload.muscle))
-                .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(statsMuscleDisplayName(workload.muscle))
+                    .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                zoneBadge
+            }
             if hasExposureWithoutValidSets {
                 Text("Aucune série exploitable")
-                    .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appTextSecondary)
+                    .font(.appMicro.weight(.semibold)).foregroundColor(.appTextSecondary)
                 if showsBicepsFemoralContext {
                     Text("Séries comptées sous Biceps fémoral")
-                        .font(.appMicro)
-                        .foregroundColor(.appTextMuted)
+                        .font(.appMicro).foregroundColor(.appTextMuted)
                 }
             } else {
-                HStack(spacing: 10) {
-                    metricBadge(value: workload.directSetCount, label: "Direct", color: AppTheme.shared.chartColor(0))
-                    metricBadge(value: workload.indirectSetCount, label: "Indirect", color: AppTheme.shared.chartColor(1))
+                bars
+                if let deltaString {
+                    Text(deltaString)
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(.appTextSecondary).monospacedDigit()
                 }
             }
             HStack {
@@ -578,24 +645,53 @@ struct StatsMuscleWorkloadRow: View {
                 Spacer(minLength: 8)
                 Text(statsMuscleRecency(workload.lastExposureDate))
             }
-                .font(.appMicro).foregroundColor(.appTextMuted)
+            .font(.appMicro).foregroundColor(.appTextMuted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
     }
 
-    private func metricBadge(value: Int, label: String, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text("\(label) \(value)")
-                .font(.appMicro.weight(.semibold))
-                .foregroundColor(color)
+    private var zoneBadge: some View {
+        Text(zoneLabel)
+            .font(.appMicro.weight(.bold)).tracking(0.5)
+            .foregroundColor(zoneColor)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(zoneColor.opacity(0.14))
+            .clipShape(Capsule())
+    }
+
+    @ViewBuilder private var bars: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            barRow(label: "Courant",
+                   value: workload.weeklyEffectiveSets,
+                   opacity: 1.0)
+            if let prev = previousWorkload {
+                barRow(label: "Précédent",
+                       value: prev.weeklyEffectiveSets,
+                       opacity: 0.35)
+            }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(Color.appSurfaceInset)
-        .clipShape(Capsule())
+    }
+
+    private func barRow(label: String, value: Double, opacity: Double) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.appMicro).foregroundColor(.appTextMuted)
+                .frame(width: 64, alignment: .leading)
+            GeometryReader { geo in
+                let fraction = min(max(value / maxBarValue, 0), 1)
+                Capsule()
+                    .fill(Color.appTextSecondary.opacity(opacity))
+                    .frame(width: max(geo.size.width * CGFloat(fraction), 2), height: 8)
+            }
+            .frame(height: 8)
+            Text(formatted(value))
+                .font(.appMicro.weight(.semibold))
+                .foregroundColor(.appTextPrimary.opacity(opacity))
+                .monospacedDigit()
+                .frame(width: 44, alignment: .trailing)
+        }
     }
 }
 
