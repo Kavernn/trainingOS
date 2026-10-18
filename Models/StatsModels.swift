@@ -366,8 +366,10 @@ struct StatsMuscleWorkload: Codable, Equatable {
     let activeDayCount: Int
     let lastExposureDate: String
     /// Volume effectif en séries/semaine, comparable aux plages MEV/MAV/MRV.
-    /// Calculé backend via `(direct + 0.5 × indirect) / (days / 7)`.
-    let weeklyEffectiveSets: Double
+    /// Calculé backend sur les jours HORS décharge : `(direct_non_deload +
+    /// 0.5 × indirect_non_deload) / (jours_non_deload / 7)`. nil si la
+    /// fenêtre est 100 % décharge (iOS affiche badge "Décharge" neutre).
+    let weeklyEffectiveSets: Double?
 
     enum CodingKeys: String, CodingKey {
         case muscle
@@ -400,14 +402,15 @@ struct StatsCockpitMuscles: Codable, Equatable {
     let period: StatsDateWindow
     let coverage: StatsMuscleMappingCoverage
     let workloads: [StatsMuscleWorkload]
-    /// Fenêtre précédente de même longueur (30j) collée juste avant.
-    /// nil tant que le backend n'expose pas de previous_period (backward-compat).
+    /// Fenêtre précédente de même longueur, émise systématiquement par le
+    /// backend (route /api/stats/cockpit l'auto-dérive). Reste typée Optional
+    /// car la clé peut valoir null, mais la clé est REQUISE côté decode.
     let previousPeriod: StatsDateWindow?
     let previousWorkloads: [StatsMuscleWorkload]
-    /// True si la fenêtre chevauche la 11ᵉ semaine du cycle (doctrine deload).
-    /// Le visuel iOS doit alors neutraliser le verdict MEV/MAV/MRV.
-    let currentIncludesDeload: Bool
-    let previousIncludesDeload: Bool
+    /// Nombre de jours de la fenêtre détectés comme décharge et exclus du
+    /// calcul de weekly_effective_sets. 0 signifie "aucun jour exclu".
+    let currentDeloadDaysExcluded: Int
+    let previousDeloadDaysExcluded: Int
     /// Pour chaque muscle apparaissant dans workloads ∪ previousWorkloads :
     /// ses plages hebdo, ou nil si hors doctrine Israetel. La valeur nil
     /// est préservée explicitement (via custom decoder) — iOS affiche
@@ -416,11 +419,11 @@ struct StatsCockpitMuscles: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case period, coverage, workloads
-        case previousPeriod       = "previous_period"
-        case previousWorkloads    = "previous_workloads"
-        case currentIncludesDeload  = "current_includes_deload"
-        case previousIncludesDeload = "previous_includes_deload"
-        case targetsByMuscle      = "targets_by_muscle"
+        case previousPeriod               = "previous_period"
+        case previousWorkloads            = "previous_workloads"
+        case currentDeloadDaysExcluded    = "current_deload_days_excluded"
+        case previousDeloadDaysExcluded   = "previous_deload_days_excluded"
+        case targetsByMuscle              = "targets_by_muscle"
     }
 
     init(from decoder: Decoder) throws {
@@ -428,31 +431,27 @@ struct StatsCockpitMuscles: Codable, Equatable {
         period = try container.decode(StatsDateWindow.self, forKey: .period)
         coverage = try container.decode(StatsMuscleMappingCoverage.self, forKey: .coverage)
         workloads = try container.decode([StatsMuscleWorkload].self, forKey: .workloads)
-        previousPeriod = try container.decodeIfPresent(StatsDateWindow.self, forKey: .previousPeriod)
-        previousWorkloads = try container.decodeIfPresent([StatsMuscleWorkload].self, forKey: .previousWorkloads) ?? []
-        currentIncludesDeload = try container.decodeIfPresent(Bool.self, forKey: .currentIncludesDeload) ?? false
-        previousIncludesDeload = try container.decodeIfPresent(Bool.self, forKey: .previousIncludesDeload) ?? false
+        // Clé requise, valeur peut être null → decode(T?.self) sur l'optional.
+        previousPeriod = try container.decode(StatsDateWindow?.self, forKey: .previousPeriod)
+        previousWorkloads = try container.decode([StatsMuscleWorkload].self, forKey: .previousWorkloads)
+        currentDeloadDaysExcluded  = try container.decode(Int.self, forKey: .currentDeloadDaysExcluded)
+        previousDeloadDaysExcluded = try container.decode(Int.self, forKey: .previousDeloadDaysExcluded)
 
         // Preserve nil values dans le dict : JSONDecoder par défaut peut
         // les perdre pour [String: T?]. Passage manuel sur un conteneur
         // dynamique pour garantir "Chest":{...} vs "Diaphragm":null distincts.
-        if container.contains(.targetsByMuscle),
-           try container.decodeNil(forKey: .targetsByMuscle) == false {
-            let dynContainer = try container.nestedContainer(
-                keyedBy: StatsMuscleTargetsDynamicKey.self, forKey: .targetsByMuscle
-            )
-            var map: [String: StatsMuscleTargets?] = [:]
-            for key in dynContainer.allKeys {
-                if try dynContainer.decodeNil(forKey: key) {
-                    map[key.stringValue] = Optional<StatsMuscleTargets>.none
-                } else {
-                    map[key.stringValue] = try dynContainer.decode(StatsMuscleTargets.self, forKey: key)
-                }
+        let dynContainer = try container.nestedContainer(
+            keyedBy: StatsMuscleTargetsDynamicKey.self, forKey: .targetsByMuscle
+        )
+        var map: [String: StatsMuscleTargets?] = [:]
+        for key in dynContainer.allKeys {
+            if try dynContainer.decodeNil(forKey: key) {
+                map[key.stringValue] = Optional<StatsMuscleTargets>.none
+            } else {
+                map[key.stringValue] = try dynContainer.decode(StatsMuscleTargets.self, forKey: key)
             }
-            targetsByMuscle = map
-        } else {
-            targetsByMuscle = [:]
         }
+        targetsByMuscle = map
     }
 
     func encode(to encoder: Encoder) throws {
@@ -462,10 +461,10 @@ struct StatsCockpitMuscles: Codable, Equatable {
         try container.encode(period, forKey: .period)
         try container.encode(coverage, forKey: .coverage)
         try container.encode(workloads, forKey: .workloads)
-        try container.encodeIfPresent(previousPeriod, forKey: .previousPeriod)
+        try container.encode(previousPeriod, forKey: .previousPeriod)
         try container.encode(previousWorkloads, forKey: .previousWorkloads)
-        try container.encode(currentIncludesDeload, forKey: .currentIncludesDeload)
-        try container.encode(previousIncludesDeload, forKey: .previousIncludesDeload)
+        try container.encode(currentDeloadDaysExcluded, forKey: .currentDeloadDaysExcluded)
+        try container.encode(previousDeloadDaysExcluded, forKey: .previousDeloadDaysExcluded)
         var dyn = container.nestedContainer(
             keyedBy: StatsMuscleTargetsDynamicKey.self, forKey: .targetsByMuscle
         )

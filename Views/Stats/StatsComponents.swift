@@ -497,8 +497,8 @@ struct StatsMuscleWorkloadSection: View {
                         workload: workload,
                         previousWorkload: previousByMuscle[workload.muscle],
                         targets: muscles.targetsByMuscle[workload.muscle] ?? nil,
-                        currentIncludesDeload: muscles.currentIncludesDeload,
-                        previousIncludesDeload: muscles.previousIncludesDeload,
+                        currentDeloadDaysExcluded: muscles.currentDeloadDaysExcluded,
+                        previousDeloadDaysExcluded: muscles.previousDeloadDaysExcluded,
                         bicepsFemoralHasSets: bicepsFemoralHasSets
                     )
                     if workload.muscle != visibleWorkloads.last?.muscle {
@@ -536,8 +536,8 @@ struct StatsMuscleWorkloadRow: View {
     let workload: StatsMuscleWorkload
     let previousWorkload: StatsMuscleWorkload?
     let targets: StatsMuscleTargets?
-    let currentIncludesDeload: Bool
-    let previousIncludesDeload: Bool
+    let currentDeloadDaysExcluded: Int
+    let previousDeloadDaysExcluded: Int
     let bicepsFemoralHasSets: Bool
 
     private enum Zone {
@@ -556,14 +556,19 @@ struct StatsMuscleWorkloadRow: View {
             && bicepsFemoralHasSets
     }
 
-    private var isDeloadContaminated: Bool {
-        currentIncludesDeload || previousIncludesDeload
+    /// Déload exclu dans l'une des deux fenêtres → affiche un badge
+    /// SECONDAIRE discret "Décharge exclue". La zone principale reste
+    /// évaluée normalement (volume normalisé sur jours hors décharge).
+    private var showsDeloadNotice: Bool {
+        currentDeloadDaysExcluded > 0 || previousDeloadDaysExcluded > 0
     }
 
+    /// Zone principale basée sur weekly_effective_sets vs targets.
+    /// weeklyEffectiveSets nil = fenêtre 100 % décharge → zone neutre
+    /// "Décharge" (pas de verdict).
     private var zone: Zone {
-        if isDeloadContaminated { return .deloaded }
+        guard let w = workload.weeklyEffectiveSets else { return .deloaded }
         guard let targets else { return .noTarget }
-        let w = workload.weeklyEffectiveSets
         if w < Double(targets.mevWeek) { return .belowMev }
         if w < Double(targets.mavWeek) { return .productive }
         if w <= Double(targets.mrvWeek) { return .high }
@@ -577,7 +582,7 @@ struct StatsMuscleWorkloadRow: View {
         case .high:       return "Haut"
         case .overMrv:    return "Au-delà MRV"
         case .noTarget:   return "Pas de repère"
-        case .deloaded:   return "Décharge incluse"
+        case .deloaded:   return "Décharge"
         }
     }
 
@@ -590,12 +595,15 @@ struct StatsMuscleWorkloadRow: View {
     }
 
     private var maxBarValue: Double {
-        max(workload.weeklyEffectiveSets, previousWorkload?.weeklyEffectiveSets ?? 0, 0.1)
+        let cur = workload.weeklyEffectiveSets ?? 0
+        let prev = previousWorkload?.weeklyEffectiveSets ?? 0
+        return max(cur, prev, 0.1)
     }
 
     private var deltaString: String? {
-        guard let prev = previousWorkload else { return nil }
-        let d = workload.weeklyEffectiveSets - prev.weeklyEffectiveSets
+        guard let cur = workload.weeklyEffectiveSets,
+              let prev = previousWorkload?.weeklyEffectiveSets else { return nil }
+        let d = cur - prev
         let magnitude = String(format: "%.1f", locale: Locale(identifier: "fr_CA"), abs(d))
         let sign = d > 0 ? "+" : (d < 0 ? "−" : "±")
         return "\(sign)\(magnitude) séries/sem"
@@ -611,18 +619,28 @@ struct StatsMuscleWorkloadRow: View {
             let suffix = showsBicepsFemoralContext ? " Séries comptées sous Biceps fémoral." : ""
             return "\(muscle). Aucune série exploitable.\(suffix) \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
         }
-        let cur = formatted(workload.weeklyEffectiveSets)
-        let prev = previousWorkload.map { "Précédent \(formatted($0.weeklyEffectiveSets)) séries par semaine." } ?? "Aucune donnée pour la fenêtre précédente."
-        return "\(muscle). Volume effectif courant \(cur) séries par semaine. \(prev) Zone \(zoneLabel.lowercased()). \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
+        let cur = workload.weeklyEffectiveSets.map { "\(formatted($0)) séries par semaine" } ?? "non calculé (fenêtre en décharge)"
+        let prev: String
+        if let prevValue = previousWorkload?.weeklyEffectiveSets {
+            prev = "Précédent \(formatted(prevValue)) séries par semaine."
+        } else {
+            prev = "Aucune donnée exploitable pour la fenêtre précédente."
+        }
+        let deloadNote = showsDeloadNotice ? " Décharge exclue." : ""
+        return "\(muscle). Volume effectif courant \(cur). \(prev) Zone \(zoneLabel.lowercased()).\(deloadNote) \(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s"). Dernière exposition, \(statsMuscleRecency(workload.lastExposureDate))."
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(statsMuscleDisplayName(workload.muscle))
                     .font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                Spacer()
+                Spacer(minLength: 4)
+                if showsDeloadNotice {
+                    Text("Décharge exclue")
+                        .font(.appMicro).foregroundColor(.appTextMuted)
+                }
                 zoneBadge
             }
             if hasExposureWithoutValidSets {
@@ -674,19 +692,19 @@ struct StatsMuscleWorkloadRow: View {
         }
     }
 
-    private func barRow(label: String, value: Double, opacity: Double) -> some View {
+    private func barRow(label: String, value: Double?, opacity: Double) -> some View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.appMicro).foregroundColor(.appTextMuted)
                 .frame(width: 64, alignment: .leading)
             GeometryReader { geo in
-                let fraction = min(max(value / maxBarValue, 0), 1)
+                let fraction = (value.map { min(max($0 / maxBarValue, 0), 1) }) ?? 0
                 Capsule()
                     .fill(Color.appTextSecondary.opacity(opacity))
                     .frame(width: max(geo.size.width * CGFloat(fraction), 2), height: 8)
             }
             .frame(height: 8)
-            Text(formatted(value))
+            Text(value.map(formatted) ?? "—")
                 .font(.appMicro.weight(.semibold))
                 .foregroundColor(.appTextPrimary.opacity(opacity))
                 .monospacedDigit()
