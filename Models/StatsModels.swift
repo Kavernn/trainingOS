@@ -365,6 +365,9 @@ struct StatsMuscleWorkload: Codable, Equatable {
     let sessionCount: Int
     let activeDayCount: Int
     let lastExposureDate: String
+    /// Volume effectif en séries/semaine, comparable aux plages MEV/MAV/MRV.
+    /// Calculé backend via `(direct + 0.5 × indirect) / (days / 7)`.
+    let weeklyEffectiveSets: Double
 
     enum CodingKeys: String, CodingKey {
         case muscle
@@ -375,6 +378,21 @@ struct StatsMuscleWorkload: Codable, Equatable {
         case sessionCount = "session_count"
         case activeDayCount = "active_day_count"
         case lastExposureDate = "last_exposure_date"
+        case weeklyEffectiveSets = "weekly_effective_sets"
+    }
+}
+
+/// Plages hebdomadaires MEV/MAV/MRV pour un muscle (séries/semaine).
+/// Source : backend `landmarks_for_muscle` (dict MUSCLE_LANDMARKS normalisé).
+struct StatsMuscleTargets: Codable, Equatable {
+    let mevWeek: Int
+    let mavWeek: Int
+    let mrvWeek: Int
+
+    enum CodingKeys: String, CodingKey {
+        case mevWeek = "mev_week"
+        case mavWeek = "mav_week"
+        case mrvWeek = "mrv_week"
     }
 }
 
@@ -382,6 +400,91 @@ struct StatsCockpitMuscles: Codable, Equatable {
     let period: StatsDateWindow
     let coverage: StatsMuscleMappingCoverage
     let workloads: [StatsMuscleWorkload]
+    /// Fenêtre précédente de même longueur (30j) collée juste avant.
+    /// nil tant que le backend n'expose pas de previous_period (backward-compat).
+    let previousPeriod: StatsDateWindow?
+    let previousWorkloads: [StatsMuscleWorkload]
+    /// True si la fenêtre chevauche la 11ᵉ semaine du cycle (doctrine deload).
+    /// Le visuel iOS doit alors neutraliser le verdict MEV/MAV/MRV.
+    let currentIncludesDeload: Bool
+    let previousIncludesDeload: Bool
+    /// Pour chaque muscle apparaissant dans workloads ∪ previousWorkloads :
+    /// ses plages hebdo, ou nil si hors doctrine Israetel. La valeur nil
+    /// est préservée explicitement (via custom decoder) — iOS affiche
+    /// "Pas de repère", pas un silence.
+    let targetsByMuscle: [String: StatsMuscleTargets?]
+
+    enum CodingKeys: String, CodingKey {
+        case period, coverage, workloads
+        case previousPeriod       = "previous_period"
+        case previousWorkloads    = "previous_workloads"
+        case currentIncludesDeload  = "current_includes_deload"
+        case previousIncludesDeload = "previous_includes_deload"
+        case targetsByMuscle      = "targets_by_muscle"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        period = try container.decode(StatsDateWindow.self, forKey: .period)
+        coverage = try container.decode(StatsMuscleMappingCoverage.self, forKey: .coverage)
+        workloads = try container.decode([StatsMuscleWorkload].self, forKey: .workloads)
+        previousPeriod = try container.decodeIfPresent(StatsDateWindow.self, forKey: .previousPeriod)
+        previousWorkloads = try container.decodeIfPresent([StatsMuscleWorkload].self, forKey: .previousWorkloads) ?? []
+        currentIncludesDeload = try container.decodeIfPresent(Bool.self, forKey: .currentIncludesDeload) ?? false
+        previousIncludesDeload = try container.decodeIfPresent(Bool.self, forKey: .previousIncludesDeload) ?? false
+
+        // Preserve nil values dans le dict : JSONDecoder par défaut peut
+        // les perdre pour [String: T?]. Passage manuel sur un conteneur
+        // dynamique pour garantir "Chest":{...} vs "Diaphragm":null distincts.
+        if container.contains(.targetsByMuscle),
+           try container.decodeNil(forKey: .targetsByMuscle) == false {
+            let dynContainer = try container.nestedContainer(
+                keyedBy: StatsMuscleTargetsDynamicKey.self, forKey: .targetsByMuscle
+            )
+            var map: [String: StatsMuscleTargets?] = [:]
+            for key in dynContainer.allKeys {
+                if try dynContainer.decodeNil(forKey: key) {
+                    map[key.stringValue] = Optional<StatsMuscleTargets>.none
+                } else {
+                    map[key.stringValue] = try dynContainer.decode(StatsMuscleTargets.self, forKey: key)
+                }
+            }
+            targetsByMuscle = map
+        } else {
+            targetsByMuscle = [:]
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        // L'app n'envoie jamais cette struct au serveur — encode minimal
+        // pour satisfaire Codable (preview, cache).
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(period, forKey: .period)
+        try container.encode(coverage, forKey: .coverage)
+        try container.encode(workloads, forKey: .workloads)
+        try container.encodeIfPresent(previousPeriod, forKey: .previousPeriod)
+        try container.encode(previousWorkloads, forKey: .previousWorkloads)
+        try container.encode(currentIncludesDeload, forKey: .currentIncludesDeload)
+        try container.encode(previousIncludesDeload, forKey: .previousIncludesDeload)
+        var dyn = container.nestedContainer(
+            keyedBy: StatsMuscleTargetsDynamicKey.self, forKey: .targetsByMuscle
+        )
+        for (muscle, targets) in targetsByMuscle {
+            let dynKey = StatsMuscleTargetsDynamicKey(stringValue: muscle)!
+            if let targets {
+                try dyn.encode(targets, forKey: dynKey)
+            } else {
+                try dyn.encodeNil(forKey: dynKey)
+            }
+        }
+    }
+}
+
+private struct StatsMuscleTargetsDynamicKey: CodingKey {
+    let stringValue: String
+    var intValue: Int? { nil }
+    init?(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { nil }
 }
 
 struct StatsAnalyticsAdapterDiagnostics: Codable, Equatable {
