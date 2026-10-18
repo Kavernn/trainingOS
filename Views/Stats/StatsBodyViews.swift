@@ -1,6 +1,63 @@
 import SwiftUI
 import Charts
 
+// MARK: - BodyProgressionColor
+/// Palette unique pour les deltas Body (poids, masse grasse, tour de taille).
+///
+/// Règle : vert si le delta va dans le sens de l'objectif, forge sinon,
+/// neutre (appTextSecondary) si |delta| ≤ zone morte OU si le goal est inconnu.
+///
+/// Zones mortes (absorbent le bruit de mesure) :
+///  - weight   : ±1 % de `start` (eau/glycogène/sodium). Repli ±1 lb si start absent.
+///  - bodyFat  : ±0,5 pp absolu (bruit Navy ±3 pp sur mesure isolée, systématique si conditions constantes).
+///  - waist    : ±1 cm absolu (respiration, technique de mesure).
+///
+/// Goal :
+///  - cut      → perte alignée, prise contrariée
+///  - bulk     → prise alignée, perte contrariée
+///  - maintain, recomp → tout écart hors zone morte = contrarié (dérive)
+///  - nil / inconnu    → neutre (jamais d'objectif par défaut)
+///
+/// Masse grasse et tour de taille : toujours "lower is better", indépendants du goal.
+enum BodyProgressionColor {
+    enum Metric { case weight, bodyFat, waist }
+    enum Direction { case aligned, misaligned, neutral }
+
+    static func direction(delta: Double, start: Double?, metric: Metric, goal: String?) -> Direction {
+        if inDeadZone(delta: delta, start: start, metric: metric) { return .neutral }
+        switch metric {
+        case .bodyFat, .waist:
+            return delta < 0 ? .aligned : .misaligned
+        case .weight:
+            guard let g = goal?.lowercased() else { return .neutral }
+            switch g {
+            case "cut":                return delta < 0 ? .aligned : .misaligned
+            case "bulk":               return delta > 0 ? .aligned : .misaligned
+            case "maintain", "recomp": return .misaligned
+            default:                   return .neutral
+            }
+        }
+    }
+
+    static func color(delta: Double, start: Double?, metric: Metric, goal: String?) -> Color {
+        switch direction(delta: delta, start: start, metric: metric, goal: goal) {
+        case .aligned:    return .statusGreen
+        case .misaligned: return .forge
+        case .neutral:    return .appTextSecondary
+        }
+    }
+
+    private static func inDeadZone(delta: Double, start: Double?, metric: Metric) -> Bool {
+        let threshold: Double
+        switch metric {
+        case .weight:  threshold = (start.map { abs($0) * 0.01 }) ?? 1.0
+        case .bodyFat: threshold = 0.5
+        case .waist:   threshold = 1.0
+        }
+        return abs(delta) <= threshold
+    }
+}
+
 // MARK: - Body trajectories
 private struct StatsBodyTrajectoryPoint: Identifiable {
     let id: String
@@ -557,6 +614,10 @@ private enum StatsBodyMeasurementKind: String, CaseIterable, Identifiable {
 // MARK: - Season Comparison Card
 struct SeasonComparisonCard: View {
     let data: SeasonComparisonData
+    /// Goal en cours (profile.goal). Nil → cellule neutre. Option A : seule la
+    /// saison courante est colorée via ce goal ; les précédentes n'ont pas de
+    /// snapshot goal, donc toujours neutres (voir weightCell).
+    let currentGoal: String?
     @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
@@ -596,7 +657,7 @@ struct SeasonComparisonCard: View {
                 valCell(current.volumeAvgWeek.map { units.format($0, decimals: 0) })
                 valCell(current.sessionsCount.map { "\($0)" })
                 valCell(current.pssAvg.map { "\($0)" })
-                weightCell(current.weightDelta)
+                weightCell(current.weightDelta, goal: currentGoal)
             }
             .frame(maxWidth: .infinity)
 
@@ -617,7 +678,7 @@ struct SeasonComparisonCard: View {
                     valCell(prev.volumeAvgWeek.map { units.format($0, decimals: 0) }, dim: true)
                     valCell(prev.sessionsCount.map { "\($0)" }, dim: true)
                     valCell(prev.pssAvg.map { "\($0)" }, dim: true)
-                    weightCell(prev.weightDelta, dim: true)
+                    weightCell(prev.weightDelta, goal: nil, dim: true)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -631,16 +692,21 @@ struct SeasonComparisonCard: View {
             .frame(height: 18)
     }
 
-    @ViewBuilder private func weightCell(_ delta: Double?, dim: Bool = false) -> some View {
+    /// `goal` : nil pour une saison passée (pas de snapshot goal — Option A).
+    /// `start` sera câblé au commit 3 (expose weight_start_lbs côté backend) ;
+    /// d'ici là, repli ±1 lb dans la zone morte, défini dans BodyProgressionColor.
+    @ViewBuilder private func weightCell(_ delta: Double?, goal: String?, dim: Bool = false) -> some View {
         if let d = delta {
             let sign = d > 0 ? "+" : ""
-            let color: Color = dim ? .gray : (d < 0 ? .appSuccess : .appWarning)
+            let color: Color = dim
+                ? .appTextSecondary
+                : BodyProgressionColor.color(delta: d, start: nil, metric: .weight, goal: goal)
             Text("\(sign)\(units.format(d, decimals: 1))")
                 .font(.appLabel.weight(.bold))
                 .foregroundColor(color)
                 .frame(height: 18)
         } else {
-            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.gray).frame(height: 18)
+            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.appTextSecondary).frame(height: 18)
         }
     }
 
