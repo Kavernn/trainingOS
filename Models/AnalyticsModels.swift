@@ -694,20 +694,28 @@ struct HRVAnalysis: Codable {
 
 // MARK: - Season Comparison
 struct SeasonCompStats: Codable {
-    let title:         String?
-    let volumeAvgWeek: Double?
-    let sessionsCount: Int?
-    let pssAvg:        Int?
-    let weightDelta:   Double?
-    let phoenixAvg:    Double?
+    let title:          String?
+    let volumeAvgWeek:  Double?
+    let sessionsCount:  Int?
+    let pssAvg:         Int?
+    let weightDelta:    Double?
+    let weightStartLbs: Double?
+    let weightEndLbs:   Double?
+    let bodyFatStart:   Double?
+    let bodyFatEnd:     Double?
+    let phoenixAvg:     Double?
 
     enum CodingKeys: String, CodingKey {
         case title
-        case volumeAvgWeek = "volume_avg_week"
-        case sessionsCount = "sessions_count"
-        case pssAvg        = "pss_avg"
-        case weightDelta   = "weight_delta"
-        case phoenixAvg    = "phoenix_avg"
+        case volumeAvgWeek  = "volume_avg_week"
+        case sessionsCount  = "sessions_count"
+        case pssAvg         = "pss_avg"
+        case weightDelta    = "weight_delta"
+        case weightStartLbs = "weight_start_lbs"
+        case weightEndLbs   = "weight_end_lbs"
+        case bodyFatStart   = "body_fat_start"
+        case bodyFatEnd     = "body_fat_end"
+        case phoenixAvg     = "phoenix_avg"
     }
 }
 

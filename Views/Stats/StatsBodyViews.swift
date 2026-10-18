@@ -732,16 +732,25 @@ struct SeasonComparisonCard: View {
     }
 
     @ViewBuilder private func seasonTable(current: SeasonCompStats, previous: SeasonCompStats?) -> some View {
+        let hasBodyFat =
+            (current.bodyFatStart != nil && current.bodyFatEnd != nil)
+            || (previous?.bodyFatStart != nil && previous?.bodyFatEnd != nil)
+
         HStack(alignment: .top, spacing: 0) {
+            // Labels
             VStack(alignment: .leading, spacing: 12) {
                 Text("").frame(height: 16)
-                Text("Vol. moy/sem").font(.appCaption).foregroundColor(.gray)
-                Text("Séances").font(.appCaption).foregroundColor(.gray)
-                Text("PSS moy.").font(.appCaption).foregroundColor(.gray)
-                Text("Δ poids").font(.appCaption).foregroundColor(.gray)
+                Text("Vol. moy/sem").font(.appCaption).foregroundColor(.gray).frame(height: 18, alignment: .leading)
+                Text("Séances").font(.appCaption).foregroundColor(.gray).frame(height: 18, alignment: .leading)
+                Text("PSS moy.").font(.appCaption).foregroundColor(.gray).frame(height: 18, alignment: .leading)
+                Text("Poids").font(.appCaption).foregroundColor(.gray).frame(height: 40, alignment: .leading)
+                if hasBodyFat {
+                    Text("Masse grasse").font(.appCaption).foregroundColor(.gray).frame(height: 40, alignment: .leading)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
+            // Current saison
             VStack(alignment: .center, spacing: 12) {
                 Text(current.title ?? "En cours")
                     .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)
@@ -749,20 +758,28 @@ struct SeasonComparisonCard: View {
                 valCell(current.volumeAvgWeek.map { units.format($0, decimals: 0) })
                 valCell(current.sessionsCount.map { "\($0)" })
                 valCell(current.pssAvg.map { "\($0)" })
-                weightCell(current.weightDelta, goal: currentGoal)
+                beforeAfterCell(start: current.weightStartLbs, end: current.weightEndLbs,
+                                metric: .weight, goal: currentGoal)
+                if hasBodyFat {
+                    beforeAfterCell(start: current.bodyFatStart, end: current.bodyFatEnd,
+                                    metric: .bodyFat, goal: nil)
+                }
             }
             .frame(maxWidth: .infinity)
 
             if let prev = previous {
+                // Middle Δ% arrows — vide pour les lignes Poids / Masse grasse
                 VStack(alignment: .center, spacing: 12) {
                     Text("").frame(height: 16)
                     deltaArrow(current.volumeAvgWeek, prev.volumeAvgWeek, higherBetter: true)
                     deltaArrow(current.sessionsCount.map(Double.init), prev.sessionsCount.map(Double.init), higherBetter: true)
                     deltaArrow(current.pssAvg.map(Double.init), prev.pssAvg.map(Double.init), higherBetter: false)
-                    Text("").frame(height: 18)
+                    Text("").frame(height: 40)
+                    if hasBodyFat { Text("").frame(height: 40) }
                 }
                 .frame(width: 40)
 
+                // Previous saison — passée, toujours neutre (pas de snapshot goal)
                 VStack(alignment: .center, spacing: 12) {
                     Text(prev.title ?? "Précédente")
                         .font(.appCaption.weight(.bold)).foregroundColor(.gray)
@@ -770,7 +787,12 @@ struct SeasonComparisonCard: View {
                     valCell(prev.volumeAvgWeek.map { units.format($0, decimals: 0) }, dim: true)
                     valCell(prev.sessionsCount.map { "\($0)" }, dim: true)
                     valCell(prev.pssAvg.map { "\($0)" }, dim: true)
-                    weightCell(prev.weightDelta, goal: nil, dim: true)
+                    beforeAfterCell(start: prev.weightStartLbs, end: prev.weightEndLbs,
+                                    metric: .weight, goal: nil, dim: true)
+                    if hasBodyFat {
+                        beforeAfterCell(start: prev.bodyFatStart, end: prev.bodyFatEnd,
+                                        metric: .bodyFat, goal: nil, dim: true)
+                    }
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -784,22 +806,64 @@ struct SeasonComparisonCard: View {
             .frame(height: 18)
     }
 
-    /// `goal` : nil pour une saison passée (pas de snapshot goal — Option A).
-    /// `start` sera câblé au commit 3 (expose weight_start_lbs côté backend) ;
-    /// d'ici là, repli ±1 lb dans la zone morte, défini dans BodyProgressionColor.
-    @ViewBuilder private func weightCell(_ delta: Double?, goal: String?, dim: Bool = false) -> some View {
-        if let d = delta {
-            let sign = d > 0 ? "+" : ""
+    /// Cellule "avant → après" pour une métrique Body : affiche `start → end` en
+    /// première ligne + delta coloré via BodyProgressionColor en seconde ligne.
+    /// Si `start` ou `end` est nil → "—". Pour masse grasse, le bloc n'est
+    /// jamais rendu si une des deux valeurs manque (contrôle par `hasBodyFat`
+    /// au niveau du tableau, suivant la consigne : "ne s'affiche que si start
+    /// ET end sont présents").
+    @ViewBuilder private func beforeAfterCell(
+        start: Double?, end: Double?,
+        metric: BodyProgressionColor.Metric,
+        goal: String?,
+        dim: Bool = false
+    ) -> some View {
+        if let s = start, let e = end {
+            let delta = e - s
             let color: Color = dim
                 ? .appTextSecondary
-                : BodyProgressionColor.color(delta: d, start: nil, metric: .weight, goal: goal)
-            Text("\(sign)\(units.format(d, decimals: 1))")
-                .font(.appLabel.weight(.bold))
-                .foregroundColor(color)
-                .frame(height: 18)
+                : BodyProgressionColor.color(delta: delta, start: s, metric: metric, goal: goal)
+            VStack(spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(formatValue(s, metric: metric))
+                        .font(.appMicro).foregroundColor(.appTextMuted).monospacedDigit()
+                    Text("→").font(.appMicro).foregroundColor(.appTextMuted)
+                    Text(formatValue(e, metric: metric))
+                        .font(.appLabel.weight(.bold))
+                        .foregroundColor(dim ? .appTextSecondary : .appTextPrimary)
+                        .monospacedDigit()
+                }
+                Text(formatDelta(delta, metric: metric))
+                    .font(.appMicro.weight(.semibold))
+                    .foregroundColor(color).monospacedDigit()
+            }
+            .frame(height: 40)
         } else {
-            Text("—").font(.appLabel.weight(.bold)).foregroundColor(.appTextSecondary).frame(height: 18)
+            Text("—").font(.appLabel.weight(.bold))
+                .foregroundColor(.appTextSecondary).frame(height: 40)
         }
+    }
+
+    private func formatValue(_ v: Double, metric: BodyProgressionColor.Metric) -> String {
+        switch metric {
+        case .weight:  return units.format(v, decimals: 1)
+        case .bodyFat: return "\(seasonDecimal(v)) %"
+        case .waist:   return "\(seasonDecimal(v)) cm"
+        }
+    }
+
+    private func formatDelta(_ delta: Double, metric: BodyProgressionColor.Metric) -> String {
+        let sign = delta > 0 ? "+" : (delta < 0 ? "−" : "")
+        switch metric {
+        case .weight:  return "\(sign)\(units.format(abs(delta), decimals: 1))"
+        case .bodyFat: return "\(sign)\(seasonDecimal(abs(delta))) pp"
+        case .waist:   return "\(sign)\(seasonDecimal(abs(delta))) cm"
+        }
+    }
+
+    private func seasonDecimal(_ v: Double) -> String {
+        let decimals = v.rounded() == v ? 0 : 1
+        return String(format: "%.\(decimals)f", locale: Locale(identifier: "fr_CA"), v)
     }
 
     @ViewBuilder private func deltaArrow(_ a: Double?, _ b: Double?, higherBetter: Bool) -> some View {

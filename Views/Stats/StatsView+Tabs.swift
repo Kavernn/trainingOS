@@ -440,6 +440,11 @@ extension StatsView {
             StatsBodyMeasurementsHistoryView(entries: filteredBW, period: period)
         }
 
+        if let data = seasonComparison, data.current != nil {
+            SeasonComparisonCard(data: data, currentGoal: AppState.shared.userProfile?.goal)
+                .padding(.horizontal, .appPagePadding)
+        }
+
         Spacer(minLength: 32)
     }
 
