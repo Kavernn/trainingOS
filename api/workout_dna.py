@@ -190,8 +190,9 @@ def _compute_consistency(period_days: int = 90) -> dict:
     dates = sorted(set(r["date"] for r in rows if r.get("date")))
     if not dates:
         return {"score": 0, "sessions_per_week": 0.0, "cv": 1.0,
-                "archetype": "En construction", "current_streak": 0,
-                "longest_streak": 0, "active_weeks_pct": 0, "weekly_counts": [0]*13}
+                "archetype": "En construction",
+                "weekly_streak_current": 0, "weekly_streak_best": 0,
+                "active_weeks_pct": 0, "weekly_counts": [0]*13}
 
     spw = round(len(dates) / 13.0, 1)
 
@@ -207,27 +208,6 @@ def _compute_consistency(period_days: int = 90) -> dict:
     cv         = round(std_c / mean_c if mean_c > 0 else 1.0, 2)
     active_pct = round(sum(1 for c in counts if c > 0) / len(counts) * 100)
 
-    # Current streak (days since last gap > 2d)
-    all_set = set(dates)
-    current = 0
-    d       = today
-    while current < 365:
-        if d.isoformat() in all_set:
-            current += 1; d -= timedelta(days=1)
-        elif (d - timedelta(days=1)).isoformat() in all_set:
-            d -= timedelta(days=2)
-        else:
-            break
-
-    # Longest streak
-    longest = run = 0
-    prev = None
-    for d_str in dates:
-        d = date_cls.fromisoformat(d_str)
-        run = run + 1 if (prev and (d - prev).days <= 1) else 1
-        longest = max(longest, run)
-        prev = d
-
     if cv < 0.3 and spw >= 4:    archetype = "Machine"
     elif cv < 0.3 and spw >= 2:  archetype = "Régulier"
     elif cv < 0.6 and spw >= 3:  archetype = "Warrior"
@@ -237,11 +217,7 @@ def _compute_consistency(period_days: int = 90) -> dict:
     score = round(min(100, active_pct * 0.5 + (1 - min(cv, 1)) * 30 + min(spw / 5, 1) * 20))
 
     # Streak hebdomadaire : source unique = weekly_streaks.compute (même
-    # logique que /api/stats/streaks). Le DNA ne recalcule rien ; il expose
-    # les mêmes valeurs que le dashboard. current_streak/longest_streak
-    # (journaliers) sont encore émis pour compat iOS — à retirer dans un
-    # commit backend séparé après confirmation que l'iOS installé consomme
-    # bien weekly_streak_current/best.
+    # logique que /api/stats/streaks). Le DNA ne recalcule rien.
     weekly_streak_current = 0
     weekly_streak_best = 0
     try:
@@ -257,8 +233,6 @@ def _compute_consistency(period_days: int = 90) -> dict:
         "sessions_per_week":     spw,
         "cv":                    cv,
         "archetype":             archetype,
-        "current_streak":        current,        # journalier — à retirer étape 7c
-        "longest_streak":        longest,        # journalier — à retirer étape 7c
         "weekly_streak_current": weekly_streak_current,
         "weekly_streak_best":    weekly_streak_best,
         "active_weeks_pct":      active_pct,
