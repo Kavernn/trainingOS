@@ -10,33 +10,45 @@ private struct ActiveDeloadOverviewCard: View {
     @State private var isLoading = false
     @State private var showConfirmDeactivate = false
 
+    /// Fraction écoulée (0..1). `nil` si durée totale inconnue (durationDays
+    /// absent côté payload) — on affiche alors uniquement le chiffre central.
+    private var progress: Double? {
+        guard let total = status.durationDays, total > 0,
+              let remaining = status.daysRemaining else { return nil }
+        let elapsed = max(0, total - remaining)
+        return min(1.0, Double(elapsed) / Double(total))
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Image(systemName: "bed.double.fill")
-                        .foregroundColor(.forge)
-                        .accessibilityHidden(true)
-                    Text("DÉCHARGE VOLONTAIRE")
-                        .font(.appCaption.weight(.bold))
-                        .foregroundColor(.forge)
-                    Spacer()
-                    if let days = status.daysRemaining {
-                        Text("\(days)j restant\(days > 1 ? "s" : "")")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 14) {
+                DeloadProgressRing(
+                    progress: progress,
+                    daysRemaining: status.daysRemaining
+                )
+                .frame(width: 64, height: 64)
+                .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bed.double.fill")
+                            .foregroundColor(.forge)
+                            .accessibilityHidden(true)
+                        Text("DÉCHARGE VOLONTAIRE")
+                            .font(.appCaption.weight(.bold))
+                            .foregroundColor(.forge)
+                    }
+                    if let reason = status.reason, !reason.isEmpty {
+                        Text(reason)
                             .font(.appCaption)
                             .foregroundColor(.appTextSecondary)
+                            .lineLimit(1)
                     }
-                }
-                if let reason = status.reason {
-                    Text(reason)
-                        .font(.appCaption)
-                        .foregroundColor(.appTextSecondary)
-                        .lineLimit(1)
-                }
-                if let ends = status.endsAt {
-                    Text("Reprise prévue le \(ends)")
-                        .font(.appCaption)
-                        .foregroundColor(.appTextMuted)
+                    if let ends = status.endsAt {
+                        Text("Reprise prévue le \(ends)")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextMuted)
+                    }
                 }
             }
             .accessibilityElement(children: .ignore)
@@ -67,6 +79,9 @@ private struct ActiveDeloadOverviewCard: View {
         if let days = status.daysRemaining {
             parts.append("\(days) jour\(days > 1 ? "s" : "") restant\(days > 1 ? "s" : "")")
         }
+        if let total = status.durationDays {
+            parts.append("sur \(total) jours au total")
+        }
         if let ends = status.endsAt {
             parts.append("Reprise prévue le \(ends)")
         }
@@ -79,6 +94,43 @@ private struct ActiveDeloadOverviewCard: View {
             try? await APIService.shared.deactivateDeload()
             let fresh = try? await APIService.shared.fetchDeloadStatus()
             await MainActor.run { onUpdate(fresh); isLoading = false }
+        }
+    }
+}
+
+/// Anneau de progression autour du nombre de jours restants.
+/// Progress = fraction du temps déjà écoulé dans la décharge.
+/// Si `progress == nil` (durée totale inconnue), on affiche juste le chiffre.
+private struct DeloadProgressRing: View {
+    let progress: Double?
+    let daysRemaining: Int?
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.forge.opacity(0.18), lineWidth: 5)
+            if let p = progress {
+                Circle()
+                    .trim(from: 0, to: CGFloat(p))
+                    .stroke(Color.forge,
+                            style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            VStack(spacing: 0) {
+                if let d = daysRemaining {
+                    Text("\(d)")
+                        .font(.appBody.weight(.black))
+                        .foregroundColor(.appTextPrimary)
+                        .monospacedDigit()
+                    Text(d > 1 ? "jours" : "jour")
+                        .font(.appMicro)
+                        .foregroundColor(.appTextSecondary)
+                } else {
+                    Text("–")
+                        .font(.appBody.weight(.black))
+                        .foregroundColor(.appTextSecondary)
+                }
+            }
         }
     }
 }
