@@ -1,7 +1,64 @@
 import SwiftUI
 
-// MARK: - Recovery Score Chart
-// MARK: - Recovery Composite Score View
+// MARK: - Correlation Guard (règle unique)
+// Toute vue qui calcule une corrélation Pearson passe par ce helper :
+//   n < 14            → "Pas assez de données (n = X)", aucune droite.
+//   |r| < 0.3         → "Pas de lien net", aucune droite.
+//   sinon             → droite de tendance + "Corrélation {forte|modérée}
+//                        {positive|négative} (r = ..., n = ...)".
+enum CorrelationVerdict {
+    case insufficient(n: Int)
+    case noLink(r: Double, n: Int)
+    case correlated(r: Double, n: Int, strength: Strength, direction: Direction)
+
+    enum Strength { case moderate, strong }
+    enum Direction { case positive, negative }
+
+    var showsRegressionLine: Bool {
+        if case .correlated = self { return true }
+        return false
+    }
+
+    var message: String {
+        switch self {
+        case .insufficient(let n):
+            return "Pas assez de données (n = \(n))"
+        case .noLink(let r, let n):
+            return "Pas de lien net (r = \(String(format: "%.2f", r)), n = \(n))"
+        case .correlated(let r, let n, let strength, let direction):
+            let s = strength == .strong ? "forte" : "modérée"
+            let d = direction == .positive ? "positive" : "négative"
+            return "Corrélation \(s) \(d) (r = \(String(format: "%.2f", r)), n = \(n))"
+        }
+    }
+}
+
+enum CorrelationGuard {
+    static let minSamples: Int = 14
+    static let minAbsR: Double = 0.3
+
+    static func pearson(xs: [Double], ys: [Double]) -> Double {
+        let n = Double(min(xs.count, ys.count))
+        guard n > 1 else { return 0 }
+        let mx = xs.reduce(0, +) / n, my = ys.reduce(0, +) / n
+        let num = zip(xs, ys).map { ($0 - mx) * ($1 - my) }.reduce(0, +)
+        let dx  = xs.map { pow($0 - mx, 2) }.reduce(0, +)
+        let dy  = ys.map { pow($0 - my, 2) }.reduce(0, +)
+        let den = sqrt(dx * dy)
+        return den > 0 ? num / den : 0
+    }
+
+    static func evaluate(xs: [Double], ys: [Double]) -> CorrelationVerdict {
+        let n = min(xs.count, ys.count)
+        guard n >= minSamples else { return .insufficient(n: n) }
+        let r = pearson(xs: xs, ys: ys)
+        guard abs(r) >= minAbsR else { return .noLink(r: r, n: n) }
+        let strength: CorrelationVerdict.Strength = abs(r) >= 0.6 ? .strong : .moderate
+        let direction: CorrelationVerdict.Direction = r > 0 ? .positive : .negative
+        return .correlated(r: r, n: n, strength: strength, direction: direction)
+    }
+}
+
 // MARK: - Generic Scatter Plot View
 struct ScatterPlotView: View {
     let data: [ScatterPoint]
@@ -17,19 +74,8 @@ struct ScatterPlotView: View {
     private var minY: Double { ys.min() ?? 0 }
     private var maxY: Double { ys.max() ?? 1 }
 
-    private func pearsonR() -> Double {
-        let n = Double(data.count)
-        guard n > 1 else { return 0 }
-        let mx = xs.reduce(0,+)/n, my = ys.reduce(0,+)/n
-        let num = zip(xs, ys).map { ($0 - mx) * ($1 - my) }.reduce(0,+)
-        let dx  = xs.map { pow($0 - mx, 2) }.reduce(0,+)
-        let dy  = ys.map { pow($0 - my, 2) }.reduce(0,+)
-        let den = sqrt(dx * dy)
-        return den > 0 ? num / den : 0
-    }
-
     var body: some View {
-        let r = pearsonR()
+        let verdict = CorrelationGuard.evaluate(xs: xs, ys: ys)
         VStack(alignment: .leading, spacing: 12) {
             Text(title).font(.appMicro).tracking(2).foregroundColor(.gray)
             GeometryReader { geo in
@@ -46,13 +92,13 @@ struct ScatterPlotView: View {
                         }
                         .stroke(Color.appSurfaceInset, lineWidth: 1)
                     }
-                    // Regression line
-                    if data.count >= 5 && abs(r) >= 0.2 {
+                    // Regression line — tracée uniquement si verdict `.correlated`.
+                    if verdict.showsRegressionLine {
                         let n = Double(data.count)
-                        let mx = xs.reduce(0,+)/n, my = ys.reduce(0,+)/n
-                        let num = zip(xs, ys).map { ($0 - mx) * ($1 - my) }.reduce(0,+)
-                        let den = xs.map { pow($0 - mx, 2) }.reduce(0,+)
-                        let slope = den > 0 ? num/den : 0
+                        let mx = xs.reduce(0, +) / n, my = ys.reduce(0, +) / n
+                        let num = zip(xs, ys).map { ($0 - mx) * ($1 - my) }.reduce(0, +)
+                        let den = xs.map { pow($0 - mx, 2) }.reduce(0, +)
+                        let slope = den > 0 ? num / den : 0
                         let inter = my - slope * mx
                         let y0 = CGFloat(1 - (slope * xLo + inter - yLo) / ySpan) * geo.size.height
                         let y1 = CGFloat(1 - (slope * (xLo + xSpan) + inter - yLo) / ySpan) * geo.size.height
@@ -73,15 +119,9 @@ struct ScatterPlotView: View {
                 Spacer()
                 Text(yLabel).font(.appMicro).foregroundColor(.gray)
             }
-            if abs(r) >= 0.3 {
-                let direction = r > 0 ? "positive" : "négative"
-                let strength = abs(r) >= 0.6 ? "forte" : "modérée"
-                Text("Corrélation \(strength) \(direction) (r = \(String(format: "%.2f", r)), \(data.count) pts)")
-                    .font(.appMicro).foregroundColor(.gray.opacity(0.8))
-            } else if data.count >= 5 {
-                Text("Pas de corrélation significative (r = \(String(format: "%.2f", r)))")
-                    .font(.appMicro).foregroundColor(.gray.opacity(0.6))
-            }
+            Text(verdict.message)
+                .font(.appMicro)
+                .foregroundColor(.gray.opacity(verdict.showsRegressionLine ? 0.8 : 0.6))
         }
         .padding(14)
         .background(Color.appCard)
@@ -428,7 +468,10 @@ struct SleepPerformanceInsightView: View {
     let scatter: [ScatterPoint]
 
     private var insight: String? {
-        guard scatter.count >= 12 else { return nil }
+        // Seuil aligné sur CorrelationGuard.minSamples. Sous le seuil, la
+        // phrase d'insight se tait ; ScatterPlotView affichera déjà
+        // "Pas assez de données (n = X)".
+        guard scatter.count >= CorrelationGuard.minSamples else { return nil }
         let goodSleep = scatter.filter { $0.x >= 7 }
         let poorSleep = scatter.filter { $0.x < 7 }
         guard !goodSleep.isEmpty, !poorSleep.isEmpty else { return nil }
