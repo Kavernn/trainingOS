@@ -873,8 +873,8 @@ struct RecoveryProfileCard: View {
     private var profileColor: Color {
         guard let s = profile.stats else { return .appTextSecondary }
         if s.medianDays <= 1.5 { return Color.statusGreen }
-        if s.medianDays <= 3.0 { return Color.forge }
-        return Color.appTextSecondary
+        if s.medianDays <= 3.0 { return Color.appTextSecondary }
+        return Color.forge
     }
 
     private var insightText: String? {
