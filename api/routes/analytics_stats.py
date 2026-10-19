@@ -243,12 +243,12 @@ def api_stats_cockpit():
 @analytics_stats_bp.route("/api/stats/streaks")
 def api_stats_streaks():
     """
-    Source de vérité unique pour le streak.
-    Même logique que dashboard : sessions completed, rpe, exercices loggués, HIIT.
+    Source de vérité unique pour le streak — logique extraite dans
+    weekly_streaks.compute (importée aussi par workout_dna pour aligner
+    le DNA sur le même streak hebdomadaire que le dashboard).
     """
-    import db as _db
-    from utils import load_hiit_log
-    from datetime import date as _date, timedelta as _td, datetime as _dtt
+    from datetime import datetime as _dtt
+    from weekly_streaks import compute as _compute_weekly_streaks
 
     date_param = request.args.get("date", "").strip()
     try:
@@ -257,126 +257,7 @@ def api_stats_streaks():
     except (ValueError, Exception):
         today_str = _today_mtl()
 
-    today_date = _date.fromisoformat(today_str)
-
-    all_sessions = _db.get_workout_sessions(limit=730)
-    session_dates = set()
-    for s in all_sessions:
-        d = s.get("date")
-        if not d:
-            continue
-        if s.get("completed") or s.get("rpe") is not None:
-            session_dates.add(d)
-
-    for h in load_hiit_log():
-        d = h.get("date")
-        if d:
-            session_dates.add(d)
-
-    for c in _db.get_cardio_logs(limit=730):
-        d = c.get("date")
-        if d:
-            session_dates.add(d)
-
-    # Today: include if exercise logs exist even without rpe/completed.
-    # Permet au streak hebdo de refléter une séance de la journée sans
-    # attendre que la row workout_sessions soit flaggée completed/rpe.
-    today_exos = _db.get_session_exercise_logs(today_str)
-    if today_str in session_dates or bool(today_exos):
-        session_dates.add(today_str)
-
-    # ── Streak hebdomadaire ──────────────────────────────────────────────────
-    # Semaine ISO lundi→dimanche. Jour actif = même source que session_dates
-    # ci-dessus (workout completed/rpe, HIIT, cardio, exercise_logs du jour).
-    # Semaine réussie = ≥ WEEKLY_TARGET jours actifs distincts.
-    # Semaine en cours : ne casse pas le streak tant qu'elle n'est pas finie —
-    # elle compte uniquement si elle a déjà atteint le target.
-    WEEKLY_TARGET = 5
-
-    def _iso_monday(d: _date) -> _date:
-        return d - _td(days=d.weekday())  # Mon=0 … Sun=6
-
-    days_by_week: dict[_date, set[_date]] = {}
-    for ds in session_dates:
-        try:
-            d = _date.fromisoformat(ds)
-        except ValueError:
-            continue
-        days_by_week.setdefault(_iso_monday(d), set()).add(d)
-
-    current_monday = _iso_monday(today_date)
-    current_week_days = len(days_by_week.get(current_monday, set()))
-
-    def _success(monday: _date) -> bool:
-        return len(days_by_week.get(monday, set())) >= WEEKLY_TARGET
-
-    # Streak courant hebdo : si la semaine en cours a déjà atteint target, elle
-    # compte et on remonte à partir d'elle. Sinon, on démarre à la semaine
-    # précédente (la semaine en cours ne casse pas, cf. règle).
-    weekly_streak_current = 0
-    if _success(current_monday):
-        m = current_monday
-    else:
-        m = current_monday - _td(days=7)
-    while _success(m):
-        weekly_streak_current += 1
-        m -= _td(days=7)
-
-    # Record hebdo : plus longue séquence consécutive de semaines réussies
-    # dans l'historique. Les semaines sans aucune activité (absentes de
-    # days_by_week) brisent la chaîne. Semaine en cours n'est éligible que
-    # si elle a déjà atteint le target (ne force pas un reset si incomplète).
-    all_mondays = sorted(days_by_week.keys() | {current_monday})
-    weekly_streak_best = 0
-    cur = 0
-    prev: _date | None = None
-    for mon in all_mondays:
-        if mon == current_monday and not _success(mon):
-            # Semaine en cours incomplète : ne compte pas (ni succès ni reset).
-            continue
-        if _success(mon):
-            if prev is not None and (mon - prev).days == 7:
-                cur += 1
-            else:
-                cur = 1
-            weekly_streak_best = max(weekly_streak_best, cur)
-        else:
-            cur = 0
-        prev = mon
-
-    # weeks[] sur 13 semaines (12 précédentes + courante).
-    weeks_payload = []
-    oldest_monday = current_monday - _td(days=12 * 7)
-    for i in range(13):
-        wm = oldest_monday + _td(days=7 * i)
-        days = len(days_by_week.get(wm, set()))
-        weeks_payload.append({
-            "week_start":  wm.isoformat(),
-            "days_active": days,
-            "success":     days >= WEEKLY_TARGET,
-        })
-
-    # week_at_risk — source unique côté serveur.
-    # jours restants = (6 - weekday_today) + (1 si today pas encore actif).
-    # Vrai uniquement quand il ne reste PLUS de marge pour atteindre le target.
-    # Semaine déjà perdue (restants < manquants) → false (pas de relance inutile).
-    today_weekday = today_date.weekday()  # Mon=0, Sun=6
-    today_active_in_week = today_date in days_by_week.get(current_monday, set())
-    days_remaining = (6 - today_weekday) + (0 if today_active_in_week else 1)
-    days_missing = max(0, WEEKLY_TARGET - current_week_days)
-    week_at_risk = days_missing > 0 and days_remaining == days_missing
-
-    return jsonify({
-        "weekly_target":         WEEKLY_TARGET,
-        "weekly_streak_current": weekly_streak_current,
-        "weekly_streak_best":    weekly_streak_best,
-        "week_at_risk":          week_at_risk,
-        "current_week": {
-            "week_start":  current_monday.isoformat(),
-            "days_active": current_week_days,
-        },
-        "weeks": weeks_payload,
-    })
+    return jsonify(_compute_weekly_streaks(today_str))
 
 
 _stats_wellness_cache: dict = {}

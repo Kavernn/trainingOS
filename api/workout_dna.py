@@ -236,15 +236,33 @@ def _compute_consistency(period_days: int = 90) -> dict:
 
     score = round(min(100, active_pct * 0.5 + (1 - min(cv, 1)) * 30 + min(spw / 5, 1) * 20))
 
+    # Streak hebdomadaire : source unique = weekly_streaks.compute (même
+    # logique que /api/stats/streaks). Le DNA ne recalcule rien ; il expose
+    # les mêmes valeurs que le dashboard. current_streak/longest_streak
+    # (journaliers) sont encore émis pour compat iOS — à retirer dans un
+    # commit backend séparé après confirmation que l'iOS installé consomme
+    # bien weekly_streak_current/best.
+    weekly_streak_current = 0
+    weekly_streak_best = 0
+    try:
+        from weekly_streaks import compute as _compute_weekly_streaks
+        _weekly_payload = _compute_weekly_streaks(_today_mtl())
+        weekly_streak_current = int(_weekly_payload.get("weekly_streak_current") or 0)
+        weekly_streak_best = int(_weekly_payload.get("weekly_streak_best") or 0)
+    except Exception as e:
+        logger.warning("weekly_streaks fetch failed: %s", e)
+
     return {
-        "score":             score,
-        "sessions_per_week": spw,
-        "cv":                cv,
-        "archetype":         archetype,
-        "current_streak":    current,
-        "longest_streak":    longest,
-        "active_weeks_pct":  active_pct,
-        "weekly_counts":     [weekly.get(w, 0) for w in range(12, -1, -1)],  # oldest→newest
+        "score":                 score,
+        "sessions_per_week":     spw,
+        "cv":                    cv,
+        "archetype":             archetype,
+        "current_streak":        current,        # journalier — à retirer étape 7c
+        "longest_streak":        longest,        # journalier — à retirer étape 7c
+        "weekly_streak_current": weekly_streak_current,
+        "weekly_streak_best":    weekly_streak_best,
+        "active_weeks_pct":      active_pct,
+        "weekly_counts":         [weekly.get(w, 0) for w in range(12, -1, -1)],  # oldest→newest
     }
 
 
