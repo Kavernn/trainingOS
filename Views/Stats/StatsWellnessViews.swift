@@ -568,80 +568,97 @@ private struct WellnessSparkline: View {
 }
 
 // MARK: - Best Day of Week
+// Fenêtre 180 jours. Seuil par jour de semaine : ≥ 4 séances valides pour
+// afficher une barre pleine. Sous le seuil → barre grisée + "n = X".
+// Verdict (flèche "→ Jour") uniquement si ≥ 2 jours passent le seuil.
+// Volume = session.sessionVolume uniquement — pas de recalcul iOS depuis
+// weights.history (fallback volume supprimé pour éviter la divergence avec
+// la source serveur).
 struct BestDayOfWeekView: View {
     let sessions: [String: SessionEntry]
-    let weights: [String: WeightData]
 
-    // volume/RPE ratio per day of week — avoids session-type bias toward heavy days
-    private var efficiencyByDow: [Int: Double] {
-        let cutoff = DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -90, to: Date()) ?? Date())
+    private static let windowDays   = 180
+    private static let minSessions  = 4   // seuil par jour de semaine
+    private static let minQualified = 2   // nb de jours au-dessus du seuil pour un verdict
+
+    private struct DowStats {
+        let avgEfficiency: Double  // moyenne (volume/RPE) sur ce jour
+        let count: Int             // nb de séances valides
+    }
+
+    private var statsByDow: [Int: DowStats] {
+        let cutoff = DateFormatter.isoDate.string(from: Calendar.mtl.date(byAdding: .day, value: -Self.windowDays, to: Date()) ?? Date())
         var totals: [Int: Double] = [:]
         var counts: [Int: Int] = [:]
         for (dateStr, session) in sessions {
             guard dateStr >= cutoff,
                   let date = DateFormatter.isoDate.date(from: dateStr),
-                  let rpe = session.rpe, rpe > 0 else { continue }
+                  let rpe = session.rpe, rpe > 0,
+                  let vol = session.sessionVolume, vol > 0 else { continue }
             let dow = (Calendar.mtl.component(.weekday, from: date) + 5) % 7 // 0=Mon
-            let vol: Double
-            if let sv = session.sessionVolume, sv > 0 {
-                vol = sv
-            } else {
-                vol = weights.values.flatMap { $0.history ?? [] }.filter { $0.date == dateStr }
-                    .compactMap { e -> Double? in
-                        if let v = e.exerciseVolume, v > 0 { return v }
-                        guard let w = e.weight, let r = e.reps else { return nil }
-                        return w * totalReps(r)
-                    }.reduce(0, +)
-            }
-            guard vol > 0 else { continue }
             totals[dow, default: 0] += vol / rpe
             counts[dow, default: 0] += 1
         }
-        var avgs: [Int: Double] = [:]
+        var result: [Int: DowStats] = [:]
         for d in 0..<7 {
             let c = counts[d, default: 0]
-            avgs[d] = c > 0 ? (totals[d] ?? 0) / Double(c) : 0
+            result[d] = DowStats(
+                avgEfficiency: c > 0 ? (totals[d] ?? 0) / Double(c) : 0,
+                count: c,
+            )
         }
-        return avgs
+        return result
+    }
+
+    private var qualifiedDows: [Int] {
+        statsByDow.compactMap { $0.value.count >= Self.minSessions ? $0.key : nil }
     }
 
     private var bestDow: Int? {
-        efficiencyByDow.max(by: { $0.value < $1.value })?.key
+        guard qualifiedDows.count >= Self.minQualified else { return nil }
+        let qualified = statsByDow.filter { qualifiedDows.contains($0.key) }
+        return qualified.max(by: { $0.value.avgEfficiency < $1.value.avgEfficiency })?.key
     }
 
     var body: some View {
+        let stats = statsByDow
+        let maxV = stats.values.filter { $0.count >= Self.minSessions }.map(\.avgEfficiency).max() ?? 1
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("JOUR LE PLUS EFFICACE")
                         .font(.appMicro).tracking(2).foregroundColor(.gray)
-                    Text("(volume / RPE)")
+                    Text("(volume / RPE · 180 j · min \(Self.minSessions) séances)")
                         .font(.appMicro).foregroundColor(.gray.opacity(0.7))
                 }
                 Spacer()
                 if let best = bestDow {
                     Text("→ \(TrainingDoctrine.dayNames[best])")
                         .font(.appCaption.weight(.bold)).foregroundColor(Color.forge)
+                } else {
+                    Text("Pas assez de données")
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.7))
                 }
             }
-            let vols = efficiencyByDow
-            let maxV = vols.values.max() ?? 1
             HStack(alignment: .bottom, spacing: 8) {
                 ForEach(0..<7, id: \.self) { d in
-                    let v = vols[d] ?? 0
-                    let isBest = d == bestDow
+                    let s = stats[d] ?? DowStats(avgEfficiency: 0, count: 0)
+                    let qualified = s.count >= Self.minSessions
+                    let isBest = qualified && d == bestDow
                     VStack(spacing: 4) {
                         Spacer()
                         RoundedRectangle(cornerRadius: 4) // shape inline
-                            .fill(isBest ? Color.forge : Color.forge.opacity(0.3))
-                            .frame(height: max(CGFloat(maxV > 0 ? v / maxV : 0) * 60, 3))
+                            .fill(isBest ? Color.forge : (qualified ? Color.forge.opacity(0.3) : Color.appTextMuted.opacity(0.25)))
+                            .frame(height: max(CGFloat(maxV > 0 && qualified ? s.avgEfficiency / maxV : 0) * 60, 3))
                         Text(TrainingDoctrine.dayNames[d])
                             .font(.appMicro).foregroundColor(isBest ? Color.forge : .gray)
+                        Text("n = \(s.count)")
+                            .font(.appMicro).foregroundColor(.gray.opacity(0.6))
                     }
-                    .frame(maxWidth: .infinity, maxHeight: 70)
+                    .frame(maxWidth: .infinity, maxHeight: 85)
                 }
             }
-            .frame(height: 70)
+            .frame(height: 85)
         }
         .padding(16).glassCard()
     }

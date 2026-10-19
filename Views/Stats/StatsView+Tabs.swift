@@ -614,7 +614,7 @@ extension StatsView {
 
         // 5. Meilleur jour de la semaine
         if !sessions.isEmpty {
-            BestDayOfWeekView(sessions: sessions, weights: weights)
+            BestDayOfWeekView(sessions: sessions)
                 .padding(.horizontal, 16)
         }
 
