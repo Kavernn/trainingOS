@@ -233,18 +233,21 @@ struct StatsView: View {
     func weekBounds(weeksAgo: Int) -> (String, String) { Date().isoWeekBounds(weeksAgo: weeksAgo) }
 
     // ── Recovery Profile ──────────────────────────────────────────────
-    // Pour chaque séance RPE ≥ 7.5, cherche la première recovery entry dans
-    // les 21 jours suivants avec soreness < 3.
-    //   - trouvée → jour comptabilisé dans `resolved` (vraie durée, pas de
-    //     plafond artificiel à 10 ou 21 : la valeur entre telle quelle dans
-    //     la médiane et l'IQR).
-    //   - pas trouvée dans 21 jours → épisode `unresolved` (compté à part,
-    //     n'alimente pas la médiane — on ne sait pas quand ça s'est résolu).
+    // Pour chaque séance RPE ≥ 7.5, examine les logs recovery dans les 21 j
+    // suivants :
+    //   - au moins une mesure soreness < 3 → épisode `resolved` (jours réels
+    //     depuis la séance ; aucun plafond artificiel sur la valeur).
+    //   - fenêtre terminée (séance + 21 j ≤ aujourd'hui) + au moins une
+    //     mesure soreness ≥ 3 et aucune < 3 → épisode `unresolved`.
+    //   - fenêtre encore ouverte → "en cours", exclu des deux comptes.
+    //   - aucune mesure soreness dans la fenêtre → exclu (pas de donnée
+    //     ≠ pas récupéré).
     // Garde-fou médiane : minimum 5 épisodes résolus.
     var recoveryProfile: RecoveryProfile? {
-        let heavy = sessions.filter { ($0.value.rpe ?? 0) >= 7.5 }
+        let heavy = sessions.filter { ($0.value.rpe ?? 0) >= Self.recoveryHeavyRpe }
         guard !heavy.isEmpty else { return nil }
         let sortedRec = filteredRecovery.sorted { ($0.date ?? "") < ($1.date ?? "") }
+        let now = Date()
 
         var resolved: [Int] = []
         var unresolved = 0
@@ -252,20 +255,32 @@ struct StatsView: View {
         for (sessionDate, _) in heavy {
             guard let sd = DateFormatter.isoDate.date(from: sessionDate) else { continue }
             let cutoff = Calendar.mtl.date(byAdding: .day, value: Self.recoverySearchDays, to: sd) ?? sd
-            var found = false
+
+            var resolvedDay: Int?
+            var hasMeasureInWindow = false
             for entry in sortedRec {
                 guard let rdStr = entry.date,
                       let rd = DateFormatter.isoDate.date(from: rdStr),
                       rd > sd else { continue }
                 if rd > cutoff { break }
-                if (entry.soreness ?? 10) < 3 {
+                guard let soreness = entry.soreness else { continue }
+                hasMeasureInWindow = true
+                if soreness < 3 {
                     let d = Int(rd.timeIntervalSince(sd) / 86400)
-                    if d > 0 { resolved.append(d) }
-                    found = true
+                    if d > 0 { resolvedDay = d }
                     break
                 }
             }
-            if !found { unresolved += 1 }
+
+            if let d = resolvedDay {
+                resolved.append(d)
+                continue
+            }
+            // Fenêtre encore ouverte → en cours, on ne tranche pas.
+            guard cutoff <= now else { continue }
+            // Fenêtre terminée + mesures présentes toutes ≥ 3 → unresolved.
+            // Fenêtre terminée + aucune mesure → exclu (silence de donnée).
+            if hasMeasureInWindow { unresolved += 1 }
         }
 
         guard resolved.count + unresolved > 0 else { return nil }
@@ -290,6 +305,7 @@ struct StatsView: View {
 
     private static let recoverySearchDays: Int = 21
     private static let recoveryMinResolved: Int = 5
+    private static let recoveryHeavyRpe: Double = 7.5
 
     private func percentile(_ sorted: [Int], _ p: Double) -> Double {
         guard !sorted.isEmpty else { return 0 }

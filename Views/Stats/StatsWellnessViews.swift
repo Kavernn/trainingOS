@@ -871,17 +871,17 @@ struct RecoveryProfileCard: View {
     let profile: RecoveryProfile
 
     private var profileColor: Color {
-        guard let s = profile.stats else { return .gray }
-        if s.medianDays <= 1.5 { return Color.appSuccess }
-        if s.medianDays <= 3.0 { return Color.appWarning }
-        return Color.appDanger
+        guard let s = profile.stats else { return .appTextSecondary }
+        if s.medianDays <= 1.5 { return Color.statusGreen }
+        if s.medianDays <= 3.0 { return Color.forge }
+        return Color.appTextSecondary
     }
 
     private var insightText: String? {
         guard let s = profile.stats else { return nil }
         let m = Int(round(s.medianDays))
         if s.medianDays <= 1.5 { return "Tu récupères vite. Tu peux enchaîner les séances lourdes à \(m) jour d'intervalle." }
-        if s.medianDays <= 3.0 { return "Récupération standard. Prévois \(m) jours entre deux séances à RPE 8+." }
+        if s.medianDays <= 3.0 { return "Récupération standard. Prévois \(m) jours entre deux séances à RPE ≥ 7,5." }
         return "Récupération lente. Espace tes séances lourdes d'au moins \(m) jours pour éviter de cumuler la fatigue."
     }
 
@@ -899,7 +899,7 @@ struct RecoveryProfileCard: View {
                         .padding(.bottom, 8)
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("après RPE 8+").font(.appCaption).foregroundColor(.gray)
+                        Text("après RPE ≥ 7,5").font(.appCaption).foregroundColor(.gray)
                         Text("pour soreness < 3").font(.appCaption).foregroundColor(.gray)
                     }
                 }
@@ -928,7 +928,7 @@ struct RecoveryProfileCard: View {
                     .font(.appCaption.weight(.semibold))
                     .foregroundColor(Color.appTextSecondary)
                 if profile.unresolvedCount > 0 {
-                    Text("\(profile.unresolvedCount) épisode\(profile.unresolvedCount > 1 ? "s" : "") RPE 8+ sans retour soreness < 3 observé (fenêtre 21 j).")
+                    Text("\(profile.unresolvedCount) épisode\(profile.unresolvedCount > 1 ? "s" : "") RPE ≥ 7,5 sans retour soreness < 3 observé (fenêtre 21 j).")
                         .font(.appMicro).foregroundColor(.gray.opacity(0.7))
                         .fixedSize(horizontal: false, vertical: true)
                 }
