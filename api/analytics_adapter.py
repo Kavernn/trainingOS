@@ -69,14 +69,13 @@ def unmapped_exercise_diagnostics(
     rows: Iterable[dict[str, Any]],
     *,
     period: DateWindow,
-    cycle_start_date: date | None = None,
 ) -> tuple[UnmappedExerciseDiagnostic, ...]:
     """Return catalogue metadata gaps for exactly the requested exposure window."""
     adapted = []
     for row in rows:
         if not isinstance(row, dict):
             continue
-        item = _adapt_row(row, cycle_start_date)
+        item = _adapt_row(row)
         if item is not None and period.contains(item[0].date):
             adapted.append(item)
     return _unmapped_diagnostics_from_unique(_dedupe_adapted(adapted))
@@ -157,23 +156,77 @@ def _muscle_assignment(exercise: dict[str, Any]) -> ExerciseMuscleAssignment | N
     )
 
 
-def _is_deload(day: date, cycle_start_date: date | None) -> bool:
-    if cycle_start_date is None:
-        return False
-    # Existing programme doctrine: 11th week of an 11-week / 77-day cycle.
-    return ((day - cycle_start_date).days % 77) // 7 + 1 == 11
+# ── Deload predicate — source unique : deload_periods (migration 080) ────────
+# La formule calendaire 77-jours (ancienne S11) est SUPPRIMÉE. is_deload_day
+# interroge l'historique des décharges volontaires. La prescription programme
+# (utils.get_mesocycle_info, /api/mesocycle_status, iOS Phase.deload) continue
+# de suivre le cycle calendaire — elle n'utilise PAS ce prédicat.
+
+_PERIODS_CACHE_KEY = "_deload_periods_cache"
 
 
-def is_deload_day(day: date, cycle_start_date: date | None) -> bool:
-    """Public wrapper for the deload calendar rule.
+def _get_periods_cached() -> list[dict]:
+    """Return deload periods from a per-request cache (Flask g) or fetch once.
+    Garantit UNE requête SQL par requête HTTP, même si is_deload_day est appelé
+    N fois dans la boucle d'un adapter."""
+    try:
+        from flask import g, has_app_context  # type: ignore
+        if has_app_context():
+            cached = getattr(g, _PERIODS_CACHE_KEY, None)
+            if cached is not None:
+                return cached
+            import db as _db
+            cached = _db.get_deload_periods()
+            setattr(g, _PERIODS_CACHE_KEY, cached)
+            return cached
+    except Exception:
+        pass
+    # Hors contexte Flask (CLI, tests) : fetch direct. Tests fournissent périodes
+    # explicites via le kwarg `periods=` pour isoler la logique du DB.
+    import db as _db
+    return _db.get_deload_periods()
 
-    Expose la règle doctrinaire (11ᵉ semaine d'un cycle 11-sem) pour les callers
-    hors adapter (cockpit daily tonnage, UI). Garde ``_is_deload`` privé pour
-    préserver son usage interne — un seul chemin de calcul."""
-    return _is_deload(day, cycle_start_date)
+
+def _period_bounds(period: dict, today: date) -> tuple[date, date] | None:
+    """[started_at, min(scheduled_end, today) if active else completed_at].
+    Active (completed_at IS NULL) → fenêtre bornée à aujourd'hui.
+    Terminée → fenêtre fermée à completed_at (arrêt anticipé OU date prévue)."""
+    try:
+        start = date.fromisoformat(str(period.get("started_at"))[:10])
+    except Exception:
+        return None
+    completed = period.get("completed_at")
+    if completed:
+        try:
+            end = date.fromisoformat(str(completed)[:10])
+        except Exception:
+            return None
+    else:
+        try:
+            scheduled = date.fromisoformat(str(period.get("scheduled_end"))[:10])
+        except Exception:
+            return None
+        end = min(scheduled, today)
+    if end < start:
+        return None
+    return start, end
 
 
-def _adapt_row(row: dict[str, Any], cycle_start_date: date | None):
+def is_deload_day(day: date, periods: Iterable[dict] | None = None) -> bool:
+    """True si `day` tombe dans une période de décharge enregistrée.
+    `periods=None` → cache per-request (Flask g) ou fetch unique hors Flask.
+    Tests passent une liste explicite pour isoler du DB."""
+    from utils import _today_mtl
+    today = date.fromisoformat(_today_mtl())
+    source = periods if periods is not None else _get_periods_cached()
+    for period in source:
+        bounds = _period_bounds(period, today)
+        if bounds and bounds[0] <= day <= bounds[1]:
+            return True
+    return False
+
+
+def _adapt_row(row: dict[str, Any]):
     exercise = _nested(row, "exercises")
     session = _nested(row, "workout_sessions")
     exposure_id = row.get("id")
@@ -188,7 +241,7 @@ def _adapt_row(row: dict[str, Any], cycle_start_date: date | None):
 
     sets = _sets(row.get("sets_json"))
     tracking_type = exercise.get("tracking_type")
-    deload = _is_deload(day, cycle_start_date)
+    deload = is_deload_day(day)
     strength = StrengthExposure(
         exposure_id=exposure_id,
         exercise_name=name,
@@ -235,7 +288,6 @@ def adapt_analytics_rows(
     rows: Iterable[dict[str, Any]],
     *,
     period: DateWindow,
-    cycle_start_date: date | None = None,
 ) -> AnalyticsAdapterResult:
     """Adapt raw joined rows while preserving IDs and explicit data gaps."""
     if period.start > period.end:
@@ -247,7 +299,7 @@ def adapt_analytics_rows(
         if not isinstance(row, dict):
             invalid += 1
             continue
-        item = _adapt_row(row, cycle_start_date)
+        item = _adapt_row(row)
         if item is None:
             invalid += 1
             continue

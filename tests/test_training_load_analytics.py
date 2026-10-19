@@ -333,18 +333,24 @@ def test_daily_sum_matches_weekly_tonnage_invariant():
 
 
 def test_daily_marks_deload_days_from_predicate():
-    """Les 7 jours de la 11ᵉ semaine du cycle sont flaggués is_deload=True."""
-    cycle_start = date(2026, 1, 5)  # un lundi
-    # Semaine 11 commence 10 × 7 = 70 jours plus tard.
-    deload_monday = cycle_start + timedelta(days=70)
+    """Les 7 jours d'une période de décharge enregistrée sont flaggués
+    is_deload=True. Le prédicat consomme deload_periods (migration 080) ;
+    on fournit la liste explicitement pour isoler du DB."""
+    deload_monday = date(2026, 3, 16)
     deload_sunday = deload_monday + timedelta(days=6)
+    recorded = [{
+        "started_at":    deload_monday.isoformat(),
+        "scheduled_end": deload_sunday.isoformat(),
+        "completed_at":  deload_sunday.isoformat(),
+        "duration_days": 7, "reason": "test",
+    }]
     # Fenêtre couvre : semaine précédente (non-deload) + semaine deload complète.
     period = DateWindow(deload_monday - timedelta(days=7), deload_sunday)
 
     result = daily_training_load(
         [],  # pas d'exposure nécessaire pour tester le flag
         period=period,
-        is_deload=lambda d: is_deload_day(d, cycle_start),
+        is_deload=lambda d: is_deload_day(d, recorded),
     )
     by_date = {entry.date: entry for entry in result}
 

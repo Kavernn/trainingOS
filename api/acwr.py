@@ -360,9 +360,8 @@ def calc_acwr() -> dict:
     # ── Lentille deload — interprétation seulement, pas les données ────────────
     deload_active = False
     try:
-        from deload import load_deload_state
-        deload_state = load_deload_state()
-        deload_active = bool(deload_state.get("active"))
+        import db as _db
+        deload_active = _db.get_active_deload_period() is not None
         if deload_active:
             zone_code = latest["zone_code"]
             meta = dict(meta)  # copie — ne pas muter _ZONE_META

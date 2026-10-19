@@ -233,13 +233,10 @@ def api_stats_cockpit():
     except (TypeError, ValueError) as exc:
         return jsonify({"error": str(exc)}), 400
 
-    cycle_start_raw = _db.get_cycle_start_date()
-    cycle_start = _date.fromisoformat(cycle_start_raw) if cycle_start_raw else None
-    response = build_cockpit_analytics(
-        _db._client,
-        config,
-        cycle_start_date=cycle_start,
-    )
+    # Décharges volontaires : source unique deload_periods via is_deload_day
+    # (migration 080). cycle_start_date reste réservé à la prescription programme
+    # (/api/mesocycle_status, utils.get_mesocycle_info) — ne passe plus ici.
+    response = build_cockpit_analytics(_db._client, config)
     return jsonify(_serialize_cockpit(response))
 
 

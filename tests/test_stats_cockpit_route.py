@@ -98,22 +98,23 @@ def test_serializer_handles_nested_dataclass_enum_date_tuple_none_zero_and_float
 
 def test_valid_request_calls_service_once_with_exact_config_and_returns_empty_contract(app, monkeypatch):
     monkeypatch.setattr(db, "_client", FakeClient([]))
-    monkeypatch.setattr(db, "get_cycle_start_date", lambda: None)
+    monkeypatch.setattr(db, "get_deload_periods", lambda: [])
     calls = []
     real = analytics_stats.build_cockpit_analytics
 
-    def spy(client, config, *, cycle_start_date=None):
-        calls.append((client, config, cycle_start_date))
-        return real(client, config, cycle_start_date=cycle_start_date)
+    def spy(client, config):
+        calls.append((client, config))
+        return real(client, config)
 
     monkeypatch.setattr(analytics_stats, "build_cockpit_analytics", spy)
     response = app.test_client().get(query(progression_days="30", weekly_days="8", muscle_days="21"))
     assert response.status_code == 200
     assert len(calls) == 1
-    assert calls[0][1].as_of == date(2026, 9, 30)
-    assert calls[0][1].progression_days == 30
-    assert calls[0][1].weekly_period == DateWindow(date(2026, 9, 23), date(2026, 9, 30))
-    assert calls[0][1].muscle_period == DateWindow(date(2026, 9, 10), date(2026, 9, 30))
+    config = calls[0][1]
+    assert config.as_of == date(2026, 9, 30)
+    assert config.progression_days == 30
+    assert config.weekly_period == DateWindow(date(2026, 9, 23), date(2026, 9, 30))
+    assert config.muscle_period == DateWindow(date(2026, 9, 10), date(2026, 9, 30))
     payload = response.get_json()
     assert set(payload) == {"as_of", "progression", "training_load", "muscles", "data_quality"}
     assert payload["as_of"] == "2026-09-30"
@@ -153,7 +154,7 @@ def test_rich_response_serializes_statuses_dates_coverage_zero_and_sections(app,
         raw_row("zero", date(2026, 9, 21), weight=0, sets_json=[{"weight": 0, "reps": 5}]),
     ]
     monkeypatch.setattr(db, "_client", FakeClient(rows))
-    monkeypatch.setattr(db, "get_cycle_start_date", lambda: None)
+    monkeypatch.setattr(db, "get_deload_periods", lambda: [])
     response = app.test_client().get(query(progression_days="30", weekly_days="30", muscle_days="30"))
     assert response.status_code == 200
     payload = response.get_json()
@@ -177,7 +178,7 @@ def test_rich_response_serializes_statuses_dates_coverage_zero_and_sections(app,
 
 
 def test_service_error_is_not_misclassified_as_bad_query(app, monkeypatch):
-    monkeypatch.setattr(db, "get_cycle_start_date", lambda: None)
+    monkeypatch.setattr(db, "get_deload_periods", lambda: [])
 
     def broken(*_args, **_kwargs):
         raise ValueError("contradictory analytics data")

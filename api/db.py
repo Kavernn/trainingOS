@@ -152,8 +152,11 @@ from db_profile import (
     create_meal_template,
     update_meal_template,
     delete_meal_template,
-    get_deload_state,
-    set_deload_state,
+    get_active_deload_period,
+    get_deload_periods,
+    get_last_completed_deload,
+    insert_deload_period,
+    complete_active_deload_period,
 )
 
 # ── Programs ──────────────────────────────────────────────────────────────────

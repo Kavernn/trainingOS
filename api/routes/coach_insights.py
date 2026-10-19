@@ -183,10 +183,10 @@ def api_daily_insight():
             last_date = date_cls.fromisoformat(str(completed[0]["date"]))
             days_since = (today - last_date).days
             if days_since >= 5:
-                from deload import load_deload_state
-                deload = load_deload_state()
-                if deload.get("active"):
-                    ends_at = deload.get("ends_at") or "bientôt"
+                import db as _db
+                deload = _db.get_active_deload_period()
+                if deload is not None:
+                    ends_at = deload.get("scheduled_end") or "bientôt"
                     return _insight(
                         "opportunity", "bed.double.fill",
                         "Décharge volontaire en cours",

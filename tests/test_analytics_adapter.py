@@ -247,15 +247,22 @@ def test_legacy_top_level_fallback_is_observable_only_when_canonical_fallback_is
     assert sets_present.diagnostics.legacy_strength_fallback_count == 0
 
 
-def test_deload_is_adapted_from_explicit_cycle_start_and_old_manual_state_is_not_invented():
-    cycle_start = date(2026, 1, 1)
-    result = adapt_analytics_rows(
-        [row(day="2026-03-12")], period=PERIOD, cycle_start_date=cycle_start
-    )
+def test_deload_is_adapted_from_recorded_period_and_absence_is_not_invented(monkeypatch):
+    """Source unique deload_periods (migration 080). Un jour qui tombe dans
+    une période enregistrée est flaggué is_deload=True ; sans période,
+    aucun flag calendaire ne vient inventer un deload (formule 77j supprimée)."""
+    period_covering = [{
+        "started_at": "2026-03-10", "scheduled_end": "2026-03-16",
+        "completed_at": "2026-03-16", "duration_days": 7, "reason": "test",
+    }]
+    monkeypatch.setattr("db.get_deload_periods", lambda: period_covering)
+    result = adapt_analytics_rows([row(day="2026-03-12")], period=PERIOD)
     assert result.strength_exposures[0].is_deload is True
     assert result.diagnostics.known_deload_exposure_count == 1
-    without_cycle = adapt_analytics_rows([row(day="2026-03-12")], period=PERIOD)
-    assert without_cycle.strength_exposures[0].is_deload is False
+
+    monkeypatch.setattr("db.get_deload_periods", lambda: [])
+    without_period = adapt_analytics_rows([row(day="2026-03-12")], period=PERIOD)
+    assert without_period.strength_exposures[0].is_deload is False
 
 
 def test_diagnostics_track_missing_tracking_and_invalid_rows():

@@ -70,28 +70,31 @@ def _round_lbs(w: float, step: float = 5.0) -> float:
 # ── Data gathering ────────────────────────────────────────────────────────────
 
 def _deload_dates_in_window(window_start: date, window_end: date) -> set[str]:
-    """Return ISO date strings that fall within deload weeks (S11 of any 11-week cycle).
+    """Return ISO date strings covered by registered deload_periods inside the window.
 
-    Doctrine unifiée 11 semaines : cycle de 77 jours, semaine 11 = deload
-    (miroir utils.MESOCYCLE_WEEKS + enum iOS Phase.deload = 11...11).
-    Python's % opérateur est toujours non-négatif, donc les dates avant
-    cycle_start sont gérées correctement via arithmétique modulaire 77 jours.
-    Fenêtre historique : les cycles antérieurs restent bien détectés.
+    Source unique : table deload_periods (migration 080). La formule calendaire
+    77-jours (ancienne S11) est supprimée des analytics. Chaque période
+    enregistrée intersectée avec [window_start, window_end] contribue ses jours.
     """
+    from analytics_adapter import _get_periods_cached, _period_bounds
+    from utils import _today_mtl
     try:
-        start_str    = db.get_cycle_start_date() or "2026-04-25"
-        cycle_start  = date.fromisoformat(start_str[:10])
+        today = date.fromisoformat(_today_mtl())
     except Exception as e:
-        logger.warning("_deload_dates_in_window: %s", e)
+        logger.warning("_deload_dates_in_window today: %s", e)
         return set()
 
-    result = set()
-    d = window_start
-    while d <= window_end:
-        week_in_cycle = ((d - cycle_start).days % 77) // 7 + 1
-        if week_in_cycle == 11:
+    result: set[str] = set()
+    for period in _get_periods_cached():
+        bounds = _period_bounds(period, today)
+        if bounds is None:
+            continue
+        start = max(bounds[0], window_start)
+        end = min(bounds[1], window_end)
+        d = start
+        while d <= end:
             result.add(d.isoformat())
-        d += timedelta(days=1)
+            d += timedelta(days=1)
     return result
 
 

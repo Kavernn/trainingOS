@@ -158,7 +158,7 @@ def make_store():
         "hiit_log":            copy.deepcopy(HIIT_LOG),
         "body_weight":         [],
         "goals":               {},
-        "deload_state":        {"active": False},
+        "deload_periods":      [],
         "nutrition_settings":  {"limite_calories": 2200, "objectif_proteines": 160},
         "nutrition_log":       {},
         "cardio_log":          [],
@@ -645,17 +645,46 @@ def make_store():
         store["nutrition_settings"] = settings
         return True
 
-    def get_deload_state():
-        return copy.deepcopy(store.get("deload_state", {"active": False}))
+    def get_active_deload_period():
+        for p in store.get("deload_periods", []):
+            if p.get("completed_at") is None:
+                return copy.deepcopy(p)
+        return None
 
-    def set_deload_state(active, started_at=None, reason=None):
-        state = {"active": active}
-        if started_at:
-            state["started_at"] = started_at
-        if reason:
-            state["reason"] = reason
-        store["deload_state"] = state
+    def get_deload_periods():
+        return copy.deepcopy(store.get("deload_periods", []))
+
+    def get_last_completed_deload():
+        completed = [
+            p for p in store.get("deload_periods", []) if p.get("completed_at")
+        ]
+        if not completed:
+            return None
+        return sorted(completed, key=lambda p: p["completed_at"], reverse=True)[0]["completed_at"]
+
+    def insert_deload_period(started_at, duration_days, reason):
+        from datetime import date as _date, timedelta as _td
+        try:
+            start = _date.fromisoformat(str(started_at)[:10])
+        except Exception:
+            return False
+        periods = store.get("deload_periods", [])
+        periods.append({
+            "started_at":    start.isoformat(),
+            "scheduled_end": (start + _td(days=int(duration_days))).isoformat(),
+            "completed_at":  None,
+            "reason":        reason,
+            "duration_days": int(duration_days),
+        })
+        store["deload_periods"] = periods
         return True
+
+    def complete_active_deload_period(completed_at):
+        for p in store.get("deload_periods", []):
+            if p.get("completed_at") is None:
+                p["completed_at"] = completed_at
+                return True
+        return False
 
     def get_all_programs():
         return []
@@ -934,8 +963,11 @@ def make_store():
         update_profile=update_profile,
         get_nutrition_settings=get_nutrition_settings,
         update_nutrition_settings=update_nutrition_settings,
-        get_deload_state=get_deload_state,
-        set_deload_state=set_deload_state,
+        get_active_deload_period=get_active_deload_period,
+        get_deload_periods=get_deload_periods,
+        get_last_completed_deload=get_last_completed_deload,
+        insert_deload_period=insert_deload_period,
+        complete_active_deload_period=complete_active_deload_period,
         get_all_programs=get_all_programs,
         get_default_program_id=get_default_program_id,
         get_all_session_names=get_all_session_names,

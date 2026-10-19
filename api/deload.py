@@ -203,21 +203,11 @@ def calculer_poids_deload(weights: dict, exercices: list[str] = None,
 
 
 # ─────────────────────────────────────────────────────────────
-# SAUVEGARDE / CHARGEMENT ÉTAT DELOAD
+# DÉCHARGES VOLONTAIRES — source unique deload_periods (migration 080)
 # ─────────────────────────────────────────────────────────────
-
-def load_deload_state() -> dict:
-    return _db.get_deload_state()
-
-def save_deload_state(state: dict):
-    _db.set_deload_state(
-        active=state.get("active", False),
-        started_at=state.get("started_at"),
-        reason=state.get("reason"),
-        duration_days=state.get("duration_days"),
-        last_completed=state.get("last_completed"),
-    )
-
+# L'ancien état single-row deload_state est remplacé par un historique.
+# Toute la logique de "décharge active aujourd'hui ?" passe par
+# db.get_active_deload_period() (completed_at IS NULL).
 
 _fatigue_cache: dict = {}
 
@@ -236,10 +226,11 @@ def check_planned_deload() -> dict:
     """
     Check if a planned deload is due based on time elapsed since last deload.
     Returns {due: bool, weeks_since: float | None, weeks_target: int}.
+    "Dernière décharge" = row deload_periods la plus récente avec completed_at
+    renseigné.
     """
     from datetime import date
-    state = load_deload_state()
-    last_str = state.get("last_completed")
+    last_str = _db.get_last_completed_deload()
     weeks_target = _planned_deload_weeks()
     if not last_str:
         return {"due": False, "weeks_since": None, "weeks_target": weeks_target}
@@ -256,21 +247,18 @@ def check_planned_deload() -> dict:
 
 
 def activer_deload(reason: str, duration_days: int = 7, started_at: str | None = None):
-    save_deload_state({
-        "active":        True,
-        "started_at":    started_at or _today_mtl(),
-        "reason":        reason,
-        "duration_days": duration_days,
-    })
+    """Insère une nouvelle période (completed_at NULL). L'index partiel
+    sur (completed_at IS NULL) rejette toute activation si une est déjà en cours."""
+    _db.insert_deload_period(
+        started_at=started_at or _today_mtl(),
+        duration_days=duration_days,
+        reason=reason,
+    )
 
 
 def desactiver_deload():
-    save_deload_state({
-        "active":         False,
-        "started_at":     None,
-        "reason":         None,
-        "last_completed": _today_mtl(),
-    })
+    """Clôt la période active (completed_at = today). No-op si aucune en cours."""
+    _db.complete_active_deload_period(completed_at=_today_mtl())
 
 
 # ─────────────────────────────────────────────────────────────
@@ -579,7 +567,8 @@ def analyser_deload(weights: dict) -> dict:
     fatigue_diag = diagnose_fatigue_type(weights)
     drops        = detect_performance_drop(weights)
     planned      = check_planned_deload()
-    state        = load_deload_state()
+    active       = _db.get_active_deload_period() or {}
+    deload_actif = bool(active)
 
     # ── ACWR EWMA (Gabbett 2016, Williams et al. 2017) ──────────────────────
     acwr_ratio = 0.0
@@ -617,9 +606,9 @@ def analyser_deload(weights: dict) -> dict:
     prescription = calculer_poids_deload(weights, deload_targets, fatigue_type=fatigue_type) if recommande else {}
 
     rapport = {
-        "deload_actif":          state["active"],
-        "deload_since":          state.get("since"),
-        "deload_reason":         state.get("reason"),
+        "deload_actif":          deload_actif,
+        "deload_since":          active.get("started_at"),
+        "deload_reason":         active.get("reason"),
         "stagnants":             stagnant_names,
         "performance_drops":     drop_names,
         "fatigue_rpe":           fatigue["fatigue"],

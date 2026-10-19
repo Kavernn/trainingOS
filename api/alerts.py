@@ -392,8 +392,8 @@ def get_all_alerts() -> list[dict]:
 
         # Supprimer les alertes de fatigue si une décharge volontaire est active
         try:
-            from deload import load_deload_state
-            if load_deload_state().get("active"):
+            import db as _db
+            if _db.get_active_deload_period() is not None:
                 alerts = [a for a in alerts if a.get("id") != "high_rpe_streak"]
         except Exception:
             pass

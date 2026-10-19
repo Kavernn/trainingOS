@@ -519,23 +519,27 @@ def delete_meal_template(template_id: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Deload state
+# Deload periods — historique des décharges volontaires (migration 080)
 # ---------------------------------------------------------------------------
+# Remplace deload_state (single-row). Chaque décharge = une ligne.
+# Fenêtre effective : [started_at, COALESCE(completed_at, scheduled_end)].
+# Décharge active = completed_at IS NULL (unique via index partiel).
 
-def get_deload_state() -> dict:
-    """Return the current deload state (single row)."""
+def get_active_deload_period() -> Optional[dict]:
+    """Return the active deload row (completed_at IS NULL) or None."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
-        return {"active": False, "started_at": None, "reason": None}
+        return None
 
-    def _do() -> dict:
+    def _do() -> Optional[dict]:
         resp = (
-            db_core._client.table("deload_state")
+            db_core._client.table("deload_periods")
             .select("*")
-            .eq("id", 1)
-            .single()
+            .is_("completed_at", "null")
+            .limit(1)
             .execute()
         )
-        return resp.data or {"active": False, "started_at": None, "reason": None}
+        rows = resp.data or []
+        return rows[0] if rows else None
 
     try:
         return _do()
@@ -544,37 +548,121 @@ def get_deload_state() -> dict:
             try:
                 return _do()
             except Exception as e2:
-                db_core.logger.error("get_deload_state retry error: %s", e2)
-                return {"active": False}
-        db_core.logger.error("get_deload_state error: %s", e)
-        return {"active": False}
+                db_core.logger.error("get_active_deload_period retry error: %s", e2)
+                return None
+        db_core.logger.error("get_active_deload_period error: %s", e)
+        return None
 
 
-def set_deload_state(
-    active: bool,
-    started_at: Optional[str] = None,
-    reason: Optional[str] = None,
-    duration_days: Optional[int] = None,
-    last_completed: Optional[str] = None,
+def get_deload_periods() -> List[dict]:
+    """Return all deload periods (oldest first).
+    Caller caches per-request — see analytics_adapter._get_periods_cached."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            db_core._client.table("deload_periods")
+            .select("*")
+            .order("started_at", desc=False)
+            .execute()
+        )
+        return list(resp.data or [])
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_deload_periods retry error: %s", e2)
+                return []
+        db_core.logger.error("get_deload_periods error: %s", e)
+        return []
+
+
+def get_last_completed_deload() -> Optional[str]:
+    """ISO date (YYYY-MM-DD) of the most recent completed_at, or None.
+    Replaces deload_state.last_completed read."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return None
+
+    def _do() -> Optional[str]:
+        resp = (
+            db_core._client.table("deload_periods")
+            .select("completed_at")
+            .not_.is_("completed_at", "null")
+            .order("completed_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = resp.data or []
+        return str(rows[0]["completed_at"])[:10] if rows else None
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_last_completed_deload retry error: %s", e2)
+                return None
+        db_core.logger.error("get_last_completed_deload error: %s", e)
+        return None
+
+
+def insert_deload_period(
+    started_at: str,
+    duration_days: int,
+    reason: Optional[str],
 ) -> bool:
-    """Set the deload state row. Creates it if not yet present."""
-    payload: dict = {"id": 1, "active": active}
-    if started_at is not None:
-        payload["started_at"] = started_at
-    if reason is not None:
-        payload["reason"] = reason
-    if duration_days is not None:
-        payload["duration_days"] = duration_days
-    if last_completed is not None:
-        payload["last_completed"] = last_completed
+    """Insert a new deload period (completed_at NULL = active).
+    scheduled_end = started_at + duration_days.
+    The unique index on (completed_at IS NULL) rejects a second active period."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+    from datetime import date as _date, timedelta as _td
+    try:
+        start = _date.fromisoformat(str(started_at)[:10])
+    except Exception:
+        db_core.logger.error("insert_deload_period: bad started_at=%r", started_at)
+        return False
+    payload = {
+        "started_at":    start.isoformat(),
+        "scheduled_end": (start + _td(days=int(duration_days))).isoformat(),
+        "reason":        reason,
+        "duration_days": int(duration_days),
+    }
 
+    def _do() -> bool:
+        resp = db_core._client.table("deload_periods").insert(payload).execute()
+        return bool(resp.data)
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("insert_deload_period retry error: %s", e2)
+                return False
+        db_core.logger.error("insert_deload_period error: %s", e)
+        return False
+
+
+def complete_active_deload_period(completed_at: str) -> bool:
+    """Set completed_at on the row where completed_at IS NULL. No-op if none."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
 
     def _do() -> bool:
         resp = (
-            db_core._client.table("deload_state")
-            .upsert(payload, on_conflict="id")
+            db_core._client.table("deload_periods")
+            .update({"completed_at": completed_at})
+            .is_("completed_at", "null")
             .execute()
         )
         return bool(resp.data)
@@ -586,7 +674,7 @@ def set_deload_state(
             try:
                 return _do()
             except Exception as e2:
-                db_core.logger.error("set_deload_state retry error: %s", e2)
+                db_core.logger.error("complete_active_deload_period retry error: %s", e2)
                 return False
-        db_core.logger.error("set_deload_state error: %s", e)
+        db_core.logger.error("complete_active_deload_period error: %s", e)
         return False

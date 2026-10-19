@@ -175,19 +175,19 @@ def _status_counts(comparisons: tuple[ProgressionComparison, ...]) -> Progressio
     )
 
 
-def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, cycle_start_date: date | None = None) -> CockpitAnalyticsResponse:
-    """Fetch once, adapt once, and assemble all canonical cockpit facts."""
-    if cycle_start_date is not None and type(cycle_start_date) is not date:
-        raise TypeError("cycle_start_date must be a date")
+def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig) -> CockpitAnalyticsResponse:
+    """Fetch once, adapt once, and assemble all canonical cockpit facts.
+    Décharges volontaires : source unique deload_periods (migration 080).
+    Plus de cycle_start_date — l'exclusion deload passe par is_deload_day()."""
     raw_rows = fetch_raw_analytics_rows(client, period=config.raw_period)
-    adapted = adapt_analytics_rows(raw_rows, period=config.raw_period, cycle_start_date=cycle_start_date)
+    adapted = adapt_analytics_rows(raw_rows, period=config.raw_period)
     windows = config.progression_windows
     comparisons = tuple(compare_progression(adapted.strength_exposures, today=config.as_of, days=config.progression_days))
     movers = tuple(top_movers(comparisons))
     movers_series = movers_e1rm_series(adapted.strength_exposures, movers, as_of=config.as_of)
     attention = tuple(no_recent_improvement(adapted.strength_exposures, observation_window=windows.recent, as_of=config.as_of))
     load_summary = summarize_training_load(adapted.training_load_exposures, period=config.weekly_period)
-    muscle_is_deload = (lambda day: is_deload_day(day, cycle_start_date)) if cycle_start_date else None
+    muscle_is_deload = lambda day: is_deload_day(day)
     muscle_summary = summarize_muscle_workload(
         adapted.training_load_exposures, adapted.assignments,
         period=config.muscle_period, is_deload=muscle_is_deload,
@@ -217,7 +217,7 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
             daily=tuple(daily_training_load(
                 adapted.training_load_exposures,
                 period=config.weekly_period,
-                is_deload=lambda day: is_deload_day(day, cycle_start_date),
+                is_deload=muscle_is_deload,
             )),
         ),
         muscles=CockpitMuscles(
@@ -225,7 +225,7 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig, *, c
             coverage=muscle_summary.coverage,
             workloads=muscle_summary.muscles,
             unmapped_exercises=unmapped_exercise_diagnostics(
-                raw_rows, period=config.muscle_period, cycle_start_date=cycle_start_date
+                raw_rows, period=config.muscle_period,
             ),
             previous_period=config.muscle_previous_period,
             previous_workloads=previous_summary.muscles if previous_summary else (),
