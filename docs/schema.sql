@@ -754,19 +754,37 @@ ALTER TABLE public.user_profile ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_all" ON public.user_profile FOR ALL TO anon USING (true) WITH CHECK (true);
 
 
--- === 37. deload_state ===
--- État du déload actif — table single-row
-CREATE TABLE IF NOT EXISTS deload_state (
-    id          INT     PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-    active      BOOLEAN DEFAULT FALSE,
-    started_at  DATE,
-    reason      TEXT
+-- === 37. deload_periods ===
+-- Historique des décharges volontaires (migration 080).
+-- Fenêtre effective : [started_at, COALESCE(completed_at, scheduled_end)].
+-- Active = completed_at IS NULL (unique via index partiel ci-dessous).
+-- Remplace l'ancienne table single-row deload_state (droppée migration 081).
+CREATE TABLE IF NOT EXISTS deload_periods (
+    id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    started_at     DATE        NOT NULL,
+    scheduled_end  DATE        NOT NULL,
+    completed_at   DATE,
+    reason         TEXT,
+    duration_days  INT         NOT NULL CHECK (duration_days BETWEEN 1 AND 21),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (scheduled_end >= started_at),
+    CHECK (completed_at IS NULL OR completed_at >= started_at)
 );
 
-INSERT INTO deload_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+-- Une seule décharge active à la fois.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_deload_periods_single_active
+    ON public.deload_periods (completed_at)
+    WHERE completed_at IS NULL;
 
-ALTER TABLE public.deload_state ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon_all" ON public.deload_state FOR ALL TO anon USING (true) WITH CHECK (true);
+-- Lookups par date (prédicat is_deload_day — analytics_adapter.py).
+CREATE INDEX IF NOT EXISTS idx_deload_periods_window
+    ON public.deload_periods (started_at, scheduled_end, completed_at);
+
+ALTER TABLE public.deload_periods ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_all" ON public.deload_periods
+    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "service_role_all" ON public.deload_periods
+    FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 
 -- =============================================================================
