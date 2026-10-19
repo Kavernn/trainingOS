@@ -332,34 +332,66 @@ def _compute_signature_lifts(history: dict) -> list:
 
 # ── 6. Muscle Dominants ───────────────────────────────────────────────────────
 
-def _compute_muscle_dominants(history: dict, ex_info: dict, period_days: int = 90) -> list:
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
-    muscle_sets: dict[str, int] = {}
+# Seuil générique DNA : chaque section (PPL, Intensité, Muscles, Patterns,
+# Espacement) nécessite ≥ MIN_SESSIONS_PER_SECTION séances distinctes dans
+# la fenêtre pour exposer des stats. Sous ce seuil, insufficient_data=True.
+MIN_SESSIONS_PER_SECTION = 8
 
-    for name, entries in history.items():
-        info = ex_info.get(name, {})
-        # Prefer new enriched catalog fields; fall back to legacy muscles[]
-        muscle_group    = (info.get("muscle_group") or "").strip()
-        muscle_specific = (info.get("muscle_specific") or "").strip()
-        if muscle_group and muscle_specific:
-            muscles = [muscle_specific]           # precise: e.g. "Pectoraux claviculaires"
-        elif muscle_group:
-            muscles = [muscle_group]              # group-level: e.g. "Pectoraux"
-        else:
-            muscles = info.get("muscles") or []   # legacy fallback: e.g. ["chest"]
-        if not muscles:
+
+def _compute_muscle_dominants(client, period_days: int = 90) -> tuple[list, dict]:
+    """Via summarize_muscle_workload — source canonique partagée avec le cockpit.
+
+    Retourne (muscles_list, meta) :
+      - muscles_list : [{muscle, sets (legacy int), effective_sets (float), pct (int)}]
+        trié par effective_sets desc, top 6.
+      - meta : {n_sessions, insufficient_data}.
+
+    effective_sets = direct + 0,5 × indirect (séries effectives Schoenfeld).
+    Fusion canonique via _canonical_muscle_value (déjà appliquée par
+    adapt_analytics_rows). Décharge exclue via is_deload_day. pct normalisé
+    sur l'ensemble des muscles de la fenêtre, pas sur le top-6, pour un
+    pourcentage honnête du volume total.
+    """
+    from analytics_adapter import fetch_raw_analytics_rows, adapt_analytics_rows, is_deload_day
+    from metric_semantics import DateWindow
+    from muscle_workload_analytics import summarize_muscle_workload, INDIRECT_SET_COEFFICIENT
+
+    today = date_cls.fromisoformat(_today_mtl())
+    period = DateWindow(today - timedelta(days=period_days - 1), today)
+
+    raw_rows = fetch_raw_analytics_rows(client, period=period)
+    adapted = adapt_analytics_rows(raw_rows, period=period)
+    summary = summarize_muscle_workload(
+        adapted.training_load_exposures,
+        adapted.assignments,
+        period=period,
+        is_deload=lambda d: is_deload_day(d),
+    )
+
+    n_sessions = len({e.session_id for e in adapted.training_load_exposures})
+    if n_sessions < MIN_SESSIONS_PER_SECTION:
+        return [], {"n_sessions": n_sessions, "insufficient_data": True}
+
+    scored: list[tuple[str, float]] = []
+    for m in summary.muscles:
+        effective = m.direct_set_count + INDIRECT_SET_COEFFICIENT * m.indirect_set_count
+        if effective <= 0:
             continue
-        for e in entries:
-            if (e.get("date") or "") < cutoff:
-                continue
-            sets_list = e.get("sets")
-            n_sets = len(sets_list) if isinstance(sets_list, list) else 1
-            for muscle in muscles:
-                muscle_sets[muscle] = muscle_sets.get(muscle, 0) + n_sets
+        scored.append((m.muscle, effective))
 
-    total  = sum(muscle_sets.values()) or 1
-    ranked = sorted(muscle_sets.items(), key=lambda x: x[1], reverse=True)[:6]
-    return [{"muscle": m, "sets": s, "pct": round(s / total * 100)} for m, s in ranked]
+    scored.sort(key=lambda t: t[1], reverse=True)
+    total_all = sum(e for _, e in scored) or 1.0
+    top = scored[:6]
+    muscles_list = [
+        {
+            "muscle":         name,
+            "sets":           round(effective),       # legacy int — à retirer étape a3
+            "effective_sets": round(effective, 1),
+            "pct":            round(effective / total_all * 100),
+        }
+        for name, effective in top
+    ]
+    return muscles_list, {"n_sessions": n_sessions, "insufficient_data": False}
 
 
 # ── 7. Movement Patterns ─────────────────────────────────────────────────────
@@ -504,31 +536,32 @@ def compute(period_days: int = 90) -> dict:
         history  = db.get_all_exercise_history(full_history=True)
         ex_info  = db.get_exercises_info_bulk(list(history.keys()))
 
-        ppl               = _compute_ppl(history, ex_info, period_days)
-        intensity         = _compute_intensity(history, ex_info, period_days)
-        consistency       = _compute_consistency(period_days)
-        recovery          = _compute_recovery(intensity.get("score", 50), period_days)
-        lifts             = _compute_signature_lifts(history)
-        muscle_dominants  = _compute_muscle_dominants(history, ex_info, period_days)
-        movement_patterns = _compute_movement_patterns(history, ex_info, period_days)
+        ppl                = _compute_ppl(history, ex_info, period_days)
+        intensity          = _compute_intensity(history, ex_info, period_days)
+        consistency        = _compute_consistency(period_days)
+        recovery           = _compute_recovery(intensity.get("score", 50), period_days)
+        lifts              = _compute_signature_lifts(history)
+        muscle_dominants, muscle_dominants_meta = _compute_muscle_dominants(db._client, period_days)
+        movement_patterns  = _compute_movement_patterns(history, ex_info, period_days)
         intensity_timeline = _compute_intensity_timeline(history)
-        arch              = _archetype(ppl, intensity, consistency)
-        seed              = _dna_seed(ppl, intensity, consistency, recovery)
+        arch               = _archetype(ppl, intensity, consistency)
+        seed               = _dna_seed(ppl, intensity, consistency, recovery)
 
         result = {
-            "period":             {"from": (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat(),
-                                   "to":   date_cls.fromisoformat(_today_mtl()).isoformat()},
-            "archetype":          arch,
-            "ppl":                ppl,
-            "intensity":          intensity,
-            "consistency":        consistency,
-            "recovery":           recovery,
-            "signature_lifts":    lifts,
-            "muscle_dominants":   muscle_dominants,
-            "movement_patterns":  movement_patterns,
-            "intensity_timeline": intensity_timeline,
-            "dna_seed":           seed,
-            "computed_at":        datetime.now(timezone.utc).isoformat(),
+            "period":                 {"from": (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat(),
+                                       "to":   date_cls.fromisoformat(_today_mtl()).isoformat()},
+            "archetype":              arch,
+            "ppl":                    ppl,
+            "intensity":              intensity,
+            "consistency":            consistency,
+            "recovery":               recovery,
+            "signature_lifts":        lifts,
+            "muscle_dominants":       muscle_dominants,
+            "muscle_dominants_meta":  muscle_dominants_meta,
+            "movement_patterns":      movement_patterns,
+            "intensity_timeline":     intensity_timeline,
+            "dna_seed":               seed,
+            "computed_at":            datetime.now(timezone.utc).isoformat(),
         }
         _CACHE[cache_key] = {"data": result, "ts": now_ts}
         return result
