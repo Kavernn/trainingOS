@@ -300,29 +300,100 @@ struct SelfCareHeatStrip: View {
 }
 
 // MARK: - PSS History View
+// Mini-courbe PSS-10 sur les 12 derniers mois. Bandes de fond PSS-10 :
+// 0-13 bas (success), 14-26 modéré (warning), 27-40 élevé (danger).
+// Plus bas = mieux. Filtre type == "full" pour garder une échelle cohérente
+// (le PSS-4 — maxScore 16 — ne partage pas les mêmes seuils de catégorie).
 struct PSSHistoryView: View {
     let records: [PSSRecord]
 
+    private static let scaleMax: Double = 40          // PSS-10 total
+    private static let bandLowUpper: Double = 13      // 0-13 bas
+    private static let bandModerateUpper: Double = 26 // 14-26 modéré ; 27-40 élevé
+    private static let windowDays: Int = 365
+
+    private var points: [PSSRecord] {
+        let cutoff = DateFormatter.isoDate.string(
+            from: Calendar.mtl.date(byAdding: .day, value: -Self.windowDays, to: Date()) ?? Date()
+        )
+        return records
+            .filter { $0.type == "full" && String($0.date.prefix(10)) >= cutoff }
+            .sorted { $0.date < $1.date }
+    }
+
     var body: some View {
+        let pts = points
         VStack(alignment: .leading, spacing: 12) {
-            Text("HISTORIQUE — STRESS PERÇU")
-                .font(.appMicro).tracking(2).foregroundColor(.gray)
-            ForEach(Array(records.prefix(5)), id: \.id) { rec in
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(rec.categoryLabel).font(.appCaption.weight(.bold)).foregroundColor(pssColor(rec.category))
-                        Text(rec.date.prefix(10)).font(.appMicro).foregroundColor(.gray)
-                    }
-                    Spacer()
-                    Text("\(rec.score)/\(rec.maxScore)")
-                        .font(.appBody.weight(.black)).foregroundColor(pssColor(rec.category))
-                    GeometryReader { geo in
-                        RoundedRectangle(cornerRadius: 3) // shape inline
-                            .fill(pssColor(rec.category).opacity(0.3))
-                            .frame(width: geo.size.width * CGFloat(rec.score) / CGFloat(rec.maxScore), height: 8)
-                    }
-                    .frame(width: 60, height: 8)
+            HStack {
+                Text("STRESS PERÇU — 12 MOIS")
+                    .font(.appMicro).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let latest = pts.last {
+                    Text("\(latest.score)/40")
+                        .font(.appCaption.weight(.bold))
+                        .foregroundColor(pssColor(latest.category))
                 }
+            }
+
+            if pts.count < 2 {
+                Text(pts.isEmpty
+                     ? "Aucun PSS-10 enregistré sur les 12 derniers mois."
+                     : "Un seul PSS-10 (n = 1) — courbe disponible dès 2 enregistrements.")
+                    .font(.appCaption).foregroundColor(.gray.opacity(0.7))
+                    .frame(height: 110, alignment: .center)
+                    .frame(maxWidth: .infinity)
+            } else {
+                GeometryReader { geo in
+                    ZStack {
+                        // Bandes de fond PSS-10 (bas = vert, modéré = orange, élevé = rouge).
+                        let lowH = geo.size.height * CGFloat(1 - Self.bandLowUpper / Self.scaleMax)
+                        let modH = geo.size.height * CGFloat(1 - Self.bandModerateUpper / Self.scaleMax)
+                        VStack(spacing: 0) {
+                            Rectangle().fill(Color.appDanger.opacity(0.10))
+                                .frame(height: modH)
+                            Rectangle().fill(Color.appWarning.opacity(0.10))
+                                .frame(height: lowH - modH)
+                            Rectangle().fill(Color.appSuccess.opacity(0.10))
+                                .frame(height: geo.size.height - lowH)
+                        }
+
+                        // Ligne reliant les scores dans le temps.
+                        let step = geo.size.width / CGFloat(max(pts.count - 1, 1))
+                        let xys: [CGPoint] = pts.enumerated().map { i, rec in
+                            let x = CGFloat(i) * step
+                            let y = geo.size.height * (1 - CGFloat(Double(rec.score) / Self.scaleMax))
+                            return CGPoint(x: x, y: y)
+                        }
+                        Path { p in
+                            xys.enumerated().forEach { i, pt in
+                                i == 0 ? p.move(to: pt) : p.addLine(to: pt)
+                            }
+                        }
+                        .stroke(Color.appOnSurface.opacity(0.6),
+                                style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+
+                        // Points colorés par catégorie.
+                        ForEach(Array(pts.enumerated()), id: \.element.id) { i, rec in
+                            Circle()
+                                .fill(pssColor(rec.category))
+                                .frame(width: 6, height: 6)
+                                .position(xys[i])
+                        }
+                    }
+                }
+                .frame(height: 110)
+
+                HStack(spacing: 12) {
+                    Label("Bas (0–13)", systemImage: "circle.fill")
+                        .font(.appMicro).foregroundColor(Color.appSuccess)
+                    Label("Modéré (14–26)", systemImage: "circle.fill")
+                        .font(.appMicro).foregroundColor(Color.appWarning)
+                    Label("Élevé (27–40)", systemImage: "circle.fill")
+                        .font(.appMicro).foregroundColor(Color.appDanger)
+                }
+
+                Text("\(pts.count) mesure\(pts.count > 1 ? "s" : "") PSS-10")
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.6))
             }
         }
         .padding(14)
