@@ -618,13 +618,7 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
-        // 6. Corrélation stress → cravings (War Room, conditionnel)
-        if warRoomStats?.warStartDate != nil {
-            StressCravingsInsightView(pssHistory: pssHistory, warRoomStats: warRoomStats)
-                .padding(.horizontal, 16)
-        }
-
-        // 7. Volume → douleurs musculaires
+        // 6. Volume → douleurs musculaires
         if sorenessScatter.count >= 5 {
             ScatterPlotView(
                 data: sorenessScatter,

@@ -647,41 +647,6 @@ struct BestDayOfWeekView: View {
     }
 }
 
-// MARK: - Stress → Cravings Insight (War Room)
-struct StressCravingsInsightView: View {
-    let pssHistory: [PSSRecord]
-    let warRoomStats: WarRoomSummaryStats?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.shield.fill")
-                    .foregroundColor(Color.forge).font(.appCaption)
-                Text("STRESS → DÉCLENCHEURS")
-                    .font(.appMicro).tracking(2).foregroundColor(.gray)
-            }
-            Text(insightText)
-                .font(.appLabel.weight(.semibold))
-                .foregroundColor(Color.appOnSurface.opacity(0.85))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(16).glassCard()
-    }
-
-    private var insightText: String {
-        guard pssHistory.count >= 3 else {
-            return "Continue à logger ton stress — cette stat s'active après quelques enregistrements."
-        }
-        let scores = pssHistory.compactMap { $0.score }
-        let median = scores.sorted()[scores.count / 2]
-        let highStress = pssHistory.filter { ($0.score ?? 0) > median }
-        if highStress.isEmpty {
-            return "Pas encore assez de données pour détecter un pattern stress → déclencheurs."
-        }
-        return "Tes niveaux de stress élevés (PSS > \(median)) coïncident souvent avec tes journées les plus difficiles. Reste vigilant."
-    }
-}
-
 // MARK: - Sleep Debt Card
 struct SleepDebtCard: View {
     let recovery: [RecoveryEntry]
