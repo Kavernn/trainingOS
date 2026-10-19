@@ -757,7 +757,7 @@ struct DeloadStatus: Codable {
     let endsAt:        String?
     let reason:        String?
     let daysRemaining: Int?
-    let durationDays:  Int
+    let durationDays:  Int?
     let lastCompleted: String?
 
     enum CodingKeys: String, CodingKey {
