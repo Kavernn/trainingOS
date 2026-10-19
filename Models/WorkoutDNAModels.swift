@@ -80,18 +80,36 @@ struct DNAConsistency: Codable {
     let sessionsPerWeek: Double
     let cv: Double
     let archetype: String
-    let currentStreak: Int
-    let longestStreak: Int
+    let currentStreak: Int          // journalier legacy — à retirer avec le backend 7c
+    let longestStreak: Int          // journalier legacy — à retirer avec le backend 7c
+    let weeklyStreakCurrent: Int    // source unique : /api/stats/streaks (backend 7a)
+    let weeklyStreakBest: Int       // record historique weekly ISO
     let activeWeeksPct: Int
     let weeklyCounts: [Int]
 
     enum CodingKeys: String, CodingKey {
         case score, cv, archetype
-        case sessionsPerWeek = "sessions_per_week"
-        case currentStreak   = "current_streak"
-        case longestStreak   = "longest_streak"
-        case activeWeeksPct  = "active_weeks_pct"
-        case weeklyCounts    = "weekly_counts"
+        case sessionsPerWeek      = "sessions_per_week"
+        case currentStreak        = "current_streak"
+        case longestStreak        = "longest_streak"
+        case weeklyStreakCurrent  = "weekly_streak_current"
+        case weeklyStreakBest     = "weekly_streak_best"
+        case activeWeeksPct       = "active_weeks_pct"
+        case weeklyCounts         = "weekly_counts"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        score               = try c.decode(Int.self, forKey: .score)
+        sessionsPerWeek     = try c.decode(Double.self, forKey: .sessionsPerWeek)
+        cv                  = try c.decode(Double.self, forKey: .cv)
+        archetype           = try c.decode(String.self, forKey: .archetype)
+        currentStreak       = (try? c.decode(Int.self, forKey: .currentStreak)) ?? 0
+        longestStreak       = (try? c.decode(Int.self, forKey: .longestStreak)) ?? 0
+        weeklyStreakCurrent = (try? c.decode(Int.self, forKey: .weeklyStreakCurrent)) ?? 0
+        weeklyStreakBest    = (try? c.decode(Int.self, forKey: .weeklyStreakBest))    ?? 0
+        activeWeeksPct      = try c.decode(Int.self, forKey: .activeWeeksPct)
+        weeklyCounts        = try c.decode([Int].self, forKey: .weeklyCounts)
     }
 }
 

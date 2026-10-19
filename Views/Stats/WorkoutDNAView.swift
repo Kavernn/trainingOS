@@ -250,8 +250,8 @@ private struct WorkoutDNAInlineContent: View {
                 ConsistencyGrid(counts: dna.consistency.weeklyCounts, accent: accent)
                 HStack(spacing: 16) {
                     ConsistencyStat(label: "par semaine",   value: String(format: "%.1f", dna.consistency.sessionsPerWeek))
-                    ConsistencyStat(label: "streak actuel", value: "\(dna.consistency.currentStreak)j")
-                    ConsistencyStat(label: "record",        value: "\(dna.consistency.longestStreak)j")
+                    ConsistencyStat(label: "streak actuel", value: "\(dna.consistency.weeklyStreakCurrent) sem")
+                    ConsistencyStat(label: "record",        value: "\(dna.consistency.weeklyStreakBest) sem")
                 }
                 HStack {
                     Text(dna.consistency.archetype)
