@@ -646,7 +646,7 @@ extension StatsView {
 
         // 3c. Profil de récupération (RPE 8+ → jours avant soreness < 3)
         if let rp = recoveryProfile {
-            RecoveryProfileCard(avgDays: rp.avgDays, sampleSize: rp.sampleSize)
+            RecoveryProfileCard(profile: rp)
                 .padding(.horizontal, 16)
         }
 

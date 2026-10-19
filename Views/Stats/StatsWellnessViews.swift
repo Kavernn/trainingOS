@@ -850,46 +850,94 @@ struct SleepDebtCard: View {
     }
 }
 
+// MARK: - Recovery Profile
+// Un profil de récupération par séance RPE ≥ 7.5 : nombre de jours
+// avant un log soreness < 3 (recherche fenêtre 21 j). Les épisodes non
+// résolus dans ce délai sont comptés à part — ils n'alimentent PAS la
+// médiane (on ne connaît pas la vraie durée).
+struct RecoveryProfile {
+    struct Stats {
+        let medianDays: Double
+        let p25Days: Double
+        let p75Days: Double
+    }
+    let stats: Stats?        // nil tant que resolvedCount < 5
+    let resolvedCount: Int
+    let unresolvedCount: Int
+}
+
 // MARK: - Recovery Profile Card
 struct RecoveryProfileCard: View {
-    let avgDays: Double
-    let sampleSize: Int
+    let profile: RecoveryProfile
 
     private var profileColor: Color {
-        if avgDays <= 1.5 { return Color.appSuccess }
-        if avgDays <= 3.0 { return Color.appWarning }
+        guard let s = profile.stats else { return .gray }
+        if s.medianDays <= 1.5 { return Color.appSuccess }
+        if s.medianDays <= 3.0 { return Color.appWarning }
         return Color.appDanger
     }
 
-    private var insightText: String {
-        if avgDays <= 1.5 { return "Tu récupères vite. Tu peux enchaîner les séances lourdes à \(Int(round(avgDays))) jour d'intervalle." }
-        if avgDays <= 3.0 { return "Récupération standard. Prévois \(Int(round(avgDays))) jours entre deux séances à RPE 8+." }
-        return "Récupération lente. Espace tes séances lourdes d'au moins \(Int(round(avgDays))) jours pour éviter de cumuler la fatigue."
+    private var insightText: String? {
+        guard let s = profile.stats else { return nil }
+        let m = Int(round(s.medianDays))
+        if s.medianDays <= 1.5 { return "Tu récupères vite. Tu peux enchaîner les séances lourdes à \(m) jour d'intervalle." }
+        if s.medianDays <= 3.0 { return "Récupération standard. Prévois \(m) jours entre deux séances à RPE 8+." }
+        return "Récupération lente. Espace tes séances lourdes d'au moins \(m) jours pour éviter de cumuler la fatigue."
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("PROFIL DE RÉCUPÉRATION")
                 .font(.appMicro).tracking(2).foregroundColor(.gray)
-            HStack(alignment: .bottom, spacing: 8) {
-                Text(String(format: "%.1f", avgDays))
-                    .font(.appHero.weight(.black)).foregroundColor(profileColor)
-                Text("jours")
-                    .font(.appBody.weight(.medium)).foregroundColor(.gray)
-                    .padding(.bottom, 8)
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("après RPE 8+").font(.appCaption).foregroundColor(.gray)
-                    Text("pour soreness < 3").font(.appCaption).foregroundColor(.gray)
-                    Text("(\(sampleSize) séances)").font(.appMicro).foregroundColor(.gray.opacity(0.6))
+
+            if let s = profile.stats {
+                HStack(alignment: .bottom, spacing: 8) {
+                    Text(String(format: "%.1f", s.medianDays))
+                        .font(.appHero.weight(.black)).foregroundColor(profileColor)
+                    Text("j · médiane")
+                        .font(.appBody.weight(.medium)).foregroundColor(.gray)
+                        .padding(.bottom, 8)
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("après RPE 8+").font(.appCaption).foregroundColor(.gray)
+                        Text("pour soreness < 3").font(.appCaption).foregroundColor(.gray)
+                    }
+                }
+                HStack(spacing: 10) {
+                    Text("IQR \(fmt(s.p25Days))—\(fmt(s.p75Days)) j")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(Color.appTextSecondary)
+                    Spacer()
+                    Text("n = \(profile.resolvedCount)")
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.6))
+                }
+                if profile.unresolvedCount > 0 {
+                    Text("\(profile.unresolvedCount) épisode\(profile.unresolvedCount > 1 ? "s" : "") sans retour sous 3 (fenêtre 21 j)")
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.7))
+                }
+                Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
+                if let msg = insightText {
+                    Text(msg)
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(Color.appOnSurface.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                // Garde-fou n < 5 : pas de médiane, on reste honnête.
+                Text("Pas assez de données (n = \(profile.resolvedCount))")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(Color.appTextSecondary)
+                if profile.unresolvedCount > 0 {
+                    Text("\(profile.unresolvedCount) épisode\(profile.unresolvedCount > 1 ? "s" : "") RPE 8+ sans retour soreness < 3 observé (fenêtre 21 j).")
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Rectangle().fill(Color.appSurfaceInset).frame(height: 0.5)
-            Text(insightText)
-                .font(.appCaption.weight(.semibold))
-                .foregroundColor(Color.appOnSurface.opacity(0.8))
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16).glassCard()
+    }
+
+    private func fmt(_ d: Double) -> String {
+        String(format: "%.1f", d)
     }
 }

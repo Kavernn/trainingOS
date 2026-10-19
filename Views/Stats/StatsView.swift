@@ -233,23 +233,73 @@ struct StatsView: View {
     func weekBounds(weeksAgo: Int) -> (String, String) { Date().isoWeekBounds(weeksAgo: weeksAgo) }
 
     // ── Recovery Profile ──────────────────────────────────────────────
-    var recoveryProfile: (avgDays: Double, sampleSize: Int)? {
+    // Pour chaque séance RPE ≥ 7.5, cherche la première recovery entry dans
+    // les 21 jours suivants avec soreness < 3.
+    //   - trouvée → jour comptabilisé dans `resolved` (vraie durée, pas de
+    //     plafond artificiel à 10 ou 21 : la valeur entre telle quelle dans
+    //     la médiane et l'IQR).
+    //   - pas trouvée dans 21 jours → épisode `unresolved` (compté à part,
+    //     n'alimente pas la médiane — on ne sait pas quand ça s'est résolu).
+    // Garde-fou médiane : minimum 5 épisodes résolus.
+    var recoveryProfile: RecoveryProfile? {
         let heavy = sessions.filter { ($0.value.rpe ?? 0) >= 7.5 }
         guard !heavy.isEmpty else { return nil }
         let sortedRec = filteredRecovery.sorted { ($0.date ?? "") < ($1.date ?? "") }
-        var days: [Int] = []
+
+        var resolved: [Int] = []
+        var unresolved = 0
+
         for (sessionDate, _) in heavy {
-            let after = sortedRec.filter { ($0.date ?? "") > sessionDate }
-            guard let recovered = after.first(where: { ($0.soreness ?? 10) < 3 }),
-                  let rd = recovered.date,
-                  let sd = DateFormatter.isoDate.date(from: sessionDate),
-                  let recovDate = DateFormatter.isoDate.date(from: rd) else { continue }
-            let d = Int(recovDate.timeIntervalSince(sd) / 86400)
-            if d > 0 && d <= 10 { days.append(d) }
+            guard let sd = DateFormatter.isoDate.date(from: sessionDate) else { continue }
+            let cutoff = Calendar.mtl.date(byAdding: .day, value: Self.recoverySearchDays, to: sd) ?? sd
+            var found = false
+            for entry in sortedRec {
+                guard let rdStr = entry.date,
+                      let rd = DateFormatter.isoDate.date(from: rdStr),
+                      rd > sd else { continue }
+                if rd > cutoff { break }
+                if (entry.soreness ?? 10) < 3 {
+                    let d = Int(rd.timeIntervalSince(sd) / 86400)
+                    if d > 0 { resolved.append(d) }
+                    found = true
+                    break
+                }
+            }
+            if !found { unresolved += 1 }
         }
-        guard days.count >= 3 else { return nil }
-        let avg = Double(days.reduce(0, +)) / Double(days.count)
-        return (avg, days.count)
+
+        guard resolved.count + unresolved > 0 else { return nil }
+
+        let stats: RecoveryProfile.Stats?
+        if resolved.count >= Self.recoveryMinResolved {
+            let sorted = resolved.sorted()
+            stats = RecoveryProfile.Stats(
+                medianDays: percentile(sorted, 0.5),
+                p25Days:    percentile(sorted, 0.25),
+                p75Days:    percentile(sorted, 0.75),
+            )
+        } else {
+            stats = nil
+        }
+        return RecoveryProfile(
+            stats: stats,
+            resolvedCount: resolved.count,
+            unresolvedCount: unresolved,
+        )
+    }
+
+    private static let recoverySearchDays: Int = 21
+    private static let recoveryMinResolved: Int = 5
+
+    private func percentile(_ sorted: [Int], _ p: Double) -> Double {
+        guard !sorted.isEmpty else { return 0 }
+        if sorted.count == 1 { return Double(sorted[0]) }
+        let idx = Double(sorted.count - 1) * p
+        let lo = Int(idx.rounded(.down))
+        let hi = Int(idx.rounded(.up))
+        if lo == hi { return Double(sorted[lo]) }
+        let frac = idx - Double(lo)
+        return Double(sorted[lo]) + frac * Double(sorted[hi] - sorted[lo])
     }
 
     var tabAmbientColor: Color { .forge }
