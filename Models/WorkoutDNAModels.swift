@@ -36,44 +36,63 @@ struct DNAArchetype: Codable {
     let key: String
     let label: String
     let tagline: String
+    /// Backend lot f : `false` → piliers insuffisants ou en erreur, l'UI
+    /// doit afficher un empty state au lieu de l'archétype calculé.
+    /// Absent (nil) côté payload avant lot f → traité comme disponible.
+    let available: Bool?
 }
 
 struct DNAPPLBalance: Codable {
-    let pushPct: Int
-    let pullPct: Int
-    let legsPct: Int
-    let corePct: Int
-    let otherPct: Int
-    let balanceScore: Int
-    let verdict: String
+    // Valeurs présentes uniquement si insufficientData=false ET pas d'error.
+    let pushPct: Int?
+    let pullPct: Int?
+    let legsPct: Int?
+    let corePct: Int?
+    let otherPct: Int?
+    let balanceScore: Int?
+    let verdict: String?
+    // Meta — toujours présentes.
+    let insufficientData: Bool?
+    let nSessions: Int?
+    let error: String?
 
     enum CodingKeys: String, CodingKey {
         case verdict
-        case pushPct      = "push_pct"
-        case pullPct      = "pull_pct"
-        case legsPct      = "legs_pct"
-        case corePct      = "core_pct"
-        case otherPct     = "other_pct"
-        case balanceScore = "balance_score"
+        case pushPct          = "push_pct"
+        case pullPct          = "pull_pct"
+        case legsPct          = "legs_pct"
+        case corePct          = "core_pct"
+        case otherPct         = "other_pct"
+        case balanceScore     = "balance_score"
+        case insufficientData = "insufficient_data"
+        case nSessions        = "n_sessions"
+        case error
     }
 }
 
 struct DNAIntensity: Codable {
-    let score: Int
-    let label: String
-    let forcePct: Int
-    let hypertrophyPct: Int
-    let endurancePct: Int
-    let compoundPct: Int
-    let isolationPct: Int
+    let score: Int?
+    let label: String?
+    let forcePct: Int?
+    let hypertrophyPct: Int?
+    let endurancePct: Int?
+    let compoundPct: Int?
+    let isolationPct: Int?
+    let insufficientData: Bool?
+    let nSessions: Int?
+    let excludedNoLoadProfile: Int?
+    let error: String?
 
     enum CodingKeys: String, CodingKey {
-        case score, label
-        case forcePct       = "force_pct"
-        case hypertrophyPct = "hypertrophy_pct"
-        case endurancePct   = "endurance_pct"
-        case compoundPct    = "compound_pct"
-        case isolationPct   = "isolation_pct"
+        case score, label, error
+        case forcePct             = "force_pct"
+        case hypertrophyPct       = "hypertrophy_pct"
+        case endurancePct         = "endurance_pct"
+        case compoundPct          = "compound_pct"
+        case isolationPct         = "isolation_pct"
+        case insufficientData     = "insufficient_data"
+        case nSessions            = "n_sessions"
+        case excludedNoLoadProfile = "excluded_no_load_profile"
     }
 }
 
@@ -145,13 +164,19 @@ struct DNAMovementPatterns: Codable {
     let ratios: DNAPatternRatios
     let diversityScore: Int
     let totalSets: Int?
+    let insufficientData: Bool?
+    let nSessions: Int?
+    let excludedNoPattern: Int?
+    let error: String?
 
     enum CodingKeys: String, CodingKey {
-        case patterns
-        case hasData        = "has_data"
-        case ratios
-        case diversityScore = "diversity_score"
-        case totalSets      = "total_sets"
+        case patterns, ratios, error
+        case hasData           = "has_data"
+        case diversityScore    = "diversity_score"
+        case totalSets         = "total_sets"
+        case insufficientData  = "insufficient_data"
+        case nSessions         = "n_sessions"
+        case excludedNoPattern = "excluded_no_pattern"
     }
 }
 

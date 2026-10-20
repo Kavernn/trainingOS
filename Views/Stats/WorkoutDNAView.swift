@@ -5,19 +5,23 @@ import SwiftUI
 private func archetypeAccent(_ key: String) -> Color { .forge }
 
 private func pplDominantColor(_ ppl: DNAPPLBalance) -> Color {
-    if ppl.pushPct >= ppl.pullPct && ppl.pushPct >= ppl.legsPct {
+    guard let push = ppl.pushPct, let pull = ppl.pullPct, let legs = ppl.legsPct else {
+        return .forge
+    }
+    if push >= pull && push >= legs {
         return Color(red: 0.98, green: 0.45, blue: 0.10)  // orange – push
     }
-    if ppl.pullPct >= ppl.pushPct && ppl.pullPct >= ppl.legsPct {
+    if pull >= push && pull >= legs {
         return Color(red: 0.20, green: 0.70, blue: 0.98)  // cyan – pull
     }
     return Color(red: 0.95, green: 0.80, blue: 0.10)       // yellow – legs
 }
 
-private func intensityColor(_ score: Int) -> Color {
-    if score >= 65 { return Color(red: 0.31, green: 0.43, blue: 0.97) }  // blue – force
-    if score >= 40 { return Color(red: 0.60, green: 0.30, blue: 0.97) }  // purple – mixed
-    return Color(red: 0.98, green: 0.50, blue: 0.10)                       // orange – pump
+private func intensityColor(_ score: Int?) -> Color {
+    guard let s = score else { return .forge }
+    if s >= 65 { return Color(red: 0.31, green: 0.43, blue: 0.97) }  // blue – force
+    if s >= 40 { return Color(red: 0.60, green: 0.30, blue: 0.97) }  // purple – mixed
+    return Color(red: 0.98, green: 0.50, blue: 0.10)                   // orange – pump
 }
 
 // MARK: - Section (embedded in StatsView)
@@ -103,11 +107,23 @@ private struct WorkoutDNAInlineContent: View {
 
     private var accent: Color { archetypeAccent(dna.archetype.key) }
 
-    private var scoreItems: [(String, Int)] {
+    private var scoreItems: [(String, Int?)] {
         [("Équilibre", dna.ppl.balanceScore),
          ("Intensité", dna.intensity.score),
          ("Constance", dna.consistency.score),
          ("Récup",     dna.recovery.score)]
+    }
+
+    private var archetypeAvailable: Bool {
+        dna.archetype.available ?? true   // nil = backend pré-lot f, assumer disponible
+    }
+
+    private var pplAvailable: Bool {
+        dna.ppl.insufficientData != true && dna.ppl.error == nil && dna.ppl.balanceScore != nil
+    }
+
+    private var intensityAvailable: Bool {
+        dna.intensity.insufficientData != true && dna.intensity.error == nil && dna.intensity.score != nil
     }
 
     var body: some View {
@@ -125,8 +141,19 @@ private struct WorkoutDNAInlineContent: View {
             } else if dna.muscleDominantsMeta?.insufficientData == true {
                 muscleDominantsInsufficientSection
             }
-            if let patterns = dna.movementPatterns, patterns.hasData {
-                movementPatternsSection(patterns)
+            if let patterns = dna.movementPatterns {
+                if patterns.hasData {
+                    movementPatternsSection(patterns)
+                } else if patterns.insufficientData == true || patterns.error != nil {
+                    insufficientSection(
+                        title: "PATTERNS DE MOUVEMENT",
+                        n: patterns.nSessions,
+                        err: patterns.error,
+                        hint: patterns.excludedNoPattern.flatMap {
+                            $0 > 0 ? "\($0) exo\($0 > 1 ? "s" : "") sans pattern catalogué" : nil
+                        }
+                    )
+                }
             }
             consistencySection
             recoverySection
@@ -139,12 +166,16 @@ private struct WorkoutDNAInlineContent: View {
 
     private var heroSection: some View {
         ZStack(alignment: .bottom) {
-            DNAHelixCanvas(dna: dna, height: 160)
-                .frame(maxWidth: .infinity, minHeight: 160, maxHeight: 160)
-                .accessibilityHidden(true)
-
-            LinearGradient(colors: [.clear, Color.appBg], startPoint: .top, endPoint: .bottom)
-                .frame(maxWidth: .infinity, maxHeight: 60)
+            if archetypeAvailable {
+                DNAHelixCanvas(dna: dna, height: 160)
+                    .frame(maxWidth: .infinity, minHeight: 160, maxHeight: 160)
+                    .accessibilityHidden(true)
+                LinearGradient(colors: [.clear, Color.appBg], startPoint: .top, endPoint: .bottom)
+                    .frame(maxWidth: .infinity, maxHeight: 60)
+            } else {
+                // Pas de helix fantôme sur des piliers absents.
+                Color.appBg.frame(maxWidth: .infinity, minHeight: 160, maxHeight: 160)
+            }
 
             VStack(spacing: 4) {
                 if isReloading {
@@ -175,43 +206,90 @@ private struct WorkoutDNAInlineContent: View {
         .padding(.horizontal, 16)
     }
 
+    @ViewBuilder
     private var pplSection: some View {
-        DNASectionCard(title: "RÉPARTITION", accent: accent) {
-            VStack(spacing: 12) {
-                PPLBalanceChart(ppl: dna.ppl, accent: accent)
-                HStack {
-                    Image(systemName: dna.ppl.balanceScore >= 70 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundColor(dna.ppl.balanceScore >= 70 ? .appSuccess : .appWarning)
-                        .font(.appLabel)
-                    Text(dna.ppl.verdict)
-                        .font(.appLabel)
-                        .foregroundColor(Color.appOnSurface.opacity(0.85))
-                    Spacer()
-                    Text("Score \(dna.ppl.balanceScore)/100")
-                        .font(.appCaption)
-                        .foregroundColor(.gray)
+        if pplAvailable {
+            DNASectionCard(title: "RÉPARTITION", accent: accent) {
+                VStack(spacing: 12) {
+                    PPLBalanceChart(ppl: dna.ppl, accent: accent)
+                    HStack {
+                        let bs = dna.ppl.balanceScore ?? 0
+                        Image(systemName: bs >= 70 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                            .foregroundColor(bs >= 70 ? .appSuccess : .appWarning)
+                            .font(.appLabel)
+                        Text(dna.ppl.verdict ?? "—")
+                            .font(.appLabel)
+                            .foregroundColor(Color.appOnSurface.opacity(0.85))
+                        Spacer()
+                        Text("Score \(bs)/100")
+                            .font(.appCaption)
+                            .foregroundColor(.gray)
+                    }
                 }
             }
+        } else {
+            insufficientSection(title: "RÉPARTITION",
+                                n: dna.ppl.nSessions,
+                                err: dna.ppl.error)
         }
     }
 
+    @ViewBuilder
     private var intensitySection: some View {
-        DNASectionCard(title: "PROFIL D'INTENSITÉ", accent: accent) {
-            VStack(spacing: 12) {
-                IntensitySlider(score: dna.intensity.score)
-                HStack {
-                    IntensityZonePill(label: "Force",        pct: dna.intensity.forcePct,       color: Color(red: 0.31, green: 0.43, blue: 0.97))
-                    IntensityZonePill(label: "Hypertrophie", pct: dna.intensity.hypertrophyPct, color: Color(red: 0.66, green: 0.33, blue: 0.97))
-                    IntensityZonePill(label: "Endurance",    pct: dna.intensity.endurancePct,   color: Color(red: 0.20, green: 0.70, blue: 0.98))
+        if intensityAvailable {
+            DNASectionCard(title: "PROFIL D'INTENSITÉ", accent: accent) {
+                VStack(spacing: 12) {
+                    IntensitySlider(score: dna.intensity.score ?? 50)
+                    HStack {
+                        IntensityZonePill(label: "Force",        pct: dna.intensity.forcePct ?? 0,       color: Color(red: 0.31, green: 0.43, blue: 0.97))
+                        IntensityZonePill(label: "Hypertrophie", pct: dna.intensity.hypertrophyPct ?? 0, color: Color(red: 0.66, green: 0.33, blue: 0.97))
+                        IntensityZonePill(label: "Endurance",    pct: dna.intensity.endurancePct ?? 0,   color: Color(red: 0.20, green: 0.70, blue: 0.98))
+                    }
+                    HStack {
+                        Text(dna.intensity.label ?? "—")
+                            .font(.appLabel.weight(.semibold))
+                            .foregroundColor(.appTextPrimary)
+                        Spacer()
+                        Text("Compound \(dna.intensity.compoundPct ?? 0)%")
+                            .font(.appCaption)
+                            .foregroundColor(.gray)
+                    }
+                    if let excluded = dna.intensity.excludedNoLoadProfile, excluded > 0 {
+                        Text("\(excluded) exo\(excluded > 1 ? "s" : "") sans profil de charge catalogué")
+                            .font(.appMicro).foregroundColor(.gray.opacity(0.6))
+                    }
                 }
-                HStack {
-                    Text(dna.intensity.label)
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.appTextPrimary)
-                    Spacer()
-                    Text("Compound \(dna.intensity.compoundPct)%")
-                        .font(.appCaption)
-                        .foregroundColor(.gray)
+            }
+        } else {
+            insufficientSection(title: "PROFIL D'INTENSITÉ",
+                                n: dna.intensity.nSessions,
+                                err: dna.intensity.error,
+                                hint: dna.intensity.excludedNoLoadProfile.flatMap {
+                                    $0 > 0 ? "\($0) exo\($0 > 1 ? "s" : "") sans profil de charge" : nil
+                                })
+        }
+    }
+
+    @ViewBuilder
+    private func insufficientSection(title: String, n: Int?, err: String?,
+                                     hint: String? = nil) -> some View {
+        DNASectionCard(title: title, accent: accent) {
+            VStack(alignment: .leading, spacing: 4) {
+                if let err {
+                    Text("Erreur de calcul")
+                        .font(.appLabel).foregroundColor(.appDanger)
+                    Text(err)
+                        .font(.appMicro).foregroundColor(.gray)
+                        .lineLimit(2)
+                } else {
+                    Text("Données insuffisantes (n = \(n ?? 0))")
+                        .font(.appLabel).foregroundColor(.appTextSecondary)
+                    Text("Logge au moins 8 séances dans la fenêtre pour voir cette section.")
+                        .font(.appMicro).foregroundColor(.gray)
+                    if let hint {
+                        Text(hint)
+                            .font(.appMicro).foregroundColor(.gray.opacity(0.7))
+                    }
                 }
             }
         }
@@ -565,14 +643,14 @@ private struct PatternRatioPill: View {
 
 private struct ScorePill: View {
     let label: String
-    let score: Int
+    let score: Int?
     let accent: Color
 
     var body: some View {
         VStack(spacing: 2) {
-            Text("\(score)")
+            Text(score.map { "\($0)" } ?? "—")
                 .font(.system(size: 15, weight: .black, design: .rounded))
-                .foregroundColor(accent)
+                .foregroundColor(score == nil ? .appTextSecondary : accent)
             Text(label)
                 .font(.appMicro.weight(.semibold))
                 .foregroundColor(.gray)
@@ -597,7 +675,7 @@ struct DNAHelixCanvas: View {
             let leftColor  = pplDominantColor(dna.ppl)
             let rightColor = intensityColor(dna.intensity.score)
             let spw        = max(1.0, dna.consistency.sessionsPerWeek)
-            let balance    = Double(dna.ppl.balanceScore) / 100.0
+            let balance    = Double(dna.ppl.balanceScore ?? 50) / 100.0
             let amplitude  = size.width * (0.14 + (1 - balance) * 0.09)
             let pitch      = max(14.0, 38.0 - spw * 3.5)
             let cx         = size.width / 2
@@ -689,9 +767,9 @@ private struct PPLBalanceChart: View {
 
     var body: some View {
         let items: [(String, Int, Color)] = [
-            ("Push", ppl.pushPct, Color(red: 0.98, green: 0.45, blue: 0.10)),
-            ("Pull", ppl.pullPct, Color(red: 0.20, green: 0.70, blue: 0.98)),
-            ("Legs", ppl.legsPct, Color(red: 0.95, green: 0.80, blue: 0.10)),
+            ("Push", ppl.pushPct ?? 0, Color(red: 0.98, green: 0.45, blue: 0.10)),
+            ("Pull", ppl.pullPct ?? 0, Color(red: 0.20, green: 0.70, blue: 0.98)),
+            ("Legs", ppl.legsPct ?? 0, Color(red: 0.95, green: 0.80, blue: 0.10)),
         ]
         VStack(spacing: 8) {
             ForEach(items.indices, id: \.self) { i in
