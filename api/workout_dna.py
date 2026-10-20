@@ -177,36 +177,50 @@ def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> d
 # ── 3. Consistency ────────────────────────────────────────────────────────────
 
 def _compute_consistency(period_days: int = 90) -> dict:
-    if db._client is None:
-        return {}
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+    """Constance via weekly_streaks.compute — source unique partagée avec
+    /api/stats/streaks et le dashboard. DNA ne recalcule rien :
+
+      - weekly_counts     = days_active de chaque semaine (grille 13 sem).
+      - sessions_per_week = total days_active / 13.
+      - cv                = stddev(days_active) / mean(days_active).
+      - active_weeks_pct  = pct de semaines avec ≥ 1 jour actif.
+      - weekly_streak_*   = valeurs serveur.
+
+    Jour actif = workout completed/rpe + HIIT + cardio + exercise_logs
+    (même règle que la grille Régularité, pas la row brute workout_sessions).
+    period_days reçu mais ignoré : la grille streaks est toujours 13 semaines
+    (90j), c'est le pattern aligné avec le dashboard.
+    """
     try:
-        resp  = db._client.table("workout_sessions").select("date").gte("date", cutoff).order("date").execute()
-        rows  = resp.data or []
+        from weekly_streaks import compute as _compute_weekly_streaks
+        payload = _compute_weekly_streaks(_today_mtl())
     except Exception as e:
-        logger.error("consistency error: %s", e)
+        logger.error("consistency weekly_streaks failed: %s", e)
         return {}
 
-    dates = sorted(set(r["date"] for r in rows if r.get("date")))
-    if not dates:
-        return {"score": 0, "sessions_per_week": 0.0, "cv": 1.0,
-                "archetype": "En construction",
-                "weekly_streak_current": 0, "weekly_streak_best": 0,
-                "active_weeks_pct": 0, "weekly_counts": [0]*13}
+    weeks = payload.get("weeks") or []
+    # weeks[] : oldest → newest, 13 entries. weekly_counts garde cette direction.
+    weekly_counts = [int(w.get("days_active") or 0) for w in weeks]
 
-    spw = round(len(dates) / 13.0, 1)
+    total_days_active = sum(weekly_counts)
+    if total_days_active == 0:
+        return {
+            "score":                 0,
+            "sessions_per_week":     0.0,
+            "cv":                    1.0,
+            "archetype":             "En construction",
+            "weekly_streak_current": int(payload.get("weekly_streak_current") or 0),
+            "weekly_streak_best":    int(payload.get("weekly_streak_best") or 0),
+            "active_weeks_pct":      0,
+            "weekly_counts":         [0] * 13,
+        }
 
-    today = date_cls.fromisoformat(_today_mtl())
-    weekly: dict[int, int] = {w: 0 for w in range(13)}
-    for d_str in dates:
-        w = min(12, (today - date_cls.fromisoformat(d_str)).days // 7)
-        weekly[w] = weekly.get(w, 0) + 1
-
-    counts     = list(weekly.values())
-    mean_c     = sum(counts) / len(counts) if counts else 1
-    std_c      = math.sqrt(sum((x - mean_c)**2 for x in counts) / len(counts)) if len(counts) > 1 else 0
-    cv         = round(std_c / mean_c if mean_c > 0 else 1.0, 2)
-    active_pct = round(sum(1 for c in counts if c > 0) / len(counts) * 100)
+    n = len(weekly_counts) or 1
+    spw = round(total_days_active / 13.0, 1)
+    mean_c = total_days_active / n
+    std_c = math.sqrt(sum((x - mean_c) ** 2 for x in weekly_counts) / n) if n > 1 else 0.0
+    cv = round(std_c / mean_c if mean_c > 0 else 1.0, 2)
+    active_pct = round(sum(1 for c in weekly_counts if c > 0) / n * 100)
 
     if cv < 0.3 and spw >= 4:    archetype = "Machine"
     elif cv < 0.3 and spw >= 2:  archetype = "Régulier"
@@ -216,17 +230,8 @@ def _compute_consistency(period_days: int = 90) -> dict:
 
     score = round(min(100, active_pct * 0.5 + (1 - min(cv, 1)) * 30 + min(spw / 5, 1) * 20))
 
-    # Streak hebdomadaire : source unique = weekly_streaks.compute (même
-    # logique que /api/stats/streaks). Le DNA ne recalcule rien.
-    weekly_streak_current = 0
-    weekly_streak_best = 0
-    try:
-        from weekly_streaks import compute as _compute_weekly_streaks
-        _weekly_payload = _compute_weekly_streaks(_today_mtl())
-        weekly_streak_current = int(_weekly_payload.get("weekly_streak_current") or 0)
-        weekly_streak_best = int(_weekly_payload.get("weekly_streak_best") or 0)
-    except Exception as e:
-        logger.warning("weekly_streaks fetch failed: %s", e)
+    weekly_streak_current = int(payload.get("weekly_streak_current") or 0)
+    weekly_streak_best    = int(payload.get("weekly_streak_best") or 0)
 
     return {
         "score":                 score,
@@ -236,7 +241,7 @@ def _compute_consistency(period_days: int = 90) -> dict:
         "weekly_streak_current": weekly_streak_current,
         "weekly_streak_best":    weekly_streak_best,
         "active_weeks_pct":      active_pct,
-        "weekly_counts":         [weekly.get(w, 0) for w in range(12, -1, -1)],  # oldest→newest
+        "weekly_counts":         weekly_counts,  # oldest → newest, 13 entrées
     }
 
 
