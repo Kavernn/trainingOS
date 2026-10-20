@@ -285,54 +285,83 @@ def _compute_recovery(intensity_score: int, period_days: int = 90) -> dict:
 
 # ── 5. Signature Lifts ────────────────────────────────────────────────────────
 
-def _entry_e1rm(entry: dict) -> float:
-    """e1RM max de la session via progression.estimate_1rm — même formule
-    que PR tracker (prend le meilleur set si sets_json est présent)."""
-    from progression import estimate_1rm as _estimate_1rm
-    sets_list = entry.get("sets") or []
-    candidates: list[tuple[float, str]] = []
-    if sets_list:
-        for s in sets_list:
-            if not isinstance(s, dict):
-                continue
-            w = float(s.get("weight") or entry.get("weight") or 0)
-            r = str(s.get("reps") or entry.get("reps") or "1").split(",")[0].strip() or "1"
-            candidates.append((w, r))
-    else:
-        w = float(entry.get("weight") or 0)
-        r = str(entry.get("reps") or "1").split(",")[0].strip() or "1"
-        candidates.append((w, r))
+def _compute_signature_lifts(client, period_days: int = 90) -> list:
+    """Signature lifts via strength_exposures (fenêtre DNA, décharge exclue
+    pour la fréquence) + exercise_prs pour l'affichage e1RM.
 
-    best = 0.0
-    for w, r in candidates:
-        if w <= 0:
-            continue
-        est = _estimate_1rm(w, r) or 0.0
-        if est > best:
-            best = est
-    return best
+    Classement : par FRÉQUENCE (nombre de séances distinctes dans la fenêtre
+    DNA, hors décharge). Égalités départagées par la récence (dernière
+    séance la plus récente).
 
+    pr_e1rm_lbs = valeur affichée (même source que PR tracker, table
+    exercise_prs).
 
-def _compute_signature_lifts(history: dict) -> list:
-    """Ranking par pr_e1rm_lbs — source unique exercise_prs (table maintenue
-    au write). Pour un même lift, DNA.pr_e1rm_lbs == PR tracker last_pr.est_1rm.
+    progression_pct : via strength_exposures (même pipeline que top movers).
+    Meilleur e1RM des 30 PREMIERS jours de la fenêtre DNA vs meilleur e1RM
+    des 30 DERNIERS jours. Si une des deux sous-fenêtres est vide pour un
+    lift → progression_pct=None (pas 0 — on ne sait pas).
+    first_date / last_date exposent les vraies dates observées dans la
+    fenêtre DNA (pour que l'iOS affiche "depuis le <date>").
 
-    Pour chaque lift au top-5 (par e1RM décroissant) :
-      - name
-      - session_count     = baseline_count (table)
-      - pr_lbs            = pr_weight_lbs (legacy — à retirer étape c3)
-      - pr_e1rm_lbs       = pr_e1rm_lbs (table, round 1 décimale)
-      - pr_reps, pr_date  = colonnes table
-      - first_date        = oldest history entry pour ce lift
-      - progression_pct   = (pr_e1rm - first_e1rm) / first_e1rm × 100
-                            via estimate_1rm (même formule que PR tracker)
-      - recency           = sets des 30 derniers jours
-
-    Filtre baseline_count ≥ 2 (idem PR tracker).
+    Filtre baseline_count ≥ 2 (identique PR tracker). Top 5.
     """
+    from analytics_adapter import fetch_raw_analytics_rows, adapt_analytics_rows
+    from metric_semantics import DateWindow, best_e1rm_for_exposure
+
     pr_rows = db.get_exercise_prs() or []
     pr_map = {p["exercise_name"]: p for p in pr_rows}
-    cutoff_30 = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=30)).isoformat()
+    if not pr_map:
+        return []
+
+    today = date_cls.fromisoformat(_today_mtl())
+    period = DateWindow(today - timedelta(days=period_days - 1), today)
+    raw_rows = fetch_raw_analytics_rows(client, period=period)
+    adapted = adapt_analytics_rows(raw_rows, period=period)
+
+    # Sous-fenêtres bornées par la fenêtre DNA — sur 90j elles sont disjointes ;
+    # sur < 60j elles se chevauchent (le même set peut compter dans les deux).
+    early_sub_days = min(30, period_days)
+    late_sub_days  = min(30, period_days)
+    early_end  = period.start + timedelta(days=early_sub_days - 1)
+    late_start = period.end   - timedelta(days=late_sub_days - 1)
+
+    by_lift: dict[str, dict] = {}
+    for exp in adapted.strength_exposures:
+        name = exp.exercise_name
+        if name not in pr_map:
+            continue
+        bucket = by_lift.setdefault(name, {
+            "sessions_non_deload": set(),
+            "last_date":           None,
+            "first_date":          None,
+            "best_e1rm_early":     None,
+            "best_e1rm_late":      None,
+        })
+        if not exp.is_deload:
+            bucket["sessions_non_deload"].add(
+                getattr(exp, "session_id", None) or exp.exposure_id
+            )
+        if bucket["last_date"] is None or exp.date > bucket["last_date"]:
+            bucket["last_date"] = exp.date
+        if bucket["first_date"] is None or exp.date < bucket["first_date"]:
+            bucket["first_date"] = exp.date
+
+        result = best_e1rm_for_exposure(
+            tracking_type=exp.tracking_type,
+            sets=(
+                tuple({"weight": s.weight, "reps": s.reps} for s in exp.sets)
+                if exp.sets is not None else None
+            ),
+            weight=exp.weight,
+            reps=exp.reps,
+        )
+        best = result.best_e1rm
+        if best is None or best <= 0:
+            continue
+        if exp.date <= early_end and (bucket["best_e1rm_early"] is None or best > bucket["best_e1rm_early"]):
+            bucket["best_e1rm_early"] = best
+        if exp.date >= late_start and (bucket["best_e1rm_late"] is None or best > bucket["best_e1rm_late"]):
+            bucket["best_e1rm_late"] = best
 
     results: list[dict] = []
     for name, pr_info in pr_map.items():
@@ -342,39 +371,34 @@ def _compute_signature_lifts(history: dict) -> list:
         pr_weight = float(pr_info.get("pr_weight_lbs") or 0)
         if pr_e1rm <= 0 or pr_weight <= 0:
             continue
+        bucket = by_lift.get(name)
+        if bucket is None:
+            continue  # aucune exposure dans la fenêtre DNA
+        session_count = len(bucket["sessions_non_deload"])
+        if session_count <= 0:
+            continue
 
-        entries = history.get(name) or []
-        first_date = ""
-        first_e1rm = 0.0
-        recency = 0
-        for e in entries:
-            d = e.get("date") or ""
-            if not d:
-                continue
-            if not first_date or d < first_date:
-                first_date = d
-                first_e1rm = _entry_e1rm(e)
-            if d >= cutoff_30:
-                recency += 1
-
-        progression_pct = (
-            round((pr_e1rm - first_e1rm) / first_e1rm * 100, 1)
-            if first_e1rm > 0 and pr_e1rm > first_e1rm else 0.0
-        )
+        early_e1rm = bucket["best_e1rm_early"]
+        late_e1rm  = bucket["best_e1rm_late"]
+        if early_e1rm is None or late_e1rm is None or early_e1rm <= 0:
+            progression_pct = None
+        else:
+            progression_pct = round((late_e1rm - early_e1rm) / early_e1rm * 100, 1)
 
         results.append({
             "name":            name,
-            "session_count":   int(pr_info.get("baseline_count") or 0),
+            "session_count":   session_count,
             "pr_lbs":          pr_weight,                   # legacy — à retirer étape c3
             "pr_e1rm_lbs":     round(pr_e1rm, 1),
             "pr_reps":         int(pr_info.get("pr_reps") or 1),
             "pr_date":         pr_info.get("pr_date") or "",
-            "first_date":      first_date,
+            "first_date":      bucket["first_date"].isoformat() if bucket["first_date"] else "",
+            "last_date":       bucket["last_date"].isoformat()  if bucket["last_date"]  else "",
             "progression_pct": progression_pct,
-            "recency":         recency,
         })
 
-    results.sort(key=lambda x: x["pr_e1rm_lbs"], reverse=True)
+    # Ranking : fréquence desc, tie-break par last_date desc (plus récent gagne).
+    results.sort(key=lambda x: (x["session_count"], x["last_date"]), reverse=True)
     return results[:5]
 
 
@@ -600,7 +624,7 @@ def compute(period_days: int = 90) -> dict:
         intensity          = _compute_intensity(history, ex_info, period_days)
         consistency        = _compute_consistency(period_days)
         recovery           = _compute_recovery(intensity.get("score", 50), period_days)
-        lifts              = _compute_signature_lifts(history)
+        lifts              = _compute_signature_lifts(db._client, period_days)
         muscle_dominants, muscle_dominants_meta = _compute_muscle_dominants(db._client, period_days)
         movement_patterns  = _compute_movement_patterns(history, ex_info, period_days)
         intensity_timeline = _compute_intensity_timeline(history)
