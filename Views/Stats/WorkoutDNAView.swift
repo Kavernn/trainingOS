@@ -122,6 +122,8 @@ private struct WorkoutDNAInlineContent: View {
             }
             if let muscles = dna.muscleDominants, !muscles.isEmpty {
                 muscleDominantsSection(muscles)
+            } else if dna.muscleDominantsMeta?.insufficientData == true {
+                muscleDominantsInsufficientSection
             }
             if let patterns = dna.movementPatterns, patterns.hasData {
                 movementPatternsSection(patterns)
@@ -218,13 +220,16 @@ private struct WorkoutDNAInlineContent: View {
     @ViewBuilder
     private func muscleDominantsSection(_ muscles: [DNAMuscleDominant]) -> some View {
         DNASectionCard(title: "MUSCLES DOMINANTS", accent: accent) {
-            VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("séries effectives / sem · hors décharge")
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.7))
                 ForEach(muscles, id: \.muscle) { m in
                     HStack(spacing: 12) {
                         Text(m.muscle.capitalized)
                             .font(.appCaption.weight(.semibold))
                             .foregroundColor(.gray)
-                            .frame(width: 80, alignment: .leading)
+                            .frame(width: 110, alignment: .leading)
+                            .lineLimit(1)
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 Capsule().fill(Color.appSurfaceInset)
@@ -234,12 +239,37 @@ private struct WorkoutDNAInlineContent: View {
                             }
                         }
                         .frame(height: 8)
-                        Text("\(m.pct)%")
-                            .font(.appCaption.weight(.bold))
-                            .foregroundColor(accent)
-                            .frame(width: 32, alignment: .trailing)
+                        if let eff = m.effectiveSets {
+                            Text(String(format: "%.1f", eff))
+                                .font(.appCaption.weight(.bold))
+                                .foregroundColor(accent)
+                                .monospacedDigit()
+                                .frame(width: 40, alignment: .trailing)
+                        } else {
+                            Text("\(m.pct)%")
+                                .font(.appCaption.weight(.bold))
+                                .foregroundColor(accent)
+                                .frame(width: 40, alignment: .trailing)
+                        }
                     }
                 }
+                if let meta = dna.muscleDominantsMeta,
+                   let excluded = meta.excludedFullDeload, excluded > 0 {
+                    Text("\(excluded) muscle\(excluded > 1 ? "s" : "") exclu\(excluded > 1 ? "s" : "") (fenêtre 100 % décharge)")
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.6))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var muscleDominantsInsufficientSection: some View {
+        DNASectionCard(title: "MUSCLES DOMINANTS", accent: accent) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Données insuffisantes (n = \(dna.muscleDominantsMeta?.nSessions ?? 0))")
+                    .font(.appLabel).foregroundColor(.appTextSecondary)
+                Text("Logge au moins 8 séances dans la fenêtre pour voir cette section.")
+                    .font(.appMicro).foregroundColor(.gray)
             }
         }
     }

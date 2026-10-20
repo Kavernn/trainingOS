@@ -9,6 +9,7 @@ struct WorkoutDNAResponse: Codable {
     let recovery: DNARecovery
     let signatureLifts: [DNASignatureLift]
     let muscleDominants: [DNAMuscleDominant]?
+    let muscleDominantsMeta: DNAMuscleDominantsMeta?
     let movementPatterns: DNAMovementPatterns?
     let intensityTimeline: [DNAIntensityMonth]?
     let dnaSeed: String
@@ -17,8 +18,9 @@ struct WorkoutDNAResponse: Codable {
     enum CodingKeys: String, CodingKey {
         case period, archetype, ppl, intensity, consistency, recovery
         case signatureLifts    = "signature_lifts"
-        case muscleDominants   = "muscle_dominants"
-        case movementPatterns  = "movement_patterns"
+        case muscleDominants     = "muscle_dominants"
+        case muscleDominantsMeta = "muscle_dominants_meta"
+        case movementPatterns    = "movement_patterns"
         case intensityTimeline = "intensity_timeline"
         case dnaSeed           = "dna_seed"
         case computedAt        = "computed_at"
@@ -111,8 +113,30 @@ struct DNARecovery: Codable {
 
 struct DNAMuscleDominant: Codable {
     let muscle: String
-    let sets: Int
+    /// Legacy — round(effectiveSets). Backend l'émet encore pour compat, iOS
+    /// n'affiche plus que effectiveSets.
+    let sets: Int?
+    /// Séries effectives / semaine (direct + 0,5 × indirect, hors décharge
+    /// au numérateur ET au dénominateur) — même source que cockpit.
+    let effectiveSets: Double?
     let pct: Int
+
+    enum CodingKeys: String, CodingKey {
+        case muscle, sets, pct
+        case effectiveSets = "effective_sets"
+    }
+}
+
+struct DNAMuscleDominantsMeta: Codable {
+    let nSessions: Int
+    let insufficientData: Bool
+    let excludedFullDeload: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case nSessions            = "n_sessions"
+        case insufficientData     = "insufficient_data"
+        case excludedFullDeload   = "excluded_full_deload"
+    }
 }
 
 struct DNAMovementPatterns: Codable {
