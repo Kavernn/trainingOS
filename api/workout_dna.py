@@ -796,23 +796,43 @@ def _compute_intensity_timeline(history: dict, months: int = 6) -> list[dict]:
 # ── Archetype ─────────────────────────────────────────────────────────────────
 
 def _archetype(ppl: dict, intensity: dict, consistency: dict) -> dict:
-    i = intensity.get("score", 50)
-    c = consistency.get("score", 50)
-    b = ppl.get("balance_score", 50)
-    spw = consistency.get("sessions_per_week", 3)
-    legs = ppl.get("legs_pct", 0)
+    """Archétype calculé uniquement si les 3 piliers (PPL, Intensité,
+    Constance) sont tous `insufficient_data=False` et sans "error".
+    Sinon : sentinel "insufficient" + available=False. Zéro fallback 50
+    (le fantôme "builder" généré par des scores manquants est supprimé)."""
+    _INSUFFICIENT = {
+        "key":       "insufficient",
+        "label":     "Données insuffisantes",
+        "tagline":   "Logge plus pour voir ton DNA",
+        "available": False,
+    }
+
+    for pilier in (ppl, intensity, consistency):
+        if pilier.get("insufficient_data") or pilier.get("error"):
+            return _INSUFFICIENT
+
+    i   = intensity.get("score")
+    c   = consistency.get("score")
+    b   = ppl.get("balance_score")
+    spw = consistency.get("sessions_per_week")
+    legs = ppl.get("legs_pct")
+    if any(v is None for v in (i, c, b, spw, legs)):
+        return _INSUFFICIENT
 
     if i >= 70 and b >= 60 and c >= 65:
-        return {"key": "powerlifter", "label": "The Powerlifter", "tagline": "Compound. Heavy. Consistent."}
-    if i >= 40 and legs >= 25 and c >= 60:
-        return {"key": "bodybuilder",  "label": "The Bodybuilder",  "tagline": "Volume. Symmetry. Discipline."}
-    if c >= 85 and spw >= 4.5:
-        return {"key": "grinder",      "label": "The Grinder",      "tagline": "Never misses. Never quits."}
-    if spw <= 2.5 and i >= 60:
-        return {"key": "warrior",      "label": "Weekend Warrior",  "tagline": "Rare but fierce."}
-    if b >= 75 and 45 <= i <= 65 and c >= 65:
-        return {"key": "athlete",      "label": "The Athlete",      "tagline": "Balanced. Efficient. Sharp."}
-    return {"key": "builder",          "label": "The Builder",      "tagline": "Building, day by day."}
+        base = {"key": "powerlifter", "label": "The Powerlifter", "tagline": "Compound. Heavy. Consistent."}
+    elif i >= 40 and legs >= 25 and c >= 60:
+        base = {"key": "bodybuilder",  "label": "The Bodybuilder",  "tagline": "Volume. Symmetry. Discipline."}
+    elif c >= 85 and spw >= 4.5:
+        base = {"key": "grinder",      "label": "The Grinder",      "tagline": "Never misses. Never quits."}
+    elif spw <= 2.5 and i >= 60:
+        base = {"key": "warrior",      "label": "Weekend Warrior",  "tagline": "Rare but fierce."}
+    elif b >= 75 and 45 <= i <= 65 and c >= 65:
+        base = {"key": "athlete",      "label": "The Athlete",      "tagline": "Balanced. Efficient. Sharp."}
+    else:
+        base = {"key": "builder",      "label": "The Builder",      "tagline": "Building, day by day."}
+    base["available"] = True
+    return base
 
 
 def _dna_seed(ppl: dict, intensity: dict, consistency: dict, recovery: dict) -> str:
