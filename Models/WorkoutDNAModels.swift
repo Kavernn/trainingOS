@@ -149,11 +149,12 @@ struct DNASessionSpacing: Codable {
     let error: String?
 
     enum CodingKeys: String, CodingKey {
-        case nGaps, error
+        case error
         case medianDays             = "median_days"
         case p25Days                = "p25_days"
         case p75Days                = "p75_days"
         case nSessions              = "n_sessions"
+        case nGaps                  = "n_gaps"
         case excludedDeloadSessions = "excluded_deload_sessions"
         case invalidDates           = "invalid_dates"
         case insufficientData       = "insufficient_data"

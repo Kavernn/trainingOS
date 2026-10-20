@@ -296,4 +296,49 @@ final class APIModelsTests: XCTestCase {
         }
         """.utf8)
     }
+
+    // MARK: - WorkoutDNA — fixture prod réelle (guards CodingKeys)
+
+    /// Fixture capturée depuis /api/workout_dna?period=90 (prod authentifiée)
+    /// post bascule DNA Fiabilité (lots a→f + iOS lot). Toute CodingKey DNA
+    /// manquante (ex: nGaps sans mapping "n_gaps") CASSE ce test au lieu
+    /// de l'écran DNA.
+    func testWorkoutDNADecodingFromProdFixture() throws {
+        let data = Data(dnaProd90dJSON.utf8)
+        let dna = try JSONDecoder().decode(WorkoutDNAResponse.self, from: data)
+
+        // Les sous-structs ajoutés par le lot DNA Fiabilité DOIVENT décoder
+        // leurs champs requis. Faille historique : nGaps sans mapping
+        // "n_gaps" → DecodingError.keyNotFound sur l'écran prod.
+        let spacing = try XCTUnwrap(dna.sessionSpacing)
+        XCTAssertEqual(spacing.nGaps, 56)
+        XCTAssertEqual(spacing.nSessions, 57)
+        XCTAssertEqual(spacing.medianDays, 1.0)
+        XCTAssertEqual(spacing.excludedDeloadSessions, 5)
+        XCTAssertEqual(spacing.insufficientData, false)
+
+        // Autres sections lot DNA Fiabilité — garde contre régression
+        // sur leurs CodingKeys snake_case.
+        let meta = try XCTUnwrap(dna.muscleDominantsMeta)
+        XCTAssertEqual(meta.nSessions, 105)
+        XCTAssertFalse(meta.insufficientData)
+
+        let lift = try XCTUnwrap(dna.signatureLifts.first)
+        XCTAssertEqual(lift.sessionCount, 17)
+        XCTAssertEqual(lift.prEIrmLbs, 203.5)
+        XCTAssertEqual(lift.firstDate, "2026-07-31")
+        XCTAssertEqual(lift.lastDate, "2026-10-19")
+
+        let muscle = try XCTUnwrap(dna.muscleDominants?.first)
+        XCTAssertEqual(muscle.muscle, "Dos")
+        XCTAssertEqual(muscle.effectiveSets, 15.8)
+
+        XCTAssertEqual(dna.archetype.available, true)
+        XCTAssertEqual(dna.ppl.insufficientData, false)
+        XCTAssertEqual(dna.intensity.insufficientData, false)
+    }
 }
+
+private let dnaProd90dJSON = #"""
+{"archetype":{"available":true,"key":"grinder","label":"The Grinder","tagline":"Never misses. Never quits."},"computed_at":"2026-10-20T13:28:15.956360+00:00","consistency":{"active_weeks_pct":100,"archetype":"Warrior","cv":0.36,"score":88,"sessions_per_week":4.6,"weekly_counts":[5,7,4,5,5,4,6,4,2,7,5,5,1],"weekly_streak_best":13,"weekly_streak_current":3},"dna_seed":"f0ffdfb7","intensity":{"compound_pct":46,"endurance_pct":23,"excluded_no_load_profile":23,"force_pct":21,"hypertrophy_pct":56,"insufficient_data":false,"invalid_dates":0,"isolation_pct":54,"label":"Power Builder","n_sessions":56,"score":57},"intensity_timeline":[{"endurance_pct":12,"hypertrophy_pct":66,"month":"2026-05","strength_pct":22,"total_sets":213},{"endurance_pct":11,"hypertrophy_pct":62,"month":"2026-06","strength_pct":28,"total_sets":349},{"endurance_pct":18,"hypertrophy_pct":56,"month":"2026-07","strength_pct":26,"total_sets":416},{"endurance_pct":28,"hypertrophy_pct":50,"month":"2026-08","strength_pct":22,"total_sets":491},{"endurance_pct":29,"hypertrophy_pct":58,"month":"2026-09","strength_pct":13,"total_sets":249},{"endurance_pct":14,"hypertrophy_pct":66,"month":"2026-10","strength_pct":20,"total_sets":253}],"movement_patterns":{"diversity_score":118,"excluded_no_pattern":0,"has_data":true,"insufficient_data":false,"invalid_dates":0,"n_sessions":56,"patterns":[{"pattern":"Horizontal Push","pct":13,"sets":137},{"pattern":"Horizontal Pull","pct":12,"sets":126},{"pattern":"Elbow Flexion","pct":11,"sets":122},{"pattern":"Gainage","pct":9,"sets":102},{"pattern":"pull_vertical","pct":9,"sets":95},{"pattern":"Elbow Extension","pct":8,"sets":90},{"pattern":"Vertical Pull","pct":8,"sets":85},{"pattern":"Isolation","pct":8,"sets":81},{"pattern":"Vertical Push","pct":7,"sets":75},{"pattern":"pull_horizontal","pct":3,"sets":34},{"pattern":"Rotation","pct":3,"sets":33},{"pattern":"Hip Hinge","pct":2,"sets":21},{"pattern":"Squat","pct":2,"sets":21},{"pattern":"Plyometric","pct":2,"sets":18},{"pattern":"push_vertical","pct":1,"sets":12},{"pattern":"hinge","pct":1,"sets":9},{"pattern":"push_horizontal","pct":1,"sets":6},{"pattern":"rotation","pct":0,"sets":4},{"pattern":"Cardio","pct":0,"sets":2},{"pattern":"Carry","pct":0,"sets":1}],"ratios":{"push_horiz_vert":0.5},"total_sets":1074},"muscle_dominants":[{"effective_sets":15.8,"muscle":"Dos","pct":17,"sets":16},{"effective_sets":11.0,"muscle":"Pectoraux","pct":12,"sets":11},{"effective_sets":9.4,"muscle":"Triceps brachial","pct":10,"sets":9},{"effective_sets":7.6,"muscle":"Biceps brachial","pct":8,"sets":8},{"effective_sets":6.2,"muscle":"Épaules","pct":7,"sets":6},{"effective_sets":5.4,"muscle":"Arrière d'épaule","pct":6,"sets":5}],"muscle_dominants_meta":{"excluded_full_deload":0,"insufficient_data":false,"n_sessions":105},"period":{"from":"2026-07-22","to":"2026-10-20"},"ppl":{"balance_score":67,"core_pct":3,"insufficient_data":false,"invalid_dates":0,"legs_pct":9,"n_sessions":56,"other_pct":6,"pull_pct":52,"push_pct":39,"verdict":"Push-déficit"},"recovery":{"avg_rest_days":null,"optimal_rest_days":null,"ratio":null,"score":null,"verdict":null},"session_spacing":{"excluded_deload_sessions":5,"insufficient_data":false,"invalid_dates":0,"median_days":1.0,"n_gaps":56,"n_sessions":57,"p25_days":1.0,"p75_days":1.0},"signature_lifts":[{"first_date":"2026-07-31","last_date":"2026-10-19","name":"Triceps Pushdown","pr_date":"2026-08-17","pr_e1rm_lbs":203.5,"pr_lbs":130.0,"pr_reps":11,"progression_pct":-0.9,"session_count":17},{"first_date":"2026-07-27","last_date":"2026-10-19","name":"Bench Press","pr_date":"2026-08-06","pr_e1rm_lbs":234.3,"pr_lbs":185.0,"pr_reps":5,"progression_pct":0.0,"session_count":11},{"first_date":"2026-07-30","last_date":"2026-10-19","name":"Overhead Triceps Extension","pr_date":"2026-10-05","pr_e1rm_lbs":147.3,"pr_lbs":90.0,"pr_reps":15,"progression_pct":9.1,"session_count":11},{"first_date":"2026-07-24","last_date":"2026-10-18","name":"T-Bar Row","pr_date":"2026-07-17","pr_e1rm_lbs":120.0,"pr_lbs":90.0,"pr_reps":9,"progression_pct":-10.0,"session_count":11},{"first_date":"2026-07-24","last_date":"2026-10-13","name":"Face Pull","pr_date":"2026-08-05","pr_e1rm_lbs":229.1,"pr_lbs":140.0,"pr_reps":13,"progression_pct":8.3,"session_count":11}]}
+"""#
