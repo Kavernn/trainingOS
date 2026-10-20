@@ -1111,10 +1111,15 @@ struct WorkoutDNAShareCard: View {
                         HStack {
                             Text(lift.name).font(.appMicro.weight(.medium)).foregroundColor(Color.appTextPrimary.opacity(0.8))
                             Spacer()
-                            Text(UnitSettings.shared.format(lift.prLbs))
-                                .font(.appMicro.weight(.bold)).foregroundColor(.appTextPrimary)
-                            if lift.progressionPct > 0 {
-                                Text("+\(Int(lift.progressionPct))%")
+                            if let e1rm = lift.prEIrmLbs {
+                                Text("e1RM \(UnitSettings.shared.format(e1rm))")
+                                    .font(.appMicro.weight(.bold)).foregroundColor(.appTextPrimary)
+                            } else if let raw = lift.prLbs {
+                                Text(UnitSettings.shared.format(raw))
+                                    .font(.appMicro.weight(.bold)).foregroundColor(.appTextPrimary)
+                            }
+                            if let prog = lift.progressionPct, prog > 0 {
+                                Text("+\(Int(prog))%")
                                     .font(.system(size: 8, weight: .semibold)).foregroundColor(.appSuccess)
                             }
                         }
