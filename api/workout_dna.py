@@ -285,54 +285,97 @@ def _compute_recovery(intensity_score: int, period_days: int = 90) -> dict:
 
 # ── 5. Signature Lifts ────────────────────────────────────────────────────────
 
-def _compute_signature_lifts(history: dict) -> list:
-    cutoff_30 = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=30)).isoformat()
-    lifts: dict[str, dict] = {}
-
-    for name, entries in history.items():
-        pr_weight = first_weight = 0.0
-        pr_reps = 1; pr_date = first_date = ""
-        session_dates: set[str] = set()
-        recency = 0
-
-        for e in entries:
-            w = float(e.get("weight") or 0)
-            d = e.get("date") or ""
-            if not w or not d:
+def _entry_e1rm(entry: dict) -> float:
+    """e1RM max de la session via progression.estimate_1rm — même formule
+    que PR tracker (prend le meilleur set si sets_json est présent)."""
+    from progression import estimate_1rm as _estimate_1rm
+    sets_list = entry.get("sets") or []
+    candidates: list[tuple[float, str]] = []
+    if sets_list:
+        for s in sets_list:
+            if not isinstance(s, dict):
                 continue
-            session_dates.add(d)
+            w = float(s.get("weight") or entry.get("weight") or 0)
+            r = str(s.get("reps") or entry.get("reps") or "1").split(",")[0].strip() or "1"
+            candidates.append((w, r))
+    else:
+        w = float(entry.get("weight") or 0)
+        r = str(entry.get("reps") or "1").split(",")[0].strip() or "1"
+        candidates.append((w, r))
+
+    best = 0.0
+    for w, r in candidates:
+        if w <= 0:
+            continue
+        est = _estimate_1rm(w, r) or 0.0
+        if est > best:
+            best = est
+    return best
+
+
+def _compute_signature_lifts(history: dict) -> list:
+    """Ranking par pr_e1rm_lbs — source unique exercise_prs (table maintenue
+    au write). Pour un même lift, DNA.pr_e1rm_lbs == PR tracker last_pr.est_1rm.
+
+    Pour chaque lift au top-5 (par e1RM décroissant) :
+      - name
+      - session_count     = baseline_count (table)
+      - pr_lbs            = pr_weight_lbs (legacy — à retirer étape c3)
+      - pr_e1rm_lbs       = pr_e1rm_lbs (table, round 1 décimale)
+      - pr_reps, pr_date  = colonnes table
+      - first_date        = oldest history entry pour ce lift
+      - progression_pct   = (pr_e1rm - first_e1rm) / first_e1rm × 100
+                            via estimate_1rm (même formule que PR tracker)
+      - recency           = sets des 30 derniers jours
+
+    Filtre baseline_count ≥ 2 (idem PR tracker).
+    """
+    pr_rows = db.get_exercise_prs() or []
+    pr_map = {p["exercise_name"]: p for p in pr_rows}
+    cutoff_30 = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=30)).isoformat()
+
+    results: list[dict] = []
+    for name, pr_info in pr_map.items():
+        if int(pr_info.get("baseline_count") or 0) < 2:
+            continue
+        pr_e1rm = float(pr_info.get("pr_e1rm_lbs") or 0)
+        pr_weight = float(pr_info.get("pr_weight_lbs") or 0)
+        if pr_e1rm <= 0 or pr_weight <= 0:
+            continue
+
+        entries = history.get(name) or []
+        first_date = ""
+        first_e1rm = 0.0
+        recency = 0
+        for e in entries:
+            d = e.get("date") or ""
+            if not d:
+                continue
             if not first_date or d < first_date:
-                first_date  = d
-                first_weight = w
-            if w > pr_weight:
-                pr_weight = w
-                pr_reps   = int(str(e.get("reps") or "1").split(",")[0].strip() or 1)
-                pr_date   = d
+                first_date = d
+                first_e1rm = _entry_e1rm(e)
             if d >= cutoff_30:
                 recency += 1
 
-        if pr_weight == 0 or len(session_dates) < 2:
-            continue
+        progression_pct = (
+            round((pr_e1rm - first_e1rm) / first_e1rm * 100, 1)
+            if first_e1rm > 0 and pr_e1rm > first_e1rm else 0.0
+        )
 
-        prog = round((pr_weight - first_weight) / first_weight * 100, 1) \
-               if first_weight > 0 and pr_weight > first_weight else 0.0
-
-        lifts[name] = {
+        results.append({
             "name":            name,
-            "session_count":   len(session_dates),
-            "pr_lbs":          pr_weight,
-            "pr_reps":         pr_reps,
-            "pr_date":         pr_date,
+            "session_count":   int(pr_info.get("baseline_count") or 0),
+            "pr_lbs":          pr_weight,                   # legacy — à retirer étape c3
+            "pr_e1rm_lbs":     round(pr_e1rm, 1),
+            "pr_reps":         int(pr_info.get("pr_reps") or 1),
+            "pr_date":         pr_info.get("pr_date") or "",
             "first_date":      first_date,
-            "progression_pct": prog,
+            "progression_pct": progression_pct,
             "recency":         recency,
-            "_score":          len(session_dates) * 0.5 + recency * 10 + prog * 0.3,
-        }
+        })
 
-    ranked = sorted(lifts.values(), key=lambda x: x["_score"], reverse=True)[:5]
-    for r in ranked:
-        del r["_score"]
-    return ranked
+    results.sort(key=lambda x: x["pr_e1rm_lbs"], reverse=True)
+    return results[:5]
 
 
 # ── 6. Muscle Dominants ───────────────────────────────────────────────────────
