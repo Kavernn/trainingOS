@@ -212,5 +212,77 @@ def test_patterns_excludes_exercises_without_pattern(pinned_today, no_deload):
     )
 
 
+# ── 5. Dates mal formées = comptées, pas silencieusement avalées ─────────────
+
+def test_invalid_dates_are_counted_not_swallowed(pinned_today, no_deload):
+    """Une entry avec date invalide → skip + invalid_dates incrémenté.
+    N'affecte pas is_deload_day (ValueError levée AVANT l'appel au prédicat)."""
+    import workout_dna as _dna
+    bad = {"date": "not-a-date", "weight": 100, "reps": "5", "sets": [{"weight": 100, "reps": 5}]}
+    history = {"Bench Press": _mk_8_sessions_bench() + [bad, bad, bad]}
+    ex_info = {"Bench Press": {"category": "chest", "load_profile": "compound_heavy",
+                               "movement_pattern": "push_horizontal"}}
+
+    ppl       = _dna._compute_ppl(history, ex_info, period_days=PERIOD_DAYS)
+    intensity = _dna._compute_intensity(history, ex_info, period_days=PERIOD_DAYS)
+    patterns  = _dna._compute_movement_patterns(history, ex_info, period_days=PERIOD_DAYS)
+
+    for section in (ppl, intensity, patterns):
+        assert section.get("insufficient_data") is False, (
+            "les 8 bonnes séances doivent toujours faire passer le seuil"
+        )
+        assert section["invalid_dates"] == 3, (
+            f"3 entries date-invalides attendues, obtenu {section.get('invalid_dates')}"
+        )
+
+
+# ── 6. Erreur du prédicat is_deload_day → section.error, pas insufficient ────
+
+def test_ppl_predicate_error_exposes_section_error(pinned_today, monkeypatch):
+    """Si is_deload_day lève (DB down), la section expose `error`,
+    pas `insufficient_data` — on ne masque PAS un bug infra en manque de data."""
+    def _boom(_day):
+        raise RuntimeError("deload_periods DB down")
+    monkeypatch.setattr("analytics_adapter.is_deload_day", _boom)
+
+    import workout_dna as _dna
+    history = {"Bench Press": _mk_8_sessions_bench()}
+    ex_info = {"Bench Press": {"category": "chest"}}
+    result = _dna._compute_ppl(history, ex_info, period_days=PERIOD_DAYS)
+    assert "error" in result, f"section PPL doit exposer 'error', obtenu {result}"
+    assert result.get("insufficient_data") is not True, (
+        "une erreur DB ne doit PAS être masquée en insufficient_data"
+    )
+    assert "deload_periods DB down" in result["error"]
+
+
+def test_intensity_predicate_error_exposes_section_error(pinned_today, monkeypatch):
+    def _boom(_day):
+        raise RuntimeError("boom-intensity")
+    monkeypatch.setattr("analytics_adapter.is_deload_day", _boom)
+
+    import workout_dna as _dna
+    history = {"Bench Press": _mk_8_sessions_bench()}
+    ex_info = {"Bench Press": {"load_profile": "compound_heavy"}}
+    result = _dna._compute_intensity(history, ex_info, period_days=PERIOD_DAYS)
+    assert "error" in result
+    assert result.get("insufficient_data") is not True
+    assert "boom-intensity" in result["error"]
+
+
+def test_patterns_predicate_error_exposes_section_error(pinned_today, monkeypatch):
+    def _boom(_day):
+        raise RuntimeError("boom-patterns")
+    monkeypatch.setattr("analytics_adapter.is_deload_day", _boom)
+
+    import workout_dna as _dna
+    history = {"Bench Press": _mk_8_sessions_bench()}
+    ex_info = {"Bench Press": {"movement_pattern": "push_horizontal"}}
+    result = _dna._compute_movement_patterns(history, ex_info, period_days=PERIOD_DAYS)
+    assert "error" in result
+    assert result.get("insufficient_data") is not True
+    assert "boom-patterns" in result["error"]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

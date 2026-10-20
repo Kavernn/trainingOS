@@ -72,35 +72,44 @@ def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
 
     Garde-fou : < MIN_SESSIONS_PER_SECTION sessions distinctes dans la
     fenêtre (hors décharge) → insufficient_data=True, aucun verdict ni
-    pourcentages inventés.
+    pourcentages inventés. Erreur du prédicat is_deload_day → remontée
+    en erreur explicite de la section (clé "error"), pas en insufficient.
     """
-    from analytics_adapter import is_deload_day
+    try:
+        from analytics_adapter import is_deload_day
 
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
-    counts = {"push": 0, "pull": 0, "legs": 0, "core": 0, "other": 0}
-    session_dates: set[str] = set()
+        cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+        counts = {"push": 0, "pull": 0, "legs": 0, "core": 0, "other": 0}
+        session_dates: set[str] = set()
+        invalid_dates = 0
 
-    for name, entries in history.items():
-        cat   = (ex_info.get(name, {}).get("category") or "")
-        group = _classify_ppl(cat, name)
-        for e in entries:
-            d_str = e.get("date") or ""
-            if d_str < cutoff:
-                continue
-            try:
-                if is_deload_day(date_cls.fromisoformat(d_str[:10])):
+        for name, entries in history.items():
+            cat   = (ex_info.get(name, {}).get("category") or "")
+            group = _classify_ppl(cat, name)
+            for e in entries:
+                d_str = e.get("date") or ""
+                if d_str < cutoff:
                     continue
-            except Exception:
-                continue
-            session_dates.add(d_str[:10])
-            sets_list = e.get("sets")
-            counts[group] += len(sets_list) if isinstance(sets_list, list) else 1
+                try:
+                    d = date_cls.fromisoformat(d_str[:10])
+                except ValueError:
+                    invalid_dates += 1
+                    continue
+                if is_deload_day(d):
+                    continue
+                session_dates.add(d_str[:10])
+                sets_list = e.get("sets")
+                counts[group] += len(sets_list) if isinstance(sets_list, list) else 1
+    except Exception as exc:
+        logger.exception("PPL section error: %s", exc)
+        return {"error": str(exc), "n_sessions": 0, "invalid_dates": 0}
 
     n_sessions = len(session_dates)
     if n_sessions < MIN_SESSIONS_PER_SECTION:
         return {
             "insufficient_data": True,
             "n_sessions":        n_sessions,
+            "invalid_dates":     invalid_dates,
         }
 
     total     = sum(counts.values()) or 1
@@ -131,6 +140,7 @@ def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
         "verdict":           verdict,
         "insufficient_data": False,
         "n_sessions":        n_sessions,
+        "invalid_dates":     invalid_dates,
     }
 
 
@@ -141,66 +151,75 @@ def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> d
 
     Fallback explicite : exercice sans `load_profile` catalogue → EXCLU de
     la stat et compté dans excluded_no_load_profile (plus de score=50
-    silencieux). Garde-fou MIN_SESSIONS_PER_SECTION.
+    silencieux). Garde-fou MIN_SESSIONS_PER_SECTION. Erreur du prédicat
+    is_deload_day → clé "error", pas insufficient.
     """
-    from analytics_adapter import is_deload_day
+    try:
+        from analytics_adapter import is_deload_day
 
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
-    zone_counts = {"strength": 0, "power": 0, "hypertrophy": 0, "endurance": 0, "conditioning": 0}
-    compound_sets = isolation_sets = 0
-    weighted: list[float] = []
-    session_dates: set[str] = set()
-    excluded_names: set[str] = set()
+        cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+        zone_counts = {"strength": 0, "power": 0, "hypertrophy": 0, "endurance": 0, "conditioning": 0}
+        compound_sets = isolation_sets = 0
+        weighted: list[float] = []
+        session_dates: set[str] = set()
+        excluded_names: set[str] = set()
+        invalid_dates = 0
 
-    for name, entries in history.items():
-        profile = (ex_info.get(name, {}).get("load_profile") or "").lower()
-        if not profile:
-            # Fallback explicite — un exo sans load_profile ne gonfle pas
-            # un score fantôme à 50. Compté séparément.
-            if any((e.get("date") or "") >= cutoff for e in entries):
-                excluded_names.add(name)
-            continue
-        load_score  = _LOAD_SCORE.get(profile, 50)
-        is_compound = "compound" in profile
-        w_factor    = 1.3 if is_compound else 0.85
-
-        for e in entries:
-            d_str = e.get("date") or ""
-            if d_str < cutoff:
+        for name, entries in history.items():
+            profile = (ex_info.get(name, {}).get("load_profile") or "").lower()
+            if not profile:
+                # Fallback explicite — un exo sans load_profile ne gonfle pas
+                # un score fantôme à 50. Compté séparément.
+                if any((e.get("date") or "") >= cutoff for e in entries):
+                    excluded_names.add(name)
                 continue
-            try:
-                if is_deload_day(date_cls.fromisoformat(d_str[:10])):
+            load_score  = _LOAD_SCORE.get(profile, 50)
+            is_compound = "compound" in profile
+            w_factor    = 1.3 if is_compound else 0.85
+
+            for e in entries:
+                d_str = e.get("date") or ""
+                if d_str < cutoff:
                     continue
-            except Exception:
-                continue
-            session_dates.add(d_str[:10])
-            default_reps = int(str(e.get("reps") or "8").split(",")[0].strip() or 8)
-            sets_list    = e.get("sets")
-            rpe          = e.get("rpe")
+                try:
+                    d = date_cls.fromisoformat(d_str[:10])
+                except ValueError:
+                    invalid_dates += 1
+                    continue
+                if is_deload_day(d):
+                    continue
+                session_dates.add(d_str[:10])
+                default_reps = int(str(e.get("reps") or "8").split(",")[0].strip() or 8)
+                sets_list    = e.get("sets")
+                rpe          = e.get("rpe")
 
-            iter_reps: list[int] = []
-            if isinstance(sets_list, list):
-                for s in sets_list:
-                    raw = s.get("reps") if isinstance(s, dict) else default_reps
-                    r = default_reps if raw is None else int(raw)
-                    iter_reps.append(r)
-            else:
-                iter_reps = [default_reps]
-
-            for r in iter_reps:
-                if rpe and isinstance(rpe, (int, float)) and 1 <= rpe <= 10:
-                    rpe_score = (rpe / 10) * 100
-                    score = (_rep_score(r) * 0.50 + load_score * 0.30 + rpe_score * 0.20) * w_factor
+                iter_reps: list[int] = []
+                if isinstance(sets_list, list):
+                    for s in sets_list:
+                        raw = s.get("reps") if isinstance(s, dict) else default_reps
+                        r = default_reps if raw is None else int(raw)
+                        iter_reps.append(r)
                 else:
-                    score = (_rep_score(r) * 0.60 + load_score * 0.40) * w_factor
-                weighted.append(score)
-                if is_compound: compound_sets += 1
-                else:           isolation_sets += 1
-                if r <= 4:    zone_counts["strength"]    += 1
-                elif r <= 7:  zone_counts["power"]       += 1
-                elif r <= 12: zone_counts["hypertrophy"] += 1
-                elif r <= 20: zone_counts["endurance"]   += 1
-                else:         zone_counts["conditioning"] += 1
+                    iter_reps = [default_reps]
+
+                for r in iter_reps:
+                    if rpe and isinstance(rpe, (int, float)) and 1 <= rpe <= 10:
+                        rpe_score = (rpe / 10) * 100
+                        score = (_rep_score(r) * 0.50 + load_score * 0.30 + rpe_score * 0.20) * w_factor
+                    else:
+                        score = (_rep_score(r) * 0.60 + load_score * 0.40) * w_factor
+                    weighted.append(score)
+                    if is_compound: compound_sets += 1
+                    else:           isolation_sets += 1
+                    if r <= 4:    zone_counts["strength"]    += 1
+                    elif r <= 7:  zone_counts["power"]       += 1
+                    elif r <= 12: zone_counts["hypertrophy"] += 1
+                    elif r <= 20: zone_counts["endurance"]   += 1
+                    else:         zone_counts["conditioning"] += 1
+    except Exception as exc:
+        logger.exception("Intensity section error: %s", exc)
+        return {"error": str(exc), "n_sessions": 0, "invalid_dates": 0,
+                "excluded_no_load_profile": 0}
 
     n_sessions = len(session_dates)
     if n_sessions < MIN_SESSIONS_PER_SECTION or not weighted:
@@ -208,6 +227,7 @@ def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> d
             "insufficient_data":         True,
             "n_sessions":                n_sessions,
             "excluded_no_load_profile":  len(excluded_names),
+            "invalid_dates":             invalid_dates,
         }
 
     total_sets    = sum(zone_counts.values()) or 1
@@ -236,6 +256,7 @@ def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> d
         "insufficient_data":        False,
         "n_sessions":               n_sessions,
         "excluded_no_load_profile": len(excluded_names),
+        "invalid_dates":            invalid_dates,
     }
 
 
@@ -551,33 +572,43 @@ def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 
     Fallback explicite : exercice sans `movement_pattern` catalogue → EXCLU
     et compté dans excluded_no_pattern (plus d'exclusion silencieuse qui
     cachait les trous de catalogue). Garde-fou MIN_SESSIONS_PER_SECTION.
+    Erreur du prédicat is_deload_day → clé "error", pas insufficient.
     """
-    from analytics_adapter import is_deload_day
+    try:
+        from analytics_adapter import is_deload_day
 
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
-    pattern_sets: dict[str, int] = {}
-    session_dates: set[str] = set()
-    excluded_names: set[str] = set()
+        cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+        pattern_sets: dict[str, int] = {}
+        session_dates: set[str] = set()
+        excluded_names: set[str] = set()
+        invalid_dates = 0
 
-    for name, entries in history.items():
-        pattern = (ex_info.get(name, {}).get("movement_pattern") or "").strip()
-        if not pattern:
-            if any((e.get("date") or "") >= cutoff for e in entries):
-                excluded_names.add(name)
-            continue
-        for e in entries:
-            d_str = e.get("date") or ""
-            if d_str < cutoff:
+        for name, entries in history.items():
+            pattern = (ex_info.get(name, {}).get("movement_pattern") or "").strip()
+            if not pattern:
+                if any((e.get("date") or "") >= cutoff for e in entries):
+                    excluded_names.add(name)
                 continue
-            try:
-                if is_deload_day(date_cls.fromisoformat(d_str[:10])):
+            for e in entries:
+                d_str = e.get("date") or ""
+                if d_str < cutoff:
                     continue
-            except Exception:
-                continue
-            session_dates.add(d_str[:10])
-            sets_list = e.get("sets")
-            n_sets = len(sets_list) if isinstance(sets_list, list) else 1
-            pattern_sets[pattern] = pattern_sets.get(pattern, 0) + n_sets
+                try:
+                    d = date_cls.fromisoformat(d_str[:10])
+                except ValueError:
+                    invalid_dates += 1
+                    continue
+                if is_deload_day(d):
+                    continue
+                session_dates.add(d_str[:10])
+                sets_list = e.get("sets")
+                n_sets = len(sets_list) if isinstance(sets_list, list) else 1
+                pattern_sets[pattern] = pattern_sets.get(pattern, 0) + n_sets
+    except Exception as exc:
+        logger.exception("Patterns section error: %s", exc)
+        return {"error": str(exc), "n_sessions": 0, "invalid_dates": 0,
+                "excluded_no_pattern": 0, "has_data": False,
+                "patterns": [], "ratios": {}, "diversity_score": 0}
 
     n_sessions = len(session_dates)
     if n_sessions < MIN_SESSIONS_PER_SECTION or not pattern_sets:
@@ -589,6 +620,7 @@ def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 
             "insufficient_data":   True,
             "n_sessions":          n_sessions,
             "excluded_no_pattern": len(excluded_names),
+            "invalid_dates":       invalid_dates,
         }
 
     total = sum(pattern_sets.values()) or 1
@@ -619,6 +651,7 @@ def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 
         "insufficient_data":   False,
         "n_sessions":          n_sessions,
         "excluded_no_pattern": len(excluded_names),
+        "invalid_dates":       invalid_dates,
     }
 
 
