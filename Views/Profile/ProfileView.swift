@@ -517,10 +517,15 @@ struct ProfileView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(units.format(lift.prLbs, decimals: 0)) × \(lift.prReps)")
-                    .font(.appLabel).fontWeight(.bold).foregroundColor(.appTextPrimary)
-                if lift.progressionPct > 0 {
-                    Text("↑ \(Int(lift.progressionPct))% — ancienne limite")
+                if let e1rm = lift.prEIrmLbs {
+                    Text("e1RM \(units.format(e1rm, decimals: 0))")
+                        .font(.appLabel).fontWeight(.bold).foregroundColor(.appTextPrimary)
+                } else if let raw = lift.prLbs {
+                    Text("\(units.format(raw, decimals: 0)) × \(lift.prReps)")
+                        .font(.appLabel).fontWeight(.bold).foregroundColor(.appTextPrimary)
+                }
+                if let prog = lift.progressionPct, prog > 0 {
+                    Text("↑ \(Int(prog))% — sur la fenêtre")
                         .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.appSuccess)
                 }
             }
