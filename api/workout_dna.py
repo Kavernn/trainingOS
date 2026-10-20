@@ -422,40 +422,18 @@ def _compute_session_spacing(period_days: int = 90) -> dict:
     }
 
 
-def _compute_recovery(intensity_score: int, period_days: int = 90) -> dict:
-    if db._client is None:
-        return {}
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
-    try:
-        resp  = db._client.table("workout_sessions").select("date").gte("date", cutoff).order("date").execute()
-        dates = sorted(set(r["date"] for r in (resp.data or []) if r.get("date")))
-    except Exception as e:
-        logger.error("recovery error: %s", e)
-        return {}
+def _compute_recovery(intensity_score: int, period_days: int = 90) -> dict:  # noqa: ARG001
+    """Stub — toute la logique "récupération DNA" (optimal_rest_days,
+    ratio, score /100, verdict "Optimal") a été remplacée par
+    _compute_session_spacing (lot e). Les valeurs émises par l'ancienne
+    version étaient inventées sans source documentée.
 
-    if len(dates) < 2:
-        return {"avg_rest_days": 1.5, "optimal_rest_days": 1.5, "ratio": 1.0,
-                "score": 75, "verdict": "Optimal"}
-
-    gaps = [(date_cls.fromisoformat(dates[i]) - date_cls.fromisoformat(dates[i-1])).days - 1
-            for i in range(1, len(dates))]
-    gaps = [g for g in gaps if 0 <= g <= 14]
-
-    avg_rest = round(sum(gaps) / len(gaps), 1) if gaps else 1.5
-    optimal  = 2.0 if intensity_score >= 70 else 1.5 if intensity_score >= 45 else 1.0
-    ratio    = round(avg_rest / optimal, 2)
-
-    if ratio < 0.75:    verdict = "Sous-récupéré"
-    elif ratio <= 1.30: verdict = "Optimal"
-    else:               verdict = "Sur-récupéré"
-
-    return {
-        "avg_rest_days":     avg_rest,
-        "optimal_rest_days": optimal,
-        "ratio":             ratio,
-        "score":             round(max(0, 100 - abs(ratio - 1.0) * 60)),
-        "verdict":           verdict,
-    }
+    Le stub renvoie {} pour que la clé `recovery` du payload reste
+    décodable par l'iOS actuellement installé (champs tous optionnels).
+    Un futur pair de commits (modèle DNARecovery? + retrait de la clé)
+    pourra la supprimer complètement.
+    """
+    return {}
 
 
 # ── 5. Signature Lifts ────────────────────────────────────────────────────────
@@ -563,7 +541,6 @@ def _compute_signature_lifts(client, period_days: int = 90) -> list:
         results.append({
             "name":            name,
             "session_count":   session_count,
-            "pr_lbs":          pr_weight,                   # legacy — à retirer étape c3
             "pr_e1rm_lbs":     round(pr_e1rm, 1),
             "pr_reps":         int(pr_info.get("pr_reps") or 1),
             "pr_date":         pr_info.get("pr_date") or "",
@@ -640,7 +617,6 @@ def _compute_muscle_dominants(client, period_days: int = 90) -> tuple[list, dict
     muscles_list = [
         {
             "muscle":         name,
-            "sets":           round(effective),       # legacy int — à retirer étape a3
             "effective_sets": round(effective, 1),
             "pct":            round(effective / total_all * 100),
         }
@@ -876,7 +852,7 @@ def compute(period_days: int = 90) -> dict:
             "ppl":                    ppl,
             "intensity":              intensity,
             "consistency":            consistency,
-            "recovery":               recovery,            # legacy — à retirer étape e3
+            "recovery":               recovery,            # stub {} — session_spacing est la vraie section
             "session_spacing":        session_spacing,     # nouveau lot e
             "signature_lifts":        lifts,
             "muscle_dominants":       muscle_dominants,
