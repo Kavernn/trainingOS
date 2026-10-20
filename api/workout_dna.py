@@ -38,48 +38,78 @@ _LOAD_SCORE = {
 # ── 1. PPL Balance ────────────────────────────────────────────────────────────
 
 def _classify_ppl(category: str, name: str = "") -> str:
+    """Classification push/pull/legs/core/other.
+
+    Pattern-based doctrine : deadlift / RDL / hinge sont des mouvements de
+    jambes (chaîne postérieure), pas de pull. Curl reste pull (bras tirés).
+    L'ordre des checks est significatif : les keywords legs sont évalués
+    AVANT pull pour qu'un nom contenant "deadlift" ou "rdl" tombe en legs.
+    """
     cat = category.lower()
+    if any(k in cat for k in ("quad", "hamstring", "glute", "leg", "calf", "hip", "rdl", "deadlift")):
+        return "legs"
     if any(k in cat for k in ("chest", "pec", "shoulder", "delt", "tricep", "push")):
         return "push"
     if any(k in cat for k in ("back", "lat", "trap", "bicep", "rear", "row", "pull")):
         return "pull"
-    if any(k in cat for k in ("quad", "hamstring", "glute", "leg", "calf", "hip", "rdl")):
-        return "legs"
     if any(k in cat for k in ("core", "abs", "oblique")):
         return "core"
-    # Name-based fallback for "strength" category (39 exercises classified as "other")
+    # Name-based fallback — ordre : legs → push → pull.
     n = name.lower()
-    if any(k in n for k in ("press", "fly", "pec", "dip", "push", "chest", "shoulder", "delt", "tricep", "lateral raise")):
-        return "push"
-    if any(k in n for k in ("row", "pull", "chin", "deadlift", "rdl", "shrug", "curl", "lat", "rear delt")):
-        return "pull"
-    if any(k in n for k in ("squat", "lunge", "leg", "calf", "glute", "hip thrust", "nordic", "hamstring", "split squat")):
+    if any(k in n for k in ("squat", "lunge", "leg", "calf", "glute", "hip thrust", "nordic",
+                            "hamstring", "split squat", "deadlift", "rdl")):
         return "legs"
+    if any(k in n for k in ("press", "fly", "pec", "dip", "push", "chest", "shoulder",
+                            "delt", "tricep", "lateral raise")):
+        return "push"
+    if any(k in n for k in ("row", "pull", "chin", "shrug", "curl", "lat", "rear delt")):
+        return "pull"
     return "other"
 
 
 def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
+    """PPL balance via sets catalogue, décharges exclues via is_deload_day.
+
+    Garde-fou : < MIN_SESSIONS_PER_SECTION sessions distinctes dans la
+    fenêtre (hors décharge) → insufficient_data=True, aucun verdict ni
+    pourcentages inventés.
+    """
+    from analytics_adapter import is_deload_day
+
     cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
     counts = {"push": 0, "pull": 0, "legs": 0, "core": 0, "other": 0}
+    session_dates: set[str] = set()
 
     for name, entries in history.items():
         cat   = (ex_info.get(name, {}).get("category") or "")
         group = _classify_ppl(cat, name)
         for e in entries:
-            if (e.get("date") or "") < cutoff:
+            d_str = e.get("date") or ""
+            if d_str < cutoff:
                 continue
+            try:
+                if is_deload_day(date_cls.fromisoformat(d_str[:10])):
+                    continue
+            except Exception:
+                continue
+            session_dates.add(d_str[:10])
             sets_list = e.get("sets")
             counts[group] += len(sets_list) if isinstance(sets_list, list) else 1
+
+    n_sessions = len(session_dates)
+    if n_sessions < MIN_SESSIONS_PER_SECTION:
+        return {
+            "insufficient_data": True,
+            "n_sessions":        n_sessions,
+        }
 
     total     = sum(counts.values()) or 1
     ppl_total = (counts["push"] + counts["pull"] + counts["legs"]) or 1
 
-    # PPL-normalized (sum to 100% among push/pull/legs — what the chart displays)
     push_n = round(counts["push"] / ppl_total * 100)
     pull_n = round(counts["pull"] / ppl_total * 100)
-    legs_n = max(0, 100 - push_n - pull_n)  # avoid rounding drift
+    legs_n = max(0, 100 - push_n - pull_n)
 
-    # All-sets ratios (informational: core + other breakdown)
     core_pct  = round(counts["core"]  / total * 100)
     other_pct = round(counts["other"] / total * 100)
 
@@ -92,35 +122,58 @@ def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
     elif legs_n < 20:          verdict = "Jambes négligées"
 
     return {
-        "push_pct":      push_n,
-        "pull_pct":      pull_n,
-        "legs_pct":      legs_n,
-        "core_pct":      core_pct,
-        "other_pct":     other_pct,
-        "balance_score": balance_score,
-        "verdict":       verdict,
+        "push_pct":          push_n,
+        "pull_pct":          pull_n,
+        "legs_pct":          legs_n,
+        "core_pct":          core_pct,
+        "other_pct":         other_pct,
+        "balance_score":     balance_score,
+        "verdict":           verdict,
+        "insufficient_data": False,
+        "n_sessions":        n_sessions,
     }
 
 
 # ── 2. Intensity Profile ──────────────────────────────────────────────────────
 
 def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> dict:
+    """Profil d'intensité, décharges exclues.
+
+    Fallback explicite : exercice sans `load_profile` catalogue → EXCLU de
+    la stat et compté dans excluded_no_load_profile (plus de score=50
+    silencieux). Garde-fou MIN_SESSIONS_PER_SECTION.
+    """
+    from analytics_adapter import is_deload_day
+
     cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
     zone_counts = {"strength": 0, "power": 0, "hypertrophy": 0, "endurance": 0, "conditioning": 0}
     compound_sets = isolation_sets = 0
     weighted: list[float] = []
+    session_dates: set[str] = set()
+    excluded_names: set[str] = set()
 
     for name, entries in history.items():
-        profile    = (ex_info.get(name, {}).get("load_profile") or "").lower()
-        load_score = _LOAD_SCORE.get(profile, 50)
+        profile = (ex_info.get(name, {}).get("load_profile") or "").lower()
         if not profile:
-            logger.warning("load_profile manquant pour '%s', fallback 50", name)
+            # Fallback explicite — un exo sans load_profile ne gonfle pas
+            # un score fantôme à 50. Compté séparément.
+            if any((e.get("date") or "") >= cutoff for e in entries):
+                excluded_names.add(name)
+            continue
+        load_score  = _LOAD_SCORE.get(profile, 50)
         is_compound = "compound" in profile
         w_factor    = 1.3 if is_compound else 0.85
 
         for e in entries:
-            if (e.get("date") or "") < cutoff:
+            d_str = e.get("date") or ""
+            if d_str < cutoff:
                 continue
+            try:
+                if is_deload_day(date_cls.fromisoformat(d_str[:10])):
+                    continue
+            except Exception:
+                continue
+            session_dates.add(d_str[:10])
             default_reps = int(str(e.get("reps") or "8").split(",")[0].strip() or 8)
             sets_list    = e.get("sets")
             rpe          = e.get("rpe")
@@ -149,14 +202,23 @@ def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> d
                 elif r <= 20: zone_counts["endurance"]   += 1
                 else:         zone_counts["conditioning"] += 1
 
+    n_sessions = len(session_dates)
+    if n_sessions < MIN_SESSIONS_PER_SECTION or not weighted:
+        return {
+            "insufficient_data":         True,
+            "n_sessions":                n_sessions,
+            "excluded_no_load_profile":  len(excluded_names),
+        }
+
     total_sets    = sum(zone_counts.values()) or 1
-    i_score       = round(sum(weighted) / len(weighted)) if weighted else 50
-    i_score       = max(0, min(100, i_score))
+    i_score       = max(0, min(100, round(sum(weighted) / len(weighted))))
     force_pct     = round((zone_counts["strength"] + zone_counts["power"]) / total_sets * 100)
     hyp_pct       = round(zone_counts["hypertrophy"] / total_sets * 100)
     endurance_pct = max(0, 100 - force_pct - hyp_pct)
-    compound_pct  = round(compound_sets / (compound_sets + isolation_sets) * 100) \
-                    if (compound_sets + isolation_sets) else 50
+    compound_pct  = (
+        round(compound_sets / (compound_sets + isolation_sets) * 100)
+        if (compound_sets + isolation_sets) else 0
+    )
 
     if i_score >= 71:   label = "Strength Athlete"
     elif i_score >= 51: label = "Power Builder"
@@ -164,13 +226,16 @@ def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> d
     else:               label = "Pump Artist"
 
     return {
-        "score":           i_score,
-        "label":           label,
-        "force_pct":       force_pct,
-        "hypertrophy_pct": hyp_pct,
-        "endurance_pct":   endurance_pct,
-        "compound_pct":    compound_pct,
-        "isolation_pct":   100 - compound_pct,
+        "score":                    i_score,
+        "label":                    label,
+        "force_pct":                force_pct,
+        "hypertrophy_pct":          hyp_pct,
+        "endurance_pct":            endurance_pct,
+        "compound_pct":             compound_pct,
+        "isolation_pct":            100 - compound_pct,
+        "insufficient_data":        False,
+        "n_sessions":               n_sessions,
+        "excluded_no_load_profile": len(excluded_names),
     }
 
 
@@ -481,22 +546,50 @@ def _compute_muscle_dominants(client, period_days: int = 90) -> tuple[list, dict
 # ── 7. Movement Patterns ─────────────────────────────────────────────────────
 
 def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 90) -> dict:
+    """Patterns de mouvement, décharges exclues.
+
+    Fallback explicite : exercice sans `movement_pattern` catalogue → EXCLU
+    et compté dans excluded_no_pattern (plus d'exclusion silencieuse qui
+    cachait les trous de catalogue). Garde-fou MIN_SESSIONS_PER_SECTION.
+    """
+    from analytics_adapter import is_deload_day
+
     cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
     pattern_sets: dict[str, int] = {}
+    session_dates: set[str] = set()
+    excluded_names: set[str] = set()
 
     for name, entries in history.items():
         pattern = (ex_info.get(name, {}).get("movement_pattern") or "").strip()
         if not pattern:
+            if any((e.get("date") or "") >= cutoff for e in entries):
+                excluded_names.add(name)
             continue
         for e in entries:
-            if (e.get("date") or "") < cutoff:
+            d_str = e.get("date") or ""
+            if d_str < cutoff:
                 continue
+            try:
+                if is_deload_day(date_cls.fromisoformat(d_str[:10])):
+                    continue
+            except Exception:
+                continue
+            session_dates.add(d_str[:10])
             sets_list = e.get("sets")
             n_sets = len(sets_list) if isinstance(sets_list, list) else 1
             pattern_sets[pattern] = pattern_sets.get(pattern, 0) + n_sets
 
-    if not pattern_sets:
-        return {"has_data": False, "patterns": [], "ratios": {}, "diversity_score": 0}
+    n_sessions = len(session_dates)
+    if n_sessions < MIN_SESSIONS_PER_SECTION or not pattern_sets:
+        return {
+            "has_data":            False,
+            "patterns":            [],
+            "ratios":              {},
+            "diversity_score":     0,
+            "insufficient_data":   True,
+            "n_sessions":          n_sessions,
+            "excluded_no_pattern": len(excluded_names),
+        }
 
     total = sum(pattern_sets.values()) or 1
     patterns_ranked = sorted(
@@ -504,7 +597,6 @@ def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 
         key=lambda x: x["sets"], reverse=True,
     )
 
-    # Diagnostically useful ratios
     hinge  = pattern_sets.get("hinge", 0)
     squat  = pattern_sets.get("squat", 0)
     push_h = pattern_sets.get("push_horizontal", 0)
@@ -512,18 +604,21 @@ def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 
 
     ratios: dict = {}
     if squat > 0:
-        ratios["hinge_squat"] = round(hinge / squat, 2)  # >0.75 = posterior-chain balance
+        ratios["hinge_squat"] = round(hinge / squat, 2)
     if push_v > 0:
         ratios["push_horiz_vert"] = round(push_h / push_v, 2)
 
-    diversity = round(len(pattern_sets) / 17 * 100)  # % of 17 canonical patterns used
+    diversity = round(len(pattern_sets) / 17 * 100)  # % des 17 patterns canoniques présents
 
     return {
-        "has_data":       True,
-        "patterns":       patterns_ranked,
-        "ratios":         ratios,
-        "diversity_score": diversity,
-        "total_sets":     total,
+        "has_data":            True,
+        "patterns":            patterns_ranked,
+        "ratios":              ratios,
+        "diversity_score":     diversity,
+        "total_sets":          total,
+        "insufficient_data":   False,
+        "n_sessions":          n_sessions,
+        "excluded_no_pattern": len(excluded_names),
     }
 
 
