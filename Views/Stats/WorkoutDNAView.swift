@@ -871,6 +871,11 @@ private struct SignatureLiftRow: View {
     let accent: Color
     @ObservedObject private var unitSettings = UnitSettings.shared
 
+    private var sinceLabel: String? {
+        guard !lift.firstDate.isEmpty else { return nil }
+        return "depuis le \(String(lift.firstDate.prefix(10)))"
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Text("#\(rank)")
@@ -882,19 +887,26 @@ private struct SignatureLiftRow: View {
                 Text(lift.name)
                     .font(.appLabel.weight(.semibold))
                     .foregroundColor(.appTextPrimary)
-                Text("\(lift.sessionCount) séances")
+                Text("\(lift.sessionCount) séances\(sinceLabel.map { " · \($0)" } ?? "")")
                     .font(.appCaption)
                     .foregroundColor(.gray)
+                    .lineLimit(1)
             }
 
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(unitSettings.format(lift.prLbs)) × \(lift.prReps)")
-                    .font(.appLabel.weight(.bold))
-                    .foregroundColor(.appTextPrimary)
-                if lift.progressionPct > 0 {
-                    Text("↑ \(Int(lift.progressionPct))% sur l'ancienne limite")
+                if let e1rm = lift.prEIrmLbs {
+                    Text("e1RM \(unitSettings.format(e1rm))")
+                        .font(.appLabel.weight(.bold))
+                        .foregroundColor(.appTextPrimary)
+                } else if let raw = lift.prLbs {
+                    Text("\(unitSettings.format(raw)) × \(lift.prReps)")
+                        .font(.appLabel.weight(.bold))
+                        .foregroundColor(.appTextPrimary)
+                }
+                if let prog = lift.progressionPct, prog > 0 {
+                    Text("↑ \(Int(prog))% sur la fenêtre")
                         .font(.appCaption.weight(.semibold))
                         .foregroundColor(.appSuccess)
                 }

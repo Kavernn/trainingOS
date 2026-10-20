@@ -192,21 +192,34 @@ struct DNAIntensityMonth: Codable, Identifiable {
 struct DNASignatureLift: Codable, Identifiable {
     var id: String { name }
     let name: String
+    /// Nombre de séances distinctes dans la fenêtre DNA, hors décharge.
+    /// Classement DNA = par fréquence desc, tie-break par lastDate desc.
     let sessionCount: Int
-    let prLbs: Double
+    /// Legacy = pr_weight_lbs — backend l'émet pour compat, iOS n'affiche
+    /// plus que prEIrmLbs.
+    let prLbs: Double?
+    /// e1RM = exercise_prs.pr_e1rm_lbs (même source que PR Tracker).
+    let prEIrmLbs: Double?
     let prReps: Int
     let prDate: String
+    /// Première séance observée dans la fenêtre DNA (pour "depuis le ...").
     let firstDate: String
-    let progressionPct: Double
-    let recency: Int
+    /// Dernière séance observée dans la fenêtre DNA (tie-break ranking).
+    let lastDate: String?
+    /// (best_e1rm des 30 premiers jours → best_e1rm des 30 derniers jours
+    /// de la fenêtre DNA) × 100. `nil` si une des deux sous-fenêtres est
+    /// vide — jamais 0 silencieux.
+    let progressionPct: Double?
 
     enum CodingKeys: String, CodingKey {
-        case name, recency
+        case name
         case sessionCount   = "session_count"
         case prLbs          = "pr_lbs"
+        case prEIrmLbs      = "pr_e1rm_lbs"
         case prReps         = "pr_reps"
         case prDate         = "pr_date"
         case firstDate      = "first_date"
+        case lastDate       = "last_date"
         case progressionPct = "progression_pct"
     }
 }
