@@ -422,47 +422,25 @@ def _compute_session_spacing(period_days: int = 90) -> dict:
     }
 
 
-def _compute_recovery(intensity_score: int, period_days: int = 90) -> dict:
-    """Restauré pour compat iOS installé (build 7f38f6c) qui décode encore
-    DNARecovery avec les 5 clés. La vraie section est session_spacing (lot e)
-    qui remplacera cette fonction UNE FOIS que l'iOS aura marqué
-    `recovery: DNARecovery?` comme optionnel et droppé l'utilisation
-    de recovery.avgRestDays dans DNAHelixCanvas."""
-    if db._client is None:
-        return {"avg_rest_days": None, "optimal_rest_days": None,
-                "ratio": None, "score": None, "verdict": None}
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
-    try:
-        resp  = db._client.table("workout_sessions").select("date").gte("date", cutoff).order("date").execute()
-        dates = sorted(set(r["date"] for r in (resp.data or []) if r.get("date")))
-    except Exception as e:
-        logger.error("recovery error: %s", e)
-        return {"avg_rest_days": None, "optimal_rest_days": None,
-                "ratio": None, "score": None, "verdict": None}
+def _compute_recovery(intensity_score: int, period_days: int = 90) -> dict:  # noqa: ARG001
+    """Stub — toute la logique "récupération DNA" est remplacée par
+    _compute_session_spacing (lot e). Les valeurs inventées
+    (optimal_rest_days dérivé, ratio, score /100, verdict "Optimal")
+    sont supprimées.
 
-    if len(dates) < 2:
-        return {"avg_rest_days": None, "optimal_rest_days": None,
-                "ratio": None, "score": None, "verdict": None}
-
-    gaps = [(date_cls.fromisoformat(dates[i]) - date_cls.fromisoformat(dates[i-1])).days - 1
-            for i in range(1, len(dates))]
-    gaps = [g for g in gaps if 0 <= g <= 14]
-
-    avg_rest = round(sum(gaps) / len(gaps), 1) if gaps else None
-    optimal  = 2.0 if intensity_score >= 70 else 1.5 if intensity_score >= 45 else 1.0
-    ratio    = round(avg_rest / optimal, 2) if avg_rest is not None else None
-
-    if ratio is None:    verdict = None
-    elif ratio < 0.75:   verdict = "Sous-récupéré"
-    elif ratio <= 1.30:  verdict = "Optimal"
-    else:                verdict = "Sur-récupéré"
-
+    L'iOS installé (build 7f38f6c lot e2) n'affiche plus la section
+    `recovery`, mais sa clé parent reste requise par le modèle Swift
+    (`let recovery: DNARecovery`). On émet les 5 sous-clés à null —
+    DNARecovery a tous ses sous-champs optionnels, décode sans erreur.
+    Le prochain commit iOS supprimera `recovery` du modèle, puis le
+    backend retirera la clé entière.
+    """
     return {
-        "avg_rest_days":     avg_rest,
-        "optimal_rest_days": optimal,
-        "ratio":             ratio,
-        "score":             round(max(0, 100 - abs(ratio - 1.0) * 60)) if ratio is not None else None,
-        "verdict":           verdict,
+        "avg_rest_days":     None,
+        "optimal_rest_days": None,
+        "ratio":             None,
+        "score":             None,
+        "verdict":           None,
     }
 
 
