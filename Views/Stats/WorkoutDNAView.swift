@@ -108,10 +108,10 @@ private struct WorkoutDNAInlineContent: View {
     private var accent: Color { archetypeAccent(dna.archetype.key) }
 
     private var scoreItems: [(String, Int?)] {
+        // "Récup" retiré avec le lot e : plus de score inventé.
         [("Équilibre", dna.ppl.balanceScore),
          ("Intensité", dna.intensity.score),
-         ("Constance", dna.consistency.score),
-         ("Récup",     dna.recovery.score)]
+         ("Constance", dna.consistency.score)]
     }
 
     private var archetypeAvailable: Bool {
@@ -156,7 +156,9 @@ private struct WorkoutDNAInlineContent: View {
                 }
             }
             consistencySection
-            recoverySection
+            if let spacing = dna.sessionSpacing {
+                sessionSpacingSection(spacing)
+            }
             if !dna.signatureLifts.isEmpty {
                 signatureLiftsSection
             }
@@ -374,21 +376,47 @@ private struct WorkoutDNAInlineContent: View {
         }
     }
 
-    private var recoverySection: some View {
-        DNASectionCard(title: "RÉCUPÉRATION", accent: accent) {
-            VStack(spacing: 12) {
-                RecoveryIndicator(recovery: dna.recovery)
-                HStack {
-                    Image(systemName: dna.recovery.verdict == "Optimal" ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundColor(dna.recovery.verdict == "Optimal" ? .appSuccess : .appWarning)
-                        .font(.appLabel)
-                    Text(dna.recovery.verdict)
-                        .font(.appLabel)
-                        .foregroundColor(Color.appOnSurface.opacity(0.85))
-                    Spacer()
-                    Text("Optimal: \(String(format: "%.1f", dna.recovery.optimalRestDays))j")
-                        .font(.appCaption)
-                        .foregroundColor(.gray)
+    @ViewBuilder
+    private func sessionSpacingSection(_ s: DNASessionSpacing) -> some View {
+        DNASectionCard(title: "ESPACEMENT DES SÉANCES", accent: accent) {
+            if let err = s.error {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Erreur de calcul").font(.appLabel).foregroundColor(.appDanger)
+                    Text(err).font(.appMicro).foregroundColor(.gray).lineLimit(2)
+                }
+            } else if s.insufficientData == true || s.medianDays == nil {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Données insuffisantes (n = \(s.nSessions))")
+                        .font(.appLabel).foregroundColor(.appTextSecondary)
+                    Text("Au moins 8 séances dans la fenêtre pour voir l'espacement.")
+                        .font(.appMicro).foregroundColor(.gray)
+                }
+            } else if let median = s.medianDays {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Médiane entre deux séances, décharges exclues")
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.7))
+                    HStack(alignment: .bottom, spacing: 8) {
+                        Text(String(format: "%.1f", median))
+                            .font(.appHero.weight(.black)).foregroundColor(.appTextPrimary)
+                            .monospacedDigit()
+                        Text("j")
+                            .font(.appBody.weight(.medium)).foregroundColor(.gray)
+                            .padding(.bottom, 8)
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            if let p25 = s.p25Days, let p75 = s.p75Days {
+                                Text(String(format: "IQR %.1f – %.1f j", p25, p75))
+                                    .font(.appCaption.weight(.semibold))
+                                    .foregroundColor(.appTextSecondary)
+                            }
+                            Text("\(s.nGaps) gap\(s.nGaps > 1 ? "s" : "") · n = \(s.nSessions)")
+                                .font(.appMicro).foregroundColor(.gray.opacity(0.6))
+                        }
+                    }
+                    if let excluded = s.excludedDeloadSessions, excluded > 0 {
+                        Text("\(excluded) séance\(excluded > 1 ? "s" : "") exclue\(excluded > 1 ? "s" : "") (décharge)")
+                            .font(.appMicro).foregroundColor(.gray.opacity(0.6))
+                    }
                 }
             }
         }
@@ -702,7 +730,7 @@ struct DNAHelixCanvas: View {
                 }
 
                 // Rung — fades slightly where rest days fall
-                let restFreq  = max(2.0, dna.recovery.avgRestDays + 1.5)
+                let restFreq  = max(2.0, (dna.sessionSpacing?.medianDays ?? dna.recovery.avgRestDays ?? 2.0) + 1.5)
                 let isRestRung = Double(i).truncatingRemainder(dividingBy: restFreq) < 0.9
                 let rungAlpha  = isRestRung ? 0.55 : 0.15
 
@@ -900,46 +928,8 @@ private struct ConsistencyStat: View {
     }
 }
 
-// MARK: - Recovery Indicator
-
-private struct RecoveryIndicator: View {
-    let recovery: DNARecovery
-
-    var body: some View {
-        HStack(spacing: 16) {
-            VStack(spacing: 2) {
-                Text(String(format: "%.1f j", recovery.avgRestDays))
-                    .font(.system(size: 22, weight: .black, design: .rounded))
-                    .foregroundColor(.appTextPrimary)
-                Text("repos moyen")
-                    .font(.appCaption)
-                    .foregroundColor(.gray)
-            }
-            Spacer()
-            // Ratio bar
-            VStack(alignment: .trailing, spacing: 8) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.appSurfaceInset)
-                        Capsule()
-                            .fill(ratioColor)
-                            .frame(width: geo.size.width * min(CGFloat(recovery.ratio), 1.5) / 1.5)
-                    }
-                }
-                .frame(height: 6)
-                Text("ratio \(String(format: "%.2f", recovery.ratio)) vs optimal")
-                    .font(.appCaption)
-                    .foregroundColor(.gray)
-            }
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    private var ratioColor: Color {
-        if recovery.ratio < 0.75 || recovery.ratio > 1.30 { return .appWarning }
-        return .appSuccess
-    }
-}
+// RecoveryIndicator supprimée avec le lot e2 — remplacée par
+// sessionSpacingSection qui expose médiane + IQR réels sans score inventé.
 
 // MARK: - Signature Lift Row
 
@@ -1089,16 +1079,18 @@ struct WorkoutDNAShareCard: View {
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, 14)
 
-                // 4 scores
+                // 3 scores (RÉCUP retiré avec le lot e — plus de score inventé)
                 HStack(spacing: 6) {
-                    ForEach([("ÉQUILIBRE", dna.ppl.balanceScore),
-                             ("INTENSITÉ", dna.intensity.score),
-                             ("CONSTANCE", dna.consistency.score),
-                             ("RÉCUP",     dna.recovery.score)], id: \.0) { item in
+                    let items: [(String, Int?)] = [
+                        ("ÉQUILIBRE", dna.ppl.balanceScore),
+                        ("INTENSITÉ", dna.intensity.score),
+                        ("CONSTANCE", dna.consistency.score),
+                    ]
+                    ForEach(items, id: \.0) { item in
                         VStack(spacing: 2) {
-                            Text("\(item.1)")
+                            Text(item.1.map { "\($0)" } ?? "—")
                                 .font(.system(size: 16, weight: .black, design: .rounded))
-                                .foregroundColor(accent)
+                                .foregroundColor(item.1 == nil ? .appTextSecondary : accent)
                             Text(item.0)
                                 .font(.system(size: 6, weight: .bold))
                                 .foregroundColor(.gray)

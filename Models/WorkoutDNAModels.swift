@@ -6,7 +6,8 @@ struct WorkoutDNAResponse: Codable {
     let ppl: DNAPPLBalance
     let intensity: DNAIntensity
     let consistency: DNAConsistency
-    let recovery: DNARecovery
+    let recovery: DNARecovery              // legacy — supprimé après e3
+    let sessionSpacing: DNASessionSpacing?
     let signatureLifts: [DNASignatureLift]
     let muscleDominants: [DNAMuscleDominant]?
     let muscleDominantsMeta: DNAMuscleDominantsMeta?
@@ -17,7 +18,8 @@ struct WorkoutDNAResponse: Codable {
 
     enum CodingKeys: String, CodingKey {
         case period, archetype, ppl, intensity, consistency, recovery
-        case signatureLifts    = "signature_lifts"
+        case sessionSpacing      = "session_spacing"
+        case signatureLifts      = "signature_lifts"
         case muscleDominants     = "muscle_dominants"
         case muscleDominantsMeta = "muscle_dominants_meta"
         case movementPatterns    = "movement_patterns"
@@ -116,17 +118,45 @@ struct DNAConsistency: Codable {
     }
 }
 
+// Legacy — à retirer étape e3 (backend) une fois sessionSpacing adopté partout.
 struct DNARecovery: Codable {
-    let avgRestDays: Double
-    let optimalRestDays: Double
-    let ratio: Double
-    let score: Int
-    let verdict: String
+    let avgRestDays: Double?
+    let optimalRestDays: Double?
+    let ratio: Double?
+    let score: Int?
+    let verdict: String?
 
     enum CodingKeys: String, CodingKey {
         case ratio, score, verdict
         case avgRestDays     = "avg_rest_days"
         case optimalRestDays = "optimal_rest_days"
+    }
+}
+
+/// Nouvelle section lot e — remplace l'ancienne "récupération DNA"
+/// (score inventé, verdict "Optimal" fantôme). Expose uniquement ce qu'elle
+/// mesure vraiment : espacement médian entre séances actives dans la fenêtre
+/// DNA, décharges exclues au numérateur ET au dénominateur.
+struct DNASessionSpacing: Codable {
+    let medianDays: Double?
+    let p25Days: Double?
+    let p75Days: Double?
+    let nSessions: Int
+    let nGaps: Int
+    let excludedDeloadSessions: Int?
+    let invalidDates: Int?
+    let insufficientData: Bool?
+    let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case nGaps, error
+        case medianDays             = "median_days"
+        case p25Days                = "p25_days"
+        case p75Days                = "p75_days"
+        case nSessions              = "n_sessions"
+        case excludedDeloadSessions = "excluded_deload_sessions"
+        case invalidDates           = "invalid_dates"
+        case insufficientData       = "insufficient_data"
     }
 }
 
