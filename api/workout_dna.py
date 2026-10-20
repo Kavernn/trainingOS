@@ -331,7 +331,96 @@ def _compute_consistency(period_days: int = 90) -> dict:
     }
 
 
-# ── 4. Recovery Profile ───────────────────────────────────────────────────────
+# ── 4. Session Spacing (ex-"Recovery Profile" DNA, renommée lot e) ───────────
+
+def _percentile(sorted_vals: list[float], p: float) -> float:
+    """Interpolation linéaire. sorted_vals doit être non-vide et trié."""
+    if len(sorted_vals) == 1:
+        return float(sorted_vals[0])
+    idx = (len(sorted_vals) - 1) * p
+    lo = int(idx)
+    hi = min(lo + 1, len(sorted_vals) - 1)
+    frac = idx - lo
+    return sorted_vals[lo] + frac * (sorted_vals[hi] - sorted_vals[lo])
+
+
+def _compute_session_spacing(period_days: int = 90) -> dict:
+    """Médiane + IQR (p25–p75) des jours entre deux séances actives
+    consécutives sur la fenêtre DNA, décharges exclues.
+
+    Source : weekly_streaks.active_dates (même règle que /api/stats/streaks
+    et DNA Constance). Décharges exclues via is_deload_day : les dates qui
+    tombent dans une période de décharge enregistrée ne comptent ni comme
+    séance ni comme "trou" (on les retire avant le calcul des gaps).
+
+    Garde-fou : < MIN_SESSIONS_PER_SECTION (8) séances dans la fenêtre →
+    insufficient_data=True, pas de médiane/IQR inventées.
+
+    Suppression lot e vs ancien _compute_recovery : plus de "optimal_rest_days"
+    dérivé du score d'intensité, plus de ratio, plus de score/100, plus de
+    verdict "Optimal" — toutes des valeurs inventées sans base documentée.
+    La vue expose uniquement ce qu'elle mesure : des gaps entre séances.
+    """
+    try:
+        from weekly_streaks import active_dates as _active_dates
+        from analytics_adapter import is_deload_day
+
+        today = date_cls.fromisoformat(_today_mtl())
+        cutoff = (today - timedelta(days=period_days - 1)).isoformat()
+
+        raw_dates = _active_dates(today.isoformat())
+        parsed: list[date_cls] = []
+        invalid_dates = 0
+        for ds in raw_dates:
+            if ds < cutoff:
+                continue
+            try:
+                parsed.append(date_cls.fromisoformat(ds[:10]))
+            except ValueError:
+                invalid_dates += 1
+
+        # Exclusion décharge au niveau des dates — un gap "entre deux
+        # séances actives hors décharge" seulement.
+        excluded_deload = 0
+        kept: list[date_cls] = []
+        for d in parsed:
+            if is_deload_day(d):
+                excluded_deload += 1
+                continue
+            kept.append(d)
+        kept.sort()
+    except Exception as exc:
+        logger.exception("session_spacing section error: %s", exc)
+        return {"error": str(exc), "n_sessions": 0, "n_gaps": 0,
+                "invalid_dates": 0, "excluded_deload_sessions": 0}
+
+    n_sessions = len(kept)
+    if n_sessions < MIN_SESSIONS_PER_SECTION:
+        return {
+            "insufficient_data":        True,
+            "n_sessions":               n_sessions,
+            "n_gaps":                   max(0, n_sessions - 1),
+            "invalid_dates":            invalid_dates,
+            "excluded_deload_sessions": excluded_deload,
+        }
+
+    gaps = [(kept[i] - kept[i - 1]).days for i in range(1, n_sessions)]
+    sorted_gaps = sorted(gaps)
+    median = round(_percentile(sorted_gaps, 0.5), 1)
+    p25    = round(_percentile(sorted_gaps, 0.25), 1)
+    p75    = round(_percentile(sorted_gaps, 0.75), 1)
+
+    return {
+        "insufficient_data":        False,
+        "n_sessions":               n_sessions,
+        "n_gaps":                   len(gaps),
+        "median_days":              median,
+        "p25_days":                 p25,
+        "p75_days":                 p75,
+        "invalid_dates":            invalid_dates,
+        "excluded_deload_sessions": excluded_deload,
+    }
+
 
 def _compute_recovery(intensity_score: int, period_days: int = 90) -> dict:
     if db._client is None:
@@ -752,6 +841,7 @@ def compute(period_days: int = 90) -> dict:
         intensity          = _compute_intensity(history, ex_info, period_days)
         consistency        = _compute_consistency(period_days)
         recovery           = _compute_recovery(intensity.get("score", 50), period_days)
+        session_spacing    = _compute_session_spacing(period_days)
         lifts              = _compute_signature_lifts(db._client, period_days)
         muscle_dominants, muscle_dominants_meta = _compute_muscle_dominants(db._client, period_days)
         movement_patterns  = _compute_movement_patterns(history, ex_info, period_days)
@@ -766,7 +856,8 @@ def compute(period_days: int = 90) -> dict:
             "ppl":                    ppl,
             "intensity":              intensity,
             "consistency":            consistency,
-            "recovery":               recovery,
+            "recovery":               recovery,            # legacy — à retirer étape e3
+            "session_spacing":        session_spacing,     # nouveau lot e
             "signature_lifts":        lifts,
             "muscle_dominants":       muscle_dominants,
             "muscle_dominants_meta":  muscle_dominants_meta,

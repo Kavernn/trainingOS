@@ -28,18 +28,15 @@ def _iso_monday(d: _date) -> _date:
     return d - _td(days=d.weekday())  # Mon=0 … Sun=6
 
 
-def compute(today_str: str | None = None) -> dict:
-    """Return the full weekly-streak payload for `today_str` (ISO date).
+def active_dates(today_str: str | None = None) -> set[str]:
+    """Set of ISO date strings où l'utilisateur a été actif.
 
-    Keys: weekly_target, weekly_streak_current, weekly_streak_best,
-          week_at_risk, current_week, weeks (13 semaines, oldest first).
+    Même règle que /api/stats/streaks : workout_sessions (completed OU
+    rpe non-null) + HIIT + cardio + exercise_logs du jour. Jamais la row
+    brute workout_sessions. Exposé pour que les analytics DNA réutilisent
+    la source canonique sans refaire la collecte.
     """
     today_str = today_str or _today_mtl()
-    try:
-        today_date = _date.fromisoformat(today_str)
-    except ValueError:
-        today_date = _date.fromisoformat(_today_mtl())
-
     all_sessions = _db.get_workout_sessions(limit=730)
     session_dates: set[str] = set()
     for s in all_sessions:
@@ -59,7 +56,6 @@ def compute(today_str: str | None = None) -> dict:
         if d:
             session_dates.add(d)
 
-    # Today : include if exercise logs exist even without rpe/completed.
     try:
         today_exos = _db.get_session_exercise_logs(today_str)
     except Exception as e:
@@ -67,6 +63,23 @@ def compute(today_str: str | None = None) -> dict:
         today_exos = []
     if today_str in session_dates or bool(today_exos):
         session_dates.add(today_str)
+
+    return session_dates
+
+
+def compute(today_str: str | None = None) -> dict:
+    """Return the full weekly-streak payload for `today_str` (ISO date).
+
+    Keys: weekly_target, weekly_streak_current, weekly_streak_best,
+          week_at_risk, current_week, weeks (13 semaines, oldest first).
+    """
+    today_str = today_str or _today_mtl()
+    try:
+        today_date = _date.fromisoformat(today_str)
+    except ValueError:
+        today_date = _date.fromisoformat(_today_mtl())
+
+    session_dates = active_dates(today_str)
 
     days_by_week: dict[_date, set[_date]] = {}
     for ds in session_dates:
