@@ -88,50 +88,47 @@ def no_deload(monkeypatch):
     monkeypatch.setattr("db.get_deload_periods", lambda: [])
 
 
-def test_dna_effective_sets_matches_cockpit_summarize_muscle_workload(pinned_today, no_deload):
+def test_dna_effective_sets_equals_cockpit_weekly_effective_sets(pinned_today, no_deload):
     """Pour la même fenêtre et les mêmes rows, DNA.effective_sets ==
-    direct + 0,5 × indirect du cockpit, muscle par muscle (noms canoniques)."""
+    MuscleWorkload.weekly_effective_sets du cockpit (séries effectives /
+    semaine, hors décharge au numérateur ET au dénominateur). Mêmes noms
+    canoniques des deux côtés."""
     from analytics_adapter import fetch_raw_analytics_rows, adapt_analytics_rows, is_deload_day
     from metric_semantics import DateWindow
-    from muscle_workload_analytics import summarize_muscle_workload, INDIRECT_SET_COEFFICIENT
+    from muscle_workload_analytics import summarize_muscle_workload
     import workout_dna as _dna
 
     rows = _mk_rows()
     client = _FakeClient(rows)
     period = DateWindow(pinned_today - timedelta(days=WINDOW_DAYS - 1), pinned_today)
 
-    # 1) DNA via _compute_muscle_dominants
     dna_muscles, dna_meta = _dna._compute_muscle_dominants(client, period_days=WINDOW_DAYS)
     assert dna_meta["insufficient_data"] is False, (
         f"Attendu ≥ 8 sessions, obtenu {dna_meta['n_sessions']}"
     )
     assert dna_muscles, "Attendu au moins un muscle dans le top-6"
 
-    # 2) Cockpit canonical : même pipeline, mêmes paramètres
-    raw = fetch_raw_analytics_rows(client, period=period)
-    adapted = adapt_analytics_rows(raw, period=period)
+    adapted = adapt_analytics_rows(fetch_raw_analytics_rows(client, period=period), period=period)
     cockpit_summary = summarize_muscle_workload(
         adapted.training_load_exposures,
         adapted.assignments,
         period=period,
         is_deload=lambda d: is_deload_day(d),
     )
-    cockpit_by_muscle = {
-        m.muscle: m.direct_set_count + INDIRECT_SET_COEFFICIENT * m.indirect_set_count
-        for m in cockpit_summary.muscles
-    }
+    cockpit_by_muscle = {m.muscle: m.weekly_effective_sets for m in cockpit_summary.muscles}
 
-    # 3) Les noms de muscles DNA doivent exister tels quels dans le cockpit
-    #    (fusion canonique appliquée des deux côtés via adapt_analytics_rows).
     for entry in dna_muscles:
         name = entry["muscle"]
         assert name in cockpit_by_muscle, (
             f"Muscle DNA '{name}' absent du cockpit — fusion canonique divergente"
         )
-        expected = round(cockpit_by_muscle[name], 1)
-        assert entry["effective_sets"] == expected, (
+        expected = cockpit_by_muscle[name]
+        assert expected is not None, (
+            f"Muscle '{name}' aurait dû être exclu (weekly_effective_sets=None)"
+        )
+        assert entry["effective_sets"] == round(expected, 1), (
             f"effective_sets divergent pour '{name}': "
-            f"DNA={entry['effective_sets']} vs cockpit={expected}"
+            f"DNA={entry['effective_sets']} vs cockpit={round(expected, 1)}"
         )
 
 
@@ -153,24 +150,19 @@ def test_dna_insufficient_data_under_8_sessions(pinned_today, no_deload):
     assert dna_muscles == []
 
 
-def test_dna_counts_match_cockpit_in_deload_scenario(pinned_today, monkeypatch):
-    """ATTENTION — ÉCART AVEC L'INSTRUCTION « décharge exclue ».
+def test_dna_deload_sessions_do_not_alter_numerator(pinned_today, monkeypatch):
+    """À période décharge identique, ajouter des séries DANS la décharge
+    ne change pas effective_sets.
 
-    L'implémentation actuelle utilise `direct_set_count` + `indirect_set_count`
-    de MuscleWorkload, qui INCLUENT les sets des jours de décharge (doctrine
-    summarize_muscle_workload : "ce qui a été fait reste fait" ; l'exclusion
-    décharge agit sur `weekly_effective_sets`, pas sur les compteurs bruts).
+    Scénario A : décharge 2026-10-01→07 enregistrée, 8 séances hors décharge,
+                 ZÉRO séance pendant la décharge.
+    Scénario B : même décharge enregistrée, mêmes 8 séances hors + 3 séances
+                 DANS la décharge.
 
-    Pour exclure réellement la décharge d'effective_sets DNA, il faudrait
-    exposer `direct_sets_non_deload` / `indirect_sets_non_deload` (actuellement
-    internes à `_MuscleAccumulator`) dans la dataclass publique MuscleWorkload.
-
-    Ce test confirme uniquement la cohérence DNA ↔ cockpit sur la base
-    `direct_set_count + 0.5 × indirect_set_count` INCLUANT les sets décharge.
-    """
-    from analytics_adapter import fetch_raw_analytics_rows, adapt_analytics_rows, is_deload_day
-    from metric_semantics import DateWindow
-    from muscle_workload_analytics import summarize_muscle_workload, INDIRECT_SET_COEFFICIENT
+    Le dénominateur (non_deload_days = 83) est identique dans les deux
+    scénarios parce que la fenêtre décharge est la MÊME. La seule variable
+    est les séries décharge au numérateur — qui doivent être exclues par
+    is_deload_day. Donc A == B."""
     import workout_dna as _dna
 
     deload_period = {
@@ -182,35 +174,27 @@ def test_dna_counts_match_cockpit_in_deload_scenario(pinned_today, monkeypatch):
     }
     monkeypatch.setattr("db.get_deload_periods", lambda: [deload_period])
 
-    rows = []
-    log_id = 0
-    for i in range(8):
-        log_id += 1
-        rows.append(_row(log_id, f"s-ok-{i}",
-                         pinned_today - timedelta(days=20 + i * 2),
-                         name="Bench", group="Chest", sets=2))
-    for i in range(3):
-        log_id += 1
-        rows.append(_row(log_id, f"s-deload-{i}",
-                         date(2026, 10, 2 + i),
-                         name="Bench", group="Chest", sets=5))
-    client = _FakeClient(rows)
+    rows_a = [
+        _row(i + 1, f"s-ok-{i}", pinned_today - timedelta(days=20 + i * 2),
+             name="Bench", group="Chest", sets=2)
+        for i in range(8)
+    ]
+    dna_a, _ = _dna._compute_muscle_dominants(_FakeClient(rows_a), period_days=WINDOW_DAYS)
+    chest_a = next(m for m in dna_a if m["muscle"] == "Pectoraux")
 
-    period = DateWindow(pinned_today - timedelta(days=WINDOW_DAYS - 1), pinned_today)
-    adapted = adapt_analytics_rows(fetch_raw_analytics_rows(client, period=period), period=period)
-    cockpit_summary = summarize_muscle_workload(
-        adapted.training_load_exposures, adapted.assignments,
-        period=period, is_deload=lambda d: is_deload_day(d),
+    rows_b = list(rows_a) + [
+        _row(100 + i, f"s-deload-{i}", date(2026, 10, 2 + i),
+             name="Bench", group="Chest", sets=5)
+        for i in range(3)
+    ]
+    dna_b, _ = _dna._compute_muscle_dominants(_FakeClient(rows_b), period_days=WINDOW_DAYS)
+    chest_b = next(m for m in dna_b if m["muscle"] == "Pectoraux")
+
+    assert chest_a["effective_sets"] == chest_b["effective_sets"], (
+        f"effective_sets changé par des séries décharge non exclues : "
+        f"A={chest_a['effective_sets']} (0 série décharge) vs "
+        f"B={chest_b['effective_sets']} (15 séries décharge ajoutées)"
     )
-    cockpit_chest = next(m for m in cockpit_summary.muscles if m.muscle == "Pectoraux")
-    expected_effective = cockpit_chest.direct_set_count + INDIRECT_SET_COEFFICIENT * cockpit_chest.indirect_set_count
-
-    dna_muscles, _ = _dna._compute_muscle_dominants(client, period_days=WINDOW_DAYS)
-    dna_chest = next(m for m in dna_muscles if m["muscle"] == "Pectoraux")
-
-    # DNA = cockpit, et les deux incluent la décharge (31 sets au total).
-    assert dna_chest["effective_sets"] == round(expected_effective, 1)
-    assert dna_chest["effective_sets"] == 8 * 2 + 3 * 5
 
 
 if __name__ == "__main__":

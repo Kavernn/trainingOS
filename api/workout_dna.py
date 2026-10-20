@@ -344,17 +344,18 @@ def _compute_muscle_dominants(client, period_days: int = 90) -> tuple[list, dict
     Retourne (muscles_list, meta) :
       - muscles_list : [{muscle, sets (legacy int), effective_sets (float), pct (int)}]
         trié par effective_sets desc, top 6.
-      - meta : {n_sessions, insufficient_data}.
+      - meta : {n_sessions, insufficient_data, excluded_full_deload}.
 
-    effective_sets = direct + 0,5 × indirect (séries effectives Schoenfeld).
-    Fusion canonique via _canonical_muscle_value (déjà appliquée par
-    adapt_analytics_rows). Décharge exclue via is_deload_day. pct normalisé
-    sur l'ensemble des muscles de la fenêtre, pas sur le top-6, pour un
-    pourcentage honnête du volume total.
+    effective_sets = weekly_effective_sets de MuscleWorkload (séries effectives
+    hebdomadaires, HORS décharge au numérateur ET au dénominateur). Fusion
+    canonique via adapt_analytics_rows. Muscles dont weekly_effective_sets
+    est None (fenêtre 100 % décharge) : exclus de la stat et comptés dans
+    excluded_full_deload — pas affichés à 0.
+    pct normalisé sur TOUS les muscles de la fenêtre (volume effectif total).
     """
     from analytics_adapter import fetch_raw_analytics_rows, adapt_analytics_rows, is_deload_day
     from metric_semantics import DateWindow
-    from muscle_workload_analytics import summarize_muscle_workload, INDIRECT_SET_COEFFICIENT
+    from muscle_workload_analytics import summarize_muscle_workload
 
     today = date_cls.fromisoformat(_today_mtl())
     period = DateWindow(today - timedelta(days=period_days - 1), today)
@@ -370,14 +371,21 @@ def _compute_muscle_dominants(client, period_days: int = 90) -> tuple[list, dict
 
     n_sessions = len({e.session_id for e in adapted.training_load_exposures})
     if n_sessions < MIN_SESSIONS_PER_SECTION:
-        return [], {"n_sessions": n_sessions, "insufficient_data": True}
+        return [], {
+            "n_sessions":            n_sessions,
+            "insufficient_data":     True,
+            "excluded_full_deload":  0,
+        }
 
     scored: list[tuple[str, float]] = []
+    excluded_full_deload = 0
     for m in summary.muscles:
-        effective = m.direct_set_count + INDIRECT_SET_COEFFICIENT * m.indirect_set_count
-        if effective <= 0:
+        if m.weekly_effective_sets is None:
+            excluded_full_deload += 1
             continue
-        scored.append((m.muscle, effective))
+        if m.weekly_effective_sets <= 0:
+            continue
+        scored.append((m.muscle, m.weekly_effective_sets))
 
     scored.sort(key=lambda t: t[1], reverse=True)
     total_all = sum(e for _, e in scored) or 1.0
@@ -391,7 +399,11 @@ def _compute_muscle_dominants(client, period_days: int = 90) -> tuple[list, dict
         }
         for name, effective in top
     ]
-    return muscles_list, {"n_sessions": n_sessions, "insufficient_data": False}
+    return muscles_list, {
+        "n_sessions":           n_sessions,
+        "insufficient_data":    False,
+        "excluded_full_deload": excluded_full_deload,
+    }
 
 
 # ── 7. Movement Patterns ─────────────────────────────────────────────────────
