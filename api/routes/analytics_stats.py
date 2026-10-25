@@ -508,3 +508,70 @@ def api_force_vs_accessory_simulate():
     """
     from db_stats import simulate_category_classification
     return jsonify(simulate_category_classification(limit=20))
+
+
+@analytics_stats_bp.route("/api/stats/nutrition_history")
+def api_stats_nutrition_history():
+    """Historique nutrition + cible calorique adaptative PAR JOUR sur la fenêtre.
+
+    Payload : [{date, calories, proteines, glucides, lipides, target_calories}]
+    - Exactement `days` entrées consécutives (plus ancien → récent, aucun trou
+      de date). Jours sans saisie nutrition → macros null (jamais 0 — trou de
+      saisie ≠ zéro calorique).
+    - target_calories calculée via une SEULE série TDEE (tdee.compute_target
+      _calories_series) — moyenne glissante 7 TDEE précédents + goal adjust.
+      Null si <7 jours de TDEE antérieurs à cette date.
+
+    Query : days ∈ [1, 180], défaut 60.
+    """
+    import db as _db
+    from tdee import compute_target_calories_series
+
+    try:
+        days = int(request.args.get("days", 60))
+    except (TypeError, ValueError):
+        return jsonify({"error": "days doit être un entier"}), 400
+    if days < 1 or days > 180:
+        return jsonify({"error": "days doit être entre 1 et 180"}), 400
+
+    today_str = _today_mtl()
+    today = _date.fromisoformat(today_str)
+
+    # Macros loggées par date (jours vides filtrés par get_nutrition_daily_full).
+    try:
+        logged = _db.get_nutrition_daily_full(days=days) or []
+    except Exception as e:
+        logger.exception("nutrition_history: get_nutrition_daily_full: %s", e)
+        return jsonify({"error": str(e)}), 500
+    logged_by_date = {str(d.get("date") or "")[:10]: d for d in logged}
+
+    # Cibles caloriques adaptatives — une seule passe TDEE.
+    # Pas de fallback silencieux : une exception infra remonte en 500
+    # explicite plutôt que de masquer en targets null partout.
+    try:
+        targets = compute_target_calories_series(days=days, end_date=today_str)
+    except Exception as e:
+        logger.exception("nutrition_history: compute_target_calories_series: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+    result = []
+    for i in range(days - 1, -1, -1):   # plus ancien → récent
+        d = today - timedelta(days=i)
+        d_str = d.isoformat()
+        row = logged_by_date.get(d_str)
+        if row is None:
+            cal = prot = carbs = fat = None
+        else:
+            cal   = row.get("calories")
+            prot  = row.get("proteines")
+            carbs = row.get("glucides")
+            fat   = row.get("lipides")
+        result.append({
+            "date":            d_str,
+            "calories":        cal,
+            "proteines":       prot,
+            "glucides":        carbs,
+            "lipides":         fat,
+            "target_calories": targets.get(d_str),
+        })
+    return jsonify(result)

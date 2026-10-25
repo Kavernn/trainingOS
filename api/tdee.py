@@ -174,6 +174,60 @@ def compute_target_calories(date: Optional[str] = None) -> Optional[int]:
     return round(avg + _GOAL_ADJ.get(goal, 0))
 
 
+def compute_target_calories_series(days: int, end_date: str | None = None) -> dict:
+    """Série historique des cibles caloriques adaptatives, UNE seule
+    requête énergie pour toute la fenêtre.
+
+    Pour chaque jour `d` de [end_date-days+1 … end_date] :
+      target_calories(d) = moyenne(TDEE[d-7]..TDEE[d-1]) + goal_adj.
+    Si <7 TDEE antérieurs disponibles → target_calories = None (anti-fantôme,
+    même doctrine que compute_target_calories).
+
+    Un seul appel à compute_energy_history(days=days+7, end_date=end_date)
+    au lieu de `days` appels à compute_target_calories.
+
+    Retourne {date_iso: int | None} pour toute la fenêtre.
+    """
+    from datetime import date as _date, timedelta
+    from energy import compute_energy_history
+
+    if days < 1:
+        return {}
+    today_str = end_date or _today_mtl()
+    try:
+        today = _date.fromisoformat(today_str)
+    except ValueError:
+        today = _date.fromisoformat(_today_mtl())
+
+    # Fenêtre élargie à J-days-6 (inclus) → J (inclus) : 7 jours de bourrage
+    # pour pouvoir calculer la moyenne 7j du PREMIER jour de la fenêtre réelle.
+    series_len = days + 7
+    history = compute_energy_history(days=series_len, end_date=today_str)
+    tdee_by_date = {h["date"]: h.get("tdee") for h in history}
+
+    profile = db.get_profile() or {}
+    goal = str(profile.get("goal") or "maintain")
+    goal_adj = _GOAL_ADJ.get(goal, 0)
+
+    result: dict = {}
+    for i in range(days - 1, -1, -1):   # plus ancien → récent
+        d = today - timedelta(days=i)
+        d_str = d.isoformat()
+        # 7 TDEE antérieurs à d, strictement.
+        priors: list[float] = []
+        for k in range(1, 8):
+            prev_str = (d - timedelta(days=k)).isoformat()
+            t = tdee_by_date.get(prev_str)
+            if t is not None:
+                priors.append(float(t))
+        if len(priors) < 7:
+            result[d_str] = None
+        else:
+            avg = sum(priors) / len(priors)
+            result[d_str] = round(avg + goal_adj)
+    return result
+
+
 def compute_dynamic_day_targets(weight_kg: float, tdee: int) -> dict:
     """Cibles caloriques + glucides par type de journée, relatives au poids."""
     return {
