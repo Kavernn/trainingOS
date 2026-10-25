@@ -6,7 +6,7 @@ import json
 import logging
 import math
 from datetime import date as date_cls, datetime, timedelta, timezone
-from utils import _today_mtl
+import utils as _utils  # ponytail: import module (pas `from utils import _today_mtl`) pour que monkeypatch.setattr("utils._today_mtl", ...) traverse le binding
 from typing import Optional
 
 import db
@@ -78,7 +78,7 @@ def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
     try:
         from analytics_adapter import is_deload_day
 
-        cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+        cutoff = (date_cls.fromisoformat(_utils._today_mtl()) - timedelta(days=period_days)).isoformat()
         counts = {"push": 0, "pull": 0, "legs": 0, "core": 0, "other": 0}
         session_dates: set[str] = set()
         invalid_dates = 0
@@ -157,7 +157,7 @@ def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> d
     try:
         from analytics_adapter import is_deload_day
 
-        cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+        cutoff = (date_cls.fromisoformat(_utils._today_mtl()) - timedelta(days=period_days)).isoformat()
         zone_counts = {"strength": 0, "power": 0, "hypertrophy": 0, "endurance": 0, "conditioning": 0}
         compound_sets = isolation_sets = 0
         weighted: list[float] = []
@@ -279,7 +279,7 @@ def _compute_consistency(period_days: int = 90) -> dict:
     """
     try:
         from weekly_streaks import compute as _compute_weekly_streaks
-        payload = _compute_weekly_streaks(_today_mtl())
+        payload = _compute_weekly_streaks(_utils._today_mtl())
     except Exception as e:
         logger.error("consistency weekly_streaks failed: %s", e)
         return {}
@@ -365,7 +365,7 @@ def _compute_session_spacing(period_days: int = 90) -> dict:
         from weekly_streaks import active_dates as _active_dates
         from analytics_adapter import is_deload_day
 
-        today = date_cls.fromisoformat(_today_mtl())
+        today = date_cls.fromisoformat(_utils._today_mtl())
         cutoff = (today - timedelta(days=period_days - 1)).isoformat()
 
         raw_dates = _active_dates(today.isoformat())
@@ -474,7 +474,7 @@ def _compute_signature_lifts(client, period_days: int = 90) -> list:
     if not pr_map:
         return []
 
-    today = date_cls.fromisoformat(_today_mtl())
+    today = date_cls.fromisoformat(_utils._today_mtl())
     period = DateWindow(today - timedelta(days=period_days - 1), today)
     raw_rows = fetch_raw_analytics_rows(client, period=period)
     adapted = adapt_analytics_rows(raw_rows, period=period)
@@ -590,7 +590,7 @@ def _compute_muscle_dominants(client, period_days: int = 90) -> tuple[list, dict
     from metric_semantics import DateWindow
     from muscle_workload_analytics import summarize_muscle_workload
 
-    today = date_cls.fromisoformat(_today_mtl())
+    today = date_cls.fromisoformat(_utils._today_mtl())
     period = DateWindow(today - timedelta(days=period_days - 1), today)
 
     raw_rows = fetch_raw_analytics_rows(client, period=period)
@@ -652,7 +652,7 @@ def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 
     try:
         from analytics_adapter import is_deload_day
 
-        cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+        cutoff = (date_cls.fromisoformat(_utils._today_mtl()) - timedelta(days=period_days)).isoformat()
         pattern_sets: dict[str, int] = {}
         session_dates: set[str] = set()
         excluded_names: set[str] = set()
@@ -734,7 +734,7 @@ def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 
 
 def _compute_intensity_timeline(history: dict, months: int = 6) -> list[dict]:
     """Monthly rep-zone breakdown — last N months."""
-    today = date_cls.fromisoformat(_today_mtl())
+    today = date_cls.fromisoformat(_utils._today_mtl())
     month_buckets: dict[str, dict[str, int]] = {}
     for i in range(months - 1, -1, -1):
         m = today.month - i
@@ -856,8 +856,8 @@ def compute(period_days: int = 90) -> dict:
         seed               = _dna_seed(ppl, intensity, consistency, recovery)
 
         result = {
-            "period":                 {"from": (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat(),
-                                       "to":   date_cls.fromisoformat(_today_mtl()).isoformat()},
+            "period":                 {"from": (date_cls.fromisoformat(_utils._today_mtl()) - timedelta(days=period_days)).isoformat(),
+                                       "to":   date_cls.fromisoformat(_utils._today_mtl()).isoformat()},
             "archetype":              arch,
             "ppl":                    ppl,
             "intensity":              intensity,
