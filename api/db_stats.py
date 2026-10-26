@@ -464,6 +464,9 @@ def get_macros_by_day_type(days: int = 60, nutr_days: list | None = None) -> dic
         from datetime import date as _date, timedelta
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         nutr_days = nutr_days if nutr_days is not None else get_nutrition_daily_full(days)
+        # Jours détaillés uniquement : les estimations rétroactives n'ont ni
+        # glucides ni lipides (toujours 0), fausseraient les moyennes macros.
+        nutr_days = [d for d in nutr_days if d.get("source") == "detailed"]
 
         sessions  = get_workout_sessions(limit=days + 10, since=cutoff)
         ex_logs   = get_exercise_logs_since(cutoff)
