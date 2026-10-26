@@ -260,6 +260,38 @@ class TestLogSession(BaseRouteTest):
         self.assertEqual(200, r.status_code)
         self.assertTrue(self.json(r).get("success"))
 
+    def test_log_session_rejects_duration_above_300(self):
+        """Garde-fou anti-chrono-oublié : > 300 min → 400 explicite, pas
+        d'écriture. offlinePost ne queue pas les 4xx (APIError propagée)."""
+        r = self.post("/api/log_session", {"date": TODAY, "rpe": 7, "duration_min": 301})
+        self.assertEqual(400, r.status_code)
+        body = self.json(r)
+        self.assertEqual("duration_min_implausible", body.get("error"))
+        self.assertIn("301", body.get("message", ""))
+        self.assertNotIn(TODAY, self.store["sessions"])
+
+    def test_log_session_rejects_extreme_duration(self):
+        """Cas réel : chrono resté ouvert 24h → 1491 min, bloqué avant écriture."""
+        r = self.post("/api/log_session", {"date": TODAY, "rpe": 8, "duration_min": 1491})
+        self.assertEqual(400, r.status_code)
+        self.assertEqual("duration_min_implausible", self.json(r).get("error"))
+
+    def test_log_session_accepts_duration_at_threshold(self):
+        """Seuil inclusif : 300 min pile → accepté."""
+        r = self.post("/api/log_session", {"date": TODAY, "rpe": 7, "duration_min": 300})
+        self.assertEqual(200, r.status_code)
+        self.assertTrue(self.json(r).get("success"))
+
+    def test_log_session_accepts_normal_duration(self):
+        r = self.post("/api/log_session", {"date": TODAY, "rpe": 7, "duration_min": 45})
+        self.assertEqual(200, r.status_code)
+        self.assertEqual(45, self.store["sessions"][TODAY]["duration_min"])
+
+    def test_log_session_accepts_null_duration(self):
+        """Absence de duration_min = non envoyé → aucun check, pas de 400."""
+        r = self.post("/api/log_session", {"date": TODAY, "rpe": 7})
+        self.assertEqual(200, r.status_code)
+
     def test_log_session_second_session_allowed(self):
         self.post("/api/log_session", {"date": TODAY, "rpe": 7})
         r = self.post("/api/log_session", {"date": TODAY, "rpe": 6, "second_session": True})

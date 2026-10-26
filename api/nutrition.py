@@ -195,7 +195,11 @@ def get_today_totals() -> dict:
 
 def add_entry(nom: str, calories: float, proteines: float = 0,
               glucides: float = 0, lipides: float = 0, meal_type: str = None,
-              source: str = "manual", date: str | None = None) -> dict:
+              source: str = "manual", date: str | None = None,
+              pct_calories_declared: float | None = None,
+              pct_proteines_declared: float | None = None,
+              target_calories_snapshot: int | None = None,
+              target_proteines_snapshot: int | None = None) -> dict:
     now_mtl = datetime.now(timezone.utc)
     try:
         from zoneinfo import ZoneInfo
@@ -217,6 +221,14 @@ def add_entry(nom: str, calories: float, proteines: float = 0,
     }
     if meal_type:
         entry["meal_type"] = meal_type
+    if pct_calories_declared is not None:
+        entry["pct_calories_declared"] = float(pct_calories_declared)
+    if pct_proteines_declared is not None:
+        entry["pct_proteines_declared"] = float(pct_proteines_declared)
+    if target_calories_snapshot is not None:
+        entry["target_calories_snapshot"] = int(target_calories_snapshot)
+    if target_proteines_snapshot is not None:
+        entry["target_proteines_snapshot"] = int(target_proteines_snapshot)
     return db.insert_nutrition_entry(entry)
 
 
@@ -251,6 +263,12 @@ def replace_day_with_estimate(pct_calories: float, pct_proteines: float, *,
         if not isinstance(date, str) or _date.fromisoformat(date).isoformat() != date or date > yesterday:
             raise ValueError("La date doit être une journée passée")
         yesterday = date
+    # Snapshots : écrits seulement si la cible du jour est résolue ici
+    # (branche implicite). En explicite, le client fournit cal/prot directs,
+    # on ne peut pas inférer quelle cible il avait affichée → NULL.
+    target_cal_snapshot: int | None = None
+    target_prot_snapshot: int | None = None
+
     if calories is not None or proteines is not None:
         import math
         if date is None:
@@ -265,6 +283,12 @@ def replace_day_with_estimate(pct_calories: float, pct_proteines: float, *,
         target = resolve_daily_target(yesterday)
         cal = round(target["calories"] * pct_calories / 100)
         prot = round(target["proteines"] * pct_proteines / 100, 1)
+        target_cal_snapshot = int(round(target["calories"]))
+        target_prot_snapshot = int(round(target["proteines"]))
+
+    # Conversion 0-100 → ratio 0-1 côté backend uniquement (contrat API inchangé).
+    pct_cal_ratio  = float(pct_calories)  / 100.0
+    pct_prot_ratio = float(pct_proteines) / 100.0
 
     if not db.delete_nutrition_entries_for_date(yesterday):
         raise ValueError(
@@ -277,6 +301,10 @@ def replace_day_with_estimate(pct_calories: float, pct_proteines: float, *,
             nom="Estimation rétroactive",
             calories=cal, proteines=prot,
             source="estimated_percent", date=yesterday,
+            pct_calories_declared=pct_cal_ratio,
+            pct_proteines_declared=pct_prot_ratio,
+            target_calories_snapshot=target_cal_snapshot,
+            target_proteines_snapshot=target_prot_snapshot,
         )
     except Exception as e:
         raise ValueError(

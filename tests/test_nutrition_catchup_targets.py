@@ -173,6 +173,53 @@ class CatchupTargetsTests(unittest.TestCase):
                 nutrition.replace_day_with_estimate(75, 80, **kwargs)
         self.db.delete_nutrition_entries_for_date.assert_not_called()
 
+    # ── Traçabilité pct déclaré + cible historique (migration 098) ────────────
+
+    def test_estimate_writes_pct_declared_and_target_snapshots(self):
+        """Estimation implicite : stocke pct en ratio 0-1 + snapshots cibles.
+        Scale 0-100 → 0-1 convertie côté backend uniquement (contrat API inchangé)."""
+        nutrition.replace_day_with_estimate(75, 80)
+        entry = self.db.insert_nutrition_entry.call_args.args[0]
+        self.assertAlmostEqual(entry["pct_calories_declared"],  0.75)
+        self.assertAlmostEqual(entry["pct_proteines_declared"], 0.80)
+        self.assertEqual(entry["target_calories_snapshot"],  2600)
+        self.assertEqual(entry["target_proteines_snapshot"], 180)
+
+    def test_slider_max_200_percent_within_check_bounds(self):
+        """200 % slider → ratio 2.0, dans la plage CHECK [0, 2.0] (migration 099)."""
+        nutrition.replace_day_with_estimate(200, 200)
+        entry = self.db.insert_nutrition_entry.call_args.args[0]
+        self.assertEqual(entry["pct_calories_declared"],  2.0)
+        self.assertEqual(entry["pct_proteines_declared"], 2.0)
+
+    def test_api_contract_unchanged_despite_internal_ratio_and_snapshots(self):
+        """Le payload (pct 0-100) et la réponse HTTP ne changent pas malgré
+        la conversion interne 0-1 et l'ajout des snapshots."""
+        with patch.dict(sys.modules, {"readiness": MagicMock(), "routes.daily_brief": MagicMock()}):
+            response = self.client.post("/api/nutrition/estimate_yesterday", json={
+                "pct_calories": 75, "pct_proteines": 80,
+            })
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["calories"],  1950)
+        self.assertEqual(data["proteines"], 144)
+        self.assertNotIn("pct_calories_declared",    data)
+        self.assertNotIn("target_calories_snapshot", data)
+
+    def test_explicit_estimate_stores_pct_but_null_target_snapshots(self):
+        """Mode explicite : pct déclaré stocké (slider connu), snapshots cibles
+        NULL (client fournit cal/prot directs, cible non résolue ici)."""
+        with patch.dict(sys.modules, {"readiness": MagicMock(), "routes.daily_brief": MagicMock()}):
+            self.client.post("/api/nutrition/estimate_yesterday", json={
+                "date": "2026-09-20", "pct_calories": 75, "pct_proteines": 80,
+                "calories": 2100, "proteines": 144,
+            })
+        entry = self.db.insert_nutrition_entry.call_args.args[0]
+        self.assertAlmostEqual(entry["pct_calories_declared"],  0.75)
+        self.assertAlmostEqual(entry["pct_proteines_declared"], 0.80)
+        self.assertNotIn("target_calories_snapshot",  entry)
+        self.assertNotIn("target_proteines_snapshot", entry)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -511,6 +511,15 @@ def api_log_session():
         energy_pre     = data.get("energy_pre")
         session_name   = data.get("session_name")
 
+        # Garde-fou anti-chrono-oublié : rejet explicite > 300 min. Fail-loud, pas
+        # de cap silencieux. offlinePost ne queue pas les 4xx (APIError propagée),
+        # donc iOS doit afficher et laisser corriger la durée.
+        if isinstance(duration_min, (int, float)) and duration_min > 300:
+            return jsonify({
+                "error":   "duration_min_implausible",
+                "message": f"Durée séance implausible ({int(duration_min)} min). Vérifie et renvoie.",
+            }), 400
+
         def _parse_exo_summary(raw: str):
             text = (raw or "").strip()
             if not text:
