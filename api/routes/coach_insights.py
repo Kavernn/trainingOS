@@ -308,7 +308,10 @@ def _post_session_nutrition_advice():
             cfg.get("protein_limit") or cfg.get("protein_target") or
             cfg.get("proteines_limit") or cfg.get("proteines_target") or 0
         )
-        cal_target = cfg.get("calorie_limit") or 0
+        # Cible adaptative unique (compute_target_calories) — None si <7j TDEE.
+        # Anti-fantôme : pas de fallback calorie_limit.
+        from tdee import compute_target_calories as _compute_target_cal
+        cal_target = _compute_target_cal() or 0
 
         if prot_target > 0 and proteines < prot_target * 0.6:
             remaining = int(prot_target - proteines)

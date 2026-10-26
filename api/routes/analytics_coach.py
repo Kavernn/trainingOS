@@ -308,10 +308,11 @@ def api_weekly_report():
     avg_hrv      = round(sum(hrv_vals)      / len(hrv_vals),      1) if hrv_vals      else None
 
     nutr_days = get_recent_days(7)
-    from nutrition import load_settings as load_nutrition_settings
-    nutr_settings = load_nutrition_settings() or {}
-    cal_target = nutr_settings.get("calorie_limit") or 0
-    if cal_target > 0 and nutr_days:
+    # Cible adaptative unique (compute_target_calories) — None si <7j TDEE.
+    # Anti-fantôme : aucun fallback calorie_limit.
+    from tdee import compute_target_calories
+    cal_target = compute_target_calories()
+    if cal_target and cal_target > 0 and nutr_days:
         compliant = sum(
             1 for d in nutr_days
             if d.get("calories") and abs(d["calories"] - cal_target) / cal_target <= 0.10

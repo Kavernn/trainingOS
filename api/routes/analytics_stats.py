@@ -295,7 +295,12 @@ def api_macro_gap():
     days     = get_recent_days(1)
     today_data = days[0] if days else {}
 
-    target_cal  = settings.get("calorie_limit")  or 2500
+    # Cible calorique : adaptive unique (compute_target_calories), None si <7j
+    # TDEE. Anti-fantôme : plus de fallback 2500. target_cal null → gap_cal
+    # null + payload le signale explicitement.
+    from tdee import compute_target_calories as _compute_target_cal
+    target_cal_raw = _compute_target_cal()
+    target_cal  = target_cal_raw if target_cal_raw and target_cal_raw > 0 else None
     target_prot = settings.get("protein_target")  or 180
     target_carb = settings.get("glucides_target") or 250
     target_fat  = settings.get("lipides_target")  or 80
@@ -305,14 +310,23 @@ def api_macro_gap():
     actual_carb = today_data.get("glucides",  0) or 0
     actual_fat  = today_data.get("lipides",   0) or 0
 
-    gap_cal  = max(0, target_cal  - actual_cal)
+    gap_cal  = max(0, target_cal - actual_cal) if target_cal else None
     gap_prot = max(0, target_prot - actual_prot)
     gap_carb = max(0, target_carb - actual_carb)
     gap_fat  = max(0, target_fat  - actual_fat)
 
     catalog = _db.get_food_catalog() or []
     suggestions = []
-    primary_gap = "protein" if gap_prot > 20 else "carbs" if gap_carb > 30 else "calories"
+    # Cible cal indisponible (<7j TDEE) → "calories" ne peut pas être
+    # primary_gap. Retombe sur protéines comme recommandation par défaut.
+    if gap_prot > 20:
+        primary_gap = "protein"
+    elif gap_carb > 30:
+        primary_gap = "carbs"
+    elif target_cal is not None:
+        primary_gap = "calories"
+    else:
+        primary_gap = "protein"
     for item in catalog:
         prot = float(item.get("proteines_per_100g") or 0)
         carb = float(item.get("glucides_per_100g")  or 0)
