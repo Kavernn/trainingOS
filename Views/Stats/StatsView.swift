@@ -1,5 +1,8 @@
 import SwiftUI
 import Charts
+import OSLog
+
+private let statsHistoryLogger = Logger(subsystem: "TrainingOS", category: "stats_history")
 
 // MARK: - Helpers
 func totalReps(_ reps: String) -> Double {
@@ -111,6 +114,11 @@ struct StatsView: View {
     /// `nil` si <7j TDEE historique → labels cachés (règle anti-fantôme).
     @State var targetCalories:   Int?                    = nil
     @State var nutritionDays:    [NutritionDay]          = []
+    /// Fenêtre nutrition_history source-aware (A2) : expose source +
+    /// pct_declared + target_calories_snapshot par jour. Vue consommateur :
+    /// NutritionComplianceChart (compliance par source), MacrosBreakdownView
+    /// (détaillés uniquement). Alimenté par /api/stats/nutrition_history.
+    @State var statsNutritionHistory: [DayNutritionHistory] = []
     @State var acwr:             ACWRData?               = nil
     @State var activeDeload:      DeloadStatus?           = nil
     @State var isLoading    = true
@@ -227,6 +235,12 @@ struct StatsView: View {
     var filteredNutrition: [NutritionDay] {
         guard let cutoff = period.cutoff else { return nutritionDays }
         return nutritionDays.filter { ($0.date ?? "") >= cutoff }
+    }
+
+    /// Fenêtre source-aware (A2) — période appliquée sur la date canonique.
+    var filteredStatsNutrition: [DayNutritionHistory] {
+        guard let cutoff = period.cutoff else { return statsNutritionHistory }
+        return statsNutritionHistory.filter { $0.date >= cutoff }
     }
 
     // ── Week comparison ───────────────────────────────────────────────
@@ -577,6 +591,16 @@ struct StatsView: View {
         }
         // Cible calorique adaptative — même source que NutritionView / EnergyChart.
         targetCalories = (try? await APIService.shared.fetchEnergyDaily())?.targetCalories
+
+        // Fenêtre source-aware pour NutritionComplianceChart + MacrosBreakdownView.
+        // Pas de try? : do/catch explicite — un échec reste visible dans la console,
+        // la vue affiche "données insuffisantes" si tableau vide.
+        do {
+            statsNutritionHistory = try await APIService.shared.fetchStatsNutritionHistory(days: 180)
+        } catch {
+            statsNutritionHistory = []
+            statsHistoryLogger.error("fetchStatsNutritionHistory failed: \(error.localizedDescription, privacy: .public)")
+        }
 
         // sequential — async let LIFO crash on iOS 26 beta
         acwr = try? await APIService.shared.fetchACWR()

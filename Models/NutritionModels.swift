@@ -375,3 +375,37 @@ struct AnyCodingKey: CodingKey {
     init?(stringValue: String) { self.stringValue = stringValue }
     init?(intValue: Int) { return nil }
 }
+
+// MARK: - Nutrition History (lot A — cible historique par jour)
+/// Un jour de la fenêtre /api/stats/nutrition_history.
+/// - Macros Double? car `null` quand aucun log (trou de saisie ≠ zéro).
+/// - targetCalories Int? car `null` si <7j TDEE antérieurs (anti-fantôme).
+/// - source : "detailed" / "estimated" / nil (jour vide). Conformité :
+///     detailed → calories / targetCalories ; estimated avec pctCaloriesDeclared
+///     → pct direct ; estimated sans pct → exclu + compté comme "sans pct".
+/// - targetCaloriesSnapshot : cible au moment du rattrapage, pas la cible
+///     courante (= utile pour reconstruire une conformité historique si besoin).
+struct DayNutritionHistory: Codable, Identifiable, Equatable {
+    var id: String { date }
+    let date: String
+    let calories: Double?
+    let proteines: Double?
+    let glucides: Double?
+    let lipides: Double?
+    let targetCalories: Int?
+    let source: String?
+    let pctCaloriesDeclared: Double?
+    let pctProteinesDeclared: Double?
+    let targetCaloriesSnapshot: Int?
+
+    var isDetailed:  Bool { source == "detailed" }
+    var isEstimated: Bool { source == "estimated" }
+
+    enum CodingKeys: String, CodingKey {
+        case date, calories, proteines, glucides, lipides, source
+        case targetCalories           = "target_calories"
+        case pctCaloriesDeclared      = "pct_calories_declared"
+        case pctProteinesDeclared     = "pct_proteines_declared"
+        case targetCaloriesSnapshot   = "target_calories_snapshot"
+    }
+}

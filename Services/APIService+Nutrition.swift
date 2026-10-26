@@ -28,6 +28,16 @@ extension APIService {
         return try APIService.decoder.decode(NutritionDaySummary.self, from: data)
     }
 
+    /// Historique nutrition sur `days` jours — macros + target_calories par jour.
+    /// Fail loud : erreur → throw. L'appelant distingue "chargement" / "erreur" /
+    /// "données" via l'état iOS (pas de try? silencieux côté caller).
+    func fetchStatsNutritionHistory(days: Int) async throws -> [DayNutritionHistory] {
+        let url = try buildURL(path: "/api/stats/nutrition_history",
+                               queryItems: [URLQueryItem(name: "days", value: String(days))])
+        let (data, _) = try await URLSession.authed.data(from: url)
+        return try APIService.decoder.decode([DayNutritionHistory].self, from: data)
+    }
+
     func postYesterdayEstimate(estimate: NutritionCatchupEstimate, pctCalories: Double, pctProteines: Double) async throws {
         // Bypass offlinePost : conserver le retry manuel de cette écriture datée.
         // Fail loud sur réseau ; le sheet gère le retry manuel.

@@ -502,14 +502,17 @@ extension StatsView {
 
     // MARK: - Nutrition Tab
     @ViewBuilder var nutritionTab: some View {
-        let fn = filteredNutrition
+        let fn  = filteredNutrition
+        let fsh = filteredStatsNutrition
         if fn.count >= 3, let target = nutritionTarget {
-            NutritionComplianceChart(days: fn, targetCalories: targetCalories)
+            // Source-aware (A2) : compliance par jour avec cible historique,
+            // split detailed/estimated, counter "N jours sans pct".
+            NutritionComplianceChart(history: fsh)
                 .padding(.horizontal, 16)
             ProteinComplianceView(days: fn, target: target)
                 .padding(.horizontal, 16)
             if target.glucides != nil || target.lipides != nil {
-                MacrosBreakdownView(days: fn, target: target, targetCalories: targetCalories)
+                MacrosBreakdownView(history: fsh, target: target)
                     .padding(.horizontal, 16)
             }
         } else {

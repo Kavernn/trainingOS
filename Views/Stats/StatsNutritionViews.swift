@@ -2,31 +2,62 @@ import SwiftUI
 
 // MARK: - Nutrition Compliance
 struct NutritionComplianceChart: View {
-    let days: [NutritionDay]
-    /// Source unique adaptative (energy?.targetCalories). `nil` → chart neutre, label "Objectif" cachée.
-    let targetCalories: Int?
+    /// Fenêtre /api/stats/nutrition_history — axe par date, cible par jour,
+    /// source-aware (detailed vs estimated).
+    let history: [DayNutritionHistory]
+
+    /// Jour tracé : conformité calculée selon la source. Les jours vides et
+    /// les estimations sans pct déclaré sont retirés du graphe (comptés
+    /// séparément pour affichage).
+    private struct Point: Identifiable {
+        let id: String
+        let date: String
+        let pct: Double
+        let labelValue: Double   // kcal effectifs OU 100 × pct pour affichage
+    }
+
+    /// detailed  → cal / targetCalories   (nil cible → exclu)
+    /// estimated avec pct → pctCaloriesDeclared directement
+    /// estimated SANS pct → exclu (counter)
+    /// jour vide → exclu (pas de bar)
+    private var points: [Point] {
+        history.compactMap { d -> Point? in
+            if d.isDetailed {
+                guard let cal = d.calories, let tgt = d.targetCalories, tgt > 0 else { return nil }
+                return Point(id: d.date, date: d.date, pct: cal / Double(tgt), labelValue: cal)
+            }
+            if d.isEstimated, let pct = d.pctCaloriesDeclared {
+                let cal = d.calories ?? 0
+                return Point(id: d.date, date: d.date, pct: pct, labelValue: cal)
+            }
+            return nil
+        }
+    }
+
+    private var excludedWithoutPct: Int {
+        history.filter { $0.isEstimated && $0.pctCaloriesDeclared == nil }.count
+    }
+
+    private var displayed: [Point] { Array(points.suffix(30)) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("COMPLIANCE CALORIES (\(days.count) JOURS)")
+            Text("COMPLIANCE CALORIES (\(points.count) JOURS)")
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
-            let targetCal = Double(targetCalories ?? 0)
             HStack(alignment: .bottom, spacing: 4) {
-                ForEach(days.suffix(30)) { day in
-                    let cal = day.calories ?? 0
-                    let pct = targetCal > 0 ? min(cal / targetCal, 1.4) : 0
-                    let color: Color = pct >= 0.9 && pct <= 1.1 ? Color.appSuccess : pct < 0.9 ? Color.appWarning : Color.appDanger
-                    // collage number/bar/date micro-barre
+                ForEach(displayed) { pt in
+                    let clipped = min(pt.pct, 1.4)
+                    let color: Color = pt.pct >= 0.9 && pt.pct <= 1.1 ? Color.appSuccess
+                                    : pt.pct <  0.9                   ? Color.appWarning
+                                    : Color.appDanger
                     VStack(spacing: 2) {
-                        // chart axis, densité 30 barres — appMicro (9pt) chevaucherait
-                        Text(String(format: "%.0f", cal))
+                        Text(String(format: "%.0f", pt.labelValue))
                             .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
-                        // shape géométrique inline — radius calibré à la taille de la barre
                         RoundedRectangle(cornerRadius: 3)
                             .fill(color.opacity(0.7))
-                            .frame(height: max(CGFloat(pct) * 60, 2))
-                        Text(shortDate(day.date ?? ""))
+                            .frame(height: max(CGFloat(clipped) * 60, 2))
+                        Text(shortDate(pt.date))
                             .font(.system(size: 7)).foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 80, alignment: .bottom)
@@ -45,15 +76,18 @@ struct NutritionComplianceChart: View {
             )
 
             HStack(spacing: 12) {
-                if let tc = targetCalories {
-                    Label("Objectif: \(tc) kcal", systemImage: "target")
-                        .font(.appMicro).foregroundColor(.gray)
-                }
+                Label("Cible adaptative par jour", systemImage: "target")
+                    .font(.appMicro).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
                     Circle().fill(Color.appSuccess).frame(width: 6, height: 6)
                     Text("±10%").font(.appMicro).foregroundColor(.gray)
                 }
+            }
+
+            if excludedWithoutPct > 0 {
+                Text("\(excludedWithoutPct) jour\(excludedWithoutPct > 1 ? "s" : "") estimé\(excludedWithoutPct > 1 ? "s" : "") sans pourcentage enregistré — exclu\(excludedWithoutPct > 1 ? "s" : "") de la compliance.")
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.8))
             }
         }
         .padding(16).background(Color.appCard).cornerRadius(14)
@@ -214,40 +248,54 @@ struct ProteinComplianceView: View {
 
 // MARK: - Macros Breakdown
 struct MacrosBreakdownView: View {
-    let days: [NutritionDay]
-    /// Macros (P/L/G) uniquement — la cible calorique passe par targetCalories (source unique).
+    /// Fenêtre /api/stats/nutrition_history — on filtre aux jours "detailed"
+    /// pour les macros (les estimations rétroactives n'ont ni glucides ni lipides).
+    let history: [DayNutritionHistory]
+    /// Macros (P/L/G) uniquement — la cible calorique vient de targetCalories
+    /// par jour (moyenne sur la fenêtre détaillée).
     let target: NutritionSettings
-    /// Source unique adaptative (energy?.targetCalories). `nil` → ligne "Cible" cachée.
-    let targetCalories: Int?
 
-    private func avgMacro(_ kp: KeyPath<NutritionDay, Double?>) -> Double {
-        let vals = days.compactMap { $0[keyPath: kp] }.filter { $0 > 0 }
+    private var detailed: [DayNutritionHistory] { history.filter { $0.isDetailed } }
+
+    private func avgMacro(_ kp: KeyPath<DayNutritionHistory, Double?>) -> Double {
+        let vals = detailed.compactMap { $0[keyPath: kp] }.filter { $0 > 0 }
         return vals.isEmpty ? 0 : vals.reduce(0, +) / Double(vals.count)
+    }
+
+    private var avgTargetCalories: Int? {
+        let vals = detailed.compactMap { $0.targetCalories }
+        guard !vals.isEmpty else { return nil }
+        return Int(Double(vals.reduce(0, +)) / Double(vals.count))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("MACROS — MOYENNE \(days.count)J")
+            Text("MACROS — MOYENNE \(detailed.count)J DÉTAILLÉS")
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
-            let avgG = avgMacro(\.glucides)
-            let avgL = avgMacro(\.lipides)
-            let avgP = avgMacro(\.proteines)
-            let avgCal = avgMacro(\.calories)
+            if detailed.isEmpty {
+                Text("Aucun jour détaillé dans la fenêtre — les estimations rétroactives ne portent pas les macros glucides/lipides.")
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.8))
+            } else {
+                let avgG = avgMacro(\.glucides)
+                let avgL = avgMacro(\.lipides)
+                let avgP = avgMacro(\.proteines)
+                let avgCal = avgMacro(\.calories)
 
-            HStack(spacing: 12) {
-                StatsMacroBar(label: "Glucides", value: avgG, target: target.glucides, color: Color.gray, unit: "g")
-                StatsMacroBar(label: "Lipides",  value: avgL, target: target.lipides,  color: Color.gray, unit: "g")
-                StatsMacroBar(label: "Protéines",value: avgP, target: target.proteines,color: Color.gray, unit: "g")
-            }
+                HStack(spacing: 12) {
+                    StatsMacroBar(label: "Glucides", value: avgG, target: target.glucides, color: Color.gray, unit: "g")
+                    StatsMacroBar(label: "Lipides",  value: avgL, target: target.lipides,  color: Color.gray, unit: "g")
+                    StatsMacroBar(label: "Protéines",value: avgP, target: target.proteines,color: Color.gray, unit: "g")
+                }
 
-            HStack {
-                Text("Moy. cal: \(Int(avgCal)) kcal")
-                    .font(.appMicro).foregroundColor(.gray)
-                Spacer()
-                if let tc = targetCalories {
-                    Text("Cible: \(tc) kcal")
+                HStack {
+                    Text("Moy. cal: \(Int(avgCal)) kcal")
                         .font(.appMicro).foregroundColor(.gray)
+                    Spacer()
+                    if let tc = avgTargetCalories {
+                        Text("Cible moy.: \(tc) kcal")
+                            .font(.appMicro).foregroundColor(.gray)
+                    }
                 }
             }
         }
@@ -351,6 +399,8 @@ struct MacrosDayTypeView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("MACROS : JOUR TRAINING VS REPOS")
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
+            Text("Basé sur \(data.nTraining + data.nRest) jours détaillés — les estimations rétroactives n'ont ni glucides ni lipides.")
+                .font(.appMicro).foregroundColor(.gray.opacity(0.8))
             if let t = data.training, let r = data.rest {
                 HStack(spacing: 12) {
                     macroColumn(label: "Entraînement", bucket: t, color: Color.forge, n: data.nTraining)
