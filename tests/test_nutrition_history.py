@@ -58,10 +58,17 @@ class NutritionHistoryEndpoint(BaseRouteTest):
 
     def _set_nutrition(self, by_date: dict):
         """Patche db.get_nutrition_daily_full pour retourner les jours fournis.
-        conftest.get_nutrition_daily_full est un stub `_empty_list` par défaut."""
+        conftest.get_nutrition_daily_full est un stub `_empty_list` par défaut.
+        Chaque jour peut inclure : calories, proteines, glucides, lipides,
+        source ("detailed"/"estimated"), pct_calories_declared,
+        pct_proteines_declared, target_calories_snapshot."""
         rows = [
             {"date": d, "calories": m["calories"], "proteines": m["proteines"],
-             "glucides": m.get("glucides", 0), "lipides": m.get("lipides", 0)}
+             "glucides": m.get("glucides", 0), "lipides": m.get("lipides", 0),
+             "source": m.get("source", "detailed"),
+             "pct_calories_declared":    m.get("pct_calories_declared"),
+             "pct_proteines_declared":   m.get("pct_proteines_declared"),
+             "target_calories_snapshot": m.get("target_calories_snapshot")}
             for d, m in sorted(by_date.items())
         ]
         patcher = patch("db.get_nutrition_daily_full",
@@ -148,6 +155,53 @@ class NutritionHistoryEndpoint(BaseRouteTest):
         self.assertEqual(resp.status_code, 400)
 
     # ── 6. Erreur série TDEE → 500 explicite, pas de fallback targets={} ─────
+
+    # ── 7. source + pct déclaré + target_calories_snapshot ───────────────────
+
+    def test_source_detailed_estimated_and_null_on_empty_day(self):
+        """Trois cas par jour : logué-détaillé → "detailed" ; estimé → "estimated" ;
+        aucun log → source null + tous les champs d'estimation null."""
+        self._stub_tdee_series({})
+        today_d = date.fromisoformat(TODAY)
+        detailed_date  = (today_d - timedelta(days=1)).isoformat()
+        estimated_date = (today_d - timedelta(days=2)).isoformat()
+        empty_date     = (today_d - timedelta(days=3)).isoformat()
+        self._set_nutrition({
+            detailed_date:  {"calories": 2500, "proteines": 180,
+                             "glucides": 300, "lipides": 80, "source": "detailed"},
+            estimated_date: {"calories": 2907, "proteines": 180,
+                             "glucides": 0, "lipides": 0, "source": "estimated",
+                             "pct_calories_declared": 1.0,
+                             "pct_proteines_declared": 1.0,
+                             "target_calories_snapshot": 2907},
+        })
+        payload = self._get(days=5)
+        by = {r["date"]: r for r in payload}
+        self.assertEqual(by[detailed_date]["source"], "detailed")
+        self.assertIsNone(by[detailed_date]["pct_calories_declared"])
+        self.assertIsNone(by[detailed_date]["target_calories_snapshot"])
+        self.assertEqual(by[estimated_date]["source"], "estimated")
+        self.assertEqual(by[estimated_date]["pct_calories_declared"], 1.0)
+        self.assertEqual(by[estimated_date]["pct_proteines_declared"], 1.0)
+        self.assertEqual(by[estimated_date]["target_calories_snapshot"], 2907)
+        self.assertIsNone(by[empty_date]["source"])
+        self.assertIsNone(by[empty_date]["pct_calories_declared"])
+        self.assertIsNone(by[empty_date]["target_calories_snapshot"])
+
+    def test_historical_estimated_without_pct_exposes_null_pct(self):
+        """Historique pré-098 : source='estimated' mais pct_declared=null →
+        le consommateur l'exclut de la conformité calculée."""
+        self._stub_tdee_series({})
+        today_d = date.fromisoformat(TODAY)
+        d_hist = (today_d - timedelta(days=1)).isoformat()
+        self._set_nutrition({
+            d_hist: {"calories": 4564, "proteines": 180, "source": "estimated"},
+        })
+        row = next(r for r in self._get(days=3) if r["date"] == d_hist)
+        self.assertEqual(row["source"], "estimated")
+        self.assertIsNone(row["pct_calories_declared"])
+        self.assertIsNone(row["pct_proteines_declared"])
+        self.assertIsNone(row["target_calories_snapshot"])
 
     def test_tdee_series_error_returns_500(self):
         self._set_nutrition({})

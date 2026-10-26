@@ -380,7 +380,18 @@ def get_one_rm_trend(days: int = 84, weights: dict | None = None,
 
 
 def get_nutrition_daily_full(days: int = 60) -> list[dict]:
-    """Return daily aggregates of all macros for the last N days."""
+    """Return daily aggregates of all macros for the last N days.
+
+    En plus des macros, chaque jour expose :
+      - source : "estimated" si une entrée source="estimated_percent" existe
+        pour la date (replace_day_with_estimate garantit atomicité : 1 entrée
+        par jour estimé), "detailed" sinon.
+      - pct_calories_declared / pct_proteines_declared : lus depuis l'entrée
+        estimée (NULL pour jours détaillés OU estimations antérieures à la
+        migration 098).
+      - target_calories_snapshot : cible utilisée au moment du rattrapage
+        (NULL pour jours détaillés OU historique).
+    """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
 
@@ -389,7 +400,9 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         resp = (
             db_core._client.table("nutrition_entries")
-            .select("date, calories, proteines, glucides, lipides")
+            .select("date, calories, proteines, glucides, lipides, "
+                    "source, pct_calories_declared, pct_proteines_declared, "
+                    "target_calories_snapshot")
             .gte("date", cutoff)
             .order("date", desc=True)
             .execute()
@@ -398,11 +411,23 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
         for row in (resp.data or []):
             d = str(row.get("date", ""))[:10]
             if d not in seen:
-                seen[d] = {"date": d, "calories": 0.0, "proteines": 0.0, "glucides": 0.0, "lipides": 0.0}
+                seen[d] = {
+                    "date": d, "calories": 0.0, "proteines": 0.0,
+                    "glucides": 0.0, "lipides": 0.0,
+                    "source": "detailed",
+                    "pct_calories_declared":    None,
+                    "pct_proteines_declared":   None,
+                    "target_calories_snapshot": None,
+                }
             seen[d]["calories"]  += float(row.get("calories") or 0)
             seen[d]["proteines"] += float(row.get("proteines") or 0)
             seen[d]["glucides"]  += float(row.get("glucides") or 0)
             seen[d]["lipides"]   += float(row.get("lipides") or 0)
+            if row.get("source") == "estimated_percent":
+                seen[d]["source"] = "estimated"
+                seen[d]["pct_calories_declared"]    = row.get("pct_calories_declared")
+                seen[d]["pct_proteines_declared"]   = row.get("pct_proteines_declared")
+                seen[d]["target_calories_snapshot"] = row.get("target_calories_snapshot")
         # Filtre jours 100 % vides à la source : trou de saisie ≠ zéro calorique.
         # Un jour à calories=0 ET proteines=0 est un jour où l'user n'a rien loggé,
         # pas un jour à zéro nutrition. Jours partiels (calories>0 OR proteines>0)

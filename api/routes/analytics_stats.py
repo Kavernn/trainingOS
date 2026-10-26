@@ -514,13 +514,22 @@ def api_force_vs_accessory_simulate():
 def api_stats_nutrition_history():
     """Historique nutrition + cible calorique adaptative PAR JOUR sur la fenêtre.
 
-    Payload : [{date, calories, proteines, glucides, lipides, target_calories}]
+    Payload par jour :
+      date, calories, proteines, glucides, lipides, target_calories,
+      source ("detailed"/"estimated"/null si jour vide),
+      pct_calories_declared, pct_proteines_declared, target_calories_snapshot
+      (null pour jours détaillés OU estimations antérieures à la migration 098).
+
     - Exactement `days` entrées consécutives (plus ancien → récent, aucun trou
       de date). Jours sans saisie nutrition → macros null (jamais 0 — trou de
       saisie ≠ zéro calorique).
     - target_calories calculée via une SEULE série TDEE (tdee.compute_target
       _calories_series) — moyenne glissante 7 TDEE précédents + goal adjust.
       Null si <7 jours de TDEE antérieurs à cette date.
+    - Conformité consommateur :
+        detailed → calories / target_calories
+        estimated avec pct → pct_calories_declared (ratio direct)
+        estimated SANS pct → exclu (compter et afficher "N jours sans pct")
 
     Query : days ∈ [1, 180], défaut 60.
     """
@@ -561,17 +570,26 @@ def api_stats_nutrition_history():
         row = logged_by_date.get(d_str)
         if row is None:
             cal = prot = carbs = fat = None
+            source = pct_cal = pct_prot = tgt_snapshot = None
         else:
             cal   = row.get("calories")
             prot  = row.get("proteines")
             carbs = row.get("glucides")
             fat   = row.get("lipides")
+            source       = row.get("source")
+            pct_cal      = row.get("pct_calories_declared")
+            pct_prot     = row.get("pct_proteines_declared")
+            tgt_snapshot = row.get("target_calories_snapshot")
         result.append({
-            "date":            d_str,
-            "calories":        cal,
-            "proteines":       prot,
-            "glucides":        carbs,
-            "lipides":         fat,
-            "target_calories": targets.get(d_str),
+            "date":                     d_str,
+            "calories":                 cal,
+            "proteines":                prot,
+            "glucides":                 carbs,
+            "lipides":                  fat,
+            "target_calories":          targets.get(d_str),
+            "source":                   source,
+            "pct_calories_declared":    pct_cal,
+            "pct_proteines_declared":   pct_prot,
+            "target_calories_snapshot": tgt_snapshot,
         })
     return jsonify(result)
