@@ -429,50 +429,59 @@ struct MacrosDayTypeView: View {
     }
 }
 
-// MARK: - Nutrition vs Performance View
+// MARK: - Nutrition vs Performance View (A3 + D)
+/// Adhérence hebdo = part des jours "dans la cible" selon la règle source-aware :
+///   detailed   → |calories - target_calories du jour| / target ≤ 10 %
+///   estimated avec pct déclaré → |pct - 1.0| ≤ 10 %
+///   estimated sans pct ou jour vide → non évaluable, exclu
+/// Une semaine n'est retenue que si ≥ 4 jours évaluables (anti 2/2 = 100 %
+/// trompeur). Corrélation adhérence ↔ volume via CorrelationGuard, pas de
+/// split high/low ni texte pré-écrit.
 struct NutritionVsPerfView: View {
-    let nutritionDays: [NutritionDay]
+    let history: [DayNutritionHistory]
     let weeklyTonnage: [WeeklyTonnageEntry]
-    let target: NutritionSettings?
+
+    private static let targetTolerance: Double = 0.10
+    private static let minEvaluableDaysPerWeek: Int = 4
 
     private struct WeekPair: Identifiable {
         let id = UUID()
         let weekStart: String
         let adherence: Double  // 0–1
+        let evaluableDays: Int
         let volume: Double
     }
 
+    /// Jour "en cible" selon source. nil = non évaluable (exclu).
+    private func inTarget(_ d: DayNutritionHistory) -> Bool? {
+        if d.isDetailed {
+            guard let cal = d.calories, let tgt = d.targetCalories, tgt > 0 else { return nil }
+            return abs(cal - Double(tgt)) / Double(tgt) <= Self.targetTolerance
+        }
+        if d.isEstimated, let pct = d.pctCaloriesDeclared {
+            return abs(pct - 1.0) <= Self.targetTolerance
+        }
+        return nil
+    }
+
     private var pairs: [WeekPair] {
-        guard let tgt = target, let tgtCal = tgt.calories, tgtCal > 0 else { return [] }
-        var nutByWeek: [String: [NutritionDay]] = [:]
-        for day in nutritionDays {
-            let wk = isoWeekKey(day.date ?? "")
-            nutByWeek[wk, default: []].append(day)
+        var byWeek: [String: [DayNutritionHistory]] = [:]
+        for day in history {
+            byWeek[isoWeekKey(day.date), default: []].append(day)
         }
         return weeklyTonnage.compactMap { t -> WeekPair? in
             let wk = isoWeekKey(t.weekStart)
-            guard let days = nutByWeek[wk], !days.isEmpty else { return nil }
-            let adhDays = days.filter {
-                guard let cal = $0.calories, cal > 0 else { return false }
-                return abs(cal - tgtCal) / tgtCal <= 0.15
-            }
-            let adh = Double(adhDays.count) / Double(days.count)
-            return WeekPair(weekStart: t.weekStart, adherence: adh, volume: t.totalVolume)
+            guard let days = byWeek[wk] else { return nil }
+            let evaluables = days.compactMap(inTarget)
+            guard evaluables.count >= Self.minEvaluableDaysPerWeek else { return nil }
+            let adh = Double(evaluables.filter { $0 }.count) / Double(evaluables.count)
+            return WeekPair(weekStart: t.weekStart, adherence: adh,
+                            evaluableDays: evaluables.count, volume: t.totalVolume)
         }.sorted { $0.weekStart < $1.weekStart }
     }
 
-    private var insight: String? {
-        guard pairs.count >= 4 else { return nil }
-        let highAdh = pairs.filter { $0.adherence >= 0.8 }
-        let lowAdh  = pairs.filter { $0.adherence < 0.5 }
-        guard !highAdh.isEmpty, !lowAdh.isEmpty else { return nil }
-        let avgHigh = highAdh.map(\.volume).reduce(0, +) / Double(highAdh.count)
-        let avgLow  = lowAdh.map(\.volume).reduce(0, +) / Double(lowAdh.count)
-        guard avgLow > 0 else { return nil }
-        let diff = Int(round((avgHigh - avgLow) / avgLow * 100))
-        if abs(diff) < 5 { return "Pas de corrélation claire entre ta nutrition et ta performance." }
-        let dir = diff > 0 ? "mieux" : "moins bien"
-        return "Tu t'entraînes \(abs(diff))% \(dir) les semaines avec une bonne adherence macro (>80%)."
+    private var verdict: CorrelationVerdict {
+        CorrelationGuard.evaluate(xs: pairs.map(\.adherence), ys: pairs.map(\.volume))
     }
 
     var body: some View {
@@ -480,16 +489,14 @@ struct NutritionVsPerfView: View {
             Text("NUTRITION → PERFORMANCE")
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
-            if pairs.count < 4 {
-                EmptyChartPlaceholder(message: "Activé après 4 semaines de logs nutrition + workout")
+            if pairs.isEmpty {
+                EmptyChartPlaceholder(message: "Activé après plusieurs semaines avec ≥ 4 jours évaluables chacune")
             } else {
                 miniDualChart
-                if let msg = insight {
-                    Text(msg)
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(Color.appOnSurface.opacity(0.8))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(verdict.message)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(Color.appOnSurface.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16).glassCard()
@@ -532,7 +539,7 @@ struct NutritionVsPerfView: View {
             }
             HStack(spacing: 4) {
                 Rectangle().fill(Color.appSuccess).frame(width: 16, height: 2)
-                Text("Adherence macros").font(.appMicro).foregroundColor(.gray)
+                Text("Adhérence calories").font(.appMicro).foregroundColor(.gray)
             }
         }
     }

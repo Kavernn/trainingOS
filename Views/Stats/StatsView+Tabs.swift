@@ -536,10 +536,10 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
-        // Nutrition vs Performance correlation
-        let fn2 = filteredNutrition
-        if fn2.count >= 21, !weeklyTonnage.isEmpty {
-            NutritionVsPerfView(nutritionDays: fn2, weeklyTonnage: weeklyTonnage, target: nutritionTarget)
+        // Nutrition vs Performance correlation (A3 + D) : fenêtre fixe 180j
+        // ignorant le sélecteur de période (CorrelationGuard veut n ≥ 14 semaines).
+        if !weeklyTonnage.isEmpty {
+            NutritionVsPerfView(history: statsNutritionHistory, weeklyTonnage: weeklyTonnage)
                 .padding(.horizontal, 16)
         }
 
