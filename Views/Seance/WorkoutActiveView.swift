@@ -49,6 +49,9 @@ struct WorkoutSeanceView: View {
     @State private var showFinishConfirm = false
     @State private var showUnloggedWarning = false
     @State private var confirmedFromWarning = false
+    @State private var showDurationConfirm = false
+    @State private var durationOriginalMin: Int = 0
+    @State private var durationOverrideText: String = ""
     @State private var showRestartConfirmation = false
     @State private var exercisePendingDeletion: String? = nil
     // PM partielle : dialogue "Reprendre plus tard / Clore la séance" quand
@@ -1261,18 +1264,16 @@ struct WorkoutSeanceView: View {
             preEnergy: energyPre,
             onSubmit: { _ in
                 let dur = Double(vm.chrono.stop())
-                recapSnapshot = SessionRecapSnapshot(
-                    sessionName: data.today,
-                    coachingContext: progressionContext,
-                    durationMin: dur,
-                    logResults: trackedResults,
-                    exercises: trackedExercises.map(\.0),
-                    rpe: trackedResults.isEmpty ? 0 : rpe,
-                    comment: comment,
-                    energyPre: energyPre,
-                    previousVolume: ghostData?.volume
-                )
-                Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today, bonusSession: isBonusSession) }
+                // Garde-fou chrono oublié : > 180 min → confirmation éditable
+                // avant d'envoyer. Backend rejette > 300 min (fail-loud), ici
+                // on attrape plus tôt pour laisser l'utilisateur corriger.
+                if dur > 180 {
+                    durationOriginalMin = Int(dur)
+                    durationOverrideText = String(Int(dur))
+                    showDurationConfirm = true
+                } else {
+                    performFinishSubmit(durationMin: dur)
+                }
             }
         )
         .presentationDetents([.medium, .large])
@@ -1280,6 +1281,37 @@ struct WorkoutSeanceView: View {
             restoreComment()
             rpe = computedSessionRPE
         }
+        .alert("Durée inhabituelle", isPresented: $showDurationConfirm) {
+            TextField("Durée (min, max 300)", text: $durationOverrideText)
+                .keyboardType(.numberPad)
+            Button("Confirmer") {
+                // Refus local > 300 min : évite l'aller-retour vers le 400
+                // backend. Si invalide, ré-ouvre l'alerte au cycle suivant.
+                guard let dur = Double(durationOverrideText), dur >= 1, dur <= 300 else {
+                    DispatchQueue.main.async { showDurationConfirm = true }
+                    return
+                }
+                performFinishSubmit(durationMin: dur)
+            }
+            Button("Annuler", role: .cancel) { }
+        } message: {
+            Text("Durée détectée : \(durationOriginalMin) min — chrono probablement oublié. Corrige (1–300 min) si nécessaire.")
+        }
+    }
+
+    private func performFinishSubmit(durationMin dur: Double) {
+        recapSnapshot = SessionRecapSnapshot(
+            sessionName: data.today,
+            coachingContext: progressionContext,
+            durationMin: dur,
+            logResults: trackedResults,
+            exercises: trackedExercises.map(\.0),
+            rpe: trackedResults.isEmpty ? 0 : rpe,
+            comment: comment,
+            energyPre: energyPre,
+            previousVolume: ghostData?.volume
+        )
+        Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today, bonusSession: isBonusSession) }
     }
 
     private var progressionSheet: some View {
