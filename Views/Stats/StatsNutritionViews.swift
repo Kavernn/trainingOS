@@ -102,45 +102,114 @@ struct NutritionComplianceChart: View {
 
 // MARK: - RPE Distribution
 struct RPEDistributionView: View {
+    /// Dict keyed by date ISO (YYYY-MM-DD). Compare la distribution RPE sur
+    /// 4 dernières semaines COMPLÈTES (fenêtre récente) vs les 4 précédentes.
+    /// La semaine en cours est exclue (données partielles).
+    /// Affichage en % de chaque fenêtre, pas en nombre absolu.
+    /// Garde-fou sur le TOTAL de la fenêtre (n < 8) : la colonne entière
+    /// affiche "Pas assez de données (n = X)". Une tranche à 0 est une info,
+    /// pas un manque — pas de garde-fou par tranche.
     let sessions: [String: SessionEntry]
 
-    var distribution: [(String, Int)] {
-        let buckets = ["1-2", "3-4", "5-6", "7-8", "9-10"]
-        var counts = [0, 0, 0, 0, 0]
-        for s in sessions.values {
-            guard let rpe = s.rpe else { continue }
-            let idx = min(Int((rpe - 1) / 2), 4)
-            counts[idx] += 1
+    private static let minSessionsPerWindow: Int = 8
+    private static let buckets = ["1-2", "3-4", "5-6", "7-8", "9-10"]
+    private static let windowWeeks: Int = 4
+
+    private struct Window {
+        let label: String
+        let counts: [Int]
+        var total: Int { counts.reduce(0, +) }
+        var pcts: [Double] {
+            guard total > 0 else { return [0, 0, 0, 0, 0] }
+            return counts.map { Double($0) / Double(total) }
         }
-        return zip(buckets, counts).map { $0 }
     }
 
-    var total: Int { distribution.map(\.1).reduce(0, +) }
+    private func bucketize(_ dates: Set<String>) -> [Int] {
+        var counts = [0, 0, 0, 0, 0]
+        for (date, s) in sessions where dates.contains(date) {
+            guard let rpe = s.rpe else { continue }
+            let idx = min(max(Int((rpe - 1) / 2), 0), 4)
+            counts[idx] += 1
+        }
+        return counts
+    }
 
-    private let colors: [Color] = [Color.forge.opacity(0.30), Color.forge.opacity(0.475), Color.forge.opacity(0.65), Color.forge.opacity(0.825), Color.forge]
+    /// Fenêtres : [J-28 … J-1 de la semaine passée] vs [J-56 … J-29].
+    /// Démarrage : lundi de la semaine en cours (ISO) → on recule.
+    private var pair: (recent: Window, previous: Window)? {
+        let cal = Calendar(identifier: .iso8601)
+        let today = Date()
+        guard let currentWeekStart = cal.dateInterval(of: .weekOfYear, for: today)?.start,
+              let recentStart   = cal.date(byAdding: .day, value: -7 * Self.windowWeeks, to: currentWeekStart),
+              let previousStart = cal.date(byAdding: .day, value: -7 * Self.windowWeeks, to: recentStart)
+        else { return nil }
+        let fmt = DateFormatter.isoDate
+        func dates(from start: Date, days: Int) -> Set<String> {
+            Set((0..<days).compactMap { cal.date(byAdding: .day, value: $0, to: start) }.map(fmt.string(from:)))
+        }
+        let recentDates   = dates(from: recentStart,   days: 7 * Self.windowWeeks)
+        let previousDates = dates(from: previousStart, days: 7 * Self.windowWeeks)
+        return (
+            Window(label: "4 dernières sem.", counts: bucketize(recentDates)),
+            Window(label: "4 précédentes",    counts: bucketize(previousDates))
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("DISTRIBUTION RPE")
+            Text("DISTRIBUTION RPE — 4 SEMAINES VS 4 PRÉCÉDENTES")
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
 
-            HStack(alignment: .bottom, spacing: 8) {
-                ForEach(Array(distribution.enumerated()), id: \.0) { i, item in
-                    let pct = total > 0 ? Double(item.1) / Double(total) : 0
-                    VStack(spacing: 4) {
-                        Text("\(item.1)").font(.appMicro.weight(.bold)).foregroundColor(colors[i])
-                        // shape géométrique inline — radius calibré à la taille de la barre
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(colors[i])
-                            .frame(height: max(CGFloat(pct) * 80, 2))
-                        Text(item.0).font(.appMicro).foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: 100, alignment: .bottom)
+            if let p = pair {
+                HStack(alignment: .top, spacing: 12) {
+                    windowCard(window: p.recent,   color: Color.forge)
+                    windowCard(window: p.previous, color: Color.gray)
                 }
+            } else {
+                EmptyChartPlaceholder(message: "Fenêtres indisponibles")
             }
-            .frame(height: 100)
         }
         .padding(16).background(Color.appCard).cornerRadius(14)
+    }
+
+    @ViewBuilder private func windowCard(window w: Window, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                HStack(spacing: 4) {
+                    Circle().fill(color).frame(width: 6, height: 6)
+                    Text(w.label).font(.appMicro.weight(.semibold)).foregroundColor(.gray)
+                }
+                Spacer()
+                Text("n = \(w.total)").font(.appMicro).foregroundColor(.gray)
+            }
+
+            if w.total < Self.minSessionsPerWindow {
+                Text("Pas assez de données (n = \(w.total))")
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
+            } else {
+                HStack(alignment: .bottom, spacing: 6) {
+                    ForEach(Array(Self.buckets.enumerated()), id: \.0) { i, label in
+                        VStack(spacing: 2) {
+                            Text("\(Int((w.pcts[i] * 100).rounded()))%")
+                                .font(.system(size: 9, weight: .bold)).foregroundColor(color)
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(color.opacity(0.75))
+                                .frame(height: max(CGFloat(w.pcts[i]) * 60, 2))
+                            Text(label).font(.appMicro).foregroundColor(.gray)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: 80, alignment: .bottom)
+                    }
+                }
+                .frame(height: 80)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appSurfaceInset)
+        .cornerRadius(8)
     }
 }
 
