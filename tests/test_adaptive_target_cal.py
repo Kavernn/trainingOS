@@ -53,39 +53,7 @@ class AdaptiveTargetCalTests(BaseRouteTest):
             resp = self.get("/api/weekly_report")
         self.assertIsNone(self.json(resp)["nutrition_compliance"])
 
-    # ── /api/macro_gap → cible adaptative + null explicite ────────────────────
-
-    def test_macro_gap_targets_calories_from_adaptive(self):
-        self.store["nutrition_settings"] = {"calorie_limit": 2000, "protein_target": 180,
-                                             "glucides_target": 250, "lipides_target": 80}
-        with patch("tdee.compute_target_calories", return_value=2850):
-            resp = self.get("/api/macro_gap")
-        self.assertEqual(resp.status_code, 200)
-        data = self.json(resp)
-        self.assertEqual(data["targets"]["calories"], 2850)
-        self.assertNotEqual(data["targets"]["calories"], 2000)
-
-    def test_macro_gap_target_calories_null_when_adaptive_unavailable(self):
-        """Pas de fallback 2500 : cible null → gap null + payload l'expose."""
-        self.store["nutrition_settings"] = {"calorie_limit": 2000, "protein_target": 180}
-        with patch("tdee.compute_target_calories", return_value=None):
-            resp = self.get("/api/macro_gap")
-        self.assertEqual(resp.status_code, 200)
-        data = self.json(resp)
-        self.assertIsNone(data["targets"]["calories"])
-        self.assertIsNone(data["gaps"]["calories"])
-
-    def test_macro_gap_primary_falls_back_to_protein_without_adaptive(self):
-        """Sans cible calorique dispo, la recommandation ne peut PAS être
-        'calories' — fallback vers protein (toujours sain)."""
-        # Pas de gap_prot significatif (170/180 → 10), pas de gap_carb (220/250 → 30, pile),
-        # pas de cal → protein par défaut.
-        self._set_nutrition_day("2026-10-20", 1800, proteines=170)
-        self.store["nutrition_settings"] = {"protein_target": 180, "glucides_target": 250,
-                                             "lipides_target": 80}
-        with patch("tdee.compute_target_calories", return_value=None):
-            resp = self.get("/api/macro_gap")
-        self.assertEqual(self.json(resp)["primary_gap"], "protein")
+    # /api/macro_gap retiré en phase B2.2 — plus de consommateur iOS.
 
 
 if __name__ == "__main__":
