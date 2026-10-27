@@ -56,9 +56,27 @@ final class SyncManager: ObservableObject {
     /// Persist a mutation for later delivery. Triggers an immediate flush if already online
     /// (covers momentary flakiness where network state never changed).
     func enqueue(endpoint: String, method: String = "POST", payload: [String: Any]) {
+        // Dédup last-write-wins pour /api/session/edit par (date, session_type).
+        // Le payload est l'état COMPLET de la séance (rpe + comment + liste
+        // complète des exercises) — un remplace est safe, pas besoin de merge.
+        // Évite les doubles-sends si l'utilisateur retape "Sauvegarder" hors
+        // ligne sur la même séance.
+        if endpoint == "/api/session/edit",
+           let date = payload["date"] as? String {
+            let sessionType = (payload["session_type"] as? String) ?? "morning"
+            queue.removeAll { pending in
+                guard pending.endpoint == "/api/session/edit",
+                      !pending.isSynced,
+                      let obj = try? JSONSerialization.jsonObject(with: pending.payloadData) as? [String: Any],
+                      let d = obj["date"] as? String,
+                      d == date else { return false }
+                let st = (obj["session_type"] as? String) ?? "morning"
+                return st == sessionType
+            }
+        }
         let mutation = PendingMutation(endpoint: endpoint, method: method, payload: payload)
         queue.append(mutation)
-        pendingCount += 1
+        refreshPendingCount()
         showOfflineToast()
         if isOnlineProvider() {
             Task { await flushQueue() }
