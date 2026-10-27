@@ -784,11 +784,6 @@ def make_store():
         store["cycle_start_dates"] = dates
         return True
 
-    def get_macros_by_day_type(days=60, nutr_days=None, sessions_raw=None):
-        # Retour dict plausible vide — les tests stats ne vérifient pas le contenu
-        # de ce champ, juste sa présence dans le payload sans exception JSON.
-        return {"session_days": {}, "rest_days": {}}
-
     def get_session_supersets(program_id=None):
         # Retour dict vide — pas de supersets configurés dans les fixtures.
         return {}
@@ -991,7 +986,6 @@ def make_store():
         set_active_program_id=set_active_program_id,
         get_cycle_start_date=get_cycle_start_date,
         set_cycle_start_date=set_cycle_start_date,
-        get_macros_by_day_type=get_macros_by_day_type,
         get_session_supersets=get_session_supersets,
         get_session_override=get_session_override,
         set_session_override=set_session_override,

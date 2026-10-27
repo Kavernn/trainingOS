@@ -380,17 +380,13 @@ def get_one_rm_trend(days: int = 84, weights: dict | None = None,
 
 
 def get_nutrition_daily_full(days: int = 60) -> list[dict]:
-    """Return daily aggregates of all macros for the last N days.
+    """Return daily aggregates for the last N days.
 
-    En plus des macros, chaque jour expose :
-      - source : "estimated" si une entrée source="estimated_percent" existe
-        pour la date (replace_day_with_estimate garantit atomicité : 1 entrée
-        par jour estimé), "detailed" sinon.
-      - pct_calories_declared / pct_proteines_declared : lus depuis l'entrée
-        estimée (NULL pour jours détaillés OU estimations antérieures à la
-        migration 098).
-      - target_calories_snapshot : cible utilisée au moment du rattrapage
-        (NULL pour jours détaillés OU historique).
+    Chaque jour expose : date, calories, proteines, source + traçabilité pct.
+    Phase B2.7 : glucides/lipides retirés du SELECT et de l'agrégation (suivi
+    coupé). source = "estimated" si une entrée source="estimated_percent"
+    existe pour la date (replace_day_with_estimate garantit atomicité : 1
+    entrée par jour estimé), "detailed" sinon.
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
@@ -400,8 +396,8 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         resp = (
             db_core._client.table("nutrition_entries")
-            .select("date, calories, proteines, glucides, lipides, "
-                    "source, pct_calories_declared, pct_proteines_declared, "
+            .select("date, calories, proteines, source, "
+                    "pct_calories_declared, pct_proteines_declared, "
                     "target_calories_snapshot")
             .gte("date", cutoff)
             .order("date", desc=True)
@@ -413,7 +409,6 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
             if d not in seen:
                 seen[d] = {
                     "date": d, "calories": 0.0, "proteines": 0.0,
-                    "glucides": 0.0, "lipides": 0.0,
                     "source": "detailed",
                     "pct_calories_declared":    None,
                     "pct_proteines_declared":   None,
@@ -421,8 +416,6 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
                 }
             seen[d]["calories"]  += float(row.get("calories") or 0)
             seen[d]["proteines"] += float(row.get("proteines") or 0)
-            seen[d]["glucides"]  += float(row.get("glucides") or 0)
-            seen[d]["lipides"]   += float(row.get("lipides") or 0)
             if row.get("source") == "estimated_percent":
                 seen[d]["source"] = "estimated"
                 seen[d]["pct_calories_declared"]    = row.get("pct_calories_declared")
@@ -450,56 +443,7 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
         return []
 
 
-def get_macros_by_day_type(days: int = 60, nutr_days: list | None = None) -> dict:
-    """Return average macros on training days vs rest days for the last N days.
-
-    Training day = date has EITHER a completed workout session (rpe or completed=true),
-    OR any exercise_log row, OR any hiit_log entry. Union des 3 sources — capture
-    les muscu-loguées-sans-marquer, les sessions yoga marquées, le HIIT-only, et
-    tout ce qui est entre les deux. Un critère plus étroit (session.completed seul)
-    classait "rest" des jours d'entraînement réels dont la session n'était pas
-    marquée completed/rpe (bug corrigé ici).
-    """
-    try:
-        from datetime import date as _date, timedelta
-        from weekly_streaks import active_dates as _active_dates
-        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
-        nutr_days = nutr_days if nutr_days is not None else get_nutrition_daily_full(days)
-        # Jours détaillés uniquement : les estimations rétroactives n'ont ni
-        # glucides ni lipides (toujours 0), fausseraient les moyennes macros.
-        nutr_days = [d for d in nutr_days if d.get("source") == "detailed"]
-
-        # Source unique "jour actif" (= weekly_streaks.active_dates) :
-        # workout_sessions (completed/rpe) ∪ HIIT ∪ cardio ∪ exercise_logs.
-        # Alignement avec le streak — un jour cardio compte comme training.
-        workout_dates = {d for d in _active_dates() if d >= cutoff}
-
-        training: list[dict] = []
-        rest: list[dict] = []
-        for d in nutr_days:
-            bucket = training if d["date"] in workout_dates else rest
-            bucket.append(d)
-
-        def _avg(b: list[dict]) -> Optional[dict]:
-            if not b:
-                return None
-            n = len(b)
-            return {
-                "avg_cal":   round(sum(x["calories"]  for x in b) / n),
-                "avg_prot":  round(sum(x["proteines"] for x in b) / n, 1),
-                "avg_carbs": round(sum(x["glucides"]  for x in b) / n, 1),
-                "avg_fat":   round(sum(x["lipides"]   for x in b) / n, 1),
-            }
-
-        return {
-            "training":   _avg(training),
-            "rest":       _avg(rest),
-            "n_training": len(training),
-            "n_rest":     len(rest),
-        }
-    except Exception as e:
-        db_core.logger.error("get_macros_by_day_type error: %s", e)
-        return {}
+# get_macros_by_day_type retiré en B2.7 — plus de consommateur runtime.
 
 
 def get_protein_weight_ratio(days: int = 60, nutr_days: list | None = None) -> list[dict]:
