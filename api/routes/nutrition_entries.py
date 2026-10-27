@@ -100,24 +100,15 @@ def api_nutrition_settings():
     from nutrition import (save_settings as save_nutrition_settings)
     data = request.get_json(silent=True) or {}
 
-    dtt_raw = data.get("day_type_targets")
-    day_type_targets = None
-    if isinstance(dtt_raw, dict):
-        day_type_targets = {}
-        for key in ("light", "moderate", "heavy", "rest"):
-            t = dtt_raw.get(key) or {}
-            if t:
-                day_type_targets[key] = {
-                    "calories": int(t.get("calories", 0)),
-                    "glucides": int(t.get("glucides", 0)),
-                }
-
+    # Lot B2.1 : plus de repli inventé (ex. glucides 235, lipides 75,
+    # day_type.*.glucides 0, limite_calories 2400, day_type.*.calories 0).
+    # La cible calorique est adaptative (compute_target_calories) ; les
+    # champs legacy restent dans la DB tant que la migration n'a pas tourné,
+    # mais le handler ne les écrase plus par un fallback silencieux. Clés
+    # absentes du payload → None propagé → save_settings ne touche pas la
+    # colonne.
     save_nutrition_settings(
-        int(data.get("limite_calories",    2400)),
-        int(data.get("objectif_proteines", 180)),
-        float(data.get("glucides", 235)),
-        float(data.get("lipides",  75)),
-        day_type_targets=day_type_targets,
+        objectif_proteines=data.get("objectif_proteines"),
         nutrition_end_time=data.get("nutrition_end_time") or None,
     )
     return jsonify({"success": True})

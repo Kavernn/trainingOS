@@ -53,23 +53,19 @@ def load_settings() -> dict:
     }
 
 
-def save_settings(limite_calories: int, objectif_proteines: int,
-                  glucides: float = 235, lipides: float = 75,
-                  day_type_targets: dict | None = None,
-                  nutrition_end_time: str | None = None):
-    patch: dict = {
-        "calorie_limit":   limite_calories,
-        "protein_target":  objectif_proteines,
-        "glucides":        glucides,
-        "lipides":         lipides,
-        "glucides_target": int(glucides),
-        "lipides_target":  int(lipides),
-    }
-    if day_type_targets is not None:
-        patch["day_type_targets"] = day_type_targets
+def save_settings(objectif_proteines=None, nutrition_end_time: str | None = None):
+    """Patch minimal : seuls les champs explicitement passés sont écrits.
+    Les colonnes legacy (calorie_limit, glucides, lipides, day_type_targets,
+    glucides_target, lipides_target) ne sont plus touchées par le handler —
+    cible calorique = adaptative (compute_target_calories), macros glucides/
+    lipides retirées du suivi. Phase 2 B2.1."""
+    patch: dict = {}
+    if objectif_proteines is not None:
+        patch["protein_target"] = int(objectif_proteines)
     if nutrition_end_time is not None:
         patch["nutrition_end_time"] = nutrition_end_time
-    db.update_nutrition_settings(patch)
+    if patch:
+        db.update_nutrition_settings(patch)
 
 
 _HEAVY_SESSIONS = frozenset({
