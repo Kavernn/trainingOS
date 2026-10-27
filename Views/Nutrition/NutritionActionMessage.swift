@@ -5,6 +5,11 @@ import SwiftUI
 struct NutritionActionMessage: View {
     let totals: NutritionTotals?
     let settings: NutritionSettings?
+    /// Cible calorique adaptative (source unique, même que KcalHeader).
+    /// `nil` si <7j TDEE : la phrase "proteinOnTarget" n'affiche pas de
+    /// comparaison calorique — allOnTarget si protéines OK, sinon
+    /// proteinClose (fallback neutre, pas d'affichage calorique inventé).
+    let targetCalories: Int?
     let hasEntries: Bool
     var onAddMeal: (() -> Void)? = nil
 
@@ -13,6 +18,7 @@ struct NutritionActionMessage: View {
         case proteinLow(Int)
         case proteinClose(Int)
         case proteinOnTarget(consumed: Int, target: Int)
+        case proteinOnTargetNoCalTarget
         case allOnTarget
     }
 
@@ -23,9 +29,12 @@ struct NutritionActionMessage: View {
         let ratio = consumed / pTarget
         if ratio < 0.70 { return .proteinLow(Int(pTarget - consumed)) }
         if ratio < 0.90 { return .proteinClose(Int(pTarget - consumed)) }
+        // Protéines OK — statue sur calories si cible adaptative dispo.
+        // Sinon état honnête : "protéines OK, cible calorique indisponible".
+        // Aucun état n'affirme une conformité calorique sans cible connue.
+        guard let calTarget = targetCalories, calTarget > 0 else { return .proteinOnTargetNoCalTarget }
         let calConsumed = Int(totals?.calories ?? 0)
-        let calTarget   = Int(settings?.calories ?? 0)
-        let calRatio    = calTarget > 0 ? Double(calConsumed) / Double(calTarget) : 1.0
+        let calRatio    = Double(calConsumed) / Double(calTarget)
         if calRatio >= 0.90 { return .allOnTarget }
         return .proteinOnTarget(consumed: calConsumed, target: calTarget)
     }
@@ -72,17 +81,19 @@ struct NutritionActionMessage: View {
         case .proteinLow(let g):                  return "Il te manque \(g)g de protéines aujourd'hui."
         case .proteinClose(let g):                return "Encore \(g)g de protéines pour atteindre ton objectif."
         case .proteinOnTarget(let c, let t):      return "Protéines sur cible. Calories : \(c) / \(t) kcal."
+        case .proteinOnTargetNoCalTarget:         return "Protéines atteintes · cible calorique indisponible (historique TDEE insuffisant)."
         case .allOnTarget:                        return "Objectifs nutrition atteints aujourd'hui."
         }
     }
 
     private func msgColor(_ state: MsgState) -> Color {
         switch state {
-        case .noEntries:       return .gray
-        case .proteinLow:      return Color.appDanger
-        case .proteinClose:    return Color.appWarning
-        case .proteinOnTarget: return Color.statusBlue
-        case .allOnTarget:     return Color.appSuccess
+        case .noEntries:                  return .gray
+        case .proteinLow:                 return Color.appDanger
+        case .proteinClose:               return Color.appWarning
+        case .proteinOnTarget:            return Color.statusBlue
+        case .proteinOnTargetNoCalTarget: return Color.statusBlue
+        case .allOnTarget:                return Color.appSuccess
         }
     }
 }

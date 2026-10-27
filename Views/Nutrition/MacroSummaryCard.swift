@@ -5,6 +5,15 @@ import SwiftUI
 struct MacroSummaryCard: View {
     let totals: NutritionTotals?
     let settings: NutritionSettings?
+    /// Cible calorique adaptative — passer `energy?.targetCalories` depuis
+    /// le parent (même source que KcalHeader). `nil` si <7j TDEE historique :
+    /// comparaison et ring cachés, label kcal masqué.
+    let targetCalories: Int?
+
+    private var targetCal: Double? {
+        guard let tc = targetCalories, tc > 0 else { return nil }
+        return Double(tc)
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -17,8 +26,8 @@ struct MacroSummaryCard: View {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text("\(Int(totals?.calories ?? 0))")
                             .font(.system(size: 40, weight: .black))
-                            .foregroundColor((totals?.calories ?? 0) > (settings?.calories ?? .infinity) ? Color.appDanger : Color.forge)
-                        if let target = settings?.calories {
+                            .foregroundColor((totals?.calories ?? 0) > (targetCal ?? .infinity) ? Color.appDanger : Color.forge)
+                        if let target = targetCal {
                             Text("/ \(Int(target)) kcal")
                                 .font(.system(size: 14))
                                 .foregroundColor(.appTextSecondary)
@@ -26,7 +35,7 @@ struct MacroSummaryCard: View {
                     }
                 }
                 Spacer()
-                if let target = settings?.calories, target > 0 {
+                if let target = targetCal {
                     let pct = min((totals?.calories ?? 0) / target, 1.0)
                     let over = (totals?.calories ?? 0) > target
                     ProgressRing(progress: pct, color: over ? Color.appDanger : Color.forge,
@@ -38,7 +47,7 @@ struct MacroSummaryCard: View {
                 }
             }
 
-            if let target = settings?.calories {
+            if let target = targetCal {
                 let pct = min((totals?.calories ?? 0) / target, 1.0)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
