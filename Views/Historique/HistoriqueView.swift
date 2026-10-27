@@ -335,6 +335,19 @@ struct HistoriqueView: View {
             CacheService.shared.clear(for: "historique_data")
             editTarget = nil
             return true
+        } catch APIError.serverError(_, let msg) {
+            // Backend fail-closed : affiche le message explicite (404 session
+            // absente, 422 exercice inconnu, 500 upsert échoué). Le user sait
+            // pourquoi ça n'a pas été enregistré. Pas de retry automatique.
+            apiError = msg ?? "Erreur serveur — vérifie les données"
+            return false
+        } catch APIError.queuedOffline {
+            // Hors ligne : offlinePost a enqueued le payload, il sera
+            // automatiquement rejoué à la reconnexion. L'utilisateur ne doit
+            // PAS retaper "Sauvegarder" sinon le payload sera dédoublé dans
+            // la file.
+            apiError = "Hors ligne — sera envoyé à la reconnexion."
+            return false
         } catch {
             apiError = "Erreur réseau — réessaie"
             return false

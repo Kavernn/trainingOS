@@ -597,9 +597,14 @@ extension APIService {
         var body: [String: Any] = ["date": date, "comment": comment, "session_type": sessionType]
         if let rpe { body["rpe"] = rpe }
         if let exercises { body["exercises"] = exercises }
-        if try await offlinePost(endpoint: "/api/session/edit", payload: body) != nil {
-            CacheInvalidation.sessionMutated.invalidate()
+        // offlinePost : 4xx/5xx → throw APIError.serverError (non enqueued).
+        // Erreur réseau → payload enqueued, return nil. On throw queuedOffline
+        // pour que la vue distingue "serveur a confirmé" / "mis en file" /
+        // "erreur réseau transiente non enregistrée".
+        if try await offlinePost(endpoint: "/api/session/edit", payload: body) == nil {
+            throw APIError.queuedOffline
         }
+        CacheInvalidation.sessionMutated.invalidate()
     }
 
     // MARK: - HIIT
