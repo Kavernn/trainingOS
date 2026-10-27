@@ -511,10 +511,6 @@ extension StatsView {
                 .padding(.horizontal, 16)
             ProteinComplianceView(days: fn, target: target)
                 .padding(.horizontal, 16)
-            if target.glucides != nil || target.lipides != nil {
-                MacrosBreakdownView(history: fsh, target: target)
-                    .padding(.horizontal, 16)
-            }
         } else {
             VStack(spacing: 12) {
                 Image(systemName: "fork.knife.circle")
@@ -530,16 +526,6 @@ extension StatsView {
             ProteinWeightRatioView(data: proteinWeightRatio)
                 .padding(.horizontal, 16)
         }
-
-        if let mdt = macrosByDayType, mdt.nTraining >= 3, mdt.nRest >= 3 {
-            MacrosDayTypeView(data: mdt)
-                .padding(.horizontal, 16)
-        }
-
-        // C — dispersion macros (p25/p50/p75) sur fenêtre nutrition_history
-        // (jours détaillés uniquement, les estimations tireraient p25 à zéro).
-        MacrosVarianceView(history: statsNutritionHistory)
-            .padding(.horizontal, 16)
 
         // Nutrition vs Performance correlation (A3 + D) : fenêtre fixe 180j
         // ignorant le sélecteur de période (CorrelationGuard veut n ≥ 14 semaines).

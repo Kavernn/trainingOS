@@ -8,13 +8,8 @@ struct NutritionSettingsSheet: View {
     var embedsInNavigationStack: Bool
     @Environment(\.dismiss) private var dismiss
 
-    @State private var proteines:    String
-    @State private var lipides:      String
-    @State private var heavyGluc:    String
-    @State private var moderateGluc: String
-    @State private var lightGluc:    String
-    @State private var restGluc:     String
-    @State private var endTime:      Date
+    @State private var proteines: String
+    @State private var endTime:   Date
     @State private var isSaving  = false
     @State private var saveError: String? = nil
 
@@ -27,14 +22,8 @@ struct NutritionSettingsSheet: View {
         self.embedsInNavigationStack = embedsInNavigationStack
         self.onSaved  = onSaved
         let fmt: (Double?) -> String = { v in v.map { "\(Int($0))" } ?? "" }
-        let dtt = settings?.dayTypeTargets
-        _proteines    = State(initialValue: fmt(settings?.proteines))
-        _lipides      = State(initialValue: fmt(settings?.lipides))
-        _heavyGluc    = State(initialValue: dtt.map { "\(Int($0.heavy.glucides))" }    ?? "270")
-        _moderateGluc = State(initialValue: dtt.map { "\(Int($0.moderate.glucides))" } ?? "235")
-        _lightGluc    = State(initialValue: dtt.map { "\(Int($0.light.glucides))" }    ?? "185")
-        _restGluc     = State(initialValue: dtt.map { "\(Int($0.rest.glucides))" }     ?? "160")
-        _endTime      = State(initialValue: {
+        _proteines = State(initialValue: fmt(settings?.proteines))
+        _endTime   = State(initialValue: {
             guard let t = settings?.nutritionEndTime,
                   let d = NutritionSettingsSheet.hmmFormatter.date(from: t) else {
                 // Calendar.current VOLONTAIRE — l'heure de rappel nutrition suit le device.
@@ -49,10 +38,7 @@ struct NutritionSettingsSheet: View {
         let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
     }()
 
-    private var canSave: Bool {
-        [proteines, lipides, heavyGluc, moderateGluc, lightGluc, restGluc]
-            .allSatisfy { Double($0) != nil }
-    }
+    private var canSave: Bool { Double(proteines) != nil }
 
     var body: some View {
         Group {
@@ -77,31 +63,15 @@ struct NutritionSettingsSheet: View {
         ZStack {
             Color.appBg.ignoresSafeArea()
             Form {
-                Section(header: Text("MACROS FIXES (TOUS LES JOURS)")) {
+                Section(
+                    header: Text("CIBLE PROTÉINES"),
+                    footer: Text("La cible calorique est adaptative (moyenne glissante TDEE) — plus de saisie manuelle. Glucides/lipides ne sont plus suivis.")
+                        .font(.appMicro).foregroundColor(.appTextSecondary)
+                ) {
                     HStack {
                         TextField("180", text: $proteines).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
                         Text("g protéines").foregroundColor(Color.statusBlue).font(.appLabel)
                     }
-                    HStack {
-                        TextField("75", text: $lipides).keyboardType(.numberPad).foregroundColor(.appTextPrimary)
-                        Text("g lipides").foregroundColor(Color.statusRed).font(.appLabel)
-                    }
-                }
-                .listRowBackground(Color.appCard)
-
-                Section(
-                    header: Text("GLUCIDES PAR TYPE DE JOURNÉE"),
-                    footer: Text("La cible calorique est adaptative (moyenne glissante TDEE) — plus de saisie manuelle.")
-                        .font(.appMicro).foregroundColor(.appTextSecondary)
-                ) {
-                    DayTypeRow(icon: "dumbbell.fill",                       color: Color.forge,
-                               label: "Lourd",    glucPlaceholder: "270", gluc: $heavyGluc)
-                    DayTypeRow(icon: "figure.strengthtraining.traditional", color: Color.statusYellow,
-                               label: "Modéré",   glucPlaceholder: "235", gluc: $moderateGluc)
-                    DayTypeRow(icon: "figure.arms.open",                    color: Color.statusCyan,
-                               label: "Léger",    glucPlaceholder: "185", gluc: $lightGluc)
-                    DayTypeRow(icon: "moon.fill",                           color: Color.statusBlue,
-                               label: "Repos",    glucPlaceholder: "160", gluc: $restGluc)
                 }
                 .listRowBackground(Color.appCard)
 
@@ -132,33 +102,36 @@ struct NutritionSettingsSheet: View {
     }
 
     private func save() async {
-        guard let prot = Double(proteines), let lip = Double(lipides),
-              let hGluc = Double(heavyGluc),  let mGluc = Double(moderateGluc),
-              let lGluc = Double(lightGluc),  let rGluc = Double(restGluc) else { return }
+        guard let prot = Double(proteines) else { return }
         isSaving = true
         saveError = nil
-        // Cibles caloriques stockées (par type de jour + limite globale) :
-        // préservées via les valeurs serveur existantes — plus éditables ici
-        // (/api/nutrition/tdee les rafraîchit automatiquement depuis le TDEE
-        // courant). Compliance consommateur = compute_target_calories, pas ces
-        // champs.
+        // Legacy fields préservés via valeurs serveur — plus éditables ici.
+        // Cibles caloriques stockées (par type + limite globale) rafraîchies
+        // par /api/nutrition/tdee. Glucides/lipides stockés mais plus de
+        // consommateur côté stats.
         let dtt = settings?.dayTypeTargets
         let heavyCal     = dtt.map { Int($0.heavy.calories)    } ?? 0
         let moderateCal  = dtt.map { Int($0.moderate.calories) } ?? 0
         let lightCal     = dtt.map { Int($0.light.calories)    } ?? 0
         let restCal      = dtt.map { Int($0.rest.calories)     } ?? 0
+        let heavyGluc    = dtt.map { Int($0.heavy.glucides)    } ?? 0
+        let moderateGluc = dtt.map { Int($0.moderate.glucides) } ?? 0
+        let lightGluc    = dtt.map { Int($0.light.glucides)    } ?? 0
+        let restGluc     = dtt.map { Int($0.rest.glucides)     } ?? 0
         let legacyCalorieLimit = settings?.calories ?? 0
+        let legacyGluc = settings?.glucides ?? 0
+        let legacyLip  = settings?.lipides  ?? 0
         do {
             try await APIService.shared.updateNutritionSettings(
                 calories:  legacyCalorieLimit,
                 proteines: prot,
-                glucides:  mGluc,
-                lipides:   lip,
+                glucides:  legacyGluc,
+                lipides:   legacyLip,
                 dayTypeTargets: [
-                    "light":    ["calories": lightCal,    "glucides": Int(lGluc)],
-                    "moderate": ["calories": moderateCal, "glucides": Int(mGluc)],
-                    "heavy":    ["calories": heavyCal,    "glucides": Int(hGluc)],
-                    "rest":     ["calories": restCal,     "glucides": Int(rGluc)],
+                    "light":    ["calories": lightCal,    "glucides": lightGluc],
+                    "moderate": ["calories": moderateCal, "glucides": moderateGluc],
+                    "heavy":    ["calories": heavyCal,    "glucides": heavyGluc],
+                    "rest":     ["calories": restCal,     "glucides": restGluc],
                 ],
                 nutritionEndTime: NutritionSettingsSheet.hmmFormatter.string(from: endTime)
             )
@@ -211,33 +184,5 @@ struct NutritionSettingsDestination: View {
             loadError = "Impossible de charger les réglages Nutrition."
         }
         isLoading = false
-    }
-}
-
-// MARK: - Day Type Row (settings sheet helper)
-
-private struct DayTypeRow: View {
-    let icon:            String
-    let color:           Color
-    let label:           String
-    let glucPlaceholder: String
-    @Binding var gluc:   String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Label(label, systemImage: icon)
-                .font(.appLabel.weight(.semibold))
-                .foregroundColor(color)
-            Spacer()
-            TextField(glucPlaceholder, text: $gluc)
-                .keyboardType(.numberPad)
-                .foregroundColor(.appTextPrimary)
-                .frame(width: 60)
-                .multilineTextAlignment(.trailing)
-            Text("g glucides")
-                .foregroundColor(Color.statusYellow)
-                .font(.system(size: 12))
-        }
-        .padding(.vertical, 4)
     }
 }
