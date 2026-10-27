@@ -9,6 +9,7 @@ Routes covered:
   POST /api/delete_hiit
   POST /api/hiit/edit
 """
+import copy
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
@@ -59,23 +60,63 @@ class TestSessionEdit(BaseRouteTest):
         r = self.post("/api/session/edit", {"rpe": 7})
         self.assertEqual(400, r.status_code)
 
-    def test_edit_unknown_exercise_skipped(self):
-        """Editing an exercise not in weights store should not crash."""
-        r = self.post("/api/session/edit", {
-            "date": "2026-03-10",
-            "exercises": [{"exercise": "Unknown Exercise", "weight": 100.0, "reps": "5,5"}],
-        })
-        self.assertEqual(200, r.status_code)
-
-    def test_edit_creates_entry_for_missing_date(self):
-        """If no history entry exists for the date, a new one is inserted."""
+    def test_edit_session_absente_returns_404_no_write(self):
+        """Date sans workout_session → 404 'session_absente', aucune écriture.
+        Doctrine : pas de success menteur, pas d'édition partielle."""
+        self.assertNotIn("2026-01-01", self.store["sessions"])
+        snapshot = copy.deepcopy(self.store["weights"])
         r = self.post("/api/session/edit", {
             "date": "2026-01-01",
             "exercises": [{"exercise": "Bench Press", "weight": 170.0, "reps": "8,8,8"}],
         })
+        self.assertEqual(404, r.status_code)
+        self.assertEqual("session_absente", self.json(r).get("error"))
+        self.assertEqual(snapshot, self.store["weights"],
+                         "aucune mutation attendue en cas de 404")
+
+    def test_edit_rpe_on_absent_session_returns_404(self):
+        """Rpe sur date sans session → 404, pas de touch sur sessions."""
+        snapshot = copy.deepcopy(self.store["sessions"])
+        r = self.post("/api/session/edit", {"date": "2026-01-01", "rpe": 8})
+        self.assertEqual(404, r.status_code)
+        self.assertEqual(snapshot, self.store["sessions"])
+
+    def test_edit_unknown_exercise_returns_422_no_write(self):
+        """Exercice qui ne résout pas via get_exercise_id → 422 immédiat,
+        aucune écriture (ni rpe ni exercise_log)."""
+        from unittest.mock import MagicMock
+        db_mod = sys.modules["db"]
+        orig = db_mod.get_exercise_id
+        db_mod.get_exercise_id = MagicMock(side_effect=lambda n: None if n == "Unknown Exercise" else n)
+        try:
+            snapshot_sessions = copy.deepcopy(self.store["sessions"])
+            snapshot_weights  = copy.deepcopy(self.store["weights"])
+            r = self.post("/api/session/edit", {
+                "date": "2026-03-10", "rpe": 11,
+                "exercises": [{"exercise": "Unknown Exercise", "weight": 100.0, "reps": "5,5"}],
+            })
+            self.assertEqual(422, r.status_code)
+            self.assertEqual("exercise_unknown", self.json(r).get("error"))
+            self.assertEqual(snapshot_sessions, self.store["sessions"],
+                             "rpe ne doit pas s'écrire si un exo plante en validation")
+            self.assertEqual(snapshot_weights, self.store["weights"])
+        finally:
+            db_mod.get_exercise_id = orig
+
+    def test_edit_exercise_without_recent_history_still_persists(self):
+        """Un exercice qui existe dans exercises mais sans entrée dans
+        store["weights"] (= pas fait depuis >180j via load_weights) peut
+        toujours être édité tant que get_exercise_id le résout."""
+        self.assertNotIn("Face Pull", self.store.get("weights", {}))
+        r = self.post("/api/session/edit", {
+            "date": "2026-03-10",
+            "exercises": [{"exercise": "Face Pull", "weight": 60.0, "reps": "15,15,15"}],
+        })
         self.assertEqual(200, r.status_code)
-        dates = [e["date"] for e in self.store["weights"]["Bench Press"]["history"]]
-        self.assertIn("2026-01-01", dates)
+        self.assertIn("Face Pull", self.store["weights"])
+        entry = next(e for e in self.store["weights"]["Face Pull"]["history"]
+                     if e["date"] == "2026-03-10")
+        self.assertEqual(60.0, entry["weight"])
 
     def test_edit_no_kv_salve(self):
         """Anti-régression Volet H-bis (fin du dernier vestige KV):

@@ -304,86 +304,103 @@ def api_log():
 
 @workout_bp.route("/api/session/edit", methods=["POST"])
 def api_session_edit():
-    """Edit an existing session: RPE, comment, and/or individual exercise weight/reps."""
+    """Edit an existing session : RPE, comment, et/ou individual exercise
+    weight/reps.
+
+    Fail-closed : toute pré-condition manquante bloque l'écriture AVANT la
+    moindre mutation (404 séance absente, 422 exercice introuvable). Chaque
+    écriture upsert vérifie son retour → 500 explicite si False.
+    Succès = toutes les écritures atomiques ont acquitté `True`.
+    """
     try:
-        data    = request.get_json(silent=True) or {}
-        date    = data.get("date")
+        data = request.get_json(silent=True) or {}
+        date = data.get("date")
         if not date:
             return jsonify({"error": "date manquante"}), 400
 
-        from weights import load_weights
         import db as _db
-        session_type = data.get("session_type", "morning")
-        supabase_patch = {}
-        if "rpe" in data:
-            supabase_patch["rpe"] = data["rpe"]
-        if "comment" in data:
-            supabase_patch["comment"] = data["comment"]
-        if supabase_patch:
-            _db.update_workout_session_by_type(date, session_type, supabase_patch)
+        session_type   = data.get("session_type", "morning")
+        exercise_edits = data.get("exercises", []) or []
+        has_meta_patch = ("rpe" in data) or ("comment" in data)
 
-        exercise_edits = data.get("exercises", [])
-        if exercise_edits:
-            import db as _db
-            from progression import estimate_1rm as _est_1rm
-            weights = load_weights()
-            for edit in exercise_edits:
-                ex    = edit.get("exercise")
-                new_w = edit.get("weight")
-                new_r = edit.get("reps")
-                if not ex or ex not in weights:
-                    continue
-                history = weights[ex].get("history", [])
-                updated = False
-                for entry in history:
-                    if entry.get("date") == date:
-                        if new_w is not None:
-                            entry["weight"] = float(new_w)
-                        if new_r is not None:
-                            entry["reps"] = str(new_r)
-                        w = entry["weight"]
-                        entry["1rm"] = _est_1rm(w, str(entry["reps"])) or 0.0
-                        updated = True
-                        break
-                if not updated:
-                    w = float(new_w or 0)
-                    r = str(new_r or "")
-                    one_rm = _est_1rm(w, r) or 0.0 if w else 0.0
-                    history.insert(0, {"date": date, "weight": w, "reps": r, "1rm": one_rm})
-                    weights[ex]["history"] = history[:20]
-                if history:
-                    most_recent = max(history, key=lambda e: e.get("date", ""))
-                    weights[ex]["current_weight"] = most_recent["weight"]
-                    weights[ex]["last_reps"]      = most_recent["reps"]
-                for entry in history:
-                    if entry.get("date") == date:
-                        entry_weight = entry.get("weight")
-                        entry_reps   = str(entry.get("reps", ""))
-                        _exo_row = _db.get_exercise_by_name(ex) or {}
-                        _tt = _exo_row.get("tracking_type") or "reps"
-                        old_sets = _db.get_exercise_log_sets_json(date, session_type, ex)
-                        rebuilt  = _rebuild_sets_json(old_sets, entry_weight, entry_reps, tracking_type=_tt)
-                        final_sets = rebuilt if rebuilt is not None else (old_sets if old_sets is not None else [])
-                        # Carry : re-somme depuis final_sets (distance_m dérivé du reps CSV édité
-                        # via _rebuild_sets_json). Cohérence sets_json ↔ colonne top-level.
-                        _edit_distance_m = (
-                            sum(int(s.get("distance_m") or 0) for s in final_sets)
-                            if (_tt == "carry" and final_sets) else None
-                        )
-                        # Protocol : log = fait par définition → True constant à l'edit aussi.
-                        _edit_protocol_completed = True if _tt == "protocol" else None
-                        _db.upsert_exercise_log_by_type(
-                            date, session_type, ex,
-                            entry_weight, entry_reps,
-                            sets_json=final_sets,
-                            distance_m=_edit_distance_m,
-                            protocol_completed=_edit_protocol_completed,
-                        )
-                        try:
-                            _db.recompute_exercise_pr(ex)
-                        except Exception as _pr_exc:
-                            logger.warning("PR recompute skipped for %s: %s", ex, _pr_exc)
-                        break
+        # 1. VALIDATION — la séance doit exister (sinon rien à patcher).
+        if not _db.get_workout_session_by_type(date, session_type):
+            return jsonify({
+                "error":   "session_absente",
+                "message": f"Aucune séance {session_type} le {date}",
+            }), 404
+
+        # 2. VALIDATION — chaque exercice doit se résoudre, pas de création
+        #    implicite (strict lookup via get_exercise_id).
+        resolved: list[dict] = []
+        for edit in exercise_edits:
+            ex_name = (edit.get("exercise") or "").strip()
+            if not ex_name:
+                return jsonify({
+                    "error":   "exercise_missing_name",
+                    "message": "Entrée exercice sans champ 'exercise'",
+                }), 422
+            if not _db.get_exercise_id(ex_name):
+                return jsonify({
+                    "error":   "exercise_unknown",
+                    "message": f"Exercice '{ex_name}' introuvable",
+                    "exercise": ex_name,
+                }), 422
+            if edit.get("weight") is None and edit.get("reps") is None:
+                return jsonify({
+                    "error":   "exercise_empty_edit",
+                    "message": f"weight ou reps requis pour '{ex_name}'",
+                    "exercise": ex_name,
+                }), 422
+            resolved.append({"name": ex_name, "weight": edit.get("weight"), "reps": edit.get("reps")})
+
+        # 3. ÉCRITURE — meta session (rpe/comment).
+        if has_meta_patch:
+            supabase_patch = {}
+            if "rpe" in data:
+                supabase_patch["rpe"] = data["rpe"]
+            if "comment" in data:
+                supabase_patch["comment"] = data["comment"]
+            if not _db.update_workout_session_by_type(date, session_type, supabase_patch):
+                return jsonify({
+                    "error":   "session_update_failed",
+                    "message": f"Échec PATCH session {date}/{session_type}",
+                }), 500
+
+        # 4. ÉCRITURE — exercises (sets_json cohérent avec tracking_type).
+        for item in resolved:
+            ex_name = item["name"]
+            entry_weight = float(item["weight"]) if item["weight"] is not None else None
+            entry_reps   = str(item["reps"]) if item["reps"] is not None else None
+            _exo_row = _db.get_exercise_by_name(ex_name) or {}
+            _tt = _exo_row.get("tracking_type") or "reps"
+            old_sets = _db.get_exercise_log_sets_json(date, session_type, ex_name)
+            rebuilt  = _rebuild_sets_json(old_sets, entry_weight, entry_reps, tracking_type=_tt)
+            final_sets = rebuilt if rebuilt is not None else (old_sets if old_sets is not None else [])
+            # Carry : re-somme depuis final_sets (distance_m dérivé du reps CSV
+            # édité via _rebuild_sets_json). Cohérence sets_json ↔ colonne top-level.
+            _edit_distance_m = (
+                sum(int(s.get("distance_m") or 0) for s in final_sets)
+                if (_tt == "carry" and final_sets) else None
+            )
+            # Protocol : log = fait par définition → True constant à l'edit aussi.
+            _edit_protocol_completed = True if _tt == "protocol" else None
+            if not _db.upsert_exercise_log_by_type(
+                date, session_type, ex_name,
+                entry_weight, entry_reps,
+                sets_json=final_sets,
+                distance_m=_edit_distance_m,
+                protocol_completed=_edit_protocol_completed,
+            ):
+                return jsonify({
+                    "error":   "exercise_log_upsert_failed",
+                    "message": f"Échec upsert exercise_log pour '{ex_name}'",
+                    "exercise": ex_name,
+                }), 500
+            try:
+                _db.recompute_exercise_pr(ex_name)
+            except Exception as _pr_exc:
+                logger.warning("PR recompute skipped for %s: %s", ex_name, _pr_exc)
 
         _invalidate_brief()
         return jsonify({"success": True})

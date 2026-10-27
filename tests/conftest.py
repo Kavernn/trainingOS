@@ -454,9 +454,12 @@ def make_store():
 
     def upsert_exercise_log_by_type(session_date, session_type, exercise_name, weight, reps,
                                      sets_json=None, distance_m=None, protocol_completed=None):
-        # distance_m/protocol_completed ignorés par le stub (carry/protocol tracking
-        # types ajoutés en prod, pas pertinents pour les tests qui vérifient les
-        # branches reps/weight uniquement).
+        # Mirror prod : upsert refusé si aucune workout_session n'existe pour
+        # la date + type (db_sessions.upsert_exercise_log_by_type:1605-1608).
+        # distance_m/protocol_completed ignorés par le stub (carry/protocol
+        # tracking types pas vérifiés dans les tests d'édition).
+        if session_date not in store.get("sessions", {}):
+            return False
         return upsert_exercise_log(session_date, exercise_name, weight, reps)
 
     def delete_exercise_log_entry(session_date, exercise_name):
