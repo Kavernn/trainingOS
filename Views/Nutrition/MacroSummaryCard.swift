@@ -63,13 +63,7 @@ struct MacroSummaryCard: View {
 
             Divider().background(Color.appSeparator)
 
-            HStack(spacing: 0) {
-                MacroBar(label: "Prot", current: totals?.proteines ?? 0, target: settings?.proteines, color: Color.statusBlue)
-                Divider().background(Color.appSeparator).frame(height: 40)
-                MacroBar(label: "Carbs", current: totals?.glucides ?? 0, target: settings?.glucides, color: Color.statusYellow)
-                Divider().background(Color.appSeparator).frame(height: 40)
-                MacroBar(label: "Lip", current: totals?.lipides ?? 0, target: settings?.lipides, color: Color.statusRed)
-            }
+            MacroBar(label: "Prot", current: totals?.proteines ?? 0, target: settings?.proteines, color: Color.statusBlue)
         }
         .padding(16)
         .background(Color.appCard)

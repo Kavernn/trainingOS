@@ -86,15 +86,12 @@ extension APIService {
         BehaviorTracker.shared.record(.nutritionLog)
     }
 
-    func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double,
-                                  lipides: Double,
+    func updateNutritionSettings(calories: Double, proteines: Double,
                                   dayTypeTargets: [String: [String: Int]]? = nil,
                                   nutritionEndTime: String? = nil) async throws {
         var payload: [String: Any] = [
             "limite_calories":    Int(calories),
             "objectif_proteines": Int(proteines),
-            "glucides":           glucides,
-            "lipides":            lipides,
         ]
         if let dtt = dayTypeTargets { payload["day_type_targets"] = dtt }
         if let t   = nutritionEndTime { payload["nutrition_end_time"] = t }

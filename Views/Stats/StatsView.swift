@@ -579,9 +579,7 @@ struct StatsView: View {
                     let todayStr = AppState.shared.todayStr
                     let fresh = NutritionDay(date: todayStr,
                                              calories: totals.calories,
-                                             proteines: totals.proteines,
-                                             glucides: totals.glucides,
-                                             lipides: totals.lipides)
+                                             proteines: totals.proteines)
                     nutritionDays = nutritionDays.filter { $0.date != todayStr } + [fresh]
                 }
             }

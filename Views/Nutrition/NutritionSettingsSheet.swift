@@ -105,33 +105,26 @@ struct NutritionSettingsSheet: View {
         guard let prot = Double(proteines) else { return }
         isSaving = true
         saveError = nil
-        // Legacy fields préservés via valeurs serveur — plus éditables ici.
-        // Cibles caloriques stockées (par type + limite globale) rafraîchies
-        // par /api/nutrition/tdee. Glucides/lipides stockés mais plus de
-        // consommateur côté stats.
+        // Legacy calorie_limit préservé via valeur serveur — plus éditable ici
+        // (/api/nutrition/tdee rafraîchit les cibles caloriques auto). Les
+        // champs glucides/lipides du payload API restent envoyés avec les
+        // valeurs serveur existantes tant que le backend n'est pas nettoyé —
+        // round-trip inoffensif.
         let dtt = settings?.dayTypeTargets
-        let heavyCal     = dtt.map { Int($0.heavy.calories)    } ?? 0
-        let moderateCal  = dtt.map { Int($0.moderate.calories) } ?? 0
-        let lightCal     = dtt.map { Int($0.light.calories)    } ?? 0
-        let restCal      = dtt.map { Int($0.rest.calories)     } ?? 0
-        let heavyGluc    = dtt.map { Int($0.heavy.glucides)    } ?? 0
-        let moderateGluc = dtt.map { Int($0.moderate.glucides) } ?? 0
-        let lightGluc    = dtt.map { Int($0.light.glucides)    } ?? 0
-        let restGluc     = dtt.map { Int($0.rest.glucides)     } ?? 0
+        let heavyCal    = dtt.map { Int($0.heavy.calories)    } ?? 0
+        let moderateCal = dtt.map { Int($0.moderate.calories) } ?? 0
+        let lightCal    = dtt.map { Int($0.light.calories)    } ?? 0
+        let restCal     = dtt.map { Int($0.rest.calories)     } ?? 0
         let legacyCalorieLimit = settings?.calories ?? 0
-        let legacyGluc = settings?.glucides ?? 0
-        let legacyLip  = settings?.lipides  ?? 0
         do {
             try await APIService.shared.updateNutritionSettings(
                 calories:  legacyCalorieLimit,
                 proteines: prot,
-                glucides:  legacyGluc,
-                lipides:   legacyLip,
                 dayTypeTargets: [
-                    "light":    ["calories": lightCal,    "glucides": lightGluc],
-                    "moderate": ["calories": moderateCal, "glucides": moderateGluc],
-                    "heavy":    ["calories": heavyCal,    "glucides": heavyGluc],
-                    "rest":     ["calories": restCal,     "glucides": restGluc],
+                    "light":    ["calories": lightCal],
+                    "moderate": ["calories": moderateCal],
+                    "heavy":    ["calories": heavyCal],
+                    "rest":     ["calories": restCal],
                 ],
                 nutritionEndTime: NutritionSettingsSheet.hmmFormatter.string(from: endTime)
             )

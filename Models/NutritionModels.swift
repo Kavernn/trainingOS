@@ -4,8 +4,6 @@ import Foundation
 struct NutritionTotals: Codable {
     let calories: Double?
     let proteines: Double?
-    let glucides: Double?
-    let lipides: Double?
 }
 
 // MARK: - Nutrition Entry
@@ -56,7 +54,6 @@ struct DayTypeTargets: Codable {
 
     struct DayTarget: Codable {
         let calories: Double
-        let glucides: Double
     }
 }
 
@@ -64,17 +61,14 @@ struct DayTypeTargets: Codable {
 struct NutritionSettings: Codable {
     let calories: Double?
     let proteines: Double?
-    let glucides: Double?
-    let lipides: Double?
     let dayTypeTargets: DayTypeTargets?
     let nutritionEndTime: String?
 
     var hasDynamicGoals: Bool { true }
 
-    init(calories: Double?, proteines: Double?, glucides: Double?, lipides: Double?,
+    init(calories: Double?, proteines: Double?,
          dayTypeTargets: DayTypeTargets? = nil, nutritionEndTime: String? = nil) {
         self.calories = calories; self.proteines = proteines
-        self.glucides = glucides; self.lipides = lipides
         self.dayTypeTargets = dayTypeTargets
         self.nutritionEndTime = nutritionEndTime
     }
@@ -85,8 +79,6 @@ struct NutritionSettings: Codable {
                  ?? (try? c.decode(Double.self, forKey: .init("calories")))
         proteines = (try? c.decode(Double.self, forKey: .init("objectif_proteines")))
                  ?? (try? c.decode(Double.self, forKey: .init("proteines")))
-        glucides        = try? c.decode(Double.self,        forKey: .init("glucides"))
-        lipides         = try? c.decode(Double.self,        forKey: .init("lipides"))
         dayTypeTargets  = try? c.decode(DayTypeTargets.self, forKey: .init("day_type_targets"))
         nutritionEndTime = try? c.decode(String.self,       forKey: .init("nutrition_end_time"))
     }
@@ -211,8 +203,6 @@ struct NutritionDay: Codable, Identifiable {
     let date: String?
     let calories: Double?
     let proteines: Double?
-    let glucides: Double?
-    let lipides: Double?
 }
 
 // MARK: - Meal Template
@@ -390,8 +380,6 @@ struct DayNutritionHistory: Codable, Identifiable, Equatable {
     let date: String
     let calories: Double?
     let proteines: Double?
-    let glucides: Double?
-    let lipides: Double?
     let targetCalories: Int?
     let source: String?
     let pctCaloriesDeclared: Double?
@@ -402,7 +390,7 @@ struct DayNutritionHistory: Codable, Identifiable, Equatable {
     var isEstimated: Bool { source == "estimated" }
 
     enum CodingKeys: String, CodingKey {
-        case date, calories, proteines, glucides, lipides, source
+        case date, calories, proteines, source
         case targetCalories           = "target_calories"
         case pctCaloriesDeclared      = "pct_calories_declared"
         case pctProteinesDeclared     = "pct_proteines_declared"

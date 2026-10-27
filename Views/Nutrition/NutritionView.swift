@@ -126,11 +126,7 @@ private struct KcalHeader: View {
 private struct MacroRow: View {
     let totals: NutritionTotals?
     var body: some View {
-        HStack(spacing: 10) {
-            tile("Protéines", Int(totals?.proteines ?? 0))
-            tile("Lipides",   Int(totals?.lipides   ?? 0))
-            tile("Glucides",  Int(totals?.glucides  ?? 0))
-        }
+        tile("Protéines", Int(totals?.proteines ?? 0))
     }
     private func tile(_ label: String, _ grams: Int) -> some View {
         VStack(spacing: 4) {

@@ -388,12 +388,10 @@ final class APIModelsTests: XCTestCase {
         let rows = try JSONDecoder().decode([DayNutritionHistory].self, from: data)
         XCTAssertEqual(rows.count, 4)
 
-        // Jour détaillé pleinement loggé
+        // Jour détaillé pleinement loggé (glucides/lipides retirés du modèle)
         XCTAssertEqual(rows[0].source, "detailed")
         XCTAssertTrue(rows[0].isDetailed)
         XCTAssertEqual(rows[0].calories, 2500.0)
-        XCTAssertEqual(rows[0].glucides, 300.0)
-        XCTAssertEqual(rows[0].lipides, 80.0)
         XCTAssertEqual(rows[0].targetCalories, 2800)
         XCTAssertNil(rows[0].pctCaloriesDeclared)
         XCTAssertNil(rows[0].targetCaloriesSnapshot)
