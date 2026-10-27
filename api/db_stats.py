@@ -2,8 +2,8 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Optional
 import db_core
-from db_body import get_recovery_logs, get_body_weight_logs, get_hiit_logs
-from db_sessions import get_workout_sessions, get_exercise_logs_since
+from db_body import get_recovery_logs, get_body_weight_logs
+from db_sessions import get_workout_sessions
 from utils import _today_mtl
 from db_wellness import (
     get_mood_logs, get_pss_records,
@@ -462,24 +462,17 @@ def get_macros_by_day_type(days: int = 60, nutr_days: list | None = None) -> dic
     """
     try:
         from datetime import date as _date, timedelta
+        from weekly_streaks import active_dates as _active_dates
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         nutr_days = nutr_days if nutr_days is not None else get_nutrition_daily_full(days)
         # Jours détaillés uniquement : les estimations rétroactives n'ont ni
         # glucides ni lipides (toujours 0), fausseraient les moyennes macros.
         nutr_days = [d for d in nutr_days if d.get("source") == "detailed"]
 
-        sessions  = get_workout_sessions(limit=days + 10, since=cutoff)
-        ex_logs   = get_exercise_logs_since(cutoff)
-        hiit_logs = get_hiit_logs(limit=days + 10)
-
-        workout_dates: set[str] = (
-            {str(s.get("date", ""))[:10] for s in sessions
-             if s.get("completed") or s.get("rpe") is not None}
-            | {str(r.get("date", ""))[:10] for r in ex_logs if r.get("date")}
-            | {str(h.get("date", ""))[:10] for h in hiit_logs
-               if str(h.get("date", ""))[:10] >= cutoff}
-        )
-        workout_dates.discard("")
+        # Source unique "jour actif" (= weekly_streaks.active_dates) :
+        # workout_sessions (completed/rpe) ∪ HIIT ∪ cardio ∪ exercise_logs.
+        # Alignement avec le streak — un jour cardio compte comme training.
+        workout_dates = {d for d in _active_dates() if d >= cutoff}
 
         training: list[dict] = []
         rest: list[dict] = []
