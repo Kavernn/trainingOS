@@ -174,9 +174,13 @@ class TestNutritionData(BaseRouteTest):
         for key in ("settings", "entries", "totals", "history"):
             self.assertIn(key, data, f"Missing key: {key}")
 
-    def test_settings_has_calorie_limit(self):
+    def test_settings_has_protein_target(self):
+        """Phase B2.5 : limite_calories retiré de load_settings (cible calorique
+        adaptative via /api/energy/daily). Settings expose uniquement la cible
+        protéines + nutrition_end_time."""
         data = self.json(self.get("/api/nutrition_data"))
-        self.assertIn("limite_calories", data["settings"])
+        self.assertIn("objectif_proteines", data["settings"])
+        self.assertNotIn("limite_calories", data["settings"])
 
 
 # ── /api/programme_data ───────────────────────────────────────────────────────

@@ -7,48 +7,21 @@ from utils import _today_mtl
 # ── Settings ─────────────────────────────────────────────────────────────────
 
 def load_settings() -> dict:
+    """Phase B2.5 : retour réduit à {objectif_proteines, nutrition_end_time}
+    + telemetry TDEE lue depuis le profil. Les champs calories/glucides/
+    lipides/day_type_targets ne sont plus émis — cible calorique = adaptative,
+    suivi macros glucides/lipides coupé."""
     raw = db.get_nutrition_settings()
     if not isinstance(raw, dict):
         raw = {}
-
-    dtt_raw = raw.get("day_type_targets") or {}
-    if isinstance(dtt_raw, str):
-        import json as _json
-        try:    dtt_raw = _json.loads(dtt_raw)
-        except Exception: dtt_raw = {}
-
-    def _target(key: str, default_cal: int, default_gluc: int) -> dict:
-        t = dtt_raw.get(key) or {}
-        return {
-            "calories": int(t.get("calories") or default_cal),
-            "glucides": int(t.get("glucides") or default_gluc),
-        }
-
-    # Préférer calorie_target calculé par le moteur TDEE s'il est présent
-    cal  = (raw.get("calorie_target")
-            or raw.get("limite_calories")
-            or raw.get("calorie_limit")
-            or 2400)
-    prot = (raw.get("objectif_proteines")
-            or raw.get("protein_target")
-            or 180)
-
+    prot = raw.get("objectif_proteines") or raw.get("protein_target") or 180
     return {
-        "limite_calories":    int(cal),
         "objectif_proteines": int(prot),
-        "glucides":           raw.get("glucides") or 235,
-        "lipides":            raw.get("lipides")  or 75,
         "bmr_kcal":           raw.get("bmr_kcal"),
         "tdee_kcal":          raw.get("tdee_kcal"),
         "activity_factor":    raw.get("activity_factor"),
         "formula_used":       raw.get("formula_used"),
         "goal_phase":         raw.get("goal_phase"),
-        "day_type_targets": {
-            "light":    _target("light",    2200, 185),
-            "moderate": _target("moderate", 2400, 235),
-            "heavy":    _target("heavy",    2550, 270),
-            "rest":     _target("rest",     2100, 160),
-        },
         "nutrition_end_time": str(raw.get("nutrition_end_time") or "")[:5] or None,
     }
 
