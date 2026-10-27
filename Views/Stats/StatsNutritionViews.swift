@@ -1,5 +1,31 @@
 import SwiftUI
 
+// MARK: - Coverage Warning (F)
+/// Bannière silencieuse par défaut ; affichée seulement si la couverture
+/// d'une carte nutrition tombe < 70 %. Rend la représentativité visible
+/// quand les stats s'appuient sur un sous-ensemble mince.
+private struct CoverageWarning: View {
+    let included: Int
+    let expected: Int
+    let label: String   // ex. "jours loggués", "semaines évaluables"
+
+    private static let threshold: Double = 0.70
+    private var pct: Double { expected > 0 ? Double(included) / Double(expected) : 1.0 }
+
+    @ViewBuilder var body: some View {
+        if pct < Self.threshold {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11)).foregroundColor(Color.appWarning)
+                Text("Couverture \(Int((pct * 100).rounded())) % — \(included)/\(expected) \(label).")
+                    .font(.appMicro).foregroundColor(Color.appWarning)
+            }
+        } else {
+            EmptyView()
+        }
+    }
+}
+
 // MARK: - Nutrition Compliance
 struct NutritionComplianceChart: View {
     /// Fenêtre /api/stats/nutrition_history — axe par date, cible par jour,
@@ -89,6 +115,7 @@ struct NutritionComplianceChart: View {
                 Text("\(excludedWithoutPct) jour\(excludedWithoutPct > 1 ? "s" : "") estimé\(excludedWithoutPct > 1 ? "s" : "") sans pourcentage enregistré — exclu\(excludedWithoutPct > 1 ? "s" : "") de la compliance.")
                     .font(.appMicro).foregroundColor(.gray.opacity(0.8))
             }
+            CoverageWarning(included: points.count, expected: history.count, label: "jours évaluables")
         }
         .padding(16).background(Color.appCard).cornerRadius(14)
     }
@@ -367,6 +394,7 @@ struct MacrosBreakdownView: View {
                     }
                 }
             }
+            CoverageWarning(included: detailed.count, expected: history.count, label: "jours détaillés")
         }
         .padding(16).background(Color.appCard).cornerRadius(14)
     }
@@ -498,6 +526,108 @@ struct MacrosDayTypeView: View {
     }
 }
 
+// MARK: - Macros Variance (C) — p25/p50/p75 sur jours détaillés
+/// Dispersion jour-à-jour des macros (jamais utile sans contexte). Barre
+/// IQR p25→p75 + repère médiane. Les estimations rétroactives (glucides et
+/// lipides = 0) sont exclues sinon elles tireraient p25 à zéro.
+struct MacrosVarianceView: View {
+    let history: [DayNutritionHistory]
+    private static let minSamples: Int = 5
+
+    private var detailed: [DayNutritionHistory] { history.filter { $0.isDetailed } }
+
+    private struct Quartiles { let p25: Double; let p50: Double; let p75: Double }
+
+    private func quartiles(_ kp: KeyPath<DayNutritionHistory, Double?>) -> Quartiles? {
+        let vals = detailed.compactMap { $0[keyPath: kp] }.filter { $0 > 0 }.sorted()
+        guard vals.count >= Self.minSamples else { return nil }
+        func q(_ frac: Double) -> Double {
+            let pos = frac * Double(vals.count - 1)
+            let lo = Int(pos.rounded(.down))
+            let hi = min(lo + 1, vals.count - 1)
+            return vals[lo] + (pos - Double(lo)) * (vals[hi] - vals[lo])
+        }
+        return Quartiles(p25: q(0.25), p50: q(0.5), p75: q(0.75))
+    }
+
+    private struct MacroLine: Identifiable {
+        let id = UUID()
+        let label: String
+        let unit: String
+        let color: Color
+        let q: Quartiles
+    }
+
+    private var lines: [MacroLine] {
+        let specs: [(String, String, Color, KeyPath<DayNutritionHistory, Double?>)] = [
+            ("Calories",   "kcal", Color.forge,         \.calories),
+            ("Protéines",  "g",    Color.statusBlue,    \.proteines),
+            ("Glucides",   "g",    Color.statusYellow,  \.glucides),
+            ("Lipides",    "g",    Color.statusRed,     \.lipides),
+        ]
+        return specs.compactMap { label, unit, color, kp in
+            guard let q = quartiles(kp) else { return nil }
+            return MacroLine(label: label, unit: unit, color: color, q: q)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("DISPERSION MACROS (JOURS DÉTAILLÉS)")
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
+
+            if detailed.count < Self.minSamples {
+                Text("Pas assez de jours détaillés (n = \(detailed.count), min \(Self.minSamples)).")
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.8))
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(lines) { line in
+                        quartileRow(line)
+                    }
+                }
+                Text("Basé sur \(detailed.count) jours détaillés. Barre = IQR (p25→p75), trait = médiane.")
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.7))
+            }
+            CoverageWarning(included: detailed.count, expected: history.count, label: "jours détaillés")
+        }
+        .padding(16).background(Color.appCard).cornerRadius(14)
+    }
+
+    @ViewBuilder private func quartileRow(_ line: MacroLine) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(line.label).font(.appLabel.weight(.semibold)).foregroundColor(line.color)
+                Spacer()
+                Text("p50 \(Int(line.q.p50.rounded()))\(line.unit)")
+                    .font(.appMicro).foregroundColor(.gray)
+            }
+            iqrBar(q: line.q, color: line.color)
+            HStack {
+                Text("p25 \(Int(line.q.p25.rounded()))\(line.unit)")
+                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.75))
+                Spacer()
+                Text("p75 \(Int(line.q.p75.rounded()))\(line.unit)")
+                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.75))
+            }
+        }
+    }
+
+    @ViewBuilder private func iqrBar(q: Quartiles, color: Color) -> some View {
+        GeometryReader { geo in
+            let span = max(q.p75 - q.p25, 1)
+            let medFrac = (q.p50 - q.p25) / span
+            ZStack(alignment: .leading) {
+                Capsule().fill(color.opacity(0.25)).frame(height: 6)
+                Rectangle()
+                    .fill(color.opacity(0.9))
+                    .frame(width: 2, height: 12)
+                    .offset(x: geo.size.width * CGFloat(medFrac) - 1)
+            }
+        }
+        .frame(height: 14)
+    }
+}
+
 // MARK: - Nutrition vs Performance View (A3 + D)
 /// Adhérence hebdo = part des jours "dans la cible" selon la règle source-aware :
 ///   detailed   → |calories - target_calories du jour| / target ≤ 10 %
@@ -566,6 +696,8 @@ struct NutritionVsPerfView: View {
                     .font(.appLabel.weight(.semibold))
                     .foregroundColor(Color.appOnSurface.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
+                CoverageWarning(included: pairs.count, expected: weeklyTonnage.count,
+                                label: "semaines évaluables")
             }
         }
         .padding(16).glassCard()

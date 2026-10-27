@@ -536,6 +536,11 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
+        // C — dispersion macros (p25/p50/p75) sur fenêtre nutrition_history
+        // (jours détaillés uniquement, les estimations tireraient p25 à zéro).
+        MacrosVarianceView(history: statsNutritionHistory)
+            .padding(.horizontal, 16)
+
         // Nutrition vs Performance correlation (A3 + D) : fenêtre fixe 180j
         // ignorant le sélecteur de période (CorrelationGuard veut n ≥ 14 semaines).
         if !weeklyTonnage.isEmpty {
