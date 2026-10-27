@@ -76,8 +76,9 @@ class CatchupTargetsTests(unittest.TestCase):
         data = response.get_json()
         self.assertEqual(data["target"]["day_type"], "heavy")
         self.assertEqual(data["target"]["calories"], _ADAPTIVE_CAL)
-        self.assertEqual(data["target"]["glucides"], 330)
-        self.assertEqual(data["target"]["lipides"], 75)
+        # Phase B2.3 : glucides/lipides retirés du payload target.
+        self.assertNotIn("glucides", data["target"])
+        self.assertNotIn("lipides", data["target"])
         self.assertEqual((data["calories"], data["proteines"], data["entries_count"]), (400, 25, 1))
         self.db.get_workout_session_by_type.assert_called_with("2026-09-27", "morning")
         self.db.delete_nutrition_entries_for_date.assert_not_called()

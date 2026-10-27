@@ -130,9 +130,8 @@ def _get_day_intensity(date: str | None = None, *, strict: bool = False) -> tupl
 
 def resolve_daily_target(date: str) -> dict:
     """Calories = cible adaptative unique (tdee.compute_target_calories).
-    Protéines/glucides/lipides restent lus depuis les settings (migration future).
-    Aucun fallback caché sur day_type_targets pour les calories."""
-    import json
+    Protéines = objectif fixe (settings). Glucides/lipides retirés du retour
+    (phase B2.3 : plus consommés par le client, le suivi macros a été coupé)."""
     import math
     from datetime import date as calendar_date
 
@@ -142,21 +141,14 @@ def resolve_daily_target(date: str) -> dict:
     settings = db.get_nutrition_settings()
     if not isinstance(settings, dict):
         raise ValueError("Réglages nutrition indisponibles")
-    targets = settings.get("day_type_targets") or {}
-    if isinstance(targets, str):
-        targets = json.loads(targets)
-    target = targets.get(day_type) or {}
 
-    def number(value, *, required=False):
-        if value is None and not required:
-            return None
-        try:
-            value = float(value)
-        except (TypeError, ValueError):
-            raise ValueError("Cibles nutrition non configurées")
-        if not math.isfinite(value) or value < 0 or (required and value == 0):
-            raise ValueError("Cibles nutrition invalides")
-        return value
+    prot_raw = settings.get("objectif_proteines") or settings.get("protein_target")
+    try:
+        prot = float(prot_raw)
+    except (TypeError, ValueError):
+        raise ValueError("Cibles nutrition non configurées")
+    if not math.isfinite(prot) or prot <= 0:
+        raise ValueError("Cibles nutrition invalides")
 
     from tdee import compute_target_calories
     adaptive_cal = compute_target_calories(date)
@@ -166,9 +158,7 @@ def resolve_daily_target(date: str) -> dict:
     return {
         "date": date, "day_type": day_type, "workout_label": session,
         "calories": float(adaptive_cal),
-        "proteines": number(settings.get("objectif_proteines") or settings.get("protein_target"), required=True),
-        "glucides": number(target.get("glucides")),
-        "lipides": number(settings.get("lipides")),
+        "proteines": prot,
     }
 
 
