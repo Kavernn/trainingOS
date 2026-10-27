@@ -114,49 +114,9 @@ def api_nutrition_settings():
     return jsonify({"success": True})
 
 
-@nutrition_bp.route("/api/nutrition/tdee", methods=["POST"])
-def api_nutrition_tdee():
-    """
-    Recalcule BMR/TDEE depuis le profil utilisateur et met à jour nutrition_settings.
-    POST sans body — lit user_profile automatiquement.
-    """
-    import db as _db
-    from tdee import compute_tdee, compute_dynamic_day_targets, check_goal_realism
-    from nutrition import save_settings as save_nutrition_settings
-
-    profile = _db.get_profile() or {}
-    latest_bw = _db.get_body_weight_logs(limit=1)
-    if latest_bw:
-        profile["weight"] = latest_bw[0].get("weight") or profile.get("weight")
-    tdee_data = compute_tdee(profile)
-    if not tdee_data:
-        return jsonify({"error": "Profil incomplet — renseigne poids, taille et âge."}), 422
-
-    weight_lbs = float(profile.get("weight") or 0)
-    weight_kg  = weight_lbs * 0.453592 if weight_lbs else None
-    dtt = compute_dynamic_day_targets(weight_kg, tdee_data["calorie_target"]) if weight_kg else None
-
-    save_nutrition_settings(
-        tdee_data["calorie_target"],
-        tdee_data["objectif_proteines"],
-        float(tdee_data["glucides"]),
-        float(tdee_data["lipides"]),
-        day_type_targets=dtt,
-    )
-
-    import db as _db2
-    _db2.update_nutrition_settings({
-        "bmr_kcal":          tdee_data["bmr_kcal"],
-        "tdee_kcal":         tdee_data["tdee_kcal"],
-        "calorie_target":    tdee_data["calorie_target"],
-        "activity_factor":   tdee_data["activity_factor"],
-        "sessions_per_week": tdee_data["sessions_per_week"],
-        "formula_used":      tdee_data["formula_used"],
-        "goal_phase":        tdee_data["goal_phase"],
-    })
-
-    goal_check = check_goal_realism(profile, tdee_data)
-    return jsonify({"success": True, **tdee_data, "goal_realism": goal_check})
+# Phase B2.6 : /api/nutrition/tdee retiré — plus de consommateur iOS, et
+# compute_dynamic_day_targets dead code. La compute_target_calories adaptative
+# alimente directement l'app via /api/energy/daily et /api/stats/nutrition_history.
 
 
 @nutrition_bp.route("/api/nutrition/adaptive-check", methods=["GET"])
