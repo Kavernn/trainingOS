@@ -12,6 +12,9 @@ def test_pattern_volume_reuses_supplied_inventory(monkeypatch):
     def fail_load_inventory():
         raise AssertionError("inventory should be reused")
 
+    # cutoff interne = today_mtl() - N jours. Figer today_mtl pour que
+    # l'entry 2026-09-01 reste dans la fenêtre (dérive calendrier sinon).
+    monkeypatch.setattr("db_stats._today_mtl", lambda: "2026-09-15")
     monkeypatch.setattr("inventory.load_inventory", fail_load_inventory)
     assert db_stats.get_pattern_volume(28, weights=weights, inventory=inventory) == {"push": 500}
 
@@ -23,6 +26,7 @@ def test_pattern_volume_without_inventory_keeps_fallback(monkeypatch):
         }
     }
     inventory = {"Bench Press": {"movement_pattern": "push_horizontal"}}
+    monkeypatch.setattr("db_stats._today_mtl", lambda: "2026-09-15")
     monkeypatch.setattr("inventory.load_inventory", lambda: inventory)
     assert db_stats.get_pattern_volume(28, weights=weights) == {"push": 500}
 

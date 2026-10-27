@@ -452,7 +452,11 @@ def make_store():
         store["weights"] = weights
         return True
 
-    def upsert_exercise_log_by_type(session_date, session_type, exercise_name, weight, reps, sets_json=None):
+    def upsert_exercise_log_by_type(session_date, session_type, exercise_name, weight, reps,
+                                     sets_json=None, distance_m=None, protocol_completed=None):
+        # distance_m/protocol_completed ignorés par le stub (carry/protocol tracking
+        # types ajoutés en prod, pas pertinents pour les tests qui vérifient les
+        # branches reps/weight uniquement).
         return upsert_exercise_log(session_date, exercise_name, weight, reps)
 
     def delete_exercise_log_entry(session_date, exercise_name):
@@ -1062,8 +1066,30 @@ class BaseRouteTest(unittest.TestCase):
         self.app.config["TESTING"] = True
         self.client = self.app.test_client()
 
+        # routes.analytics_stats importe `_today_mtl` localement au module
+        # load → la fonction est figée. On patche l'attribut module post-import
+        # pour que `_today_mtl()` dans la route lise TODAY (anti-dérive calendrier).
+        import routes.analytics_stats as _ras
+        self._today_mtl_patch = patch.object(_ras, "_today_mtl", return_value=TODAY)
+        self._today_mtl_patch.start()
+
+        # weights.coaching_references lève RuntimeError si db_core._client is None.
+        # Le mock conftest ne stubbe pas db_core, donc toute route qui appelle
+        # coaching_references() (ex : /api/seance_data) throw. On neutralise.
+        import weights as _weights
+        self._coaching_refs_patch = patch.object(_weights, "coaching_references", return_value={})
+        self._coaching_refs_patch.start()
+
     def tearDown(self):
         self.db_patch.stop()
+        try:
+            self._today_mtl_patch.stop()
+        except (RuntimeError, AttributeError):
+            pass
+        try:
+            self._coaching_refs_patch.stop()
+        except (RuntimeError, AttributeError):
+            pass
         try:
             self._today_patch.stop()
         except RuntimeError:
