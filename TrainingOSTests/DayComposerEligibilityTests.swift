@@ -184,8 +184,20 @@ final class DayComposerEligibilityTests: XCTestCase {
         let moved = DayComposerSnapshot.moving(prepared.initialUnits, from: IndexSet(integer: 0), to: 2)
         try store.save(moved, for: prepared)
         guard case .restored(let restored) = try store.load(prepared) else { return XCTFail("Order must restore") }
-        XCTAssertEqual(restored, moved)
-        XCTAssertEqual(candidate.initialPresentation(store: store).units, moved)
+        // V2 persists the effective assignment even when it equals the origin.
+        let persisted = moved.map { unit in
+            DayComposerUnit(items: unit.items.map { item in
+                var value = item
+                value.assignedSourceOverride = item.assignedSource
+                return value
+            }, group: unit.group, rest: unit.rest)
+        }
+        XCTAssertEqual(restored, persisted)
+        let resolved = candidate.initialPresentation(store: store)
+        XCTAssertEqual(resolved.units, persisted)
+        XCTAssertTrue(resolved.verified)
+        XCTAssertFalse(resolved.incompatible)
+        XCTAssertEqual(enrichments, 1)
     }
 
     func testMobilityAllowsProductionEntryPreparationAndStart() async throws {

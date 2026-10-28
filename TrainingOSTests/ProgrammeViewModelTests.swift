@@ -54,11 +54,12 @@ final class ProgrammeViewModelTests: XCTestCase {
     }
 
     /// Contrat : le user peut avoir sélectionné un onglet programme avant que le
-    /// serveur ne réponde. applyJSON ne doit PAS écraser ce choix, uniquement
-    /// initialiser si vide. activeProgramId, lui, suit toujours le serveur.
+    /// serveur ne réponde. Comme le sélecteur UI, la fixture marque ce choix
+    /// explicite. Les identités chargée et active suivent toujours le serveur.
     func test_applyJSON_preservesSelectedProgramWhenNotEmpty() {
         let vm = ProgrammeViewModel()
         vm.selectedProgramId = "user-pick"
+        vm.userDidSelect = true
 
         vm.applyJSON([
             "current_program_id": "p1",
@@ -66,6 +67,7 @@ final class ProgrammeViewModelTests: XCTestCase {
         ])
 
         XCTAssertEqual(vm.selectedProgramId, "user-pick")
+        XCTAssertTrue(vm.userDidSelect)
         XCTAssertEqual(vm.loadedProgramId, "p1")
         XCTAssertEqual(vm.activeProgramId, "active-program")
     }

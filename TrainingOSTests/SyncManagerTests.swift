@@ -11,15 +11,28 @@ final class SyncManagerTests: XCTestCase {
 
     var queue: UserDefaultsSyncQueue!
     var manager: SyncManager!
+    private var suite: String!
+    private var defaults: UserDefaults!
 
     override func setUp() async throws {
         try await super.setUp()
         // Isolated UserDefaults — never pollutes .standard
-        let defaults = UserDefaults(suiteName: "test-sync-\(UUID().uuidString)")!
+        suite = "test-sync-\(UUID().uuidString)"
+        defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         queue = UserDefaultsSyncQueue(defaults: defaults)
-        manager = SyncManager(queue: queue)
+        manager = SyncManager(queue: queue, defaults: defaults)
         manager.isOnlineProvider = { true }
         manager.urlSession = makeMockURLSession(statusCode: 200)
+    }
+
+    override func tearDown() async throws {
+        manager.urlSession.invalidateAndCancel()
+        manager = nil
+        queue = nil
+        defaults.removePersistentDomain(forName: suite)
+        defaults = nil
+        suite = nil
+        try await super.tearDown()
     }
 
     // MARK: - Tests
@@ -41,12 +54,29 @@ final class SyncManagerTests: XCTestCase {
     func testFlush409IsDiscardedRatherThanDelivered() async throws {
         manager.urlSession = makeMockURLSession(statusCode: 409)
         manager.enqueue(endpoint: "/api/log", payload: ["exercise": "Deadlift"])
+        let pending = try XCTUnwrap(queue.load().first)
+        XCTAssertFalse(pending.isSynced)
+        XCTAssertEqual(queue.load().count, 1)
+        XCTAssertTrue(manager.recentDiscards.isEmpty)
         await manager.flushQueue()
         XCTAssertEqual(manager.pendingCount, 0)
-        XCTAssertTrue(queue.load().allSatisfy { $0.isSynced })
-        // isSynced historically means "retired", including rejection. The toast
-        // proves the discarded branch ran; the old assertion couldn't distinguish it.
-        XCTAssertTrue(manager.offlineToast?.contains("409") == true)
+        let retired = try XCTUnwrap(queue.load().first)
+        XCTAssertEqual(queue.load().count, 1)
+        XCTAssertEqual(retired.id, pending.id)
+        XCTAssertTrue(retired.isSynced) // Legacy queue flag means retired, including rejection.
+        XCTAssertEqual(retired.retryCount, 0)
+        XCTAssertEqual(manager.recentDiscards.count, 1)
+        let rejection = try XCTUnwrap(manager.recentDiscards.first)
+        XCTAssertEqual(rejection.statusCode, 409)
+        XCTAssertEqual(rejection.reason, .rejected)
+        XCTAssertEqual(rejection.endpoint, "/api/log")
+        // The persistent banner replaces the ephemeral discard toast.
+        let reopenedQueue = UserDefaultsSyncQueue(defaults: defaults)
+        XCTAssertEqual(reopenedQueue.load().first?.id, pending.id)
+        XCTAssertEqual(reopenedQueue.load().first?.isSynced, true)
+        XCTAssertEqual(SyncManager(queue: reopenedQueue, defaults: defaults).recentDiscards, [rejection])
+        await manager.flushQueue()
+        XCTAssertEqual(manager.recentDiscards, [rejection], "Retired rejection must not be replayed")
     }
 
     func testFlushFailureIncrementsRetry() async throws {

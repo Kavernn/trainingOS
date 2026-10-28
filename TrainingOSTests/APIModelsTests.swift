@@ -63,13 +63,17 @@ final class APIModelsTests: XCTestCase {
     }
 
     func testExerciseSavePropagatesLocalSerializationFailure() async {
+        // ExerciseSaveOutcome must propagate a local writer error unchanged.
+        // JSONSerialization with NaN raises NSException and kills the runner.
+        let failure = NSError(domain: NSCocoaErrorDomain, code: CocoaError.propertyListWriteInvalid.rawValue,
+                              userInfo: [NSLocalizedDescriptionKey: "Injected local serialization failure"])
         do {
             _ = try await ExerciseSaveOutcome.fromOfflinePost {
-                try JSONSerialization.data(withJSONObject: ["weight": Double.nan])
+                throw failure
             }
             XCTFail("Invalid local JSON must throw before acceptance")
         } catch {
-            XCTAssertEqual((error as NSError).domain, NSCocoaErrorDomain)
+            XCTAssertTrue((error as NSError) === failure, "The exact local error must propagate without wrapping")
         }
     }
 
@@ -276,7 +280,7 @@ final class APIModelsTests: XCTestCase {
         attention: String = ""
     ) -> Data {
         Data("""
-        {"as_of":"2026-09-30","progression":{"comparison_window_days":30,"baseline_window":{"start":"2026-08-02","end":"2026-08-31"},"recent_window":{"start":"2026-09-01","end":"2026-09-30"},"status_counts":{"improving":1,"stable":0,"declining":0,"insufficient_data":1},"comparisons":[(comparison)],"top_movers":[],"top_movers_series":{},"attention":[(attention)]},"training_load":{"period":{"start":"2026-09-01","end":"2026-09-30"},"summary":{"period":{"start":"2026-09-01","end":"2026-09-30"},"exposure_count":1,"session_count":1,"active_day_count":1,"reps_exposure_count":1,"valid_reps_set_count":1,"tonnage":{"value":(tonnageValue),"applicable_exposure_count":1,"calculable_exposure_count":1,"coverage":"(tonnageCoverage)"}},"weekly":[{"week_start":"2026-09-28","week_end":"2026-10-04","covered_window":{"start":"2026-09-28","end":"2026-09-30"},"is_partial":true,"exposure_count":0,"session_count":0,"active_day_count":0,"reps_exposure_count":0,"valid_reps_set_count":0,"tonnage":{"value":null,"applicable_exposure_count":0,"calculable_exposure_count":0,"coverage":"unavailable"}}],"daily":[]},"muscles":{"period":{"start":"2026-09-01","end":"2026-09-30"},"coverage":{"total_exposure_count":1,"mapped_exposure_count":0,"unmapped_exposure_count":1,"reps_exposure_count":1,"mapped_reps_exposure_count":0},"workloads":[{"muscle":"Pectoraux","direct_set_count":0,"indirect_set_count":0,"direct_exposure_count":0,"indirect_exposure_count":0,"session_count":0,"active_day_count":0,"last_exposure_date":"2026-09-30","weekly_effective_sets":0.0}],"previous_period":{"start":"2026-08-02","end":"2026-08-31"},"previous_workloads":[],"current_deload_days_excluded":0,"previous_deload_days_excluded":0,"targets_by_muscle":{"Pectoraux":{"mev_week":8,"mav_week":16,"mrv_week":22}}},"data_quality":{"requested_raw_period":{"start":"2026-08-02","end":"2026-09-30"},"adapter":{"queried_exposure_count":1,"analytics_exposure_count":1,"invalid_row_count":0,"missing_tracking_type_count":0,"missing_muscle_mapping_count":1,"legacy_strength_fallback_count":0,"known_deload_exposure_count":0}}}
+        {"as_of":"2026-09-30","progression":{"comparison_window_days":30,"baseline_window":{"start":"2026-08-02","end":"2026-08-31"},"recent_window":{"start":"2026-09-01","end":"2026-09-30"},"status_counts":{"improving":1,"stable":0,"declining":0,"insufficient_data":1},"comparisons":[\(comparison)],"top_movers":[],"top_movers_series":{},"attention":[\(attention)]},"training_load":{"period":{"start":"2026-09-01","end":"2026-09-30"},"summary":{"period":{"start":"2026-09-01","end":"2026-09-30"},"exposure_count":1,"session_count":1,"active_day_count":1,"reps_exposure_count":1,"valid_reps_set_count":1,"tonnage":{"value":\(tonnageValue),"applicable_exposure_count":1,"calculable_exposure_count":1,"coverage":"\(tonnageCoverage)"}},"weekly":[{"week_start":"2026-09-28","week_end":"2026-10-04","covered_window":{"start":"2026-09-28","end":"2026-09-30"},"is_partial":true,"exposure_count":0,"session_count":0,"active_day_count":0,"reps_exposure_count":0,"valid_reps_set_count":0,"tonnage":{"value":null,"applicable_exposure_count":0,"calculable_exposure_count":0,"coverage":"unavailable"}}],"daily":[]},"muscles":{"period":{"start":"2026-09-01","end":"2026-09-30"},"coverage":{"total_exposure_count":1,"mapped_exposure_count":0,"unmapped_exposure_count":1,"reps_exposure_count":1,"mapped_reps_exposure_count":0},"workloads":[{"muscle":"Pectoraux","direct_set_count":0,"indirect_set_count":0,"direct_exposure_count":0,"indirect_exposure_count":0,"session_count":0,"active_day_count":0,"last_exposure_date":"2026-09-30","weekly_effective_sets":0.0}],"previous_period":{"start":"2026-08-02","end":"2026-08-31"},"previous_workloads":[],"current_deload_days_excluded":0,"previous_deload_days_excluded":0,"targets_by_muscle":{"Pectoraux":{"mev_week":8,"mav_week":16,"mrv_week":22}}},"data_quality":{"requested_raw_period":{"start":"2026-08-02","end":"2026-09-30"},"adapter":{"queried_exposure_count":1,"analytics_exposure_count":1,"invalid_row_count":0,"missing_tracking_type_count":0,"missing_muscle_mapping_count":1,"legacy_strength_fallback_count":0,"known_deload_exposure_count":0}}}
         """.utf8)
     }
 

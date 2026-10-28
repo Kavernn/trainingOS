@@ -66,8 +66,8 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
 
     private func finalBytes(comment: String = "private session comment", rpe: Double = 7,
                             duration: Double? = 30, energy: Int? = 3, date: String = "2026-09-27",
-                            source: DayComposerSource = .morning) throws -> Data {
-        try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.session(exos: [], rpe: rpe, comment: comment,
+                            source: DayComposerSource = .morning, exos: [String] = []) throws -> Data {
+        try WorkoutPayloadBuilder.encode(WorkoutPayloadBuilder.session(exos: exos, rpe: rpe, comment: comment,
             durationMin: duration, energyPre: energy, secondSession: source == .evening, bonusSession: false,
             sessionName: source == .morning ? "AM" : "PM", exerciseLogs: [], date: date))
     }
@@ -163,7 +163,7 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
 
     func testFinalInputsChangeOnlyFinalPayloadVersionAndKey() throws {
         let source = try version(), id = try identity(), original = try finalVersion()
-        for data in [try finalBytes(rpe: 8), try finalBytes(duration: 31), try finalBytes(energy: 4),
+        for data in [try finalBytes(duration: 31), try finalBytes(energy: 4),
                      try finalBytes(comment: "edited"), try finalBytes(date: "2026-09-28"), try finalBytes(source: .evening)] {
             let changed = try DayComposerFinalPayloadVersion(payloadData: data)
             XCTAssertNotEqual(original, changed)
@@ -172,6 +172,17 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
         XCTAssertEqual(try source.digest, try version().digest)
         XCTAssertEqual(source.exerciseVersions, try version().exerciseVersions)
         XCTAssertEqual(original, try finalVersion())
+        // An empty, non-performance session omits RPE; it cannot change its key.
+        let untrackedRPE = try DayComposerFinalPayloadVersion(payloadData: finalBytes(rpe: 8))
+        XCTAssertEqual(original, untrackedRPE)
+        XCTAssertEqual(try original.operationKey(identity: id, sourceVersion: source),
+                       try untrackedRPE.operationKey(identity: id, sourceVersion: source))
+        // The same input remains part of the exact payload for tracked performance.
+        let tracked = try DayComposerFinalPayloadVersion(payloadData: finalBytes(exos: ["Shared"]))
+        let trackedRPE = try DayComposerFinalPayloadVersion(payloadData: finalBytes(rpe: 8, exos: ["Shared"]))
+        XCTAssertNotEqual(tracked, trackedRPE)
+        XCTAssertNotEqual(try tracked.operationKey(identity: id, sourceVersion: source),
+                          try trackedRPE.operationKey(identity: id, sourceVersion: source))
         let request = try NeutralSourceFinalizationRequest(source: .morning, date: date, sessionName: "AM",
             resultsByIdentity: [:], comment: "private session comment", rpe: 7, durationMin: 30, energyPre: 3,
             operationKey: original.operationKey(identity: id, sourceVersion: source), dependencies: .satisfied)
@@ -245,7 +256,10 @@ final class DayComposerFinalizationStoreTests: XCTestCase {
         XCTAssertEqual(try store().finalEvidence(identity: id, sourceVersion: v, finalPayloadVersion: f), .unknown)
         try s.recordFinalApplication(identity: id, sourceVersion: v, finalPayloadVersion: f, state: .confirmed)
         XCTAssertEqual(try store().finalEvidence(identity: id, sourceVersion: v, finalPayloadVersion: f), .confirmed)
-        let f2 = try DayComposerFinalPayloadVersion(payloadData: finalBytes(rpe: 8))
+        // No performance was sent, so changing omitted RPE is the same intent.
+        let same = try DayComposerFinalPayloadVersion(payloadData: finalBytes(rpe: 8))
+        XCTAssertEqual(try s.finalEvidence(identity: id, sourceVersion: v, finalPayloadVersion: same), .confirmed)
+        let f2 = try DayComposerFinalPayloadVersion(payloadData: finalBytes(duration: 31))
         XCTAssertNil(try s.finalEvidence(identity: id, sourceVersion: v, finalPayloadVersion: f2))
         XCTAssertNil(try s.finalEvidence(identity: id, sourceVersion: version(comment: "B"), finalPayloadVersion: f))
     }

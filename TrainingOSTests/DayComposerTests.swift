@@ -85,8 +85,8 @@ final class DayComposerTests: XCTestCase {
     @MainActor
     func testShellSupersetRestAndObservedUnsupportedMatrix() throws {
         try withExecution { date in
-            let input = try executionInput(executionBundle(date, morning: ["A", "B", "M"],
-                tracking: ["M": "mobility"],
+            let input = try executionInput(executionBundle(date, morning: ["A", "B", "M", "U"],
+                tracking: ["M": "mobility", "U": "future"],
                 supersets: ["AM": ["SS": .init(a: "A", b: "B", rest: 90)]]), observedPM: ["E"])
             let c = try coordinator(input)
             func id(_ name: String, _ source: DayComposerSource = .morning) -> DayComposerItemID {
@@ -98,10 +98,13 @@ final class DayComposerTests: XCTestCase {
             XCTAssertFalse(a.allowsManualRest)
             XCTAssertEqual(b.restSeconds, 120)
             XCTAssertTrue(b.allowsManualRest)
-            XCTAssertEqual(c.presentation(for: id("M"))?.rendering, .unsupported)
+            XCTAssertEqual(c.presentation(for: id("M"))?.rendering, .mutable)
+            XCTAssertEqual(c.presentation(for: id("U"))?.rendering, .unsupported)
+            XCTAssertNil(c.presentation(for: id("U"))?.authorization)
             XCTAssertEqual(c.presentation(for: id("E", .evening))?.rendering, .observed)
             XCTAssertNil(c.presentation(for: id("E", .evening))?.authorization)
-            XCTAssertEqual(c.nextActionableName(after: id("B")), "F · Soir")
+            XCTAssertEqual(c.nextActionableName(after: id("B")), "M · Matin")
+            XCTAssertEqual(c.nextActionableName(after: id("M")), "F · Soir")
         }
     }
 
@@ -531,8 +534,8 @@ final class DayComposerTests: XCTestCase {
     @MainActor
     func testCoordinatorStatusesConflictsCorruptPresenceAndProgressAreReadOnly() throws {
         try withExecution { date in
-            let bundle = try executionBundle(date, morning: ["Local", "Server", "Draft", "Corrupt", "Unknown", "Mobility"],
-                evening: ["E"], tracking: ["Mobility": "mobility"])
+            let bundle = try executionBundle(date, morning: ["Local", "Server", "Draft", "Corrupt", "Unknown", "Mobility", "Unsupported"],
+                evening: ["E"], tracking: ["Mobility": "mobility", "Unsupported": "future"])
             let input = try executionInput(bundle, observedAM: ["Local", "Server"])
             let store = DayComposerProvenanceStore.shared
             try store.create(context: input.context)
@@ -562,20 +565,24 @@ final class DayComposerTests: XCTestCase {
             XCTAssertEqual(restored.status(for: id("Corrupt"))?.status, .draftOnly)
             XCTAssertEqual(restored.status(for: id("Corrupt"))?.isActionable, false)
             XCTAssertEqual(restored.status(for: id("Unknown"))?.status, .unknown)
-            XCTAssertEqual(restored.status(for: id("Mobility"))?.status, .unsupported)
+            XCTAssertEqual(restored.status(for: id("Mobility"))?.status, .unknown)
+            XCTAssertEqual(restored.status(for: id("Unsupported"))?.status, .unsupported)
             XCTAssertEqual(restored.presentation(for: id("Local"))?.rendering, .localReadOnly)
             XCTAssertEqual(restored.presentation(for: id("Server"))?.rendering, .conflict)
             XCTAssertEqual(restored.presentation(for: id("Draft"))?.rendering, .mutable)
             XCTAssertEqual(restored.presentation(for: id("Corrupt"))?.rendering, .corruptDraft)
             XCTAssertNil(restored.presentation(for: id("Corrupt"))?.authorization)
             XCTAssertEqual(restored.presentation(for: id("Unknown"))?.rendering, .mutable)
-            XCTAssertEqual(restored.presentation(for: id("Mobility"))?.rendering, .unsupported)
+            XCTAssertEqual(restored.presentation(for: id("Mobility"))?.rendering, .mutable)
+            XCTAssertEqual(restored.presentation(for: id("Unsupported"))?.rendering, .unsupported)
+            XCTAssertNil(restored.presentation(for: id("Unsupported"))?.authorization)
             XCTAssertEqual(restored.executableCount, 6)
             XCTAssertEqual(restored.treatedCount, 2)
             XCTAssertEqual(restored.currentMemberID, id("Draft"))
             XCTAssertNil(try restored.result(for: id("Server")))
             XCTAssertThrowsError(try restored.setResult(executionLog("Server"), for: id("Server")))
             XCTAssertThrowsError(try restored.setResult(executionLog("Mobility"), for: id("Mobility")))
+            XCTAssertThrowsError(try restored.setResult(executionLog("Unsupported"), for: id("Unsupported")))
             XCTAssertThrowsError(try restored.setResult(executionLog("Corrupt"), for: id("Corrupt")))
             XCTAssertEqual(try Data(contentsOf: store.recordURL(date: date)), before)
             XCTAssertTrue(c.revalidateExecutionContext())
@@ -662,16 +669,16 @@ final class DayComposerTests: XCTestCase {
                          .init(a: "A", b: "E", rest: nil), .init(a: "A", b: "A", rest: nil)] {
                 XCTAssertThrowsError(try executionBundle(date, supersets: ["AM": ["SS": pair]]))
             }
-            let badMember = try executionBundle(date, tracking: ["B": "mobility"],
+            let badMember = try executionBundle(date, tracking: ["B": "future"],
                 supersets: ["AM": ["SS": .init(a: "A", b: "B", rest: nil)]])
             XCTAssertThrowsError(try coordinator(executionInput(badMember)))
-            for unsupported in ["mobility", "cardio", "interval", "future"] {
+            for unsupported in ["cardio", "interval", "future"] {
                 let badSource = try executionBundle(date, tracking: ["E": unsupported, "F": unsupported])
                 XCTAssertThrowsError(try coordinator(executionInput(badSource)))
             }
             XCTAssertNil(try DayComposerProvenanceStore.shared.load(date: date))
         }
-        for type in ["reps", "time", "carry", "plyo", "protocol"] {
+        for type in ["reps", "time", "carry", "plyo", "protocol", "mobility"] {
             XCTAssertTrue(DayComposerExecutionCoordinator.isSupported(type))
         }
     }
@@ -806,7 +813,7 @@ final class DayComposerTests: XCTestCase {
         try store.save(bundle.snapshot.initialUnits, for: bundle.snapshot)
         let valid = try await DayComposerLoader.executionInput(bundle: bundle, orderStore: store,
             projection: { try self.executionProjection($0) }, currentDate: { date })
-        XCTAssertEqual(valid.orderedUnits, bundle.snapshot.initialUnits)
+        XCTAssertEqual(valid.orderedUnits, explicitAssignments(bundle.snapshot.initialUnits))
         XCTAssertEqual(valid.serverProjection.presence(of: "A", source: .morning), .unknown)
         let changed = try executionBundle(date, morning: ["Changed"])
         do {
