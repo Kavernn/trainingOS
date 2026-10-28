@@ -19,17 +19,72 @@ final class SyncManager: ObservableObject {
     @Published private(set) var isSyncing = false
     @Published var offlineToast: String? = nil
     @Published private(set) var zombieDropCount: Int = 0
+    /// Rejets du rejeu (4xx serveur + zombies 5xx abandonnés). Bannière
+    /// persistante jusqu'à fermeture par l'utilisateur. Capée aux 20 plus
+    /// récents (anti-pollution).
+    @Published private(set) var recentDiscards: [DiscardedMutation] = []
+    private static let discardsCap = 20
+    private static let discardsKey = "sync_recent_discards_v1"
 
     private let queue: UserDefaultsSyncQueue
+    private let defaults: UserDefaults
     private var cancellables = Set<AnyCancellable>()
     private let logger = Logger(subsystem: "TrainingOS", category: "sync")
 
-    private enum SendResult { case success, retryable, discarded(Int) }
+    private enum SendResult {
+        case success
+        case retryable
+        case discarded(code: Int, body: Data?)
+    }
     enum CorrelatedDisposition { case delivered(Int), retryable(Int), discarded(Int) }
     private var activeCorrelated = Set<UUID>()
 
-    init(queue: UserDefaultsSyncQueue = UserDefaultsSyncQueue()) {
+    init(queue: UserDefaultsSyncQueue = UserDefaultsSyncQueue(),
+         defaults: UserDefaults = .standard) {
         self.queue = queue
+        self.defaults = defaults
+        self.recentDiscards = loadDiscards()
+    }
+
+    // MARK: - Discards (bannière persistante)
+
+    func dismissDiscard(id: UUID) {
+        recentDiscards.removeAll { $0.id == id }
+        persistDiscards()
+    }
+
+    func clearAllDiscards() {
+        recentDiscards.removeAll()
+        persistDiscards()
+    }
+
+    private func appendDiscard(_ entry: DiscardedMutation) {
+        recentDiscards.insert(entry, at: 0)
+        if recentDiscards.count > Self.discardsCap {
+            recentDiscards = Array(recentDiscards.prefix(Self.discardsCap))
+        }
+        persistDiscards()
+    }
+
+    private func loadDiscards() -> [DiscardedMutation] {
+        guard let data = defaults.data(forKey: Self.discardsKey) else { return [] }
+        return (try? JSONDecoder().decode([DiscardedMutation].self, from: data)) ?? []
+    }
+
+    private func persistDiscards() {
+        guard let data = try? JSONEncoder().encode(recentDiscards) else { return }
+        defaults.set(data, forKey: Self.discardsKey)
+    }
+
+    private func parsePayload(_ data: Data) -> [String: Any]? {
+        try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    }
+
+    private func extractServerMessage(from body: Data?) -> String? {
+        guard let body, let obj = parsePayload(body) else { return nil }
+        if let m = obj["message"] as? String, !m.isEmpty { return m }
+        if let e = obj["error"]   as? String, !e.isEmpty { return e }
+        return nil
     }
 
     // MARK: - Setup
@@ -206,22 +261,10 @@ final class SyncManager: ObservableObject {
         }
     }
 
-    private func showZombieToast(count: Int) {
-        let n = count == 1 ? "1 action" : "\(count) actions"
-        offlineToast = "⚠️ \(n) non synchronisée(s) après \(maxRetries) tentatives — supprimée(s)."
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            self?.offlineToast = nil
-        }
-    }
-
-    private func showDiscardedToast(code: Int) {
-        offlineToast = "⚠️ Séance rejetée par le serveur (\(code)) — non sauvegardée."
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            self?.offlineToast = nil
-        }
-    }
+    // Anciens toasts éphémères showZombieToast / showDiscardedToast remplacés
+    // par la bannière persistante SyncDiscardsBanner alimentée par
+    // recentDiscards (voir appendDiscard). Évite les rejets silencieux et
+    // conserve le message serveur jusqu'à l'action utilisateur.
 
     // MARK: - Flush
 
@@ -252,10 +295,21 @@ final class SyncManager: ObservableObject {
             }
             queue.removeAll { !$0.isSynced && $0.retryCount >= cap }
             let retainedIDs = Set(queue.load().map(\.id))
-            let removedCount = zombies.filter { !retainedIDs.contains($0.id) }.count
-            if removedCount > 0 {
-                zombieDropCount += removedCount
-                showZombieToast(count: removedCount)
+            let removedZombies = zombies.filter { !retainedIDs.contains($0.id) }
+            if !removedZombies.isEmpty {
+                zombieDropCount += removedZombies.count
+                for z in removedZombies {
+                    appendDiscard(DiscardedMutation(
+                        endpoint:      z.endpoint,
+                        method:        z.method,
+                        label:         SyncDiscardLabel.label(for: z.endpoint, method: z.method,
+                                                              payload: parsePayload(z.payloadData)),
+                        serverMessage: nil,
+                        statusCode:    0,
+                        retryCount:    z.retryCount,
+                        reason:        .zombie
+                    ))
+                }
             }
         }
 
@@ -296,12 +350,21 @@ final class SyncManager: ObservableObject {
                 // Exponential backoff: 2m, 4m, 8m, 16m, 32m
                 let delaySeconds = min(pow(2.0, Double(mutation.retryCount)) * 120, 32 * 60)
                 mutation.nextRetryAt = Date().addingTimeInterval(delaySeconds)
-            case .discarded(let code):
+            case .discarded(let code, let body):
                 logger.warning("Discarding non-recoverable mutation — \(mutation.method, privacy: .public) \(mutation.endpoint, privacy: .public) status \(code)")
                 mutation.isSynced = true
-                if sessionEndpoints.contains(mutation.endpoint) {
-                    showDiscardedToast(code: code)
-                }
+                // Bannière persistante : TOUS les endpoints, pas uniquement les
+                // sessionEndpoints. Message serveur extrait du JSON si dispo.
+                appendDiscard(DiscardedMutation(
+                    endpoint:      mutation.endpoint,
+                    method:        mutation.method,
+                    label:         SyncDiscardLabel.label(for: mutation.endpoint, method: mutation.method,
+                                                          payload: parsePayload(mutation.payloadData)),
+                    serverMessage: extractServerMessage(from: body),
+                    statusCode:    code,
+                    retryCount:    mutation.retryCount,
+                    reason:        .rejected
+                ))
             }
             queue.update(mutation)
         }
@@ -321,7 +384,9 @@ final class SyncManager: ObservableObject {
     // MARK: - Private
 
     private func send(mutation: PendingMutation) async -> SendResult {
-        guard let url = URL(string: baseURL + mutation.endpoint) else { return .discarded(0) }
+        guard let url = URL(string: baseURL + mutation.endpoint) else {
+            return .discarded(code: 0, body: nil)
+        }
         var req = URLRequest(url: url)
         req.httpMethod      = mutation.method
         req.httpBody        = mutation.method == "DELETE" ? nil : mutation.payloadData
@@ -331,10 +396,10 @@ final class SyncManager: ObservableObject {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
         do {
-            let (_, response) = try await urlSession.data(for: req)
+            let (body, response) = try await urlSession.data(for: req)
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             if (400...499).contains(code) && code != 429 {
-                return .discarded(code)
+                return .discarded(code: code, body: body)
             }
             return (200...299).contains(code) ? .success : .retryable
         } catch {

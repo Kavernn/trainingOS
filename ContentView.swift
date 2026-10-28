@@ -75,7 +75,12 @@ private struct iOSContentView: View {
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
         }
         .overlay(alignment: .top) { offlineBanner }
-        .overlay(alignment: .bottom) { offlineToast }
+        .overlay(alignment: .bottom) {
+            VStack(spacing: 0) {
+                SyncDiscardsBanner(sync: sync)
+                offlineToast
+            }
+        }
         .tint(theme.accent)
         .buttonStyle(ScaleButtonStyle())
         .task { await appState.checkDNAEvolution() }
