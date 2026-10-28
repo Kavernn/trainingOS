@@ -140,6 +140,7 @@
 		DD4400032F5D98BA002AE473 /* MoodTrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4400042F5D98BA002AE473 /* MoodTrackerView.swift */; };
 		DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */; };
 		DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */; };
+		E573C31F2F96E31F04483DBD /* DiscardedMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBCF95F54ACA7EFF71CD1ABE /* DiscardedMutation.swift */; };
 		E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */; };
 		E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */; };
 		EBD686A12DC32EF0A13FD632 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */; };
@@ -155,6 +156,7 @@
 		ENMOD002ENMOD002ENMOD002 /* EnergyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */; };
 		ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ER001000ER001000ER001000 /* EnergyRecoveryView.swift */; };
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
+		F94E27D8AD4CFCAED7E8C049 /* SyncDiscardsBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9240AB1723E37EE0DDC919E /* SyncDiscardsBanner.swift */; };
 		FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1100002F5D98BA002AE470 /* WatchSyncService.swift */; };
 		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
 		FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */; };
@@ -421,8 +423,10 @@
 		D69FB9052F666F3F0091BDD2 /* TrainingOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBriefCards.swift; sourceTree = "<group>"; };
 		D883D22AF81F48D1A03A9157 /* TrainingOSUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrainingOSUITests.swift; sourceTree = "<group>"; };
+		D9240AB1723E37EE0DDC919E /* SyncDiscardsBanner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SyncDiscardsBanner.swift; sourceTree = "<group>"; };
 		D9311048858BF8ACFBBCE3B8 /* EducationalModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EducationalModels.swift; sourceTree = "<group>"; };
 		DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWeeklyCards.swift; sourceTree = "<group>"; };
+		DBCF95F54ACA7EFF71CD1ABE /* DiscardedMutation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiscardedMutation.swift; sourceTree = "<group>"; };
 		DC8A59EA175A4A018DA8F7AC /* APIService+Coach.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Coach.swift"; sourceTree = "<group>"; };
 		DD4400022F5D98BA002AE473 /* MentalHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthView.swift; sourceTree = "<group>"; };
 		DD4400042F5D98BA002AE473 /* MoodTrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodTrackerView.swift; sourceTree = "<group>"; };
@@ -634,6 +638,15 @@
 				B8A9E5D4C3F20167982E4B3C /* BudgetJournalView.swift */,
 			);
 			path = Budget;
+			sourceTree = "<group>";
+		};
+		148D0060EBD2B7D3D1043E58 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				D9240AB1723E37EE0DDC919E /* SyncDiscardsBanner.swift */,
+			);
+			name = Shared;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		21673EE755A64B20E32A146E /* TrainingOSUITests */ = {
@@ -935,6 +948,7 @@
 				C0C3EB4A6651A37E8770B3DD /* SmartAlarmService.swift */,
 				75D8C0C8FD9FF73633DCBF7C /* APIService+Educational.swift */,
 				5CA94EE58C8F3A216DD8DD6C /* APIService+Budget.swift */,
+				DBCF95F54ACA7EFF71CD1ABE /* DiscardedMutation.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1067,6 +1081,7 @@
 				STNG0000STNG0000STNG0000 /* Settings */,
 				VDB00001VDB00001VDB00001 /* VoiceDictationButton.swift */,
 				0C957A3221EBA73955159C75 /* Budget */,
+				148D0060EBD2B7D3D1043E58 /* Shared */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1625,6 +1640,8 @@
 				A7F8B4D3C2E19056871F3A2B /* BudgetJournalView.swift in Sources */,
 				705B79D28FFF46C74C20E3BE /* RoundedCorner.swift in Sources */,
 				3BB364D4BF10CF4B82B48531 /* BodyProgressionCore.swift in Sources */,
+				E573C31F2F96E31F04483DBD /* DiscardedMutation.swift in Sources */,
+				F94E27D8AD4CFCAED7E8C049 /* SyncDiscardsBanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
