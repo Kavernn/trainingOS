@@ -161,9 +161,11 @@ struct StatsView: View {
     @State var streakData: StreakResponse? = nil
 
     // ── Loadables (migration incrémentale — câblage UI dans un commit dédié)
-    @State var statsState           = Loadable<StatsAPIResponse>()
-    @State var nutritionTodayState  = Loadable<NutritionDataResponse>()
-    @State var wellnessState        = Loadable<WellnessAPIResponse>()
+    @State var statsState            = Loadable<StatsAPIResponse>()
+    @State var nutritionTodayState   = Loadable<NutritionDataResponse>()
+    @State var wellnessState         = Loadable<WellnessAPIResponse>()
+    @State var seasonComparisonState = Loadable<SeasonComparisonData>()
+    @State var warRoomState          = Loadable<WarRoomSummaryStats>()
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
@@ -636,10 +638,25 @@ struct StatsView: View {
         )
 
         Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/seasons/comparison"),
-               let d = try? await APIService.shared.fetchWithCache(url: url, key: "seasons_comparison"),
-               let r = try? APIService.decoder.decode(SeasonComparisonData.self, from: d) {
-                await MainActor.run { seasonComparison = r }
+            let cache = CacheService.shared.loadIncludingStale(for: "seasons_comparison")
+            let seed: SeasonComparisonData? = cache.data.flatMap {
+                try? APIService.decoder.decode(SeasonComparisonData.self, from: $0)
+            }
+            if let seed { seasonComparison = seed }
+
+            // Appel direct URLSession : fetchWithCache avale l'échec du refresh,
+            // la bannière "données périmées" ne s'afficherait jamais.
+            await seasonComparisonState.load(seed: seed, savedAt: cache.savedAt) {
+                guard let url = URL(string: "\(APIService.shared.baseURL)/api/seasons/comparison") else {
+                    throw APIError.invalidURL(path: "/api/seasons/comparison")
+                }
+                var req = URLRequest(url: url)
+                req.timeoutInterval = 15
+                let (data, _) = try await URLSession.authed.data(for: req)
+                let decoded = try APIService.decoder.decode(SeasonComparisonData.self, from: data)
+                CacheService.shared.save(data, for: "seasons_comparison")
+                seasonComparison = decoded
+                return decoded
             }
         }
         Task {
@@ -660,10 +677,23 @@ struct StatsView: View {
             }
         }
         Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/war_room/summary"),
-               let d = try? await APIService.shared.fetchWithCache(url: url, key: "war_room_summary"),
-               let r = try? APIService.decoder.decode(WarRoomSummaryStats.self, from: d) {
-                await MainActor.run { warRoomStats = r }
+            let cache = CacheService.shared.loadIncludingStale(for: "war_room_summary")
+            let seed: WarRoomSummaryStats? = cache.data.flatMap {
+                try? APIService.decoder.decode(WarRoomSummaryStats.self, from: $0)
+            }
+            if let seed { warRoomStats = seed }
+
+            await warRoomState.load(seed: seed, savedAt: cache.savedAt) {
+                guard let url = URL(string: "\(APIService.shared.baseURL)/api/war_room/summary") else {
+                    throw APIError.invalidURL(path: "/api/war_room/summary")
+                }
+                var req = URLRequest(url: url)
+                req.timeoutInterval = 15
+                let (data, _) = try await URLSession.authed.data(for: req)
+                let decoded = try APIService.decoder.decode(WarRoomSummaryStats.self, from: data)
+                CacheService.shared.save(data, for: "war_room_summary")
+                warRoomStats = decoded
+                return decoded
             }
         }
     }
