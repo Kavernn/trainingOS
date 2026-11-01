@@ -413,6 +413,9 @@ struct StatsView: View {
 
                         ScrollView(showsIndicators: false) {
                             LazyVStack(spacing: 16) {
+                                SectionErrorView(state: statsState, retry: { await loadData() })
+                                    .padding(.horizontal, .appPagePadding)
+
                                 switch selectedTab {
                                 case .overview: vueGlobaleTab
                                 case .strength: exercicesTab
@@ -757,7 +760,7 @@ struct StatsView: View {
         }
     }
 
-    private func loadStatsWellnessIfNeeded(force: Bool = false) async {
+    func loadStatsWellnessIfNeeded(force: Bool = false) async {
         guard !isLoadingStatsWellness else { return }
         if hasLoadedStatsWellness && !force { return }
 
@@ -785,7 +788,7 @@ struct StatsView: View {
         }
     }
 
-    private func loadStatsHRVIfNeeded(force: Bool = false) async {
+    func loadStatsHRVIfNeeded(force: Bool = false) async {
         guard !isLoadingStatsHRV else { return }
         if hasLoadedStatsHRV && !force { return }
 

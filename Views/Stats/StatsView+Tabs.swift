@@ -353,13 +353,10 @@ extension StatsView {
     // MARK: - Vue Globale Tab
     @ViewBuilder var vueGlobaleTab: some View {
 
+        SectionErrorView(state: cockpitState, retry: { await loadCockpitData() })
+            .padding(.horizontal, .appPagePadding)
+
         if let cockpit = cockpitData {
-            if cockpitError != nil {
-                Text("Actualisation impossible · dernières données affichées")
-                    .font(.appMicro.weight(.semibold))
-                    .foregroundColor(.appTextMuted)
-                    .padding(.horizontal, .appPagePadding)
-            }
             let adapter = cockpit.dataQuality.adapter
             if adapter.invalidRowCount > 0 || adapter.missingTrackingTypeCount > 0 {
                 Text("Données partielles")
@@ -396,24 +393,6 @@ extension StatsView {
                 attention: cockpit.progression.attention,
                 onSelectExercise: { selectedExercise = $0 }
             )
-        } else if cockpitError != nil {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("PROGRESSION")
-                    .font(.appMicro.weight(.bold))
-                    .tracking(2)
-                    .foregroundColor(.appTextMuted)
-                Text("Progression indisponible")
-                    .font(.appHeadline.weight(.semibold))
-                    .foregroundColor(.appTextPrimary)
-                Text("Les données de progression n’ont pas pu être chargées.")
-                    .font(.appCaption)
-                    .foregroundColor(.appTextSecondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.appCardInsetV)
-            .background(Color.appCard)
-            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
-            .padding(.horizontal, .appPagePadding)
         }
 
         if let deload = activeDeload, deload.active {
@@ -658,6 +637,10 @@ extension StatsView {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 12)
         }
+
+        SectionErrorView(state: wellnessState,
+                         retry: { await loadStatsWellnessIfNeeded(force: true) })
+            .padding(.horizontal, .appPagePadding)
 
         // 1. HRV en tête (actionnable immédiatement)
         if let hrv = hrvAnalysis, hrv.hrv30dAvg != nil {
