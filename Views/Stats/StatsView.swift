@@ -161,11 +161,13 @@ struct StatsView: View {
     @State var streakData: StreakResponse? = nil
 
     // ── Loadables (migration incrémentale — câblage UI dans un commit dédié)
-    @State var statsState            = Loadable<StatsAPIResponse>()
-    @State var nutritionTodayState   = Loadable<NutritionDataResponse>()
-    @State var wellnessState         = Loadable<WellnessAPIResponse>()
-    @State var seasonComparisonState = Loadable<SeasonComparisonData>()
-    @State var warRoomState          = Loadable<WarRoomSummaryStats>()
+    @State var statsState                 = Loadable<StatsAPIResponse>()
+    @State var nutritionTodayState        = Loadable<NutritionDataResponse>()
+    @State var wellnessState              = Loadable<WellnessAPIResponse>()
+    @State var seasonComparisonState      = Loadable<SeasonComparisonData>()
+    @State var warRoomState               = Loadable<WarRoomSummaryStats>()
+    @State var cockpitState               = Loadable<StatsCockpitResponse>()
+    @State var statsNutritionHistoryState = Loadable<[DayNutritionHistory]>()
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
@@ -467,15 +469,18 @@ struct StatsView: View {
         cockpitError = nil
         defer { isLoadingCockpit = false }
 
-        do {
-            cockpitData = try await APIService.shared.fetchStatsCockpit(
+        await cockpitState.load {
+            let decoded = try await APIService.shared.fetchStatsCockpit(
                 asOf: AppState.shared.todayStr,
                 progressionDays: StatsCockpitPolicy.progressionDays,
                 weeklyDays: StatsCockpitPolicy.weeklyDays,
                 muscleDays: StatsCockpitPolicy.muscleDays
             )
-        } catch {
-            cockpitError = error.localizedDescription
+            cockpitData = decoded
+            return decoded
+        }
+        if let err = cockpitState.error {
+            cockpitError = err.message
         }
     }
 
@@ -611,13 +616,16 @@ struct StatsView: View {
         targetCalories = (try? await APIService.shared.fetchEnergyDaily())?.targetCalories
 
         // Fenêtre source-aware pour NutritionComplianceChart + MacrosBreakdownView.
-        // Pas de try? : do/catch explicite — un échec reste visible dans la console,
-        // la vue affiche "données insuffisantes" si tableau vide.
-        do {
-            statsNutritionHistory = try await APIService.shared.fetchStatsNutritionHistory(days: 180)
-        } catch {
+        // Loadable capture l'erreur pour la bannière UI (3f) ; la vue affiche
+        // "données insuffisantes" si tableau vide.
+        await statsNutritionHistoryState.load {
+            let r = try await APIService.shared.fetchStatsNutritionHistory(days: 180)
+            statsNutritionHistory = r
+            return r
+        }
+        if let err = statsNutritionHistoryState.error {
             statsNutritionHistory = []
-            statsHistoryLogger.error("fetchStatsNutritionHistory failed: \(error.localizedDescription, privacy: .public)")
+            statsHistoryLogger.error("fetchStatsNutritionHistory failed: \(err.message, privacy: .public)")
         }
 
         // sequential — async let LIFO crash on iOS 26 beta
