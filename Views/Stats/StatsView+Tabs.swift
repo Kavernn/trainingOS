@@ -9,6 +9,9 @@ private struct ActiveDeloadOverviewCard: View {
 
     @State private var isLoading = false
     @State private var showConfirmDeactivate = false
+    @State private var errorMessage: String?
+    @State private var isOfflineQueued = false
+    @State private var deloadStatusState = Loadable<DeloadStatus>()
 
     /// Fraction écoulée (0..1). `nil` si durée totale inconnue (durationDays
     /// absent côté payload) — on affiche alors uniquement le chiffre central.
@@ -63,6 +66,18 @@ private struct ActiveDeloadOverviewCard: View {
             }
             .buttonStyle(.plain)
             .disabled(isLoading)
+
+            if let msg = errorMessage {
+                Text(msg)
+                    .font(.appCaption)
+                    .foregroundColor(.appDanger)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if isOfflineQueued {
+                Text("Hors ligne — sera envoyé à la reconnexion")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+            }
         }
         .padding(.appCardInsetV)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -90,10 +105,24 @@ private struct ActiveDeloadOverviewCard: View {
 
     private func deactivate() {
         isLoading = true
+        errorMessage = nil
+        isOfflineQueued = false
         Task {
-            try? await APIService.shared.deactivateDeload()
-            let fresh = try? await APIService.shared.fetchDeloadStatus()
-            await MainActor.run { onUpdate(fresh); isLoading = false }
+            do {
+                try await APIService.shared.deactivateDeload()
+                // Succès réel : fetch via Loadable (erreur du fetch n'invalide pas l'écriture)
+                await deloadStatusState.load {
+                    try await APIService.shared.fetchDeloadStatus()
+                }
+                onUpdate(deloadStatusState.value)
+            } catch APIError.queuedOffline {
+                isOfflineQueued = true
+            } catch APIError.serverError(_, let msg) {
+                errorMessage = msg.isEmpty ? "Erreur serveur" : msg
+            } catch {
+                errorMessage = "Erreur réseau — réessaie"
+            }
+            isLoading = false
         }
     }
 }
@@ -142,6 +171,9 @@ private struct StatsOverviewExplorerSection: View {
     let onDeloadUpdate: (DeloadStatus?) -> Void
 
     @State private var isActivatingDeload = false
+    @State private var deloadActivationError: String?
+    @State private var isOfflineQueued = false
+    @State private var deloadStatusState = Loadable<DeloadStatus>()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -196,6 +228,18 @@ private struct StatsOverviewExplorerSection: View {
             }
             .background(Color.appCard)
             .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+
+            if let msg = deloadActivationError {
+                Text(msg)
+                    .font(.appCaption)
+                    .foregroundColor(.appDanger)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if isOfflineQueued {
+                Text("Hors ligne — sera envoyé à la reconnexion")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+            }
         }
         .padding(.horizontal, .appPagePadding)
     }
@@ -248,13 +292,24 @@ private struct StatsOverviewExplorerSection: View {
 
     private func activateDeload() {
         isActivatingDeload = true
+        deloadActivationError = nil
+        isOfflineQueued = false
         Task {
-            try? await APIService.shared.activateDeload()
-            let fresh = try? await APIService.shared.fetchDeloadStatus()
-            await MainActor.run {
-                onDeloadUpdate(fresh)
-                isActivatingDeload = false
+            do {
+                try await APIService.shared.activateDeload()
+                // Succès réel : fetch via Loadable (erreur du fetch n'invalide pas l'écriture)
+                await deloadStatusState.load {
+                    try await APIService.shared.fetchDeloadStatus()
+                }
+                onDeloadUpdate(deloadStatusState.value)
+            } catch APIError.queuedOffline {
+                isOfflineQueued = true
+            } catch APIError.serverError(_, let msg) {
+                deloadActivationError = msg.isEmpty ? "Erreur serveur" : msg
+            } catch {
+                deloadActivationError = "Erreur réseau — réessaie"
             }
+            isActivatingDeload = false
         }
     }
 }
