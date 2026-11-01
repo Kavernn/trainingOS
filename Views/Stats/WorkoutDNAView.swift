@@ -33,6 +33,7 @@ struct WorkoutDNASection: View {
     @State private var selectedPeriod  = 90
     @State private var isReloading     = false
     @State private var showShare       = false
+    @State private var dnaState        = Loadable<WorkoutDNAResponse>()
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -81,20 +82,23 @@ struct WorkoutDNASection: View {
     private func load() async {
         guard dna == nil else { return }
         isLoading = true
-        do {
-            dna = try await APIService.shared.fetchWorkoutDNA()
-        } catch {
-            loadError = true
+        defer { isLoading = false }
+        await dnaState.load {
+            let r = try await APIService.shared.fetchWorkoutDNA()
+            dna = r
+            return r
         }
-        isLoading = false
+        if dnaState.error != nil { loadError = true }
     }
 
     private func reloadForPeriod(_ period: Int) async {
         isReloading = true
-        if let newDNA = try? await APIService.shared.fetchWorkoutDNA(period: period) {
-            dna = newDNA
+        defer { isReloading = false }
+        await dnaState.load {
+            let r = try await APIService.shared.fetchWorkoutDNA(period: period)
+            dna = r
+            return r
         }
-        isReloading = false
     }
 }
 
