@@ -160,6 +160,10 @@ struct StatsView: View {
     // ── Streak — source serveur unique (/api/stats/streaks) ─────────────────
     @State var streakData: StreakResponse? = nil
 
+    // ── Loadables (migration incrémentale — câblage UI dans un commit dédié)
+    @State var statsState           = Loadable<StatsAPIResponse>()
+    @State var nutritionTodayState  = Loadable<NutritionDataResponse>()
+
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
         sessions.values.reduce(0) { $0 + $1.sessionCount }
@@ -550,42 +554,55 @@ struct StatsView: View {
     func loadData() async {
         fetchError = false
 
-        // 1. Show cached data immediately (no spinner if cache exists)
-        if let cached = CacheService.shared.load(for: "stats_data"),
-           let decoded = try? APIService.decoder.decode(StatsAPIResponse.self, from: cached) {
-            applyStats(decoded)
-            isLoading = false
+        // 1. Seed depuis le cache (y compris périmé) + savedAt pour la bannière âge réel
+        let cache = CacheService.shared.loadIncludingStale(for: "stats_data")
+        let seed: StatsAPIResponse? = cache.data.flatMap {
+            try? APIService.decoder.decode(StatsAPIResponse.self, from: $0)
         }
+        if let seed { applyStats(seed); isLoading = false }
 
-        // 2. Fetch fresh data — parallel with ACWR
-        guard let statsURL = URL(string: "\(APIService.shared.baseURL)/api/stats_data") else { return }
-        var req = URLRequest(url: statsURL)
-        req.timeoutInterval = 15
-        if let (data, _) = try? await URLSession.authed.data(for: req),
-           let decoded = try? APIService.decoder.decode(StatsAPIResponse.self, from: data) {
+        // 2. Fetch frais via Loadable (erreur/isLoading/lastUpdated tracés)
+        await statsState.load(seed: seed, savedAt: cache.savedAt) {
+            guard let url = URL(string: "\(APIService.shared.baseURL)/api/stats_data") else {
+                throw APIError.invalidURL(path: "/api/stats_data")
+            }
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 15
+            let (data, _) = try await URLSession.authed.data(for: req)
+            let decoded = try APIService.decoder.decode(StatsAPIResponse.self, from: data)
             CacheService.shared.save(data, for: "stats_data")
             applyStats(decoded)
-            // stats_data est mis en cache 30 min — les repas loggés dans la journée
-            // seraient périmés. On écrase uniquement aujourd'hui avec la source fraîche
-            // (même endpoint que NutritionView, même comportement sans cache).
-            // Échec silencieux : si l'appel rate, nutritionDays garde la valeur stats_data.
-            if let nutrURL = URL(string: "\(APIService.shared.baseURL)/api/nutrition_data?days=1") {
-                var nutrReq = URLRequest(url: nutrURL)
-                nutrReq.cachePolicy = .reloadIgnoringLocalCacheData
-                nutrReq.timeoutInterval = 10
-                if let (nutrData, _) = try? await URLSession.authed.data(for: nutrReq),
-                   let nutrDecoded = try? APIService.decoder.decode(NutritionDataResponse.self, from: nutrData),
-                   let totals = nutrDecoded.totals {
+            return decoded
+        }
+
+        if statsState.error != nil, weights.isEmpty {
+            fetchError = true
+        }
+
+        // 3. Nutrition d'aujourd'hui — seulement si stats_data a réussi (parité avec
+        // l'ancien if-let nested qui dépendait de l'URLSession stats_data OK).
+        // stats_data est mis en cache 30 min, les repas du jour y sont périmés — on
+        // écrase uniquement aujourd'hui avec /api/nutrition_data?days=1 (même source
+        // que NutritionView, sans cache).
+        if statsState.error == nil {
+            await nutritionTodayState.load {
+                guard let url = URL(string: "\(APIService.shared.baseURL)/api/nutrition_data?days=1") else {
+                    throw APIError.invalidURL(path: "/api/nutrition_data?days=1")
+                }
+                var req = URLRequest(url: url)
+                req.cachePolicy = .reloadIgnoringLocalCacheData
+                req.timeoutInterval = 10
+                let (data, _) = try await URLSession.authed.data(for: req)
+                let decoded = try APIService.decoder.decode(NutritionDataResponse.self, from: data)
+                if let totals = decoded.totals {
                     let todayStr = AppState.shared.todayStr
                     let fresh = NutritionDay(date: todayStr,
                                              calories: totals.calories,
                                              proteines: totals.proteines)
                     nutritionDays = nutritionDays.filter { $0.date != todayStr } + [fresh]
                 }
+                return decoded
             }
-        } else if weights.isEmpty {
-            // No cache and network failed → show error state
-            fetchError = true
         }
         // Cible calorique adaptative — même source que NutritionView / EnergyChart.
         targetCalories = (try? await APIService.shared.fetchEnergyDaily())?.targetCalories
