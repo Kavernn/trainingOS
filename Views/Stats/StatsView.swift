@@ -163,6 +163,7 @@ struct StatsView: View {
     // ── Loadables (migration incrémentale — câblage UI dans un commit dédié)
     @State var statsState           = Loadable<StatsAPIResponse>()
     @State var nutritionTodayState  = Loadable<NutritionDataResponse>()
+    @State var wellnessState        = Loadable<WellnessAPIResponse>()
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
@@ -674,21 +675,24 @@ struct StatsView: View {
         isLoadingStatsWellness = true
         defer { isLoadingStatsWellness = false }
 
-        guard let wellnessURL = URL(string: "\(APIService.shared.baseURL)/api/stats_wellness") else { return }
-        var wellnessReq = URLRequest(url: wellnessURL)
-        wellnessReq.timeoutInterval = 20
-
-        if let cachedW = CacheService.shared.load(for: "stats_wellness"),
-           let decodedW = try? APIService.decoder.decode(WellnessAPIResponse.self, from: cachedW) {
-            applyWellness(decodedW)
-            hasLoadedStatsWellness = true
+        let cache = CacheService.shared.loadIncludingStale(for: "stats_wellness")
+        let seed: WellnessAPIResponse? = cache.data.flatMap {
+            try? APIService.decoder.decode(WellnessAPIResponse.self, from: $0)
         }
+        if let seed { applyWellness(seed); hasLoadedStatsWellness = true }
 
-        if let (wData, _) = try? await URLSession.authed.data(for: wellnessReq),
-           let decodedW = try? APIService.decoder.decode(WellnessAPIResponse.self, from: wData) {
-            CacheService.shared.save(wData, for: "stats_wellness")
-            applyWellness(decodedW)
+        await wellnessState.load(seed: seed, savedAt: cache.savedAt) {
+            guard let url = URL(string: "\(APIService.shared.baseURL)/api/stats_wellness") else {
+                throw APIError.invalidURL(path: "/api/stats_wellness")
+            }
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 20
+            let (data, _) = try await URLSession.authed.data(for: req)
+            let decoded = try APIService.decoder.decode(WellnessAPIResponse.self, from: data)
+            CacheService.shared.save(data, for: "stats_wellness")
+            applyWellness(decoded)
             hasLoadedStatsWellness = true
+            return decoded
         }
     }
 
