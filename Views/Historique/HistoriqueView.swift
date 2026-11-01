@@ -361,6 +361,12 @@ struct HistoriqueView: View {
                 hiitSessions.removeAll { $0.id == session.id }
                 CacheService.shared.clear(for: "historique_data")
                 toast = ToastMessage(message: "Séance HIIT supprimée", style: .success)
+            } catch APIError.queuedOffline {
+                // Mutation enfilée hors ligne — pas d'erreur à montrer, l'élément
+                // reste visible jusqu'au rejeu (parité HIITHistoriqueView).
+                toast = ToastMessage(message: "Suppression en attente — hors ligne", style: .info)
+            } catch APIError.serverError(_, let msg) {
+                apiError = msg.isEmpty ? "Erreur serveur" : msg
             } catch {
                 apiError = "Erreur réseau — réessaie"
             }

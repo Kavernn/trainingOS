@@ -3,6 +3,9 @@ import SwiftUI
 struct HIITHistoriqueView: View {
     @State private var hiitLog: [HIITEntry] = []
     @State private var isLoading = true
+    @State private var pendingDeletes: Set<String> = []
+    @State private var queuedDeletes:  Set<String> = []
+    @State private var deleteError: String?
 
     var totalSessions: Int { hiitLog.count }
     var avgRPE: Double {
@@ -29,16 +32,31 @@ struct HIITHistoriqueView: View {
                             }
                             .padding(.horizontal, 16)
 
+                            if !queuedDeletes.isEmpty {
+                                Text("\(queuedDeletes.count) suppression\(queuedDeletes.count > 1 ? "s" : "") en attente — hors ligne")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16)
+                            }
+                            if let msg = deleteError {
+                                Text(msg)
+                                    .font(.appCaption)
+                                    .foregroundColor(.appDanger)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16)
+                            }
+
                             // Log entries
                             ForEach(hiitLog) { entry in
-                                HIITEntryCard(entry: entry) {
-                                    Task {
-                                        try? await APIService.shared.deleteHIIT(
-                                            date: entry.date ?? "",
-                                            sessionType: entry.sessionType ?? ""
-                                        )
-                                        await loadData()
-                                    }
+                                HIITEntryCard(
+                                    entry: entry,
+                                    isDisabled: pendingDeletes.contains(entry.id)
+                                             || queuedDeletes.contains(entry.id)
+                                ) {
+                                    Task { await delete(entry) }
                                 }
                                 .padding(.horizontal, 16)
                             }
@@ -51,6 +69,13 @@ struct HIITHistoriqueView: View {
             .navigationBarTitleDisplayMode(.large)
         }
         .task { await loadData() }
+        .onReceive(SyncManager.shared.$pendingCount) { count in
+            // File vidée (succès OU rejet 4xx) : on recharge pour l'état serveur réel.
+            if count == 0 && !queuedDeletes.isEmpty {
+                queuedDeletes.removeAll()
+                Task { await loadData() }
+            }
+        }
     }
 
     private func loadData() async {
@@ -58,10 +83,33 @@ struct HIITHistoriqueView: View {
         hiitLog = (try? await APIService.shared.fetchHIITData()) ?? []
         isLoading = false
     }
+
+    private func delete(_ entry: HIITEntry) async {
+        pendingDeletes.insert(entry.id)
+        deleteError = nil
+        defer { pendingDeletes.remove(entry.id) }
+
+        do {
+            try await APIService.shared.deleteHIIT(
+                date: entry.date ?? "",
+                sessionType: entry.sessionType ?? ""
+            )
+            // Succès serveur : la ligne disparaît APRÈS confirmation via loadData.
+            await loadData()
+        } catch APIError.queuedOffline {
+            // Bouton désactivé jusqu'au flush SyncManager (observer onReceive).
+            queuedDeletes.insert(entry.id)
+        } catch APIError.serverError(_, let msg) {
+            deleteError = msg.isEmpty ? "Erreur serveur" : msg
+        } catch {
+            deleteError = "Erreur réseau — réessaie"
+        }
+    }
 }
 
 struct HIITEntryCard: View {
     let entry: HIITEntry
+    var isDisabled: Bool = false
     var onDelete: () -> Void
     @State private var showDeleteConfirm = false
 
@@ -120,6 +168,7 @@ struct HIITEntryCard: View {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
                 Label("Supprimer", systemImage: "trash")
             }
+            .disabled(isDisabled)
         }
         .confirmationDialog("Supprimer cette session ?", isPresented: $showDeleteConfirm) {
             Button("Supprimer", role: .destructive) { onDelete() }

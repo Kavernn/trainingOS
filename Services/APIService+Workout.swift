@@ -781,8 +781,11 @@ extension APIService {
     }
 
     func deleteHIIT(date: String, sessionType: String) async throws {
-        _ = try await offlinePost(endpoint: "/api/delete_hiit",
-                                  payload: ["date": date, "session_type": sessionType])
+        // Parité editSession/deleteSession : queuedOffline distinct de succès réel.
+        if try await offlinePost(endpoint: "/api/delete_hiit",
+                                 payload: ["date": date, "session_type": sessionType]) == nil {
+            throw APIError.queuedOffline
+        }
         CacheInvalidation.hiitLogged.invalidate()
     }
 
