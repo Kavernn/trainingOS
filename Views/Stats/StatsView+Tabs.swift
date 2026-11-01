@@ -455,6 +455,9 @@ extension StatsView {
             .font(.appCaption).foregroundColor(.appTextSecondary)
             .padding(.horizontal, .appPagePadding)
 
+        SectionErrorView(state: acwrState, retry: { await loadData() })
+            .padding(.horizontal, .appPagePadding)
+
         if let acwrData = acwr {
             ACWRCardView(data: acwrData)
                 .padding(.horizontal, 16)
