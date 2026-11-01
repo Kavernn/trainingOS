@@ -103,7 +103,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Seance/BonusSeanceView.swift:URLSession.authed",
         "Views/Seance/ExerciseViewModel.swift:fetchSeanceData",
         "Views/Seance/SeanceSoirView.swift:URLSession.authed",
-        "Views/Seance/SeanceView.swift:deleteSession",
         "Views/Seance/SessionSupportViews.swift:fetchSeanceData",
         "Views/Seance/WorkoutActiveView.swift:URLSession.authed",
         "Views/Seance/WorkoutActiveView.swift:fetchExerciseWeightData",

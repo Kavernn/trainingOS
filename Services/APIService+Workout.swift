@@ -578,10 +578,15 @@ extension APIService {
     }
 
     func deleteSession(date: String, sessionType: String = "morning") async throws {
+        // offlinePost : 4xx/5xx → throw APIError.serverError (non enqueued).
+        // Erreur réseau → payload enqueued, return nil. On throw queuedOffline
+        // pour que la vue distingue "serveur a confirmé" / "mis en file" /
+        // "erreur réseau transiente non enregistrée" (parité editSession).
         if try await offlinePost(endpoint: "/api/session/delete",
-                                 payload: ["date": date, "session_type": sessionType]) != nil {
-            CacheInvalidation.sessionMutated.invalidate()
+                                 payload: ["date": date, "session_type": sessionType]) == nil {
+            throw APIError.queuedOffline
         }
+        CacheInvalidation.sessionMutated.invalidate()
     }
 
     func updateSession(date: String, rpe: Double?, comment: String, sessionType: String = "morning") async throws {

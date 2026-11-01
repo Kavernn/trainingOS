@@ -63,6 +63,9 @@ struct AlreadyLoggedSeanceView: View {
     @State private var animateHeader = false
     @State private var showFinishRemaining = false
     @State private var showSeanceSoir = false
+    @State private var isResetPending = false
+    @State private var isResetQueued = false
+    @State private var resetErrorMessage: String?
 
     var todaySession: SessionEntry? {
         APIService.shared.dashboard?.sessions[data.todayDate]
@@ -618,26 +621,51 @@ struct AlreadyLoggedSeanceView: View {
     }
 
     private var resetAction: some View {
-        Button(action: { confirmReset = true }) {
-            HStack(spacing: 10) {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.appBody)
-                Text("Réinitialiser la séance")
-                    .font(.appBody.weight(.semibold))
+        VStack(spacing: 6) {
+            Button(action: { confirmReset = true }) {
+                HStack(spacing: 10) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.appBody)
+                    Text("Réinitialiser la séance")
+                        .font(.appBody.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.statusRed.opacity(0.08))
+                .foregroundColor(.statusRed)
+                .overlay(
+                    RoundedRectangle(cornerRadius: .appCardRadius)
+                        .stroke(Color.statusRed.opacity(0.24), lineWidth: .appHairline)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color.statusRed.opacity(0.08))
-            .foregroundColor(.statusRed)
-            .overlay(
-                RoundedRectangle(cornerRadius: .appCardRadius)
-                    .stroke(Color.statusRed.opacity(0.24), lineWidth: .appHairline)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+            .buttonStyle(SpringButtonStyle())
+            .disabled(isResetPending || isResetQueued)
+
+            if isResetQueued {
+                Text("Suppression en attente — sera envoyée à la reconnexion")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let msg = resetErrorMessage {
+                Text(msg)
+                    .font(.appCaption)
+                    .foregroundColor(.appDanger)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .buttonStyle(SpringButtonStyle())
         .padding(.horizontal, .appPagePadding)
         .padding(.top, 12)
+        .onReceive(SyncManager.shared.$pendingCount) { count in
+            // File vidée après un rejeu (success OU rejet 4xx qui a dropped la
+            // mutation) : on recharge pour refléter l'état réel du serveur, et
+            // le bouton redevient actif.
+            if count == 0 && isResetQueued {
+                isResetQueued = false
+                Task { await vm.load() }
+            }
+        }
     }
 
     private var shareText: String {
@@ -684,8 +712,26 @@ struct AlreadyLoggedSeanceView: View {
     }
 
     private func resetToday() async {
-        try? await APIService.shared.deleteSession(date: data.todayDate)
-        await vm.load()
+        isResetPending = true
+        resetErrorMessage = nil
+        isResetQueued = false
+        defer { isResetPending = false }
+
+        do {
+            try await APIService.shared.deleteSession(date: data.todayDate)
+            // Succès serveur : la séance est effectivement supprimée côté backend.
+            // SEULEMENT MAINTENANT on recharge la vue (règle : pas de retrait UI
+            // optimiste qui réapparaîtrait si le serveur rejetait).
+            await vm.load()
+        } catch APIError.queuedOffline {
+            // Mutation en file : la séance reste visible, bouton désactivé jusqu'à
+            // ce que SyncManager vide la file (observateur onReceive ci-dessus).
+            isResetQueued = true
+        } catch APIError.serverError(_, let msg) {
+            resetErrorMessage = msg.isEmpty ? "Erreur serveur" : msg
+        } catch {
+            resetErrorMessage = "Erreur réseau — réessaie"
+        }
     }
 
     @ViewBuilder
