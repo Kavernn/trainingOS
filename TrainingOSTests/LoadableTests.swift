@@ -100,6 +100,18 @@ final class LoadableTests: XCTestCase {
         XCTAssertNotNil(state.error)
     }
 
+    func test_seedWithSavedAt_bannerShowsRealAge() async {
+        var state = Loadable<Int>()
+        let seededAt = Date(timeIntervalSinceNow: -3600)
+        await state.load(seed: 99, savedAt: seededAt) {
+            throw APIError.serverError(500, "boom")
+        }
+        XCTAssertEqual(state.value, 99)
+        XCTAssertEqual(state.lastUpdated, seededAt,
+                       "staleBanner doit refléter l'âge réel de la seed, pas .now ni nil")
+        XCTAssertNotNil(state.error)
+    }
+
     func test_seedOverwrittenOnSuccess() async {
         var state = Loadable<Int>()
         await state.load(seed: 99) { 100 }

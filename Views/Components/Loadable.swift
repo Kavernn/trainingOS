@@ -77,13 +77,17 @@ struct Loadable<Value> {
     @MainActor
     mutating func load(
         seed: Value? = nil,
+        savedAt: Date? = nil,
         _ operation: () async throws -> Value
     ) async {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
-        if value == nil, let seed { value = seed }
+        if value == nil, let seed {
+            value = seed
+            lastUpdated = savedAt
+        }
 
         do {
             value = try await operation()
