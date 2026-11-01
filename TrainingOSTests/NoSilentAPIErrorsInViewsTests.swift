@@ -24,7 +24,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
     /// première exécution. Chaque migration retire ses lignes.
     private static let knownSites: Set<String> = [
         "Views/BodyComp/BodyCompView.swift:URLSession.authed",
-        "Views/BodyComp/BodyCompView.swift:deleteBodyWeight",
         "Views/BodyComp/BodyCompView.swift:fetchProfilData",
         "Views/BodyComp/NavyCalculatorView.swift:fetchProfilData",
         "Views/Budget/BudgetView.swift:fetchBudgetStatus",

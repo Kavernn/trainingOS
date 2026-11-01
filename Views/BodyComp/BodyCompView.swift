@@ -9,6 +9,9 @@ struct BodyCompView: View {
     @State private var sheetEntry: BodyWeightEntry? = nil
     @State private var showSheet = false
     @State private var projection: BodyProjectionData? = nil
+    @State private var pendingDeletes: Set<String> = []
+    @State private var queuedDeletes:  Set<String> = []
+    @State private var deleteError: String?
 
     var latest: BodyWeightEntry? { bodyWeight.first }
 
@@ -179,21 +182,59 @@ struct BodyCompView: View {
             Text("HISTORIQUE")
                 .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 .padding(.horizontal, 16)
+            if !queuedDeletes.isEmpty {
+                Text("\(queuedDeletes.count) suppression\(queuedDeletes.count > 1 ? "s" : "") en attente — hors ligne")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+            }
+            if let msg = deleteError {
+                Text(msg)
+                    .font(.appCaption)
+                    .foregroundColor(.appDanger)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+            }
             ForEach(bodyWeight.prefix(30)) { entry in
                 BodyWeightRow(
                     entry: entry,
+                    isDisabled: pendingDeletes.contains(entry.id)
+                             || queuedDeletes.contains(entry.id),
                     onEdit: { sheetEntry = entry; showSheet = true },
-                    onDelete: {
-                        Task {
-                            try? await APIService.shared.deleteBodyWeight(date: entry.date, weight: entry.weight)
-                            await loadData()
-                        }
-                    }
+                    onDelete: { Task { await delete(entry) } }
                 )
                 .padding(.horizontal, 16)
             }
         }
         .appearAnimation(delay: 0.3)
+        .onReceive(SyncManager.shared.$pendingCount) { count in
+            // File vidée (succès OU rejet 4xx) : reload = état serveur réel.
+            if count == 0 && !queuedDeletes.isEmpty {
+                queuedDeletes.removeAll()
+                Task { await loadData() }
+            }
+        }
+    }
+
+    private func delete(_ entry: BodyWeightEntry) async {
+        pendingDeletes.insert(entry.id)
+        deleteError = nil
+        defer { pendingDeletes.remove(entry.id) }
+
+        do {
+            try await APIService.shared.deleteBodyWeight(date: entry.date, weight: entry.weight)
+            // Succès serveur : loadData retire l'entrée APRÈS confirmation.
+            await loadData()
+        } catch APIError.queuedOffline {
+            queuedDeletes.insert(entry.id)
+        } catch APIError.serverError(_, let msg) {
+            deleteError = msg.isEmpty ? "Erreur serveur" : msg
+        } catch {
+            deleteError = "Erreur réseau — réessaie"
+        }
     }
 
     var tendanceColor: Color {
@@ -614,6 +655,7 @@ struct ComparisonTableCard: View {
 // MARK: - Row with inline CRUD buttons
 struct BodyWeightRow: View {
     let entry: BodyWeightEntry
+    var isDisabled: Bool = false
     let onEdit: () -> Void
     let onDelete: () -> Void
     @ObservedObject private var units = UnitSettings.shared
@@ -662,6 +704,7 @@ struct BodyWeightRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
+            .disabled(isDisabled)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

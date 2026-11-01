@@ -59,8 +59,12 @@ extension APIService {
     }
 
     func deleteBodyWeight(date: String, weight: Double) async throws {
-        _ = try await offlinePost(endpoint: "/api/body_weight/delete",
-                                  payload: ["date": date, "poids": weight])
+        // Parité editSession / deleteSession / deleteHIIT : queuedOffline distinct
+        // d'un succès serveur réel.
+        if try await offlinePost(endpoint: "/api/body_weight/delete",
+                                 payload: ["date": date, "poids": weight]) == nil {
+            throw APIError.queuedOffline
+        }
         CacheInvalidation.bodyWeightMutated.invalidate()
         await BodyCompService.shared.refresh()
     }
