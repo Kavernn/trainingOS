@@ -65,17 +65,25 @@ struct LoadError: Error, Equatable {
 /// à `fetchWithCache` qui avale les erreurs du refresh en arrière-plan). Un échec
 /// avec seed présente une bannière « données périmées » ; sans seed, une carte
 /// d'erreur avec « Réessayer ».
-struct Loadable<Value> {
+///
+/// Classe `@Observable` + `@MainActor` : struct + `mutating async` est rejeté par
+/// Swift 6 sur une propriété actor-isolated (@State SwiftUI) — la suspension entre
+/// read et write permettrait une mutation concurrente. La ref-type résout ça et
+/// SwiftUI observe les propriétés via Observation.
+@Observable
+@MainActor
+final class Loadable<Value> {
     var value: Value?
     var isLoading = false
     var error: LoadError?
     var lastUpdated: Date?
 
+    init() {}
+
     /// Chargement initial = isLoading && aucune valeur à afficher (ni seed, ni fresh).
     var isInitialLoad: Bool { isLoading && value == nil }
 
-    @MainActor
-    mutating func load(
+    func load(
         seed: Value? = nil,
         savedAt: Date? = nil,
         _ operation: () async throws -> Value
