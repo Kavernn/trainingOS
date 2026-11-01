@@ -41,6 +41,9 @@ struct WorkoutDNASection: View {
                 if isLoading {
                     DNASkeleton().padding(.top, 40)
                 } else if let d = dna {
+                    SectionErrorView(state: dnaState,
+                                     retry: { await reloadForPeriod(selectedPeriod) })
+                        .padding(.horizontal, 16)
                     WorkoutDNAInlineContent(dna: d, isReloading: isReloading, onShare: { showShare = true })
                 } else if loadError {
                     DNAErrorState {

@@ -320,6 +320,11 @@ extension StatsView {
     // MARK: - Régularité Tab
     // Hero streak hebdo + heatmap enrichie (serveur-driven).
     @ViewBuilder var consistencyTab: some View {
+        SectionErrorView(state: streakState,    retry: { await loadData() })
+            .padding(.horizontal, .appPagePadding)
+        SectionErrorView(state: cardioLogState, retry: { await loadData() })
+            .padding(.horizontal, .appPagePadding)
+
         if let cockpit = cockpitData {
             StatsRegularityHero(trainingLoad: cockpit.trainingLoad)
         }
@@ -385,6 +390,9 @@ extension StatsView {
                 selectedTab = .load
             }
 
+            SectionErrorView(state: prTrackerState, retry: { await loadData() })
+                .padding(.horizontal, .appPagePadding)
+
             StatsPRTimelineView(prs: recentPRs, lastPR: lastPR, compact: true)
                 .padding(.horizontal, .appPagePadding)
 
@@ -394,6 +402,9 @@ extension StatsView {
                 onSelectExercise: { selectedExercise = $0 }
             )
         }
+
+        SectionErrorView(state: deloadState, retry: { await loadData() })
+            .padding(.horizontal, .appPagePadding)
 
         if let deload = activeDeload, deload.active {
             ActiveDeloadOverviewCard(status: deload) { newStatus in
@@ -526,6 +537,9 @@ extension StatsView {
             StatsBodyMeasurementsHistoryView(entries: filteredBW, period: period)
         }
 
+        SectionErrorView(state: seasonComparisonState, retry: { await loadData() })
+            .padding(.horizontal, .appPagePadding)
+
         if let data = seasonComparison, data.current != nil {
             SeasonComparisonCard(data: data)
                 .padding(.horizontal, .appPagePadding)
@@ -640,6 +654,10 @@ extension StatsView {
 
         SectionErrorView(state: wellnessState,
                          retry: { await loadStatsWellnessIfNeeded(force: true) })
+            .padding(.horizontal, .appPagePadding)
+
+        SectionErrorView(state: hrvState,
+                         retry: { await loadStatsHRVIfNeeded(force: true) })
             .padding(.horizontal, .appPagePadding)
 
         // 1. HRV en tête (actionnable immédiatement)
