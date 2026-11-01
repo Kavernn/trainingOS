@@ -168,6 +168,14 @@ struct StatsView: View {
     @State var warRoomState               = Loadable<WarRoomSummaryStats>()
     @State var cockpitState               = Loadable<StatsCockpitResponse>()
     @State var statsNutritionHistoryState = Loadable<[DayNutritionHistory]>()
+    @State var energyState                = Loadable<EnergyDaily>()
+    @State var acwrState                  = Loadable<ACWRData>()
+    @State var streakState                = Loadable<StreakResponse>()
+    @State var cardioLogState             = Loadable<[CardioEntry]>()
+    @State var deloadState                = Loadable<DeloadStatus>()
+    @State var forceAccessoryState        = Loadable<ForceAccessoryTimeline>()
+    @State var prTrackerState             = Loadable<PRTrackerData>()
+    @State var hrvState                   = Loadable<HRVAnalysis>()
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int {
@@ -613,7 +621,11 @@ struct StatsView: View {
             }
         }
         // Cible calorique adaptative — même source que NutritionView / EnergyChart.
-        targetCalories = (try? await APIService.shared.fetchEnergyDaily())?.targetCalories
+        await energyState.load {
+            let r = try await APIService.shared.fetchEnergyDaily()
+            targetCalories = r.targetCalories
+            return r
+        }
 
         // Fenêtre source-aware pour NutritionComplianceChart + MacrosBreakdownView.
         // Loadable capture l'erreur pour la bannière UI (3f) ; la vue affiche
@@ -629,15 +641,31 @@ struct StatsView: View {
         }
 
         // sequential — async let LIFO crash on iOS 26 beta
-        acwr = try? await APIService.shared.fetchACWR()
+        await acwrState.load {
+            let r = try await APIService.shared.fetchACWR()
+            acwr = r
+            return r
+        }
 
         // Streak — source serveur unique (P1.2)
-        streakData = try? await APIService.shared.fetchStreaks(date: AppState.shared.todayStr)
+        await streakState.load {
+            let r = try await APIService.shared.fetchStreaks(date: AppState.shared.todayStr)
+            streakData = r
+            return r
+        }
 
         // Cardio log pour la heatmap Régularité (parité streak serveur).
-        cardioLog = (try? await APIService.shared.fetchCardioData()) ?? []
+        await cardioLogState.load {
+            let r = try await APIService.shared.fetchCardioData()
+            cardioLog = r
+            return r
+        }
 
-        activeDeload = try? await APIService.shared.fetchDeloadStatus()
+        await deloadState.load {
+            let r = try await APIService.shared.fetchDeloadStatus()
+            activeDeload = r
+            return r
+        }
         isLoading = false
         await APIService.shared.syncDeloadFlag()
         NotificationService.scheduleContextual(
@@ -669,19 +697,21 @@ struct StatsView: View {
         }
         Task {
             // 26 semaines : courbe hero affiche les 12 dernières, delta W1 vs W26.
-            if let r = try? await APIService.shared.fetchForceVsAccessory(weeks: 26) {
-                await MainActor.run { forceAccessoryTimeline = r.timeline }
+            await forceAccessoryState.load {
+                let r = try await APIService.shared.fetchForceVsAccessory(weeks: 26)
+                forceAccessoryTimeline = r.timeline
+                return r
             }
         }
         Task {
             // PRs récents backend (filtre baseline_count ≥ 2, 30j). Utilisé par
             // l'accent PR du hero, à la place du calcul iOS naïf sur weights.history
             // qui remontait des 1RM Epley aberrants (calf raise 736 lbs).
-            if let r = try? await APIService.shared.fetchPRTracker() {
-                await MainActor.run {
-                    recentPRs = r.recentPRs
-                    lastPR    = r.lastPR
-                }
+            await prTrackerState.load {
+                let r = try await APIService.shared.fetchPRTracker()
+                recentPRs = r.recentPRs
+                lastPR    = r.lastPR
+                return r
             }
         }
         Task {
@@ -741,9 +771,11 @@ struct StatsView: View {
         isLoadingStatsHRV = true
         defer { isLoadingStatsHRV = false }
 
-        if let analysis = try? await APIService.shared.fetchHRVAnalysis() {
-            hrvAnalysis = analysis
+        await hrvState.load {
+            let r = try await APIService.shared.fetchHRVAnalysis()
+            hrvAnalysis = r
             hasLoadedStatsHRV = true
+            return r
         }
     }
 }
