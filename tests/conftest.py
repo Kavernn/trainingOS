@@ -739,6 +739,12 @@ def make_store():
         return False
 
     def delete_exercise_logs_for_session(session_id):
+        # Dans le mock, session_id = date (voir get_workout_session_by_type L810
+        # et delete_workout_session_by_type L725-730). Déléguer à la routine
+        # date-based garantit que l'invariant "après suppression, les logs
+        # n'apparaissent plus dans weights.history" reste vérifiable par les
+        # tests existants (test_delete_removes_history_entries, etc.).
+        delete_session_exercise_logs(session_id)
         return True
 
     def get_relational_week_schedule():
@@ -802,12 +808,14 @@ def make_store():
 
     def get_workout_session_by_type(date, session_type="morning"):
         # Contrat db_sessions : dict session ou None. Utilisé par nutrition
-        # _get_day_intensity pour distinguer session actual vs schedulée.
+        # _get_day_intensity pour distinguer session actual vs schedulée, et
+        # par api_session_delete pour résoudre session_id par (date, type).
         sessions = store.get("sessions", {})
         if date in sessions:
             entry = copy.deepcopy(sessions[date])
             entry["date"] = date
             entry["session_type"] = session_type
+            entry["id"] = date  # id dérivé du date dans le mock (parité delete_workout_session_by_type)
             return entry
         return None
 

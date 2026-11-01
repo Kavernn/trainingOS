@@ -410,7 +410,18 @@ def api_session_edit():
 
 @workout_bp.route("/api/session/delete", methods=["POST"])
 def api_session_delete():
-    """Delete an entire session (removes from sessions store + weights history)."""
+    """Delete a single session (by date + session_type) + its exercise logs.
+
+    Résolution unique par (date, session_type) via session_id — jamais de
+    repli sur morning. Toute valeur session_type hors {morning, evening, bonus}
+    est rejetée explicitement avec 400 (pas de silent default).
+
+    N'exécute AUCUN recalcul vestigial de weights.history après delete : le
+    bloc load_weights + bulk_upsert_exercise_logs qui existait précédemment
+    lit exercise_logs POST-delete (les logs supprimés sont déjà absents) et
+    réécrit la plus récente entrée restante — c'est un no-op coûteux (3
+    queries), supprimé pour clarté et perf.
+    """
     try:
         data = request.get_json(silent=True) or {}
         date = data.get("date")
@@ -418,33 +429,16 @@ def api_session_delete():
             return jsonify({"error": "date manquante"}), 400
 
         session_type = data.get("session_type", "morning")
+        if session_type not in {"morning", "evening", "bonus"}:
+            return jsonify({"error": f"session_type invalide: {session_type}"}), 400
 
         import db as _db
-        if session_type == "bonus":
-            bonus_session = _db.get_workout_session_bonus(date)
-            if bonus_session:
-                _db.delete_exercise_logs_for_session(bonus_session["id"])
-            _db.delete_workout_session_by_type(date, "bonus")
-        else:
-            _db.delete_session_exercise_logs(date)
-            _db.delete_workout_session_by_type(date, "morning")
+        session = _db.get_workout_session_by_type(date, session_type)
+        if not session:
+            return jsonify({"error": f"aucune séance {session_type} pour {date}"}), 404
 
-        from weights import load_weights
-        weights = load_weights()
-        entries = []
-        for ex, ex_data in weights.items():
-            history = ex_data.get("history", [])
-            if not history:
-                continue
-            most_recent = history[0]
-            entries.append({
-                "date": most_recent["date"],
-                "exercise_name": ex,
-                "weight": most_recent.get("weight"),
-                "reps": most_recent.get("reps"),
-            })
-        if entries:
-            _db.bulk_upsert_exercise_logs(entries)
+        _db.delete_exercise_logs_for_session(session["id"])
+        _db.delete_workout_session_by_type(date, session_type)
 
         _invalidate_brief()
         return jsonify({"success": True})
