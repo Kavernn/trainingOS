@@ -512,32 +512,46 @@ final class DashboardViewModel: ObservableObject {
                     }
                     return .warRoomStatus
                 }
-                // Notification-only side effects (no @Published needed)
+                // Background side-effects (notifications only, no UI consumer).
+                // Convention : `logger.error("fnName: …")` → opt-in du garde-fou
+                // knownBackgroundSideEffects (cf. NoSilentAPIErrorsInViewsTests).
                 group.addTask { @MainActor in
-                    if let report = try? await APIService.shared.fetchWeeklyReport() {
+                    do {
+                        let report = try await APIService.shared.fetchWeeklyReport()
                         guard self.canPublish(contextVersion, today: today) else { return .effects }
                         NotificationService.scheduleWeeklyRecapWithData(report: report, tracker: BehaviorTracker.shared)
+                    } catch {
+                        self.logger.error("fetchWeeklyReport: \(error, privacy: .public)")
                     }
                     return .effects
                 }
                 group.addTask { @MainActor in
-                    if let s = try? await APIService.shared.getActiveSeason() {
+                    do {
+                        let s = try await APIService.shared.getActiveSeason()
                         guard self.canPublish(contextVersion, today: today) else { return .effects }
-                        NotificationService.scheduleSeasonMilestones(seasonStartISO: s.startedAt, seasonNumber: s.number)
+                        if let s { NotificationService.scheduleSeasonMilestones(seasonStartISO: s.startedAt, seasonNumber: s.number) }
+                    } catch {
+                        self.logger.error("getActiveSeason: \(error, privacy: .public)")
                     }
                     return .effects
                 }
                 group.addTask { @MainActor in
-                    if let dna = try? await APIService.shared.fetchWorkoutDNA() {
+                    do {
+                        let dna = try await APIService.shared.fetchWorkoutDNA()
                         guard self.canPublish(contextVersion, today: today) else { return .effects }
                         NotificationService.notifyDNAArchetypeChange(newKey: dna.archetype.key, newLabel: dna.archetype.label)
+                    } catch {
+                        self.logger.error("fetchWorkoutDNA: \(error, privacy: .public)")
                     }
                     return .effects
                 }
                 group.addTask { @MainActor in
-                    if let capsules = try? await APIService.shared.fetchTimeCapsules() {
+                    do {
+                        let capsules = try await APIService.shared.fetchTimeCapsules()
                         guard self.canPublish(contextVersion, today: today) else { return .effects }
                         NotificationService.scheduleTimeCapsuleSoon(capsules: capsules)
+                    } catch {
+                        self.logger.error("fetchTimeCapsules: \(error, privacy: .public)")
                     }
                     return .effects
                 }
