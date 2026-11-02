@@ -1228,6 +1228,8 @@ struct EditProfileSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var units = UnitSettings.shared
     @State private var isSaving = false
+    @State private var saveError: String?
+    @State private var isQueued = false
 
     @State private var name: String
     @State private var weight: String
@@ -1294,6 +1296,25 @@ struct EditProfileSheet: View {
                         }
                     }
                     .listRowBackground(Color.appCard).foregroundColor(.gray)
+
+                    if isQueued {
+                        Section {
+                            Text("Enregistrement en attente — hors ligne")
+                                .font(.appCaption)
+                                .foregroundColor(.appTextSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .listRowBackground(Color.appCard)
+                    }
+                    if let msg = saveError {
+                        Section {
+                            Text(msg)
+                                .font(.appCaption)
+                                .foregroundColor(.appDanger)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .listRowBackground(Color.appCard)
+                    }
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -1308,21 +1329,36 @@ struct EditProfileSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         isSaving = true
+                        saveError = nil
+                        isQueued = false
                         Task {
+                            defer { Task { @MainActor in isSaving = false } }
                             let rawWeight = Double(weight.replacingOccurrences(of: ",", with: "."))
                                 .map { units.toStorage($0) }
-                            try? await APIService.shared.updateProfile(
-                                name:   name.isEmpty ? nil : name,
-                                weight: rawWeight,
-                                height: Double(height),
-                                age:    Int(age),
-                                goal:   goal.isEmpty ? nil : goal,
-                                level:  level.isEmpty ? nil : level,
-                                sex:    sex.isEmpty ? nil : sex
-                            )
-                            await onSaved()
-                            isSaving = false
-                            dismiss()
+                            do {
+                                try await APIService.shared.updateProfile(
+                                    name:   name.isEmpty ? nil : name,
+                                    weight: rawWeight,
+                                    height: Double(height),
+                                    age:    Int(age),
+                                    goal:   goal.isEmpty ? nil : goal,
+                                    level:  level.isEmpty ? nil : level,
+                                    sex:    sex.isEmpty ? nil : sex
+                                )
+                                // Succès serveur UNIQUEMENT : onSaved + dismiss.
+                                await onSaved()
+                                await MainActor.run { dismiss() }
+                            } catch APIError.queuedOffline {
+                                await MainActor.run { isQueued = true }
+                                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                                await MainActor.run { dismiss() }
+                            } catch APIError.serverError(_, let msg) {
+                                await MainActor.run {
+                                    saveError = msg.isEmpty ? "Erreur serveur" : msg
+                                }
+                            } catch {
+                                await MainActor.run { saveError = "Erreur réseau — réessaie" }
+                            }
                         }
                     } label: {
                         if isSaving {

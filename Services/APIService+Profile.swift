@@ -79,7 +79,9 @@ extension APIService {
         if let v = goal   { body["goal"]   = v }
         if let v = level  { body["level"]  = v }
         if let v = sex    { body["sex"]    = v }
-        _ = try await offlinePost(endpoint: "/api/update_profile", payload: body)
+        if try await offlinePost(endpoint: "/api/update_profile", payload: body) == nil {
+            throw APIError.queuedOffline
+        }
         CacheInvalidation.profileUpdated.invalidate()
     }
 

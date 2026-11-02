@@ -84,7 +84,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Profile/ProfileView.swift:getCurrentOath",
         "Views/Profile/ProfileView.swift:getWarRoomConfig",
         "Views/Profile/ProfileView.swift:getWarRoomSummary",
-        "Views/Profile/ProfileView.swift:updateProfile",
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
         "Views/Recovery/RecoveryView.swift:fetchHRVAnalysis",
         "Views/Recovery/RecoveryView.swift:fetchReadiness",
