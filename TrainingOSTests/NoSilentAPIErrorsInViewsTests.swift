@@ -55,6 +55,10 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/MentalHealth/MentalHealthView.swift:fetchMoodEmotions",
         "Views/MentalHealth/MoodTrackerView.swift:fetchMoodEmotions",
         "Views/MentalHealth/MoodTrackerView.swift:fetchMoodHistory",
+        // à migrer avec l'écran Nutrition, après le commit du WIP de Vince
+        "Views/Nutrition/NutritionView.swift:fetchEnergyDaily",
+        // à migrer avec l'écran Nutrition, après le commit du WIP de Vince
+        "Views/Nutrition/NutritionViewModel.swift:URLSession.authed",
         "Views/Oath/OathView.swift:getCurrentOath",
         "Views/Oath/OathView.swift:getOathVersions",
         "Views/PSS/PSSView.swift:checkPSSDue",
@@ -122,6 +126,35 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // rappel capsule aujourd'hui, l'app ne dépend pas de l'état client.
     ]
 
+    /// Prouve que le scanner est invariant aux symlinks dans le chemin racine.
+    /// Avant la normalisation : scanner `/tmp/root` (symlink de `/private/tmp/root`)
+    /// produisait des `rel` du type `Views/private/tmp/root/File.swift` au lieu
+    /// de `Views/File.swift` — le match contre `knownSites` échouait silencieusement.
+    func test_scan_isSymlinkInvariant() throws {
+        let fm = FileManager.default
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("NoSilentAPIErrors-\(UUID().uuidString)", isDirectory: true)
+        try fm.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: tmp) }
+
+        let real = tmp.appendingPathComponent("real", isDirectory: true)
+        try fm.createDirectory(at: real, withIntermediateDirectories: true)
+        let swiftFile = real.appendingPathComponent("Fake.swift")
+        try #"_ = try? await APIService.shared.fetchFakeFoo()"#
+            .write(to: swiftFile, atomically: true, encoding: .utf8)
+
+        let link = tmp.appendingPathComponent("link", isDirectory: true)
+        try fm.createSymbolicLink(at: link, withDestinationURL: real)
+
+        let viaReal = try scanViews(root: real)
+        let viaLink = try scanViews(root: link)
+
+        XCTAssertEqual(viaReal.count, 1)
+        XCTAssertEqual(viaLink.count, 1)
+        XCTAssertEqual(viaReal.map { "\($0.file):\($0.function)" },
+                       viaLink.map { "\($0.file):\($0.function)" })
+    }
+
     func test_noSilentAPIErrors_siteBased() throws {
         let all = try scanViews(root: Self.viewsRoot)
         let unknown = all.filter { !Self.knownSites.contains("\($0.file):\($0.function)") }
@@ -149,14 +182,21 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
     // MARK: - Scanner
 
     private func scanViews(root: URL) throws -> [Violation] {
+        // Normalise les deux côtés avant de calculer le chemin relatif : sans
+        // ça, un repo sous /tmp (symlink de /private/tmp) produit `url.path`
+        // résolu et `root.path` non résolu — le `replacingOccurrences` échoue
+        // silencieusement et `rel` devient `Views/private/tmp/.../File.swift`,
+        // ce qui fait rater le match dans `knownSites`.
+        let normRoot = root.resolvingSymlinksInPath().standardizedFileURL
         guard let enumerator = FileManager.default.enumerator(
-            at: root, includingPropertiesForKeys: nil) else { return [] }
+            at: normRoot, includingPropertiesForKeys: nil) else { return [] }
 
         var out: [Violation] = []
         for case let url as URL in enumerator {
             guard url.pathExtension == "swift" else { continue }
-            let rel = "Views/" + url.path.replacingOccurrences(of: root.path + "/", with: "")
-            let content = try String(contentsOf: url, encoding: .utf8)
+            let normURL = url.resolvingSymlinksInPath().standardizedFileURL
+            let rel = "Views/" + normURL.path.replacingOccurrences(of: normRoot.path + "/", with: "")
+            let content = try String(contentsOf: normURL, encoding: .utf8)
             out.append(contentsOf: findViolations(in: content, path: rel))
         }
         return out
