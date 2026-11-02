@@ -61,7 +61,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/GymFinder/GymFinderViewModel.swift:offlinePost",
         "Views/HIIT/HIITHistoriqueView.swift:fetchHIITData",
         "Views/Historique/HistoriqueView.swift:URLSession.authed",
-        "Views/Intelligence/BattleCounterView.swift:logOathRecall",
         "Views/Intelligence/RitualEveningView.swift:fetchRitualToday",
         "Views/Intelligence/RitualView.swift:fetchRitualToday",
         "Views/Intelligence/WarRoomGateView.swift:getCurrentOath",

@@ -278,7 +278,13 @@ struct BattleCounterView: View {
                 Button("Fermer") {
                     showOathRecall = false
                     vm.streakJustReset = false
-                    Task { try? await APIService.shared.logOathRecall(oathId: oath.id, trigger: "streak_reset") }
+                    // Télémétrie fire-and-forget : SyncManager gère la queue
+                    // ET les rejets 4xx au rejeu (DiscardedMutation banner).
+                    // Pas d'erreur à surfacer pour un simple log d'événement.
+                    SyncManager.shared.enqueue(
+                        endpoint: "/api/oath/recall",
+                        payload: ["oath_id": oath.id, "trigger": "streak_reset"]
+                    )
                 }
                 .font(.system(size: 12))
                 .foregroundStyle(Color.secondary)
@@ -302,7 +308,11 @@ struct BattleCounterView: View {
         milestoneDay = days
         showMilestone = true
         if let oath = vm.currentOath {
-            Task { try? await APIService.shared.logOathRecall(oathId: oath.id, trigger: "milestone") }
+            // Idem L278 : télémétrie fire-and-forget via SyncManager.
+            SyncManager.shared.enqueue(
+                endpoint: "/api/oath/recall",
+                payload: ["oath_id": oath.id, "trigger": "milestone"]
+            )
         }
     }
 
