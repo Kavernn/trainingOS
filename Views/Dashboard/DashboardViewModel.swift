@@ -175,6 +175,8 @@ final class DashboardViewModel: ObservableObject {
     let nutritionDetailState = Loadable<NutritionDataResponse>()
     let cardioState    = Loadable<[CardioEntry]>()
     let budgetState    = Loadable<BudgetStatus>()
+    let warRoomConfigState = Loadable<WarRoomConfig>()
+    let warRoomStatusState = Loadable<WarRoomTodayStatus>()
 
     /// Agrège toutes les lectures Dashboard pour la bannière globale
     /// (offline/network). Un seul groupe = un seul retry (loadAll).
@@ -186,6 +188,7 @@ final class DashboardViewModel: ObservableObject {
                     recoveryState, hrvState, moodDueState,
                     patternState, ritualState,
                     nutritionDetailState, cardioState, budgetState,
+                    warRoomConfigState, warRoomStatusState,
                 ],
                 retry: { [weak self] in await self?.loadAll() }
             )
@@ -510,13 +513,13 @@ final class DashboardViewModel: ObservableObject {
                     }
                     return .streak
                 }
+                // weeklyTonnage : appel supprimé en C.5 — zéro consommateur UI
+                // (dead chain : @Published + P3State + switch case gardés comme
+                // dette dédup tests, cf. todo_loadable_dedup).
                 group.addTask { @MainActor in
-                    p3.weeklyTonnage   = try? await APIService.shared.fetchWeeklyTonnage().volume
-                    return .tonnage
-                }
-                group.addTask { @MainActor in
-                    if let config = try? await APIService.shared.getWarRoomConfig() {
-                        guard self.canPublish(contextVersion, today: today) else { return .warRoomConfig }
+                    await self.warRoomConfigState.load {
+                        let config = try await APIService.shared.getWarRoomConfig()
+                        guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
                         let enabled = config.warStartDate != nil
                         p3.warRoomEnabled = enabled
                         UserDefaults.standard.set(enabled, forKey: "warRoomEnabled")
@@ -524,13 +527,17 @@ final class DashboardViewModel: ObservableObject {
                         NotificationService.scheduleWarRoomDailyCheckin(
                             isEnabled: enabled && notificationEnabled
                         )
+                        return config
                     }
                     return .warRoomConfig
                 }
                 group.addTask { @MainActor in
-                    if let ts = try? await APIService.shared.getWarRoomTodayStatus() {
+                    await self.warRoomStatusState.load {
+                        let ts = try await APIService.shared.getWarRoomTodayStatus()
+                        guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
                         p3.warRoomHasResult     = ts.hasResult
                         p3.warRoomHasTemptation = ts.hasTemptation
+                        return ts
                     }
                     return .warRoomStatus
                 }
@@ -619,9 +626,11 @@ final class DashboardViewModel: ObservableObject {
 
     func refreshWarRoomTodayStatus() async {
         CacheService.shared.clear(for: "war_room_today_status")
-        if let ts = try? await APIService.shared.getWarRoomTodayStatus() {
-            warRoomHasResult     = ts.hasResult
-            warRoomHasTemptation = ts.hasTemptation
+        await warRoomStatusState.load {
+            let ts = try await APIService.shared.getWarRoomTodayStatus()
+            self.warRoomHasResult     = ts.hasResult
+            self.warRoomHasTemptation = ts.hasTemptation
+            return ts
         }
     }
 
