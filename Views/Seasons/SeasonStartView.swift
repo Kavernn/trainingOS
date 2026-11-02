@@ -7,6 +7,8 @@ struct SeasonStartView: View {
 
     @State private var phase: StartPhase = .intro
     @State private var isStarting = false
+    @State private var startError: String?
+    @State private var isQueued = false
 
     var body: some View {
         ZStack {
@@ -48,26 +50,40 @@ struct SeasonStartView: View {
 
             Spacer()
 
-            HStack {
-                Button("Pas maintenant") { onDismiss() }
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.secondary)
-                Spacer()
-                Button {
-                    Task { await startSeason() }
-                } label: {
-                    if isStarting {
-                        ProgressView().tint(.onAccent)
-                    } else {
-                        Text("Commencer")
-                            .font(.appBody.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 28)
-                            .padding(.vertical, 12)
-                            .background(Color.forge, in: Capsule())
-                    }
+            VStack(spacing: 6) {
+                if isQueued {
+                    Text("Démarrage en attente — hors ligne")
+                        .font(.appCaption)
+                        .foregroundColor(.appTextSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .disabled(isStarting)
+                if let msg = startError {
+                    Text(msg)
+                        .font(.appCaption)
+                        .foregroundColor(.appDanger)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                HStack {
+                    Button("Pas maintenant") { onDismiss() }
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.secondary)
+                    Spacer()
+                    Button {
+                        Task { await startSeason() }
+                    } label: {
+                        if isStarting {
+                            ProgressView().tint(.onAccent)
+                        } else {
+                            Text("Commencer")
+                                .font(.appBody.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 28)
+                                .padding(.vertical, 12)
+                                .background(Color.forge, in: Capsule())
+                        }
+                    }
+                    .disabled(isStarting || isQueued)
+                }
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 52)
@@ -116,10 +132,19 @@ struct SeasonStartView: View {
 
     private func startSeason() async {
         isStarting = true
-        _ = try? await APIService.shared.startSeason()
-        await MainActor.run {
-            isStarting = false
-            withAnimation { phase = .started }
+        startError = nil
+        isQueued = false
+        defer { Task { @MainActor in isStarting = false } }
+        do {
+            _ = try await APIService.shared.startSeason()
+            // Succès serveur UNIQUEMENT : passage à la phase "started".
+            await MainActor.run { withAnimation { phase = .started } }
+        } catch APIError.queuedOffline {
+            await MainActor.run { isQueued = true }
+        } catch APIError.serverError(_, let msg) {
+            await MainActor.run { startError = msg.isEmpty ? "Erreur serveur" : msg }
+        } catch {
+            await MainActor.run { startError = "Erreur réseau — réessaie" }
         }
     }
 }

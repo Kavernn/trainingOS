@@ -99,7 +99,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Seance/WorkoutActiveView.swift:fetchExerciseWeightData",
         "Views/Seance/WorkoutActiveView.swift:fetchStatsData",
         "Views/Seasons/SeasonCloseView.swift:updateSeason",
-        "Views/Seasons/SeasonStartView.swift:startSeason",
         "Views/Seasons/SeasonView.swift:getActiveSeason",
         "Views/Seasons/SeasonView.swift:getAllSeasons",
         "Views/XP/XPView.swift:fetchHIITData",

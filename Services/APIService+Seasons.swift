@@ -35,7 +35,9 @@ extension APIService {
     }
 
     func startSeason() async throws -> Season? {
-        guard let data = try await offlinePost(endpoint: "/api/seasons/start", payload: [:]) else { return nil }
+        guard let data = try await offlinePost(endpoint: "/api/seasons/start", payload: [:]) else {
+            throw APIError.queuedOffline
+        }
         CacheInvalidation.seasonMutated.invalidate()
         do {
             return try APIService.decoder.decode(Season.self, from: data)
