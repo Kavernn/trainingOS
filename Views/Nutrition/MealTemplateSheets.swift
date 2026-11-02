@@ -349,6 +349,8 @@ struct MealTemplateListSheet: View {
     @State private var isLoading = true
     @State private var showCreate = false
     @State private var editTarget: MealTemplate? = nil
+    @State private var deleteError: String?
+    @State private var queuedDeletes = 0
 
     var body: some View {
         NavigationStack {
@@ -367,6 +369,24 @@ struct MealTemplateListSheet: View {
                     }
                 } else {
                     List {
+                        if queuedDeletes > 0 {
+                            Section {
+                                Text("\(queuedDeletes) suppression\(queuedDeletes > 1 ? "s" : "") en attente — hors ligne")
+                                    .font(.appCaption)
+                                    .foregroundColor(.appTextSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .listRowBackground(Color.appCard)
+                        }
+                        if let msg = deleteError {
+                            Section {
+                                Text(msg)
+                                    .font(.appCaption)
+                                    .foregroundColor(.appDanger)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .listRowBackground(Color.appCard)
+                        }
                         ForEach(templates) { template in
                             Button { editTarget = template } label: {
                                 HStack {
@@ -388,11 +408,31 @@ struct MealTemplateListSheet: View {
                             .listRowBackground(Color.appCard)
                         }
                         .onDelete { idxs in
-                            let toDelete = idxs.map { templates[$0] }
+                            // Swipe optimiste + revert-on-error : SwiftUI retire
+                            // la row immédiatement, l'API confirme ensuite. Si
+                            // rejet serveur, on la ré-insère à son index.
+                            let snapshots: [(Int, MealTemplate)] = idxs.sorted().map { ($0, templates[$0]) }
                             templates.remove(atOffsets: idxs)
+                            deleteError = nil
                             Task {
-                                for t in toDelete {
-                                    try? await APIService.shared.deleteMealTemplate(t.id)
+                                for (idx, t) in snapshots {
+                                    do {
+                                        try await APIService.shared.deleteMealTemplate(t.id)
+                                    } catch APIError.queuedOffline {
+                                        await MainActor.run { queuedDeletes += 1 }
+                                    } catch APIError.serverError(_, let msg) {
+                                        await MainActor.run {
+                                            let safeIdx = min(idx, templates.count)
+                                            templates.insert(t, at: safeIdx)
+                                            deleteError = msg.isEmpty ? "Erreur serveur" : msg
+                                        }
+                                    } catch {
+                                        await MainActor.run {
+                                            let safeIdx = min(idx, templates.count)
+                                            templates.insert(t, at: safeIdx)
+                                            deleteError = "Erreur réseau — réessaie"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -420,6 +460,14 @@ struct MealTemplateListSheet: View {
             }
         }
         .task { await reload() }
+        .onReceive(SyncManager.shared.$pendingCount) { count in
+            // File vidée : suppressions enfilées rejouées (succès OU rejet 4xx
+            // qui apparaîtra dans la bannière SyncManager). Reload = état réel.
+            if count == 0 && queuedDeletes > 0 {
+                queuedDeletes = 0
+                Task { await reload() }
+            }
+        }
     }
 
     private func reload() async {

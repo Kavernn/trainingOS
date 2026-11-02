@@ -162,7 +162,9 @@ extension APIService {
     }
 
     func deleteMealTemplate(_ id: String) async throws {
-        _ = try await offlinePost(endpoint: "/api/meal_templates/\(id)/delete", payload: [:])
+        if try await offlinePost(endpoint: "/api/meal_templates/\(id)/delete", payload: [:]) == nil {
+            throw APIError.queuedOffline
+        }
     }
 
     func logMealTemplate(_ id: String, mealType: String) async throws {
