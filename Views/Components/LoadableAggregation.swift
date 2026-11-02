@@ -80,7 +80,7 @@ struct LoadableAggregator {
 /// Bandeau top des pages orchestrées (ex. Stats). Visible UNIQUEMENT quand
 /// l'agrégateur détecte une panne globale (offline/network). Un seul Réessayer
 /// relance tous les groupes affectés.
-struct StatsTopBanner: View {
+struct TopFailureBanner: View {
     let aggregator: LoadableAggregator
 
     var body: some View {
@@ -127,7 +127,7 @@ struct StatsTopBanner: View {
 /// Carte / bannière d'erreur à placer AU-DESSUS d'une section de données.
 /// - .server / .decoding → bannière avec message serveur + Réessayer local.
 /// - .offline / .network ET pas de value → "Indisponible" compact, sans bouton
-///   (le StatsTopBanner global gère la relance).
+///   (le TopFailureBanner global gère la relance).
 /// - Autrement : rien (section affiche ses données, stale ou fraîches).
 struct SectionErrorView: View {
     let state: any LoadableStateView
