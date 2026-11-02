@@ -156,9 +156,9 @@ struct SeasonCloseView: View {
             }
             Spacer()
             Button("Sceller cette saison") {
-                withAnimation { step = .seal }
                 Task { await saveSeal() }
             }
+            .disabled(isSaving)
             .font(.system(size: 15, weight: .bold, design: .monospaced))
             .foregroundStyle(Color.primary)
             .tracking(2)
@@ -220,6 +220,9 @@ struct SeasonCloseView: View {
     private func saveSeal() async {
         guard let r = report else { return }
         isSaving = true
+        closeError = nil
+        defer { Task { @MainActor in isSaving = false } }
+
         var fields: [String: Any] = [:]
         let finalTitle = customTitle.trimmingCharacters(in: .whitespaces)
         if !finalTitle.isEmpty && finalTitle != r.title {
@@ -228,11 +231,26 @@ struct SeasonCloseView: View {
         if !personalNote.trimmingCharacters(in: .whitespaces).isEmpty {
             fields["personal_note"] = personalNote
         }
+
         if !fields.isEmpty {
-            _ = try? await APIService.shared.updateSeason(id: r.season.id, fields: fields)
+            do {
+                _ = try await APIService.shared.updateSeason(id: r.season.id, fields: fields)
+            } catch APIError.serverError(_, let msg) {
+                await MainActor.run {
+                    closeError = msg.isEmpty ? "La saison n'a pas pu être scellée — réessaie." : msg
+                }
+                return
+            } catch {
+                await MainActor.run {
+                    closeError = "La saison n'a pas pu être scellée — vérifie ta connexion et réessaie."
+                }
+                return
+            }
         }
+        // Succès serveur (ou pas de champ à sauver) UNIQUEMENT :
+        // haptic + passage à l'étape .seal.
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        isSaving = false
+        await MainActor.run { withAnimation { step = .seal } }
     }
 
     private var arcColor: Color {
