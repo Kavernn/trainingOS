@@ -122,6 +122,8 @@ struct AddArsenalView: View {
     @State private var label:    String          = ""
     @State private var category: ArsenalCategory = .physical
     @State private var saving    = false
+    @State private var addError: String?
+    @State private var isQueued  = false
 
     var body: some View {
         NavigationStack {
@@ -140,6 +142,21 @@ struct AddArsenalView: View {
                     .pickerStyle(.menu)
                 }
                 .listRowBackground(Color.appCard)
+
+                if isQueued {
+                    Text("Ajout en attente — sera envoyé à la reconnexion")
+                        .font(.appCaption)
+                        .foregroundColor(.appTextSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .listRowBackground(Color.appCard)
+                }
+                if let msg = addError {
+                    Text(msg)
+                        .font(.appCaption)
+                        .foregroundColor(.appDanger)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .listRowBackground(Color.appCard)
+                }
             }
             .scrollContentBackground(.hidden)
             .background(Color.appBg)
@@ -162,13 +179,30 @@ struct AddArsenalView: View {
 
     private func save() {
         saving = true
+        addError = nil
+        isQueued = false
         Task {
-            _ = try? await APIService.shared.addArsenalItem(
-                label: label.trimmingCharacters(in: .whitespaces),
-                category: category
-            )
-            await vm.loadArsenal()
-            dismiss()
+            defer { saving = false }
+            do {
+                _ = try await APIService.shared.addArsenalItem(
+                    label: label.trimmingCharacters(in: .whitespaces),
+                    category: category
+                )
+                await vm.loadArsenal()
+                dismiss()
+            } catch APIError.queuedOffline {
+                isQueued = true
+                // Sheet reste ouverte : l'utilisateur voit "en attente" ; au rejeu
+                // la mutation sera visible dans l'arsenal au prochain loadArsenal.
+                // Pour ne pas bloquer le flow, on dismiss après notification brève.
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                await vm.loadArsenal()
+                dismiss()
+            } catch APIError.serverError(_, let msg) {
+                addError = msg.isEmpty ? "Erreur serveur" : msg
+            } catch {
+                addError = "Erreur réseau — réessaie"
+            }
         }
     }
 }
