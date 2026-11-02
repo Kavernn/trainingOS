@@ -107,6 +107,37 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Onboarding/OnboardingView.swift:catch:empty",
     ]
 
+    /// Catches background-side-effect-only : l'appel n'alimente aucune UI
+    /// (pas d'@Published lu, pas de Loadable observé). Seul un side-effect
+    /// (notif, UserDefaults) suit le succès. Un échec silencieux est
+    /// acceptable — PAS de carte d'erreur, PAS de Loadable, logger uniquement.
+    ///
+    /// Convention : le catch doit commencer par `logger.error("fnName: …")`
+    /// — le scanner extrait fnName de la chaîne et vérifie l'appartenance
+    /// à ce set. Format : `Views/.../File.swift:fnName`.
+    ///
+    /// Chaque entrée documente SA raison (notifications uniquement, UserDefaults
+    /// seul, etc.). Si tu ajoutes un site ici, écris pourquoi la UI n'a pas
+    /// besoin de le remonter.
+    private static let knownBackgroundSideEffects: Set<String> = [
+        "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport",
+            // Raison : schedule du notif recap hebdo uniquement. Aucune @Published,
+            // aucune carte dashboard ne lit la réponse. Un échec = pas de rappel
+            // cette semaine, l'utilisateur reverra son résumé au prochain cycle.
+        "Views/Dashboard/DashboardViewModel.swift:getActiveSeason",
+            // Raison : scheduleSeasonMilestones (notif) uniquement. L'état saison
+            // affiché vient d'ailleurs (SeasonView fetch dédié). Un échec = pas
+            // de rappels de milestone cette session, retry au prochain app open.
+        "Views/Dashboard/DashboardViewModel.swift:fetchWorkoutDNA",
+            // Raison : notifyDNAArchetypeChange (notif) uniquement. L'enqueue
+            // DNA evolution vit dans AppState.checkDNAEvolution (appel distinct).
+            // Un échec = pas de notif changement d'archétype, non critique.
+        "Views/Dashboard/DashboardViewModel.swift:fetchTimeCapsules",
+            // Raison : scheduleTimeCapsuleSoon (notif) uniquement. Les capsules
+            // sont consommées côté push notif seulement. Un échec = pas de
+            // rappel capsule aujourd'hui, l'app ne dépend pas de l'état client.
+    ]
+
     func test_noSilentAPIErrors_siteBased() throws {
         let all = try scanViews(root: Self.viewsRoot)
         let unknown = all.filter { !Self.knownSites.contains("\($0.file):\($0.function)") }
@@ -168,7 +199,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
                 out.append(.init(file: path, line: i + 1, function: "URLSession.authed"))
             }
             if catchRe?.firstMatch(in: line, options: [], range: r) != nil,
-               let kind = silentCatchKind(startLine: i, in: lines) {
+               let kind = silentCatchKind(startLine: i, in: lines, path: path) {
                 out.append(.init(file: path, line: i + 1, function: "catch:\(kind)"))
             }
         }
@@ -179,7 +210,11 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
     /// Exclut les catches dont le pattern catch est intentionnellement silencieux
     /// par contrat (queuedOffline = mutation enfilée, CancellationError, URLError
     /// code .cancelled). Ces catches n'ont rien à signaler à l'utilisateur.
-    private func silentCatchKind(startLine: Int, in lines: [String]) -> String? {
+    ///
+    /// Exclut aussi les catches "background side-effect" documentés dans
+    /// `knownBackgroundSideEffects` : le catch log-only est acceptable car
+    /// l'appel ne nourrit aucune UI (notifications uniquement).
+    private func silentCatchKind(startLine: Int, in lines: [String], path: String) -> String? {
         let catchLine = lines[startLine]
         if catchLine.contains("queuedOffline") { return nil }
         if catchLine.contains("CancellationError") { return nil }
@@ -187,9 +222,27 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
 
         let body = catchBody(startLine: startLine, in: lines)
         if body.isEmpty { return "empty" }
-        if body.allSatisfy(isLoggerOnly)   { return "log-only" }
+        if body.allSatisfy(isLoggerOnly) {
+            if isDocumentedBackgroundSideEffect(body: body, path: path) { return nil }
+            return "log-only"
+        }
         if body.allSatisfy(isIgnoredAssign) { return "ignored" }
         return nil
+    }
+
+    /// Vrai si le catch log-only commence par `logger.error("fnName: …")` avec
+    /// un `fnName` déclaré dans `knownBackgroundSideEffects` pour ce `path`.
+    /// Le préfixe `fnName:` DOIT être présent dans le message de log pour que
+    /// l'opt-out fonctionne — convention explicite, pas d'auto-magie.
+    private func isDocumentedBackgroundSideEffect(body: [String], path: String) -> Bool {
+        guard let first = body.first else { return false }
+        let re = try? NSRegularExpression(pattern: #"[Ll]ogger\.error\(\s*"(\w+):"#)
+        let ns = first as NSString
+        guard let m = re?.firstMatch(in: first, options: [],
+                                     range: NSRange(location: 0, length: ns.length)),
+              m.numberOfRanges > 1 else { return false }
+        let fn = ns.substring(with: m.range(at: 1))
+        return Self.knownBackgroundSideEffects.contains("\(path):\(fn)")
     }
 
     /// Récupère les lignes NON vides et NON commentaires du corps du catch
