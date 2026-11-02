@@ -1955,6 +1955,7 @@ struct AddExerciseToProgramSheet: View {
     @State private var seances: [String] = []
     @State private var isLoading = true
     @State private var pendingSeance: String? = nil
+    @State private var addError: String?
 
     var body: some View {
         NavigationStack {
@@ -1966,13 +1967,23 @@ struct AddExerciseToProgramSheet: View {
                     EmptyStateView(icon: "list.bullet.clipboard", title: "Aucune séance dans ton programme", compact: true)
                         .padding(.top, 60)
                 } else {
-                    List {
-                        Section {
-                            ForEach(seances, id: \.self) { seance in
-                                Button {
-                                    guard pendingSeance == nil else { return }
-                                    Task { await addTo(seance: seance) }
-                                } label: {
+                    VStack(spacing: 0) {
+                        if let msg = addError {
+                            Text(msg)
+                                .font(.appCaption)
+                                .foregroundColor(.appDanger)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 8)
+                        }
+                        List {
+                            Section {
+                                ForEach(seances, id: \.self) { seance in
+                                    Button {
+                                        guard pendingSeance == nil else { return }
+                                        Task { await addTo(seance: seance) }
+                                    } label: {
                                     HStack(spacing: 14) {
                                         Image(systemName: "dumbbell.fill")
                                             .font(.appLabel)
@@ -2002,9 +2013,10 @@ struct AddExerciseToProgramSheet: View {
                                 .foregroundColor(.gray)
                                 .textCase(nil)
                         }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
                 }
             }
             .navigationTitle(exercise.name)
@@ -2033,16 +2045,32 @@ struct AddExerciseToProgramSheet: View {
     }
 
     private func addTo(seance seanceName: String) async {
-        await MainActor.run { pendingSeance = seanceName }
+        await MainActor.run { pendingSeance = seanceName; addError = nil }
         let scheme = exercise.defaultScheme.isEmpty ? "3x8-12" : exercise.defaultScheme
-        _ = try? await APIService.shared.postProgrammeMutation([
-            "action": "add", "jour": seanceName,
-            "exercise": exercise.name, "scheme": scheme
-        ])
-        await MainActor.run {
-            pendingSeance = nil
-            onAdded()
-            dismiss()
+        do {
+            try await APIService.shared.postProgrammeMutation([
+                "action": "add", "jour": seanceName,
+                "exercise": exercise.name, "scheme": scheme
+            ])
+            // Succès serveur UNIQUEMENT : dismiss + onAdded (règle anti-optimiste).
+            // postProgrammeMutation = POST direct, pas de queuedOffline par design
+            // (voir APIService+Workout : les mutations de structure ne sont jamais
+            // enfilées).
+            await MainActor.run {
+                pendingSeance = nil
+                onAdded()
+                dismiss()
+            }
+        } catch APIError.serverError(_, let msg) {
+            await MainActor.run {
+                pendingSeance = nil
+                addError = msg.isEmpty ? "Erreur serveur" : msg
+            }
+        } catch {
+            await MainActor.run {
+                pendingSeance = nil
+                addError = "Erreur réseau — réessaie"
+            }
         }
     }
 }
