@@ -162,6 +162,14 @@ final class DashboardViewModel: ObservableObject {
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
 
+    // Loadables (migration série C) — alimentent les @Published ci-dessus par
+    // pont dans la closure .load après canPublish, et exposent isLoading /
+    // error / lastUpdated à la UI (SectionErrorView + bannière globale).
+    // Dédup @Published ↔ Loadable = chantier dédié (cf. mémoire todo_loadable_dedup).
+    let readinessState = Loadable<ReadinessResponse>()
+    let streakState    = Loadable<StreakResponse>()
+    let deloadState    = Loadable<DeloadReport>()
+
     private let logger = Logger(subsystem: "TrainingOS", category: "dashboard")
     // PERF-5: skip expensive analytics if already loaded today
     private var analyticsLoadedDate = ""
@@ -306,8 +314,13 @@ final class DashboardViewModel: ObservableObject {
     private func loadDay(today: String, yesterdayStr: String, contextVersion: Int) async {
         await receiveDay(today: today, contextVersion: contextVersion) { group, p2 in
             group.addTask { @MainActor in
-                do { p2.deload = try await APIService.shared.fetchDeloadData(); return (.deload, 0) }
-                catch { self.logger.error("fetchDeload: \(error, privacy: .public)"); return (.deload, 0) }
+                await self.deloadState.load {
+                    let r = try await APIService.shared.fetchDeloadData()
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
+                    p2.deload = r
+                    return r
+                }
+                return (.deload, 0)
             }
             group.addTask { @MainActor in
                 do { p2.moodDue = try await APIService.shared.checkMoodDue(); return (.moodDue, 0) }
@@ -455,11 +468,21 @@ final class DashboardViewModel: ObservableObject {
         if analyticsLoadedDate != today {
             await receiveAnalytics(today: today, contextVersion: contextVersion) { group, p3 in
                 group.addTask { @MainActor in
-                    p3.readinessData = try? await APIService.shared.fetchReadiness()
+                    await self.readinessState.load {
+                        let r = try await APIService.shared.fetchReadiness()
+                        guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
+                        p3.readinessData = r
+                        return r
+                    }
                     return .readiness
                 }
                 group.addTask { @MainActor in
-                    p3.streakData      = try? await APIService.shared.fetchStreaks(date: today)
+                    await self.streakState.load {
+                        let r = try await APIService.shared.fetchStreaks(date: today)
+                        guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
+                        p3.streakData = r
+                        return r
+                    }
                     return .streak
                 }
                 group.addTask { @MainActor in
