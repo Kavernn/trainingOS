@@ -161,12 +161,13 @@ final class GymFinderViewModel: NSObject, ObservableObject {
         }
     }
 
-    // Contribution best-effort au crowdsource gym data — silencieux volontaire,
-    // queued offline via offlinePost (aucun cache local à invalider).
+    // Contribution best-effort au crowdsource gym data — télémétrie fire-and-forget
+    // via SyncManager direct : la queue hors ligne + les rejets 4xx au rejeu
+    // (DiscardedMutation banner) sont gérés sans surface utilisateur locale.
     func submitContribution(_ payload: GymContributionPayload) async {
         guard let body = try? JSONEncoder().encode(payload),
               let dict = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] else { return }
-        _ = try? await APIService.shared.offlinePost(endpoint: "/api/gyms/contribute", payload: dict)
+        SyncManager.shared.enqueue(endpoint: "/api/gyms/contribute", payload: dict)
     }
 
     // MARK: - Favorites
@@ -208,16 +209,15 @@ final class GymFinderViewModel: NSObject, ObservableObject {
         if history.count > 50 { history = Array(history.prefix(50)) }
         saveHistory()
 
-        Task {
-            _ = try? await APIService.shared.offlinePost(
-                endpoint: "/api/gyms/history",
-                payload: [
-                    "gym_id": gym.id, "gym_name": gym.name,
-                    "latitude": gym.latitude, "longitude": gym.longitude,
-                    "visited_at": ISO8601DateFormatter().string(from: Date())
-                ]
-            )
-        }
+        // Télémétrie fire-and-forget : SyncManager direct, parité submitContribution.
+        SyncManager.shared.enqueue(
+            endpoint: "/api/gyms/history",
+            payload: [
+                "gym_id": gym.id, "gym_name": gym.name,
+                "latitude": gym.latitude, "longitude": gym.longitude,
+                "visited_at": ISO8601DateFormatter().string(from: Date())
+            ]
+        )
     }
 
     private func loadHistory() {
