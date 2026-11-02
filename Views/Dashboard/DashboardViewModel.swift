@@ -169,6 +169,11 @@ final class DashboardViewModel: ObservableObject {
     let readinessState = Loadable<ReadinessResponse>()
     let streakState    = Loadable<StreakResponse>()
     let deloadState    = Loadable<DeloadReport>()
+    let recoveryState  = Loadable<[RecoveryEntry]>()
+    let hrvState       = Loadable<HRVAnalysis>()
+    let moodDueState   = Loadable<MoodDueStatus>()
+    let patternState   = Loadable<PatternResponse>()
+    let ritualState    = Loadable<RitualToday>()
 
     private let logger = Logger(subsystem: "TrainingOS", category: "dashboard")
     // PERF-5: skip expensive analytics if already loaded today
@@ -323,8 +328,13 @@ final class DashboardViewModel: ObservableObject {
                 return (.deload, 0)
             }
             group.addTask { @MainActor in
-                do { p2.moodDue = try await APIService.shared.checkMoodDue(); return (.moodDue, 0) }
-                catch { self.logger.error("checkMoodDue: \(error, privacy: .public)"); return (.moodDue, 0) }
+                await self.moodDueState.load {
+                    let r = try await APIService.shared.checkMoodDue()
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
+                    p2.moodDue = r
+                    return r
+                }
+                return (.moodDue, 0)
             }
             group.addTask { @MainActor in
                 do { p2.morningBrief = try await APIService.shared.fetchMorningBrief(); return (.morningBrief, 0) }
@@ -338,30 +348,25 @@ final class DashboardViewModel: ObservableObject {
             }
             // CRITICAL: drives the readiness score displayed on the dashboard
             group.addTask { @MainActor in
-                do {
+                await self.recoveryState.load {
                     let log = try await APIService.shared.fetchRecoveryData()
-                    let entry = log.first(where: { $0.date == today })
-                    p2.todayRecovery = entry
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
+                    p2.todayRecovery = log.first(where: { $0.date == today })
                     p2.receivedRecovery = true
-                    return (.recovery, 0)
-                } catch let e as URLError where e.code == .cancelled {
-                    return (.recovery, 0)  // task cancelled (navigation) — not an error
-                } catch {
-                    self.logger.error("fetchRecovery: \(error, privacy: .public)")
-                    return (.recovery, 1)
+                    return log
                 }
+                // partialLoadWarning (ancienne compta) : plus de signal ici,
+                // la bannière globale (C.4) le remplacera via recoveryState.error.
+                return (.recovery, 0)
             }
             group.addTask { @MainActor in
-                do {
-                    // sequential — async let LIFO crash on iOS 26 beta
-                    p2.hrvAnalysis = try await APIService.shared.fetchHRVAnalysis()
-                    return (.hrv, 0)
-                } catch let e as URLError where e.code == .cancelled {
-                    return (.hrv, 0)  // task cancelled (navigation) — not an error
-                } catch {
-                    self.logger.error("fetchHRVAnalysis: \(error, privacy: .public)")
-                    return (.hrv, 0)
+                await self.hrvState.load {
+                    let r = try await APIService.shared.fetchHRVAnalysis()
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
+                    p2.hrvAnalysis = r
+                    return r
                 }
+                return (.hrv, 0)
             }
             group.addTask { @MainActor [yesterdayStr] in
                 // Un seul fetch — même cache key que fetchNutritionHistory. Extrait :
@@ -379,25 +384,23 @@ final class DashboardViewModel: ObservableObject {
                 return (.alerts, 0)
             }
             group.addTask { @MainActor in
-                do {
+                await self.patternState.load {
                     let resp = try await APIService.shared.fetchPatterns()
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
                     p2.dailyPattern = resp.daily
                     p2.receivedPattern = true
-                    return (.pattern, 0)
-                } catch {
-                    self.logger.error("fetchPatterns: \(error, privacy: .public)")
-                    return (.pattern, 0)
+                    return resp
                 }
+                return (.pattern, 0)
             }
             group.addTask { @MainActor in
-                do {
-                    let ritual = try await APIService.shared.fetchRitualToday()
-                    p2.ritualToday = ritual
-                    return (.ritual, 0)
-                } catch {
-                    self.logger.error("fetchRitualToday: \(error, privacy: .public)")
-                    return (.ritual, 0)
+                await self.ritualState.load {
+                    let r = try await APIService.shared.fetchRitualToday()
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
+                    p2.ritualToday = r
+                    return r
                 }
+                return (.ritual, 0)
             }
             group.addTask { @MainActor in
                 if let all = try? await APIService.shared.fetchCardioData() {
@@ -571,7 +574,11 @@ final class DashboardViewModel: ObservableObject {
     }
 
     func refreshMoodDue() async {
-        moodDue = try? await APIService.shared.checkMoodDue()
+        await moodDueState.load {
+            let r = try await APIService.shared.checkMoodDue()
+            self.moodDue = r
+            return r
+        }
     }
 
     func refreshWarRoomTodayStatus() async {
@@ -584,8 +591,10 @@ final class DashboardViewModel: ObservableObject {
 
     func refreshRitual() async {
         CacheService.shared.clear(for: "ritual_today")
-        if let updated = try? await APIService.shared.fetchRitualToday() {
-            ritualToday = updated
+        await ritualState.load {
+            let r = try await APIService.shared.fetchRitualToday()
+            self.ritualToday = r
+            return r
         }
     }
 

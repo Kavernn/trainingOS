@@ -33,11 +33,9 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Cardio/CardioView.swift:fetchCardioData",
         "Views/Cardio/CardioView.swift:fetchCardioMetrics",
         "Views/Cardio/CardioView.swift:fetchHIITData",
-        "Views/Dashboard/DashboardViewModel.swift:checkMoodDue",
         "Views/Dashboard/DashboardViewModel.swift:fetchBudgetStatus",
         "Views/Dashboard/DashboardViewModel.swift:fetchCardioData",
         "Views/Dashboard/DashboardViewModel.swift:fetchNutritionDetail",
-        "Views/Dashboard/DashboardViewModel.swift:fetchRitualToday",
         "Views/Dashboard/DashboardViewModel.swift:fetchTimeCapsules",
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport",
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyTonnage",
@@ -100,7 +98,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         // Catches silencieux détectés par le filet durci (2026-11-01). À
         // migrer ou documenter cas par cas selon l'intention.
         "Views/Cardio/CardioView.swift:catch:log-only",
-        "Views/Dashboard/DashboardViewModel.swift:catch:log-only",
         "Views/Recovery/RecoveryView.swift:catch:log-only",
         "Views/Onboarding/OnboardingView.swift:catch:empty",
     ]
