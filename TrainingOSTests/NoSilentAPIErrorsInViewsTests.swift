@@ -65,7 +65,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Intelligence/RitualView.swift:fetchRitualToday",
         "Views/Intelligence/WarRoomGateView.swift:getCurrentOath",
         "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig",
-        "Views/Intelligence/WarRoomSettingsView.swift:updateWarRoomConfig",
         "Views/Inventaire/InventaireView.swift:URLSession.authed",
         "Views/MentalHealth/MentalHealthDashboardView.swift:fetchMentalHealthSummary",
         "Views/MentalHealth/MentalHealthView.swift:checkMoodDue",
