@@ -9,6 +9,8 @@ struct QuickWarRoomTriggerSheet: View {
     @State private var yielded = false
     @State private var isSaving = false
     @State private var saved = false
+    @State private var triggerError: String?
+    @State private var isQueued = false
 
     private let contexts: [TriggerContext] = [.stress, .social, .boredom, .pain, .celebration, .exhaustion]
 
@@ -80,21 +82,52 @@ struct QuickWarRoomTriggerSheet: View {
 
                     Spacer()
 
+                    if isQueued {
+                        Text("Enregistrement en attente — hors ligne")
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let msg = triggerError {
+                        Text(msg)
+                            .font(.appCaption)
+                            .foregroundColor(.appDanger)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
                     // Save
                     Button {
                         Task {
                             isSaving = true
-                            _ = try? await APIService.shared.logTrigger(
-                                context: selectedContext,
-                                intensity: Int(intensity),
-                                yielded: yielded,
-                                contextNote: nil,
-                                heldWith: []
-                            )
-                            isSaving = false
-                            saved = true
-                            try? await Task.sleep(nanoseconds: 600_000_000)
-                            dismiss()
+                            triggerError = nil
+                            isQueued = false
+                            defer { Task { @MainActor in isSaving = false } }
+                            do {
+                                _ = try await APIService.shared.logTrigger(
+                                    context: selectedContext,
+                                    intensity: Int(intensity),
+                                    yielded: yielded,
+                                    contextNote: nil,
+                                    heldWith: []
+                                )
+                                // Succès serveur UNIQUEMENT : état "saved" + dismiss.
+                                await MainActor.run { saved = true }
+                                try? await Task.sleep(nanoseconds: 600_000_000)
+                                await MainActor.run { dismiss() }
+                            } catch APIError.queuedOffline {
+                                // En file : on dismiss après notification brève.
+                                await MainActor.run { isQueued = true }
+                                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                                await MainActor.run { dismiss() }
+                            } catch APIError.serverError(_, let msg) {
+                                await MainActor.run {
+                                    triggerError = msg.isEmpty ? "Erreur serveur" : msg
+                                }
+                            } catch {
+                                await MainActor.run {
+                                    triggerError = "Erreur réseau — réessaie"
+                                }
+                            }
                         }
                     } label: {
                         HStack(spacing: 8) {

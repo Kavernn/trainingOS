@@ -33,7 +33,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Cardio/CardioView.swift:fetchCardioData",
         "Views/Cardio/CardioView.swift:fetchCardioMetrics",
         "Views/Cardio/CardioView.swift:fetchHIITData",
-        "Views/Dashboard/DashboardRitualCards.swift:logTrigger",
         "Views/Dashboard/DashboardViewModel.swift:checkMoodDue",
         "Views/Dashboard/DashboardViewModel.swift:fetchBudgetStatus",
         "Views/Dashboard/DashboardViewModel.swift:fetchCardioData",
