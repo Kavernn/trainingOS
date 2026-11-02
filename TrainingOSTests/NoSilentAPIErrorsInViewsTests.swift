@@ -42,6 +42,21 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/EnergyRecovery/EnergyRecoveryView.swift:fetchSleepHistory",
         "Views/EnergyRecovery/EnergyRecoveryView.swift:fetchSleepStats",
         "Views/GymFinder/GymFinderViewModel.swift:URLSession.authed",
+        // Sites via `async let xxxTask = APIService.shared.fn(...)` + `try? await xxxTask`.
+        // Détectés par le scanner élargi (2026-11-02). À migrer avec le commit HealthDashboard
+        // du plan Santé (12 Loadable, un seul TopFailureBanner pour l'écran).
+        "Views/HealthDashboard/HealthDashboardView.swift:checkPSSDue",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchEnergyDaily",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchEnergyHistory",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchHRVAnalysis",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchLifeStressScore",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchLifeStressTrend",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchReadiness",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchReadinessHistory",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchRecoveryData",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchSleepHistory",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchSleepStats",
+        "Views/HealthDashboard/HealthDashboardView.swift:fetchWeeklyHealthSummary",
         "Views/HIIT/HIITHistoriqueView.swift:fetchHIITData",
         "Views/Historique/HistoriqueView.swift:URLSession.authed",
         "Views/Intelligence/RitualEveningView.swift:fetchRitualToday",
@@ -206,9 +221,17 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         var out: [Violation] = []
         let lines = content.components(separatedBy: "\n")
 
-        let apiRe   = try? NSRegularExpression(pattern: #"try\s*\?\s*await\s+APIService\.shared\.(\w+)"#)
-        let urlRe   = try? NSRegularExpression(pattern: #"try\s*\?\s*await\s+URLSession\.authed"#)
-        let catchRe = try? NSRegularExpression(pattern: #"\bcatch\b[^{]*\{"#)
+        // Pré-passe : construit la map `taskName -> fnName` pour attraper les
+        // `try? await <taskName>` dont la tâche source (async let / Task) appelle
+        // APIService.shared ou URLSession.authed. Sans ça, le pattern
+        // `async let weekTask = APIService.shared.fetchWeeklyHealthSummary(...)`
+        // + `try? await weekTask` passe entre les mailles (HealthDashboardView).
+        let bindings = taskBindings(in: content)
+
+        let apiRe       = try? NSRegularExpression(pattern: #"try\s*\?\s*await\s+APIService\.shared\.(\w+)"#)
+        let urlRe       = try? NSRegularExpression(pattern: #"try\s*\?\s*await\s+URLSession\.authed"#)
+        let taskAwaitRe = try? NSRegularExpression(pattern: #"try\s*\?\s*await\s+(\w+)"#)
+        let catchRe     = try? NSRegularExpression(pattern: #"\bcatch\b[^{]*\{"#)
 
         for (i, line) in lines.enumerated() {
             let ns = line as NSString
@@ -222,12 +245,80 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             if urlRe?.firstMatch(in: line, options: [], range: r) != nil {
                 out.append(.init(file: path, line: i + 1, function: "URLSession.authed"))
             }
+            // `try? await <identifier>` où identifier est une tâche connue :
+            // on émet avec le nom de la fn de l'initialiseur. On exclut les
+            // identifiers déjà couverts par apiRe (APIService) / urlRe (URLSession)
+            // pour éviter le double count sur `try? await APIService.shared.fn()`.
+            if let m = taskAwaitRe?.firstMatch(in: line, options: [], range: r),
+               m.numberOfRanges > 1 {
+                let name = ns.substring(with: m.range(at: 1))
+                if name != "APIService", name != "URLSession",
+                   let fn = bindings[name] {
+                    out.append(.init(file: path, line: i + 1, function: fn))
+                }
+            }
             if catchRe?.firstMatch(in: line, options: [], range: r) != nil,
                let kind = silentCatchKind(startLine: i, in: lines, path: path) {
                 out.append(.init(file: path, line: i + 1, function: "catch:\(kind)"))
             }
         }
         return out
+    }
+
+    /// Map `taskName -> fnName` pour les tâches dont l'initialiseur appelle
+    /// APIService.shared.<fn> ou URLSession.authed. Couvre deux patterns :
+    ///   1. `async let xxx = APIService.shared.fn(...)`
+    ///   2. `let xxx = Task { ... APIService.shared.fn(...) ... }`
+    /// Approche fichier-plat (pas de résolution par scope). Risque de
+    /// collision si deux fonctions du même fichier redéfinissent le même
+    /// nom avec une tâche différente — jamais vu en pratique, les noms de
+    /// tâche sont très spécifiques (`weekTask`, `pssDueTask`).
+    private func taskBindings(in content: String) -> [String: String] {
+        var map: [String: String] = [:]
+
+        let lines = content.components(separatedBy: "\n")
+        let asyncApi = try? NSRegularExpression(pattern: #"async\s+let\s+(\w+)\s*=.*APIService\.shared\.(\w+)"#)
+        let asyncUrl = try? NSRegularExpression(pattern: #"async\s+let\s+(\w+)\s*=.*URLSession\.authed"#)
+        for line in lines {
+            let ns = line as NSString
+            let r = NSRange(location: 0, length: ns.length)
+            if let m = asyncApi?.firstMatch(in: line, options: [], range: r), m.numberOfRanges > 2 {
+                map[ns.substring(with: m.range(at: 1))] = ns.substring(with: m.range(at: 2))
+            } else if let m = asyncUrl?.firstMatch(in: line, options: [], range: r), m.numberOfRanges > 1 {
+                map[ns.substring(with: m.range(at: 1))] = "URLSession.authed"
+            }
+        }
+
+        // `let x = Task { ... }` : brace-match pour isoler le corps, puis
+        // chercher APIService.shared.<fn> ou URLSession.authed dedans.
+        let ns = content as NSString
+        let taskOpen = try? NSRegularExpression(pattern: #"let\s+(\w+)\s*=\s*Task\s*\{"#)
+        let fnInBody = try? NSRegularExpression(pattern: #"APIService\.shared\.(\w+)"#)
+        taskOpen?.enumerateMatches(in: content, options: [],
+                                   range: NSRange(location: 0, length: ns.length)) { m, _, _ in
+            guard let m = m, m.numberOfRanges > 1 else { return }
+            let name = ns.substring(with: m.range(at: 1))
+            var depth = 1
+            var i = m.range.location + m.range.length
+            while i < ns.length && depth > 0 {
+                let ch = ns.character(at: i)
+                if ch == 0x7B { depth += 1 }       // {
+                else if ch == 0x7D { depth -= 1 }  // }
+                i += 1
+            }
+            let bodyRange = NSRange(location: m.range.location + m.range.length,
+                                    length: i - (m.range.location + m.range.length))
+            let body = ns.substring(with: bodyRange)
+            let bNS = body as NSString
+            let bR = NSRange(location: 0, length: bNS.length)
+            if let mm = fnInBody?.firstMatch(in: body, options: [], range: bR), mm.numberOfRanges > 1 {
+                map[name] = bNS.substring(with: mm.range(at: 1))
+            } else if body.contains("URLSession.authed") {
+                map[name] = "URLSession.authed"
+            }
+        }
+
+        return map
     }
 
     /// Classifie un catch : "empty", "log-only", "ignored" ou nil si non silencieux.
