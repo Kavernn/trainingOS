@@ -125,7 +125,8 @@ struct TopFailureBanner: View {
 }
 
 /// Carte / bannière d'erreur à placer AU-DESSUS d'une section de données.
-/// - .server / .decoding → bannière avec message serveur + Réessayer local.
+/// - .server / .decoding / .unknown → bannière avec message + Réessayer local.
+///   (.unknown surface aussi : une erreur imprévue ne doit jamais être muette.)
 /// - .offline / .network ET pas de value → "Indisponible" compact, sans bouton
 ///   (le TopFailureBanner global gère la relance).
 /// - Autrement : rien (section affiche ses données, stale ou fraîches).
@@ -133,11 +134,29 @@ struct SectionErrorView: View {
     let state: any LoadableStateView
     let retry: () async -> Void
 
+    /// Décision pure extraite de `body` : une seule source de vérité pour le
+    /// routing, testable sans ImageRenderer.
+    enum Presentation: Equatable {
+        case serverBanner(String)
+        case unavailable
+        case none
+    }
+
+    static func presentation(for state: any LoadableStateView) -> Presentation {
+        guard state.hasError, let kind = state.errorKind else { return .none }
+        switch kind {
+        case .server, .decoding, .unknown:
+            return .serverBanner(state.errorMessage ?? "Erreur inattendue")
+        case .offline, .network:
+            return state.hasValue ? .none : .unavailable
+        }
+    }
+
     var body: some View {
-        if state.hasError {
-            if case .server   = state.errorKind { serverBanner }
-            else if case .decoding = state.errorKind { serverBanner }
-            else if !state.hasValue { unavailableLabel }
+        switch Self.presentation(for: state) {
+        case .serverBanner: serverBanner
+        case .unavailable:  unavailableLabel
+        case .none:         EmptyView()
         }
     }
 

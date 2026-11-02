@@ -363,9 +363,67 @@ extension DashboardPresentationLoadingTests {
         withExtendedLifetime(statusSub) {}
     }
 
-    // testPartialFailureAndBriefRecoveryKeepOtherSections : supprimé en C.4.
-    // Testait partialLoadWarning (compta criticalFailures), remplacé par
-    // bannière globale TopFailureBanner alimentée par les Loadable.error.
+    /// Équivalent nouveau mécanisme de testPartialFailureAndBriefRecoveryKeepOtherSections
+    /// (supprimé en C.4). Passe par le pipeline réel receiveDay : un Loadable échoue
+    /// (.server 500), les autres continuent de publier. receiveDay utilise un TaskGroup
+    /// non-throwing + Loadable.load catch en interne → aucune annulation sœur possible.
+    /// SectionErrorView.presentation(for:) matérialise la décision par section ; une
+    /// erreur .unknown est traitée comme .server (jamais muette).
+    func testFailingLoadableDoesNotBlockOtherSectionsAndSurfacesSectionError() async throws {
+        let vm = DashboardViewModel(publicationPermission: { _, _ in true },
+                                    publishMacroHint: { _ in XCTFail("Unrelated projection") })
+        await vm.receiveDay(today: "2026-09-28", contextVersion: 7) { group, p2 in
+            group.addTask { @MainActor in
+                await vm.recoveryState.load { throw APIError.serverError(500, "boom") }
+                return (.recovery, 0)
+            }
+            group.addTask { @MainActor in
+                await vm.cardioState.load {
+                    p2.cardioToday = nil
+                    p2.receivedCardio = true
+                    return [] as [CardioEntry]
+                }
+                return (.cardio, 0)
+            }
+        }
+        // Section fautive : erreur présentable, pas de valeur, pas de todayRecovery publié.
+        XCTAssertEqual(vm.recoveryState.errorKind, .server(500))
+        XCTAssertEqual(vm.recoveryState.errorMessage, "boom")
+        XCTAssertNil(vm.recoveryState.value)
+        XCTAssertNil(vm.todayRecovery)
+        // Section voisine : valeur publiée malgré l'échec de la voisine.
+        XCTAssertNotNil(vm.cardioState.value)
+        XCTAssertNil(vm.cardioState.error)
+        // Décision SectionErrorView — fonction pure.
+        XCTAssertEqual(SectionErrorView.presentation(for: vm.recoveryState), .serverBanner("boom"))
+        XCTAssertEqual(SectionErrorView.presentation(for: vm.cardioState), .none)
+        // Erreur .unknown (NSError non mappée) : surface comme serverBanner, jamais muette.
+        let unknownState = Loadable<Int>()
+        await unknownState.load { throw NSError(domain: "unexpected", code: -1) }
+        XCTAssertEqual(unknownState.errorKind, .unknown)
+        XCTAssertEqual(SectionErrorView.presentation(for: unknownState), .serverBanner("Erreur inattendue"))
+        // Panne .server reste locale : pas de bannière globale.
+        XCTAssertFalse(vm.topFailureAggregator.hasGlobalFailure)
+    }
+
+    /// Erreur .offline sur un Loadable tenté → bannière globale TopFailureBanner,
+    /// et sans valeur la section rend .unavailable (compact, sans bouton Réessayer
+    /// propre : la relance globale gère).
+    func testOfflineErrorRaisesGlobalBannerAndMarksSectionUnavailable() async throws {
+        let vm = DashboardViewModel(publicationPermission: { _, _ in true },
+                                    publishMacroHint: { _ in XCTFail("Unrelated projection") })
+        await vm.receiveDay(today: "2026-09-28", contextVersion: 7) { group, _ in
+            group.addTask { @MainActor in
+                await vm.hrvState.load { throw URLError(.notConnectedToInternet) }
+                return (.hrv, 0)
+            }
+        }
+        XCTAssertEqual(vm.hrvState.errorKind, .offline)
+        XCTAssertFalse(vm.hrvState.hasValue)
+        XCTAssertTrue(vm.topFailureAggregator.hasGlobalFailure)
+        XCTAssertEqual(vm.topFailureAggregator.globalKind, .offline)
+        XCTAssertEqual(SectionErrorView.presentation(for: vm.hrvState), .unavailable)
+    }
 
     func testCancelledAndStaleReceiversCannotPublish() async throws {
         for cancelled in [false, true] {
