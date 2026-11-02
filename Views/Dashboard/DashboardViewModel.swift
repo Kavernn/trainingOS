@@ -17,7 +17,6 @@ final class P2State: @unchecked Sendable {
     var ritualToday: RitualToday? = nil
     var cardioToday: CardioEntry? = nil
     var budgetStatus: BudgetStatus? = nil
-    var criticalFailures = 0
     var receivedRecovery = false
     var receivedCardio = false
     var receivedPattern = false
@@ -159,7 +158,6 @@ final class DashboardViewModel: ObservableObject {
     @Published var budgetStatus: BudgetStatus? = nil
     @Published var streakData: StreakResponse? = nil
     @Published var weeklyTonnage: Int? = nil
-    @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
 
     // Loadables (migration série C) — alimentent les @Published ci-dessus par
@@ -174,6 +172,25 @@ final class DashboardViewModel: ObservableObject {
     let moodDueState   = Loadable<MoodDueStatus>()
     let patternState   = Loadable<PatternResponse>()
     let ritualState    = Loadable<RitualToday>()
+    let nutritionDetailState = Loadable<NutritionDataResponse>()
+    let cardioState    = Loadable<[CardioEntry]>()
+    let budgetState    = Loadable<BudgetStatus>()
+
+    /// Agrège toutes les lectures Dashboard pour la bannière globale
+    /// (offline/network). Un seul groupe = un seul retry (loadAll).
+    var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(
+                states: [
+                    deloadState, readinessState, streakState,
+                    recoveryState, hrvState, moodDueState,
+                    patternState, ritualState,
+                    nutritionDetailState, cardioState, budgetState,
+                ],
+                retry: { [weak self] in await self?.loadAll() }
+            )
+        ])
+    }
 
     private let logger = Logger(subsystem: "TrainingOS", category: "dashboard")
     // PERF-5: skip expensive analytics if already loaded today
@@ -262,7 +279,6 @@ final class DashboardViewModel: ObservableObject {
             refreshRunning = false
             if refreshRequested { lastLoad = nil }
         }
-        partialLoadWarning = false
         morningBriefFailed = false
 
         // Each Dashboard request owns its timeout and loading state. A second
@@ -355,8 +371,6 @@ final class DashboardViewModel: ObservableObject {
                     p2.receivedRecovery = true
                     return log
                 }
-                // partialLoadWarning (ancienne compta) : plus de signal ici,
-                // la bannière globale (C.4) le remplacera via recoveryState.error.
                 return (.recovery, 0)
             }
             group.addTask { @MainActor in
@@ -369,13 +383,16 @@ final class DashboardViewModel: ObservableObject {
                 return (.hrv, 0)
             }
             group.addTask { @MainActor [yesterdayStr] in
-                // Un seul fetch — même cache key que fetchNutritionHistory. Extrait :
-                // - todayType (source unique serveur, pas de mapping client)
-                // - yesterdayNutrition (existant)
-                if let detail = try? await APIService.shared.fetchNutritionDetail() {
+                await self.nutritionDetailState.load {
+                    // Un seul fetch — même cache key que fetchNutritionHistory. Extrait :
+                    // - todayType (source unique serveur, pas de mapping client)
+                    // - yesterdayNutrition (existant)
+                    let detail = try await APIService.shared.fetchNutritionDetail()
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
                     p2.receivedNutrition = true
                     p2.todayNutritionType = detail.todayType
                     p2.yesterdayNutrition = detail.history.first(where: { $0.date == yesterdayStr })
+                    return detail
                 }
                 return (.nutrition, 0)
             }
@@ -403,14 +420,22 @@ final class DashboardViewModel: ObservableObject {
                 return (.ritual, 0)
             }
             group.addTask { @MainActor in
-                if let all = try? await APIService.shared.fetchCardioData() {
+                await self.cardioState.load {
+                    let all = try await APIService.shared.fetchCardioData()
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
                     p2.cardioToday = all.first(where: { $0.date == today })
                     p2.receivedCardio = true
+                    return all
                 }
                 return (.cardio, 0)
             }
             group.addTask { @MainActor in
-                p2.budgetStatus = try? await APIService.shared.fetchBudgetStatus()
+                await self.budgetState.load {
+                    let r = try await APIService.shared.fetchBudgetStatus()
+                    guard self.canPublish(contextVersion, today: today) else { throw CancellationError() }
+                    p2.budgetStatus = r
+                    return r
+                }
                 return (.budget, 0)
             }
         }
@@ -422,9 +447,8 @@ final class DashboardViewModel: ObservableObject {
         let p2 = P2State()
         await withTaskGroup(of: (DashboardDayField, Int).self) { group in
             addTasks(&group, p2)
-            for await (field, failures) in group {
+            for await (field, _) in group {
                 guard canPublish(contextVersion, today: today) else { group.cancelAll(); continue }
-                p2.criticalFailures += failures
                 // Only this child's destination may change. Pending/failed children retain
                 // their previous value; a successful optional response can explicitly clear it.
                 switch field {
@@ -460,8 +484,6 @@ final class DashboardViewModel: ObservableObject {
                 case .alerts:
                     break
                 }
-                let warning = p2.criticalFailures > 0
-                if partialLoadWarning != warning { partialLoadWarning = warning }
             }
         }
     }

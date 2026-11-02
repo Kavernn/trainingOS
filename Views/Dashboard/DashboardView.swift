@@ -172,11 +172,13 @@ struct DashboardView: View {
 
                 HStack(alignment: .top, spacing: 10) {
                     // 11 — Cardio du jour
-                    if let cardio = vm.cardioToday {
-                        DashboardCardioCard(entry: cardio)
-                            .frame(maxWidth: .infinity)
-
+                    VStack(spacing: 4) {
+                        SectionErrorView(state: vm.cardioState) { await vm.loadAll() }
+                        if let cardio = vm.cardioToday {
+                            DashboardCardioCard(entry: cardio)
+                        }
                     }
+                    .frame(maxWidth: .infinity)
 
                     // 13 — Pensée du jour (fermeture calme du scroll)
                     QuoteCard()
@@ -187,31 +189,10 @@ struct DashboardView: View {
             .padding(.top, 8)
 
             dashboardHeading("MES TENDANCES")
-            // SYSTÈME — avertissement chargement partiel
-            if vm.partialLoadWarning {
-                HStack(spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(Color.forge)
-                        .font(.appLabel)
-                    Text("Certaines données n'ont pas pu être chargées")
-                        .font(.appCaption)
-                        .foregroundColor(Color.appOnBackground.opacity(0.8))
-                    Spacer()
-                    Button {
-                        Task { await vm.loadAll() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.appLabel).fontWeight(.semibold)
-                            .foregroundColor(Color.forge)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 12).padding(.vertical, 9)
-                .background(Color.forge.opacity(0.10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.25), lineWidth: 1))
-                .cornerRadius(10)
-
-            }
+            // SYSTÈME — bannière offline/network unifiée (série C.4).
+            // Remplace partialLoadWarning. Les erreurs server/decoding
+            // apparaissent via SectionErrorView au-dessus de chaque carte.
+            TopFailureBanner(aggregator: vm.topFailureAggregator)
 
             // 3 — Alerte critique
             if let signal = vm.criticalSignal(dash: dash) {
@@ -270,6 +251,7 @@ struct DashboardView: View {
             // ── FOLD NATUREL ──────────────────────────────
 
             // 12 — Budget & finances
+            SectionErrorView(state: vm.budgetState) { await vm.loadAll() }
             if let bs = vm.budgetStatus {
                 if bs.isPaydayToday == true {
                     VStack(alignment: .leading, spacing: 6) {

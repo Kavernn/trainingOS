@@ -363,32 +363,9 @@ extension DashboardPresentationLoadingTests {
         withExtendedLifetime(statusSub) {}
     }
 
-    func testPartialFailureAndBriefRecoveryKeepOtherSections() async throws {
-        let vm = DashboardViewModel(publicationPermission: { _, _ in true }, publishMacroHint: { _ in XCTFail("Unrelated projection") })
-        vm.dailyPattern = try pattern()
-        var warnings: [Bool] = []
-        var briefFailures: [Bool] = []
-        let subscriptions = [vm.$partialLoadWarning.dropFirst().sink { warnings.append($0) },
-                             vm.$morningBriefFailed.dropFirst().sink { briefFailures.append($0) }]
-        await vm.receiveDay(today: "2026-09-28", contextVersion: 7) { group, state in
-            group.addTask { (.recovery, 1) }
-            group.addTask { @MainActor in state.morningBriefFailed = true; return (.morningBrief, 0) }
-            group.addTask { (.alerts, 0) }
-        }
-        XCTAssertEqual(vm.dailyPattern?.headline, "Original")
-        XCTAssertTrue(vm.partialLoadWarning); XCTAssertTrue(vm.morningBriefFailed)
-        XCTAssertEqual(warnings, [true]); XCTAssertEqual(briefFailures, [true])
-        let brief = MorningBriefData(date: "2026-09-28", sessionToday: "Séance", sessionIntensity: "moderate", lss: nil,
-            recommendation: "go", message: "Exact briefing", adjustments: [],
-            flags: .init(hrvDrop: false, sleepDeprivation: false, trainingOverload: false), dataCoverage: 1, components: nil, ritualRate7d: nil)
-        await vm.receiveDay(today: "2026-09-28", contextVersion: 7) { group, state in
-            group.addTask { @MainActor in state.morningBrief = brief; return (.morningBrief, 0) }
-        }
-        XCTAssertEqual(vm.morningBrief?.message, "Exact briefing")
-        XCTAssertFalse(vm.morningBriefFailed); XCTAssertFalse(vm.partialLoadWarning)
-        XCTAssertEqual(briefFailures, [true, false]); XCTAssertEqual(warnings, [true, false])
-        withExtendedLifetime(subscriptions) {}
-    }
+    // testPartialFailureAndBriefRecoveryKeepOtherSections : supprimé en C.4.
+    // Testait partialLoadWarning (compta criticalFailures), remplacé par
+    // bannière globale TopFailureBanner alimentée par les Loadable.error.
 
     func testCancelledAndStaleReceiversCannotPublish() async throws {
         for cancelled in [false, true] {
