@@ -73,7 +73,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/MentalHealth/MoodTrackerView.swift:fetchMoodHistory",
         "Views/Oath/OathView.swift:getCurrentOath",
         "Views/Oath/OathView.swift:getOathVersions",
-        "Views/Oath/OathWriteView.swift:saveOath",
         "Views/PSS/PSSView.swift:checkPSSDue",
         "Views/PSS/PSSView.swift:fetchLifeStressTrend",
         "Views/PSS/PSSView.swift:fetchPSSHistory",

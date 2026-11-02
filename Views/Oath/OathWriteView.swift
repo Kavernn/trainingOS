@@ -10,6 +10,8 @@ struct OathWriteView: View {
     @State private var oathText = ""
     @State private var sealed: OathModel?
     @State private var isSaving = false
+    @State private var sealError: String?
+    @State private var isQueued = false
 
     private var wordCount: Int { oathText.split(separator: " ").count }
     private var isRewrite: Bool { existingOath != nil }
@@ -132,6 +134,23 @@ struct OathWriteView: View {
 
             Spacer()
 
+            if isQueued {
+                Text("Serment en attente — sera scellé à la reconnexion")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 8)
+            }
+            if let msg = sealError {
+                Text(msg)
+                    .font(.appCaption)
+                    .foregroundColor(.appDanger)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 8)
+            }
+
             Button {
                 withAnimation { step = .sealing }
                 Task { await performSeal() }
@@ -206,12 +225,35 @@ struct OathWriteView: View {
 
     private func performSeal() async {
         isSaving = true
+        sealError = nil
+        isQueued = false
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        let result = try? await APIService.shared.saveOath(text: oathText, wordCount: wordCount)
-        await MainActor.run {
-            sealed  = result
-            isSaving = false
-            withAnimation(.easeInOut(duration: 0.6).delay(1.2)) { step = .done }
+        defer { Task { @MainActor in isSaving = false } }
+
+        do {
+            let result = try await APIService.shared.saveOath(text: oathText, wordCount: wordCount)
+            // Succès serveur UNIQUEMENT : sealed + step .done.
+            await MainActor.run {
+                sealed = result
+                withAnimation(.easeInOut(duration: 0.6).delay(1.2)) { step = .done }
+            }
+        } catch APIError.queuedOffline {
+            // Hors ligne : on retourne à l'écriture (brouillon préservé via
+            // oathText), le replay se fera au retour en ligne.
+            await MainActor.run {
+                isQueued = true
+                withAnimation { step = .writing }
+            }
+        } catch APIError.serverError(_, let msg) {
+            await MainActor.run {
+                sealError = msg.isEmpty ? "Erreur serveur — réessaie" : msg
+                withAnimation { step = .writing }
+            }
+        } catch {
+            await MainActor.run {
+                sealError = "Erreur réseau — réessaie"
+                withAnimation { step = .writing }
+            }
         }
     }
 }
