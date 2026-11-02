@@ -653,7 +653,9 @@ extension APIService {
     }
 
     func classifyExercise(_ body: [String: Any]) async throws {
-        _ = try await offlinePost(endpoint: "/api/exercises/classify", payload: body)
+        if try await offlinePost(endpoint: "/api/exercises/classify", payload: body) == nil {
+            throw APIError.queuedOffline
+        }
         CacheInvalidation.inventaireMutated.invalidate()
     }
 

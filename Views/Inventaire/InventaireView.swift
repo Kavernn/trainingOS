@@ -2104,6 +2104,8 @@ struct ClassificationGapsSheet: View {
     @State private var appliedNames: Set<String> = []
     @State private var skippedNames: Set<String> = []
     @State private var applyingName: String?
+    @State private var applyErrors: [String: String] = [:]   // par nom d'exo
+    @State private var queuedApplies: Set<String> = []       // par nom d'exo (hors ligne)
     @Environment(\.dismiss) private var dismiss
 
     private var visible: [ClassificationGap] {
@@ -2157,6 +2159,16 @@ struct ClassificationGapsSheet: View {
             }
         }
         .task { await loadGaps() }
+        .onReceive(SyncManager.shared.$pendingCount) { count in
+            // File vidée : les classifications hors ligne sont rejouées. On
+            // marque appliquées + reload pour refléter l'état serveur.
+            if count == 0 && !queuedApplies.isEmpty {
+                for name in queuedApplies { appliedNames.insert(name) }
+                queuedApplies.removeAll()
+                onCountChange(visible.count)
+                Task { await loadGaps() }
+            }
+        }
     }
 
     @ViewBuilder
@@ -2198,7 +2210,7 @@ struct ClassificationGapsSheet: View {
                     .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
-                .disabled(applyingName != nil)
+                .disabled(applyingName != nil || queuedApplies.contains(gap.name))
 
                 Button {
                     withAnimation { skippedNames.insert(gap.name) }
@@ -2214,6 +2226,19 @@ struct ClassificationGapsSheet: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(applyingName != nil)
+            }
+            if let msg = applyErrors[gap.name] {
+                Text(msg)
+                    .font(.appCaption)
+                    .foregroundColor(.appDanger)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if queuedApplies.contains(gap.name) {
+                Text("En attente — hors ligne")
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.vertical, 4)
@@ -2248,16 +2273,37 @@ struct ClassificationGapsSheet: View {
     }
 
     private func applyGap(_ gap: ClassificationGap) async {
-        await MainActor.run { applyingName = gap.name }
+        await MainActor.run {
+            applyingName = gap.name
+            applyErrors.removeValue(forKey: gap.name)
+        }
+        defer { Task { @MainActor in applyingName = nil } }
+
         var body: [String: Any] = ["name": gap.name]
         if let v = gap.suggestedMuscleGroup  ?? gap.currentMuscleGroup  { body["muscle_group"]     = v }
         if let v = gap.suggestedMuscleSpecific                           { body["muscle_specific"]  = v }
         if let v = gap.suggestedMovementPattern                          { body["movement_pattern"] = v }
-        _ = try? await APIService.shared.classifyExercise(body)
-        await MainActor.run {
-            appliedNames.insert(gap.name)
-            applyingName = nil
-            onCountChange(visible.count)
+
+        do {
+            try await APIService.shared.classifyExercise(body)
+            // Succès serveur UNIQUEMENT : la classification locale change
+            // (le gap disparaît de la liste visible).
+            await MainActor.run {
+                appliedNames.insert(gap.name)
+                onCountChange(visible.count)
+            }
+        } catch APIError.queuedOffline {
+            // Hors ligne : le gap RESTE visible, bouton désactivé jusqu'au
+            // rejeu (observer SyncManager plus bas).
+            await MainActor.run { queuedApplies.insert(gap.name) }
+        } catch APIError.serverError(_, let msg) {
+            await MainActor.run {
+                applyErrors[gap.name] = msg.isEmpty ? "Erreur serveur — réessaie" : msg
+            }
+        } catch {
+            await MainActor.run {
+                applyErrors[gap.name] = "Erreur réseau — réessaie"
+            }
         }
     }
 }
