@@ -637,12 +637,18 @@ extension APIService {
     // MARK: - Inventaire mutations
 
     func saveExercise(_ body: [String: Any]) async throws {
-        _ = try await offlinePost(endpoint: "/api/save_exercise", payload: body)
+        // Parité editSession/deleteSession/deleteHIIT : queuedOffline distinct
+        // d'un succès serveur.
+        if try await offlinePost(endpoint: "/api/save_exercise", payload: body) == nil {
+            throw APIError.queuedOffline
+        }
         CacheInvalidation.inventaireMutated.invalidate()
     }
 
     func deleteExerciseItem(name: String) async throws {
-        _ = try await offlinePost(endpoint: "/api/delete_exercise", payload: ["name": name])
+        if try await offlinePost(endpoint: "/api/delete_exercise", payload: ["name": name]) == nil {
+            throw APIError.queuedOffline
+        }
         CacheInvalidation.inventaireMutated.invalidate()
     }
 

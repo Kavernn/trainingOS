@@ -72,6 +72,11 @@ struct CatalogueView: View {
     @State private var prefillName = ""
     @State private var showGaps = false
     @State private var gapsCount = 0
+    @State private var mutationError: String?
+    @State private var pendingDeletes: Set<String> = []  // names en vol
+    @State private var queuedDeletes:  Set<String> = []  // names enfilés hors ligne
+    @State private var isSavePending = false
+    @State private var isSaveQueued  = false
     @State private var errorMsg: String?
     @State private var pendingDelete: String?
     @State private var addToProgramTarget: InventoryItem?
@@ -109,6 +114,7 @@ struct CatalogueView: View {
                     CatalogueSkeletonView()
                 } else {
                     VStack(spacing: 0) {
+                        mutationBanner
                         searchBar
                         typeFilter
                         categoryFilter
@@ -216,6 +222,15 @@ struct CatalogueView: View {
             }
         }
         .task { await loadData() }
+        .onReceive(SyncManager.shared.$pendingCount) { count in
+            // File vidée (succès OU rejet 4xx) : reload = état serveur réel,
+            // les boutons désactivés redeviennent utilisables.
+            if count == 0 && (!queuedDeletes.isEmpty || isSaveQueued) {
+                queuedDeletes.removeAll()
+                isSaveQueued = false
+                Task { await loadData() }
+            }
+        }
         .onChange(of: searchText) { _, new in
             if new.isEmpty {
                 debouncedSearch = ""
@@ -397,6 +412,29 @@ struct CatalogueView: View {
         }
     }
 
+    @ViewBuilder
+    private var mutationBanner: some View {
+        let total = queuedDeletes.count + (isSaveQueued ? 1 : 0)
+        if total > 0 {
+            Text("\(total) mutation\(total > 1 ? "s" : "") en attente — hors ligne")
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+        }
+        if let msg = mutationError {
+            Text(msg)
+                .font(.appCaption)
+                .foregroundColor(.appDanger)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+        }
+    }
+
     private func postSave(_ item: InventoryItem, originalName: String? = nil) async {
         var body: [String: Any] = [
             "name":              item.name,
@@ -423,13 +461,41 @@ struct CatalogueView: View {
         if let orig = originalName, orig != item.name {
             body["original_name"] = orig
         }
-        _ = try? await APIService.shared.saveExercise(body)
-        await loadData()
+        isSavePending = true
+        mutationError = nil
+        isSaveQueued = false
+        defer { isSavePending = false }
+        do {
+            try await APIService.shared.saveExercise(body)
+            // Succès serveur : reload reflète l'état réel.
+            await loadData()
+        } catch APIError.queuedOffline {
+            isSaveQueued = true
+        } catch APIError.serverError(_, let msg) {
+            mutationError = msg.isEmpty ? "Erreur serveur" : msg
+        } catch {
+            mutationError = "Erreur réseau — réessaie"
+        }
     }
 
     private func deleteItem(_ name: String) async {
-        _ = try? await APIService.shared.deleteExerciseItem(name: name)
-        await MainActor.run { items.removeAll { $0.name == name } }
+        // Anti-double-queue : si déjà en file hors ligne, on ignore.
+        guard !queuedDeletes.contains(name) else { return }
+        pendingDeletes.insert(name)
+        mutationError = nil
+        defer { pendingDeletes.remove(name) }
+        do {
+            try await APIService.shared.deleteExerciseItem(name: name)
+            // Succès serveur UNIQUEMENT : retrait de la liste APRÈS confirmation
+            // (règle anti-optimiste : pas de disparition qui réapparaît si rejet).
+            await MainActor.run { items.removeAll { $0.name == name } }
+        } catch APIError.queuedOffline {
+            queuedDeletes.insert(name)
+        } catch APIError.serverError(_, let msg) {
+            mutationError = msg.isEmpty ? "Erreur serveur" : msg
+        } catch {
+            mutationError = "Erreur réseau — réessaie"
+        }
     }
 
     // MARK: – Helpers
