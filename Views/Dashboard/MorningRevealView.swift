@@ -1,4 +1,5 @@
 import SwiftUI
+import OSLog
 
 // MARK: - Morning Reveal View
 // Shown once per day on first app open before 14h.
@@ -30,6 +31,8 @@ struct MorningRevealView: View {
     @State private var checkInError: String? = nil
     @State private var noServerRecompute = false     // save queued offline → verdict pas recalculé serveur
     @State private var briefErrorMessage: String? = nil
+    @State private var recoveryLoadFailed = false    // bootstrap recovery fetch raté → fail-soft check-in à vide
+    private let logger = Logger(subsystem: "TrainingOS", category: "morning-reveal")
 
     // Reveal animation state
     @State private var showReveal = false
@@ -121,6 +124,13 @@ struct MorningRevealView: View {
                 }
                 .padding(.top, 32)
                 .padding(.horizontal, 24)
+
+                if recoveryLoadFailed {
+                    Text("Impossible de récupérer tes réponses du jour")
+                        .font(.appCaption)
+                        .foregroundColor(Color.appOnSurface.opacity(0.5))
+                        .padding(.horizontal, 24)
+                }
 
                 MorningCheckInBlock(sleepQuality: $sleepQuality,
                                     fatigue: $fatigue,
@@ -330,7 +340,15 @@ struct MorningRevealView: View {
 
     private func bootstrap() async {
         // Prefill from today's recovery entry if any ; décide check-in needed.
-        let entries = (try? await APIService.shared.fetchRecoveryData()) ?? []
+        let entries: [RecoveryEntry]
+        do {
+            entries = try await APIService.shared.fetchRecoveryData()
+        } catch {
+            logger.error("MorningReveal bootstrap recovery: \(error, privacy: .public)")
+            recoveryLoadFailed = true
+            phase = .checkIn
+            return
+        }
         if let today = entries.first(where: { $0.date == todayStr }) {
             sleepQuality = today.sleepQuality ?? 0
             fatigue      = today.fatigue     ?? 0
