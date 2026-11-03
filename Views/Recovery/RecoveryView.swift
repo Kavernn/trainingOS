@@ -494,18 +494,33 @@ struct RecoveryView: View {
 
     @EnvironmentObject private var appState: AppState
     @ObservedObject private var api = APIService.shared
-    @State private var log: [RecoveryEntry] = []
-    @State private var isLoading = true
+    @State private var logState       = Loadable<[RecoveryEntry]>()
+    @State private var hrvState       = Loadable<HRVAnalysis>()
+    @State private var readinessState = Loadable<ReadinessResponse>()
     @State private var showSheet = false
     @State private var editTarget: RecoveryEntry? = nil
-    @State private var apiError: String? = nil
+    @State private var apiError: String? = nil  // Réservé aux erreurs HK sync / backfill (hors Loadable).
     @State private var toast: ToastMessage? = nil
     @ObservedObject private var watchSync = WatchSyncService.shared
     @State private var isBackfilling = false
     @AppStorage("hk_backfill_done_date") private var backfillDoneDate = ""
-    @State private var stats = RecoveryStats(log: [])
-    @State private var hrvAnalysis: HRVAnalysis? = nil
-    @State private var readinessData: ReadinessResponse? = nil
+
+    private var log: [RecoveryEntry]              { logState.value ?? [] }
+    private var hrvAnalysis: HRVAnalysis?         { hrvState.value }
+    private var readinessData: ReadinessResponse? { readinessState.value }
+    private var stats: RecoveryStats              { RecoveryStats(log: log) }
+    private var isLoading: Bool {
+        logState.value == nil && logState.isLoading
+    }
+
+    private var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(
+                states: [logState, hrvState, readinessState] as [any LoadableStateView],
+                retry: { await loadData() }
+            )
+        ])
+    }
     @AppStorage("hrv_onboarding_done") private var hrvOnboardingDone = false
     @State private var showHRVOnboarding = false
 
@@ -591,6 +606,9 @@ struct RecoveryView: View {
                     AppLoadingView()
                 } else {
                     VStack(spacing: 0) {
+                        TopFailureBanner(aggregator: topFailureAggregator)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
                         pillBar
                         if activeTab == .today {
                             todayScrollView
@@ -1281,17 +1299,23 @@ struct RecoveryView: View {
     // MARK: - Data
 
     private func loadData() async {
-        isLoading = true
-        log = (try? await APIService.shared.fetchRecoveryData()) ?? []
-        stats = RecoveryStats(log: log)
-        // sequential — async let LIFO crash on iOS 26 beta
-        let analysis  = try? await APIService.shared.fetchHRVAnalysis()
-        let readiness = try? await APIService.shared.fetchReadiness()
-        await MainActor.run {
-            hrvAnalysis   = analysis
-            readinessData = readiness
-            isLoading     = false
+        let api = APIService.shared
+        let logSeed = api.cachedSeed(for: APIService.recoveryDataCacheKey, as: RecoveryDataResponse.self)
+        let hrvSeed = api.cachedSeed(for: APIService.hrvAnalysisCacheKey, as: HRVAnalysis.self)
+        let rSeed   = api.cachedSeed(for: APIService.readinessCacheKey, as: ReadinessResponse.self)
+
+        async let logLoad: Void = logState.load(seed: logSeed.0?.recoveryLog, savedAt: logSeed.1) {
+            try await api.fetchRecoveryData(forceRefresh: true)
         }
+        async let hrvLoad: Void = hrvState.load(seed: hrvSeed.0, savedAt: hrvSeed.1) {
+            try await api.fetchHRVAnalysis(forceRefresh: true)
+        }
+        async let rLoad: Void = readinessState.load(seed: rSeed.0, savedAt: rSeed.1) {
+            try await api.fetchReadiness(forceRefresh: true)
+        }
+        _ = await logLoad
+        _ = await hrvLoad
+        _ = await rLoad
     }
 
     #if targetEnvironment(macCatalyst)
