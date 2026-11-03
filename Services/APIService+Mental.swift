@@ -1,10 +1,16 @@
 import Foundation
 
 extension APIService {
+    static let moodEmotionsCacheKey = "mood_emotions"
+
+    static func moodHistoryCacheKey(offset: Int = 0) -> String {
+        offset == 0 ? "mood_history" : "mood_history_\(offset)"
+    }
+
     // MARK: - Mood
-    func fetchMoodEmotions() async throws -> [MoodEmotion] {
+    func fetchMoodEmotions(forceRefresh: Bool = false) async throws -> [MoodEmotion] {
         let url = try buildURL(path: "/api/mood/emotions")
-        let data = try await fetchWithCache(url: url, key: "mood_emotions")
+        let data = try await fetchWithCache(url: url, key: Self.moodEmotionsCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode([MoodEmotion].self, from: data)
     }
 
@@ -21,25 +27,29 @@ extension APIService {
     }
 
     func fetchMoodHistory(days: Int = 90, limit: Int = 20,
-                          offset: Int = 0) async throws -> PagedResponse<MoodEntry> {
-        let cacheKey = offset == 0 ? "mood_history" : "mood_history_\(offset)"
+                          offset: Int = 0,
+                          forceRefresh: Bool = false) async throws -> PagedResponse<MoodEntry> {
         let url = try buildURL(path: "/api/mood/history", queryItems: [
             URLQueryItem(name: "days", value: "\(days)"),
             URLQueryItem(name: "limit", value: "\(limit)"),
             URLQueryItem(name: "offset", value: "\(offset)")
         ])
-        let data = try await fetchWithCache(url: url, key: cacheKey)
+        let data = try await fetchWithCache(url: url, key: Self.moodHistoryCacheKey(offset: offset), forceRefresh: forceRefresh)
         return try APIService.decoder.decode(PagedResponse<MoodEntry>.self, from: data)
     }
 
-    func fetchMoodRPE(days: Int = 90, session: URLSession = .authed) async -> [String: Double] {
-        guard let url = try? buildURL(path: "/api/mood/rpe", queryItems: [
+    /// Alimente un chart affiché (corrélation Mood × RPE) — un échec DOIT remonter
+    /// à l'UI, pas être masqué par `[:]`. Les callers passent par un `Loadable`
+    /// qui surface l'erreur dans `SectionErrorView`.
+    func fetchMoodRPE(days: Int = 90, session: URLSession = .authed) async throws -> [String: Double] {
+        let url = try buildURL(path: "/api/mood/rpe", queryItems: [
             URLQueryItem(name: "days", value: "\(days)")
-        ]),
-        let (data, response) = try? await session.data(from: url),
-        (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0),
-        let decoded = try? APIService.decoder.decode(MoodRPEResponse.self, from: data)
-        else { return [:] }
+        ])
+        let (data, response) = try await session.data(from: url)
+        guard (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
+            throw URLError(.badServerResponse)
+        }
+        let decoded = try APIService.decoder.decode(MoodRPEResponse.self, from: data)
         return decoded.rpeByDate
     }
 

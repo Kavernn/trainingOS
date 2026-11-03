@@ -2,70 +2,129 @@ import SwiftUI
 import Charts
 
 struct MoodTrackerView: View {
-    @State private var entries: [MoodEntry] = []
-    @State private var emotions: [MoodEmotion] = []
-    @State private var showLogSheet = false
-    @State private var isLoading = true
-    @State private var isLoadingMore = false
-    @State private var hasMore = false
+    @State private var emotionsState  = Loadable<[MoodEmotion]>()
+    @State private var firstPageState = Loadable<PagedResponse<MoodEntry>>()
+    @State private var moodRPEState   = Loadable<[String: Double]>()
+    @State private var showLogSheet   = false
+
+    // Pagination append (hors Loadable — mutation incrémentale au-dessus du
+    // premier page qui, lui, est un Loadable cache-first).
+    @State private var extraEntries: [MoodEntry] = []
+    @State private var hasMore        = false
     @State private var nextOffset: Int? = nil
-    @State private var rpeByDate: [String: Double] = [:]
+    @State private var isLoadingMore  = false
+    @State private var loadMoreFailed = false
+
+    private var emotions: [MoodEmotion] { emotionsState.value ?? [] }
+    private var entries: [MoodEntry] { (firstPageState.value?.items ?? []) + extraEntries }
+    private var rpeByDate: [String: Double] { moodRPEState.value ?? [:] }
+
+    private var allStates: [any LoadableStateView] {
+        [emotionsState, firstPageState, moodRPEState]
+    }
+    private var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(states: allStates, retry: { await loadData() })
+        ])
+    }
+    private var isInitialColdLoad: Bool {
+        emotionsState.value == nil
+            && firstPageState.value == nil
+            && allStates.contains { $0.isLoading }
+    }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Group {
-                if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if entries.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "face.smiling")
-                            .font(.system(size: 50))
-                            .foregroundColor(Color.forge)
-                        Text("Aucune humeur loggée")
-                            .font(.headline)
-                        Text("Commence à tracker ton humeur pour voir tes tendances.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
-                        // Correlation chart header
-                        let correlationPoints = entries.compactMap { e -> (Int, Double)? in
-                            guard let rpe = rpeByDate[String(e.date.prefix(10))] else { return nil }
-                            return (e.score, rpe)
-                        }
-                        if correlationPoints.count >= 3 {
-                            Section {
-                                MoodRPECorrelationCard(points: correlationPoints)
-                                    .listRowBackground(Color.clear)
-                                    .listRowInsets(EdgeInsets())
-                            }
-                        }
+            VStack(spacing: 0) {
+                TopFailureBanner(aggregator: topFailureAggregator)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
-                        ForEach(entries) { entry in
-                            MoodEntryRow(entry: entry, emotions: emotions)
+                Group {
+                    if isInitialColdLoad {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if entries.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "face.smiling")
+                                .font(.system(size: 50))
+                                .foregroundColor(Color.forge)
+                            Text("Aucune humeur loggée")
+                                .font(.headline)
+                            Text("Commence à tracker ton humeur pour voir tes tendances.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
                         }
-                        if hasMore {
-                            Button { Task { await loadMore() } } label: {
-                                HStack {
-                                    Spacer()
-                                    if isLoadingMore {
-                                        ProgressView().scaleEffect(0.8)
-                                    } else {
-                                        Text("Charger plus…")
-                                            .font(.subheadline).foregroundColor(Color.forge)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        List {
+                            // Chart corrélation Mood × RPE : surface l'erreur
+                            // moodRPE à sa place dans la liste (vs "aucune donnée").
+                            let correlationPoints = entries.compactMap { e -> (Int, Double)? in
+                                guard let rpe = rpeByDate[String(e.date.prefix(10))] else { return nil }
+                                return (e.score, rpe)
+                            }
+                            if moodRPEState.hasError {
+                                Section {
+                                    SectionErrorView(state: moodRPEState) {
+                                        await moodRPEState.load {
+                                            try await APIService.shared.fetchMoodRPE()
+                                        }
                                     }
-                                    Spacer()
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
+                                }
+                            } else if correlationPoints.count >= 3 {
+                                Section {
+                                    MoodRPECorrelationCard(points: correlationPoints)
+                                        .listRowBackground(Color.clear)
+                                        .listRowInsets(EdgeInsets())
                                 }
                             }
-                            .buttonStyle(.plain)
+
+                            ForEach(entries) { entry in
+                                MoodEntryRow(entry: entry, emotions: emotions)
+                            }
+                            if hasMore && !loadMoreFailed {
+                                Button { Task { await loadMore() } } label: {
+                                    HStack {
+                                        Spacer()
+                                        if isLoadingMore {
+                                            ProgressView().scaleEffect(0.8)
+                                        } else {
+                                            Text("Charger plus…")
+                                                .font(.subheadline).foregroundColor(Color.forge)
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            if loadMoreFailed {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .foregroundColor(.forge)
+                                        .accessibilityHidden(true)
+                                    Text("Échec du chargement")
+                                        .font(.appCaption)
+                                        .foregroundColor(.appTextSecondary)
+                                    Spacer(minLength: 4)
+                                    Button {
+                                        Task { await loadMore() }
+                                    } label: {
+                                        Text("Réessayer")
+                                            .font(.appCaption.weight(.semibold))
+                                            .foregroundColor(.forge)
+                                            .frame(minWidth: 44, minHeight: 44)
+                                    }
+                                }
+                                .listRowBackground(Color.clear)
+                            }
                         }
+                        .listStyle(.insetGrouped)
                     }
-                    .listStyle(.insetGrouped)
                 }
             }
 
@@ -90,32 +149,51 @@ struct MoodTrackerView: View {
     }
 
     private func loadData() async {
-        // sequential — async let LIFO crash on iOS 26 beta
-        let em   = try? await APIService.shared.fetchMoodEmotions()
-        let page = try? await APIService.shared.fetchMoodHistory()
-        await MainActor.run {
-            emotions = em ?? []
-            if let page {
-                entries    = page.items
-                hasMore    = page.hasMore
-                nextOffset = page.nextOffset
-            }
-            isLoading = false
+        let api = APIService.shared
+        let emSeed = api.cachedSeed(for: APIService.moodEmotionsCacheKey, as: [MoodEmotion].self)
+        let hSeed  = api.cachedSeed(for: APIService.moodHistoryCacheKey(offset: 0), as: PagedResponse<MoodEntry>.self)
+
+        // Reset pagination : nouvelle fetch de la première page invalide les
+        // chargements incrémentaux précédents.
+        extraEntries = []
+        loadMoreFailed = false
+
+        async let emLoad: Void = emotionsState.load(seed: emSeed.0, savedAt: emSeed.1) {
+            try await api.fetchMoodEmotions(forceRefresh: true)
         }
-        // Secondary data: never delays or blocks the mood journal.
-        let moodRPE = await APIService.shared.fetchMoodRPE()
-        await MainActor.run { rpeByDate = moodRPE }
+        async let hLoad: Void = firstPageState.load(seed: hSeed.0, savedAt: hSeed.1) {
+            try await api.fetchMoodHistory(forceRefresh: true)
+        }
+        // moodRPE : endpoint sans cache (direct URLSession via fetchMoodRPE).
+        async let rpeLoad: Void = moodRPEState.load {
+            try await api.fetchMoodRPE()
+        }
+        _ = await emLoad
+        _ = await hLoad
+        _ = await rpeLoad
+
+        if let page = firstPageState.value {
+            hasMore = page.hasMore
+            nextOffset = page.nextOffset
+        } else {
+            hasMore = false
+            nextOffset = nil
+        }
     }
 
     private func loadMore() async {
         guard let offset = nextOffset, !isLoadingMore else { return }
         isLoadingMore = true
-        if let pg = try? await APIService.shared.fetchMoodHistory(offset: offset) {
-            entries.append(contentsOf: pg.items)
-            hasMore    = pg.hasMore
-            nextOffset = pg.nextOffset
+        loadMoreFailed = false
+        defer { isLoadingMore = false }
+        do {
+            let page = try await APIService.shared.fetchMoodHistory(offset: offset, forceRefresh: true)
+            extraEntries.append(contentsOf: page.items)
+            hasMore = page.hasMore
+            nextOffset = page.nextOffset
+        } catch {
+            loadMoreFailed = true
         }
-        isLoadingMore = false
     }
 }
 
@@ -180,7 +258,8 @@ struct MoodLogSheet: View {
     @State private var isSubmitting = false
     @State private var errorMsg: String?
 
-    @State private var emotionList: [MoodEmotion] = []
+    @State private var emotionsState = Loadable<[MoodEmotion]>()
+    private var emotionList: [MoodEmotion] { emotionsState.value ?? [] }
 
     // Creuser (optionnel)
     @State private var isCreuserExpanded: Bool = false
@@ -353,8 +432,18 @@ struct MoodLogSheet: View {
                 }
             }
             .task {
-                if emotionList.isEmpty {
-                    emotionList = (try? await APIService.shared.fetchMoodEmotions()) ?? emotions
+                // Si le parent ne nous a rien passé, on charge localement
+                // (seed cache + forceRefresh). L'erreur reste muette ici car
+                // la grille d'émotions fallback sur `emotions` (param parent) —
+                // par convention UI, la sheet ne doit pas être bloquée.
+                if emotions.isEmpty, emotionsState.value == nil {
+                    let seed = APIService.shared.cachedSeed(
+                        for: APIService.moodEmotionsCacheKey,
+                        as: [MoodEmotion].self
+                    )
+                    await emotionsState.load(seed: seed.0, savedAt: seed.1) {
+                        try await APIService.shared.fetchMoodEmotions(forceRefresh: true)
+                    }
                 }
             }
         }

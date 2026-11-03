@@ -45,8 +45,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/MentalHealth/MentalHealthView.swift:checkMoodDue",
         "Views/MentalHealth/MentalHealthView.swift:fetchMentalHealthSummary",
         "Views/MentalHealth/MentalHealthView.swift:fetchMoodEmotions",
-        "Views/MentalHealth/MoodTrackerView.swift:fetchMoodEmotions",
-        "Views/MentalHealth/MoodTrackerView.swift:fetchMoodHistory",
         // à migrer avec l'écran Nutrition, après le commit du WIP de Vince
         "Views/Nutrition/NutritionView.swift:fetchEnergyDaily",
         // à migrer avec l'écran Nutrition, après le commit du WIP de Vince

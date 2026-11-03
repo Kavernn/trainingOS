@@ -201,12 +201,18 @@ final class APIModelsTests: XCTestCase {
         XCTAssertEqual(decoded.rpeByDate["2026-09-06"], 8.0)
     }
 
-    func testMoodRPEHTTPFailureReturnsEmptyWithoutThrowing() async {
+    func testMoodRPEHTTPFailureThrows() async {
+        // fetchMoodRPE alimente un chart affiché (corrélation Mood × RPE) :
+        // un 500 DOIT lever pour que le Loadable surface l'erreur dans
+        // SectionErrorView, pas la masquer en "aucune donnée".
         let session = makeMockURLSession(statusCode: 500, data: Data(#"{"error":"unavailable"}"#.utf8))
 
-        let result = await APIService.shared.fetchMoodRPE(session: session)
-
-        XCTAssertTrue(result.isEmpty)
+        do {
+            _ = try await APIService.shared.fetchMoodRPE(session: session)
+            XCTFail("fetchMoodRPE doit lever sur HTTP 500")
+        } catch {
+            // OK — erreur remontée au caller.
+        }
     }
 
     // MARK: - Stats cockpit contract
