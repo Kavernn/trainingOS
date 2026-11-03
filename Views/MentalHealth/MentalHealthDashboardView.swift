@@ -1,13 +1,28 @@
 import SwiftUI
 
 struct MentalHealthDashboardView: View {
-    @State private var summary7: MentalHealthSummary?
-    @State private var summary30: MentalHealthSummary?
+    @State private var summary7State  = Loadable<MentalHealthSummary>()
+    @State private var summary30State = Loadable<MentalHealthSummary>()
     @State private var selectedDays = 7
-    @State private var isLoading = true
 
+    private var summary7:  MentalHealthSummary? { summary7State.value }
+    private var summary30: MentalHealthSummary? { summary30State.value }
     private var current: MentalHealthSummary? {
         selectedDays == 7 ? summary7 : summary30
+    }
+    private var isInitialColdLoad: Bool {
+        current == nil && (summary7State.isLoading || summary30State.isLoading)
+    }
+    private var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(
+                states: [summary7State, summary30State] as [any LoadableStateView],
+                retry: {
+                    await loadData()
+                    await loadMissing()
+                }
+            )
+        ])
     }
 
     var body: some View {
@@ -16,6 +31,9 @@ struct MentalHealthDashboardView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 18) {
+                    TopFailureBanner(aggregator: topFailureAggregator)
+                        .padding(.horizontal)
+
                     Picker("Période", selection: $selectedDays) {
                         Text("7 jours").tag(7)
                         Text("30 jours").tag(30)
@@ -26,7 +44,7 @@ struct MentalHealthDashboardView: View {
                         Task { await loadMissing() }
                     }
 
-                    if isLoading {
+                    if isInitialColdLoad {
                         ProgressView().tint(.onAccent)
                             .padding(.top, 60)
                     } else if let s = current {
@@ -161,17 +179,19 @@ struct MentalHealthDashboardView: View {
     }
 
     private func loadData() async {
-        let s7 = try? await APIService.shared.fetchMentalHealthSummary(days: 7)
-        await MainActor.run {
-            summary7  = s7
-            isLoading = false
+        let api = APIService.shared
+        let seed = api.cachedSeed(for: APIService.mentalHealthSummaryCacheKey(days: 7), as: MentalHealthSummary.self)
+        await summary7State.load(seed: seed.0, savedAt: seed.1) {
+            try await api.fetchMentalHealthSummary(days: 7, forceRefresh: true)
         }
     }
 
     private func loadMissing() async {
-        if selectedDays == 30 && summary30 == nil {
-            let s30 = try? await APIService.shared.fetchMentalHealthSummary(days: 30)
-            await MainActor.run { summary30 = s30 }
+        guard selectedDays == 30, summary30State.value == nil else { return }
+        let api = APIService.shared
+        let seed = api.cachedSeed(for: APIService.mentalHealthSummaryCacheKey(days: 30), as: MentalHealthSummary.self)
+        await summary30State.load(seed: seed.0, savedAt: seed.1) {
+            try await api.fetchMentalHealthSummary(days: 30, forceRefresh: true)
         }
     }
 }
