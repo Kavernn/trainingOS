@@ -28,10 +28,12 @@ struct PrimaryButton: View {
     // MARK: - Body
 
     var body: some View {
-        Button(action: handleTap) {
+        Button(role: style == .destructive ? .destructive : nil, action: handleTap) {
             buttonLabel
                 .frame(maxWidth: size == .small ? nil : .infinity)
-                .frame(minHeight: visualHeight)
+                .frame(minWidth: 44, minHeight: max(44, visualHeight))
+                .fixedSize(horizontal: false, vertical: true)
+                .contentShape(Rectangle())
                 .background(backgroundFill)
                 .foregroundColor(foregroundColor)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
@@ -41,9 +43,10 @@ struct PrimaryButton: View {
         .opacity(isDisabled ? 0.45 : 1.0)
         .disabled(isDisabled || isLoading)
         .frame(minWidth: size == .small ? 44 : nil, minHeight: 44)
+        .fixedSize(horizontal: false, vertical: true)
         .contentShape(Rectangle())
         .accessibilityLabel(accessibilityTitle)
-        .accessibilityAddTraits(isDisabled ? .isStaticText : [])
+        .accessibilityValue(isLoading ? "Chargement en cours" : "")
     }
 
     // MARK: - Label
@@ -64,6 +67,9 @@ struct PrimaryButton: View {
                     if !title.isEmpty {
                         Text(title)
                             .font(buttonFont)
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -128,19 +134,20 @@ struct PrimaryButton: View {
 
     private var buttonFont: Font {
         switch size {
-        case .large:  return .appBody.weight(.semibold)
-        case .medium: return .appBody.weight(.semibold)
-        case .small:  return .appLabel.weight(.semibold)
+        case .large:  return .body.weight(.semibold)
+        case .medium: return .body.weight(.semibold)
+        case .small:  return .subheadline.weight(.semibold)
         }
     }
 
     // MARK: - Helpers
 
     private var accessibilityTitle: String {
-        isLoading ? "Chargement" : (title.isEmpty ? (icon ?? "") : title)
+        title.isEmpty ? (icon ?? "Action") : title
     }
 
     private func handleTap() {
+        guard !isDisabled, !isLoading else { return }
 #if os(iOS)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 #endif

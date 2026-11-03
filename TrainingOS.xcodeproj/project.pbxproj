@@ -87,6 +87,7 @@
 		AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */; };
 		AA4E3B1AEDA6E4FEB259CD9F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4D4DE4EE839463B0D4AB746 /* Foundation.framework */; };
 		AB0CAE533C2329F302A8DE75 /* TimeCapsuleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A76154790AE80AF270345B19 /* TimeCapsuleModels.swift */; };
+		AB123456789ABCDEF1234567 /* LoadableAggregation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9876543210FEDCBA987654 /* LoadableAggregation.swift */; };
 		AB5A5BBA12AEB12AF0596F9C /* APIService+WorkoutDNA.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7692E44A985A89B88122708 /* APIService+WorkoutDNA.swift */; };
 		AC0001AC0001AC0001AC0001 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0002AC0002AC0002AC0002 /* APIConfig.swift */; };
 		ACS0002ACS0002ACS0002AC2 /* AddCardioSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACS0001ACS0001ACS0001AC1 /* AddCardioSheet.swift */; };
@@ -157,7 +158,6 @@
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
 		F94E27D8AD4CFCAED7E8C049 /* SyncDiscardsBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9240AB1723E37EE0DDC919E /* SyncDiscardsBanner.swift */; };
 		FC17584D7AFE67521FC5FA38 /* Loadable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241879CDF0DCA4374F0E0BCB /* Loadable.swift */; };
-		AB123456789ABCDEF1234567 /* LoadableAggregation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9876543210FEDCBA987654 /* LoadableAggregation.swift */; };
 		FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1100002F5D98BA002AE470 /* WatchSyncService.swift */; };
 		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
 		FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */; };
@@ -305,7 +305,6 @@
 		17DD0C9095A69B34AA03E74F /* WorkoutModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutModels.swift; sourceTree = "<group>"; };
 		1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalogView.swift; sourceTree = "<group>"; };
 		241879CDF0DCA4374F0E0BCB /* Loadable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Loadable.swift; sourceTree = "<group>"; };
-		CD9876543210FEDCBA987654 /* LoadableAggregation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoadableAggregation.swift; sourceTree = "<group>"; };
 		27D3508F57CBFDAD2C6FDA2D /* HealthKitService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		2B6493A275C48565558F7C13 /* WorkoutDNAModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutDNAModels.swift; sourceTree = "<group>"; };
 		2C092A48A92B45199AD49EE3 /* DashboardHeaderCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeaderCards.swift; sourceTree = "<group>"; };
@@ -399,6 +398,7 @@
 		C9D9887CCB93891D19B6AA41 /* BudgetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BudgetModels.swift; path = Models/BudgetModels.swift; sourceTree = SOURCE_ROOT; };
 		CC1100002F5D98BA002AE470 /* DashboardCardioCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCardioCard.swift; sourceTree = "<group>"; };
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
+		CD9876543210FEDCBA987654 /* LoadableAggregation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoadableAggregation.swift; sourceTree = "<group>"; };
 		CI0002CI0002CI0002CI0002 /* CacheInvalidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheInvalidation.swift; sourceTree = "<group>"; };
 		D0FE1CA8525F46319027AD6D /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
 		D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSessionManager.swift; sourceTree = "<group>"; };
@@ -556,29 +556,21 @@
 		};
 		D68A5C452FD0CE6600B824DF /* VinceSeven Watch Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch App";
 			sourceTree = "<group>";
 		};
 		D68A5C532FD0CE6800B824DF /* VinceSeven Watch Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppTests";
 			sourceTree = "<group>";
 		};
 		D68A5C5D2FD0CE6800B824DF /* VinceSeven Watch Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "VinceSeven Watch Watch AppUITests";
 			sourceTree = "<group>";
 		};
 		D69FB9062F666F3F0091BDD2 /* TrainingOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TrainingOSTests;
 			sourceTree = "<group>";
 		};
@@ -647,7 +639,6 @@
 			children = (
 				D9240AB1723E37EE0DDC919E /* SyncDiscardsBanner.swift */,
 			);
-			name = Shared;
 			path = Shared;
 			sourceTree = "<group>";
 		};
@@ -1715,6 +1706,7 @@
 				BUNDLE_LOADER = "";
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UZ9DNDCX9Z;
 				INFOPLIST_FILE = TrainingOSUITests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kavernntrainingos.app.TrainingOSUITests;
@@ -2153,6 +2145,7 @@
 				BUNDLE_LOADER = "";
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UZ9DNDCX9Z;
 				INFOPLIST_FILE = TrainingOSUITests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kavernntrainingos.app.TrainingOSUITests;

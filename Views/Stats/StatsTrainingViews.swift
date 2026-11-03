@@ -756,7 +756,7 @@ struct ExerciseStatRow: View {
 }
 
 // MARK: - Exercise Detail
-struct ExerciseWrapper: Identifiable { let id = UUID(); let name: String }
+struct ExerciseWrapper: Identifiable { var id: String { name }; let name: String }
 
 struct ExerciseDetailView: View {
     let name: String

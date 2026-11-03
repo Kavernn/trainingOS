@@ -3,7 +3,6 @@ import Combine
 
 struct NutritionView: View {
     @StateObject private var vm = NutritionViewModel()
-    @State private var energy: EnergyDaily? = nil
     @State private var showAdd = false
     @State private var toast: ToastMessage? = nil
 
@@ -11,7 +10,7 @@ struct NutritionView: View {
         NavigationStack {
             ZStack {
                 AmbientBackground(color: Color.forge)
-                if vm.isLoading && vm.entries.isEmpty {
+                if vm.isLoading && !vm.hasLoaded {
                     AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
@@ -22,7 +21,7 @@ struct NutritionView: View {
                                     onDismiss: { vm.networkError = nil })
                                     .padding(.horizontal, 16)
                             }
-                            KcalHeader(consumed: consumed, target: energy?.targetCalories)
+                            KcalHeader(consumed: consumed, target: vm.energy?.targetCalories)
                                 .padding(.horizontal, 16)
                             MacroRow(totals: vm.totals)
                                 .padding(.horizontal, 16)
@@ -44,20 +43,17 @@ struct NutritionView: View {
                 SimpleAddNutritionSheet { name, p, l, g in
                     let trimmed = name.trimmingCharacters(in: .whitespaces)
                     let finalName = trimmed.isEmpty ? "Repas" : trimmed
-                    do {
-                        try await APIService.shared.addNutritionEntry(
-                            name: finalName, calories: 0,
-                            proteines: p, glucides: g, lipides: l
-                        )
-                        await reload()
-                        toast = ToastMessage(message: "\(finalName) ajouté ✓", style: .success)
-                    } catch {
-                        toast = ToastMessage(message: "Échec ajout — réessaie", style: .error)
-                    }
+                    try await APIService.shared.addNutritionEntry(
+                        name: finalName, calories: 0,
+                        proteines: p, glucides: g, lipides: l
+                    )
+                    await reload()
+                    toast = ToastMessage(message: "\(finalName) ajouté ✓", style: .success)
                 }
             }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: "plus") { showAdd = true }
+                    .accessibilityLabel("Ajouter un repas")
                     .padding(.trailing, 20)
                     .padding(.bottom, fabBottomPadding)
             }
@@ -69,8 +65,7 @@ struct NutritionView: View {
     private var consumed: Int { Int(vm.totals?.calories ?? 0) }
 
     private func reload() async {
-        await vm.loadData(silent: false)
-        energy = try? await APIService.shared.fetchEnergyDaily()
+        await vm.loadData()
     }
 }
 
@@ -174,10 +169,13 @@ private struct EntriesList: View {
                         Text("\(Int(entry.calories ?? 0)) kcal")
                             .font(.appCaption)
                             .foregroundColor(.gray)
-                        Button { onDelete(entry) } label: {
+                        Button(role: .destructive) { onDelete(entry) } label: {
                             Image(systemName: "trash")
                                 .foregroundColor(Color.appDanger)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
                         }
+                        .accessibilityLabel("Supprimer \(entry.name ?? "ce repas")")
                         .buttonStyle(.plain)
                     }
                     .padding(12)
@@ -190,8 +188,8 @@ private struct EntriesList: View {
 }
 
 // MARK: - Sheet simple : P/L/G + nom optionnel + aperçu kcal live
-private struct SimpleAddNutritionSheet: View {
-    let onSave: (String, Double, Double, Double) async -> Void
+struct SimpleAddNutritionSheet: View {
+    let onSave: (String, Double, Double, Double) async throws -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var pStr = ""
@@ -199,11 +197,12 @@ private struct SimpleAddNutritionSheet: View {
     @State private var gStr = ""
     @State private var saving = false
 
-    private var p: Double { Double(pStr.replacingOccurrences(of: ",", with: ".")) ?? 0 }
-    private var l: Double { Double(lStr.replacingOccurrences(of: ",", with: ".")) ?? 0 }
-    private var g: Double { Double(gStr.replacingOccurrences(of: ",", with: ".")) ?? 0 }
-    private var kcal: Int { Int((p * 4) + (g * 4) + (l * 9)) }
-    private var canSave: Bool { p > 0 || l > 0 || g > 0 }
+    @State private var saveError: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private var draft: NutritionMacroDraft? {
+        NutritionMacroDraft(protein: pStr, fat: lStr, carbs: gStr)
+    }
+    private var canSave: Bool { draft?.canSave == true }
 
     var body: some View {
         NavigationStack {
@@ -213,6 +212,15 @@ private struct SimpleAddNutritionSheet: View {
                     macroField("Lipides",   text: $lStr)
                     macroField("Glucides",  text: $gStr)
                 }
+                if draft == nil {
+                    Section {
+                        Text("Saisis des nombres positifs valides, avec une virgule ou un point décimal.")
+                            .foregroundColor(.appDanger)
+                    }
+                }
+                if let saveError {
+                    Section { Text(saveError).foregroundColor(.appDanger) }
+                }
                 Section("Nom (optionnel)") {
                     TextField("Repas", text: $name)
                 }
@@ -220,25 +228,33 @@ private struct SimpleAddNutritionSheet: View {
                     HStack {
                         Text("Calories")
                         Spacer()
-                        Text("\(kcal) kcal")
+                        Text(draft.map { "\($0.calories) kcal" } ?? "Valeurs invalides")
                             .font(.system(.body, design: .rounded))
                             .fontWeight(.semibold)
                             .foregroundColor(.appTextPrimary)
                     }
                 }
             }
+            .interactiveDismissDisabled(saving)
             .navigationTitle("Ajouter")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button("Annuler") { dismiss() }.disabled(saving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? "…" : "Ajouter") {
+                        guard let draft, draft.canSave, !saving else { return }
                         saving = true
+                        saveError = nil
                         Task {
-                            await onSave(name, p, l, g)
-                            dismiss()
+                            defer { saving = false }
+                            do {
+                                try await onSave(name, draft.protein, draft.fat, draft.carbs)
+                                dismiss()
+                            } catch {
+                                saveError = "Ajout impossible. Tes valeurs sont conservées ; réessaie."
+                            }
                         }
                     }
                     .disabled(!canSave || saving)
@@ -248,9 +264,13 @@ private struct SimpleAddNutritionSheet: View {
     }
 
     private func macroField(_ label: String, text: Binding<String>) -> some View {
-        HStack {
-            Text(label).frame(width: 100, alignment: .leading)
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading))
+            : AnyLayout(HStackLayout())
+        return layout {
+            Text(label)
             TextField("0", text: text)
+                .accessibilityLabel("\(label), en grammes")
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
         }

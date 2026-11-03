@@ -15,10 +15,13 @@ struct CardInfoButton: View {
     var body: some View {
         Button { showSheet = true } label: {
             Image(systemName: "info.circle")
-                .font(.appLabel)
-                .foregroundColor(.gray.opacity(0.5))
+                .font(.subheadline)
+                .foregroundColor(.appTextSecondary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("À propos de \(title)")
         .sheet(isPresented: $showSheet) {
             InfoSheetView(title: title, entries: entries)
         }
@@ -93,10 +96,10 @@ struct InfoSheetView: View {
                         ForEach(entries, id: \.term) { entry in
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(entry.term)
-                                    .font(.appLabel.weight(.bold))
+                                    .font(.subheadline.bold())
                                     .foregroundColor(Color.forge)
                                 Text(entry.definition)
-                                    .font(.appLabel.weight(.regular))
+                                    .font(.subheadline)
                                     .foregroundColor(Color.appOnSurface.opacity(0.85))
                                     .fixedSize(horizontal: false, vertical: true)
                             }

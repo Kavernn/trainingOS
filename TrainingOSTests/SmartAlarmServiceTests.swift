@@ -163,28 +163,62 @@ final class SmartAlarmServiceTests: XCTestCase {
             "Coucher 22h30 → alarme le LENDEMAIN")
     }
 
-    // MARK: - Test 8 : armement 00h30 (post-minuit) → alarme MÊME jour 06h45
+
+
+
+    // MARK: - Test 8 : coucher 00h30 → alarme même jour 06h45
+    // Date fixe hors changement d'heure pour un test déterministe.
 
     func testSchedule_coucher0030_alarme0645_memeJour() async {
-        // 00:30 → sleepStart 00:45 → n=4 → 00:45 + 6h = 06:45 → dans fenêtre 06:30–07:00
-        // bedtimeHour=0 < 12 → dayOffset=0 → même jour
-        let bedtime = date(hour: 0, minute: 30)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Toronto")!
+
+        // 15 novembre 2026 : aucun changement d'heure.
+        let components = DateComponents(
+            year: 2026, month: 11, day: 15,
+            hour: 0, minute: 30
+        )
+
+        let bedtime = calendar.date(from: components)!
+
+        let wStart = calendar.date(
+            bySettingHour: 6, minute: 30, second: 0,
+            of: bedtime
+        )!
+
+        let wEnd = calendar.date(
+            bySettingHour: 7, minute: 0, second: 0,
+            of: bedtime
+        )!
+
+        let expected = calendar.date(
+            bySettingHour: 6, minute: 45, second: 0,
+            of: bedtime
+        )!
 
         let result = await MainActor.run {
-            let s = SmartAlarmService.shared
-            let pts = s.calculateCyclePoints(bedtime: bedtime)
-            let wStart = date(hour: 6, minute: 30, offsetDays: 0)
-            let wEnd   = date(hour: 7, minute: 0,  offsetDays: 0)
-            return s.selectOptimalPoint(from: pts, windowStart: wStart, windowEnd: wEnd)
+            let service = SmartAlarmService.shared
+            let points = service.calculateCyclePoints(bedtime: bedtime)
+
+            return service.selectOptimalPoint(
+                from: points,
+                windowStart: wStart,
+                windowEnd: wEnd
+            )
         }
 
-        XCTAssertEqual(result, date(hour: 6, minute: 45, offsetDays: 0),
-            "Coucher 00h30 + latence 15min → cycle n=4 à 06h45, même jour")
-        let cal = Calendar.current
-        XCTAssertEqual(cal.dateComponents([.year, .month, .day], from: result),
-                       cal.dateComponents([.year, .month, .day], from: Date()),
-                       "Alarme doit être aujourd'hui, pas demain")
+        XCTAssertEqual(
+            result,
+            expected,
+            "00h30 + 15 min + 4 cycles de 90 min = 06h45"
+        )
+
+        XCTAssertTrue(
+            calendar.isDate(result, inSameDayAs: bedtime),
+            "L'alarme doit être le même jour que le coucher"
+        )
     }
+
 
     // MARK: - Test 9 : cancelAlarm() → pendingAlarmID nil + état non armé
 
@@ -227,4 +261,35 @@ final class SmartAlarmServiceTests: XCTestCase {
                        pendingBefore, "Aucun pendingAlarmID planté quand isEnabled=false")
         XCTAssertEqual(SmartAlarmService.shared.state, .disabled, "État reste .disabled")
     }
+
+
+    func testCycle_changementHeureAutomne_2026() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Toronto")!
+
+        let bedtime = calendar.date(from: DateComponents(
+            year: 2026, month: 11, day: 1,
+            hour: 0, minute: 30
+        ))!
+
+        let wStart = calendar.date(bySettingHour: 6, minute: 30, second: 0, of: bedtime)!
+        let wEnd = calendar.date(bySettingHour: 7, minute: 0, second: 0, of: bedtime)!
+
+        let points = await MainActor.run {
+            SmartAlarmService.shared.calculateCyclePoints(bedtime: bedtime)
+        }
+
+        let result = await MainActor.run {
+            SmartAlarmService.shared.selectOptimalPoint(
+                from: points,
+                windowStart: wStart,
+                windowEnd: wEnd
+            )
+        }
+
+        // Le quatrième cycle se termine à 05h45 heure normale.
+        // Aucun cycle dans 06h30–07h00 : fallback à 07h00.
+        XCTAssertEqual(result, wEnd)
+    }
+
 }

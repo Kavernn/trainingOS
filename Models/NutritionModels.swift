@@ -397,3 +397,30 @@ struct DayNutritionHistory: Codable, Identifiable, Equatable {
         case targetCaloriesSnapshot   = "target_calories_snapshot"
     }
 }
+
+// The keyboard allows pasted text too. Validate before converting the preview to Int.
+struct NutritionMacroDraft {
+    let protein: Double
+    let fat: Double
+    let carbs: Double
+    let calories: Int
+
+    init?(protein: String, fat: String, carbs: String) {
+        func parse(_ text: String) -> Double? {
+            let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return 0 }
+            guard let value = Double(text.replacingOccurrences(of: ",", with: ".")),
+                  value.isFinite, value >= 0 else { return nil }
+            return value
+        }
+        guard let p = parse(protein), let f = parse(fat), let c = parse(carbs) else { return nil }
+        let total = p * 4 + c * 4 + f * 9
+        guard total.isFinite, total < Double(Int.max) else { return nil }
+        self.protein = p
+        self.fat = f
+        self.carbs = c
+        calories = Int(total)
+    }
+
+    var canSave: Bool { protein > 0 || fat > 0 || carbs > 0 }
+}
