@@ -1,15 +1,21 @@
 import Foundation
 
+/// Enveloppe du cache `recovery_data` (clé historique). Exposée pour que le
+/// seed d'un `Loadable<[RecoveryEntry]>` puisse decoder le payload stocké et
+/// extraire `.recoveryLog` côté appelant.
+struct RecoveryDataResponse: Codable {
+    let recoveryLog: [RecoveryEntry]
+    enum CodingKeys: String, CodingKey { case recoveryLog = "recovery_log" }
+}
+
 extension APIService {
+    static let recoveryDataCacheKey = "recovery_data"
+
     // MARK: - Recovery
-    func fetchRecoveryData() async throws -> [RecoveryEntry] {
+    func fetchRecoveryData(forceRefresh: Bool = false) async throws -> [RecoveryEntry] {
         let url = try buildURL(path: "/api/recovery_data")
-        let data = try await fetchWithCache(url: url, key: "recovery_data")
-        struct Resp: Codable {
-            let recoveryLog: [RecoveryEntry]
-            enum CodingKeys: String, CodingKey { case recoveryLog = "recovery_log" }
-        }
-        return try APIService.decoder.decode(Resp.self, from: data).recoveryLog
+        let data = try await fetchWithCache(url: url, key: Self.recoveryDataCacheKey, forceRefresh: forceRefresh)
+        return try APIService.decoder.decode(RecoveryDataResponse.self, from: data).recoveryLog
     }
 
     /// Retourne `true` si l'écriture a atteint le serveur, `false` si elle a été
@@ -86,10 +92,12 @@ extension APIService {
         CacheInvalidation.recoveryLogged.invalidate()
     }
 
+    static let hrvAnalysisCacheKey = "hrv_analysis"
+
     // MARK: - HRV Analysis
-    func fetchHRVAnalysis() async throws -> HRVAnalysis {
+    func fetchHRVAnalysis(forceRefresh: Bool = false) async throws -> HRVAnalysis {
         let url  = try buildURL(path: "/api/hrv/analysis")
-        let data = try await fetchWithCache(url: url, key: "hrv_analysis")
+        let data = try await fetchWithCache(url: url, key: Self.hrvAnalysisCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode(HRVAnalysis.self, from: data)
     }
 
@@ -122,25 +130,41 @@ extension APIService {
         return try APIService.decoder.decode([PSSRecord].self, from: data)
     }
 
-    func checkPSSDue(type: String = "full") async throws -> PSSDueStatus {
+    static func pssCheckDueCacheKey(type: String = "full") -> String {
+        "pss_check_due_\(type)"
+    }
+
+    func checkPSSDue(type: String = "full", forceRefresh: Bool = false) async throws -> PSSDueStatus {
         let url = try buildURL(path: "/api/pss/check_due", queryItems: [URLQueryItem(name: "type", value: type)])
-        let data = try await fetchWithCache(url: url, key: "pss_check_due_\(type)")
+        let data = try await fetchWithCache(url: url, key: Self.pssCheckDueCacheKey(type: type), forceRefresh: forceRefresh)
         return try APIService.decoder.decode(PSSDueStatus.self, from: data)
     }
 
     // MARK: - Life Stress Engine
+    static func lifeStressScoreCacheKey(date: String? = nil) -> String {
+        "life_stress_\(date ?? "today")"
+    }
+
+    static func lifeStressTrendCacheKey(days: Int = 7) -> String {
+        "life_stress_trend_\(days)"
+    }
+
+    /// `forceRefresh` : (1) ajoute `?refresh=true` pour que le serveur
+    /// recalcule le score sans l'enveloppe cache serveur et (2) bypass
+    /// le cache CLIENT (appel réseau direct, lève en cas d'échec, hydrate
+    /// le cache local sur succès). Ancien comportement = (1) seulement.
     func fetchLifeStressScore(date: String? = nil, forceRefresh: Bool = false) async throws -> LifeStressScore {
         var items: [URLQueryItem] = []
         if let date { items.append(URLQueryItem(name: "date", value: date)) }
         if forceRefresh { items.append(URLQueryItem(name: "refresh", value: "true")) }
         let url = try buildURL(path: "/api/life_stress/score", queryItems: items)
-        let data = try await fetchWithCache(url: url, key: "life_stress_\(date ?? "today")")
+        let data = try await fetchWithCache(url: url, key: Self.lifeStressScoreCacheKey(date: date), forceRefresh: forceRefresh)
         return try APIService.decoder.decode(LifeStressScore.self, from: data)
     }
 
-    func fetchLifeStressTrend(days: Int = 7) async throws -> [LifeStressScore] {
+    func fetchLifeStressTrend(days: Int = 7, forceRefresh: Bool = false) async throws -> [LifeStressScore] {
         let url = try buildURL(path: "/api/life_stress/trend", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
-        let data = try await fetchWithCache(url: url, key: "life_stress_trend_\(days)")
+        let data = try await fetchWithCache(url: url, key: Self.lifeStressTrendCacheKey(days: days), forceRefresh: forceRefresh)
         return try APIService.decoder.decode([LifeStressScore].self, from: data)
     }
 

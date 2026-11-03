@@ -71,16 +71,22 @@ extension APIService {
         NotificationService.cancelDeloadEndReminder()
     }
 
-    func fetchReadiness() async throws -> ReadinessResponse {
+    static let readinessCacheKey = "readiness"
+
+    static func readinessHistoryCacheKey(days: Int = 14) -> String {
+        "readiness_history_\(days)d"
+    }
+
+    func fetchReadiness(forceRefresh: Bool = false) async throws -> ReadinessResponse {
         let url  = try buildURL(path: "/api/readiness")
-        let data = try await fetchWithCache(url: url, key: "readiness")
+        let data = try await fetchWithCache(url: url, key: Self.readinessCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode(ReadinessResponse.self, from: data)
     }
 
-    func fetchReadinessHistory(days: Int = 14) async throws -> [ReadinessHistoryPoint] {
+    func fetchReadinessHistory(days: Int = 14, forceRefresh: Bool = false) async throws -> [ReadinessHistoryPoint] {
         let url  = try buildURL(path: "/api/readiness/history",
                                 queryItems: [URLQueryItem(name: "days", value: String(days))])
-        let data = try await fetchWithCache(url: url, key: "readiness_history_\(days)d")
+        let data = try await fetchWithCache(url: url, key: Self.readinessHistoryCacheKey(days: days), forceRefresh: forceRefresh)
         return try APIService.decoder.decode(ReadinessHistoryResponse.self, from: data).history
     }
 

@@ -6,26 +6,43 @@ import Charts
 struct HealthDashboardView: View {
     // Shell
     @State private var activeTab: Int = 0
-    @State private var isLoading = true
     @ObservedObject private var appTheme = AppTheme.shared
     @ObservedObject private var units = UnitSettings.shared
     @ObservedObject private var hk = HealthKitService.shared
     @ObservedObject private var watchSync = WatchSyncService.shared
 
-    // Data — backend
-    @State private var week: [DailyHealthSummary] = []
-    @State private var lifeStress: LifeStressScore?
-    @State private var lifeStressTrend: [LifeStressScore] = []
-    @State private var pssDueStatus: PSSDueStatus?
-    @State private var readiness: ReadinessResponse?
-    @State private var recoveryLog: [RecoveryEntry] = []
-    @State private var sleepStats: SleepStats?
-    @State private var energy: EnergyDaily?
-    @State private var energyHistory: [EnergyHistoryDay] = []
-    @State private var hrvAnalysis: HRVAnalysis?
-    @State private var sleepHistory: [SleepEntry] = []
-    @State private var readinessHistory: [ReadinessHistoryPoint] = []
+    // Data — backend : 12 Loadable cache-first. Seed synchrone depuis
+    // APIService.cachedSeed → affichage INSTANTANÉ dès que le cache local
+    // existe ; appel réseau en parallèle (forceRefresh: true) qui LÈVE
+    // (contrat `load(seed:savedAt:)`) et hydrate le cache sur succès.
+    @State private var weekState             = Loadable<[DailyHealthSummary]>()
+    @State private var lifeStressState       = Loadable<LifeStressScore>()
+    @State private var lifeStressTrendState  = Loadable<[LifeStressScore]>()
+    @State private var pssDueState           = Loadable<PSSDueStatus>()
+    @State private var readinessState        = Loadable<ReadinessResponse>()
+    @State private var recoveryLogState      = Loadable<[RecoveryEntry]>()
+    @State private var sleepStatsState       = Loadable<SleepStats>()
+    @State private var energyState           = Loadable<EnergyDaily>()
+    @State private var energyHistoryState    = Loadable<[EnergyHistoryDay]>()
+    @State private var hrvAnalysisState      = Loadable<HRVAnalysis>()
+    @State private var sleepHistoryState     = Loadable<[SleepEntry]>()
+    @State private var readinessHistoryState = Loadable<[ReadinessHistoryPoint]>()
     @State private var editTarget: RecoveryEntry?
+
+    // Accessors : garde le body intact. SwiftUI observe les Loadable via
+    // Observation → chaque lecture `xxxState.value` est tracée automatiquement.
+    private var week: [DailyHealthSummary]           { weekState.value ?? [] }
+    private var lifeStress: LifeStressScore?         { lifeStressState.value }
+    private var lifeStressTrend: [LifeStressScore]   { lifeStressTrendState.value ?? [] }
+    private var pssDueStatus: PSSDueStatus?          { pssDueState.value }
+    private var readiness: ReadinessResponse?        { readinessState.value }
+    private var recoveryLog: [RecoveryEntry]         { recoveryLogState.value ?? [] }
+    private var sleepStats: SleepStats?              { sleepStatsState.value }
+    private var energy: EnergyDaily?                 { energyState.value }
+    private var energyHistory: [EnergyHistoryDay]    { energyHistoryState.value ?? [] }
+    private var hrvAnalysis: HRVAnalysis?            { hrvAnalysisState.value }
+    private var sleepHistory: [SleepEntry]           { sleepHistoryState.value ?? [] }
+    private var readinessHistory: [ReadinessHistoryPoint] { readinessHistoryState.value ?? [] }
 
     // Data — live HealthKit
     @State private var hkRestingHR: Double? = nil
@@ -46,10 +63,9 @@ struct HealthDashboardView: View {
         readiness.map { DailySummary(recoveryScore: Double($0.score)) }
     }
 
-    /// True dès qu'un endpoint principal a rendu un résultat (cache hit ou live).
-    /// Utilisé pour ne montrer AppLoadingView qu'au vrai cold pur (aucun cache
-    /// nulle part). Si UN endpoint parmi ces 7 revient, la vue affiche ses
-    /// sections — chacune gère déjà nil/vide indépendamment.
+    /// True dès qu'un endpoint principal a rendu un résultat (seed cache OU
+    /// live). Préserve le fix de perf : si cache local présent, hasAnyData
+    /// est true AVANT le premier await réseau — la vue skip AppLoadingView.
     private var hasAnyData: Bool {
         !week.isEmpty
         || readiness != nil
@@ -58,6 +74,32 @@ struct HealthDashboardView: View {
         || lifeStress != nil
         || energy != nil
         || hrvAnalysis != nil
+    }
+
+    /// Agrège les 12 Loadable pour un unique `TopFailureBanner` d'écran
+    /// (incluant l'onglet Énergie/Récup : HealthDashboard est l'enveloppe).
+    /// retryAll relance les 12 via `loadData()`.
+    private var allLoadableStates: [any LoadableStateView] {
+        [
+            weekState, lifeStressState, lifeStressTrendState,
+            pssDueState, readinessState, recoveryLogState,
+            sleepStatsState, energyState, energyHistoryState,
+            hrvAnalysisState, sleepHistoryState, readinessHistoryState,
+        ]
+    }
+
+    private var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(
+                states: allLoadableStates,
+                retry: { await loadData() }
+            )
+        ])
+    }
+
+    /// AppLoadingView UNIQUEMENT en cold pur (aucun cache, chargement en cours).
+    private var isInitialColdLoad: Bool {
+        !hasAnyData && allLoadableStates.contains { $0.isLoading }
     }
 
     var body: some View {
@@ -70,7 +112,11 @@ struct HealthDashboardView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
 
-                    if isLoading && !hasAnyData {
+                    TopFailureBanner(aggregator: topFailureAggregator)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+
+                    if isInitialColdLoad {
                         Spacer()
                         AppLoadingView()
                         Spacer()
@@ -270,34 +316,77 @@ struct HealthDashboardView: View {
     // MARK: - Data
 
     private func loadData() async {
-        isLoading = true
-        // 12 async let indépendants — aucune dépendance de valeur entre eux.
-        async let weekTask             = APIService.shared.fetchWeeklyHealthSummary(days: 7)
-        async let lifeStressTask       = APIService.shared.fetchLifeStressScore(forceRefresh: true)
-        async let lifeStressTrendTask  = APIService.shared.fetchLifeStressTrend(days: 7)
-        async let pssDueTask           = APIService.shared.checkPSSDue(type: "full")
-        async let readinessTask        = APIService.shared.fetchReadiness()
-        async let recoveryLogTask      = APIService.shared.fetchRecoveryData()
-        async let sleepStatsTask       = APIService.shared.fetchSleepStats()
-        async let energyTask           = APIService.shared.fetchEnergyDaily()
-        async let energyHistoryTask    = APIService.shared.fetchEnergyHistory()
-        async let hrvAnalysisTask      = APIService.shared.fetchHRVAnalysis()
-        async let sleepHistoryTask     = APIService.shared.fetchSleepHistory(limit: 10)
-        async let readinessHistoryTask = APIService.shared.fetchReadinessHistory(days: 14)
-        week             = (try? await weekTask) ?? []
-        lifeStress       = try? await lifeStressTask
-        lifeStressTrend  = (try? await lifeStressTrendTask) ?? []
-        pssDueStatus     = try? await pssDueTask
-        readiness        = try? await readinessTask
-        recoveryLog      = (try? await recoveryLogTask) ?? []
-        sleepStats       = try? await sleepStatsTask
-        energy           = try? await energyTask
-        energyHistory    = (try? await energyHistoryTask) ?? []
-        hrvAnalysis      = try? await hrvAnalysisTask
-        let sleepPg      = try? await sleepHistoryTask
-        sleepHistory     = sleepPg?.items ?? []
-        readinessHistory = (try? await readinessHistoryTask) ?? []
-        isLoading = false
+        let api = APIService.shared
+
+        // 1) Seeds synchrones depuis le cache local (frais OU stale).
+        let weekSeed            = api.cachedSeed(for: APIService.weeklyHealthSummaryCacheKey(days: 7), as: [DailyHealthSummary].self)
+        let lifeStressSeed      = api.cachedSeed(for: APIService.lifeStressScoreCacheKey(), as: LifeStressScore.self)
+        let lifeStressTrendSeed = api.cachedSeed(for: APIService.lifeStressTrendCacheKey(days: 7), as: [LifeStressScore].self)
+        let pssDueSeed          = api.cachedSeed(for: APIService.pssCheckDueCacheKey(type: "full"), as: PSSDueStatus.self)
+        let readinessSeed       = api.cachedSeed(for: APIService.readinessCacheKey, as: ReadinessResponse.self)
+        let recoveryRawSeed     = api.cachedSeed(for: APIService.recoveryDataCacheKey, as: RecoveryDataResponse.self)
+        let sleepStatsSeed      = api.cachedSeed(for: APIService.sleepStatsCacheKey, as: SleepStats.self)
+        let energySeed          = api.cachedSeed(for: APIService.energyDailyCacheKey(), as: EnergyDaily.self)
+        let energyHistorySeed   = api.cachedSeed(for: APIService.energyHistoryCacheKey(days: 7), as: [EnergyHistoryDay].self)
+        let hrvSeed             = api.cachedSeed(for: APIService.hrvAnalysisCacheKey, as: HRVAnalysis.self)
+        let sleepHistoryRawSeed = api.cachedSeed(for: APIService.sleepHistoryCacheKey(offset: 0), as: PagedResponse<SleepEntry>.self)
+        let readinessHistoryRawSeed = api.cachedSeed(for: APIService.readinessHistoryCacheKey(days: 14), as: ReadinessHistoryResponse.self)
+
+        // 2) 12 async let indépendants — déclaration et await dans le MÊME
+        // ordre pour éviter le LIFO async-let crash iOS 26 beta. Chaque load
+        // affecte seed+savedAt AVANT le await réseau → `hasAnyData` passe
+        // à true dès la première ligne, la vue est rendue instantanément.
+        async let weekLoad: Void = weekState.load(seed: weekSeed.0, savedAt: weekSeed.1) {
+            try await api.fetchWeeklyHealthSummary(days: 7, forceRefresh: true)
+        }
+        async let lifeStressLoad: Void = lifeStressState.load(seed: lifeStressSeed.0, savedAt: lifeStressSeed.1) {
+            try await api.fetchLifeStressScore(forceRefresh: true)
+        }
+        async let lifeStressTrendLoad: Void = lifeStressTrendState.load(seed: lifeStressTrendSeed.0, savedAt: lifeStressTrendSeed.1) {
+            try await api.fetchLifeStressTrend(days: 7, forceRefresh: true)
+        }
+        async let pssDueLoad: Void = pssDueState.load(seed: pssDueSeed.0, savedAt: pssDueSeed.1) {
+            try await api.checkPSSDue(type: "full", forceRefresh: true)
+        }
+        async let readinessLoad: Void = readinessState.load(seed: readinessSeed.0, savedAt: readinessSeed.1) {
+            try await api.fetchReadiness(forceRefresh: true)
+        }
+        async let recoveryLogLoad: Void = recoveryLogState.load(seed: recoveryRawSeed.0?.recoveryLog, savedAt: recoveryRawSeed.1) {
+            try await api.fetchRecoveryData(forceRefresh: true)
+        }
+        async let sleepStatsLoad: Void = sleepStatsState.load(seed: sleepStatsSeed.0, savedAt: sleepStatsSeed.1) {
+            try await api.fetchSleepStats(forceRefresh: true)
+        }
+        async let energyLoad: Void = energyState.load(seed: energySeed.0, savedAt: energySeed.1) {
+            try await api.fetchEnergyDaily(forceRefresh: true)
+        }
+        async let energyHistoryLoad: Void = energyHistoryState.load(seed: energyHistorySeed.0, savedAt: energyHistorySeed.1) {
+            try await api.fetchEnergyHistory(days: 7, forceRefresh: true)
+        }
+        async let hrvLoad: Void = hrvAnalysisState.load(seed: hrvSeed.0, savedAt: hrvSeed.1) {
+            try await api.fetchHRVAnalysis(forceRefresh: true)
+        }
+        async let sleepHistoryLoad: Void = sleepHistoryState.load(seed: sleepHistoryRawSeed.0?.items, savedAt: sleepHistoryRawSeed.1) {
+            let page = try await api.fetchSleepHistory(limit: 10, forceRefresh: true)
+            return page.items
+        }
+        async let readinessHistoryLoad: Void = readinessHistoryState.load(seed: readinessHistoryRawSeed.0?.history, savedAt: readinessHistoryRawSeed.1) {
+            try await api.fetchReadinessHistory(days: 14, forceRefresh: true)
+        }
+
+        _ = await weekLoad
+        _ = await lifeStressLoad
+        _ = await lifeStressTrendLoad
+        _ = await pssDueLoad
+        _ = await readinessLoad
+        _ = await recoveryLogLoad
+        _ = await sleepStatsLoad
+        _ = await energyLoad
+        _ = await energyHistoryLoad
+        _ = await hrvLoad
+        _ = await sleepHistoryLoad
+        _ = await readinessHistoryLoad
+
         await fetchHKLive()
     }
 

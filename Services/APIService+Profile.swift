@@ -148,9 +148,13 @@ extension APIService {
     }
 
     // MARK: - Health Dashboard
-    func fetchWeeklyHealthSummary(days: Int = 7) async throws -> [DailyHealthSummary] {
+    static func weeklyHealthSummaryCacheKey(days: Int = 7) -> String {
+        "health_weekly_\(days)"
+    }
+
+    func fetchWeeklyHealthSummary(days: Int = 7, forceRefresh: Bool = false) async throws -> [DailyHealthSummary] {
         let url = try buildURL(path: "/api/health/weekly_summary", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
-        let data = try await fetchWithCache(url: url, key: "health_weekly_\(days)")
+        let data = try await fetchWithCache(url: url, key: Self.weeklyHealthSummaryCacheKey(days: days), forceRefresh: forceRefresh)
         return try APIService.decoder.decode([DailyHealthSummary].self, from: data)
     }
 }

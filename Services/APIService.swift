@@ -237,11 +237,28 @@ class APIService: ObservableObject {
         cacheRefreshes[key]?.task
     }
 
-    @MainActor func fetchWithCache(url: URL, key: String) async throws -> Data {
+    @MainActor func fetchWithCache(url: URL, key: String, forceRefresh: Bool = false) async throws -> Data {
         let context = cacheRefreshContext(url: url, key: key)
         if let flight = cacheRefreshes[key], flight.context != context {
             flight.task.cancel()
             cacheRefreshes.removeValue(forKey: key)
+        }
+        // forceRefresh : bypass TOTAL du cache côté client. Appel réseau direct
+        // qui LÈVE en cas d'échec (contrat `load(seed:savedAt:)` : la closure
+        // réseau doit lever ; stale est servi via `seed` par l'appelant). En
+        // cas de succès, on hydrate le cache pour les autres consommateurs.
+        if forceRefresh {
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 15
+            req.cachePolicy = .reloadIgnoringLocalCacheData
+            let (data, response) = try await cacheTransport(req)
+            guard (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
+                throw URLError(.badServerResponse)
+            }
+            if cacheRefreshContext(url: url, key: key) == context {
+                cache.save(data, for: key, ifRevision: context.revision)
+            }
+            return data
         }
         if let cached = cache.load(for: key) {
             return cached
@@ -285,6 +302,18 @@ class APIService: ObservableObject {
             cache.save(data, for: key, ifRevision: context.revision)
         }
         return data
+    }
+
+    /// Lecture synchrone du cache (frais OU stale, peu importe) + decode, pour
+    /// alimenter le `seed` d'un `Loadable`. `savedAt` permet au bandeau top
+    /// d'afficher « données d'il y a X ». Renvoie `(nil, nil)` si le cache
+    /// est absent ou si le decode échoue (ex. ancien format après migration).
+    @MainActor func cachedSeed<T: Decodable>(for key: String, as type: T.Type) -> (T?, Date?) {
+        let (data, _, savedAt) = cache.loadIncludingStale(for: key)
+        guard let data, let value = try? Self.decoder.decode(T.self, from: data) else {
+            return (nil, nil)
+        }
+        return (value, savedAt)
     }
 
     // Variante décodée avec self-healing sur cache empoisonné :

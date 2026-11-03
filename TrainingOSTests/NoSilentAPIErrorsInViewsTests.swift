@@ -42,21 +42,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/EnergyRecovery/EnergyRecoveryView.swift:fetchSleepHistory",
         "Views/EnergyRecovery/EnergyRecoveryView.swift:fetchSleepStats",
         "Views/GymFinder/GymFinderViewModel.swift:URLSession.authed",
-        // Sites via `async let xxxTask = APIService.shared.fn(...)` + `try? await xxxTask`.
-        // Détectés par le scanner élargi (2026-11-02). À migrer avec le commit HealthDashboard
-        // du plan Santé (12 Loadable, un seul TopFailureBanner pour l'écran).
-        "Views/HealthDashboard/HealthDashboardView.swift:checkPSSDue",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchEnergyDaily",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchEnergyHistory",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchHRVAnalysis",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchLifeStressScore",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchLifeStressTrend",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchReadiness",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchReadinessHistory",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchRecoveryData",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchSleepHistory",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchSleepStats",
-        "Views/HealthDashboard/HealthDashboardView.swift:fetchWeeklyHealthSummary",
         "Views/HIIT/HIITHistoriqueView.swift:fetchHIITData",
         "Views/Historique/HistoriqueView.swift:URLSession.authed",
         "Views/Intelligence/RitualEveningView.swift:fetchRitualToday",

@@ -161,4 +161,38 @@ final class LoadableTests: XCTestCase {
         state.value = 5
         XCTAssertFalse(state.isInitialLoad, "load en cours mais valeur présente = refresh, pas initial")
     }
+
+    /// Garantie "ouverture instantanée" exigée par HealthDashboard : quand
+    /// un seed de cache est fourni, la valeur est visible DÈS QUE l'appel
+    /// réseau commence à s'exécuter (opération suspendue), AVANT qu'elle
+    /// n'ait pu retourner. `isLoading` reste true pendant ce temps pour
+    /// que l'UI puisse signaler "en train de rafraîchir".
+    func test_load_seedVisibleWhileOperationSuspended() async {
+        let state = Loadable<Int>()
+        let box = ContinuationBox()
+
+        let loadTask = Task { @MainActor in
+            await state.load(seed: 42, savedAt: .now) {
+                await withCheckedContinuation { c in box.continuation = c }
+            }
+        }
+
+        // Attend que l'opération réseau soit entrée dans son `await` (seed appliqué).
+        while box.continuation == nil { await Task.yield() }
+
+        XCTAssertEqual(state.value, 42, "seed visible pendant que l'opération réseau est suspendue")
+        XCTAssertTrue(state.isLoading, "pendant l'await réseau, isLoading reste true")
+        XCTAssertNotNil(state.lastUpdated, "savedAt du cache remonte au Loadable")
+
+        box.continuation?.resume(returning: 100)
+        await loadTask.value
+
+        XCTAssertEqual(state.value, 100, "après succès réseau, value = valeur fresh")
+        XCTAssertFalse(state.isLoading, "après la fin, isLoading = false")
+    }
+}
+
+@MainActor
+private final class ContinuationBox {
+    var continuation: CheckedContinuation<Int, Never>?
 }
