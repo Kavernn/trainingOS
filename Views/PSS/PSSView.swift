@@ -7,15 +7,33 @@ private let logger = Logger(subsystem: "TrainingOS", category: "pss")
 // MARK: - Main View
 
 struct PSSView: View {
-    @State private var history: [PSSRecord] = []
-    @State private var dueStatus: PSSDueStatus?
-    @State private var isLoading = true
+    @State private var historyState   = Loadable<[PSSRecord]>()
+    @State private var dueStatusState = Loadable<PSSDueStatus>()
+    @State private var lssTodayState  = Loadable<LifeStressScore>()
+    @State private var lssTrendState  = Loadable<[LifeStressScore]>()
     @State private var showSheet = false
     @AppStorage("pss.shortMode") private var isShortMode = false  // P-D6: persisted — false = PSS-10, true = PSS-4
-    @State private var lssToday: LifeStressScore? = nil
-    @State private var lssTrend: [LifeStressScore] = []
     @State private var showBreathworkAfter = false  // shown after moderate/high PSS result
-    @State private var lssError = false             // P-D4: LSS fetch error flag
+
+    // Accessors : préservent la signature du body (PSSKPIRow, PSSTrendChart,
+    // LSSCompactCard, PSSdueBanner lisent toujours history/dueStatus/lss…).
+    private var history: [PSSRecord]           { historyState.value ?? [] }
+    private var dueStatus: PSSDueStatus?       { dueStatusState.value }
+    private var lssToday: LifeStressScore?     { lssTodayState.value }
+    private var lssTrend: [LifeStressScore]    { lssTrendState.value ?? [] }
+    private var lssError: Bool                 { lssTodayState.hasError }
+    private var isLoading: Bool {
+        historyState.value == nil && historyState.isLoading
+    }
+
+    private var allStates: [any LoadableStateView] {
+        [historyState, dueStatusState, lssTodayState, lssTrendState]
+    }
+    private var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(states: allStates, retry: { await loadData() })
+        ])
+    }
 
     var body: some View {
         ZStack {
@@ -26,6 +44,10 @@ struct PSSView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
+
+                            TopFailureBanner(aggregator: topFailureAggregator)
+                                .padding(.horizontal, 16)
+
 
                             // Bandeau "test dû" si applicable
                             if let due = dueStatus, due.isDue, let msg = due.message {
@@ -148,23 +170,37 @@ struct PSSView: View {
 
 
     private func loadData() async {
-        isLoading = true
-        // sequential — async let LIFO crash on iOS 26 beta
-        history   = (try? await APIService.shared.fetchPSSHistory()) ?? []
-        dueStatus = try? await APIService.shared.checkPSSDue(type: "full")
-        await reloadLSS()
-        isLoading  = false
+        let api = APIService.shared
+        let hSeed = api.cachedSeed(for: APIService.pssHistoryCacheKey, as: [PSSRecord].self)
+        let dSeed = api.cachedSeed(for: APIService.pssCheckDueCacheKey(type: "full"), as: PSSDueStatus.self)
+
+        async let hLoad: Void = historyState.load(seed: hSeed.0, savedAt: hSeed.1) {
+            try await api.fetchPSSHistory(forceRefresh: true)
+        }
+        async let dLoad: Void = dueStatusState.load(seed: dSeed.0, savedAt: dSeed.1) {
+            try await api.checkPSSDue(type: "full", forceRefresh: true)
+        }
+        async let lssLoad: Void = reloadLSS()
+
+        _ = await hLoad
+        _ = await dLoad
+        _ = await lssLoad
     }
 
-    // P-D4: isolated LSS reload for retry button
+    // P-D4: isolated LSS reload (bouton retry du card LSS)
     private func reloadLSS() async {
-        do {
-            lssToday = try await APIService.shared.fetchLifeStressScore()
-            lssTrend = (try? await APIService.shared.fetchLifeStressTrend(days: 14)) ?? []
-            lssError = false
-        } catch {
-            lssError = true
+        let api = APIService.shared
+        let todaySeed = api.cachedSeed(for: APIService.lifeStressScoreCacheKey(), as: LifeStressScore.self)
+        let trendSeed = api.cachedSeed(for: APIService.lifeStressTrendCacheKey(days: 14), as: [LifeStressScore].self)
+
+        async let todayLoad: Void = lssTodayState.load(seed: todaySeed.0, savedAt: todaySeed.1) {
+            try await api.fetchLifeStressScore(forceRefresh: true)
         }
+        async let trendLoad: Void = lssTrendState.load(seed: trendSeed.0, savedAt: trendSeed.1) {
+            try await api.fetchLifeStressTrend(days: 14, forceRefresh: true)
+        }
+        _ = await todayLoad
+        _ = await trendLoad
     }
 }
 
@@ -441,7 +477,7 @@ struct PSSQuestionnaireSheet: View {
     let onSaved: (PSSRecord?) async -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var questions: [PSSQuestion] = []
+    @State private var questionsState = Loadable<[PSSQuestion]>()
     @State private var responses: [Int: Int] = [:]   // questionId → 0-4
     @State private var notes = ""
     @State private var triggerRatings: [String: Int] = [:]
@@ -449,8 +485,11 @@ struct PSSQuestionnaireSheet: View {
     @State private var currentPage = 0               // 0 = questionnaire, 1 = résultats
     @State private var submittedRecord: PSSRecord?
     @State private var isSaving = false
-    @State private var isLoadingQ = true
     @State private var submitError: String?           // P-B1: error feedback
+
+    private var questions: [PSSQuestion]       { questionsState.value ?? [] }
+    private var isLoadingQ: Bool               { questionsState.value == nil && questionsState.isLoading }
+    private var questionsFailed: Bool          { questionsState.value == nil && questionsState.hasError }
     @State private var showFallback = false           // P-B2: spinner timeout fallback
     @State private var showDraftAlert = false         // P-D1: draft restore prompt
     @State private var pendingDraftResponses: [Int: Int]? = nil  // P-D1: decoded draft
@@ -473,6 +512,15 @@ struct PSSQuestionnaireSheet: View {
 
                 if isLoadingQ {
                     ProgressView().tint(.statusPurple)
+                } else if questionsFailed {
+                    VStack(spacing: 12) {
+                        SectionErrorView(state: questionsState) {
+                            await loadQuestions()
+                        }
+                        .padding(.horizontal, 16)
+                        Button("Fermer") { dismiss() }
+                            .foregroundColor(.gray)
+                    }
                 } else if currentPage == 0 {
                     questionnaireBody
                 } else {
@@ -663,10 +711,12 @@ struct PSSQuestionnaireSheet: View {
     // ── Actions ───────────────────────────────────────────────────────────────
 
     private func loadQuestions() async {
-        isLoadingQ = true
-        questions = (try? await APIService.shared.fetchPSSQuestions(isShort: isShort)) ?? []
+        let api = APIService.shared
+        let seed = api.cachedSeed(for: APIService.pssQuestionsCacheKey(isShort: isShort), as: [PSSQuestion].self)
+        await questionsState.load(seed: seed.0, savedAt: seed.1) {
+            try await api.fetchPSSQuestions(isShort: isShort, forceRefresh: true)
+        }
         userTriggers = (UserDefaults.standard.array(forKey: "pss_triggers") as? [String]) ?? []
-        isLoadingQ = false
         checkForDraft()  // P-D1: check for existing draft after questions loaded
     }
 

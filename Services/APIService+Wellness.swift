@@ -102,9 +102,13 @@ extension APIService {
     }
 
     // MARK: - PSS
-    func fetchPSSQuestions(isShort: Bool = false) async throws -> [PSSQuestion] {
+    static func pssQuestionsCacheKey(isShort: Bool = false) -> String {
+        "pss_questions_\(isShort)"
+    }
+
+    func fetchPSSQuestions(isShort: Bool = false, forceRefresh: Bool = false) async throws -> [PSSQuestion] {
         let url = try buildURL(path: "/api/pss/questions", queryItems: [URLQueryItem(name: "short", value: "\(isShort)")])
-        let data = try await fetchWithCache(url: url, key: "pss_questions_\(isShort)")
+        let data = try await fetchWithCache(url: url, key: Self.pssQuestionsCacheKey(isShort: isShort), forceRefresh: forceRefresh)
         return try APIService.decoder.decode([PSSQuestion].self, from: data)
     }
 
@@ -122,11 +126,16 @@ extension APIService {
         return try APIService.decoder.decode(PSSRecord.self, from: data)
     }
 
-    func fetchPSSHistory(type: String? = nil) async throws -> [PSSRecord] {
+    static let pssHistoryCacheKey = "pss_history"
+
+    /// Note : la clé cache ignore `type` (pré-existant). Un commutateur de type
+    /// qui écraserait le cache de l'autre type est un risque connu — hors scope
+    /// de la migration Loadable Santé, chantier dédié si besoin.
+    func fetchPSSHistory(type: String? = nil, forceRefresh: Bool = false) async throws -> [PSSRecord] {
         var items: [URLQueryItem] = []
         if let type { items.append(URLQueryItem(name: "type", value: type)) }
         let url = try buildURL(path: "/api/pss/history", queryItems: items)
-        let data = try await fetchWithCache(url: url, key: "pss_history")
+        let data = try await fetchWithCache(url: url, key: Self.pssHistoryCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode([PSSRecord].self, from: data)
     }
 
