@@ -42,9 +42,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig",
         "Views/Inventaire/InventaireView.swift:URLSession.authed",
         "Views/MentalHealth/MentalHealthDashboardView.swift:fetchMentalHealthSummary",
-        "Views/MentalHealth/MentalHealthView.swift:checkMoodDue",
-        "Views/MentalHealth/MentalHealthView.swift:fetchMentalHealthSummary",
-        "Views/MentalHealth/MentalHealthView.swift:fetchMoodEmotions",
         // à migrer avec l'écran Nutrition, après le commit du WIP de Vince
         "Views/Nutrition/NutritionView.swift:fetchEnergyDaily",
         // à migrer avec l'écran Nutrition, après le commit du WIP de Vince

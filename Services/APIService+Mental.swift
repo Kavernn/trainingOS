@@ -53,9 +53,11 @@ extension APIService {
         return decoded.rpeByDate
     }
 
-    func checkMoodDue() async throws -> MoodDueStatus {
+    static let moodCheckDueCacheKey = "mood_check_due"
+
+    func checkMoodDue(forceRefresh: Bool = false) async throws -> MoodDueStatus {
         let url = try buildURL(path: "/api/mood/check_due")
-        let data = try await fetchWithCache(url: url, key: "mood_check_due")
+        let data = try await fetchWithCache(url: url, key: Self.moodCheckDueCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode(MoodDueStatus.self, from: data)
     }
 
@@ -136,9 +138,13 @@ extension APIService {
     }
 
     // MARK: - Mental Health Dashboard
-    func fetchMentalHealthSummary(days: Int = 7) async throws -> MentalHealthSummary {
+    static func mentalHealthSummaryCacheKey(days: Int = 7) -> String {
+        "mental_health_summary_\(days)"
+    }
+
+    func fetchMentalHealthSummary(days: Int = 7, forceRefresh: Bool = false) async throws -> MentalHealthSummary {
         let url = try buildURL(path: "/api/mental_health/summary", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
-        let data = try await fetchWithCache(url: url, key: "mental_health_summary_\(days)")
+        let data = try await fetchWithCache(url: url, key: Self.mentalHealthSummaryCacheKey(days: days), forceRefresh: forceRefresh)
         return try APIService.decoder.decode(MentalHealthSummary.self, from: data)
     }
 }

@@ -4,16 +4,39 @@ import Charts
 // MARK: - Entry point
 
 struct MentalAmeView: View {
-    @State private var moodDue:        MoodDueStatus?
-    @State private var recentMoods:    [MoodEntry] = []
-    @State private var summary:        MentalHealthSummary?
-    @State private var lss:            LifeStressScore?
-    @State private var cachedEmotions: [MoodEmotion] = []
-    @State private var showMoodSheet   = false
-    @State private var initialLoaded      = false
-    @State private var lssFailed          = false
-    @State private var moodHistoryFailed  = false
+    @State private var moodDueState     = Loadable<MoodDueStatus>()
+    @State private var summaryState     = Loadable<MentalHealthSummary>()
+    @State private var emotionsState    = Loadable<[MoodEmotion]>()
+    @State private var moodHistoryState = Loadable<PagedResponse<MoodEntry>>()
+    @State private var lssState         = Loadable<LifeStressScore>()
+    @State private var showMoodSheet    = false
     @AppStorage("mh_disclaimer_dismissed") private var disclaimerDismissed = false
+
+    // Accessors : préservent les signatures des sous-vues (SignalDuJourHeader,
+    // MesuresContent, PSSCard, LSSCard). lssFailed / moodHistoryFailed / initialLoaded
+    // dérivent maintenant du Loadable (plus de @State flags redondants).
+    private var moodDue: MoodDueStatus?            { moodDueState.value }
+    private var summary: MentalHealthSummary?      { summaryState.value }
+    private var cachedEmotions: [MoodEmotion]      { emotionsState.value ?? [] }
+    private var recentMoods: [MoodEntry]           { moodHistoryState.value?.items ?? [] }
+    private var lss: LifeStressScore?              { lssState.value }
+    private var lssFailed: Bool                    { lssState.hasError }
+    private var moodHistoryFailed: Bool            { moodHistoryState.hasError }
+    private var initialLoaded: Bool {
+        // Un Loadable "fini d'initialiser" = soit il a une value (seed OU fresh),
+        // soit il a une erreur. Tant qu'il est en cold-load (isLoading && !value),
+        // on considère l'écran pas encore prêt.
+        allStates.allSatisfy { !($0.isLoading && !$0.hasValue) }
+    }
+
+    private var allStates: [any LoadableStateView] {
+        [moodDueState, summaryState, emotionsState, moodHistoryState, lssState]
+    }
+    private var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(states: allStates, retry: { await loadData() })
+        ])
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,6 +45,10 @@ struct MentalAmeView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    TopFailureBanner(aggregator: topFailureAggregator)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+
                     SignalDuJourHeader(
                         lss: lss,
                         recentMoods: recentMoods,
@@ -58,31 +85,33 @@ struct MentalAmeView: View {
     }
 
     private func loadData() async {
-        // Sequential — async let LIFO crash on iOS 26 beta
-        let d = try? await APIService.shared.checkMoodDue()
-        let s = try? await APIService.shared.fetchMentalHealthSummary(days: 7)
-        let e = try? await APIService.shared.fetchMoodEmotions()
+        let api = APIService.shared
+        let dSeed = api.cachedSeed(for: APIService.moodCheckDueCacheKey, as: MoodDueStatus.self)
+        let sSeed = api.cachedSeed(for: APIService.mentalHealthSummaryCacheKey(days: 7), as: MentalHealthSummary.self)
+        let eSeed = api.cachedSeed(for: APIService.moodEmotionsCacheKey, as: [MoodEmotion].self)
+        let mSeed = api.cachedSeed(for: APIService.moodHistoryCacheKey(offset: 0), as: PagedResponse<MoodEntry>.self)
+        let lSeed = api.cachedSeed(for: APIService.lifeStressScoreCacheKey(), as: LifeStressScore.self)
 
-        var mFailed = false
-        let m: PagedResponse<MoodEntry>?
-        do    { m = try await APIService.shared.fetchMoodHistory(days: 14, limit: 7) }
-        catch { m = nil; mFailed = true }
-
-        var lFailed = false
-        let l: LifeStressScore?
-        do    { l = try await APIService.shared.fetchLifeStressScore() }
-        catch { l = nil; lFailed = true }
-
-        await MainActor.run {
-            moodDue        = d
-            summary        = s
-            if let items = m?.items { recentMoods = items }
-            if let list  = e, !list.isEmpty { cachedEmotions = list }
-            lss            = l
-            lssFailed          = lFailed
-            moodHistoryFailed  = mFailed
-            initialLoaded      = true
+        async let dLoad: Void = moodDueState.load(seed: dSeed.0, savedAt: dSeed.1) {
+            try await api.checkMoodDue(forceRefresh: true)
         }
+        async let sLoad: Void = summaryState.load(seed: sSeed.0, savedAt: sSeed.1) {
+            try await api.fetchMentalHealthSummary(days: 7, forceRefresh: true)
+        }
+        async let eLoad: Void = emotionsState.load(seed: eSeed.0, savedAt: eSeed.1) {
+            try await api.fetchMoodEmotions(forceRefresh: true)
+        }
+        async let mLoad: Void = moodHistoryState.load(seed: mSeed.0, savedAt: mSeed.1) {
+            try await api.fetchMoodHistory(days: 14, limit: 7, forceRefresh: true)
+        }
+        async let lLoad: Void = lssState.load(seed: lSeed.0, savedAt: lSeed.1) {
+            try await api.fetchLifeStressScore(forceRefresh: true)
+        }
+        _ = await dLoad
+        _ = await sLoad
+        _ = await eLoad
+        _ = await mLoad
+        _ = await lLoad
     }
 }
 
