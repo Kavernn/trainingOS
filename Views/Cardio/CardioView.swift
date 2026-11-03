@@ -9,15 +9,29 @@ private let logger = Logger(subsystem: "TrainingOS", category: "Cardio")
 
 struct CardioView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var cardioLog: [CardioEntry] = []
-    @State private var hiitLog:   [HIITEntry]   = []
-    @State private var metrics:   CardioMetrics? = nil
-    @State private var isLoading = true
+    @State private var cardioLogState = Loadable<[CardioEntry]>()
+    @State private var hiitLogState   = Loadable<[HIITEntry]>()
+    @State private var metricsState   = Loadable<CardioMetrics>()
     @State private var showSheet = false
     @State private var showActiveSession = false
     @State private var isImportingHK = false
-    @State private var apiError: String? = nil
+    @State private var apiError: String? = nil  // Réservé aux erreurs HK import / mutations (hors Loadable).
     @State private var toast: ToastMessage? = nil
+
+    private var cardioLog: [CardioEntry] { cardioLogState.value ?? [] }
+    private var hiitLog: [HIITEntry]     { hiitLogState.value ?? [] }
+    private var metrics: CardioMetrics?  { metricsState.value }
+    private var isLoading: Bool {
+        cardioLogState.value == nil && cardioLogState.isLoading
+    }
+    private var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(
+                states: [cardioLogState, hiitLogState, metricsState] as [any LoadableStateView],
+                retry: { await loadData() }
+            )
+        ])
+    }
     @ObservedObject private var hk = HealthKitService.shared
     @ObservedObject private var sessionManager = CardioSessionManager.shared
     @AppStorage("cardio_max_hr") private var maxHR: Int = 190
@@ -51,6 +65,9 @@ struct CardioView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
+
+                            TopFailureBanner(aggregator: topFailureAggregator)
+                                .padding(.horizontal, 16)
 
                             // 1 — Header CTA
                             CardioHeaderSection(
@@ -166,11 +183,24 @@ struct CardioView: View {
 
     // MARK: Data loading (sequential — iOS 26 async let bug)
     private func loadData() async {
-        isLoading = true
-        cardioLog = (try? await APIService.shared.fetchCardioData()) ?? []
-        hiitLog   = (try? await APIService.shared.fetchHIITData()) ?? []
-        metrics   = try? await APIService.shared.fetchCardioMetrics(maxHR: max(100, min(220, maxHR)))
-        isLoading = false
+        let api = APIService.shared
+        let cSeed = api.cachedSeed(for: APIService.cardioDataCacheKey, as: CardioDataResponse.self)
+        let hSeed = api.cachedSeed(for: APIService.hiitDataCacheKey, as: HIITDataResponse.self)
+        let mSeed = api.cachedSeed(for: APIService.cardioMetricsCacheKey, as: CardioMetrics.self)
+        let effectiveMaxHR = max(100, min(220, maxHR))
+
+        async let cLoad: Void = cardioLogState.load(seed: cSeed.0?.cardioLog, savedAt: cSeed.1) {
+            try await api.fetchCardioData(forceRefresh: true)
+        }
+        async let hLoad: Void = hiitLogState.load(seed: hSeed.0?.hiitLog, savedAt: hSeed.1) {
+            try await api.fetchHIITData(forceRefresh: true)
+        }
+        async let mLoad: Void = metricsState.load(seed: mSeed.0, savedAt: mSeed.1) {
+            try await api.fetchCardioMetrics(maxHR: effectiveMaxHR, forceRefresh: true)
+        }
+        _ = await cLoad
+        _ = await hLoad
+        _ = await mLoad
     }
 
     private func deleteEntry(_ entry: UnifiedCardioEntry) async {

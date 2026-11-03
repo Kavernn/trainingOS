@@ -7,6 +7,14 @@ struct LogSessionResponse: Decodable {
     let success: Bool
 }
 
+/// Enveloppe du cache `hiit_data`. Exposée pour que le seed d'un
+/// `Loadable<[HIITEntry]>` puisse decoder le payload stocké et
+/// extraire `.hiitLog` côté appelant.
+struct HIITDataResponse: Codable {
+    let hiitLog: [HIITEntry]
+    enum CodingKeys: String, CodingKey { case hiitLog = "hiit_log" }
+}
+
 /// Application response, NOT persistence acknowledgment. offlinePost does not expose
 /// HTTP status here (including a theoretical final 3xx response with valid JSON).
 enum SessionSaveOutcome {
@@ -613,14 +621,12 @@ extension APIService {
     }
 
     // MARK: - HIIT
-    func fetchHIITData() async throws -> [HIITEntry] {
+    static let hiitDataCacheKey = "hiit_data"
+
+    func fetchHIITData(forceRefresh: Bool = false) async throws -> [HIITEntry] {
         let url = try buildURL(path: "/api/hiit_data")
-        let data = try await fetchWithCache(url: url, key: "hiit_data")
-        struct HIITResponse: Codable {
-            let hiitLog: [HIITEntry]
-            enum CodingKeys: String, CodingKey { case hiitLog = "hiit_log" }
-        }
-        return try APIService.decoder.decode(HIITResponse.self, from: data).hiitLog
+        let data = try await fetchWithCache(url: url, key: Self.hiitDataCacheKey, forceRefresh: forceRefresh)
+        return try APIService.decoder.decode(HIITDataResponse.self, from: data).hiitLog
     }
 
     func logHIIT(sessionType: String, rounds: Int, workTime: Int, restTime: Int,

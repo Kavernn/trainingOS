@@ -1,15 +1,22 @@
 import Foundation
 
+/// Enveloppe du cache `cardio_data`. Exposée pour que le seed d'un
+/// `Loadable<[CardioEntry]>` puisse decoder le payload stocké et
+/// extraire `.cardioLog` côté appelant.
+struct CardioDataResponse: Codable {
+    let cardioLog: [CardioEntry]
+    enum CodingKeys: String, CodingKey { case cardioLog = "cardio_log" }
+}
+
 extension APIService {
+    static let cardioDataCacheKey    = "cardio_data"
+    static let cardioMetricsCacheKey = "cardio_metrics"
+
     // MARK: - Cardio
-    func fetchCardioData() async throws -> [CardioEntry] {
+    func fetchCardioData(forceRefresh: Bool = false) async throws -> [CardioEntry] {
         let url = try buildURL(path: "/api/cardio_data")
-        let data = try await fetchWithCache(url: url, key: "cardio_data")
-        struct Resp: Codable {
-            let cardioLog: [CardioEntry]
-            enum CodingKeys: String, CodingKey { case cardioLog = "cardio_log" }
-        }
-        return try APIService.decoder.decode(Resp.self, from: data).cardioLog
+        let data = try await fetchWithCache(url: url, key: Self.cardioDataCacheKey, forceRefresh: forceRefresh)
+        return try APIService.decoder.decode(CardioDataResponse.self, from: data).cardioLog
     }
 
     func logCardio(type: String, durationMin: Double?, distanceKm: Double?,
@@ -36,9 +43,9 @@ extension APIService {
         CacheInvalidation.cardioLogged.invalidate()
     }
 
-    func fetchCardioMetrics(maxHR: Int) async throws -> CardioMetrics {
+    func fetchCardioMetrics(maxHR: Int, forceRefresh: Bool = false) async throws -> CardioMetrics {
         let url = try buildURL(path: "/api/cardio/metrics", queryItems: [URLQueryItem(name: "max_hr", value: "\(maxHR)")])
-        let data = try await fetchWithCache(url: url, key: "cardio_metrics")
+        let data = try await fetchWithCache(url: url, key: Self.cardioMetricsCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode(CardioMetrics.self, from: data)
     }
 
