@@ -400,7 +400,7 @@ struct HealthDashboardView: View {
         hkActiveEnergy = await hk.fetchTodayActiveEnergy()
     }
 
-    // MARK: - HK sync (copié en local depuis EnergyRecoveryView post Lot 2)
+    // MARK: - HK sync
 #if !targetEnvironment(macCatalyst)
     private func syncNow() async {
         syncError = nil
@@ -1260,7 +1260,7 @@ private struct DetailMetricRow: View {
     }
 }
 
-// MARK: - HK Sync Header (copié de EnergyRecoveryView.sectionHeader, NavigationLink RecoveryView retiré)
+// MARK: - HK Sync Header
 
 private struct HKSyncHeader: View {
     @ObservedObject var watchSync: WatchSyncService
@@ -1327,7 +1327,7 @@ private struct HKSyncHeader: View {
     }
 }
 
-// MARK: - Readiness Hero (copié de EnergyRecoveryView.readinessHero, lit readiness.score Int? directement)
+// MARK: - Readiness Hero
 
 private struct ReadinessHero: View {
     let score: Int?
@@ -1381,7 +1381,7 @@ private struct ReadinessHero: View {
     }
 }
 
-// MARK: - Tappable helpers (copiés de EnergyRecoveryView)
+// MARK: - Tappable helpers
 
 private struct TappableMetricOverlay: View {
     let entry: InfoEntry
@@ -1426,7 +1426,7 @@ private struct TappableSleepStat: View {
     }
 }
 
-// MARK: - Sleep Stats Row (copié de EnergyRecoveryView.sleepStatsRow)
+// MARK: - Sleep Stats Row
 
 private struct SleepStatsRow: View {
     let stats: SleepStats
@@ -1466,7 +1466,7 @@ private struct SleepStatsRow: View {
     }
 }
 
-// MARK: - Secondary Metrics Grid (copié de EnergyRecoveryView.secondaryMetricsGrid)
+// MARK: - Secondary Metrics Grid
 
 private struct SecondaryMetricsGrid: View {
     let entry: RecoveryEntry
@@ -1535,7 +1535,7 @@ private struct DeltaFCCard: View {
     }
 }
 
-// MARK: - Energy Header Card (copié de EnergyRecoveryView.EnergyHeaderCard L174)
+// MARK: - Energy Header Card
 
 private struct EnergyHeaderCard: View {
     let energy: EnergyDaily
@@ -1635,7 +1635,7 @@ private struct EnergyHeaderCard: View {
     }
 }
 
-// MARK: - Energy Breakdown Card (copié de EnergyRecoveryView.EnergyBreakdownCard L279)
+// MARK: - Energy Breakdown Card
 
 private struct EnergyBreakdownCard: View {
     let energy: EnergyDaily
@@ -1776,7 +1776,7 @@ private struct EnergyBreakdownCard: View {
     }
 }
 
-// MARK: - Energy Error Card (copié de EnergyRecoveryView.EnergyErrorCard L421)
+// MARK: - Energy Error Card
 
 private struct EnergyErrorCard: View {
     let message: String
@@ -1802,7 +1802,7 @@ private struct EnergyErrorCard: View {
     }
 }
 
-// MARK: - Energy Chart Section (copié de EnergyRecoveryView.EnergyChartSection L448)
+// MARK: - Energy Chart Section
 
 private struct EnergyChartSection: View {
     let history: [EnergyHistoryDay]
@@ -1989,7 +1989,7 @@ private struct EnergyChartSection: View {
     }
 }
 
-// MARK: - Dynamic Suggestions Section (copié de EnergyRecoveryView.DynamicSuggestionsSection L1303)
+// MARK: - Dynamic Suggestions Section
 
 private struct DynamicSuggestionsSection: View {
     let energy: EnergyDaily?
@@ -2325,7 +2325,7 @@ private struct RecoverySleepBarChart: View {
     }
 }
 
-// MARK: - Recovery 14d Chart (copié de EnergyRecoveryView.Recovery14dChart L1149)
+// MARK: - Recovery 14d Chart
 
 private struct Recovery14dChart: View {
     let history: [ReadinessHistoryPoint]

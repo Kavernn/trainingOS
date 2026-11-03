@@ -154,7 +154,6 @@
 		EE5500042F5D98BA002AE470 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500032F5D98BA002AE470 /* SyncManager.swift */; };
 		EE5500062F5D98BA002AE470 /* UserDefaultsSyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500052F5D98BA002AE470 /* UserDefaultsSyncQueue.swift */; };
 		ENMOD002ENMOD002ENMOD002 /* EnergyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */; };
-		ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ER001000ER001000ER001000 /* EnergyRecoveryView.swift */; };
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
 		F94E27D8AD4CFCAED7E8C049 /* SyncDiscardsBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9240AB1723E37EE0DDC919E /* SyncDiscardsBanner.swift */; };
 		FC17584D7AFE67521FC5FA38 /* Loadable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241879CDF0DCA4374F0E0BCB /* Loadable.swift */; };
@@ -450,7 +449,6 @@
 		EF0003EF0003EF0003EF0003 /* FloatingRestTimerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingRestTimerCard.swift; sourceTree = "<group>"; };
 		EF0004EF0004EF0004EF0004 /* ExerciseEditorPreparation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseEditorPreparation.swift; sourceTree = "<group>"; };
 		ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnergyModels.swift; sourceTree = "<group>"; };
-		ER001000ER001000ER001000 /* EnergyRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyRecoveryView.swift; sourceTree = "<group>"; };
 		F2A04079C3AD4EE4B30B64C7 /* EducationalCapsuleCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EducationalCapsuleCard.swift; sourceTree = "<group>"; };
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoButton.swift; sourceTree = "<group>"; };
 		F480D68151D234F27B77EF3B /* MarkdownText.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MarkdownText.swift; sourceTree = "<group>"; };
@@ -1073,7 +1071,6 @@
 				AA00300B2F5D98B8002AE470 /* Intelligence */,
 				EA73F5AEC260AD6BE1B97728 /* Cardio */,
 				EE494F72F21A4AAE1BCC94D5 /* Recovery */,
-				ER000000ER000000ER000000 /* EnergyRecovery */,
 				BFFFE9FA995E4CFDB5583CC6 /* Sleep */,
 				BB2200052F5D98BA002AE470 /* HealthDashboard */,
 				CC3300032F5D98BA002AE472 /* PSS */,
@@ -1126,14 +1123,6 @@
 				RR0008RR0008RR0008RR0008 /* RecoveryPerformanceBanner.swift */,
 			);
 			path = Recovery;
-			sourceTree = "<group>";
-		};
-		ER000000ER000000ER000000 /* EnergyRecovery */ = {
-			isa = PBXGroup;
-			children = (
-				ER001000ER001000ER001000 /* EnergyRecoveryView.swift */,
-			);
-			path = EnergyRecovery;
 			sourceTree = "<group>";
 		};
 		GF000000AA00300B2F5DEEEE /* GymFinder */ = {
@@ -1626,7 +1615,6 @@
 				GF003001AA00300B2F5DEEEE /* GymFiltersView.swift in Sources */,
 				GF004001AA00300B2F5DEEEE /* GymFinderView.swift in Sources */,
 				GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */,
-				ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */,
 				STNA0001STNA0001STNA0001 /* SettingsView.swift in Sources */,
 				STNA0002STNA0002STNA0002 /* TrainingSettingsView.swift in Sources */,
 				STNA0003STNA0003STNA0003 /* RecoverySettingsView.swift in Sources */,

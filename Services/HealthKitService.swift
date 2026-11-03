@@ -227,7 +227,7 @@ class HealthKitService: ObservableObject {
         }
     }
 
-    // MARK: - Recovery Snapshot (single source for LogRecoverySheet + EnergyRecoveryView sync)
+    // MARK: - Recovery Snapshot (single source for LogRecoverySheet + HealthDashboard sync)
     func fetchRecoverySnapshot(for date: Date) async -> RecoveryHKSnapshot {
         // sequential — async let LIFO crash on iOS 26 beta
         let s   = await fetchSleep(for: date)

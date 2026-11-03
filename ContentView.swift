@@ -331,7 +331,7 @@ private enum MacPage: String, Identifiable {
     // Entraînement
     case programme, stats, timer, hiit, historique, xp
     // Corps & Santé
-    case healthDashboard, bodyComp, cardio, recovery, energyRecovery, pss, mentalHealth
+    case healthDashboard, bodyComp, cardio, recovery, pss, mentalHealth
     // Divers
     case notes, inventaire, profil
 
@@ -352,7 +352,6 @@ private enum MacPage: String, Identifiable {
         case .nutrition:      return "Nutrition"
         case .cardio:         return "Cardio"
         case .recovery:       return "Récupération"
-        case .energyRecovery: return "Énergie"
         case .pss:            return "Stress (PSS)"
         case .mentalHealth:   return "Santé Mentale"
         case .notes:          return "Notes"
@@ -376,7 +375,6 @@ private enum MacPage: String, Identifiable {
         case .nutrition:      return "fork.knife"
         case .cardio:         return "figure.run"
         case .recovery:       return "moon.zzz.fill"
-        case .energyRecovery: return "bolt.heart.fill"
         case .pss:            return "brain.head.profile"
         case .mentalHealth:   return "face.smiling.fill"
         case .notes:          return "note.text"
@@ -400,7 +398,6 @@ private enum MacPage: String, Identifiable {
         case .nutrition:      return .orange
         case .cardio:         return .teal
         case .recovery:       return .indigo
-        case .energyRecovery: return .orange
         case .pss:            return .purple
         case .mentalHealth:   return .mint
         case .notes:          return .blue
@@ -418,7 +415,7 @@ private struct MacSidebarSection {
 private let macSections: [MacSidebarSection] = [
     MacSidebarSection(title: "Principal",      pages: [.dashboard, .seance, .nutrition]),
     MacSidebarSection(title: "Entraînement",   pages: [.programme, .stats, .timer, .hiit, .historique, .xp]),
-    MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .energyRecovery, .pss, .mentalHealth]),
+    MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .pss, .mentalHealth]),
     MacSidebarSection(title: "Divers",         pages: [.notes, .inventaire, .profil]),
 ]
 
@@ -498,7 +495,6 @@ private struct MacContentView: View {
         case .nutrition:       NutritionView()
         case .cardio:          CardioView()
         case .recovery:        RecoveryView()
-        case .energyRecovery:  EnergyRecoveryView()
         case .pss:             PSSView()
         case .mentalHealth:    MentalAmeView()
         case .notes:           NotesView()

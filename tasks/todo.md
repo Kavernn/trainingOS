@@ -456,7 +456,6 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 - [ ] Views/Dashboard/MorningRevealView.swift
 - [ ] Views/Dashboard/ReadinessView.swift
 - [ ] Views/Dashboard/TodayWidgets.swift
-- [ ] Views/EnergyRecovery/EnergyRecoveryView.swift
 - [ ] Views/GymFinder/GymContributeView.swift
 - [ ] Views/GymFinder/GymDetailView.swift
 - [ ] Views/GymFinder/GymFiltersView.swift
