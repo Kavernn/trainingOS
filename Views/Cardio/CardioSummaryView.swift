@@ -17,13 +17,33 @@ struct CardioSummaryView: View {
     @State private var isSaving = false
     @State private var saveError: String? = nil
     @State private var showCancelConfirm = false
-    @State private var readiness: ReadinessResponse? = nil
-    @State private var todayRecovery: RecoveryEntry? = nil
-    @State private var recentCardioSessions: [CardioEntry] = []
-    @State private var isLoadingRecovery = true
+    @State private var readinessState    = Loadable<ReadinessResponse>()
+    @State private var recoveryLogState  = Loadable<[RecoveryEntry]>()
+    @State private var cardioLogState    = Loadable<[CardioEntry]>()
     @State private var coachNote: CardioCoachNote? = nil
     @State private var hkAvgHR: Double? = nil
     @State private var hkCalories: Double? = nil
+
+    private var readiness: ReadinessResponse?    { readinessState.value }
+    private var recentCardioSessions: [CardioEntry] { cardioLogState.value ?? [] }
+    private var todayRecovery: RecoveryEntry? {
+        guard let entries = recoveryLogState.value else { return nil }
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        let todayStr = df.string(from: Date())
+        return entries.first { $0.date == todayStr }
+    }
+    private var isLoadingRecovery: Bool {
+        ([readinessState, recoveryLogState, cardioLogState] as [any LoadableStateView])
+            .contains { $0.isLoading }
+    }
+    private var topFailureAggregator: LoadableAggregator {
+        LoadableAggregator(groups: [
+            LoadableRetryGroup(
+                states: [readinessState, recoveryLogState, cardioLogState] as [any LoadableStateView],
+                retry: { await loadRecovery() }
+            )
+        ])
+    }
 
     // MARK: - Computed helpers
 
@@ -109,8 +129,11 @@ struct CardioSummaryView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
+                    TopFailureBanner(aggregator: topFailureAggregator)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 24)
                     headerSection
-                        .padding(.top, 32)
+                        .padding(.top, 8)
                     metricsSection
                     mapSection
                     splitsSection
@@ -121,7 +144,7 @@ struct CardioSummaryView: View {
                 }
             }
         }
-        .onAppear { if readiness == nil { Task { await loadRecovery() } } }
+        .onAppear { if readinessState.value == nil { Task { await loadRecovery() } } }
         .confirmationDialog("Abandonner la séance ?", isPresented: $showCancelConfirm, titleVisibility: .visible) {
             Button("Abandonner sans sauvegarder", role: .destructive) {
                 CardioSessionManager.shared.cancel()
@@ -349,23 +372,26 @@ struct CardioSummaryView: View {
     // MARK: - Recovery fetch
 
     private func loadRecovery() async {
-        isLoadingRecovery = true
+        let api = APIService.shared
+        let rSeed = api.cachedSeed(for: APIService.readinessCacheKey, as: ReadinessResponse.self)
+        let logSeed = api.cachedSeed(for: APIService.recoveryDataCacheKey, as: RecoveryDataResponse.self)
+        let cSeed = api.cachedSeed(for: APIService.cardioDataCacheKey, as: CardioDataResponse.self)
 
-        readiness = try? await APIService.shared.fetchReadiness()
-
-        if let entries = try? await APIService.shared.fetchRecoveryData() {
-            let df = DateFormatter()
-            df.dateFormat = "yyyy-MM-dd"
-            let todayStr = df.string(from: Date())
-            todayRecovery = entries.first { $0.date == todayStr }
+        async let rLoad: Void = readinessState.load(seed: rSeed.0, savedAt: rSeed.1) {
+            try await api.fetchReadiness(forceRefresh: true)
         }
-
-        recentCardioSessions = (try? await APIService.shared.fetchCardioData()) ?? []
+        async let logLoad: Void = recoveryLogState.load(seed: logSeed.0?.recoveryLog, savedAt: logSeed.1) {
+            try await api.fetchRecoveryData(forceRefresh: true)
+        }
+        async let cLoad: Void = cardioLogState.load(seed: cSeed.0?.cardioLog, savedAt: cSeed.1) {
+            try await api.fetchCardioData(forceRefresh: true)
+        }
+        _ = await rLoad
+        _ = await logLoad
+        _ = await cLoad
 
         hkAvgHR = await HealthKitService.shared.fetchWorkoutHR(start: session.startTime, end: session.endTime)
         hkCalories = await HealthKitService.shared.fetchWorkoutCalories(start: session.startTime, end: session.endTime)
-
-        isLoadingRecovery = false
 
         coachNote = CardioCoachService.generateNote(
             type:             session.type,
