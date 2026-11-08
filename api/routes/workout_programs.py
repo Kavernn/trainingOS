@@ -121,6 +121,13 @@ def api_programme():
             return jsonify({"error": "Supabase indisponible"}), 503
         old_ex = data.get("old_exercise")
         new_ex = data.get("new_exercise")
+        # new_scheme optional : combine rename + scheme change dans la même
+        # route pour éviter deux appels API séparés (split state si le 2e
+        # échoue). Appliqué dans la séance `jour` sur les blocs contenant
+        # new_ex, puis UN SEUL save_full_program → fenêtre d'échec minimale.
+        new_scheme = data.get("new_scheme")
+        jour_for_scheme = data.get("jour") if new_scheme is not None else None
+
         # Dossier PERSISTANCE v3 : résout l'exo dans TOUS les REPS_BLOCKS
         # de CHAQUE séance. L'ancien code ne cherchait que "strength" → sur
         # v4, un exo en force/isolation/etc. n'était jamais renommé côté
@@ -137,24 +144,62 @@ def api_programme():
                     (new_ex if n == old_ex else n): s for n, s in exos.items()
                 }
             modified[sname] = sdef
+
+        # new_scheme : applique dans modified[jour] sur les blocs contenant new_ex.
+        if new_scheme is not None and jour_for_scheme is not None:
+            target_sdef = modified.get(jour_for_scheme) or program.get(jour_for_scheme)
+            if target_sdef is None:
+                return jsonify({"error": "Jour invalide"}), 400
+            scheme_blocks = find_blocks_containing(target_sdef.get("blocks", []), new_ex)
+            if not scheme_blocks:
+                return jsonify({"error": "Exercice introuvable dans la séance"}), 404
+            for block in scheme_blocks:
+                block.get("exercises", {})[new_ex] = new_scheme
+            modified[jour_for_scheme] = target_sdef
+
+        # Programme : UN SEUL save_full_program, erreur explicite si échec.
         if modified:
-            _db.save_full_program(modified, program_id)
-        inv = load_inventory() or {}
-        if new_ex in inv:
-            if old_ex in inv:
-                from db import delete_exercise_by_name
-                delete_exercise_by_name(old_ex)
-        else:
-            info = inv.get(old_ex)
-            if info is None:
-                scheme = "3x8-12"
-                for sdef in program.values():
-                    hits = find_blocks_containing(sdef.get("blocks", []), new_ex)
-                    if hits:
-                        scheme = (hits[0].get("exercises") or {}).get(new_ex, scheme)
-                        break
-                info = {"type": "machine", "increment": 5, "default_scheme": scheme}
-            rename_inventory_exercise(old_ex, new_ex, info)
+            ok = _db.save_full_program(modified, program_id)
+            if not ok:
+                return jsonify({
+                    "error": "Échec de la sauvegarde du programme",
+                    "programme_ok": False,
+                }), 500
+
+        # Inventaire : AFTER programme save. Si échec, programme OK mais
+        # inventaire désynchronisé → 500 explicite pour que le caller sache.
+        try:
+            inv = load_inventory() or {}
+            if new_ex in inv:
+                if old_ex in inv:
+                    from db import delete_exercise_by_name
+                    delete_exercise_by_name(old_ex)
+            else:
+                info = inv.get(old_ex)
+                if info is None:
+                    scheme = new_scheme or "3x8-12"
+                    for sdef in program.values():
+                        hits = find_blocks_containing(sdef.get("blocks", []), new_ex)
+                        if hits:
+                            scheme = (hits[0].get("exercises") or {}).get(new_ex, scheme)
+                            break
+                    info = {"type": "machine", "increment": 5, "default_scheme": scheme}
+                rename_inventory_exercise(old_ex, new_ex, info)
+            # Sync default_scheme pour new_ex quand new_scheme fourni.
+            if new_scheme is not None:
+                inv2 = load_inventory() or {}
+                if new_ex in inv2 and isinstance(inv2[new_ex], dict):
+                    entry = dict(inv2[new_ex])
+                    entry["default_scheme"] = new_scheme
+                    add_exercise(new_ex, entry)
+        except Exception as e:
+            logger.error("rename: inventory update failed after programme save: %s", e)
+            return jsonify({
+                "error": "Programme sauvegardé mais inventaire désynchronisé",
+                "programme_ok": True,
+                "inventaire_ok": False,
+            }), 500
+
         return jsonify({"success": True})
 
     if action == "reorder_sessions":

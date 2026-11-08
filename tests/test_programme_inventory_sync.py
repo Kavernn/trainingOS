@@ -434,6 +434,75 @@ class TestRenameNotInInventory(BaseRouteTest):
         self.assertEqual("5x5", self.store["inventory"]["BB Bench Press"]["default_scheme"])
 
 
+# ── rename + new_scheme atomique (rename+scheme en UN appel) ─────────────────
+
+class TestProgrammeRenameWithScheme(BaseRouteTest):
+    """new_scheme optionnel dans action=rename : évite les 2 appels séparés
+    (split state si le 2e échoue) pour editExercise mid-séance."""
+
+    def test_rename_with_new_scheme_applies_both_in_one_call(self):
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "BB Bench Press",
+            "new_scheme": "5x5",
+        })
+        exos = _strength_exos(self.store, "Upper A")
+        self.assertNotIn("Bench Press", exos)
+        self.assertEqual("5x5", exos["BB Bench Press"])
+
+    def test_rename_with_new_scheme_syncs_inventory_default_scheme(self):
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "BB Bench Press",
+            "new_scheme": "5x5",
+        })
+        self.assertEqual("5x5", self.store["inventory"]["BB Bench Press"]["default_scheme"])
+
+    def test_rename_without_new_scheme_leaves_scheme_untouched(self):
+        """Retrocompat : rename sans new_scheme ne touche pas le scheme."""
+        original = _strength_exos(self.store, "Upper A")["Bench Press"]
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "BB Bench Press",
+        })
+        self.assertEqual(original, _strength_exos(self.store, "Upper A")["BB Bench Press"])
+
+    def test_programme_save_failure_returns_500_explicit(self):
+        """save_full_program retourne False (DB disconnect) → 500 avec
+        programme_ok: False. Avant : le route renvoyait success:True silencieusement."""
+        from unittest.mock import patch
+        with patch("db.save_full_program", return_value=False):
+            r = self.post("/api/programme", {
+                "action": "rename", "jour": "Upper A",
+                "old_exercise": "Bench Press",
+                "new_exercise": "BB Bench Press",
+            })
+        self.assertEqual(500, r.status_code)
+        body = r.get_json() or {}
+        self.assertFalse(body.get("programme_ok"))
+
+    def test_inventory_failure_returns_500_programme_ok(self):
+        """Programme save OK mais inventaire échoue → 500 explicite
+        avec programme_ok: True, inventaire_ok: False. L'utilisateur sait
+        que son programme est à jour mais l'inventaire default_scheme non."""
+        from unittest.mock import patch
+        with patch("inventory.rename_inventory_exercise", side_effect=RuntimeError("supabase 503")):
+            r = self.post("/api/programme", {
+                "action": "rename", "jour": "Upper A",
+                "old_exercise": "Bench Press",
+                "new_exercise": "BB Bench Press",
+            })
+        self.assertEqual(500, r.status_code)
+        body = r.get_json() or {}
+        self.assertTrue(body.get("programme_ok"))
+        self.assertFalse(body.get("inventaire_ok"))
+        # Et le programme a bien été sauvegardé malgré l'échec inventaire
+        self.assertIn("BB Bench Press", _strength_exos(self.store, "Upper A"))
+
+
 # ── Sync programme → inventaire via /api/programme_data ──────────────────────
 
 class TestProgrammeDataInventorySync(BaseRouteTest):
