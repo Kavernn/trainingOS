@@ -62,6 +62,7 @@ struct WorkoutSeanceView: View {
     @State private var partialTotalCount = 0
     @State private var showSummary = false
     @State private var ghostData: GhostData? = nil
+    @State private var ghostFetchError = false  // cold-start fetchStatsData échec → mention discrète
     // W-C3 — showGhost persists per session so the dismissed banner doesn't reappear
     @State private var showGhost: Bool = {
         // Default: show. Will be corrected in onAppear with session-specific key.
@@ -333,9 +334,21 @@ struct WorkoutSeanceView: View {
 
     private func computeGhost() {
         if CacheService.shared.load(for: "stats_data") == nil {
-            Task { try? await APIService.shared.fetchStatsData(); computeGhost() }
+            // Cold start : fetch alimente le cache puis re-tente. Un échec de
+            // fetch (pas "aucune séance comparable") → mention discrète UI.
+            Task {
+                do {
+                    _ = try await APIService.shared.fetchStatsData()
+                    await MainActor.run { ghostFetchError = false }
+                    computeGhost()
+                } catch {
+                    await MainActor.run { ghostFetchError = true }
+                }
+            }
             return
         }
+        // Cache dispo : si on arrive ici, pas d'erreur de fetch à signaler.
+        ghostFetchError = false
         guard let cached  = CacheService.shared.load(for: "stats_data"),
               let snap    = try? APIService.decoder.decode(GhostSnapshot.self, from: cached)
         else { return }
@@ -1578,6 +1591,21 @@ struct WorkoutSeanceView: View {
                     ghostBeaten = true
                 }
             }
+        } else if ghostFetchError, showGhost, !vm.isResuming, vm.logResults.isEmpty {
+            // Mention discrète : uniquement quand fetchStatsData échoue
+            // (cold start sans cache). Distingué de "aucune séance
+            // comparable" (< 50 % d'overlap) qui ne montre rien.
+            HStack(spacing: 6) {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .font(.appCaption).foregroundColor(.gray)
+                Text("Comparaison indisponible")
+                    .font(.appCaption).foregroundColor(.gray)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.appSurfaceInset)
+            .cornerRadius(6)
+            .padding(.horizontal, 16)
         }
     }
 
