@@ -570,9 +570,17 @@ def save_full_program(program: dict, program_id: str | None = None,
                             )
                             continue
 
-                # Clear existing exercises for this block then reinsert
-                db_core._client.table("program_block_exercises").delete().eq("block_id", block_id).execute()
-
+                # Safety-ordered rewrite : UPSERT bulk d'abord, puis DELETE
+                # sélectif. Ancien pattern (DELETE-all + INSERT 1-par-1) perdait
+                # TOUS les exos du bloc si l'une des insertions post-delete
+                # échouait. Nouvel ordre : si l'UPSERT échoue, rien n'est
+                # supprimé ; si le DELETE échoue, on a au pire des lignes
+                # orphelines (doublons) mais jamais une perte.
+                #
+                # Contrainte UNIQUE(block_id, exercise_id) sur program_block_exercises
+                # → on_conflict="block_id,exercise_id" permet à l'upsert de MAJ
+                # scheme/order_index sur les lignes existantes.
+                rows = []
                 for ex_order, (ex_name, scheme) in enumerate(exercises.items()):
                     ex_id_resp = (
                         db_core._client.table("exercises")
@@ -595,12 +603,38 @@ def save_full_program(program: dict, program_id: str | None = None,
                         ex_id = ins.data[0]["id"]
                     else:
                         ex_id = ex_id_resp.data[0]["id"]
-                    db_core._client.table("program_block_exercises").insert({
+                    rows.append({
                         "block_id": block_id,
                         "exercise_id": ex_id,
                         "scheme": scheme,
                         "order_index": ex_order,
-                    }).execute()
+                    })
+
+                if rows:
+                    # 1) Bulk upsert : lève si problème → rien n'est delete en aval.
+                    (
+                        db_core._client.table("program_block_exercises")
+                        .upsert(rows, on_conflict="block_id,exercise_id")
+                        .execute()
+                    )
+                    # 2) Delete sélectif : retire les anciens exos qui ne sont
+                    # plus dans la nouvelle liste. Si l'upsert ci-dessus a
+                    # échoué (exception), on n'arrive jamais ici → les anciens
+                    # exos restent intacts. Si ce delete échoue, pire cas =
+                    # lignes anciennes orphelines (plus dans exercises de la
+                    # nouvelle liste) mais aucune perte des nouvelles.
+                    new_ex_ids = [r["exercise_id"] for r in rows]
+                    ids_csv = ",".join(str(i) for i in new_ex_ids)
+                    (
+                        db_core._client.table("program_block_exercises")
+                        .delete()
+                        .eq("block_id", block_id)
+                        .filter("exercise_id", "not.in", f"({ids_csv})")
+                        .execute()
+                    )
+                else:
+                    # exercises vide + allow_empty_blocks : delete all (chemin existant).
+                    db_core._client.table("program_block_exercises").delete().eq("block_id", block_id).execute()
 
         return True
 

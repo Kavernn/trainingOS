@@ -78,21 +78,30 @@ def test_T3_get_session_supersets_filter_covers_reps_blocks():
 
 
 def test_T4_save_full_program_force_block_inserts_exercises():
-    """Bloc {type:'force', exercises:{...}} -> insert dans program_block_exercises."""
-    pbe_inserts = []
+    """Bloc {type:'force', exercises:{...}} -> upsert dans program_block_exercises.
+    (Pattern safety-ordered 2026-11 : upsert bulk au lieu de delete-all+insert-1-par-1.)"""
+    pbe_writes = []  # Capture upsert payloads (list of rows) ET insert payloads (single dict)
     c = MagicMock()
-    c.table.return_value.upsert.return_value.execute.return_value.data = [{"id": "sess1"}]
     c.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {"id": "sess1"}
     c.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
     c.table.return_value.insert.return_value.execute.return_value.data = [{"id": "blk1"}]
     c.table.return_value.delete.return_value.eq.return_value.execute.return_value = MagicMock()
     def _insert(payload):
+        # Capture inserts qui contiennent block_id (program_block_exercises path pré-refactor)
         if isinstance(payload, dict) and "block_id" in payload:
-            pbe_inserts.append(payload)
+            pbe_writes.append(payload)
         m = MagicMock()
         m.execute.return_value.data = [{"id": "blk1"}]
         return m
+    def _upsert(payload, **kwargs):
+        # Capture bulk upserts program_block_exercises (post-refactor safety-ordered)
+        if isinstance(payload, list) and payload and "block_id" in payload[0]:
+            pbe_writes.extend(payload)
+        m = MagicMock()
+        m.execute.return_value.data = [{"id": "sess1"}]
+        return m
     c.table.return_value.insert.side_effect = _insert
+    c.table.return_value.upsert.side_effect = _upsert
     with patch.object(db_programs, "db_core") as dbc:
         dbc._client = c
         dbc.MODE = "ONLINE"
@@ -101,8 +110,8 @@ def test_T4_save_full_program_force_block_inserts_exercises():
                                   "exercises": {"Back Squat": "4x5-8"}}]}},
             program_id="prog1",
         )
-    assert any(p.get("block_id") == "blk1" for p in pbe_inserts), \
-        f"Attendu insert program_block_exercises avec block_id='blk1', got {pbe_inserts}"
+    assert any(p.get("block_id") == "blk1" for p in pbe_writes), \
+        f"Attendu upsert/insert program_block_exercises avec block_id='blk1', got {pbe_writes}"
 
 
 if __name__ == "__main__":
