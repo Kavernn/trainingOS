@@ -9,6 +9,7 @@ struct OnboardingView: View {
     @State private var isSaving    = false
     @State private var hkRequesting = false
     @State private var profileError: String? = nil
+    @State private var profileQueuedInfo: String? = nil
     @State private var isKgSelected: Bool = Locale.current.usesMetricSystem
 
     @State private var sexInput: String    = "M"
@@ -62,6 +63,14 @@ struct OnboardingView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(profileError ?? "")
+        }
+        .alert("Hors ligne", isPresented: Binding(
+            get: { profileQueuedInfo != nil },
+            set: { if !$0 { profileQueuedInfo = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(profileQueuedInfo ?? "")
         }
     }
 
@@ -410,7 +419,12 @@ struct OnboardingView: View {
                     sex:    sexInput
                 )
             } catch APIError.queuedOffline {
-                // Enfilé par offlinePost → SyncManager retry. Safe-silent.
+                // Enfilé par offlinePost → SyncManager retry. On avance (le
+                // profil PARTIRA) mais on surface l'état pour que l'utilisateur
+                // sache qu'il n'est pas déjà en ligne.
+                await MainActor.run {
+                    profileQueuedInfo = "Hors ligne — ton profil sera envoyé à la reconnexion"
+                }
             } catch {
                 // Toute autre erreur (serverError, decoding, URLError non-cancelled)
                 // bloque l'avance pour que l'utilisateur voie et réessaye — sans ça
