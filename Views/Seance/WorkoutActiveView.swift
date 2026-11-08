@@ -63,6 +63,7 @@ struct WorkoutSeanceView: View {
     @State private var showSummary = false
     @State private var ghostData: GhostData? = nil
     @State private var ghostFetchError = false  // cold-start fetchStatsData échec → mention discrète
+    @State private var weightFetchFailed: Set<String> = []  // exos dont fetchExerciseWeightData a échoué → "Poids précédent indisponible"
     // W-C3 — showGhost persists per session so the dismissed banner doesn't reappear
     @State private var showGhost: Bool = {
         // Default: show. Will be corrected in onAppear with session-specific key.
@@ -929,7 +930,18 @@ struct WorkoutSeanceView: View {
             }
         )
 
-        card
+        // Si fetchExerciseWeightData a échoué pour cet exo ET qu'aucun poids
+        // n'est disponible → mention discrète sous la carte + bouton Réessayer
+        // qui relance le fetch pour cet exercice seulement.
+        let showWeightFetchError = weightFetchFailed.contains(name)
+            && (effectiveWeightData?.currentWeight ?? 0) == 0
+
+        VStack(spacing: 4) {
+            card
+            if showWeightFetchError {
+                weightFetchFailedRow(for: name)
+            }
+        }
             .id(name)
             .padding(.horizontal, 16)
             .background(GeometryReader { geo in
@@ -950,6 +962,44 @@ struct WorkoutSeanceView: View {
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: shift)
             .animation(.spring(response: 0.2, dampingFraction: 0.9), value: isDragging)
             .transition(.opacity.combined(with: .scale(scale: 0.92)))
+    }
+
+    @ViewBuilder
+    private func weightFetchFailedRow(for name: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "chart.bar.doc.horizontal")
+                .font(.appMicro).foregroundColor(.gray)
+            Text("Poids précédent indisponible")
+                .font(.appMicro).foregroundColor(.gray)
+            Spacer(minLength: 4)
+            Button {
+                Task { await retryWeightFetch(for: name) }
+            } label: {
+                Text("Réessayer")
+                    .font(.appMicro.weight(.semibold))
+                    .foregroundColor(Color.forge)
+                    .frame(minWidth: 44, minHeight: 32)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 4)
+        .background(Color.appSurfaceInset)
+        .cornerRadius(6)
+    }
+
+    /// Relance fetchExerciseWeightData pour cet exercice seulement. Succès →
+    /// retire de weightFetchFailed + met à jour swapWeightData. Échec → reste
+    /// dans weightFetchFailed (le label + bouton restent visibles).
+    private func retryWeightFetch(for name: String) async {
+        do {
+            let fetched = try await APIService.shared.fetchExerciseWeightData(name: name)
+            await MainActor.run {
+                if let fetched { swapWeightData[name] = fetched }
+                weightFetchFailed.remove(name)
+            }
+        } catch {
+            // Reste en échec, user peut re-cliquer.
+        }
     }
 
     /// Étape 5 — aligné sur SeanceView L511 / BonusSeanceView L318 : écouter
@@ -1418,15 +1468,30 @@ struct WorkoutSeanceView: View {
             // @StateObject au premier init, donc la map doit être prête avant
             // que la carte apparaisse.
             Task {
-                await withTaskGroup(of: (String, String, WeightData?).self) { group in
+                // do-catch par exercice : l'ordre "poids avant carte" est
+                // préservé (await MainActor.run par exo), et l'échec isolé
+                // d'un exo marque l'entrée dans weightFetchFailed sans bloquer
+                // les autres. L'exo apparaît quand même (localProgram[ex] = scheme).
+                await withTaskGroup(of: (String, String, Result<WeightData?, Error>).self) { group in
                     for (ex, scheme) in list {
                         group.addTask {
-                            (ex, scheme, try? await APIService.shared.fetchExerciseWeightData(name: ex))
+                            do {
+                                let data = try await APIService.shared.fetchExerciseWeightData(name: ex)
+                                return (ex, scheme, .success(data))
+                            } catch {
+                                return (ex, scheme, .failure(error))
+                            }
                         }
                     }
-                    for await (ex, scheme, fetched) in group {
+                    for await (ex, scheme, result) in group {
                         await MainActor.run {
-                            if let fetched { swapWeightData[ex] = fetched }
+                            switch result {
+                            case .success(let w):
+                                if let w { swapWeightData[ex] = w }
+                                weightFetchFailed.remove(ex)
+                            case .failure:
+                                weightFetchFailed.insert(ex)
+                            }
                             localProgram[ex] = scheme
                         }
                     }
