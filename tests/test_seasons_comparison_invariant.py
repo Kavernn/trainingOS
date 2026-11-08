@@ -46,6 +46,13 @@ BW_LOGS = [
     {"date": "2026-09-01", "weight": 184.0, "body_fat": None},
 ]
 
+# Fixe la date "today" vue par l'endpoint à 2026-10-20 — 5 jours après le
+# dernier BW log (2026-10-15), bien dans la fenêtre de fraîcheur de 14 jours
+# du garde-fou body_fat_end de routes.seasons. Sans ce patch, les logs
+# hardcodés sortent de la fenêtre dès qu'on est à >14 jours du 2026-10-15
+# (bit rot temporel du test, pas un bug prod : le garde-fou 14j est correct).
+FROZEN_TODAY = "2026-10-20"
+
 
 def _patch_db(**overrides):
     """Patch toutes les fonctions `db.*` que get_seasons_comparison consomme."""
@@ -71,7 +78,8 @@ class TestComparisonInvariant(BaseRouteTest):
         return []
 
     def test_exposes_start_end_and_body_fat_fields(self):
-        with patch("routes.seasons.db.get_season_snapshots", side_effect=self._snapshots_router):
+        with patch("routes.seasons.db.get_season_snapshots", side_effect=self._snapshots_router), \
+             patch("routes.seasons._today_mtl", return_value=FROZEN_TODAY):
             patches = _patch_db()
             for p in patches: p.start()
             try:
@@ -98,7 +106,8 @@ class TestComparisonInvariant(BaseRouteTest):
 
     def test_weight_delta_matches_end_minus_start(self):
         """Invariant demandé : weight_delta == round(end - start, 1)."""
-        with patch("routes.seasons.db.get_season_snapshots", side_effect=self._snapshots_router):
+        with patch("routes.seasons.db.get_season_snapshots", side_effect=self._snapshots_router), \
+             patch("routes.seasons._today_mtl", return_value=FROZEN_TODAY):
             patches = _patch_db()
             for p in patches: p.start()
             try:
