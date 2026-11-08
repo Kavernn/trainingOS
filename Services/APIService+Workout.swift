@@ -760,6 +760,16 @@ extension APIService {
         CacheInvalidation.programmeMutated.invalidate()
     }
 
+    /// Change la séance active côté serveur. Doctrine CLAUDE.md : schedule
+    /// matin/soir = STRUCTURE = POST direct + throw. Le caller invalide le
+    /// cache seance_data UNIQUEMENT après succès.
+    func setSessionOverride(_ session: String) async throws {
+        _ = try await postProgrammeDirect(
+            endpoint: "/api/session_override",
+            payload: ["session": session],
+        )
+    }
+
     func createProgram(name: String) async throws -> String {
         let data = try await postProgrammeDirect(endpoint: "/api/programs",
                                                   payload: ["action": "create", "name": name])

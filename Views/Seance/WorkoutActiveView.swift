@@ -99,7 +99,13 @@ struct WorkoutSeanceView: View {
     @State private var showAddLocal = false   // session-only add (doesn't touch programme)
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
-    @State private var orderSaveError = false
+    // Mutations : messages d'erreur inline discrets (nil = pas d'erreur active).
+    // Doctrine CLAUDE.md : erreurs visibles mais non bloquantes, à l'endroit
+    // concerné. Pas de TopFailureBanner sur WorkoutActiveView (séance LIVE).
+    @State private var orderSaveError: String? = nil
+    @State private var addError: String? = nil
+    @State private var editError: String? = nil
+    @State private var sessionOverrideError: String? = nil
     @State private var expandedExercises: Set<String> = []
     @State private var skippedExercises: Set<String> = []
     @State private var collapsedCompleted = false   // D1 — section Complétés (repli manuel)
@@ -444,25 +450,51 @@ struct WorkoutSeanceView: View {
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: collapsedCompleted)
         .onPreferenceChange(CardHeightKey.self) { cardHeights.merge($0) { $1 } }
 
-        if orderSaveError {
-            HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.circle.fill").foregroundColor(Color.appDanger)
-                Text("Ordre non sauvegardé").font(.appCaption).foregroundColor(Color.appDanger)
-                Spacer()
-                Button("Réessayer") {
-                    orderSaveError = false
-                    Task { await saveOrder(exerciseOrder) }
+        if let msg = orderSaveError {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.circle.fill").foregroundColor(Color.appDanger)
+                    Text("Ordre non sauvegardé — il sera perdu si tu quittes")
+                        .font(.appCaption).foregroundColor(Color.appDanger)
+                    Spacer()
+                    Button("Réessayer") {
+                        orderSaveError = nil
+                        Task { await saveOrder(exerciseOrder) }
+                    }
+                    .font(.appCaption).fontWeight(.semibold)
+                    .foregroundColor(Color.forge)
+                    Button { orderSaveError = nil } label: {
+                        Image(systemName: "xmark").font(.appCaption).foregroundColor(Color.appTextSecondary)
+                    }
                 }
-                .font(.appCaption).fontWeight(.semibold)
-                .foregroundColor(Color.forge)
-                Button { orderSaveError = false } label: {
-                    Image(systemName: "xmark").font(.appCaption).foregroundColor(Color.appTextSecondary)
+                if !msg.isEmpty {
+                    Text(msg)
+                        .font(.appMicro).foregroundColor(Color.appTextSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
             .background(Color.appDanger.opacity(0.08))
             .cornerRadius(8)
             .padding(.horizontal, 16)
+        }
+
+        if let msg = addError {
+            inlineMutationError(label: "Ajout exercice échoué", detail: msg) {
+                addError = nil
+            }
+        }
+
+        if let msg = editError {
+            inlineMutationError(label: "Modification exercice échouée", detail: msg) {
+                editError = nil
+            }
+        }
+
+        if let msg = sessionOverrideError {
+            inlineMutationError(label: "Changement de séance échoué", detail: msg) {
+                sessionOverrideError = nil
+            }
         }
 
         // Add exercise — session-local only, doesn't modify the programme
@@ -479,6 +511,32 @@ struct WorkoutSeanceView: View {
             .cornerRadius(8)
         }
         .buttonStyle(SpringButtonStyle())
+        .padding(.horizontal, 16)
+    }
+
+    /// Banner d'erreur mutation inline et discret. Pattern unique pour
+    /// add/edit/session : label court en rouge + msg serveur en gris + [x] dismiss.
+    /// Pas de retry : l'utilisateur relance l'action en répétant son geste.
+    @ViewBuilder
+    private func inlineMutationError(label: String, detail: String, onDismiss: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill").foregroundColor(Color.appDanger)
+                Text(label).font(.appCaption).foregroundColor(Color.appDanger)
+                Spacer()
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark").font(.appCaption).foregroundColor(Color.appTextSecondary)
+                }
+            }
+            if !detail.isEmpty {
+                Text(detail)
+                    .font(.appMicro).foregroundColor(Color.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Color.appDanger.opacity(0.08))
+        .cornerRadius(8)
         .padding(.horizontal, 16)
     }
 
@@ -2299,27 +2357,30 @@ struct WorkoutSeanceView: View {
         }
     }
 
-    @discardableResult
-    private func postProgramme(_ body: [String: Any]) async -> Bool {
-        guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme") else { return false }
-        guard let encoded = try? JSONSerialization.data(withJSONObject: body) else { return false }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = encoded
-        do {
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            return (resp as? HTTPURLResponse)?.statusCode == 200
-        } catch {
-            return false
+    /// Extrait un message utilisateur à partir d'une erreur de mutation.
+    /// `APIError.serverError` → message serveur (déjà extrait par
+    /// postProgrammeDirect depuis le body `{"error": "..."}`).
+    /// `URLError.notConnectedToInternet` → "Hors ligne". Autre → "Erreur réseau".
+    private func mutationErrorMessage(_ error: Error) -> String {
+        if let api = error as? APIError, case .serverError(_, let msg) = api, !msg.isEmpty {
+            return msg
         }
+        if let url = error as? URLError, url.code == .notConnectedToInternet {
+            return "Hors ligne — réessaie quand tu es en ligne"
+        }
+        return "Erreur réseau — réessaie"
     }
 
     private func saveOrder(_ order: [String]) async {
         guard order.count >= localProgram.count else { return }
-        let ok = await postProgramme(["action": "reorder", "jour": data.today, "ordre": order])
-        if !ok {
-            await MainActor.run { orderSaveError = true }
+        do {
+            try await APIService.shared.postProgrammeMutation([
+                "action": "reorder", "jour": data.today, "ordre": order,
+            ])
+            await MainActor.run { orderSaveError = nil }
+        } catch {
+            let msg = mutationErrorMessage(error)
+            await MainActor.run { orderSaveError = msg }
         }
     }
 
@@ -2380,12 +2441,21 @@ struct WorkoutSeanceView: View {
     }
 
     private func addExercise(_ name: String, scheme: String) async {
-        let ok = await postProgramme(["action": "add", "jour": data.today, "exercise": name, "scheme": scheme, "block_type": "strength"])
-        guard ok else {
-            await MainActor.run { toast = ToastMessage(message: "Erreur ajout exercice", style: .error) }
+        // Doctrine mutation : état local modifié SEULEMENT après succès serveur.
+        do {
+            try await APIService.shared.postProgrammeMutation([
+                "action": "add", "jour": data.today,
+                "exercise": name, "scheme": scheme, "block_type": "strength",
+            ])
+        } catch {
+            let msg = mutationErrorMessage(error)
+            await MainActor.run { addError = msg }
             return
         }
-        await MainActor.run { localProgram[name] = scheme }
+        await MainActor.run {
+            localProgram[name] = scheme
+            addError = nil
+        }
         CacheService.shared.clear(for: "seance_data")
         await vm.load()
     }
@@ -2396,39 +2466,38 @@ struct WorkoutSeanceView: View {
     }
 
     private func editExercise(oldName: String, newName: String, scheme: String) async {
-        if oldName != newName {
-            // rename synce tous les jours du programme + inventaire
-            let ok1 = await postProgramme(["action": "rename", "jour": data.today, "old_exercise": oldName, "new_exercise": newName])
-            let ok2 = await postProgramme(["action": "scheme", "jour": data.today, "exercise": newName, "scheme": scheme])
+        // Rename + scheme en UN appel atomique (backend 2026-11-08 : action
+        // rename accepte new_scheme optionnel + jour). Évite le split state
+        // qui existait quand rename réussissait et scheme échouait.
+        let payload: [String: Any] = oldName != newName
+            ? ["action": "rename", "jour": data.today,
+               "old_exercise": oldName, "new_exercise": newName, "new_scheme": scheme]
+            : ["action": "scheme", "jour": data.today,
+               "exercise": oldName, "scheme": scheme]
+        do {
+            try await APIService.shared.postProgrammeMutation(payload)
             await MainActor.run {
-                if ok1 && ok2 {
-                    localProgram.removeValue(forKey: oldName)
-                    localProgram[newName] = scheme
-                } else {
-                    toast = ToastMessage(message: "Erreur modification exercice", style: .error)
-                }
+                if oldName != newName { localProgram.removeValue(forKey: oldName) }
+                localProgram[newName] = scheme
+                editError = nil
             }
-        } else {
-            let ok = await postProgramme(["action": "scheme", "jour": data.today, "exercise": oldName, "scheme": scheme])
-            await MainActor.run {
-                if ok { localProgram[oldName] = scheme }
-                else  { toast = ToastMessage(message: "Erreur modification exercice", style: .error) }
-            }
+        } catch {
+            let msg = mutationErrorMessage(error)
+            await MainActor.run { editError = msg }
         }
     }
 
     private func setSessionOverride(_ session: String) async {
-        guard let url = URL(string: "\(APIService.shared.baseURL)/api/session_override") else { return }
-        guard let encoded = try? JSONSerialization.data(withJSONObject: ["session": session]) else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = encoded
+        // Clear cache + reload UNIQUEMENT après succès — avant : clear/reload
+        // s'exécutaient dans tous les cas, gaspillage réseau sur échec.
         do {
-            _ = try await URLSession.authed.data(for: req)
+            try await APIService.shared.setSessionOverride(session)
         } catch {
-            await MainActor.run { toast = ToastMessage(message: "Erreur changement de séance", style: .error) }
+            let msg = mutationErrorMessage(error)
+            await MainActor.run { sessionOverrideError = msg }
+            return
         }
+        await MainActor.run { sessionOverrideError = nil }
         CacheService.shared.clear(for: "seance_data")
         await vm.load()
     }
