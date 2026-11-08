@@ -14,12 +14,19 @@ struct ReadinessHistoryResponse: Decodable {
 extension APIService {
     /// Synchronise le flag deload_active en UserDefaults depuis le serveur.
     /// Annule immédiatement les notifs culpabilisantes si le deload vient de s'activer.
+    ///
+    /// Lève maintenant au lieu d'avaler les erreurs : ce side-effect (UserDefaults
+    /// + cancel notifs) doit remonter côté caller qui choisit (log-only
+    /// documenté, ou retry). Avant : 4 try? cascadés + return false silencieux.
     @discardableResult
-    func syncDeloadFlag() async -> Bool {
-        guard let url = try? buildURL(path: "/api/deload/status"),
-              let data = try? await URLSession.authed.data(from: url).0,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return false
+    func syncDeloadFlag() async throws -> Bool {
+        let url = try buildURL(path: "/api/deload/status")
+        let (data, response) = try await URLSession.authed.data(from: url)
+        guard (200..<300).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
+            throw URLError(.badServerResponse)
+        }
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw URLError(.cannotParseResponse)
         }
         let active = json["active"] as? Bool ?? false
         let wasActive = UserDefaults.standard.bool(forKey: "deload_active")

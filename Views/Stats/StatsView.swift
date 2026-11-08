@@ -691,7 +691,11 @@ struct StatsView: View {
             return r
         }
         isLoading = false
-        await APIService.shared.syncDeloadFlag()
+        do {
+            _ = try await APIService.shared.syncDeloadFlag()
+        } catch {
+            statsHistoryLogger.error("syncDeloadFlag: \(error.localizedDescription)")
+        }
         NotificationService.scheduleContextual(
             sessionDates: Array(sessions.keys),
             streak: streakData

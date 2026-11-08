@@ -92,6 +92,12 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // Raison : scheduleTimeCapsuleSoon (notif) uniquement. Les capsules
             // sont consommées côté push notif seulement. Un échec = pas de
             // rappel capsule aujourd'hui, l'app ne dépend pas de l'état client.
+        "Views/Stats/StatsView.swift:syncDeloadFlag",
+            // Raison : UserDefaults "deload_active" + cancelDeloadNotifications
+            // (notif) uniquement. L'affichage du deload passe par
+            // fetchDeloadStatus (Loadable DeloadStatus). Un échec = flag non
+            // resynchronisé et notifs non-cancelled sur transition, retry au
+            // prochain app open.
     ]
 
     /// Prouve que le scanner est invariant aux symlinks dans le chemin racine.
