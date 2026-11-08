@@ -61,11 +61,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/XP/XPView.swift:fetchRecoveryData",
         "Views/XP/XPView.swift:fetchWeights",
 
-        // Catches silencieux détectés par le filet durci (2026-11-01). À
-        // migrer ou documenter cas par cas selon l'intention.
-        "Views/Cardio/CardioView.swift:catch:log-only",
-        "Views/Recovery/RecoveryView.swift:catch:log-only",
-        "Views/Onboarding/OnboardingView.swift:catch:empty",
     ]
 
     /// Catches background-side-effect-only : l'appel n'alimente aucune UI

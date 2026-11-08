@@ -1344,6 +1344,7 @@ struct RecoveryView: View {
         isBackfilling = true
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
         var updated = 0
+        var failed = 0
 
         for entry in entriesMissingHK {
             guard let dateStr = entry.date,
@@ -1377,7 +1378,8 @@ struct RecoveryView: View {
                 try await APIService.shared.syncWearableData(snapshot)
                 updated += 1
             } catch {
-                logger.error("backfill failed for \(dateStr): \(error)")
+                failed += 1
+                logger.error("backfillFromHealthKit: syncWearableData failed for \(dateStr) — \(error)")
             }
         }
 
@@ -1385,7 +1387,14 @@ struct RecoveryView: View {
         await MainActor.run {
             isBackfilling    = false
             backfillDoneDate = todayStr
-            if updated > 0 {
+            // Loop best-effort : on surface le compteur d'échecs — sans ça les
+            // stats récup se réaffichent avec N jours manquants silencieusement.
+            if failed > 0 {
+                let msg = updated > 0
+                    ? "\(updated) mise(s) à jour, \(failed) échec(s) — réessaie"
+                    : "\(failed) sync(s) échoué(s) — réessaie"
+                toast = ToastMessage(message: msg, style: .error)
+            } else if updated > 0 {
                 toast = ToastMessage(
                     message: "\(updated) entrée\(updated > 1 ? "s" : "") mise\(updated > 1 ? "s" : "") à jour depuis Santé",
                     style: .success

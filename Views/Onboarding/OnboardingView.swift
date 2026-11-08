@@ -8,6 +8,7 @@ struct OnboardingView: View {
     @State private var goal = "bulk"
     @State private var isSaving    = false
     @State private var hkRequesting = false
+    @State private var profileError: String? = nil
     @State private var isKgSelected: Bool = Locale.current.usesMetricSystem
 
     @State private var sexInput: String    = "M"
@@ -53,6 +54,14 @@ struct OnboardingView: View {
                     .padding(.trailing, 20)
                     .padding(.top, 56)
             }
+        }
+        .alert("Impossible d'enregistrer le profil", isPresented: Binding(
+            get: { profileError != nil },
+            set: { if !$0 { profileError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(profileError ?? "")
         }
     }
 
@@ -389,6 +398,7 @@ struct OnboardingView: View {
     private func submit() {
         isSaving = true
         Task {
+            var advance = true
             do {
                 try await APIService.shared.updateProfile(
                     name:   name.trimmingCharacters(in: .whitespaces),
@@ -399,12 +409,20 @@ struct OnboardingView: View {
                     level:  level,
                     sex:    sexInput
                 )
+            } catch APIError.queuedOffline {
+                // Enfilé par offlinePost → SyncManager retry. Safe-silent.
             } catch {
-                // Network failure: profile syncs later via SyncManager
+                // Toute autre erreur (serverError, decoding, URLError non-cancelled)
+                // bloque l'avance pour que l'utilisateur voie et réessaye — sans ça
+                // le profil est perdu et step=4 est trompeur.
+                advance = false
+                await MainActor.run {
+                    profileError = (LoadError.from(error)?.message) ?? "Erreur réseau — réessaie"
+                }
             }
             await MainActor.run {
                 isSaving = false
-                withAnimation { step = 4 }
+                if advance { withAnimation { step = 4 } }
             }
         }
     }

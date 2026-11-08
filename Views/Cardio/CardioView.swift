@@ -231,6 +231,8 @@ struct CardioView: View {
                 return "\(d)|\(t)"
             })
 
+            var attempted = 0
+            var failed = 0
             for w in workouts {
                 guard let entry = hk.workoutToCardioEntry(w) else { continue }
                 let dateStr = fmt.string(from: w.startDate)
@@ -244,6 +246,7 @@ struct CardioView: View {
                     let sec = Int(secPerKm.truncatingRemainder(dividingBy: 60))
                     pace = String(format: "%d:%02d", min, sec)
                 }
+                attempted += 1
                 do {
                     try await APIService.shared.logCardio(
                         type: entry.type, durationMin: entry.durationMin,
@@ -253,11 +256,22 @@ struct CardioView: View {
                         notes: "Importé depuis Apple Santé"
                     )
                 } catch {
-                    logger.error("HealthKit import failed: \(error)")
+                    failed += 1
+                    logger.error("importFromHealthKit: logCardio failed — \(error)")
                 }
             }
             await loadData()
             isImportingHK = false
+            // Loop best-effort : on garde la boucle (on ne jette pas au 1er échec,
+            // les succès valent), mais on surface le compteur d'échecs — sans ça
+            // l'utilisateur croit que l'import est complet alors que N sessions manquent.
+            if failed > 0 {
+                let succeeded = attempted - failed
+                let msg = succeeded > 0
+                    ? "\(succeeded) import(s), \(failed) échec(s) — réessaie"
+                    : "\(failed) import(s) échoué(s) — réessaie"
+                toast = ToastMessage(message: msg, style: .error)
+            }
         }
     }
 }
