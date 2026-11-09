@@ -1,5 +1,8 @@
 import SwiftUI
 import Combine
+import OSLog
+
+private let seanceSoirLogger = Logger(subsystem: "TrainingOS", category: "seance_soir")
 
 // MARK: - ViewModel
 
@@ -27,8 +30,18 @@ class SeanceSoirViewModel: SeanceViewModel {
         guard let url = components.url else { return false }
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        guard let (data, response) = try? await URLSession.authed.data(for: request),
-              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+        // Verif conservative : échec = non confirmé. Le caller surface
+        // `saveStatusMessage` "Réponse serveur reçue. La clôture n'est pas
+        // confirmée." au user. Logger explicite + knownBackgroundSideEffects.
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.authed.data(for: request)
+        } catch {
+            seanceSoirLogger.error("observeEveningCompletion: \(error.localizedDescription)")
+            return false
+        }
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
               let status = try? JSONDecoder().decode(Status.self, from: data) else { return false }
         return status.today_date == date && status.second_session_completed
     }

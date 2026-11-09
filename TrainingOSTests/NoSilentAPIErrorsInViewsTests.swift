@@ -48,7 +48,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Profile/ProfileView.swift:getWarRoomConfig",
         "Views/Profile/ProfileView.swift:getWarRoomSummary",
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
-        "Views/Seance/SeanceSoirView.swift:URLSession.authed",
         "Views/Seasons/SeasonView.swift:getActiveSeason",
         "Views/Seasons/SeasonView.swift:getAllSeasons",
         "Views/XP/XPView.swift:fetchHIITData",
@@ -100,6 +99,10 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // Raison : verif post-save dans SpecialSeanceView (séance spéciale,
             // ex. Cardio dédié). Échec = fresh nil → verified=false → vm.submitError
             // "Séance non confirmée — vérifie ta connexion et réessaie." visible.
+        "Views/Seance/SeanceSoirView.swift:observeEveningCompletion",
+            // Raison : verif conservative post-save du soir. Échec = non confirmé
+            // → le caller affiche `saveStatusMessage = "Réponse serveur reçue.
+            // La clôture n'est pas confirmée. Les données locales sont conservées."`
             // Raison : verif morning completion dans finish(). Échec = fresh
             // nil → `verified` false → même submitError visible. Idem.
         "Views/Seance/WorkoutActiveView.swift:retryWeightFetch",
