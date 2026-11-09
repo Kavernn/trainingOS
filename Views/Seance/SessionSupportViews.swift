@@ -679,7 +679,7 @@ struct SessionRecapSheet: View {
 
     @ViewBuilder
     private var muscleSection: some View {
-        if !muscleResult.zones.isEmpty {
+        if !muscleResult.zones.isEmpty || !muscleResult.unmappedMuscles.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 SessionReportSectionHeader(title: "MUSCLES SOLLICITÉS")
                 MuscleMapView(
@@ -689,6 +689,12 @@ struct SessionRecapSheet: View {
                 )
                 .frame(maxWidth: .infinity)
                 .frame(height: 104)
+                if !muscleResult.unmappedMuscles.isEmpty {
+                    Text(muscleResult.unmappedMuscles.joined(separator: " · "))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }

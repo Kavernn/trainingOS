@@ -119,9 +119,11 @@ enum TrainingDoctrine {
         "Core":              "Core",
     ]
 
+    /// Hanches/Autre restent visibles dans les analytics détaillés ; aucun seuil
+    /// MEV/MAV inventé pour ces catégories déjà présentes dans l’éditeur.
     /// Valeurs DB explicitement hors du suivi de volume (aucun seuil pertinent
     /// en musculation classique). Exclusion intentionnelle, silencieuse.
-    private static let _excludedFromVolume: Set<String> = ["Cou"]
+    private static let _excludedFromVolume: Set<String> = ["Cou", "Hanches", "Autre"]
 
     /// Résout une valeur DB `muscle_group` vers son groupe doctrinal.
     /// - Retourne nil si explicitement exclue (`_excludedFromVolume`).

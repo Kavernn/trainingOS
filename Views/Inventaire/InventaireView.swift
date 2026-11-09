@@ -90,12 +90,12 @@ struct CatalogueView: View {
     @State private var sortOrder: SortOrder = .alpha
 
     let types      = ["Tous", "barbell", "landmine", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight", "endurance"]
-    let categories = ["Tous", "push", "pull", "legs", "core", "mobility"]
+    let categories = ["Tous", "push", "pull", "legs", "core", "mobility", "cardio"]
 
     var filtered: [InventoryItem] {
         let base = items.filter { item in
             (selectedType == "Tous" ||
-             (selectedType == "endurance" ? item.trackingType == "time" : item.type == selectedType)) &&
+             (selectedType == "endurance" ? ["time", "cardio", "interval"].contains(item.trackingType) : item.type == selectedType)) &&
             (selectedCategory == "Tous" || item.category == selectedCategory) &&
             (!filterProgram || inProgram.contains(item.name)) &&
             (debouncedSearch.isEmpty || item.name.localizedCaseInsensitiveContains(debouncedSearch) || (item.alternateName?.localizedCaseInsensitiveContains(debouncedSearch) == true))
@@ -643,73 +643,8 @@ struct CatalogueRow: View {
 
 // ── Taxonomie musculaire ──────────────────────────────────────────────────────
 
-private let kMusclesByGroup: [(group: String, specifics: [String])] = [
-    ("Pectoraux", [
-        "Pectoral majeur — chef claviculaire", "Pectoral majeur — chef sternal",
-        "Pectoral majeur — chef costal", "Pectoral mineur", "Serratus antérieur"
-    ]),
-    ("Dos", [
-        "Grand dorsal", "Trapèze — chef supérieur", "Trapèze — chef moyen",
-        "Trapèze — chef inférieur", "Rhomboïdes", "Grand rond",
-        "Érecteurs du rachis", "Multifides"
-    ]),
-    ("Épaules", [
-        "Deltoïde antérieur", "Deltoïde médial", "Deltoïde postérieur",
-        "Sous-épineux", "Supra-épineux", "Sous-scapulaire", "Petit rond"
-    ]),
-    ("Biceps+Avant-bras", [
-        "Biceps brachial — longue portion", "Biceps brachial — courte portion",
-        "Brachial", "Brachioradialis", "Supinateur",
-        "Fléchisseurs du poignet", "Extenseurs du poignet"
-    ]),
-    ("Triceps", [
-        "Triceps — longue portion", "Triceps — chef latéral",
-        "Triceps — chef médial", "Anconé"
-    ]),
-    ("Quadriceps", [
-        "Vaste latéral", "Vaste médial", "Vaste intermédiaire", "Droit fémoral"
-    ]),
-    ("Ischio-jambiers", [
-        "Biceps fémoral — longue portion", "Biceps fémoral — courte portion",
-        "Semi-tendineux", "Semi-membraneux"
-    ]),
-    ("Fessiers", [
-        "Grand fessier", "Moyen fessier", "Petit fessier", "Tenseur du fascia lata"
-    ]),
-    ("Mollets", [
-        "Gastrocnémien — chef médial", "Gastrocnémien — chef latéral",
-        "Soléaire", "Tibial antérieur"
-    ]),
-    ("Core", [
-        "Droit de l'abdomen", "Oblique externe", "Oblique interne",
-        "Transverse de l'abdomen", "Carré des lombes", "Psoas"
-    ]),
-    ("Hanches", [
-        "Grand adducteur", "Long adducteur", "Court adducteur", "Gracile", "Pectiné"
-    ]),
-    ("Cou", ["Sterno-cléido-mastoïdien", "Splénius"]),
-    ("Autre", [])
-]
-
-private let kMovementPatterns: [(String, String)] = [
-    ("push_horizontal",    "Poussée horizontale"),
-    ("push_vertical",      "Poussée verticale"),
-    ("pull_horizontal",    "Tirage horizontal"),
-    ("pull_vertical",      "Tirage vertical"),
-    ("squat",              "Squat / Quad"),
-    ("hinge",              "Charnière / Hanche"),
-    ("unilateral_leg",     "Unilatéral jambe"),
-    ("press_machine",      "Presse machine"),
-    ("isolation_arm",      "Isolation bras"),
-    ("isolation_shoulder", "Isolation épaule"),
-    ("isolation_leg",      "Isolation jambe"),
-    ("core",               "Core / Gainage"),
-    ("rotation",           "Rotation"),
-    ("carry",              "Carry / Transport"),
-    ("cardio",             "Cardio"),
-    ("accessory_wrist",    "Accessoire poignet"),
-    ("other",              "Autre"),
-]
+private let kMusclesByGroup = CatalogueTaxonomy.musclesByGroup
+private let kMovementPatterns = CatalogueTaxonomy.movementPatterns
 
 private struct WeightTypeOption {
     let key: String
@@ -731,10 +666,7 @@ private let kWeightTypes: [WeightTypeOption] = [
     WeightTypeOption(key: "machine",      label: "Machine",      note: "Sélecteur de pile",         color: .statusPurple),
 ]
 
-private let kEquipmentOptions = [
-    "Barre", "Haltères", "Machine", "Câble", "Bandes",
-    "Poids du corps", "Smith Machine", "TRX", "Autre"
-]
+private let kEquipmentOptions = CatalogueTaxonomy.equipmentOptions
 
 // ── Backward compat helpers ───────────────────────────────────────────────────
 
@@ -743,7 +675,9 @@ private func muscleGroupToEnglish(_ g: String) -> String {
     case "Pectoraux":         return "chest"
     case "Dos":               return "back"
     case "Épaules":           return "shoulders"
-    case "Biceps+Avant-bras": return "biceps"
+    case "Biceps", "Biceps+Avant-bras": return "biceps"
+    case "Avant-bras": return "forearms"
+    case "Trapèzes": return "traps"
     case "Triceps":           return "triceps"
     case "Quadriceps":        return "quads"
     case "Ischio-jambiers":   return "hamstrings"
@@ -790,7 +724,7 @@ private func categoryFromMovementPattern(_ mp: String) -> String {
     case "squat", "hinge", "unilateral_leg", "press_machine",
          "isolation_leg":                                      return "legs"
     case "core", "rotation":                                   return "core"
-    case "cardio":                                             return "mobility"
+    case "cardio":                                             return "cardio"
     default:                                                   return ""
     }
 }
@@ -907,7 +841,14 @@ struct InventoryFormSheet: View {
     private var canSave: Bool { !trimmedName.isEmpty && !isDuplicate && !muscleGroup.isEmpty && !weightType.isEmpty && !movementPattern.isEmpty }
 
     private var availableSpecifics: [String] {
-        kMusclesByGroup.first(where: { $0.group == muscleGroup })?.specifics ?? []
+        let muscles = kMusclesByGroup.first(where: { $0.group == muscleGroup })?.specifics ?? []
+        guard ["mobility", "cardio", "interval", "protocol"].contains(trackingType) else { return muscles }
+        let regions = ["Dos": "Thoracique", "Hanches": "Hanches", "Autre": "Système cardiovasculaire"]
+        return muscles + (regions[muscleGroup].map { [$0] } ?? [])
+    }
+
+    private var effectiveTrackingType: String {
+        weightType == "endurance" && ["reps", "time"].contains(trackingType) ? "time" : trackingType
     }
 
     var body: some View {
@@ -967,14 +908,14 @@ struct InventoryFormSheet: View {
         item.equipment        = equipmentSet.sorted()
         item.alternateName    = alternateName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : alternateName.trimmingCharacters(in: .whitespaces)
         item.type             = weightTypeToLegacy(weightType)
-        item.category         = categoryFromMovementPattern(movementPattern)
+        item.category         = trackingType == "mobility" ? "mobility" : categoryFromMovementPattern(movementPattern)
         item.pattern          = movementPatternToLegacy(movementPattern)
         item.level            = level
         item.muscles          = muscleGroup.isEmpty ? [] : [muscleGroupToEnglish(muscleGroup)]
-        item.defaultScheme    = (trackingType == "time" || weightType == "endurance") ? generatedScheme : defaultScheme
+        item.defaultScheme    = effectiveTrackingType == "time" ? generatedScheme : defaultScheme
         item.increment        = Double(increment) ?? 5
         item.barWeight        = Double(barWeight) ?? 0
-        item.trackingType     = (weightType == "endurance") ? "time" : trackingType
+        item.trackingType     = effectiveTrackingType
         item.restSeconds      = restSecs
         item.loadProfile      = loadProfile
         let n = notes.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -987,10 +928,10 @@ struct InventoryFormSheet: View {
         if let e = existing {
             name             = e.name
             alternateName    = e.alternateName ?? ""
-            muscleGroup      = e.muscleGroup.isEmpty ? englishToMuscleGroup(e.muscles.first ?? "") : e.muscleGroup
-            muscleSpecific   = e.muscleSpecific ?? ""
-            secondaryMuscles = Set(e.secondaryMuscles)
-            movementPattern  = e.movementPattern
+            muscleGroup      = CatalogueTaxonomy.group(e.muscleGroup.isEmpty ? englishToMuscleGroup(e.muscles.first ?? "") : e.muscleGroup)
+            muscleSpecific   = CatalogueTaxonomy.muscle(e.muscleSpecific ?? "")
+            secondaryMuscles = Set(e.secondaryMuscles.map(CatalogueTaxonomy.muscle))
+            movementPattern  = CatalogueTaxonomy.pattern(e.movementPattern, group: muscleGroup)
             weightType       = e.weightType.isEmpty ? legacyTypeToWeightType(e.type, tracking: e.trackingType) : e.weightType
             equipmentSet     = Set(e.equipment)
             barWeight        = String(e.barWeight)
@@ -1173,6 +1114,11 @@ struct InventoryFormSheet: View {
         .onChange(of: muscleGroup) { _, _ in
             if !availableSpecifics.contains(muscleSpecific) { muscleSpecific = "" }
         }
+        .onChange(of: muscleSpecific) { _, primary in
+            secondaryMuscles = Set(secondaryMuscles.filter {
+                CatalogueTaxonomy.muscle($0) != CatalogueTaxonomy.muscle(primary)
+            })
+        }
     }
 
     @ViewBuilder
@@ -1302,8 +1248,14 @@ struct InventoryFormSheet: View {
             Picker("Tracking", selection: $trackingType) {
                 Text("Reps / Poids").tag("reps")
                 Text("Temps").tag("time")
+                Text("Mobilité").tag("mobility")
+                Text("Cardio").tag("cardio")
+                Text("Intervalles").tag("interval")
+                Text("Protocole").tag("protocol")
+                Text("Pliométrie").tag("plyo")
+                Text("Transport").tag("carry")
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
         } header: {
             sectionHeader("Type de tracking")
         }
@@ -1312,7 +1264,7 @@ struct InventoryFormSheet: View {
 
     @ViewBuilder
     private var progressionSection: some View {
-        if trackingType == "time" || weightType == "endurance" {
+        if effectiveTrackingType == "time" {
             Section {
                 HStack {
                     Text("Séries").foregroundColor(.gray)

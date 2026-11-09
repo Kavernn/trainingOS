@@ -108,7 +108,7 @@ struct TodayCardView: View {
     @ViewBuilder
     private func muscleMap(for exerciseNames: [String]) -> some View {
         let result = muscleMapping(for: exerciseNames)
-        if !result.zones.isEmpty {
+        if !result.zones.isEmpty || !result.unmappedMuscles.isEmpty {
             MuscleMapView(
                 zones: result.zones,
                 tint: Color.domainAccent(.training),
@@ -116,6 +116,12 @@ struct TodayCardView: View {
             )
             .frame(maxWidth: .infinity)
             .frame(height: 104)
+                if !result.unmappedMuscles.isEmpty {
+                    Text(result.unmappedMuscles.joined(separator: " · "))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
         }
     }
 

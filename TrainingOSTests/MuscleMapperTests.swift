@@ -141,6 +141,22 @@ final class MuscleMapperTests: XCTestCase {
         XCTAssertTrue(result.rankedZones().isEmpty)
     }
 
+    func testCatalogueAliasesAndTrainingTargetsStayDistinct() {
+        XCTAssertEqual(CatalogueTaxonomy.muscle("Brachialis"), "Brachial")
+        XCTAssertEqual(CatalogueTaxonomy.muscle("Droit de l'abdomen"), "Droit abdominal")
+        XCTAssertNotEqual(CatalogueTaxonomy.muscle("Obliques"), CatalogueTaxonomy.muscle("Droit abdominal"))
+        XCTAssertNotEqual(CatalogueTaxonomy.muscle("Deltoïde antérieur"), CatalogueTaxonomy.muscle("Deltoïde postérieur"))
+        XCTAssertEqual(CatalogueTaxonomy.pattern("Hip Hinge", group: "Ischio-jambiers"), "hinge")
+        XCTAssertEqual(CatalogueTaxonomy.pattern("Isolation", group: "Quadriceps"), "isolation_leg")
+    }
+
+    func testCanonicalTargetsWithoutSilhouetteZoneRemainVisibleAsText() throws {
+        let result = MuscleMapper.aggregate([try metadata(group: "Hanches", specific: "Adducteurs", secondary: ["Fléchisseurs de hanche"])])
+        XCTAssertEqual(result.unmappedMuscles, ["Adducteurs", "Fléchisseurs de hanche"])
+        XCTAssertNil(TrainingDoctrine.doctrinalMuscleGroup(for: "Hanches"))
+        XCTAssertNil(TrainingDoctrine.doctrinalMuscleGroup(for: "Autre"))
+    }
+
     private func metadata(
         group: String? = nil,
         specific: String? = nil,

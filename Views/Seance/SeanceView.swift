@@ -972,7 +972,7 @@ struct AlreadyLoggedSeanceView: View {
     @ViewBuilder
     private var loggedMuscleSection: some View {
         let result = loggedMuscleResult
-        if !result.zones.isEmpty {
+        if !result.zones.isEmpty || !result.unmappedMuscles.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 SessionReportSectionHeader(title: "MUSCLES SOLLICITÉS")
                 MuscleMapView(
@@ -982,6 +982,12 @@ struct AlreadyLoggedSeanceView: View {
                 )
                 .frame(maxWidth: .infinity)
                 .frame(height: 104)
+                if !result.unmappedMuscles.isEmpty {
+                    Text(result.unmappedMuscles.joined(separator: " · "))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(.horizontal, 16)
         }
