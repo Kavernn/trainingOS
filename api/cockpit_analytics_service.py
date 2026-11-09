@@ -139,7 +139,11 @@ def _build_targets_map(
     for workload in (*current, *previous):
         if workload.muscle in seen:
             continue
-        landmarks = landmarks_for_muscle(workload.muscle)
+        # Detailed targets must not inherit a whole group's MEV/MAV/MRV.
+        # Lats and rear delts have their own existing landmark entries.
+        from exercise_taxonomy import GROUPS
+        benchmarked = workload.muscle in GROUPS or workload.muscle in ("Grand dorsal", "Deltoïde postérieur")
+        landmarks = landmarks_for_muscle(workload.muscle) if benchmarked else None
         seen[workload.muscle] = (
             {
                 "mev_week": landmarks["mev"],

@@ -162,3 +162,19 @@ class TestDeleteExercise(BaseRouteTest):
 if __name__ == "__main__":
     import unittest
     unittest.main(verbosity=2)
+
+class TestCatalogueTrackingPreservation(BaseRouteTest):
+    def test_non_strength_and_plyo_tracking_survive_endurance_metadata(self):
+        for modality in ('cardio', 'interval', 'mobility', 'protocol', 'plyo', 'carry'):
+            name = 'Catalogue modality ' + modality
+            response = self.post('/api/save_exercise', {
+                'name': name, 'type': 'machine', 'weight_type': 'endurance',
+                'tracking_type': modality, 'default_scheme': '8x30s',
+            })
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(self.store['inventory'][name]['tracking_type'], modality)
+            self.assertEqual(self.store['inventory'][name]['default_scheme'], '8x30s')
+
+    def test_legacy_endurance_without_modality_still_means_time(self):
+        self.post('/api/save_exercise', {'name': 'Legacy timer', 'weight_type': 'endurance'})
+        self.assertEqual(self.store['inventory']['Legacy timer']['tracking_type'], 'time')

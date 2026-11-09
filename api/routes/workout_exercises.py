@@ -29,7 +29,7 @@ def api_save_exercise():
         "category":          data.get("category", ""),
         "level":             data.get("level", ""),
         "pattern":           data.get("pattern", ""),
-        "tracking_type":     "time" if data.get("weight_type") == "endurance" else data.get("tracking_type", "reps"),
+        "tracking_type":     "time" if data.get("weight_type") == "endurance" and data.get("tracking_type", "reps") in ("reps", "time") else data.get("tracking_type", "reps"),
         "rest_seconds":      data.get("rest_seconds"),
         "load_profile":      raw_load_profile if raw_load_profile else None,
         "tips":              data.get("tips") or None,

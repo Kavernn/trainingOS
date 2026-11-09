@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 from typing import Dict, Optional
 import db_core
+from exercise_taxonomy import normalize_metadata
 
 
 def get_exercises() -> Dict[str, dict] | None:
@@ -25,7 +26,7 @@ def get_exercises() -> Dict[str, dict] | None:
             if len(batch) < page_size:
                 break
             start += page_size
-        return {row["name"]: row for row in rows}
+        return {row["name"]: normalize_metadata(row) for row in rows}
 
     try:
         return _do()

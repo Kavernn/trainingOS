@@ -117,17 +117,9 @@ def _canonical_muscle_value(value: object) -> str | None:
     cleaned = value.strip()
     if not cleaned:
         return None
-    # Fusion canonique : si le muscle brut résout vers une clé MUSCLE_LANDMARKS
-    # via _normalize_muscle, on retourne le display name FR canonique. Tous
-    # les noms équivalents (chest, Pectoraux, Pectoral supérieur/moyen/inférieur)
-    # fusionnent en UNE SEULE ligne de workload. Évite les doubles lignes et
-    # les comparaisons sous-estimées contre les plages Israetel.
-    from utils import canonical_muscle_display
-    display = canonical_muscle_display(cleaned)
-    if display is not None:
-        return display
-    # Hors doctrine (legs, arms, Jambes, Thoracique) → nom brut préservé.
-    return cleaned
+    # Detailed training targets must survive independently of broad MEV buckets.
+    from exercise_taxonomy import detailed_target
+    return detailed_target(cleaned)
 
 
 def _muscle_assignment(exercise: dict[str, Any]) -> ExerciseMuscleAssignment | None:
@@ -147,6 +139,10 @@ def _muscle_assignment(exercise: dict[str, Any]) -> ExerciseMuscleAssignment | N
         for value in (_canonical_muscle_value(item) for item in secondary_raw)
         if value is not None
     )
+    # A broad secondary containing the specific primary is redundant, not a
+    # separate synergist. Keep distinct detailed targets in the same group.
+    from exercise_taxonomy import redundant_broad_secondary
+    indirect = tuple(value for value in indirect if not redundant_broad_secondary(specific, value))
     if not direct and not indirect:
         return None
     return ExerciseMuscleAssignment(

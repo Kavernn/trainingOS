@@ -390,6 +390,13 @@ _MUSCLE_ALIASES: dict = {
     "moyen fessier":       "fessiers",
     # Core FR
     "droit abdominal":     "core",
+    # Synonymes exacts de l'éditeur : préserver l'attribution des anciennes
+    # valeurs lors de la normalisation du catalogue (audit 2026-11-07).
+    "droit de l'abdomen":  "core",
+    "brachial":           "biceps",
+    "trapèze — chef supérieur": "trapezius",
+    "trapèze — chef moyen":     "trapezius",
+    "trapèze — chef inférieur": "trapezius",
 }
 
 

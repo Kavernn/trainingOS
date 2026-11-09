@@ -659,7 +659,10 @@ def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 
         invalid_dates = 0
 
         for name, entries in history.items():
-            pattern = (ex_info.get(name, {}).get("movement_pattern") or "").strip()
+            from exercise_taxonomy import canonical_pattern
+            info = ex_info.get(name, {})
+            raw_pattern = (info.get("movement_pattern") or "").strip()
+            pattern = canonical_pattern(raw_pattern, info.get("muscle_group")) or raw_pattern
             if not pattern:
                 if any((e.get("date") or "") >= cutoff for e in entries):
                     excluded_names.add(name)
