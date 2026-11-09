@@ -64,6 +64,7 @@ struct WorkoutSeanceView: View {
     @State private var ghostData: GhostData? = nil
     @State private var ghostFetchError = false  // cold-start fetchStatsData échec → mention discrète
     @State private var weightFetchFailed: Set<String> = []  // exos dont fetchExerciseWeightData a échoué → "Poids précédent indisponible"
+    @State private var inventoryLoadError: String? = nil  // /api/programme_data échec → sélecteur affiche erreur + Réessayer
     // W-C3 — showGhost persists per session so the dismissed banner doesn't reappear
     @State private var showGhost: Bool = {
         // Default: show. Will be corrected in onAppear with session-specific key.
@@ -511,6 +512,30 @@ struct WorkoutSeanceView: View {
             }
         }
 
+        if inventoryLoadError != nil && inventory.isEmpty {
+            // Le sélecteur d'exercices n'a pas pu charger → remplace le bouton
+            // "Ajouter un exercice" par un message + Réessayer (sinon l'utilisateur
+            // ouvrirait un sheet avec une liste vide, sans comprendre pourquoi).
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundColor(Color.appDanger)
+                Text("Impossible de charger les exercices")
+                    .font(.appCaption).foregroundColor(Color.appDanger)
+                Spacer()
+                Button {
+                    Task { await loadInventory() }
+                } label: {
+                    Text("Réessayer")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(Color.forge)
+                        .frame(minHeight: 44)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(Color.appDanger.opacity(0.08))
+            .cornerRadius(8)
+            .padding(.horizontal, 16)
+        } else {
         // Add exercise — session-local only, doesn't modify the programme
         Button { showAddLocal = true } label: {
             HStack(spacing: 8) {
@@ -526,6 +551,7 @@ struct WorkoutSeanceView: View {
         }
         .buttonStyle(SpringButtonStyle())
         .padding(.horizontal, 16)
+        }
     }
 
     /// Banner d'erreur mutation inline et discret. Pattern unique pour
@@ -2412,11 +2438,34 @@ struct WorkoutSeanceView: View {
             self.sessionSupersets  = data.exerciseSupersets[data.today] ?? [:]
         }
 
-        // Fetch fresh programme + inventory types from network
-        guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme_data"),
-              let (networkData, _) = try? await URLSession.authed.data(from: url),
-              let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any]
-        else { return }
+        // Fetch fresh programme + inventory types from network. Un échec
+        // doit remonter au sélecteur d'exercices (sans ça, la liste reste
+        // vide silencieusement et l'utilisateur ne peut rien ajouter).
+        guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme_data") else {
+            await MainActor.run { inventoryLoadError = "URL invalide" }
+            return
+        }
+        let networkData: Data
+        do {
+            let (d, resp) = try await URLSession.authed.data(from: url)
+            if let http = resp as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                throw URLError(.badServerResponse)
+            }
+            networkData = d
+        } catch {
+            let msg: String
+            if let url = error as? URLError, url.code == .notConnectedToInternet {
+                msg = "Hors ligne — réessaie quand tu es en ligne"
+            } else {
+                msg = "Erreur réseau — réessaie"
+            }
+            await MainActor.run { inventoryLoadError = msg }
+            return
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any] else {
+            await MainActor.run { inventoryLoadError = "Réponse invalide — réessaie" }
+            return
+        }
 
         let inv      = (json["inventory"] as? [String]) ?? []
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
@@ -2447,6 +2496,7 @@ struct WorkoutSeanceView: View {
             if !patterns.isEmpty { self.inventoryPatterns = patterns }
             if !schemes.isEmpty  { self.inventorySchemes  = schemes }
             if !muscleGroups.isEmpty { self.inventoryMuscleGroups = muscleGroups }
+            inventoryLoadError = nil
         }
     }
 
