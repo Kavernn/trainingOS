@@ -52,9 +52,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Seance/ExerciseViewModel.swift:fetchSeanceData",
         "Views/Seance/SeanceSoirView.swift:URLSession.authed",
         "Views/Seance/SessionSupportViews.swift:fetchSeanceData",
-        "Views/Seance/WorkoutActiveView.swift:URLSession.authed",
-        "Views/Seance/WorkoutActiveView.swift:fetchExerciseWeightData",
-        "Views/Seance/WorkoutActiveView.swift:fetchStatsData",
         "Views/Seasons/SeasonView.swift:getActiveSeason",
         "Views/Seasons/SeasonView.swift:getAllSeasons",
         "Views/XP/XPView.swift:fetchHIITData",
@@ -92,6 +89,15 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // Raison : scheduleTimeCapsuleSoon (notif) uniquement. Les capsules
             // sont consommées côté push notif seulement. Un échec = pas de
             // rappel capsule aujourd'hui, l'app ne dépend pas de l'état client.
+        "Views/Seance/WorkoutActiveView.swift:loadReadiness",
+            // Raison : alimente uniquement le ReadinessChip optionnel du
+            // contextPanel. Affichage dégradé (pas de chip) acceptable sur
+            // échec — l'utilisateur continue sa séance LIVE sans ce signal.
+        "Views/Seance/WorkoutActiveView.swift:retryWeightFetch",
+            // Raison : catch du bouton "Réessayer" dans weightFetchFailedRow /
+            // estimatedWeightRow. Déclenché par le user après avoir déjà vu
+            // l'erreur initiale — un nouvel échec laisse la row visible, user
+            // peut re-cliquer. Pas de nouvelle surface UI à ajouter.
         "Views/Stats/StatsView.swift:syncDeloadFlag",
             // Raison : UserDefaults "deload_active" + cancelDeloadNotifications
             // (notif) uniquement. L'affichage du deload passe par

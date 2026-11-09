@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let logger = Logger(subsystem: "TrainingOS", category: "workout_active")
 
 // MARK: - Workout Seance (Upper/Lower)
 
@@ -65,6 +68,7 @@ struct WorkoutSeanceView: View {
     @State private var ghostFetchError = false  // cold-start fetchStatsData échec → mention discrète
     @State private var weightFetchFailed: Set<String> = []  // exos dont fetchExerciseWeightData a échoué → "Poids précédent indisponible"
     @State private var inventoryLoadError: String? = nil  // /api/programme_data échec → sélecteur affiche erreur + Réessayer
+    @State private var swapWeightEstimated: Set<String> = []  // exos remplacés dont le poids affiché vient d'une CONVERSION (pas de l'historique réel)
     // W-C3 — showGhost persists per session so the dismissed banner doesn't reappear
     @State private var showGhost: Bool = {
         // Default: show. Will be corrected in onAppear with session-specific key.
@@ -155,7 +159,7 @@ struct WorkoutSeanceView: View {
     @State private var lastSwap: (old: String, new: String)? = nil
 
     // Readiness score
-    @State private var readiness: ReadinessScore? = nil
+    @State private var readiness: ReadinessResponse? = nil  // unifié sur le modèle de APIService.fetchReadiness (plus de décodage local)
     @ObservedObject private var appState = AppState.shared
 
     // W-D11 — abandon session
@@ -956,15 +960,22 @@ struct WorkoutSeanceView: View {
             }
         )
 
-        // Si fetchExerciseWeightData a échoué pour cet exo ET qu'aucun poids
-        // n'est disponible → mention discrète sous la carte + bouton Réessayer
-        // qui relance le fetch pour cet exercice seulement.
-        let showWeightFetchError = weightFetchFailed.contains(name)
-            && (effectiveWeightData?.currentWeight ?? 0) == 0
+        // Row sous la carte selon la SOURCE réelle du poids affiché :
+        //  - Historique réel → rien.
+        //  - Estimé (conversion) → "estimé" + "Réessayer" uniquement si le fetch a raté.
+        //  - Aucun poids + fetch raté → "Poids précédent indisponible · Réessayer".
+        //  - Aucun poids + pas de fetch raté → rien (branche "no weight at all").
+        let isEstimated = swapWeightEstimated.contains(name)
+        let fetchFailed = weightFetchFailed.contains(name)
+        let hasWeight   = (effectiveWeightData?.currentWeight ?? 0) > 0
+        let showEstimatedBadge      = isEstimated
+        let showUnavailableRow      = fetchFailed && !hasWeight && !isEstimated
 
         VStack(spacing: 4) {
             card
-            if showWeightFetchError {
+            if showEstimatedBadge {
+                estimatedWeightRow(for: name, showRetry: fetchFailed)
+            } else if showUnavailableRow {
                 weightFetchFailedRow(for: name)
             }
         }
@@ -988,6 +999,31 @@ struct WorkoutSeanceView: View {
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: shift)
             .animation(.spring(response: 0.2, dampingFraction: 0.9), value: isDragging)
             .transition(.opacity.combined(with: .scale(scale: 0.92)))
+    }
+
+    @ViewBuilder
+    private func estimatedWeightRow(for name: String, showRetry: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sparkles")
+                .font(.appMicro).foregroundColor(.gray)
+            Text("estimé")
+                .font(.appMicro).foregroundColor(.gray)
+            Spacer(minLength: 4)
+            if showRetry {
+                Button {
+                    Task { await retryWeightFetch(for: name) }
+                } label: {
+                    Text("Réessayer")
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(Color.forge)
+                        .frame(minWidth: 44, minHeight: 32)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 4)
+        .background(Color.appSurfaceInset)
+        .cornerRadius(6)
     }
 
     @ViewBuilder
@@ -1020,11 +1056,16 @@ struct WorkoutSeanceView: View {
         do {
             let fetched = try await APIService.shared.fetchExerciseWeightData(name: name)
             await MainActor.run {
-                if let fetched { swapWeightData[name] = fetched }
+                // Succès avec historique RÉEL → remplace l'estimation + badge disparaît.
+                // Succès sans historique → on garde l'estimation existante si elle existe.
+                if let fetched, (fetched.currentWeight ?? 0) > 0 {
+                    swapWeightData[name] = fetched
+                    swapWeightEstimated.remove(name)
+                }
                 weightFetchFailed.remove(name)
             }
         } catch {
-            // Reste en échec, user peut re-cliquer.
+            logger.error("retryWeightFetch: \(error.localizedDescription)")
         }
     }
 
@@ -1257,10 +1298,30 @@ struct WorkoutSeanceView: View {
 
     private var contextSummaryText: String {
         var parts: [String] = ["⚡\(energyPre)"]
-        if let r = readiness, let score = r.score {
-            parts.append("readiness \(Int(score))")
+        if let r = readiness {
+            parts.append("readiness \(r.score)")
         }
         return parts.joined(separator: " · ")
+    }
+
+    /// Dérive le label chip depuis le verdict (API unifiée, pas de champ `label`).
+    private func readinessLabel(for verdict: String) -> String {
+        switch verdict {
+        case "go":        return "Go"
+        case "moderate":  return "Modéré"
+        case "rest":      return "Repos"
+        default:          return verdict.capitalized
+        }
+    }
+
+    /// Dérive la clé couleur pour ReadinessChip depuis le verdict.
+    private func readinessColor(for verdict: String) -> String {
+        switch verdict {
+        case "go":        return "green"
+        case "moderate":  return "yellow"
+        case "rest":      return "red"
+        default:          return "gray"
+        }
     }
 
     @ViewBuilder private var contextToggleButton: some View {
@@ -1291,9 +1352,11 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder private var contextPanel: some View {
         VStack(spacing: 8) {
-            // Readiness chip
-            if let r = readiness, let score = r.score {
-                ReadinessChip(score: score, label: r.label, color: r.color)
+            // Readiness chip — label + color dérivés du verdict (API unifiée)
+            if let r = readiness {
+                ReadinessChip(score: Double(r.score),
+                              label: readinessLabel(for: r.verdict),
+                              color: readinessColor(for: r.verdict))
             }
 
             // Macro nutrition hint — lecture seule, calculé depuis DashboardViewModel
@@ -2413,10 +2476,14 @@ struct WorkoutSeanceView: View {
     // MARK: - Readiness
 
     private func loadReadiness() async {
-        guard let url = URL(string: "\(APIService.shared.baseURL)/api/readiness") else { return }
-        guard let (data, _) = try? await URLSession.authed.data(from: url),
-              let r = try? APIService.decoder.decode(ReadinessScore.self, from: data) else { return }
-        await MainActor.run { readiness = r }
+        // Unifié sur APIService.fetchReadiness (un seul modèle ReadinessResponse).
+        // Échec = chip readiness absent (affichage dégradé), pas de UI surfaced.
+        do {
+            let r = try await APIService.shared.fetchReadiness(forceRefresh: true)
+            await MainActor.run { readiness = r }
+        } catch {
+            logger.error("loadReadiness: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Programme mutations
@@ -2533,16 +2600,27 @@ struct WorkoutSeanceView: View {
         let replacementType = inventoryTypes[replacement] ?? "machine"
         let originalWeight = data.weights[original]?.currentWeight ?? 0
 
-        // Fetch weight history for the replacement exercise
-        let fetchedData = try? await APIService.shared.fetchExerciseWeightData(name: replacement)
+        // Fetch weight history for the replacement exercise. do-catch : succès
+        // nil distinct de l'échec réseau pour signaler correctement au user
+        // (badge "estimé · Réessayer" uniquement si l'appel a VRAIMENT échoué).
+        var fetchFailed = false
+        var fetchedData: WeightData? = nil
+        do {
+            fetchedData = try await APIService.shared.fetchExerciseWeightData(name: replacement)
+        } catch {
+            fetchFailed = true
+            logger.error("performSwap: fetchExerciseWeightData failed for \(replacement) — \(error.localizedDescription)")
+        }
 
         let conversion = EquipmentConversion(from: originalType, to: replacementType)
         let effectiveWeightData: WeightData
+        var usedEstimation = false
         if let fetched = fetchedData, (fetched.currentWeight ?? 0) > 0 {
             effectiveWeightData = fetched
         } else if let converted = conversion.convert(originalWeight), converted > 0 {
             effectiveWeightData = WeightData(currentWeight: converted,
                                              lastReps: nil, lastLogged: nil, history: nil)
+            usedEstimation = true
         } else {
             effectiveWeightData = fetchedData ?? WeightData(currentWeight: nil,
                                                             lastReps: nil, lastLogged: nil, history: nil)
@@ -2561,6 +2639,20 @@ struct WorkoutSeanceView: View {
             swappedExercises[replacement] = original
             swapWeightData[replacement]   = effectiveWeightData
             swapConversions[replacement]  = conversion
+            // Marque la SOURCE réelle du poids affiché : estimé (conversion)
+            // → badge "estimé" persistant sur la carte. Fetch raté → bouton
+            // "Réessayer" en plus. Ni l'un ni l'autre ne concerne les cas
+            // "historique réel" (fetched + currentWeight > 0) ou "aucun poids".
+            if usedEstimation {
+                swapWeightEstimated.insert(replacement)
+            } else {
+                swapWeightEstimated.remove(replacement)
+            }
+            if fetchFailed {
+                weightFetchFailed.insert(replacement)
+            } else {
+                weightFetchFailed.remove(replacement)
+            }
             // Clear any in-progress log for the original
             vm.logResults.removeValue(forKey: original)
             // Show toast + undo banner (Fix #11)
