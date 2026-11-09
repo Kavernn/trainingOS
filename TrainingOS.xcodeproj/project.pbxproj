@@ -130,7 +130,7 @@
 		D665E4512F5D98BA002AE470 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = D665E4362F5D98B8002AE470 /* README.md */; };
 		D665E4562F5D98BA002AE470 /* DashboardWeeklyCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */; };
 		D665E4582F5D98BA002AE470 /* DashboardRitualCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */; };
-		D68A5C642FD0CE6800B824DF /* VinceSeven Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D68A5C442FD0CE6600B824DF /* VinceSeven Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D68A5C642FD0CE6800B824DF /* VinceSeven Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D68A5C442FD0CE6600B824DF /* VinceSeven Watch Watch App.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D68A5C8D2FD0D0B900B824DF /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68A5C8C2FD0D0B900B824DF /* WatchConnectivityManager.swift */; };
 		D69570D6304F75060008F1A2 /* DashboardDomainGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69570D5304F75060008F1A2 /* DashboardDomainGrid.swift */; };
 		D69570D8304F77C20008F1A2 /* DashboardHeroState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69570D7304F77C20008F1A2 /* DashboardHeroState.swift */; };
@@ -1689,6 +1689,7 @@
 		};
 		D68A5C632FD0CE6800B824DF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilter = ios;
 			target = D68A5C432FD0CE6600B824DF /* VinceSeven Watch Watch App */;
 			targetProxy = D68A5C622FD0CE6800B824DF /* PBXContainerItemProxy */;
 		};

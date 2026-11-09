@@ -432,7 +432,7 @@ struct EveningSleepSheet: View {
                 VStack(alignment: .leading, spacing: 24) {
                     sleepTipsSection
                     remindersSection
-                    if alarm.isEnabled { alarmSection }
+                    if SmartAlarmService.isSupported && alarm.isEnabled { alarmSection }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)

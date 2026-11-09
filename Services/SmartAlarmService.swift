@@ -1,18 +1,22 @@
 import Foundation
 import Combine
 import SwiftUI
+#if canImport(AlarmKit) && !targetEnvironment(macCatalyst)
 import AlarmKit
 
 // Defined at file level — avoids @MainActor isolation inherited from SmartAlarmService
 struct SmartAlarmMetadata: AlarmMetadata {}
+#endif
 
 enum SmartAlarmError: LocalizedError {
     case authorizationDenied
     case alarmInPast
     case schedulingFailed(Error)
+    case unsupportedPlatform
 
     var errorDescription: String? {
         switch self {
+        case .unsupportedPlatform:   return "Disponible sur iPhone/iPad"
         case .authorizationDenied:    return "Permission AlarmKit refusée — activer dans Réglages"
         case .alarmInPast:            return "Heure d'alarme déjà passée"
         case .schedulingFailed(let e): return "Scheduling échoué : \(e.localizedDescription)"
@@ -21,15 +25,28 @@ enum SmartAlarmError: LocalizedError {
 }
 
 enum AlarmState: Equatable {
+    case unsupportedPlatform
     case disabled
     case armed(at: Date)
     case notArmed
     case authorizationDenied
 }
 
+private enum Keys {
+    static let enabled         = "smartAlarm.enabled"
+    static let windowStartHH   = "smartAlarm.windowStartHH"
+    static let windowStartMM   = "smartAlarm.windowStartMM"
+    static let windowEndHH     = "smartAlarm.windowEndHH"
+    static let windowEndMM     = "smartAlarm.windowEndMM"
+    static let pendingAlarmID  = "smartAlarm.pendingAlarmID"  // UUID.uuidString
+    static let lastBedtimeTS   = "smartAlarm.lastBedtimeTimestamp"
+}
+
+#if canImport(AlarmKit) && !targetEnvironment(macCatalyst)
 @MainActor
 final class SmartAlarmService: ObservableObject {
     static let shared = SmartAlarmService()
+    static let isSupported = true
 
     @Published private(set) var isEnabled: Bool
     @Published private(set) var windowStartHour: Int
@@ -38,15 +55,6 @@ final class SmartAlarmService: ObservableObject {
     @Published private(set) var windowEndMinute: Int
     @Published private(set) var state: AlarmState = .disabled
 
-    private enum Keys {
-        static let enabled         = "smartAlarm.enabled"
-        static let windowStartHH   = "smartAlarm.windowStartHH"
-        static let windowStartMM   = "smartAlarm.windowStartMM"
-        static let windowEndHH     = "smartAlarm.windowEndHH"
-        static let windowEndMM     = "smartAlarm.windowEndMM"
-        static let pendingAlarmID  = "smartAlarm.pendingAlarmID"  // UUID.uuidString
-        static let lastBedtimeTS   = "smartAlarm.lastBedtimeTimestamp"
-    }
 
     private init() {
         let d = UserDefaults.standard
@@ -99,21 +107,6 @@ final class SmartAlarmService: ObservableObject {
         try? AlarmManager.shared.stop(id: id)
         UserDefaults.standard.removeObject(forKey: Keys.pendingAlarmID)
         state = isEnabled ? .notArmed : .disabled
-    }
-
-    // MARK: - Cycle logic (pure, tested separately)
-
-    func calculateCyclePoints(bedtime: Date, sleepLatency: TimeInterval = 15 * 60) -> [Date] {
-        let sleepStart = bedtime.addingTimeInterval(sleepLatency)
-        let cycle: TimeInterval = 90 * 60
-        return (1...6).map { sleepStart.addingTimeInterval(Double($0) * cycle) }
-    }
-
-    func selectOptimalPoint(from points: [Date], windowStart: Date, windowEnd: Date) -> Date {
-        if let match = points.first(where: { $0 >= windowStart && $0 <= windowEnd }) {
-            return match
-        }
-        return windowEnd  // no cycle in window → maximize sleep → borne FIN
     }
 
     // MARK: - Private
@@ -205,4 +198,58 @@ final class SmartAlarmService: ObservableObject {
 
         return (calendar.date(from: startComps)!, calendar.date(from: endComps)!)
     }
+}
+
+#else
+
+/// Mac Catalyst ne peut ni autoriser ni programmer AlarmKit. Aucun appel ici
+/// ne modifie les réglages persistés ou le cycle de vie d'une alarme existante.
+@MainActor
+final class SmartAlarmService: ObservableObject {
+    static let shared = SmartAlarmService()
+    static let isSupported = false
+
+    @Published private(set) var isEnabled = false
+    @Published private(set) var windowStartHour: Int
+    @Published private(set) var windowStartMinute: Int
+    @Published private(set) var windowEndHour: Int
+    @Published private(set) var windowEndMinute: Int
+    @Published private(set) var state: AlarmState = .unsupportedPlatform
+
+    private init() {
+        let d = UserDefaults.standard
+        windowStartHour   = d.object(forKey: Keys.windowStartHH) != nil ? d.integer(forKey: Keys.windowStartHH) : 6
+        windowStartMinute = d.object(forKey: Keys.windowStartMM) != nil ? d.integer(forKey: Keys.windowStartMM) : 30
+        windowEndHour     = d.object(forKey: Keys.windowEndHH)   != nil ? d.integer(forKey: Keys.windowEndHH)   : 7
+        windowEndMinute   = d.object(forKey: Keys.windowEndMM)   != nil ? d.integer(forKey: Keys.windowEndMM)   : 0
+    }
+
+    func enable() async {}
+    func disable() async {}
+    func updateWindow(startHour: Int, startMinute: Int, endHour: Int, endMinute: Int) async {}
+    func cancelAlarm() {}
+
+    func scheduleAlarm(bedtimeDate: Date) async throws {
+        throw SmartAlarmError.unsupportedPlatform
+    }
+}
+#endif
+
+// Calculs purs communs : aucune dépendance à AlarmKit ni accès aux réglages.
+extension SmartAlarmService {
+    // MARK: - Cycle logic (pure, tested separately)
+
+    func calculateCyclePoints(bedtime: Date, sleepLatency: TimeInterval = 15 * 60) -> [Date] {
+        let sleepStart = bedtime.addingTimeInterval(sleepLatency)
+        let cycle: TimeInterval = 90 * 60
+        return (1...6).map { sleepStart.addingTimeInterval(Double($0) * cycle) }
+    }
+
+    func selectOptimalPoint(from points: [Date], windowStart: Date, windowEnd: Date) -> Date {
+        if let match = points.first(where: { $0 >= windowStart && $0 <= windowEnd }) {
+            return match
+        }
+        return windowEnd  // no cycle in window → maximize sleep → borne FIN
+    }
+
 }

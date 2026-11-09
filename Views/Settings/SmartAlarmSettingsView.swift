@@ -14,7 +14,13 @@ struct SmartAlarmSettingsView: View {
 
             List {
                 Section("Alarme") {
-                    toggleRow
+                    if SmartAlarmService.isSupported {
+                        toggleRow
+                    } else {
+                        Label("Disponible sur iPhone/iPad", systemImage: "iphone")
+                            .foregroundColor(.appTextSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .listRowBackground(Color.appCard)
                 .listRowSeparatorTint(Color.appSeparator)
@@ -102,6 +108,7 @@ struct SmartAlarmSettingsView: View {
         case .notArmed:            return "moon.zzz"
         case .authorizationDenied: return "exclamationmark.triangle.fill"
         case .disabled:            return "slash.circle"
+        case .unsupportedPlatform: return "iphone"
         }
     }
 
@@ -111,6 +118,7 @@ struct SmartAlarmSettingsView: View {
         case .notArmed:            return Color(white: 0.5)
         case .authorizationDenied: return .statusOrange
         case .disabled:            return Color(white: 0.3)
+        case .unsupportedPlatform: return .appTextSecondary
         }
     }
 
@@ -125,6 +133,8 @@ struct SmartAlarmSettingsView: View {
             return "Permission refusée — activer dans Réglages > VinceSeven"
         case .disabled:
             return "Désactivé"
+        case .unsupportedPlatform:
+            return "Disponible sur iPhone/iPad"
         }
     }
 

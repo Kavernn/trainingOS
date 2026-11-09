@@ -101,6 +101,7 @@ final class SmartAlarmServiceTests: XCTestCase {
 
     // MARK: - Test 5 : annulation via pendingAlarmID avant re-schedule
 
+#if canImport(AlarmKit) && !targetEnvironment(macCatalyst)
     func testReschedule_annulationViaID_propre() async {
         let fakeID = UUID()
         let key = "smartAlarm.pendingAlarmID"
@@ -113,6 +114,7 @@ final class SmartAlarmServiceTests: XCTestCase {
         XCTAssertNil(UserDefaults.standard.string(forKey: key),
             "cancelAlarm() doit supprimer pendingAlarmID de UserDefaults")
     }
+#endif
 
     // MARK: - Test 6 : alarmTime <= Date() → guard bloque, rien d'armé
 
@@ -222,6 +224,7 @@ final class SmartAlarmServiceTests: XCTestCase {
 
     // MARK: - Test 9 : cancelAlarm() → pendingAlarmID nil + état non armé
 
+#if canImport(AlarmKit) && !targetEnvironment(macCatalyst)
     func testCancelAlarm_nePlusArme() async {
         let fakeID = UUID()
         UserDefaults.standard.set(fakeID.uuidString, forKey: "smartAlarm.pendingAlarmID")
@@ -236,11 +239,13 @@ final class SmartAlarmServiceTests: XCTestCase {
             XCTFail("État ne doit pas être .armed après cancelAlarm() — obtenu \(state)")
         }
     }
+#endif
 
     // MARK: - Test 10 : scheduleAlarm(bedtimeDate:) quand disabled → retour sans throw, sans armer
     // @MainActor requis — SmartAlarmService est @MainActor, les surcharges async de MainActor.run
     // ne sont pas résolues correctement dans ce contexte XCTest (Swift 6).
 
+#if canImport(AlarmKit) && !targetEnvironment(macCatalyst)
     @MainActor
     func testScheduleAlarm_disabled_noop() async {
         // disable() ne requiert pas AlarmKit si aucun pendingAlarmID n'est planté
@@ -261,6 +266,7 @@ final class SmartAlarmServiceTests: XCTestCase {
                        pendingBefore, "Aucun pendingAlarmID planté quand isEnabled=false")
         XCTAssertEqual(SmartAlarmService.shared.state, .disabled, "État reste .disabled")
     }
+#endif
 
 
     func testCycle_changementHeureAutomne_2026() async {
