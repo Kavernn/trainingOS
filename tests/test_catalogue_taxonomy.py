@@ -65,14 +65,6 @@ def test_non_strength_regions_are_intentional_exceptions_only():
     r['tracking_type']='reps'
     assert any(f['code']=='unknown_muscle' for f in validate_catalogue([r]))
 
-def test_every_canonical_target_survives_workload_analytics():
-    for target in MUSCLES:
-        result=_muscle_assignment(dict(name='Test',muscle_specific=target))
-        assert result.direct_muscles==(target,),target
-    assert detailed_target('Deltoïde antérieur')!=detailed_target('Deltoïde postérieur')
-    assert detailed_target('Droit abdominal')!=detailed_target('Obliques')
-    assert detailed_target('Grand dorsal')!=detailed_target('Haut du dos')
-
 def test_alias_normalization_idempotent_and_load_immutable():
     for r in read('before.json'):
         n=normalize_metadata(r)
@@ -97,17 +89,6 @@ def test_pattern_aliases_feed_existing_dna_ratios():
     assert canonical_pattern('Isolation','Quadriceps')=='isolation_leg'
     assert canonical_pattern('Plyometric') is None # requires exercise context, never guessed globally
 
-def test_volume_aliases_merge_without_losing_training_distinctions(monkeypatch):
-    import muscle_volume
-    logs=[dict(muscle_group='Core',muscle_specific=s,sets_json=[dict(reps=8)])
-          for s in ['Droit abdominal',"Droit de l'abdomen",'Obliques']]
-    monkeypatch.setattr(muscle_volume.db,'get_exercise_logs_since',lambda cutoff: copy.deepcopy(logs))
-    result=muscle_volume.compute_weekly_hard_sets()
-    assert result['Droit abdominal']['sets']==2
-    assert result['Obliques']['sets']==1
-    assert len(result)==2
-
-
 def test_duplicate_ids_and_names_rejected():
     assert {'id','name'} <= {f['field'] for f in validate_catalogue([row(),row()])}
 
@@ -130,18 +111,12 @@ def test_verified_production_matches_only_safe_plan_and_preserves_archived_rows(
         r.update(change['after'])
     assert list(projected.values())==read('candidate.json')
 
-def test_reporting_bucket_is_not_an_anatomical_alias_for_every_member():
-    from exercise_taxonomy import redundant_broad_secondary
-    assert not redundant_broad_secondary('Brachial','Biceps')
-    assert not redundant_broad_secondary('Tibial antérieur','Mollets')
-    assert redundant_broad_secondary('Pectoral supérieur','Pectoraux')
-    assignment=_muscle_assignment(dict(name='Hammer curl',muscle_specific='Brachial',secondary_muscles=['Biceps']))
-    assert assignment.indirect_muscles==('Biceps',)
-
-
 @pytest.mark.parametrize("label,expected", [
+    # Volume reporting is at the canonical display-group level (option A).
+    # Brachial → "Biceps" display, same bucket. Rotator cuff and hip flexors
+    # live outside the Israetel landmark set, so they stay as raw targets.
     ("Hanches", "Hanches"), ("Autre", "Autre"),
-    ("Brachialis", "Brachial"), ("Brachial", "Brachial"),
+    ("Brachialis", "Biceps"), ("Brachial", "Biceps"),
     ("rotator_cuff", "Coiffe des rotateurs"), ("Coiffe des rotateurs", "Coiffe des rotateurs"),
     ("hip_flexors", "Fléchisseurs de hanche"), ("Fléchisseurs de hanche", "Fléchisseurs de hanche"),
 ])

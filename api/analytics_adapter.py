@@ -117,9 +117,19 @@ def _canonical_muscle_value(value: object) -> str | None:
     cleaned = value.strip()
     if not cleaned:
         return None
-    # Detailed training targets must survive independently of broad MEV buckets.
-    from exercise_taxonomy import detailed_target
-    return detailed_target(cleaned)
+    # Volume + MEV/MAV reporting lives at the canonical display group level
+    # (Pectoraux, Dos, Épaules, Abdominaux, Trapèzes, Arrière d'épaule,
+    # Biceps, Avant-bras, …). Detail (Pectoral supérieur, Grand dorsal…) is
+    # preserved in the catalogue via `normalize_metadata` and exposed as a
+    # separate breakdown field in a follow-up commit — never fuse detail into
+    # workloads here, no MEV range exists at sub-region level.
+    from utils import canonical_muscle_display
+    display = canonical_muscle_display(cleaned)
+    if display is not None:
+        return display
+    # Hors doctrine (petits muscles sans landmark, hanches, cou…) : nom brut
+    # préservé, l'invariant OLD vs NEW l'affiche à l'identique.
+    return cleaned
 
 
 def _muscle_assignment(exercise: dict[str, Any]) -> ExerciseMuscleAssignment | None:
@@ -139,10 +149,6 @@ def _muscle_assignment(exercise: dict[str, Any]) -> ExerciseMuscleAssignment | N
         for value in (_canonical_muscle_value(item) for item in secondary_raw)
         if value is not None
     )
-    # A broad secondary containing the specific primary is redundant, not a
-    # separate synergist. Keep distinct detailed targets in the same group.
-    from exercise_taxonomy import redundant_broad_secondary
-    indirect = tuple(value for value in indirect if not redundant_broad_secondary(specific, value))
     if not direct and not indirect:
         return None
     return ExerciseMuscleAssignment(

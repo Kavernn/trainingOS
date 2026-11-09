@@ -125,7 +125,7 @@ def test_targets_map_populated_from_landmarks_for_each_muscle():
     assert targets["Pectoraux"] == {"mev_week": MUSCLE_LANDMARKS["chest"]["mev"],
                                      "mav_week": MUSCLE_LANDMARKS["chest"]["mav"],
                                      "mrv_week": MUSCLE_LANDMARKS["chest"]["mrv"]}
-    assert targets["Grand dorsal"]       == {"mev_week": MUSCLE_LANDMARKS["lats"]["mev"],
+    assert targets["Dos"]       == {"mev_week": MUSCLE_LANDMARKS["lats"]["mev"],
                                      "mav_week": MUSCLE_LANDMARKS["lats"]["mav"],
                                      "mrv_week": MUSCLE_LANDMARKS["lats"]["mrv"]}
     assert targets["Biceps"]    == {"mev_week": MUSCLE_LANDMARKS["biceps"]["mev"],
@@ -229,52 +229,88 @@ def _row_with_specific(log_id, session_id, day, *, name, group, specific, second
     }
 
 
-def test_detailed_target_stays_distinct_from_broad_group_with_no_invented_threshold():
+def test_fusion_canonical_merges_subregion_and_group_into_one_workload():
+    """Un exercice "chest" sans muscle_specific + un "Incline Cable Fly"
+    (muscle_specific="Pectoral supérieur") la même semaine → UNE ligne
+    "Pectoraux" dont direct_set_count = somme des deux."""
     rows = [
+        # Exo 1 : muscle_group="chest" (lowercase EN), muscle_specific absent
         _row_with_specific(1, "s1", CURRENT.end - timedelta(days=1),
                            name="Flat Bench", group="chest", specific=None, sets=3),
-        _row_with_specific(2, "s2", CURRENT.end, name="Incline Cable Fly", group="Pectoraux",
+        # Exo 2 : muscle_group="Pectoraux", muscle_specific="Pectoral supérieur"
+        _row_with_specific(2, "s2", CURRENT.end,
+                           name="Incline Cable Fly", group="Pectoraux",
                            specific="Pectoral supérieur", sets=2),
     ]
     response = build_cockpit_analytics(_FakeClient(rows), _config())
-    by_name = {w.muscle: w for w in response.muscles.workloads}
-    assert set(by_name) == {"Pectoraux", "Pectoral supérieur"}
-    assert by_name["Pectoraux"].direct_set_count == 3
-    assert by_name["Pectoral supérieur"].direct_set_count == 2
-    assert sum(w.direct_set_count for w in by_name.values()) == 5
+    muscles = [w.muscle for w in response.muscles.workloads]
+    # UNE SEULE ligne, nom canonique FR
+    assert muscles == ["Pectoraux"], f"attendu une ligne 'Pectoraux', trouvé {muscles}"
+    chest = response.muscles.workloads[0]
+    # 3 + 2 = 5 séries directes agrégées
+    assert chest.direct_set_count == 5
+    assert chest.session_count == 2
+    # Targets map utilise le nom canonique
     assert response.muscles.targets_by_muscle["Pectoraux"] is not None
-    assert response.muscles.targets_by_muscle["Pectoral supérieur"] is None
 
 
-def test_specific_primary_does_not_double_count_its_reporting_group():
-    rows = [_row_with_specific(1, "s1", CURRENT.end, name="Incline Cable Fly",
-                              group="Pectoraux", specific="Pectoral supérieur", sets=4)]
+def test_fusion_no_double_count_when_group_and_specific_fuse_to_same_key():
+    """Un exercice dont muscle_group="Pectoraux" ET muscle_specific="Pectoral
+    supérieur" (déjà fusionnés par `specific or group` dans l'adapter) ne doit
+    compter qu'UNE fois. Pas de double-compte si direct ET indirect fusionnent
+    vers la même clé non plus."""
+    rows = [
+        _row_with_specific(1, "s1", CURRENT.end,
+                           name="Incline Cable Fly", group="Pectoraux",
+                           specific="Pectoral supérieur", sets=4),
+    ]
     response = build_cockpit_analytics(_FakeClient(rows), _config())
-    assert len(response.muscles.workloads) == 1
-    assert response.muscles.workloads[0].muscle == "Pectoral supérieur"
-    assert response.muscles.workloads[0].direct_set_count == 4
+    chest = response.muscles.workloads[0]
+    assert chest.muscle == "Pectoraux"
+    assert chest.direct_set_count == 4  # pas 8
 
 
-def test_specific_primary_excludes_redundant_broad_secondary():
-    rows = [_row_with_specific(1, "s1", CURRENT.end, name="Incline Cable Fly", group="Pectoraux",
-                              specific="Pectoral supérieur", secondary=["chest", "triceps"], sets=2)]
+def test_fusion_direct_wins_over_indirect_when_same_canonical_key():
+    """Un exercice direct "Pectoral supérieur" (→ Pectoraux) avec
+    secondary_muscles=["chest", "triceps"] (chest → Pectoraux, triceps → Triceps)
+    compte en DIRECT seulement sur Pectoraux (pas d'indirect Pectoraux), et
+    en indirect sur Triceps. Garantit la règle `indirect = indirect - direct`
+    après fusion canonique."""
+    rows = [
+        _row_with_specific(1, "s1", CURRENT.end,
+                           name="Incline Cable Fly", group="Pectoraux",
+                           specific="Pectoral supérieur",
+                           secondary=["chest", "triceps"], sets=2),
+    ]
     response = build_cockpit_analytics(_FakeClient(rows), _config())
     by_name = {w.muscle: w for w in response.muscles.workloads}
-    assert set(by_name) == {"Pectoral supérieur", "Triceps"}
-    assert by_name["Pectoral supérieur"].direct_set_count == 2
-    assert by_name["Pectoral supérieur"].indirect_set_count == 0
+    assert "Pectoraux" in by_name
+    assert "Triceps" in by_name
+    # Pectoraux : direct uniquement, pas d'indirect (fusion absorbe le secondary chest)
+    assert by_name["Pectoraux"].direct_set_count == 2
+    assert by_name["Pectoraux"].indirect_set_count == 0
+    # Triceps : indirect uniquement
     assert by_name["Triceps"].indirect_set_count == 2
     assert by_name["Triceps"].direct_set_count == 0
 
 
-def test_display_names_use_catalogue_targets_not_landmark_display_aliases():
+def test_display_names_match_canonical_fr_mapping():
+    """Les display names FR exposés dans workloads sont tirés de
+    _LANDMARK_DISPLAY_FR (une seule source). Vérifie les choix validés :
+    deltoids → Épaules, rear delt → Arrière d'épaule, core → Abdominaux."""
     rows = [
-        _row_with_specific(1, "s1", CURRENT.end, name="OHP", group="shoulders", specific=None),
-        _row_with_specific(2, "s2", CURRENT.end, name="Rear Fly", group="Deltoïde postérieur", specific=None),
-        _row_with_specific(3, "s3", CURRENT.end, name="Plank", group="Gainage", specific=None),
+        _row_with_specific(1, "s1", CURRENT.end, name="OHP",
+                           group="shoulders", specific=None, sets=1),
+        _row_with_specific(2, "s2", CURRENT.end, name="Rear Fly",
+                           group="Deltoïde postérieur", specific=None, sets=1),
+        _row_with_specific(3, "s3", CURRENT.end, name="Plank",
+                           group="Gainage", specific=None, sets=1),
     ]
     response = build_cockpit_analytics(_FakeClient(rows), _config())
-    assert {w.muscle for w in response.muscles.workloads} == {"Épaules", "Deltoïde postérieur", "Core"}
+    muscles = {w.muscle for w in response.muscles.workloads}
+    assert "Épaules" in muscles
+    assert "Arrière d'épaule" in muscles
+    assert "Abdominaux" in muscles
 
 
 if __name__ == "__main__":

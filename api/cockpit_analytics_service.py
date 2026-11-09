@@ -139,11 +139,10 @@ def _build_targets_map(
     for workload in (*current, *previous):
         if workload.muscle in seen:
             continue
-        # Detailed targets must not inherit a whole group's MEV/MAV/MRV.
-        # Lats and rear delts have their own existing landmark entries.
-        from exercise_taxonomy import GROUPS
-        benchmarked = workload.muscle in GROUPS or workload.muscle in ("Grand dorsal", "Deltoïde postérieur")
-        landmarks = landmarks_for_muscle(workload.muscle) if benchmarked else None
+        # `workload.muscle` est un nom canonique d'affichage (Pectoraux, Dos,
+        # Arrière d'épaule, Abdominaux, …) — `landmarks_for_muscle` passe par
+        # `_normalize_muscle` et résout directement quand la plage existe.
+        landmarks = landmarks_for_muscle(workload.muscle)
         seen[workload.muscle] = (
             {
                 "mev_week": landmarks["mev"],

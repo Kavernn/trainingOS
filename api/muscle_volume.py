@@ -10,7 +10,6 @@ from datetime import date, timedelta
 
 import db
 from utils import _today_mtl
-from exercise_taxonomy import detailed_target
 
 VOLUME_RANGES = {
     "optimal_min": 10,
@@ -69,7 +68,7 @@ def compute_weekly_hard_sets(days: int = 7) -> dict:
         else:
             hard_set_count = 1
 
-        for muscle in set(filter(None, (detailed_target(m) for m in muscles))):
+        for muscle in muscles:
             counts[muscle] = counts.get(muscle, 0) + hard_set_count
 
     result = {}
@@ -91,7 +90,7 @@ def compute_weekly_hard_sets(days: int = 7) -> dict:
         result[muscle] = {
             "sets":           sets,
             "status":         status,
-            "label":          MUSCLE_LABELS.get(muscle, muscle),
+            "label":          MUSCLE_LABELS.get(muscle, muscle.capitalize()),
             "recommendation": recommendation,
         }
 
