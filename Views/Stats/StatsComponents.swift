@@ -490,6 +490,7 @@ struct StatsMuscleWorkloadSection: View {
                         workload: workload,
                         previousWorkload: previousByMuscle[workload.muscle],
                         targets: muscles.targetsByMuscle[workload.muscle] ?? nil,
+                        breakdown: muscles.breakdownByMuscle[workload.muscle] ?? [],
                         currentDeloadDaysExcluded: muscles.currentDeloadDaysExcluded,
                         previousDeloadDaysExcluded: muscles.previousDeloadDaysExcluded
                     )
@@ -528,6 +529,11 @@ struct StatsMuscleWorkloadRow: View {
     let workload: StatsMuscleWorkload
     let previousWorkload: StatsMuscleWorkload?
     let targets: StatsMuscleTargets?
+    /// Sous-régions contribuantes pour ce groupe canonique (ex. Pectoral
+    /// supérieur / moyen / inférieur sous Pectoraux). Vide si le groupe
+    /// n'a pas de décomposition distincte. Ajout additif — l'ancienne
+    /// version de la tuile n'affichait rien de tel.
+    var breakdown: [StatsMuscleWorkload] = []
     let currentDeloadDaysExcluded: Int
     let previousDeloadDaysExcluded: Int
 
@@ -598,6 +604,26 @@ struct StatsMuscleWorkloadRow: View {
         String(format: "%.1f", locale: Locale(identifier: "fr_CA"), v)
     }
 
+    /// "dont Pectoral supérieur 8.2 · moyen 2.8 · inférieur 2.5".
+    /// Le préfixe du groupe canonique (ici "Pectoral ") est retiré sur les
+    /// répétitions pour rester lisible. Les sous-régions exactes non
+    /// contributives (effective nil ou 0) sont déjà filtrées côté backend.
+    private var breakdownSummary: String {
+        let items = breakdown.compactMap { sub -> (String, Double)? in
+            guard let v = sub.weeklyEffectiveSets, v > 0 else { return nil }
+            return (sub.muscle, v)
+        }
+        guard let first = items.first else { return "" }
+        let prefix = first.0.components(separatedBy: " ").first ?? ""
+        let fragments = items.enumerated().map { idx, pair -> String in
+            let name = (idx > 0 && !prefix.isEmpty && pair.0.hasPrefix(prefix + " "))
+                ? String(pair.0.dropFirst(prefix.count + 1))
+                : pair.0
+            return "\(name) \(formatted(pair.1))"
+        }
+        return "dont " + fragments.joined(separator: " · ")
+    }
+
     private var accessibilitySummary: String {
         let muscle = statsMuscleDisplayName(workload.muscle)
         if hasExposureWithoutValidSets {
@@ -637,6 +663,11 @@ struct StatsMuscleWorkloadRow: View {
                         .font(.appMicro.weight(.semibold))
                         .foregroundColor(.appTextSecondary).monospacedDigit()
                 }
+            }
+            if !breakdown.isEmpty {
+                Text(breakdownSummary)
+                    .font(.appMicro).foregroundColor(.appTextMuted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
                 Text("\(workload.sessionCount) séance\(workload.sessionCount == 1 ? "" : "s") · \(workload.activeDayCount) jour actif\(workload.activeDayCount == 1 ? "" : "s")")

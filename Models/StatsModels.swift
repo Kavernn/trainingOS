@@ -416,6 +416,12 @@ struct StatsCockpitMuscles: Codable, Equatable {
     /// est préservée explicitement (via custom decoder) — iOS affiche
     /// "Pas de repère", pas un silence.
     let targetsByMuscle: [String: StatsMuscleTargets?]
+    /// Décomposition "dont …" additive : pour un groupe canonique affiché,
+    /// la liste ordonnée des sous-régions contribuantes (Pectoral sup/moy/
+    /// inf, Grand dorsal, Deltoïde postérieur, …). Clé absente ou tableau
+    /// vide = pas de détail à afficher. Champ ajouté 2026-11-09 ; décodage
+    /// tolérant (`[:]` si manquant) pour que les anciennes réponses passent.
+    let breakdownByMuscle: [String: [StatsMuscleWorkload]]
 
     enum CodingKeys: String, CodingKey {
         case period, coverage, workloads
@@ -424,6 +430,7 @@ struct StatsCockpitMuscles: Codable, Equatable {
         case currentDeloadDaysExcluded    = "current_deload_days_excluded"
         case previousDeloadDaysExcluded   = "previous_deload_days_excluded"
         case targetsByMuscle              = "targets_by_muscle"
+        case breakdownByMuscle            = "breakdown_by_muscle"
     }
 
     init(from decoder: Decoder) throws {
@@ -452,6 +459,7 @@ struct StatsCockpitMuscles: Codable, Equatable {
             }
         }
         targetsByMuscle = map
+        breakdownByMuscle = (try? container.decode([String: [StatsMuscleWorkload]].self, forKey: .breakdownByMuscle)) ?? [:]
     }
 
     func encode(to encoder: Encoder) throws {
@@ -476,6 +484,7 @@ struct StatsCockpitMuscles: Codable, Equatable {
                 try dyn.encodeNil(forKey: dynKey)
             }
         }
+        try container.encode(breakdownByMuscle, forKey: .breakdownByMuscle)
     }
 }
 
