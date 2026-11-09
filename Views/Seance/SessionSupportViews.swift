@@ -1402,7 +1402,15 @@ struct SpecialSeanceView: View {
                 return
             }
             loggedDate = DateFormatter.isoDate.string(from: Date())
-            let fresh = try? await APIService.shared.fetchSeanceData()
+            // Verif conservative : échec = non vérifié → submitError ci-dessous
+            // visible au user. Logger explicite + knownBackgroundSideEffects.
+            let fresh: SeanceData?
+            do {
+                fresh = try await APIService.shared.fetchSeanceData()
+            } catch {
+                logger.error("logSession: \(error.localizedDescription)")
+                fresh = nil
+            }
             let verified = fresh?.alreadyLogged ?? false
             await APIService.shared.fetchDashboard()
             if verified {

@@ -50,7 +50,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
         "Views/Seance/BonusSeanceView.swift:URLSession.authed",
         "Views/Seance/SeanceSoirView.swift:URLSession.authed",
-        "Views/Seance/SessionSupportViews.swift:fetchSeanceData",
         "Views/Seasons/SeasonView.swift:getActiveSeason",
         "Views/Seasons/SeasonView.swift:getAllSeasons",
         "Views/XP/XPView.swift:fetchHIITData",
@@ -97,6 +96,11 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // le caller (saveSession) set `submitError` "Séance non confirmée
             // en base — réessaie", surfaced au user. Pas de nouvelle UI.
         "Views/Seance/ExerciseViewModel.swift:finish",
+            // (continued)
+        "Views/Seance/SessionSupportViews.swift:logSession",
+            // Raison : verif post-save dans SpecialSeanceView (séance spéciale,
+            // ex. Cardio dédié). Échec = fresh nil → verified=false → vm.submitError
+            // "Séance non confirmée — vérifie ta connexion et réessaie." visible.
             // Raison : verif morning completion dans finish(). Échec = fresh
             // nil → `verified` false → même submitError visible. Idem.
         "Views/Seance/WorkoutActiveView.swift:retryWeightFetch",
