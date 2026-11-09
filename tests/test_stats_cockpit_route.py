@@ -169,7 +169,7 @@ def test_rich_response_serializes_statuses_dates_coverage_zero_and_sections(app,
         "period", "coverage", "workloads", "unmapped_exercises",
         "previous_period", "previous_workloads",
         "current_deload_days_excluded", "previous_deload_days_excluded",
-        "targets_by_muscle",
+        "targets_by_muscle", "breakdown_by_muscle",
     }
     assert payload["muscles"]["unmapped_exercises"] == []
     assert payload["muscles"]["coverage"]["mapped_exposure_count"] == 3

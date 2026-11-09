@@ -120,11 +120,45 @@ class CockpitMuscles:
     # ses plages hebdo MEV/MAV/MRV ou None si hors doctrine. L'iOS compare
     # weekly_effective_sets à ces bornes pour le badge de zone.
     targets_by_muscle: dict = None  # type: ignore[assignment]
+    # Breakdown "dont …" additif par groupe canonique : pour chaque muscle
+    # affiché (clé), la liste ordonnée des sous-régions contribuantes avec
+    # leur `weekly_effective_sets`. Vide pour les muscles sans détail (pas
+    # de sous-région distincte de leur groupe de reporting). Les clients
+    # legacy ignorent ce champ.
+    breakdown_by_muscle: dict = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
         # frozen dataclass : utilise object.__setattr__ pour normaliser le default.
         if self.targets_by_muscle is None:
             object.__setattr__(self, "targets_by_muscle", {})
+        if self.breakdown_by_muscle is None:
+            object.__setattr__(self, "breakdown_by_muscle", {})
+
+
+def _build_breakdown_map(
+    display_workloads: tuple[MuscleWorkload, ...],
+    detail_workloads: tuple[MuscleWorkload, ...],
+) -> dict:
+    """Regroupe les muscles détaillés (Pectoral sup/moy/inf, Grand dorsal,
+    Deltoïde postérieur, …) sous leur groupe d'affichage canonique via
+    `canonical_muscle_display`. Les sous-régions identiques au nom affiché
+    sont omises (pas de « Pectoraux : dont Pectoraux » redondant). Les
+    muscles sans weekly_effective_sets (fenêtre 100 % décharge) sont omis.
+    """
+    from utils import canonical_muscle_display
+    display_names = {w.muscle for w in display_workloads}
+    buckets: dict[str, list] = {}
+    for detail in detail_workloads:
+        if detail.weekly_effective_sets is None or detail.weekly_effective_sets <= 0:
+            continue
+        display = canonical_muscle_display(detail.muscle) or detail.muscle
+        if display == detail.muscle or display not in display_names:
+            continue
+        buckets.setdefault(display, []).append(detail)
+    return {
+        display: tuple(sorted(items, key=lambda w: (-w.weekly_effective_sets, w.muscle)))
+        for display, items in buckets.items()
+    }
 
 
 def _build_targets_map(
@@ -201,6 +235,15 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig) -> C
             adapted.training_load_exposures, adapted.assignments,
             period=config.muscle_previous_period, is_deload=muscle_is_deload,
         )
+    # Pass détaillée (sous-régions) pour alimenter le breakdown "dont …".
+    # Même fenêtre que muscle_summary, même deload policy.
+    detail_summary = summarize_muscle_workload(
+        adapted.training_load_exposures, adapted.assignments_detail,
+        period=config.muscle_period, is_deload=muscle_is_deload,
+    ) if adapted.assignments_detail else None
+    breakdown_by_muscle = _build_breakdown_map(
+        muscle_summary.muscles, detail_summary.muscles if detail_summary else (),
+    )
     return CockpitAnalyticsResponse(
         as_of=config.as_of,
         progression=CockpitProgression(
@@ -235,6 +278,7 @@ def build_cockpit_analytics(client: object, config: CockpitAnalyticsConfig) -> C
             current_deload_days_excluded=muscle_summary.deload_days_excluded,
             previous_deload_days_excluded=previous_summary.deload_days_excluded if previous_summary else 0,
             targets_by_muscle=_build_targets_map(muscle_summary.muscles, previous_summary.muscles if previous_summary else ()),
+            breakdown_by_muscle=breakdown_by_muscle,
         ),
         data_quality=CockpitDataQuality(requested_raw_period=config.raw_period, adapter=adapted.diagnostics),
     )

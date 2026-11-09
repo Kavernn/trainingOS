@@ -44,6 +44,11 @@ class AnalyticsAdapterResult:
     training_load_exposures: tuple[TrainingLoadExposure, ...]
     assignments: tuple[ExerciseMuscleAssignment, ...]
     diagnostics: AnalyticsAdapterDiagnostics
+    # Parallèle au assignments (groupe canonique d'affichage) : garde les
+    # cibles détaillées (Pectoral supérieur, Grand dorsal, …) pour alimenter
+    # le breakdown "dont …" dans le cockpit. Ajout additif — existe depuis
+    # 2026-11-09, les consommateurs legacy l'ignorent par défaut.
+    assignments_detail: tuple[ExerciseMuscleAssignment, ...] = ()
 
 
 def _unmapped_diagnostics_from_unique(unique) -> tuple[UnmappedExerciseDiagnostic, ...]:
@@ -109,6 +114,37 @@ def _sets(raw: object) -> tuple[TrainingLoadSet, ...] | None:
         )
         for item in raw
     )
+
+
+def _canonical_muscle_value_detail(value: object) -> str | None:
+    """Alias canonique au niveau cible détaillée (sans fusion vers groupe).
+    Utilisé pour le breakdown additif par sous-région."""
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    from exercise_taxonomy import detailed_target
+    return detailed_target(cleaned)
+
+
+def _muscle_assignment_detail(exercise: dict[str, Any]) -> ExerciseMuscleAssignment | None:
+    """Comme `_muscle_assignment` mais préserve la cible détaillée."""
+    name = exercise.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return None
+    specific = _canonical_muscle_value_detail(exercise.get("muscle_specific"))
+    group = _canonical_muscle_value_detail(exercise.get("muscle_group"))
+    direct = tuple(v for v in (specific or group,) if v is not None)
+    secondary_raw = exercise.get("secondary_muscles")
+    if not isinstance(secondary_raw, (list, tuple)):
+        secondary_raw = ()
+    indirect = tuple(
+        v for v in (_canonical_muscle_value_detail(m) for m in secondary_raw) if v is not None
+    )
+    if not direct and not indirect:
+        return None
+    return ExerciseMuscleAssignment(exercise_name=name, direct_muscles=direct, indirect_muscles=indirect)
 
 
 def _canonical_muscle_value(value: object) -> str | None:
@@ -323,6 +359,23 @@ def adapt_analytics_rows(
             )
         assignments_by_name[assignment.exercise_name] = assignment
 
+    # Pass parallèle : cibles détaillées pour le breakdown additif. Les rows
+    # peuvent contenir N fois le même exercice (plusieurs sets) ; on garde la
+    # première occurrence valide, cohérente avec assignments_by_name.
+    detail_by_name: dict[str, ExerciseMuscleAssignment] = {}
+    for row in raw_rows:
+        if not isinstance(row, dict):
+            continue
+        exercise = _nested(row, "exercises")
+        name = exercise.get("name")
+        if not isinstance(name, str) or not name.strip() or name in detail_by_name:
+            continue
+        if name not in assignments_by_name:
+            continue  # pas dans l'univers d'affichage, pas de breakdown non plus
+        detail = _muscle_assignment_detail(exercise)
+        if detail is not None:
+            detail_by_name[name] = detail
+
     missing_mapping = sum(
         1
         for item in unique
@@ -372,6 +425,12 @@ def adapt_analytics_rows(
             legacy_strength_fallback_count=legacy_fallbacks,
             known_deload_exposure_count=known_deload_exposures,
             unmapped_exercises=unmapped_exercises,
+        ),
+        assignments_detail=tuple(
+            assignment
+            for _, assignment in sorted(
+                detail_by_name.items(), key=lambda item: (item[0].casefold(), item[0])
+            )
         ),
     )
 
