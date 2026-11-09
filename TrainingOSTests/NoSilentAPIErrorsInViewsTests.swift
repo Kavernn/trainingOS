@@ -49,7 +49,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Profile/ProfileView.swift:getWarRoomSummary",
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
         "Views/Seance/BonusSeanceView.swift:URLSession.authed",
-        "Views/Seance/ExerciseViewModel.swift:fetchSeanceData",
         "Views/Seance/SeanceSoirView.swift:URLSession.authed",
         "Views/Seance/SessionSupportViews.swift:fetchSeanceData",
         "Views/Seasons/SeasonView.swift:getActiveSeason",
@@ -93,6 +92,13 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // Raison : alimente uniquement le ReadinessChip optionnel du
             // contextPanel. Affichage dégradé (pas de chip) acceptable sur
             // échec — l'utilisateur continue sa séance LIVE sans ce signal.
+        "Views/Seance/ExerciseViewModel.swift:verifyFinishCompletion",
+            // Raison : verif conservative post-save. Échec = "non vérifié" →
+            // le caller (saveSession) set `submitError` "Séance non confirmée
+            // en base — réessaie", surfaced au user. Pas de nouvelle UI.
+        "Views/Seance/ExerciseViewModel.swift:finish",
+            // Raison : verif morning completion dans finish(). Échec = fresh
+            // nil → `verified` false → même submitError visible. Idem.
         "Views/Seance/WorkoutActiveView.swift:retryWeightFetch",
             // Raison : catch du bouton "Réessayer" dans weightFetchFailedRow /
             // estimatedWeightRow. Déclenché par le user après avoir déjà vu

@@ -1851,7 +1851,15 @@ class SeanceViewModel: ObservableObject {
     func verifyFinishCompletion() async -> Bool {
         guard !isDayComposerLocal else { return false }
         guard draftSessionType != "bonus" else { return false }
-        return (try? await APIService.shared.fetchSeanceData().alreadyLogged) == true
+        // Verif conservative : échec réseau = "non vérifié" (false), le caller
+        // affiche `submitError` "Séance non confirmée en base — réessaie" au
+        // user. Logger explicite + knownBackgroundSideEffects.
+        do {
+            return try await APIService.shared.fetchSeanceData().alreadyLogged
+        } catch {
+            exerciseLogger.error("verifyFinishCompletion: \(error.localizedDescription)")
+            return false
+        }
     }
 
     func handleFinishConflict() -> Bool {
@@ -1946,7 +1954,14 @@ class SeanceViewModel: ObservableObject {
         // accepting completion of another date; no claim of historical verification.
         let verified: Bool
         if isMorning {
-            let fresh = try? await APIService.shared.fetchSeanceData()
+            // Verif conservative : échec = non vérifié → submitError ci-dessous.
+            let fresh: SeanceData?
+            do {
+                fresh = try await APIService.shared.fetchSeanceData()
+            } catch {
+                exerciseLogger.error("finish: \(error.localizedDescription)")
+                fresh = nil
+            }
             verified = fresh?.todayDate == date && fresh?.alreadyLogged == true
                 && seanceData?.todayDate == date
         } else {
