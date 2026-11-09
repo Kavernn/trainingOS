@@ -160,6 +160,7 @@ struct WorkoutSeanceView: View {
 
     // Readiness score
     @State private var readiness: ReadinessResponse? = nil  // unifié sur le modèle de APIService.fetchReadiness (plus de décodage local)
+    @State private var readinessFetchFailed = false  // échec → chip "—" discret (pas de disparition silencieuse)
     @ObservedObject private var appState = AppState.shared
 
     // W-D11 — abandon session
@@ -1352,11 +1353,26 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder private var contextPanel: some View {
         VStack(spacing: 8) {
-            // Readiness chip — label + color dérivés du verdict (API unifiée)
+            // Readiness chip — label + color dérivés du verdict (API unifiée).
+            // Échec de fetch → "—" discret au lieu de disparition silencieuse.
             if let r = readiness {
                 ReadinessChip(score: Double(r.score),
                               label: readinessLabel(for: r.verdict),
                               color: readinessColor(for: r.verdict))
+            } else if readinessFetchFailed {
+                HStack(spacing: 6) {
+                    Image(systemName: "bolt.heart")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                    Text("READINESS")
+                        .font(.appMicro.weight(.bold)).tracking(1)
+                        .foregroundColor(.gray)
+                    Text("—")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundColor(.gray)
+                    Spacer()
+                }
+                .padding(.vertical, 6)
             }
 
             // Macro nutrition hint — lecture seule, calculé depuis DashboardViewModel
@@ -2477,12 +2493,16 @@ struct WorkoutSeanceView: View {
 
     private func loadReadiness() async {
         // Unifié sur APIService.fetchReadiness (un seul modèle ReadinessResponse).
-        // Échec = chip readiness absent (affichage dégradé), pas de UI surfaced.
+        // Échec = chip readiness "—" discret (plus de disparition silencieuse).
         do {
             let r = try await APIService.shared.fetchReadiness(forceRefresh: true)
-            await MainActor.run { readiness = r }
+            await MainActor.run {
+                readiness = r
+                readinessFetchFailed = false
+            }
         } catch {
             logger.error("loadReadiness: \(error.localizedDescription)")
+            await MainActor.run { readinessFetchFailed = true }
         }
     }
 
