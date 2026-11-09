@@ -1,0 +1,19 @@
+{
+  "status": "STOP_CLIENT_RELEASE_ORDER",
+  "total": 161,
+  "active": 142,
+  "archived": 19,
+  "migrated": 0,
+  "still_deferred": 46,
+  "ambiguous_changed": 0,
+  "backend_tests": 182,
+  "ios_tests": 35,
+  "legacy_decodes": 46,
+  "active_nonambiguous_production_errors": {
+    "incompatible_group": 2,
+    "unknown_muscle": 2,
+    "unknown_group": 5,
+    "missing_equipment": 3
+  },
+  "preexisting_files_unchanged": 64
+}

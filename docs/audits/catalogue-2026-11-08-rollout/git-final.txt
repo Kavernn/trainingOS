@@ -1,0 +1,69 @@
+$ git diff --check
+exit=0
+
+$ git diff --stat
+ Models/MuscleMapping.swift                         | 158 ++++++++++++++++++++-
+ Models/TrainingDoctrine.swift                      |   4 +-
+ Services/SmartAlarmService.swift                   |  95 +++++++++----
+ TrainingOS.xcodeproj/project.pbxproj               |   3 +-
+ TrainingOSTests/MuscleMapperTests.swift            |  16 +++
+ TrainingOSTests/SmartAlarmServiceTests.swift       |   6 +
+ Views/Dashboard/DashboardRitualCards.swift         |   2 +-
+ Views/Dashboard/DashboardTodayCards.swift          |   8 +-
+ Views/Inventaire/InventaireView.swift              | 122 +++++-----------
+ Views/Programme/ProgrammeView.swift                | 153 ++++++++++++++++----
+ Views/Seance/SeanceView.swift                      |   8 +-
+ Views/Seance/SessionSupportViews.swift             |   8 +-
+ Views/Settings/SmartAlarmSettingsView.swift        |  12 +-
+ api/analytics_adapter.py                           |  18 +--
+ api/cockpit_analytics_service.py                   |   6 +-
+ api/db_exercises.py                                |   3 +-
+ api/muscle_volume.py                               |   5 +-
+ api/routes/workout_exercises.py                    |   2 +-
+ api/utils.py                                       |   7 +
+ api/workout_dna.py                                 |   5 +-
+ tests/test_analytics_adapter.py                    |   8 +-
+ ...t_cockpit_muscles_targets_and_effective_sets.py |  88 ++++--------
+ tests/test_inventory_exercise_routes.py            |  16 +++
+ 23 files changed, 523 insertions(+), 230 deletions(-)
+exit=0
+
+$ git status -sb
+## master...origin/master [behind 9]
+ M Models/MuscleMapping.swift
+ M Models/TrainingDoctrine.swift
+ M Services/SmartAlarmService.swift
+ M TrainingOS.xcodeproj/project.pbxproj
+ M TrainingOSTests/MuscleMapperTests.swift
+ M TrainingOSTests/SmartAlarmServiceTests.swift
+ M Views/Dashboard/DashboardRitualCards.swift
+ M Views/Dashboard/DashboardTodayCards.swift
+ M Views/Inventaire/InventaireView.swift
+ M Views/Programme/ProgrammeView.swift
+ M Views/Seance/SeanceView.swift
+ M Views/Seance/SessionSupportViews.swift
+ M Views/Settings/SmartAlarmSettingsView.swift
+ M api/analytics_adapter.py
+ M api/cockpit_analytics_service.py
+ M api/db_exercises.py
+ M api/muscle_volume.py
+ M api/routes/workout_exercises.py
+ M api/utils.py
+ M api/workout_dna.py
+ M tests/test_analytics_adapter.py
+ M tests/test_cockpit_muscles_targets_and_effective_sets.py
+ M tests/test_inventory_exercise_routes.py
+?? TrainingOSTests/SmartAlarmPlatformTests.swift
+?? TrainingOSTests/StructureSessionChoiceTests.swift
+?? api/exercise_taxonomy.py
+?? api/exercise_taxonomy_data.py
+?? docs/audits/
+?? scripts/audit_exercise_catalogue.py
+?? scripts/audit_exercise_catalogue_legacy.py
+?? scripts/generate_catalogue_taxonomy_swift.py
+?? tests/test_catalogue_taxonomy.py
+?? tests/test_exercise_catalogue_quality.py
+exit=0
+
+$ git diff --cached --name-only
+exit=0

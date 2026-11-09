@@ -1,0 +1,42 @@
+{
+  "total": 161,
+  "active": 142,
+  "archived": 19,
+  "corrected_first_pass": 94,
+  "corrected_second_pass_production": 125,
+  "fields_second_pass_production": 367,
+  "candidate_rows_changed": 148,
+  "pending_rows": 65,
+  "pending_active_rows": 46,
+  "resolved_initial_ambiguities": 5,
+  "remaining_ambiguous": 13,
+  "quality": {
+    "production": {
+      "active": {
+        "incompatible_group": 2,
+        "missing_equipment": 9,
+        "invalid_pattern": 9,
+        "unknown_muscle": 6,
+        "unknown_group": 5,
+        "invalid_equipment": 1
+      },
+      "archived": {
+        "invalid_pattern": 18,
+        "unknown_group": 1,
+        "incompatible_group": 1,
+        "unknown_muscle": 2
+      },
+      "non_ambiguous_errors": 34
+    },
+    "candidate": {
+      "active": {
+        "missing_equipment": 6,
+        "invalid_pattern": 9,
+        "unknown_muscle": 4,
+        "invalid_equipment": 1
+      },
+      "archived": {},
+      "non_ambiguous_errors": 0
+    }
+  }
+}

@@ -1,0 +1,156 @@
+[
+  {
+    "id": "001ab99c-6362-473f-b6e8-5bfb9f7d54ef",
+    "name": "Smith Leg Press",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "09381207-7c9e-4996-841a-798e933f6e9e",
+    "name": "Weighted Squat",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "0bcbedb8-ad59-4a77-8e36-fbb4f235c31b",
+    "name": "Overhead Tricep Ext.",
+    "missing": [
+      "muscle_specific",
+      "secondary_muscles",
+      "equipment",
+      "movement_pattern"
+    ]
+  },
+  {
+    "id": "2b1e5936-e3e7-4c9e-ab06-fdcc834bbf35",
+    "name": "Lever Seated Leg Curl",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "39fa3b6b-6e4d-4291-a9af-4fd7a317aa9f",
+    "name": "Seated DB Press",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "4ec84771-74fb-46da-9ef3-45b976ac93e8",
+    "name": "Incline Barbell Press",
+    "missing": [
+      "secondary_muscles",
+      "equipment",
+      "category"
+    ]
+  },
+  {
+    "id": "5fa13edb-2bc2-496b-8f45-34aaa4224b22",
+    "name": "Lever Leg Extension",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "62d0bf52-3564-489d-b877-1fda69c6fce1",
+    "name": "Reverse Curl",
+    "missing": [
+      "secondary_muscles",
+      "equipment",
+      "type",
+      "category"
+    ]
+  },
+  {
+    "id": "6d49c9c1-30fc-4826-a976-ca4f8c1a95fd",
+    "name": "Smith Standing Leg Calf Raise",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "6f0a128f-d066-47b9-bcb8-dd3b798a232e",
+    "name": "Tricep Pushdown",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "76abdf6e-0cc2-455d-bfcd-26c88b798da7",
+    "name": "Copenhagen / Side Plank",
+    "missing": []
+  },
+  {
+    "id": "76e72611-569b-4d8d-83c7-c412389a597c",
+    "name": "Triceps Extension",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "78677fdf-432d-4fc6-a719-8179b1af7189",
+    "name": "Nordic Curl",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "7a92cdc7-6f1a-4de0-9ae2-c83c31fd6c16",
+    "name": "Seated Row",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "ab22f53d-2d6d-420d-989f-2fb1efb228d3",
+    "name": "Walking Lunge",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "c4ca8540-5012-45d8-a7d9-7731d89df6f1",
+    "name": "Shoulder Overhead Press",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "c872b104-7eed-4dc3-a543-b5c654df7370",
+    "name": "Lever Seated Fly",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "d2c36b51-1310-4f72-8417-f4b0ab3e3be2",
+    "name": "Lateral Raises",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  },
+  {
+    "id": "d65a0bd7-7def-4e32-a8ac-dbcd40e26621",
+    "name": "Pull-up / Weighted",
+    "missing": [
+      "secondary_muscles",
+      "equipment"
+    ]
+  }
+]

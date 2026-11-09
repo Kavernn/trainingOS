@@ -1,0 +1,434 @@
+[
+  {
+    "id": "001ab99c-6362-473f-b6e8-5bfb9f7d54ef",
+    "name": "Smith Leg Press",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Squat"
+  },
+  {
+    "id": "00332b97-110a-4915-b17a-4e2e49919e6d",
+    "name": "Copenhagen Plank",
+    "archived": false,
+    "code": "incompatible_group",
+    "field": "muscle_group",
+    "value": "Core"
+  },
+  {
+    "id": "09381207-7c9e-4996-841a-798e933f6e9e",
+    "name": "Weighted Squat",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Squat"
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "name": "T-Bar Row",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "name": "T-Bar Row",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Horizontal Pull"
+  },
+  {
+    "id": "290eb168-e05b-481f-9ef3-07051d6cbff0",
+    "name": "Hammer Curl",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "muscle_specific",
+    "value": "Brachialis"
+  },
+  {
+    "id": "2b1e5936-e3e7-4c9e-ab06-fdcc834bbf35",
+    "name": "Lever Seated Leg Curl",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Gainage"
+  },
+  {
+    "id": "35ab117f-cd8e-4c71-b69b-f91f3676d818",
+    "name": "Dumbbell Pull Over",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "secondary_muscles",
+    "value": "Pectoral majeur — chef costal"
+  },
+  {
+    "id": "39fa3b6b-6e4d-4291-a9af-4fd7a317aa9f",
+    "name": "Seated DB Press",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Vertical Push"
+  },
+  {
+    "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+    "name": "Zone-2 (vélo/rameur)",
+    "archived": false,
+    "code": "unknown_group",
+    "field": "muscle_group",
+    "value": "Cardio"
+  },
+  {
+    "id": "486b1277-3d39-4ac4-8247-b2b833ec03a8",
+    "name": "Dips",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "4ec84771-74fb-46da-9ef3-45b976ac93e8",
+    "name": "Incline Barbell Press",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Horizontal Push"
+  },
+  {
+    "id": "5fa13edb-2bc2-496b-8f45-34aaa4224b22",
+    "name": "Lever Leg Extension",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "62d0bf52-3564-489d-b877-1fda69c6fce1",
+    "name": "Reverse Curl",
+    "archived": true,
+    "code": "unknown_group",
+    "field": "muscle_group",
+    "value": "Biceps+Avant-bras"
+  },
+  {
+    "id": "62d0bf52-3564-489d-b877-1fda69c6fce1",
+    "name": "Reverse Curl",
+    "archived": true,
+    "code": "incompatible_group",
+    "field": "muscle_group",
+    "value": "Biceps+Avant-bras"
+  },
+  {
+    "id": "62d0bf52-3564-489d-b877-1fda69c6fce1",
+    "name": "Reverse Curl",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Elbow Flexion"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Plyometric"
+  },
+  {
+    "id": "6d49c9c1-30fc-4826-a976-ca4f8c1a95fd",
+    "name": "Smith Standing Leg Calf Raise",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+    "name": "Intervalles (VO2)",
+    "archived": false,
+    "code": "unknown_group",
+    "field": "muscle_group",
+    "value": "Cardio"
+  },
+  {
+    "id": "6f0a128f-d066-47b9-bcb8-dd3b798a232e",
+    "name": "Tricep Pushdown",
+    "archived": true,
+    "code": "unknown_muscle",
+    "field": "muscle_specific",
+    "value": "Triceps brachial"
+  },
+  {
+    "id": "6f0a128f-d066-47b9-bcb8-dd3b798a232e",
+    "name": "Tricep Pushdown",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Elbow Extension"
+  },
+  {
+    "id": "76abdf6e-0cc2-455d-bfcd-26c88b798da7",
+    "name": "Copenhagen / Side Plank",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Gainage"
+  },
+  {
+    "id": "76e72611-569b-4d8d-83c7-c412389a597c",
+    "name": "Triceps Extension",
+    "archived": true,
+    "code": "unknown_muscle",
+    "field": "muscle_specific",
+    "value": "Triceps brachial"
+  },
+  {
+    "id": "76e72611-569b-4d8d-83c7-c412389a597c",
+    "name": "Triceps Extension",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Elbow Extension"
+  },
+  {
+    "id": "781b2807-39ee-44e2-a783-084d41c8be1d",
+    "name": "Dumbbell Hammer Curl",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "muscle_specific",
+    "value": "Brachialis"
+  },
+  {
+    "id": "78677fdf-432d-4fc6-a719-8179b1af7189",
+    "name": "Nordic Curl",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "7a92cdc7-6f1a-4de0-9ae2-c83c31fd6c16",
+    "name": "Seated Row",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Horizontal Pull"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "ab22f53d-2d6d-420d-989f-2fb1efb228d3",
+    "name": "Walking Lunge",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Lunge"
+  },
+  {
+    "id": "b95a3324-7813-4d73-b0de-6e20867b0983",
+    "name": "Overhead Press",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Vertical Push"
+  },
+  {
+    "id": "bd09ae7b-69df-4790-807e-b4f7b46baac4",
+    "name": "Chest press",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "muscle_specific",
+    "value": "Pectoral majeur — chef claviculaire"
+  },
+  {
+    "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+    "name": "Wide-Grip Cable Row",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "secondary_muscles",
+    "value": "Trapèze — chef inférieur"
+  },
+  {
+    "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+    "name": "Wide-Grip Cable Row",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "secondary_muscles",
+    "value": "Trapèze — chef moyen"
+  },
+  {
+    "id": "c4ca8540-5012-45d8-a7d9-7731d89df6f1",
+    "name": "Shoulder Overhead Press",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Vertical Push"
+  },
+  {
+    "id": "c6b79878-6a18-4de2-a4d0-26b65ed069fe",
+    "name": "Sandbag Bear Hug Squat",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": []
+  },
+  {
+    "id": "c872b104-7eed-4dc3-a543-b5c654df7370",
+    "name": "Lever Seated Fly",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Horizontal Push"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "archived": false,
+    "code": "unknown_group",
+    "field": "muscle_group",
+    "value": "legs"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "archived": false,
+    "code": "incompatible_group",
+    "field": "muscle_group",
+    "value": "legs"
+  },
+  {
+    "id": "c9a0be3d-6761-4957-873d-a1b32f94ed8f",
+    "name": "Goblet Squat",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Squat"
+  },
+  {
+    "id": "cdac5271-1a7a-4239-972a-fb6ebec1806c",
+    "name": "90/90 Hip + Band Shoulder Rotation",
+    "archived": false,
+    "code": "unknown_group",
+    "field": "muscle_group",
+    "value": "Mobility"
+  },
+  {
+    "id": "d2c36b51-1310-4f72-8417-f4b0ab3e3be2",
+    "name": "Lateral Raises",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "d65a0bd7-7def-4e32-a8ac-dbcd40e26621",
+    "name": "Pull-up / Weighted",
+    "archived": true,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Vertical Pull"
+  },
+  {
+    "id": "e0eeb2d6-092f-4b87-836a-fb24093ddcf8",
+    "name": "Weighted Crunch",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Gainage"
+  },
+  {
+    "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+    "name": "World's Greatest Stretch",
+    "archived": false,
+    "code": "unknown_group",
+    "field": "muscle_group",
+    "value": "Mobility"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "archived": false,
+    "code": "invalid_equipment",
+    "field": "equipment",
+    "value": "câble"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Gainage"
+  }
+]

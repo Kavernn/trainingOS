@@ -1,0 +1,550 @@
+[
+  {
+    "id": "1519b8a5-c80a-44a9-83e1-d23a4a90437e",
+    "name": "Single-Arm Triceps Extension",
+    "current": {
+      "id": "1519b8a5-c80a-44a9-83e1-d23a4a90437e",
+      "name": "Single-Arm Triceps Extension",
+      "type": "cable",
+      "category": "pull",
+      "pattern": "pull",
+      "level": "intermediate",
+      "default_scheme": "3x8-12",
+      "load_profile": "compound_hypertrophy",
+      "muscles": [
+        "triceps"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": 120,
+      "tips": null,
+      "muscle_group": "Triceps",
+      "muscle_specific": "Triceps — longue portion",
+      "secondary_muscles": [],
+      "movement_pattern": "pull_vertical",
+      "weight_type": "cable_single",
+      "equipment": [],
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Extension au-dessus de la tête ; pushdown bras le long du corps.",
+    "decision": "Position du bras pour valider longue portion et pattern."
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "current": {
+      "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+      "name": "Calf Raise",
+      "type": "machine",
+      "category": "legs",
+      "pattern": "isolation",
+      "level": "beginner",
+      "default_scheme": "3x12-15",
+      "load_profile": "isolation",
+      "muscles": [
+        "calves",
+        "soleus"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": 120,
+      "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Calf_Raise/1.jpg",
+      "muscle_group": "Mollets",
+      "muscle_specific": "Gastrocnémien",
+      "secondary_muscles": null,
+      "movement_pattern": "Isolation",
+      "weight_type": "machine",
+      "equipment": null,
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Debout (gastrocnémien) ; assis (soléaire, image actuelle).",
+    "decision": "Confirmer position du genou et machine."
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "name": "T-Bar Row",
+    "current": {
+      "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+      "name": "T-Bar Row",
+      "type": "barbell",
+      "category": "pull",
+      "pattern": "horizontal_pull",
+      "level": "intermediate",
+      "default_scheme": "4x8-10",
+      "load_profile": "compound_hypertrophy",
+      "muscles": [
+        "lats",
+        "rhomboids",
+        "traps",
+        "biceps"
+      ],
+      "increment": 5.0,
+      "bar_weight": 45.0,
+      "tracking_type": "reps",
+      "rest_seconds": 120,
+      "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_T-Bar_Row/1.jpg",
+      "muscle_group": "Dos",
+      "muscle_specific": "Grand dorsal",
+      "secondary_muscles": [
+        "Rhomboïdes"
+      ],
+      "movement_pattern": "Horizontal Pull",
+      "weight_type": "barbell",
+      "equipment": null,
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Landmine libre ; machine T-bar avec support thoracique (image actuelle).",
+    "decision": "Confirmer appareil et convention de charge."
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "name": "Leg Curl",
+    "current": {
+      "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+      "name": "Leg Curl",
+      "type": "machine",
+      "category": "legs",
+      "pattern": "hinge",
+      "level": "beginner",
+      "default_scheme": "3x10-12",
+      "load_profile": "isolation",
+      "muscles": [
+        "calves",
+        "hamstrings"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": 120,
+      "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Leg_Curl/1.jpg",
+      "muscle_group": "Ischio-jambiers",
+      "muscle_specific": "Biceps fémoral",
+      "secondary_muscles": null,
+      "movement_pattern": "Isolation",
+      "weight_type": "machine",
+      "equipment": null,
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Leg curl assis ; couché ; debout unilatéral.",
+    "decision": "Position et machine (ne pas inventer une portion musculaire)."
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "current": {
+      "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+      "name": "Burpee",
+      "type": "bodyweight",
+      "category": "core",
+      "pattern": "mobility",
+      "level": "intermediate",
+      "default_scheme": "3x8-12",
+      "load_profile": "compound_hypertrophy",
+      "muscles": [
+        "cardiovascular system",
+        "quadriceps",
+        "hamstrings",
+        "calves",
+        "shoulders",
+        "chest"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": 120,
+      "tips": "Start in a standing position with your feet shoulder-width apart.. Lower your body into a squat position by bending your knees and placing your hands on the floor in front of you.",
+      "muscle_group": "Pectoraux",
+      "muscle_specific": "Pectoral moyen",
+      "secondary_muscles": null,
+      "movement_pattern": "Gainage",
+      "weight_type": "bodyweight",
+      "equipment": null,
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Avec pompe ; sans pompe ; variante avec saut.",
+    "decision": "Séquence exacte avant attribution musculaire principale."
+  },
+  {
+    "id": "35ab117f-cd8e-4c71-b69b-f91f3676d818",
+    "name": "Dumbbell Pull Over",
+    "current": {
+      "id": "35ab117f-cd8e-4c71-b69b-f91f3676d818",
+      "name": "Dumbbell Pull Over",
+      "type": "machine",
+      "category": "push",
+      "pattern": "push",
+      "level": "intermediate",
+      "default_scheme": "3x8-12",
+      "load_profile": "compound_hypertrophy",
+      "muscles": [
+        "back"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": 120,
+      "tips": null,
+      "muscle_group": "Dos",
+      "muscle_specific": "Grand dorsal",
+      "secondary_muscles": [
+        "Grand rond",
+        "Pectoral majeur — chef costal",
+        "Triceps — longue portion"
+      ],
+      "movement_pattern": "push_vertical",
+      "weight_type": "machine",
+      "equipment": [
+        "Machine"
+      ],
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Pull-over haltère (nom) ; machine (type et équipement).",
+    "decision": "Confirmer appareil réel, puis attribution pectoraux/dorsaux selon exécution."
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "current": {
+      "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+      "name": "6-Way Shoulder Raise",
+      "type": "dumbbell",
+      "category": "push",
+      "pattern": "horizontal_push",
+      "level": "intermediate",
+      "default_scheme": "3x6-10",
+      "load_profile": null,
+      "muscles": [
+        "rear delts",
+        "rhomboids",
+        "rotators",
+        "shoulders",
+        "traps"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": null,
+      "tips": null,
+      "muscle_group": "Épaules",
+      "muscle_specific": "Deltoïdes",
+      "secondary_muscles": null,
+      "movement_pattern": "Isolation",
+      "weight_type": "dumbbell",
+      "equipment": null,
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Séquence élévations latérales/frontales ; séquence incluant rotation externe.",
+    "decision": "Décrire les six phases et choisir attribution principale unique."
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "current": {
+      "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+      "name": "Medicine Ball Overhead Throw",
+      "type": null,
+      "category": null,
+      "pattern": null,
+      "level": null,
+      "default_scheme": "4x5",
+      "load_profile": null,
+      "muscles": [],
+      "increment": 5,
+      "bar_weight": 0,
+      "tracking_type": "plyo",
+      "rest_seconds": null,
+      "tips": null,
+      "muscle_group": "Épaules",
+      "muscle_specific": "Deltoïde antérieur",
+      "secondary_muscles": null,
+      "movement_pattern": "Plyometric",
+      "weight_type": "endurance",
+      "equipment": null,
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Lancer vers l’avant au-dessus de la tête ; lancer arrière en triple extension.",
+    "decision": "Direction du lancer et modalité de charge."
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "name": "Cable Fly / Pec Dec",
+    "current": {
+      "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+      "name": "Cable Fly / Pec Dec",
+      "type": "cable_double",
+      "category": "push",
+      "pattern": "isolation",
+      "level": "beginner",
+      "default_scheme": "3x12-15",
+      "load_profile": "isolation",
+      "muscles": [
+        "pectorals"
+      ],
+      "increment": 2.5,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": 120,
+      "tips": "Câble croisé · stretch en bas · squeeze en haut",
+      "muscle_group": "Pectoraux",
+      "muscle_specific": "Pectoral moyen",
+      "secondary_muscles": null,
+      "movement_pattern": "Horizontal Push",
+      "weight_type": "cable_double",
+      "equipment": null,
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Écarté à deux piles ; pec-deck à pile unique.",
+    "decision": "Confirmer si une seule variante ou une alternative produit."
+  },
+  {
+    "id": "bd09ae7b-69df-4790-807e-b4f7b46baac4",
+    "name": "Chest press",
+    "current": {
+      "id": "bd09ae7b-69df-4790-807e-b4f7b46baac4",
+      "name": "Chest press",
+      "type": "machine",
+      "category": "push",
+      "pattern": "push",
+      "level": "beginner",
+      "default_scheme": "3x8-12",
+      "load_profile": "compound_hypertrophy",
+      "muscles": [
+        "chest"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": null,
+      "tips": null,
+      "muscle_group": "Pectoraux",
+      "muscle_specific": "Pectoral majeur — chef claviculaire",
+      "secondary_muscles": [
+        "Deltoïde antérieur",
+        "Triceps — chef latéral",
+        "Triceps — chef médial"
+      ],
+      "movement_pattern": "push_horizontal",
+      "weight_type": "machine",
+      "equipment": [
+        "Machine"
+      ],
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Presse horizontale ; presse inclinée (chef claviculaire actuel).",
+    "decision": "Angle et modèle de machine."
+  },
+  {
+    "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+    "name": "Wide-Grip Cable Row",
+    "current": {
+      "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+      "name": "Wide-Grip Cable Row",
+      "type": "machine",
+      "category": "pull",
+      "pattern": "pull",
+      "level": "",
+      "default_scheme": "3x8-12",
+      "load_profile": null,
+      "muscles": [
+        "back"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": null,
+      "tips": null,
+      "muscle_group": "Dos",
+      "muscle_specific": "Grand dorsal",
+      "secondary_muscles": [
+        "Rhomboïdes",
+        "Trapèze — chef inférieur",
+        "Trapèze — chef moyen"
+      ],
+      "movement_pattern": "pull_horizontal",
+      "weight_type": "machine",
+      "equipment": [
+        "Machine"
+      ],
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Poulie à pile unique ; machine à bras indépendants.",
+    "decision": "Confirmer convention machine/câble et trajectoire."
+  },
+  {
+    "id": "c6b79878-6a18-4de2-a4d0-26b65ed069fe",
+    "name": "Sandbag Bear Hug Squat",
+    "current": {
+      "id": "c6b79878-6a18-4de2-a4d0-26b65ed069fe",
+      "name": "Sandbag Bear Hug Squat",
+      "type": "press",
+      "category": "legs",
+      "pattern": "squat",
+      "level": "intermediate",
+      "default_scheme": "3x6-10",
+      "load_profile": "compound_heavy",
+      "muscles": [
+        "quads"
+      ],
+      "increment": 5.0,
+      "bar_weight": 0.0,
+      "tracking_type": "reps",
+      "rest_seconds": 120,
+      "tips": null,
+      "muscle_group": "Quadriceps",
+      "muscle_specific": null,
+      "secondary_muscles": [
+        "Biceps fémoral — longue portion",
+        "Grand adducteur",
+        "Grand fessier"
+      ],
+      "movement_pattern": "squat",
+      "weight_type": "press",
+      "equipment": [],
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Sandbag tenu contre soi ; machine press (type actuel).",
+    "decision": "Confirmer appareil et type de charge supporté pour sandbag."
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "current": {
+      "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+      "name": "Cossack Squat",
+      "type": "bodyweight",
+      "category": "legs",
+      "pattern": "lunge",
+      "level": "beginner",
+      "default_scheme": "2x6",
+      "load_profile": null,
+      "muscles": [
+        "adductors",
+        "quads",
+        "glutes"
+      ],
+      "increment": 0,
+      "bar_weight": 0,
+      "tracking_type": "reps",
+      "rest_seconds": 60,
+      "tips": "Talons au sol, jambe tendue orteils au plafond, torse droit, descente profonde.",
+      "muscle_group": "legs",
+      "muscle_specific": "Adducteurs",
+      "secondary_muscles": [
+        "Quadriceps",
+        "Fessiers"
+      ],
+      "movement_pattern": "lunge",
+      "weight_type": "mobility",
+      "equipment": [],
+      "alternate_name": null,
+      "is_unilateral": true,
+      "deleted_at": null
+    },
+    "interpretations": "Mobilité latérale ; squat latéral de force au poids du corps.",
+    "decision": "Modalité et traitement des adducteurs dans le volume."
+  },
+  {
+    "id": "d48ad620-1794-414d-ac93-a86e49085413",
+    "name": "Weighted Dips",
+    "current": {
+      "id": "d48ad620-1794-414d-ac93-a86e49085413",
+      "name": "Weighted Dips",
+      "type": "bodyweight",
+      "category": "push",
+      "pattern": "push_horizontal",
+      "level": "intermediate",
+      "default_scheme": "4x6-10",
+      "load_profile": null,
+      "muscles": [
+        "lower_chest",
+        "triceps",
+        "front_delts"
+      ],
+      "increment": 2.5,
+      "bar_weight": 0,
+      "tracking_type": "reps",
+      "rest_seconds": 150,
+      "tips": "Torse légèrement penché avant, épaules loin des oreilles, descente contrôlée.",
+      "muscle_group": "Pectoraux",
+      "muscle_specific": "Pectoral inférieur",
+      "secondary_muscles": [
+        "Triceps",
+        "Deltoïde antérieur"
+      ],
+      "movement_pattern": "push_horizontal",
+      "weight_type": "strength",
+      "equipment": [
+        "dip_bars",
+        "weight_belt"
+      ],
+      "alternate_name": null,
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Buste incliné orienté pectoraux ; buste vertical orienté triceps.",
+    "decision": "Technique et convention charge additionnelle/poids total."
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "current": {
+      "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+      "name": "Cable Crunch",
+      "type": "cable",
+      "category": "strength",
+      "pattern": "core",
+      "level": "beginner",
+      "default_scheme": "3x12-15",
+      "load_profile": "isolation",
+      "muscles": [
+        "core"
+      ],
+      "increment": 2.5,
+      "bar_weight": 0,
+      "tracking_type": "reps",
+      "rest_seconds": 60,
+      "tips": "À genoux, fléchissez la colonne (pas les hanches). Contraction maximale au bas. Coudes fixes.",
+      "muscle_group": "Core",
+      "muscle_specific": "Droit abdominal",
+      "secondary_muscles": [
+        "Obliques"
+      ],
+      "movement_pattern": "Gainage",
+      "weight_type": "cable_double",
+      "equipment": [
+        "câble"
+      ],
+      "alternate_name": "Crunch Poulie",
+      "is_unilateral": false,
+      "deleted_at": null
+    },
+    "interpretations": "Une pile ; deux piles (weight_type actuel, type cable).",
+    "decision": "Confirmer nombre de piles et convention de saisie."
+  }
+]

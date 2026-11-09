@@ -1,0 +1,16 @@
+{
+  "total": 161,
+  "active": 142,
+  "archived": 19,
+  "complete_before": 1,
+  "missing_before": 119,
+  "inconsistent_before": 7,
+  "invalid_taxonomy_before": 131,
+  "anatomically_suspicious_before": 6,
+  "corrected": 94,
+  "fields_corrected": 108,
+  "ambiguous": 15,
+  "unknown_group_after": 13,
+  "findings_before": 523,
+  "findings_after": 440
+}

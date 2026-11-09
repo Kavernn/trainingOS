@@ -1,0 +1,177 @@
+[
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "exercise": "6-Way Shoulder Raise",
+    "session": "Upper A",
+    "block_type": "strength",
+    "scheme": "3x6-10"
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "exercise": "Cable Fly / Pec Dec",
+    "session": "Push",
+    "block_type": "strength",
+    "scheme": "3x12-15"
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "exercise": "T-Bar Row",
+    "session": "Dimanche AM — Largeur dos + bras",
+    "block_type": "strength",
+    "scheme": "3x8-10"
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "exercise": "T-Bar Row",
+    "session": "Pull",
+    "block_type": "strength",
+    "scheme": "3x8-12"
+  },
+  {
+    "id": "c6b79878-6a18-4de2-a4d0-26b65ed069fe",
+    "exercise": "Sandbag Bear Hug Squat",
+    "session": "Dimanche PM — Jambes B",
+    "block_type": "isolation",
+    "scheme": "3x6-10"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "exercise": "Cable Crunch",
+    "session": "Dimanche PM — Jambes B",
+    "block_type": "core",
+    "scheme": "3x12-15"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "exercise": "Cable Crunch",
+    "session": "6ème bonus",
+    "block_type": "strength",
+    "scheme": "3x12-15"
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "exercise": "Leg Curl",
+    "session": "Legs",
+    "block_type": "strength",
+    "scheme": "3x10-12"
+  },
+  {
+    "id": "bd09ae7b-69df-4790-807e-b4f7b46baac4",
+    "exercise": "Chest press",
+    "session": "Hôtel séance",
+    "block_type": "strength",
+    "scheme": "3x8-12"
+  },
+  {
+    "id": "bd09ae7b-69df-4790-807e-b4f7b46baac4",
+    "exercise": "Chest press",
+    "session": "Hôtel séance",
+    "block_type": "strength",
+    "scheme": "3x8-12"
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "exercise": "Cable Fly / Pec Dec",
+    "session": "Non faits de la semaine",
+    "block_type": "strength",
+    "scheme": "3x12-15"
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "exercise": "Calf Raise",
+    "session": "New",
+    "block_type": "strength",
+    "scheme": "3x12-15"
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "exercise": "Calf Raise",
+    "session": "Lundi AM — Jambes",
+    "block_type": "strength",
+    "scheme": "4x8-12"
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "exercise": "6-Way Shoulder Raise",
+    "session": "6ème bonus",
+    "block_type": "strength",
+    "scheme": "3x6-10"
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "exercise": "Leg Curl",
+    "session": "Vendredi AM — Chaîne postérieure",
+    "block_type": "strength",
+    "scheme": "3x10-12"
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "exercise": "Cable Fly / Pec Dec",
+    "session": "Push",
+    "block_type": "strength",
+    "scheme": "3x12-15"
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "exercise": "T-Bar Row",
+    "session": "Pull",
+    "block_type": "strength",
+    "scheme": "3x8-12"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "exercise": "Cable Crunch",
+    "session": "Dimanche PM — Puissance + bras + core",
+    "block_type": "strength",
+    "scheme": "3x12-15"
+  },
+  {
+    "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+    "exercise": "Wide-Grip Cable Row",
+    "session": "Mardi AM — Pull A",
+    "block_type": "strength",
+    "scheme": "3x8-12"
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "exercise": "Cable Fly / Pec Dec",
+    "session": "Jeudi AM — Pecs",
+    "block_type": "strength",
+    "scheme": "3x12-15"
+  },
+  {
+    "id": "d48ad620-1794-414d-ac93-a86e49085413",
+    "exercise": "Weighted Dips",
+    "session": "Jeudi AM — Pecs",
+    "block_type": "strength",
+    "scheme": "4x6-10"
+  },
+  {
+    "id": "35ab117f-cd8e-4c71-b69b-f91f3676d818",
+    "exercise": "Dumbbell Pull Over",
+    "session": "Samedi Impro",
+    "block_type": "strength",
+    "scheme": "3x8-12"
+  },
+  {
+    "id": "1519b8a5-c80a-44a9-83e1-d23a4a90437e",
+    "exercise": "Single-Arm Triceps Extension",
+    "session": "Jeudi PM — Push B",
+    "block_type": "strength",
+    "scheme": "3x8-12"
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "exercise": "T-Bar Row",
+    "session": "Vendredi AM — Pull B",
+    "block_type": "force",
+    "scheme": "4x6-10"
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "exercise": "Leg Curl",
+    "session": "Mercredi PM — Jambes A",
+    "block_type": "isolation",
+    "scheme": "5x10-15"
+  }
+]

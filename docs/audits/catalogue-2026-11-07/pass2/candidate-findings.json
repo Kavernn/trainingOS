@@ -1,0 +1,162 @@
+[
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "name": "T-Bar Row",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "name": "T-Bar Row",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Horizontal Pull"
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Gainage"
+  },
+  {
+    "id": "35ab117f-cd8e-4c71-b69b-f91f3676d818",
+    "name": "Dumbbell Pull Over",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "secondary_muscles",
+    "value": "Pectoral majeur — chef costal"
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Isolation"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": null
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Plyometric"
+  },
+  {
+    "id": "b95a3324-7813-4d73-b0de-6e20867b0983",
+    "name": "Overhead Press",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Vertical Push"
+  },
+  {
+    "id": "bd09ae7b-69df-4790-807e-b4f7b46baac4",
+    "name": "Chest press",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "muscle_specific",
+    "value": "Pectoral majeur — chef claviculaire"
+  },
+  {
+    "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+    "name": "Wide-Grip Cable Row",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "secondary_muscles",
+    "value": "Trapèze — chef inférieur"
+  },
+  {
+    "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+    "name": "Wide-Grip Cable Row",
+    "archived": false,
+    "code": "unknown_muscle",
+    "field": "secondary_muscles",
+    "value": "Trapèze — chef moyen"
+  },
+  {
+    "id": "c6b79878-6a18-4de2-a4d0-26b65ed069fe",
+    "name": "Sandbag Bear Hug Squat",
+    "archived": false,
+    "code": "missing_equipment",
+    "field": "equipment",
+    "value": []
+  },
+  {
+    "id": "c9a0be3d-6761-4957-873d-a1b32f94ed8f",
+    "name": "Goblet Squat",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Squat"
+  },
+  {
+    "id": "e0eeb2d6-092f-4b87-836a-fb24093ddcf8",
+    "name": "Weighted Crunch",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Gainage"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "archived": false,
+    "code": "invalid_equipment",
+    "field": "equipment",
+    "value": "câble"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "archived": false,
+    "code": "invalid_pattern",
+    "field": "movement_pattern",
+    "value": "Gainage"
+  }
+]

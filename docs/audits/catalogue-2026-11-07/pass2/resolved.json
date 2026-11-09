@@ -1,0 +1,7 @@
+{
+  "Leg Curl": "Hamstring knee flexion in machine, consistent across name/metadata and three programme usages; posture not needed for this granularity.",
+  "Single-Arm Triceps Extension": "Triceps extension, cable_single, one arm, Push B programme. Keep generic Triceps brachial rather than infer overhead angle.",
+  "Cable Fly / Pec Dec": "Explicit cable instructions and cable_double agree; catalogue entry is the cable variant, despite alternative in name.",
+  "Weighted Dips": "Forward lean instructions, lower-chest metadata and Pecs programme agree; existing bodyweight type defines additional-load contract.",
+  "Cossack Squat": "Bodyweight, reps, lateral squat instructions and unilateral flag agree; use existing Hanches group for explicit adductor target."
+}

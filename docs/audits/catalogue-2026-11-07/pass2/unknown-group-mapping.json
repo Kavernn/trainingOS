@@ -1,0 +1,138 @@
+[
+  {
+    "id": "112bc757-0b40-480c-9815-95064c0a81a9",
+    "name": "Thoracic Extension + Open Book",
+    "before": "Mobility",
+    "detailed_target": "Thoracique",
+    "after": "Dos",
+    "secondary": [
+      "Obliques"
+    ],
+    "rationale": "Thoracic region; non-strength mobility, not a strength attribution."
+  },
+  {
+    "id": "18ae9f4c-94b4-4dab-b4be-4f2b64a3fe85",
+    "name": "Cat-Cow + Thoracic Rotation",
+    "before": "Mobility",
+    "detailed_target": "Thoracique",
+    "after": "Dos",
+    "secondary": null,
+    "rationale": "Thoracic spine mobility; region retained as non-strength exception."
+  },
+  {
+    "id": "3d10e32d-23a1-4168-8b9e-013beb210f57",
+    "name": "Box Jump",
+    "before": "Jambes",
+    "detailed_target": "Quadriceps",
+    "after": "Quadriceps",
+    "secondary": [
+      "Grand fessier",
+      "Gastrocnémien"
+    ],
+    "rationale": "Existing explicit knee-extensor target; plyo remains unchanged."
+  },
+  {
+    "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+    "name": "Zone-2 (vélo/rameur)",
+    "before": "Cardio",
+    "detailed_target": "Système cardiovasculaire",
+    "after": "Autre",
+    "secondary": [],
+    "rationale": "Cardiorespiratory modality has no truthful skeletal muscle group; existing Autre bucket."
+  },
+  {
+    "id": "517569ba-2fb9-4dd9-a5fa-b86ee6e0fabf",
+    "name": "Nordic Hamstring Curl",
+    "before": "legs",
+    "detailed_target": "Ischio-jambiers",
+    "after": "Ischio-jambiers",
+    "secondary": [],
+    "rationale": "Explicit eccentric knee flexion; no hip-hinge attribution."
+  },
+  {
+    "id": "5ee34b7f-0e55-4125-a681-8a7def446441",
+    "name": "Bloc plancher pelvien",
+    "before": "Cardio",
+    "detailed_target": "Plancher pelvien",
+    "after": "Core",
+    "secondary": [],
+    "rationale": "Pelvic-floor protocol is trunk/pelvic bucket, not cardiovascular."
+  },
+  {
+    "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+    "name": "Intervalles (VO2)",
+    "before": "Cardio",
+    "detailed_target": "Système cardiovasculaire",
+    "after": "Autre",
+    "secondary": [],
+    "rationale": "Cardiorespiratory modality; existing Autre bucket, no invented muscle."
+  },
+  {
+    "id": "75c741f8-8ed6-4eb1-bf08-a45419908038",
+    "name": "Skull Crusher (EZ)",
+    "before": "arms",
+    "detailed_target": "Triceps — longue portion",
+    "after": "Triceps",
+    "secondary": [
+      "Triceps — chef latéral",
+      "Triceps — chef médial"
+    ],
+    "rationale": "Elbow extension; existing supported head retained."
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "before": "Jambes",
+    "detailed_target": "Quadriceps",
+    "after": "Quadriceps",
+    "secondary": [
+      "Grand fessier",
+      "Gastrocnémien"
+    ],
+    "rationale": "Existing primary knee-extensor target retained, glute/calf synergists."
+  },
+  {
+    "id": "bbbcbcb3-6693-4111-9528-06b8f0d725d9",
+    "name": "Tibialis Raises",
+    "before": "legs",
+    "detailed_target": "Tibial antérieur",
+    "after": "Mollets",
+    "secondary": [],
+    "rationale": "Existing editor explicitly places Tibial antérieur under Mollets; broad lower-leg bucket, not an alias for gastrocnemius."
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "before": "legs",
+    "detailed_target": "Adducteurs",
+    "after": "Hanches",
+    "secondary": [
+      "Quadriceps",
+      "Grand fessier"
+    ],
+    "rationale": "Existing Hanches editor bucket explicitly covers hip adductors; no new group."
+  },
+  {
+    "id": "cdac5271-1a7a-4239-972a-fb6ebec1806c",
+    "name": "90/90 Hip + Band Shoulder Rotation",
+    "before": "Mobility",
+    "detailed_target": "Hanches",
+    "after": "Hanches",
+    "secondary": [
+      "Épaules"
+    ],
+    "rationale": "Hip mobility region; shoulder remains secondary region, non-strength exception."
+  },
+  {
+    "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+    "name": "World's Greatest Stretch",
+    "before": "Mobility",
+    "detailed_target": "Hanches",
+    "after": "Hanches",
+    "secondary": [
+      "Thoracique",
+      "Ischio-jambiers"
+    ],
+    "rationale": "Hip-focused lunge mobility plus thoracic rotation; no invented individual hip muscle."
+  }
+]

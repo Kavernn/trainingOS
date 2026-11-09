@@ -1,0 +1,3082 @@
+[
+  {
+    "id": "00332b97-110a-4915-b17a-4e2e49919e6d",
+    "name": "Copenhagen Plank",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Adducteurs'"
+  },
+  {
+    "id": "00332b97-110a-4915-b17a-4e2e49919e6d",
+    "name": "Copenhagen Plank",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "00332b97-110a-4915-b17a-4e2e49919e6d",
+    "name": "Copenhagen Plank",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "0372093b-e1ff-4706-9863-82c82491a43b",
+    "name": "Hollow Body Crunch",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Hip Flexors'"
+  },
+  {
+    "id": "0372093b-e1ff-4706-9863-82c82491a43b",
+    "name": "Hollow Body Crunch",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "0372093b-e1ff-4706-9863-82c82491a43b",
+    "name": "Hollow Body Crunch",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "0490140d-dfe8-4fe1-8463-90ffc2c93eab",
+    "name": "Inverted Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "0490140d-dfe8-4fe1-8463-90ffc2c93eab",
+    "name": "Inverted Row",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "0490140d-dfe8-4fe1-8463-90ffc2c93eab",
+    "name": "Inverted Row",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "10254163-84fd-4bd6-8187-132c40992e72",
+    "name": "Neck Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'longus capitis'"
+  },
+  {
+    "id": "10254163-84fd-4bd6-8187-132c40992e72",
+    "name": "Neck Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'longus colli'"
+  },
+  {
+    "id": "10254163-84fd-4bd6-8187-132c40992e72",
+    "name": "Neck Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'scalenes'"
+  },
+  {
+    "id": "10b42a6a-497c-42a9-a84a-45b2deacba3b",
+    "name": "Romanian Deadlift",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "10b42a6a-497c-42a9-a84a-45b2deacba3b",
+    "name": "Romanian Deadlift",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Hinge"
+  },
+  {
+    "id": "10b42a6a-497c-42a9-a84a-45b2deacba3b",
+    "name": "Romanian Deadlift",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "112bc757-0b40-480c-9815-95064c0a81a9",
+    "name": "Thoracic Extension + Open Book",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "112bc757-0b40-480c-9815-95064c0a81a9",
+    "name": "Thoracic Extension + Open Book",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "112bc757-0b40-480c-9815-95064c0a81a9",
+    "name": "Thoracic Extension + Open Book",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Thoracique'"
+  },
+  {
+    "id": "112bc757-0b40-480c-9815-95064c0a81a9",
+    "name": "Thoracic Extension + Open Book",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "112bc757-0b40-480c-9815-95064c0a81a9",
+    "name": "Thoracic Extension + Open Book",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Rotation"
+  },
+  {
+    "id": "11b465db-21c9-418e-ae02-67a00e447a85",
+    "name": "Chest-Supported DB Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "148511ac-237c-432d-accb-1b5ebfe046a1",
+    "name": "Barbell Close-Grip Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "148511ac-237c-432d-accb-1b5ebfe046a1",
+    "name": "Barbell Close-Grip Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "148511ac-237c-432d-accb-1b5ebfe046a1",
+    "name": "Barbell Close-Grip Bench Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "1519b8a5-c80a-44a9-83e1-d23a4a90437e",
+    "name": "Single-Arm Triceps Extension",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "1639cf6d-8235-4e99-8bee-35d33b9911dc",
+    "name": "Leg Extension",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "1639cf6d-8235-4e99-8bee-35d33b9911dc",
+    "name": "Leg Extension",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "1639cf6d-8235-4e99-8bee-35d33b9911dc",
+    "name": "Leg Extension",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "18ae9f4c-94b4-4dab-b4be-4f2b64a3fe85",
+    "name": "Cat-Cow + Thoracic Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "18ae9f4c-94b4-4dab-b4be-4f2b64a3fe85",
+    "name": "Cat-Cow + Thoracic Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "18ae9f4c-94b4-4dab-b4be-4f2b64a3fe85",
+    "name": "Cat-Cow + Thoracic Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Thoracique'"
+  },
+  {
+    "id": "18ae9f4c-94b4-4dab-b4be-4f2b64a3fe85",
+    "name": "Cat-Cow + Thoracic Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "18ae9f4c-94b4-4dab-b4be-4f2b64a3fe85",
+    "name": "Cat-Cow + Thoracic Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Rotation"
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "1efbb1ab-ce90-4a8c-8755-8aa2ae085c61",
+    "name": "Medicine Ball Rotational Throw",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "1efbb1ab-ce90-4a8c-8755-8aa2ae085c61",
+    "name": "Medicine Ball Rotational Throw",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Rotation"
+  },
+  {
+    "id": "1f50f894-679d-427a-8ffc-fcd013dec943",
+    "name": "Barbell Preacher Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "1f50f894-679d-427a-8ffc-fcd013dec943",
+    "name": "Barbell Preacher Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "1f50f894-679d-427a-8ffc-fcd013dec943",
+    "name": "Barbell Preacher Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "23c31a4a-84de-471d-9e0e-742920ae474a",
+    "name": "Unilateral lateral raises",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "23c31a4a-84de-471d-9e0e-742920ae474a",
+    "name": "Unilateral lateral raises",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "2469a72a-0fed-4fe9-8287-0a48ea8cd033",
+    "name": "Lying Leg Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "2469a72a-0fed-4fe9-8287-0a48ea8cd033",
+    "name": "Lying Leg Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "2469a72a-0fed-4fe9-8287-0a48ea8cd033",
+    "name": "Lying Leg Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "name": "T-Bar Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "name": "T-Bar Row",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "290eb168-e05b-481f-9ef3-07051d6cbff0",
+    "name": "Hammer Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "290eb168-e05b-481f-9ef3-07051d6cbff0",
+    "name": "Hammer Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "290eb168-e05b-481f-9ef3-07051d6cbff0",
+    "name": "Hammer Curl",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+    "name": "Lateral Bound",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Plyometric"
+  },
+  {
+    "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+    "name": "Lateral Bound",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+    "name": "Lateral Bound",
+    "category": "MISSING DATA",
+    "field": "type",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+    "name": "Lateral Bound",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+    "name": "Lateral Bound",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+    "name": "Lateral Bound",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+    "name": "Lateral Bound",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "29609082-555f-40eb-b3a8-bc01efe793f2",
+    "name": "Hip Thrust",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Extension"
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "name": "Leg Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "name": "Leg Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "name": "Leg Curl",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "name": "Leg Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "2e0827c6-05ad-486e-95b1-e40d0f4bc022",
+    "name": "Barbell Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "2e0827c6-05ad-486e-95b1-e40d0f4bc022",
+    "name": "Barbell Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "2e0827c6-05ad-486e-95b1-e40d0f4bc022",
+    "name": "Barbell Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "2e69ba02-e925-4865-8cea-31cfaf108d10",
+    "name": "Cable Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "2e69ba02-e925-4865-8cea-31cfaf108d10",
+    "name": "Cable Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "2e69ba02-e925-4865-8cea-31cfaf108d10",
+    "name": "Cable Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "2f717ae8-72cb-4a3f-8324-a980f6b7ab6a",
+    "name": "Cable Lateral Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "2f717ae8-72cb-4a3f-8324-a980f6b7ab6a",
+    "name": "Cable Lateral Raise",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "308b33e0-78b2-4a21-9810-e6559f0e3807",
+    "name": "Pallof Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "308b33e0-78b2-4a21-9810-e6559f0e3807",
+    "name": "Pallof Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "36b22489-efaf-4358-a862-ebe1f813c68d",
+    "name": "Band Pull-Apart",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "38bebfbe-036e-4023-a4db-12863ace35ed",
+    "name": "Bayesian Biceps Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "38bebfbe-036e-4023-a4db-12863ace35ed",
+    "name": "Bayesian Biceps Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "38bebfbe-036e-4023-a4db-12863ace35ed",
+    "name": "Bayesian Biceps Curl",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "38bebfbe-036e-4023-a4db-12863ace35ed",
+    "name": "Bayesian Biceps Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "3af0d483-cc9e-433c-9a21-3a86c549e77e",
+    "name": "Cable External Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Coiffe des rotateurs'"
+  },
+  {
+    "id": "3af0d483-cc9e-433c-9a21-3a86c549e77e",
+    "name": "Cable External Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3af0d483-cc9e-433c-9a21-3a86c549e77e",
+    "name": "Cable External Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "weight_type",
+    "detail": "Unsupported load type: hypertrophy"
+  },
+  {
+    "id": "3af0d483-cc9e-433c-9a21-3a86c549e77e",
+    "name": "Cable External Rotation",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "3af0d483-cc9e-433c-9a21-3a86c549e77e",
+    "name": "Cable External Rotation",
+    "category": "INCONSISTENT",
+    "field": "weight_type",
+    "detail": "Legacy type and weight_type disagree; verify convention before changing load"
+  },
+  {
+    "id": "3b4b4a2f-4bf3-4526-bbaa-e4af98c0884a",
+    "name": "Back Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3b4b4a2f-4bf3-4526-bbaa-e4af98c0884a",
+    "name": "Back Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Squat"
+  },
+  {
+    "id": "3b6c646a-133d-4618-9680-387786037816",
+    "name": "EZ Bar Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3b6c646a-133d-4618-9680-387786037816",
+    "name": "EZ Bar Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "3b6c646a-133d-4618-9680-387786037816",
+    "name": "EZ Bar Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "3d10e32d-23a1-4168-8b9e-013beb210f57",
+    "name": "Box Jump",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "3d10e32d-23a1-4168-8b9e-013beb210f57",
+    "name": "Box Jump",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "3d10e32d-23a1-4168-8b9e-013beb210f57",
+    "name": "Box Jump",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3d10e32d-23a1-4168-8b9e-013beb210f57",
+    "name": "Box Jump",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Plyometric"
+  },
+  {
+    "id": "3d29d57a-7b3d-4e16-b87b-854651f94d68",
+    "name": "Abs wheel",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3d29d57a-7b3d-4e16-b87b-854651f94d68",
+    "name": "Abs wheel",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "3d29d57a-7b3d-4e16-b87b-854651f94d68",
+    "name": "Abs wheel",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "3d29d57a-7b3d-4e16-b87b-854651f94d68",
+    "name": "Abs wheel",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "3dd16c0e-5082-4950-a645-1db789171655",
+    "name": "Incline DB Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3dd16c0e-5082-4950-a645-1db789171655",
+    "name": "Incline DB Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "3dd16c0e-5082-4950-a645-1db789171655",
+    "name": "Incline DB Press",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "3eb47bc0-8e10-49f0-a4b8-2914db648503",
+    "name": "Incline Cable Fly",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3eb47bc0-8e10-49f0-a4b8-2914db648503",
+    "name": "Incline Cable Fly",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "3eb47bc0-8e10-49f0-a4b8-2914db648503",
+    "name": "Incline Cable Fly",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "3eb47bc0-8e10-49f0-a4b8-2914db648503",
+    "name": "Incline Cable Fly",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "3ff53dd3-caaf-4b29-bc97-21fbf66cdc84",
+    "name": "Barbell Shrug",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "3ff53dd3-caaf-4b29-bc97-21fbf66cdc84",
+    "name": "Barbell Shrug",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "3ff53dd3-caaf-4b29-bc97-21fbf66cdc84",
+    "name": "Barbell Shrug",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "4024dde6-3c2c-4463-9935-9c74c7f63545",
+    "name": "Dumbbell Decline Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "4024dde6-3c2c-4463-9935-9c74c7f63545",
+    "name": "Dumbbell Decline Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "4024dde6-3c2c-4463-9935-9c74c7f63545",
+    "name": "Dumbbell Decline Bench Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "402e4fd4-1c97-413f-8f7b-5e2e1c4faf65",
+    "name": "Wrist Roller",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "402e4fd4-1c97-413f-8f7b-5e2e1c4faf65",
+    "name": "Wrist Roller",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "402e4fd4-1c97-413f-8f7b-5e2e1c4faf65",
+    "name": "Wrist Roller",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "402e4fd4-1c97-413f-8f7b-5e2e1c4faf65",
+    "name": "Wrist Roller",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+    "name": "Zone-2 (vélo/rameur)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+    "name": "Zone-2 (vélo/rameur)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+    "name": "Zone-2 (vélo/rameur)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Système cardiovasculaire'"
+  },
+  {
+    "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+    "name": "Zone-2 (vélo/rameur)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+    "name": "Zone-2 (vélo/rameur)",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Cardio"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Plyometric"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "category": "MISSING DATA",
+    "field": "type",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "46dfd5a9-b52b-4690-ac22-b9064650f9eb",
+    "name": "Barbell Glute Bridge",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Extension"
+  },
+  {
+    "id": "46dfd5a9-b52b-4690-ac22-b9064650f9eb",
+    "name": "Barbell Glute Bridge",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "486b1277-3d39-4ac4-8247-b2b833ec03a8",
+    "name": "Dips",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "486b1277-3d39-4ac4-8247-b2b833ec03a8",
+    "name": "Dips",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Push"
+  },
+  {
+    "id": "486b1277-3d39-4ac4-8247-b2b833ec03a8",
+    "name": "Dips",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "486b1277-3d39-4ac4-8247-b2b833ec03a8",
+    "name": "Dips",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "4f44fe97-2dd0-400f-a653-b6d91c3964b7",
+    "name": "Cable Pull-Through",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Hinge"
+  },
+  {
+    "id": "517569ba-2fb9-4dd9-a5fa-b86ee6e0fabf",
+    "name": "Nordic Hamstring Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "517569ba-2fb9-4dd9-a5fa-b86ee6e0fabf",
+    "name": "Nordic Hamstring Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "517569ba-2fb9-4dd9-a5fa-b86ee6e0fabf",
+    "name": "Nordic Hamstring Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "517569ba-2fb9-4dd9-a5fa-b86ee6e0fabf",
+    "name": "Nordic Hamstring Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "weight_type",
+    "detail": "Unsupported load type: strength"
+  },
+  {
+    "id": "517569ba-2fb9-4dd9-a5fa-b86ee6e0fabf",
+    "name": "Nordic Hamstring Curl",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "578c78d5-c413-4827-a3d9-ef044359049f",
+    "name": "Sissy Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "578c78d5-c413-4827-a3d9-ef044359049f",
+    "name": "Sissy Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Squat"
+  },
+  {
+    "id": "578c78d5-c413-4827-a3d9-ef044359049f",
+    "name": "Sissy Squat",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "578c78d5-c413-4827-a3d9-ef044359049f",
+    "name": "Sissy Squat",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "5d26346d-6eb6-4d48-8790-7171a6d1e284",
+    "name": "Deep Barbell Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "5d26346d-6eb6-4d48-8790-7171a6d1e284",
+    "name": "Deep Barbell Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Squat"
+  },
+  {
+    "id": "5d26346d-6eb6-4d48-8790-7171a6d1e284",
+    "name": "Deep Barbell Squat",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "5ea88c96-99b5-4a75-93a7-4d07ab68d9e9",
+    "name": "Seated Cable Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "5ea88c96-99b5-4a75-93a7-4d07ab68d9e9",
+    "name": "Seated Cable Row",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "5ed9acb6-76d6-408c-9aca-db573e1fb9dc",
+    "name": "Machine Rear Delt Flys",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "5ed9acb6-76d6-408c-9aca-db573e1fb9dc",
+    "name": "Machine Rear Delt Flys",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "5ee34b7f-0e55-4125-a681-8a7def446441",
+    "name": "Bloc plancher pelvien",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "5ee34b7f-0e55-4125-a681-8a7def446441",
+    "name": "Bloc plancher pelvien",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "5ee34b7f-0e55-4125-a681-8a7def446441",
+    "name": "Bloc plancher pelvien",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Plancher pelvien'"
+  },
+  {
+    "id": "5ee34b7f-0e55-4125-a681-8a7def446441",
+    "name": "Bloc plancher pelvien",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "5ee34b7f-0e55-4125-a681-8a7def446441",
+    "name": "Bloc plancher pelvien",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Cardio"
+  },
+  {
+    "id": "5fe28d3e-6085-42c3-8973-d29f73766b55",
+    "name": "Lateral Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "5fe28d3e-6085-42c3-8973-d29f73766b55",
+    "name": "Lateral Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "60017691-bc43-4eaa-86d8-c0844621b6ab",
+    "name": "Cable Seated Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "60017691-bc43-4eaa-86d8-c0844621b6ab",
+    "name": "Cable Seated Row",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "60017691-bc43-4eaa-86d8-c0844621b6ab",
+    "name": "Cable Seated Row",
+    "category": "INCONSISTENT",
+    "field": "weight_type",
+    "detail": "Legacy type and weight_type disagree; verify convention before changing load"
+  },
+  {
+    "id": "61ef73eb-53e4-464a-ae0f-bf2324d2fedb",
+    "name": "Barbell Front Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "61ef73eb-53e4-464a-ae0f-bf2324d2fedb",
+    "name": "Barbell Front Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Squat"
+  },
+  {
+    "id": "61ef73eb-53e4-464a-ae0f-bf2324d2fedb",
+    "name": "Barbell Front Squat",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "62f5d842-4cb6-4142-9287-5a9757ae3caf",
+    "name": "Lat Pulldown",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Pull"
+  },
+  {
+    "id": "62f5d842-4cb6-4142-9287-5a9757ae3caf",
+    "name": "Lat Pulldown",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "6722c8ed-08df-43ee-95c8-a02bb4fa57e3",
+    "name": "Dumbbell Front Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "6722c8ed-08df-43ee-95c8-a02bb4fa57e3",
+    "name": "Dumbbell Front Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "690a10d1-d233-4318-93dc-5d40b053a018",
+    "name": "Abductor machine",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Abduction"
+  },
+  {
+    "id": "690a10d1-d233-4318-93dc-5d40b053a018",
+    "name": "Abductor machine",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Plyometric"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "category": "MISSING DATA",
+    "field": "type",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "6b30f586-d5e6-4a41-9f28-56b9296dbea3",
+    "name": "Incline DB Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "6b30f586-d5e6-4a41-9f28-56b9296dbea3",
+    "name": "Incline DB Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "6b30f586-d5e6-4a41-9f28-56b9296dbea3",
+    "name": "Incline DB Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+    "name": "Intervalles (VO2)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+    "name": "Intervalles (VO2)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+    "name": "Intervalles (VO2)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Système cardiovasculaire'"
+  },
+  {
+    "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+    "name": "Intervalles (VO2)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+    "name": "Intervalles (VO2)",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Cardio"
+  },
+  {
+    "id": "71eefa04-2eba-472e-981c-fc3a3ff01eb8",
+    "name": "Rear Delt Cable Fly",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "71eefa04-2eba-472e-981c-fc3a3ff01eb8",
+    "name": "Rear Delt Cable Fly",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "733f7dc8-fc2b-412d-bad2-e4d3b4c2b6fa",
+    "name": "Dumbbell Fly",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "733f7dc8-fc2b-412d-bad2-e4d3b4c2b6fa",
+    "name": "Dumbbell Fly",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "733f7dc8-fc2b-412d-bad2-e4d3b4c2b6fa",
+    "name": "Dumbbell Fly",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "7381bd5d-dac0-4770-8873-4602ed8ed07e",
+    "name": "Seated Calf Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "7381bd5d-dac0-4770-8873-4602ed8ed07e",
+    "name": "Seated Calf Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "75c741f8-8ed6-4eb1-bf08-a45419908038",
+    "name": "Skull Crusher (EZ)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "75c741f8-8ed6-4eb1-bf08-a45419908038",
+    "name": "Skull Crusher (EZ)",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "75c741f8-8ed6-4eb1-bf08-a45419908038",
+    "name": "Skull Crusher (EZ)",
+    "category": "INCONSISTENT",
+    "field": "muscle_group",
+    "detail": "Editor places Triceps — longue portion in ['Triceps'], not arms"
+  },
+  {
+    "id": "75c741f8-8ed6-4eb1-bf08-a45419908038",
+    "name": "Skull Crusher (EZ)",
+    "category": "INVALID TAXONOMY",
+    "field": "weight_type",
+    "detail": "Unsupported load type: strength"
+  },
+  {
+    "id": "75c741f8-8ed6-4eb1-bf08-a45419908038",
+    "name": "Skull Crusher (EZ)",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "75c741f8-8ed6-4eb1-bf08-a45419908038",
+    "name": "Skull Crusher (EZ)",
+    "category": "INCONSISTENT",
+    "field": "weight_type",
+    "detail": "Legacy type and weight_type disagree; verify convention before changing load"
+  },
+  {
+    "id": "781b2807-39ee-44e2-a783-084d41c8be1d",
+    "name": "Dumbbell Hammer Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "781b2807-39ee-44e2-a783-084d41c8be1d",
+    "name": "Dumbbell Hammer Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "781b2807-39ee-44e2-a783-084d41c8be1d",
+    "name": "Dumbbell Hammer Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "78d5bcfc-2142-4dbd-a432-cf7921cf6c99",
+    "name": "Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "78d5bcfc-2142-4dbd-a432-cf7921cf6c99",
+    "name": "Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "78ed636f-c24a-4136-9d3b-f5317dff351f",
+    "name": "Lateral Raises (un bras)",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "78ed636f-c24a-4136-9d3b-f5317dff351f",
+    "name": "Lateral Raises (un bras)",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "79bd63ce-e625-4e18-a7cd-aee68cc6f3fe",
+    "name": "Overhead Triceps Extension",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "79bd63ce-e625-4e18-a7cd-aee68cc6f3fe",
+    "name": "Overhead Triceps Extension",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Extension"
+  },
+  {
+    "id": "79bd63ce-e625-4e18-a7cd-aee68cc6f3fe",
+    "name": "Overhead Triceps Extension",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "79bd63ce-e625-4e18-a7cd-aee68cc6f3fe",
+    "name": "Overhead Triceps Extension",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "85313d3e-abab-484d-85e1-3a2700fdaed4",
+    "name": "Jump Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "85313d3e-abab-484d-85e1-3a2700fdaed4",
+    "name": "Jump Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Plyometric"
+  },
+  {
+    "id": "85313d3e-abab-484d-85e1-3a2700fdaed4",
+    "name": "Jump Squat",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "85313d3e-abab-484d-85e1-3a2700fdaed4",
+    "name": "Jump Squat",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "86bb5979-dd4b-47e4-9ec1-829f8125a76e",
+    "name": "Spider Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "86bb5979-dd4b-47e4-9ec1-829f8125a76e",
+    "name": "Spider Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "86bb5979-dd4b-47e4-9ec1-829f8125a76e",
+    "name": "Spider Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "8700b73b-11eb-47fb-b270-5014c7893c45",
+    "name": "Dumbbell Biceps Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "8700b73b-11eb-47fb-b270-5014c7893c45",
+    "name": "Dumbbell Biceps Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "8700b73b-11eb-47fb-b270-5014c7893c45",
+    "name": "Dumbbell Biceps Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "8f7fd7f9-aa3b-4231-a33b-492315b7b699",
+    "name": "Rear Delt Fly",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "8f7fd7f9-aa3b-4231-a33b-492315b7b699",
+    "name": "Rear Delt Fly",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "name": "Cable Fly / Pec Dec",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "name": "Cable Fly / Pec Dec",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "name": "Cable Fly / Pec Dec",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "name": "Cable Fly / Pec Dec",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "90ec748d-710f-4e0f-951f-ee87581e2219",
+    "name": "Standing Calf Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "90ec748d-710f-4e0f-951f-ee87581e2219",
+    "name": "Standing Calf Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "90ec748d-710f-4e0f-951f-ee87581e2219",
+    "name": "Standing Calf Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Plyometric"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "category": "MISSING DATA",
+    "field": "type",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Plyometric"
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "category": "MISSING DATA",
+    "field": "type",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Plyometric"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "MISSING DATA",
+    "field": "type",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "9501a76d-211f-4a83-9918-7aa8583075a8",
+    "name": "Prone Y-T-W Raises",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "9501a76d-211f-4a83-9918-7aa8583075a8",
+    "name": "Prone Y-T-W Raises",
+    "category": "INVALID TAXONOMY",
+    "field": "weight_type",
+    "detail": "Unsupported load type: hypertrophy"
+  },
+  {
+    "id": "9501a76d-211f-4a83-9918-7aa8583075a8",
+    "name": "Prone Y-T-W Raises",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "9501a76d-211f-4a83-9918-7aa8583075a8",
+    "name": "Prone Y-T-W Raises",
+    "category": "INCONSISTENT",
+    "field": "weight_type",
+    "detail": "Legacy type and weight_type disagree; verify convention before changing load"
+  },
+  {
+    "id": "97acf66d-e86f-4a02-a262-b6ac19dd88be",
+    "name": "Rack Pull",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Hinge"
+  },
+  {
+    "id": "97acf66d-e86f-4a02-a262-b6ac19dd88be",
+    "name": "Rack Pull",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "97acf66d-e86f-4a02-a262-b6ac19dd88be",
+    "name": "Rack Pull",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "9877faf0-f077-4de7-9d57-ddc851583396",
+    "name": "Rope Hammer Curl",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "98c0a477-4482-4184-bb99-bde8a77528f7",
+    "name": "Barbell Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "98e56d15-a23f-4b74-bd6f-5bb1fc97a73f",
+    "name": "Push-Up",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "98e56d15-a23f-4b74-bd6f-5bb1fc97a73f",
+    "name": "Push-Up",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "98e56d15-a23f-4b74-bd6f-5bb1fc97a73f",
+    "name": "Push-Up",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "98e56d15-a23f-4b74-bd6f-5bb1fc97a73f",
+    "name": "Push-Up",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "98e56d15-a23f-4b74-bd6f-5bb1fc97a73f",
+    "name": "Push-Up",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "992c71f7-aec4-4265-9350-e5e76dcc01b0",
+    "name": "Bulgarian Split Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "992c71f7-aec4-4265-9350-e5e76dcc01b0",
+    "name": "Bulgarian Split Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Lunge"
+  },
+  {
+    "id": "992c71f7-aec4-4265-9350-e5e76dcc01b0",
+    "name": "Bulgarian Split Squat",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "9b496761-0cb5-4960-a82b-857968faef37",
+    "name": "Barbell Bent Over Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "9b496761-0cb5-4960-a82b-857968faef37",
+    "name": "Barbell Bent Over Row",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "9b9e0927-c2f8-4596-af3e-9e10e4d984be",
+    "name": "Barbell Sumo Deadlift",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Hinge"
+  },
+  {
+    "id": "9b9e0927-c2f8-4596-af3e-9e10e4d984be",
+    "name": "Barbell Sumo Deadlift",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "9c04bf68-bdeb-44cb-92ff-eff643fb02d3",
+    "name": "Flat DB Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "9c04bf68-bdeb-44cb-92ff-eff643fb02d3",
+    "name": "Flat DB Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "9c04bf68-bdeb-44cb-92ff-eff643fb02d3",
+    "name": "Flat DB Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "9f0b0ed9-b7b0-45fa-8225-6cbd03915c3f",
+    "name": "Chin-Up",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Pull"
+  },
+  {
+    "id": "9f0b0ed9-b7b0-45fa-8225-6cbd03915c3f",
+    "name": "Chin-Up",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "9f0b0ed9-b7b0-45fa-8225-6cbd03915c3f",
+    "name": "Chin-Up",
+    "category": "INCONSISTENT",
+    "field": "weight_type",
+    "detail": "Legacy type and weight_type disagree; verify convention before changing load"
+  },
+  {
+    "id": "a4abed3a-9b0d-4ad8-a926-185aa9d81f1c",
+    "name": "Neck Extension",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'longissimus capitis'"
+  },
+  {
+    "id": "a4abed3a-9b0d-4ad8-a926-185aa9d81f1c",
+    "name": "Neck Extension",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'semispinalis capitis'"
+  },
+  {
+    "id": "a5f88a16-9d45-4ac7-8793-51b294c65648",
+    "name": "Wall Slides",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "a5f88a16-9d45-4ac7-8793-51b294c65648",
+    "name": "Wall Slides",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "a6bcf831-7615-4cdc-b675-c18f871db05e",
+    "name": "DB Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "a6bcf831-7615-4cdc-b675-c18f871db05e",
+    "name": "DB Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "a6bcf831-7615-4cdc-b675-c18f871db05e",
+    "name": "DB Bench Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "ab4b06c0-a64f-4653-8d1a-86085afbfd6e",
+    "name": "Barbell Incline Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "ab4b06c0-a64f-4653-8d1a-86085afbfd6e",
+    "name": "Barbell Incline Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "ab4b06c0-a64f-4653-8d1a-86085afbfd6e",
+    "name": "Barbell Incline Bench Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "adf08e12-6859-4f16-afa2-fe6d54e59971",
+    "name": "Pause Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "adf08e12-6859-4f16-afa2-fe6d54e59971",
+    "name": "Pause Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "adf08e12-6859-4f16-afa2-fe6d54e59971",
+    "name": "Pause Bench Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "b2457e20-6988-412e-9c80-21044a31b973",
+    "name": "Barbell Romanian Deadlift",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "b2457e20-6988-412e-9c80-21044a31b973",
+    "name": "Barbell Romanian Deadlift",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Hinge"
+  },
+  {
+    "id": "b28c8331-7839-404d-817e-3c1b7b2d784c",
+    "name": "Plank",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "b28c8331-7839-404d-817e-3c1b7b2d784c",
+    "name": "Plank",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "b28c8331-7839-404d-817e-3c1b7b2d784c",
+    "name": "Plank",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "b28c8331-7839-404d-817e-3c1b7b2d784c",
+    "name": "Plank",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "b28c8331-7839-404d-817e-3c1b7b2d784c",
+    "name": "Plank",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "b490e7c5-86b9-4ce6-82b6-3917f8fc9e71",
+    "name": "Barbell Lying Triceps Extension Skull Crusher",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "b490e7c5-86b9-4ce6-82b6-3917f8fc9e71",
+    "name": "Barbell Lying Triceps Extension Skull Crusher",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Extension"
+  },
+  {
+    "id": "b490e7c5-86b9-4ce6-82b6-3917f8fc9e71",
+    "name": "Barbell Lying Triceps Extension Skull Crusher",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "b86e3362-8734-4bdc-a432-779b21906dd4",
+    "name": "Cable Y Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "b86e3362-8734-4bdc-a432-779b21906dd4",
+    "name": "Cable Y Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "b86e3362-8734-4bdc-a432-779b21906dd4",
+    "name": "Cable Y Raise",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "b86e3362-8734-4bdc-a432-779b21906dd4",
+    "name": "Cable Y Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "b921a222-5892-4464-98a1-583bfa7d343a",
+    "name": "Single Arm DB Overhead Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Push"
+  },
+  {
+    "id": "b921a222-5892-4464-98a1-583bfa7d343a",
+    "name": "Single Arm DB Overhead Press",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "b921a222-5892-4464-98a1-583bfa7d343a",
+    "name": "Single Arm DB Overhead Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "b953ce24-0fe9-4180-ba98-919e90f99597",
+    "name": "Reverse curls",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "b953ce24-0fe9-4180-ba98-919e90f99597",
+    "name": "Reverse curls",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "b95a3324-7813-4d73-b0de-6e20867b0983",
+    "name": "Overhead Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Push"
+  },
+  {
+    "id": "b95a3324-7813-4d73-b0de-6e20867b0983",
+    "name": "Overhead Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "ba63c8aa-900e-4d7b-be75-81f6dad7895e",
+    "name": "Dumbbell Shrug",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "ba63c8aa-900e-4d7b-be75-81f6dad7895e",
+    "name": "Dumbbell Shrug",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "ba63c8aa-900e-4d7b-be75-81f6dad7895e",
+    "name": "Dumbbell Shrug",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "bbbcbcb3-6693-4111-9528-06b8f0d725d9",
+    "name": "Tibialis Raises",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "bbbcbcb3-6693-4111-9528-06b8f0d725d9",
+    "name": "Tibialis Raises",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "bbbcbcb3-6693-4111-9528-06b8f0d725d9",
+    "name": "Tibialis Raises",
+    "category": "INCONSISTENT",
+    "field": "muscle_group",
+    "detail": "Editor places Tibial antérieur in ['Mollets'], not legs"
+  },
+  {
+    "id": "bbbcbcb3-6693-4111-9528-06b8f0d725d9",
+    "name": "Tibialis Raises",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: isolation"
+  },
+  {
+    "id": "bbbcbcb3-6693-4111-9528-06b8f0d725d9",
+    "name": "Tibialis Raises",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "bc9e81bf-119d-4c3f-a339-ae16c6d59526",
+    "name": "Hanging Leg Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "bc9e81bf-119d-4c3f-a339-ae16c6d59526",
+    "name": "Hanging Leg Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "bc9e81bf-119d-4c3f-a339-ae16c6d59526",
+    "name": "Hanging Leg Raise",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "bc9e81bf-119d-4c3f-a339-ae16c6d59526",
+    "name": "Hanging Leg Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "bda0a383-f3fa-4d71-aae4-1be678dd4084",
+    "name": "Hack Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "bda0a383-f3fa-4d71-aae4-1be678dd4084",
+    "name": "Hack Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Squat"
+  },
+  {
+    "id": "bda0a383-f3fa-4d71-aae4-1be678dd4084",
+    "name": "Hack Squat",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+    "name": "Wide-Grip Cable Row",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "c6b79878-6a18-4de2-a4d0-26b65ed069fe",
+    "name": "Sandbag Bear Hug Squat",
+    "category": "MISSING DATA",
+    "field": "muscle_specific",
+    "detail": "Specific missing; group fallback still available"
+  },
+  {
+    "id": "c6b79878-6a18-4de2-a4d0-26b65ed069fe",
+    "name": "Sandbag Bear Hug Squat",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "c74f4ad6-0243-4293-ad71-8cbef34a75cf",
+    "name": "Dumbbell Wrist Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "c74f4ad6-0243-4293-ad71-8cbef34a75cf",
+    "name": "Dumbbell Wrist Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "c7bbf0fa-3c18-4154-bc80-f6cf9337c136",
+    "name": "Cable Woodchopper",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "c7bbf0fa-3c18-4154-bc80-f6cf9337c136",
+    "name": "Cable Woodchopper",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Rotation"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Adducteurs'"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "weight_type",
+    "detail": "Unsupported load type: mobility"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: lunge"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "c9a0be3d-6761-4957-873d-a1b32f94ed8f",
+    "name": "Goblet Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "c9a0be3d-6761-4957-873d-a1b32f94ed8f",
+    "name": "Goblet Squat",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Squat"
+  },
+  {
+    "id": "c9a0be3d-6761-4957-873d-a1b32f94ed8f",
+    "name": "Goblet Squat",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "cb6ba509-253a-44f7-ae93-3fc4578e2a55",
+    "name": "Single-Arm DB Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "cb6ba509-253a-44f7-ae93-3fc4578e2a55",
+    "name": "Single-Arm DB Row",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "cd09e6d0-9b9a-4ab0-9b1d-4c4a9ba2684b",
+    "name": "Dumbbell Arnold Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Push"
+  },
+  {
+    "id": "cd09e6d0-9b9a-4ab0-9b1d-4c4a9ba2684b",
+    "name": "Dumbbell Arnold Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "cdac5271-1a7a-4239-972a-fb6ebec1806c",
+    "name": "90/90 Hip + Band Shoulder Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "cdac5271-1a7a-4239-972a-fb6ebec1806c",
+    "name": "90/90 Hip + Band Shoulder Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "cdac5271-1a7a-4239-972a-fb6ebec1806c",
+    "name": "90/90 Hip + Band Shoulder Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "cdac5271-1a7a-4239-972a-fb6ebec1806c",
+    "name": "90/90 Hip + Band Shoulder Rotation",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Rotation"
+  },
+  {
+    "id": "cdf7b96a-722a-4267-ba32-a4dd816a4607",
+    "name": "Barbell Upright Row",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Pull"
+  },
+  {
+    "id": "cf4a7ad6-b59a-4fe9-80e3-72f62b94794f",
+    "name": "Seated Leg Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "cf4a7ad6-b59a-4fe9-80e3-72f62b94794f",
+    "name": "Seated Leg Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "cf4a7ad6-b59a-4fe9-80e3-72f62b94794f",
+    "name": "Seated Leg Curl",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "cf4a7ad6-b59a-4fe9-80e3-72f62b94794f",
+    "name": "Seated Leg Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "d07b4c3a-07c1-46e4-a607-469f0f512e0e",
+    "name": "Seated Z Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Push"
+  },
+  {
+    "id": "d07b4c3a-07c1-46e4-a607-469f0f512e0e",
+    "name": "Seated Z Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "d12573b8-e2f2-4667-be68-ff8a5bbbfb91",
+    "name": "Band Shoulder CARs",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Rotation"
+  },
+  {
+    "id": "d2544c9f-2565-46f1-b344-adcc96b96484",
+    "name": "Dumbbell Concentration Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "d2544c9f-2565-46f1-b344-adcc96b96484",
+    "name": "Dumbbell Concentration Curl",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Flexion"
+  },
+  {
+    "id": "d2544c9f-2565-46f1-b344-adcc96b96484",
+    "name": "Dumbbell Concentration Curl",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "d3d248fd-46b4-4f3b-bf92-bf6c329858cb",
+    "name": "Russian Twist",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "d3d248fd-46b4-4f3b-bf92-bf6c329858cb",
+    "name": "Russian Twist",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Rotation"
+  },
+  {
+    "id": "d3d248fd-46b4-4f3b-bf92-bf6c329858cb",
+    "name": "Russian Twist",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "d3d248fd-46b4-4f3b-bf92-bf6c329858cb",
+    "name": "Russian Twist",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "d3d248fd-46b4-4f3b-bf92-bf6c329858cb",
+    "name": "Russian Twist",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "d48ad620-1794-414d-ac93-a86e49085413",
+    "name": "Weighted Dips",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "d48ad620-1794-414d-ac93-a86e49085413",
+    "name": "Weighted Dips",
+    "category": "INVALID TAXONOMY",
+    "field": "weight_type",
+    "detail": "Unsupported load type: strength"
+  },
+  {
+    "id": "d48ad620-1794-414d-ac93-a86e49085413",
+    "name": "Weighted Dips",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "d9b1359f-d412-4f59-8644-f22ecf3d82cd",
+    "name": "Cable Pull Over",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Pull"
+  },
+  {
+    "id": "d9b1359f-d412-4f59-8644-f22ecf3d82cd",
+    "name": "Cable Pull Over",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "ddc39015-32cd-43e9-891b-dc89f5c82e63",
+    "name": "Face Pull",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "ddc39015-32cd-43e9-891b-dc89f5c82e63",
+    "name": "Face Pull",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "de2c9e87-0a00-4d54-bc23-a4805413bcd3",
+    "name": "Dumbbell Lateral Raise",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Isolation"
+  },
+  {
+    "id": "de2c9e87-0a00-4d54-bc23-a4805413bcd3",
+    "name": "Dumbbell Lateral Raise",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "e0eeb2d6-092f-4b87-836a-fb24093ddcf8",
+    "name": "Weighted Crunch",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "e0eeb2d6-092f-4b87-836a-fb24093ddcf8",
+    "name": "Weighted Crunch",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "e0eeb2d6-092f-4b87-836a-fb24093ddcf8",
+    "name": "Weighted Crunch",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+    "name": "World's Greatest Stretch",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "Not in editor or doctrine"
+  },
+  {
+    "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+    "name": "World's Greatest Stretch",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_group",
+    "detail": "unknown muscle_group in TrainingDoctrine"
+  },
+  {
+    "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+    "name": "World's Greatest Stretch",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Thoracique'"
+  },
+  {
+    "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+    "name": "World's Greatest Stretch",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+    "name": "World's Greatest Stretch",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "e2f5fab1-1382-49cd-bd1e-7007610f6af9",
+    "name": "Barbell Decline Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "e2f5fab1-1382-49cd-bd1e-7007610f6af9",
+    "name": "Barbell Decline Bench Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "e2f5fab1-1382-49cd-bd1e-7007610f6af9",
+    "name": "Barbell Decline Bench Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "e5548034-a819-4579-8230-a933a7482e80",
+    "name": "Leg Press",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "e5548034-a819-4579-8230-a933a7482e80",
+    "name": "Leg Press",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Squat"
+  },
+  {
+    "id": "e5548034-a819-4579-8230-a933a7482e80",
+    "name": "Leg Press",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "e559c4a9-f67f-433e-83dd-8b8b4c916eeb",
+    "name": "Pull-Up",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Vertical Pull"
+  },
+  {
+    "id": "e559c4a9-f67f-433e-83dd-8b8b4c916eeb",
+    "name": "Pull-Up",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "e559c4a9-f67f-433e-83dd-8b8b4c916eeb",
+    "name": "Pull-Up",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "eae74946-256e-4f20-bd65-70274dc039c4",
+    "name": "Farmer's Carry",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Fléchisseurs des doigts'"
+  },
+  {
+    "id": "eae74946-256e-4f20-bd65-70274dc039c4",
+    "name": "Farmer's Carry",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "eae74946-256e-4f20-bd65-70274dc039c4",
+    "name": "Farmer's Carry",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Carry"
+  },
+  {
+    "id": "eae74946-256e-4f20-bd65-70274dc039c4",
+    "name": "Farmer's Carry",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "eb20250a-5db1-4acf-8fc8-da5b7314f896",
+    "name": "Barbell Good Morning",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "eb20250a-5db1-4acf-8fc8-da5b7314f896",
+    "name": "Barbell Good Morning",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Hip Hinge"
+  },
+  {
+    "id": "eb20250a-5db1-4acf-8fc8-da5b7314f896",
+    "name": "Barbell Good Morning",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "category": "INCONSISTENT",
+    "field": "weight_type",
+    "detail": "Legacy type and weight_type disagree; verify convention before changing load"
+  },
+  {
+    "id": "f435bd2e-1d48-4543-8c14-1112689a766e",
+    "name": "Deadhang",
+    "category": "INVALID TAXONOMY",
+    "field": "muscles",
+    "detail": "Unknown muscle: 'Fléchisseurs des doigts'"
+  },
+  {
+    "id": "f435bd2e-1d48-4543-8c14-1112689a766e",
+    "name": "Deadhang",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "f435bd2e-1d48-4543-8c14-1112689a766e",
+    "name": "Deadhang",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Gainage"
+  },
+  {
+    "id": "f435bd2e-1d48-4543-8c14-1112689a766e",
+    "name": "Deadhang",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "f61760fc-5c55-44f9-a653-ac46f0f6a093",
+    "name": "Barbell Lunge",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "f61760fc-5c55-44f9-a653-ac46f0f6a093",
+    "name": "Barbell Lunge",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Lunge"
+  },
+  {
+    "id": "f61760fc-5c55-44f9-a653-ac46f0f6a093",
+    "name": "Barbell Lunge",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "f7e5bdbf-3ce6-4ef2-b31b-966b516e1905",
+    "name": "Walking Lunges",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "f7e5bdbf-3ce6-4ef2-b31b-966b516e1905",
+    "name": "Walking Lunges",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Lunge"
+  },
+  {
+    "id": "f7e5bdbf-3ce6-4ef2-b31b-966b516e1905",
+    "name": "Walking Lunges",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "f7e5bdbf-3ce6-4ef2-b31b-966b516e1905",
+    "name": "Walking Lunges",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "f82f7b09-970c-4f6d-b638-e3c0478aaba0",
+    "name": "Dumbbell Rear Delt Flys",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Pull"
+  },
+  {
+    "id": "f82f7b09-970c-4f6d-b638-e3c0478aaba0",
+    "name": "Dumbbell Rear Delt Flys",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "f82f7b09-970c-4f6d-b638-e3c0478aaba0",
+    "name": "Dumbbell Rear Delt Flys",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Horizontal Push"
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "category": "MISSING DATA",
+    "field": "equipment",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "category": "MISSING DATA",
+    "field": "type",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "category": "MISSING DATA",
+    "field": "pattern",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "category": "MISSING DATA",
+    "field": "load_profile",
+    "detail": "Missing (not automatically inferable)"
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "category": "MISSING DATA",
+    "field": "secondary_muscles",
+    "detail": "Unknown; null is not an explicit empty selection"
+  },
+  {
+    "id": "fc506d23-f991-490a-8e46-37dc38461943",
+    "name": "Triceps Pushdown",
+    "category": "INVALID TAXONOMY",
+    "field": "muscle_specific",
+    "detail": "Not selectable in editor; may be a supported broad backend label"
+  },
+  {
+    "id": "fc506d23-f991-490a-8e46-37dc38461943",
+    "name": "Triceps Pushdown",
+    "category": "INVALID TAXONOMY",
+    "field": "movement_pattern",
+    "detail": "Not an editor pattern: Elbow Extension"
+  },
+  {
+    "id": "fc506d23-f991-490a-8e46-37dc38461943",
+    "name": "Triceps Pushdown",
+    "category": "MISSING DATA",
+    "field": "category",
+    "detail": "Missing (not automatically inferable)"
+  }
+]

@@ -1,0 +1,93 @@
+[
+  {
+    "id": "0372093b-e1ff-4706-9863-82c82491a43b",
+    "name": "Hollow Body Crunch",
+    "before": "Droit abdominal",
+    "proposed": "Droit de l'abdomen",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "290eb168-e05b-481f-9ef3-07051d6cbff0",
+    "name": "Hammer Curl",
+    "before": "Brachialis",
+    "proposed": "Brachial",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "3d29d57a-7b3d-4e16-b87b-854651f94d68",
+    "name": "Abs wheel",
+    "before": "Droit abdominal",
+    "proposed": "Droit de l'abdomen",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "3ff53dd3-caaf-4b29-bc97-21fbf66cdc84",
+    "name": "Barbell Shrug",
+    "before": "Trapèze supérieur",
+    "proposed": "Trapèze — chef supérieur",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "before": "Trapèze supérieur",
+    "proposed": "Trapèze — chef supérieur",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "781b2807-39ee-44e2-a783-084d41c8be1d",
+    "name": "Dumbbell Hammer Curl",
+    "before": "Brachialis",
+    "proposed": "Brachial",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "9501a76d-211f-4a83-9918-7aa8583075a8",
+    "name": "Prone Y-T-W Raises",
+    "before": "Trapèze moyen",
+    "proposed": "Trapèze — chef moyen",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "a5f88a16-9d45-4ac7-8793-51b294c65648",
+    "name": "Wall Slides",
+    "before": "Trapèze inférieur",
+    "proposed": "Trapèze — chef inférieur",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "b28c8331-7839-404d-817e-3c1b7b2d784c",
+    "name": "Plank",
+    "before": "Droit abdominal",
+    "proposed": "Droit de l'abdomen",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "b86e3362-8734-4bdc-a432-779b21906dd4",
+    "name": "Cable Y Raise",
+    "before": "Trapèze inférieur",
+    "proposed": "Trapèze — chef inférieur",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "ba63c8aa-900e-4d7b-be75-81f6dad7895e",
+    "name": "Dumbbell Shrug",
+    "before": "Trapèze supérieur",
+    "proposed": "Trapèze — chef supérieur",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "bc9e81bf-119d-4c3f-a339-ae16c6d59526",
+    "name": "Hanging Leg Raise",
+    "before": "Droit abdominal",
+    "proposed": "Droit de l'abdomen",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  },
+  {
+    "id": "e0eeb2d6-092f-4b87-836a-fb24093ddcf8",
+    "name": "Weighted Crunch",
+    "before": "Droit abdominal",
+    "proposed": "Droit de l'abdomen",
+    "blocked_by": "Deploy and verify backend aliases before database normalization"
+  }
+]

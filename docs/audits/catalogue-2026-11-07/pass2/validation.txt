@@ -1,0 +1,6 @@
+Python: 182 passed.
+iOS: Executed 35 tests, with 0 failures (0 unexpected) in 0.052 (0.072) seconds
+iPhone incremental build: BUILD SUCCEEDED.
+git diff --check: exit 0.
+No full suite; no stage, commit, push, deploy.
+Logs: /tmp/trainingos-catalogue-pass2/

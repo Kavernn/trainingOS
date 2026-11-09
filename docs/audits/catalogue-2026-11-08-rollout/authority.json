@@ -1,0 +1,10 @@
+{
+  "files": {
+    "docs/audits/catalogue-2026-11-07/REPORT.md": "8ef03316b73cb9275c9453fb1a7846d888a6b6fc4be6da936af51e7e8bc7f7ad",
+    "docs/audits/catalogue-2026-11-07/inventory.csv": "331fa9ba325e44d13890e7aaba392d45ae071bbdbc617d25779097fe738c2218",
+    "docs/audits/catalogue-2026-11-07/pass2/REPORT.md": "bb02ba324eab15716a17c7b0328681acd2e6242d6ab268f9283ef13781436b26",
+    "docs/audits/catalogue-2026-11-07/pass2/pending.json": "5a6f8e0b36f35b46236386ab8907686e517fa469258fe20287a53288a7f11b91",
+    "docs/audits/catalogue-2026-11-07/pass2/ambiguous.json": "fe2718e8fed0ae4b8a04d1abd4ca3d0ac2dc82fb893ae3175ee9c618f74d9a90"
+  },
+  "first_pass_inventory_rows": 161
+}

@@ -1,0 +1,4962 @@
+[
+  {
+    "id": "001ab99c-6362-473f-b6e8-5bfb9f7d54ef",
+    "name": "Smith Leg Press",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "glutes",
+      "quadriceps",
+      "hamstrings",
+      "calves"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Adjust the seat and footplate of the smith machine to a comfortable position.. Sit on the machine with your back against the backrest and your feet shoulder-width apart on the footplate.",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [],
+    "movement_pattern": "squat",
+    "weight_type": "machine",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:52:12.563536+00:00"
+  },
+  {
+    "id": "00332b97-110a-4915-b17a-4e2e49919e6d",
+    "name": "Copenhagen Plank",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "core",
+    "level": "advanced",
+    "default_scheme": "3x20s",
+    "load_profile": "endurance",
+    "muscles": [
+      "adductors",
+      "obliques",
+      "core"
+    ],
+    "increment": 0,
+    "bar_weight": 0.0,
+    "tracking_type": "time",
+    "rest_seconds": 60,
+    "tips": "20 secondes par côté. Cheville sur banc, corps aligné, adducteurs actifs.",
+    "muscle_group": "Hanches",
+    "muscle_specific": "Adducteurs",
+    "secondary_muscles": [
+      "Obliques"
+    ],
+    "movement_pattern": "core",
+    "weight_type": "endurance",
+    "equipment": [
+      "bench"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "0372093b-e1ff-4706-9863-82c82491a43b",
+    "name": "Hollow Body Crunch",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "core",
+    "level": "intermediate",
+    "default_scheme": "3x15",
+    "load_profile": "isolation",
+    "muscles": [
+      "core",
+      "rectus_abdominis"
+    ],
+    "increment": 0,
+    "bar_weight": 0,
+    "tracking_type": "time",
+    "rest_seconds": 60,
+    "tips": "Maintenez la position hollow body (bas du dos plaqué au sol). Effectuez un crunch contrôlé en rapprochant les épaules des hanches sans perdre la tension abdominale. Expirez en montant, inspirez en redescendant. Mouvement lent et contrôlé.",
+    "muscle_group": "Core",
+    "muscle_specific": "Droit abdominal",
+    "secondary_muscles": [
+      "Obliques"
+    ],
+    "movement_pattern": "core",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": "Hollow Crunch",
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "0490140d-dfe8-4fe1-8463-90ffc2c93eab",
+    "name": "Inverted Row",
+    "type": "bodyweight",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "upper back",
+      "biceps",
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Set up a bar at waist height or use a suspension trainer.. Stand facing the bar or suspension trainer, with your feet shoulder-width apart.",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Barre",
+      "TRX"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "09381207-7c9e-4996-841a-798e933f6e9e",
+    "name": "Weighted Squat",
+    "type": "machine",
+    "category": "legs",
+    "pattern": null,
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "quads",
+      "glutes",
+      "hamstrings",
+      "abductors"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Squat/1.jpg",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [],
+    "movement_pattern": "squat",
+    "weight_type": "machine",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:51:40.767879+00:00"
+  },
+  {
+    "id": "0bcbedb8-ad59-4a77-8e36-fbb4f235c31b",
+    "name": "Overhead Tricep Ext.",
+    "type": "cable",
+    "category": "strength",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": null,
+    "muscles": [
+      "triceps"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble · corde · tête fixe · étirement max",
+    "muscle_group": "Triceps",
+    "muscle_specific": null,
+    "secondary_muscles": [],
+    "movement_pattern": null,
+    "weight_type": "cable_single",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-05-30T17:22:17.545798+00:00"
+  },
+  {
+    "id": "10254163-84fd-4bd6-8187-132c40992e72",
+    "name": "Neck Curl",
+    "type": "bodyweight",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "advanced",
+    "default_scheme": "3x15-20",
+    "load_profile": "isolation",
+    "muscles": [
+      "neck"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "Mouvement lent · menton rentré · amplitude complète sans à-coup",
+    "muscle_group": "Cou",
+    "muscle_specific": "Sterno-cléido-mastoïdien",
+    "secondary_muscles": [],
+    "movement_pattern": "other",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Haltères",
+      "Poids du corps",
+      "neck harness",
+      "plate"
+    ],
+    "alternate_name": "Neck Flexion",
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "10b42a6a-497c-42a9-a84a-45b2deacba3b",
+    "name": "Romanian Deadlift",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "advanced",
+    "default_scheme": "3x4-6",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "fessiers",
+      "hamstrings",
+      "lower back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 180,
+    "tips": "Haltères ou barre · charnière hanche · dos neutre",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Ischio-jambiers",
+    "secondary_muscles": [
+      "Grand fessier",
+      "Érecteurs du rachis"
+    ],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "112bc757-0b40-480c-9815-95064c0a81a9",
+    "name": "Thoracic Extension + Open Book",
+    "type": "bodyweight",
+    "category": "mobility",
+    "pattern": "mobility",
+    "level": "beginner",
+    "default_scheme": "2x8",
+    "load_profile": null,
+    "muscles": [
+      "thoracic",
+      "obliques"
+    ],
+    "increment": 0,
+    "bar_weight": 0.0,
+    "tracking_type": "mobility",
+    "rest_seconds": 30,
+    "tips": "8 répétitions par côté. Position côté, genou fléchi, ouvre la cage thoracique.",
+    "muscle_group": "Dos",
+    "muscle_specific": "Thoracique",
+    "secondary_muscles": [
+      "Obliques"
+    ],
+    "movement_pattern": "rotation",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "11b465db-21c9-418e-ae02-67a00e447a85",
+    "name": "Chest-Supported DB Row",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "lats",
+      "rhomboids",
+      "traps",
+      "rear deltoid"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Banc incliné 45° · coudes au ciel · squeeze omoplate",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Rhomboïdes",
+      "Deltoïde postérieur"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "148511ac-237c-432d-accb-1b5ebfe046a1",
+    "name": "Barbell Close-Grip Bench Press",
+    "type": "barbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "triceps",
+      "chest",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lie flat on a bench with your feet flat on the ground and your back pressed against the bench.. Grasp the barbell with a close grip, slightly narrower than shoulder-width apart.",
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps",
+    "secondary_muscles": [
+      "Pectoral majeur",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "1519b8a5-c80a-44a9-83e1-d23a4a90437e",
+    "name": "Single-Arm Triceps Extension",
+    "type": "cable",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "1639cf6d-8235-4e99-8bee-35d33b9911dc",
+    "name": "Leg Extension",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x15",
+    "load_profile": "isolation",
+    "muscles": [
+      "quadriceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Machine · pic de contraction 1s en haut",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "18ae9f4c-94b4-4dab-b4be-4f2b64a3fe85",
+    "name": "Cat-Cow + Thoracic Rotation",
+    "type": null,
+    "category": "mobility",
+    "pattern": "mobility",
+    "level": null,
+    "default_scheme": "2x8",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "mobility",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Dos",
+    "muscle_specific": "Thoracique",
+    "secondary_muscles": [],
+    "movement_pattern": "rotation",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "1d8ed80c-702b-4d54-9d15-dd6eef47cb57",
+    "name": "Calf Raise",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "calves",
+      "soleus"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Calf_Raise/1.jpg",
+    "muscle_group": "Mollets",
+    "muscle_specific": "Gastrocnémien",
+    "secondary_muscles": null,
+    "movement_pattern": "Isolation",
+    "weight_type": "machine",
+    "equipment": null,
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "1efbb1ab-ce90-4a8c-8755-8aa2ae085c61",
+    "name": "Medicine Ball Rotational Throw",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "core",
+    "level": "intermediate",
+    "default_scheme": "3x8",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "obliques",
+      "core"
+    ],
+    "increment": 1.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "8 lancers rotatifs par côté. Explosif, engage hanches.",
+    "muscle_group": "Core",
+    "muscle_specific": "Obliques",
+    "secondary_muscles": [],
+    "movement_pattern": "rotation",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "medicine ball"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "1f50f894-679d-427a-8ffc-fcd013dec943",
+    "name": "Barbell Preacher Curl",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps",
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Sit on a preacher bench with your upper arms resting on the pad and your chest against the support.. Grasp the barbell with an underhand grip, slightly wider than shoulder-width apart.",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "23c31a4a-84de-471d-9e0e-742920ae474a",
+    "name": "Unilateral lateral raises",
+    "type": "cable",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/1.jpg",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde médial",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "2469a72a-0fed-4fe9-8287-0a48ea8cd033",
+    "name": "Lying Leg Curl",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Machine · tempo 2-0-1 · hanche à plat · pas de rebond",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Ischio-jambiers",
+    "secondary_muscles": [
+      "Gastrocnémien"
+    ],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "28614b32-1508-4cb2-8b38-f6b051127e48",
+    "name": "T-Bar Row",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "horizontal_pull",
+    "level": "intermediate",
+    "default_scheme": "4x8-10",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "lats",
+      "rhomboids",
+      "traps",
+      "biceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_T-Bar_Row/1.jpg",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "Horizontal Pull",
+    "weight_type": "barbell",
+    "equipment": null,
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "290eb168-e05b-481f-9ef3-07051d6cbff0",
+    "name": "Hammer Curl",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-10",
+    "load_profile": "isolation",
+    "muscles": [
+      "other"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Prise neutre · pas de balancier · tempo 2-0-1",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Brachial",
+    "secondary_muscles": [
+      "Brachioradialis",
+      "Biceps"
+    ],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+    "name": "Lateral Bound",
+    "type": null,
+    "category": "legs",
+    "pattern": "lunge",
+    "level": null,
+    "default_scheme": "3x4",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "plyo",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Fessiers",
+    "muscle_specific": "Moyen fessier",
+    "secondary_muscles": [
+      "Quadriceps",
+      "Grand fessier"
+    ],
+    "movement_pattern": "unilateral_leg",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "29609082-555f-40eb-b3a8-bc01efe793f2",
+    "name": "Hip Thrust",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "intermediate",
+    "default_scheme": "3x10-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "fessiers",
+      "hamstrings"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Barre + pad · ROM complet · squeeze 1s en haut",
+    "muscle_group": "Fessiers",
+    "muscle_specific": "Grand fessier",
+    "secondary_muscles": [
+      "Ischio-jambiers"
+    ],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+    "name": "Leg Curl",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "calves",
+      "hamstrings"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Leg_Curl/1.jpg",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Ischio-jambiers",
+    "secondary_muscles": [
+      "Gastrocnémien"
+    ],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "2b1e5936-e3e7-4c9e-ab06-fdcc834bbf35",
+    "name": "Lever Seated Leg Curl",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "hamstrings",
+      "calves"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Adjust the machine to fit your body and sit on it with your back against the backrest.. Place your lower legs under the padded lever, just above your ankles.",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Biceps fémoral",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:54:11.321725+00:00"
+  },
+  {
+    "id": "2e0827c6-05ad-486e-95b1-e40d0f4bc022",
+    "name": "Barbell Curl",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps",
+      "forearms",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Stand up straight with your feet shoulder-width apart and hold a barbell with an underhand grip, palms facing forward.. Keep your elbows close to your torso and exhale as you curl the weights while contracting your biceps.",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "2e69ba02-e925-4865-8cea-31cfaf108d10",
+    "name": "Cable Curl",
+    "type": "cable_double",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x15",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble bas · squeeze au sommet · lent",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "cable_double",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "2f717ae8-72cb-4a3f-8324-a980f6b7ab6a",
+    "name": "Cable Lateral Raise",
+    "type": "cable",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "shoulders"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble bas · coude légèrement fléchi · résistance max en haut",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde médial",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "308b33e0-78b2-4a21-9810-e6559f0e3807",
+    "name": "Pallof Press",
+    "type": "cable",
+    "category": "core",
+    "pattern": "core",
+    "level": "intermediate",
+    "default_scheme": "3x10",
+    "load_profile": "isolation",
+    "muscles": [
+      "core",
+      "obliques"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 75,
+    "tips": "Bras tendus devant, résistez à la rotation. Hanches neutres, core braced. Inspirez → tenue → expirez. 3x10 par côté.",
+    "muscle_group": "Core",
+    "muscle_specific": "Obliques",
+    "secondary_muscles": [],
+    "movement_pattern": "core",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": "Anti-Rotation Press",
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "3546990d-0a44-46ba-a36b-7b551571c03b",
+    "name": "Burpee",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "mobility",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "cardiovascular system",
+      "quadriceps",
+      "hamstrings",
+      "calves",
+      "shoulders",
+      "chest"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Start in a standing position with your feet shoulder-width apart.. Lower your body into a squat position by bending your knees and placing your hands on the floor in front of you.",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": null,
+    "movement_pattern": "Gainage",
+    "weight_type": "bodyweight",
+    "equipment": null,
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "35ab117f-cd8e-4c71-b69b-f91f3676d818",
+    "name": "Dumbbell Pull Over",
+    "type": "machine",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Grand rond",
+      "Pectoral majeur — chef costal",
+      "Triceps — longue portion"
+    ],
+    "movement_pattern": "push_vertical",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "36b22489-efaf-4358-a862-ebe1f813c68d",
+    "name": "Band Pull-Apart",
+    "type": null,
+    "category": "mobility",
+    "pattern": "mobility",
+    "level": null,
+    "default_scheme": "2x15",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "mobility",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde postérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "38bebfbe-036e-4023-a4db-12863ace35ed",
+    "name": "Bayesian Biceps Curl",
+    "type": "cable",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": null,
+    "muscles": [
+      "biceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Bicep_Curl/1.jpg",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "39fa3b6b-6e4d-4291-a9af-4fd7a317aa9f",
+    "name": "Seated DB Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "vertical_push",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": null,
+    "muscles": [
+      "anterior deltoid",
+      "lateral deltoid",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Haltères · amplitude complète · pas de momentum",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde antérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "push_vertical",
+    "weight_type": "dumbbell",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:52:46.090831+00:00"
+  },
+  {
+    "id": "3af0d483-cc9e-433c-9a21-3a86c549e77e",
+    "name": "Cable External Rotation",
+    "type": "cable",
+    "category": "push",
+    "pattern": "core",
+    "level": "intermediate",
+    "default_scheme": "3x15-20",
+    "load_profile": null,
+    "muscles": [
+      "rotator_cuff",
+      "rear_delts"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "Coude collé au flanc, avant-bras horizontal, rotation externe pure — pas d'épaule.",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Coiffe des rotateurs",
+    "secondary_muscles": [
+      "Deltoïde postérieur"
+    ],
+    "movement_pattern": "rotation",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble",
+      "handle"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "3b4b4a2f-4bf3-4526-bbaa-e4af98c0884a",
+    "name": "Back Squat",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "",
+    "default_scheme": "3x5",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "quads"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 180,
+    "tips": "Profondeur complète · genoux sur orteils · chest up",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "3b6c646a-133d-4618-9680-387786037816",
+    "name": "EZ Bar Curl",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps",
+      "brachialis"
+    ],
+    "increment": 2.5,
+    "bar_weight": 25.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Tempo 2-0-1 · coudes fixes · no cheat",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "3d10e32d-23a1-4168-8b9e-013beb210f57",
+    "name": "Box Jump",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "intermediate",
+    "default_scheme": "3x5",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "quads",
+      "glutes",
+      "calves"
+    ],
+    "increment": 2.0,
+    "bar_weight": 0.0,
+    "tracking_type": "plyo",
+    "rest_seconds": 120,
+    "tips": "Sauts explosifs. Reset entre chaque rep, pas de rebond.",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier",
+      "Gastrocnémien"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "box"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "3d29d57a-7b3d-4e16-b87b-854651f94d68",
+    "name": "Abs wheel",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "core",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "rectus abdominis",
+      "obliques"
+    ],
+    "increment": 0.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crunch/1.jpg",
+    "muscle_group": "Core",
+    "muscle_specific": "Droit abdominal",
+    "secondary_muscles": [],
+    "movement_pattern": "core",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Autre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "3dd16c0e-5082-4950-a645-1db789171655",
+    "name": "Incline DB Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-10",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "chest"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "30–45° · ROM complet · contrôle excentrique",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral supérieur",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "3eb47bc0-8e10-49f0-a4b8-2914db648503",
+    "name": "Incline Cable Fly",
+    "type": "cable_double",
+    "category": "push",
+    "pattern": "push",
+    "level": "",
+    "default_scheme": "3x10-12",
+    "load_profile": null,
+    "muscles": [
+      "chest"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral supérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "cable_double",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "3ff53dd3-caaf-4b29-bc97-21fbf66cdc84",
+    "name": "Barbell Shrug",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "traps",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Stand with your feet shoulder-width apart and hold a barbell in front of you with an overhand grip.. Keep your arms straight and your back straight throughout the exercise.",
+    "muscle_group": "Trapèzes",
+    "muscle_specific": "Trapèze supérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "4024dde6-3c2c-4463-9935-9c74c7f63545",
+    "name": "Dumbbell Decline Bench Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "pectorals",
+      "triceps",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lie down on a decline bench with your feet secured and your head lower than your hips.. Hold a dumbbell in each hand and extend your arms straight up above your chest, palms facing forward.",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral inférieur",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "402e4fd4-1c97-413f-8f7b-5e2e1c4faf65",
+    "name": "Wrist Roller",
+    "type": "bodyweight",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x5",
+    "load_profile": null,
+    "muscles": [
+      "forearms",
+      "poignets"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Avant-bras",
+    "muscle_specific": "Fléchisseurs du poignet",
+    "secondary_muscles": [],
+    "movement_pattern": "accessory_wrist",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Autre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+    "name": "Zone-2 (vélo/rameur)",
+    "type": "machine",
+    "category": "cardio",
+    "pattern": "cardio",
+    "level": "beginner",
+    "default_scheme": "1x30min",
+    "load_profile": "endurance",
+    "muscles": [
+      "cardiovascular"
+    ],
+    "increment": 0,
+    "bar_weight": 0,
+    "tracking_type": "cardio",
+    "rest_seconds": 0,
+    "tips": "FC 60-70% max. Rythme conversationnel : tu dois pouvoir parler sans t'essouffler.",
+    "muscle_group": "Autre",
+    "muscle_specific": "Système cardiovasculaire",
+    "secondary_muscles": [],
+    "movement_pattern": "cardio",
+    "weight_type": "endurance",
+    "equipment": [
+      "bike",
+      "rower"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "45fb8027-6c8a-4104-9729-78e168056b30",
+    "name": "Barbell Jump Shrug",
+    "type": null,
+    "category": "pull",
+    "pattern": "hinge",
+    "level": null,
+    "default_scheme": "4x3",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "plyo",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Trapèzes",
+    "muscle_specific": "Trapèze supérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "46dfd5a9-b52b-4690-ac22-b9064650f9eb",
+    "name": "Barbell Glute Bridge",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "glutes",
+      "hamstrings",
+      "lower back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Start by lying flat on your back on the ground with your knees bent and feet flat on the floor.. Place a barbell across your hips, holding it securely with both hands.",
+    "muscle_group": "Fessiers",
+    "muscle_specific": "Grand fessier",
+    "secondary_muscles": [],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "486b1277-3d39-4ac4-8247-b2b833ec03a8",
+    "name": "Dips",
+    "type": "bodyweight",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/1.jpg",
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps",
+    "secondary_muscles": [],
+    "movement_pattern": "push_vertical",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "dip_bars"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "48b9b47f-2f16-4053-aec1-1f75e5e20992",
+    "name": "6-Way Shoulder Raise",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "horizontal_push",
+    "level": "intermediate",
+    "default_scheme": "3x6-10",
+    "load_profile": null,
+    "muscles": [
+      "rear delts",
+      "rhomboids",
+      "rotators",
+      "shoulders",
+      "traps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïdes",
+    "secondary_muscles": null,
+    "movement_pattern": "Isolation",
+    "weight_type": "dumbbell",
+    "equipment": null,
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "4ec84771-74fb-46da-9ef3-45b976ac93e8",
+    "name": "Incline Barbell Press",
+    "type": "barbell",
+    "category": "",
+    "pattern": "isolation",
+    "level": "intermediate",
+    "default_scheme": "3x8-10",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "chest"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "30–45° · prise légèrement plus large que les épaules",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral supérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "barbell",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:56:58.42488+00:00"
+  },
+  {
+    "id": "4f44fe97-2dd0-400f-a653-b6d91c3964b7",
+    "name": "Cable Pull-Through",
+    "type": "cable",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "beginner",
+    "default_scheme": "4x12-15",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "fessiers",
+      "hamstrings"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble bas · entre les jambes · extension hanche complète · fessiers serrés",
+    "muscle_group": "Fessiers",
+    "muscle_specific": "Grand fessier",
+    "secondary_muscles": [
+      "Ischio-jambiers"
+    ],
+    "movement_pattern": "hinge",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "517569ba-2fb9-4dd9-a5fa-b86ee6e0fabf",
+    "name": "Nordic Hamstring Curl",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "advanced",
+    "default_scheme": "3x6-8",
+    "load_profile": null,
+    "muscles": [
+      "hamstrings",
+      "glutes",
+      "calves"
+    ],
+    "increment": 0,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 180,
+    "tips": "Éccentrique lent (3-5 s), rattrape avec les mains, remonte avec les bras.",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Ischio-jambiers",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "nordic_bench",
+      "partner"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "578c78d5-c413-4827-a3d9-ef044359049f",
+    "name": "Sissy Squat",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "intermediate",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "quadriceps"
+    ],
+    "increment": 0.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Talons surélevés · genoux vers l'avant · 3s excentrique",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [],
+    "movement_pattern": "squat",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "5d26346d-6eb6-4d48-8790-7171a6d1e284",
+    "name": "Deep Barbell Squat",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "glutes",
+      "quadriceps",
+      "hamstrings",
+      "calves"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Start by standing with your feet shoulder-width apart and your toes slightly turned out.. Hold the barbell behind your legs, resting it on your upper thighs.",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "5ea88c96-99b5-4a75-93a7-4d07ab68d9e9",
+    "name": "Seated Cable Row",
+    "type": "cable",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "rhomboids",
+      "traps",
+      "lats",
+      "biceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble bas · poignée neutre · squeeze omoplate",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "5ed9acb6-76d6-408c-9aca-db573e1fb9dc",
+    "name": "Machine Rear Delt Flys",
+    "type": "machine",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "rear delts",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rear_Delt_Fly/1.jpg",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde postérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "5ee34b7f-0e55-4125-a681-8a7def446441",
+    "name": "Bloc plancher pelvien",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "core",
+    "level": "beginner",
+    "default_scheme": "",
+    "load_profile": "endurance",
+    "muscles": [
+      "pelvic floor"
+    ],
+    "increment": 0,
+    "bar_weight": 0,
+    "tracking_type": "protocol",
+    "rest_seconds": 0,
+    "tips": "4 étapes : respiration diaphragmatique, contractions longues, flicks rapides, reverse kegels. ~5 min.",
+    "muscle_group": "Core",
+    "muscle_specific": "Plancher pelvien",
+    "secondary_muscles": [],
+    "movement_pattern": "core",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "5fa13edb-2bc2-496b-8f45-34aaa4224b22",
+    "name": "Lever Leg Extension",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "quads",
+      "hamstrings"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Machine · pic de contraction 1 s en haut",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:54:15.564354+00:00"
+  },
+  {
+    "id": "5fe28d3e-6085-42c3-8973-d29f73766b55",
+    "name": "Lateral Raise",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "lateral deltoid"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Coudes légèrement fléchis · pas de balancier · pic en haut",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde médial",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "60017691-bc43-4eaa-86d8-c0844621b6ab",
+    "name": "Cable Seated Row",
+    "type": "machine",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "lats",
+      "rhomboids",
+      "deltoids",
+      "biceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble bas · poignée neutre · squeeze omoplate",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "61ef73eb-53e4-464a-ae0f-bf2324d2fedb",
+    "name": "Barbell Front Squat",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "intermediate",
+    "default_scheme": "3x6-8",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "glutes",
+      "quadriceps",
+      "hamstrings",
+      "calves",
+      "core"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Start by standing with your feet shoulder-width apart, toes slightly turned out.. Hold the barbell in front of your shoulders, resting it on your collarbone and shoulders.",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "62d0bf52-3564-489d-b877-1fda69c6fce1",
+    "name": "Reverse Curl",
+    "type": null,
+    "category": null,
+    "pattern": null,
+    "level": null,
+    "default_scheme": "3x10-15",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Avant-bras",
+    "muscle_specific": "Brachioradialis",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "barbell",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-09-04T13:31:02.474306+00:00"
+  },
+  {
+    "id": "62f5d842-4cb6-4142-9287-5a9757ae3caf",
+    "name": "Lat Pulldown",
+    "type": "cable",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x8-10",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "lats",
+      "biceps",
+      "rhomboids"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Prise large · coudes vers les hanches · squeeze dorsaux",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps"
+    ],
+    "movement_pattern": "pull_vertical",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "6722c8ed-08df-43ee-95c8-a02bb4fa57e3",
+    "name": "Dumbbell Front Raise",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "delts",
+      "biceps",
+      "trapezius"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Stand with your feet shoulder-width apart, holding a dumbbell in each hand with your palms facing your thighs.. Keeping your arms straight, exhale and lift the dumbbells in front of you until they are at shoulder level.",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde antérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "690a10d1-d233-4318-93dc-5d40b053a018",
+    "name": "Abductor machine",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "other"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Crunch_Machine/1.jpg",
+    "muscle_group": "Fessiers",
+    "muscle_specific": "Moyen fessier",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "6ad2001a-43b9-4546-9681-7140c04dda77",
+    "name": "Medicine Ball Overhead Throw",
+    "type": null,
+    "category": null,
+    "pattern": null,
+    "level": null,
+    "default_scheme": "4x5",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "plyo",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde antérieur",
+    "secondary_muscles": null,
+    "movement_pattern": "Plyometric",
+    "weight_type": "endurance",
+    "equipment": null,
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "6b30f586-d5e6-4a41-9f28-56b9296dbea3",
+    "name": "Incline DB Curl",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "45° · étirement biceps maximal en bas · supination",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "6d49c9c1-30fc-4826-a976-ca4f8c1a95fd",
+    "name": "Smith Standing Leg Calf Raise",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "calves",
+      "hamstrings",
+      "glutes"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Adjust the smith machine bar to a height that allows you to stand with your feet flat on the ground and your shoulders under the bar.. Position yourself under the bar with your feet shoulder-width apart and your toes pointing forward.",
+    "muscle_group": "Mollets",
+    "muscle_specific": "Gastrocnémien",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:52:07.841791+00:00"
+  },
+  {
+    "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+    "name": "Intervalles (VO2)",
+    "type": "machine",
+    "category": "cardio",
+    "pattern": "cardio",
+    "level": "advanced",
+    "default_scheme": "8x30s",
+    "load_profile": "endurance",
+    "muscles": [
+      "cardiovascular"
+    ],
+    "increment": 0,
+    "bar_weight": 0,
+    "tracking_type": "interval",
+    "rest_seconds": 90,
+    "tips": "8 rounds : 30s à fond (VO2 max), 90s récup active. La récup complète est aussi importante que l'effort.",
+    "muscle_group": "Autre",
+    "muscle_specific": "Système cardiovasculaire",
+    "secondary_muscles": [],
+    "movement_pattern": "cardio",
+    "weight_type": "endurance",
+    "equipment": [
+      "bike",
+      "rower"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "6f0a128f-d066-47b9-bcb8-dd3b798a232e",
+    "name": "Tricep Pushdown",
+    "type": "cable",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "triceps"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble · corde · coudes fixes aux côtés",
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "cable_single",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-09-04T13:37:22.936633+00:00"
+  },
+  {
+    "id": "71eefa04-2eba-472e-981c-fc3a3ff01eb8",
+    "name": "Rear Delt Cable Fly",
+    "type": "cable_double",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x15",
+    "load_profile": "isolation",
+    "muscles": [
+      "rear deltoid",
+      "rhomboids"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câbles croisés · hauteur épaules · coudes semi-fléchis · ouverture lente",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde postérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "cable_double",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "733f7dc8-fc2b-412d-bad2-e4d3b4c2b6fa",
+    "name": "Dumbbell Fly",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "pectorals",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lie flat on a bench with a dumbbell in each hand, palms facing each other.. Extend your arms straight up over your chest, with a slight bend in your elbows.",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "7381bd5d-dac0-4770-8873-4602ed8ed07e",
+    "name": "Seated Calf Raise",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x20",
+    "load_profile": "isolation",
+    "muscles": [
+      "soleus",
+      "calves"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Amplitude lente · étirement complet en bas",
+    "muscle_group": "Mollets",
+    "muscle_specific": "Soléaire",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "753adbf6-5828-4e48-8c4b-1afbf251866a",
+    "name": "Deadlift",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "intermediate",
+    "default_scheme": "4x5-7",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "hamstrings"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 180,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Deadlift/1.jpg",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Biceps fémoral — longue portion",
+    "secondary_muscles": [
+      "Grand fessier",
+      "Érecteurs du rachis"
+    ],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "75c741f8-8ed6-4eb1-bf08-a45419908038",
+    "name": "Skull Crusher (EZ)",
+    "type": "ez_bar",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "intermediate",
+    "default_scheme": "4x8-12",
+    "load_profile": null,
+    "muscles": [
+      "triceps_long",
+      "triceps_lateral",
+      "triceps_medial"
+    ],
+    "increment": 2.5,
+    "bar_weight": 15,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Coudes fixes vers plafond, barre au front puis au-dessus de la tête (extension complète).",
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps — longue portion",
+    "secondary_muscles": [
+      "Triceps — chef latéral",
+      "Triceps — chef médial"
+    ],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "barbell",
+    "equipment": [
+      "ez_bar",
+      "bench"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "76abdf6e-0cc2-455d-bfcd-26c88b798da7",
+    "name": "Copenhagen / Side Plank",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "core",
+    "level": "advanced",
+    "default_scheme": "3x30s",
+    "load_profile": "isolation",
+    "muscles": [
+      "obliques",
+      "adductors",
+      "abdominals"
+    ],
+    "increment": 0,
+    "bar_weight": 0,
+    "tracking_type": "time",
+    "rest_seconds": 60,
+    "tips": "Copenhagen : pied haut sur le banc, corps aligné. Trop dur → régresse en Side Plank genou au sol.",
+    "muscle_group": "Core",
+    "muscle_specific": "Obliques",
+    "secondary_muscles": [
+      "Adducteurs"
+    ],
+    "movement_pattern": "core",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "bench"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": "2026-11-01T12:55:50.175549+00:00"
+  },
+  {
+    "id": "76e72611-569b-4d8d-83c7-c412389a597c",
+    "name": "Triceps Extension",
+    "type": "cable",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Triceps_Extension/1.jpg",
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "cable_single",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:53:42.413233+00:00"
+  },
+  {
+    "id": "781b2807-39ee-44e2-a783-084d41c8be1d",
+    "name": "Dumbbell Hammer Curl",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps",
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Stand up straight with a dumbbell in each hand, palms facing your torso.. Keep your elbows close to your torso and rotate the palms of your hands until they are facing forward.",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Brachial",
+    "secondary_muscles": [
+      "Brachioradialis",
+      "Biceps"
+    ],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "78677fdf-432d-4fc6-a719-8179b1af7189",
+    "name": "Nordic Curl",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "advanced",
+    "default_scheme": "3x6-8",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "hamstrings"
+    ],
+    "increment": 0.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Genoux fixés · descente lente · remontée aidée",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Biceps fémoral",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:53:54.345914+00:00"
+  },
+  {
+    "id": "78d5bcfc-2142-4dbd-a432-cf7921cf6c99",
+    "name": "Bench Press",
+    "type": "barbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "4x6-8",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "pectorals",
+      "triceps",
+      "anterior deltoid"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Descente contrôlée · prise standard · coudes à 75°",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "78ed636f-c24a-4136-9d3b-f5317dff351f",
+    "name": "Lateral Raises (un bras)",
+    "type": "cable",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "lateral deltoid"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lateral_Raise_-_With_Bands/1.jpg",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde médial",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "79bd63ce-e625-4e18-a7cd-aee68cc6f3fe",
+    "name": "Overhead Triceps Extension",
+    "type": "cable",
+    "category": "push",
+    "pattern": "isolation",
+    "level": null,
+    "default_scheme": "3x10-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "triceps"
+    ],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble · corde · tête fixe · étirement max",
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "7a92cdc7-6f1a-4de0-9ae2-c83c31fd6c16",
+    "name": "Seated Row",
+    "type": "cable",
+    "category": "pull",
+    "pattern": "horizontal_pull",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "rhomboids",
+      "traps",
+      "lats",
+      "biceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Cable_Rows/1.jpg",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "cable_single",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:52:51.381899+00:00"
+  },
+  {
+    "id": "7d4bbd9f-60fd-4851-bd19-4dcfb00023f6",
+    "name": "Single-Arm Lat Pulldown",
+    "type": "cable_double",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps"
+    ],
+    "movement_pattern": "pull_vertical",
+    "weight_type": "cable_double",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "85313d3e-abab-484d-85e1-3a2700fdaed4",
+    "name": "Jump Squat",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "glutes",
+      "quadriceps",
+      "hamstrings",
+      "calves"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "plyo",
+    "rest_seconds": 120,
+    "tips": "Stand with your feet shoulder-width apart.. Lower your body into a squat position by bending your knees and pushing your hips back.",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier",
+      "Gastrocnémien"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "86bb5979-dd4b-47e4-9ec1-829f8125a76e",
+    "name": "Spider Curl",
+    "type": "ez-bar",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "intermediate",
+    "default_scheme": "3x8-10",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Spider_Curl/1.jpg",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "8700b73b-11eb-47fb-b270-5014c7893c45",
+    "name": "Dumbbell Biceps Curl",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps",
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Stand up straight with a dumbbell in each hand, palms facing forward and arms fully extended.. Keeping your upper arms stationary, exhale and curl the weights while contracting your biceps.",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "8b81e6ed-06f7-41d2-a526-69e8de626e2e",
+    "name": "Rear delts Face Pull",
+    "type": "cable",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "intermediate",
+    "default_scheme": "3x10-15",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde postérieur",
+    "secondary_muscles": [
+      "Rhomboïdes",
+      "Coiffe des rotateurs"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "8f7fd7f9-aa3b-4231-a33b-492315b7b699",
+    "name": "Rear Delt Fly",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x15",
+    "load_profile": "isolation",
+    "muscles": [
+      "rear deltoid",
+      "rhomboids"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Penché avant · coudes légèrement fléchis · ouverture lente",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde postérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "908921e6-83fe-4baf-87f3-361a678c47db",
+    "name": "Cable Fly / Pec Dec",
+    "type": "cable_double",
+    "category": "push",
+    "pattern": "push",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "pectorals"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble croisé · stretch en bas · squeeze en haut",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "cable_double",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "90ec748d-710f-4e0f-951f-ee87581e2219",
+    "name": "Standing Calf Raise",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x15-20",
+    "load_profile": "isolation",
+    "muscles": [
+      "calves",
+      "soleus"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Amplitude maximale · descente lente · pause en bas",
+    "muscle_group": "Mollets",
+    "muscle_specific": "Gastrocnémien",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+    "name": "Medicine Ball Chest Pass",
+    "type": null,
+    "category": "push",
+    "pattern": "push",
+    "level": null,
+    "default_scheme": "4x5",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "plyo",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "endurance",
+    "equipment": [
+      "medicine ball"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+    "name": "Medicine Ball Slam",
+    "type": null,
+    "category": "pull",
+    "pattern": "pull",
+    "level": null,
+    "default_scheme": "4x5",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "plyo",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_vertical",
+    "weight_type": "endurance",
+    "equipment": [
+      "medicine ball"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+    "name": "Broad Jump",
+    "type": null,
+    "category": "legs",
+    "pattern": "squat",
+    "level": null,
+    "default_scheme": "3x3",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "plyo",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier",
+      "Gastrocnémien"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "9501a76d-211f-4a83-9918-7aa8583075a8",
+    "name": "Prone Y-T-W Raises",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "2x10",
+    "load_profile": null,
+    "muscles": [
+      "mid_traps",
+      "rear_delts",
+      "rhomboids"
+    ],
+    "increment": 1,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "Bench incliné 30°, pouces vers le plafond, mouvement piloté par les omoplates.",
+    "muscle_group": "Trapèzes",
+    "muscle_specific": "Trapèze moyen",
+    "secondary_muscles": [
+      "Deltoïde postérieur",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "incline_bench",
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "97acf66d-e86f-4a02-a262-b6ac19dd88be",
+    "name": "Rack Pull",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "hinge",
+    "level": "",
+    "default_scheme": "3x5",
+    "load_profile": null,
+    "muscles": [
+      "back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 180,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rack_Pulls/1.jpg",
+    "muscle_group": "Dos",
+    "muscle_specific": "Érecteurs du rachis",
+    "secondary_muscles": [],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "9877faf0-f077-4de7-9d57-ddc851583396",
+    "name": "Rope Hammer Curl",
+    "type": "cable",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": null,
+    "muscles": [
+      "biceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Avant-bras",
+    "muscle_specific": "Brachioradialis",
+    "secondary_muscles": [
+      "Biceps",
+      "Brachial"
+    ],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "98c0a477-4482-4184-bb99-bde8a77528f7",
+    "name": "Barbell Row",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "intermediate",
+    "default_scheme": "4x6-8",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "lats",
+      "rhomboids",
+      "traps",
+      "biceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Penché avant · pronation · coudes serrés",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "98e56d15-a23f-4b74-bd6f-5bb1fc97a73f",
+    "name": "Push-Up",
+    "type": "bodyweight",
+    "category": "push",
+    "pattern": "push",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": null,
+    "muscles": [
+      "pectorals",
+      "triceps",
+      "deltoids",
+      "core"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Start in a high plank position with your hands slightly wider than shoulder-width apart and your feet together.. Engage your core and lower your body towards the ground by bending your elbows, keeping your body in a straight line.",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "992c71f7-aec4-4265-9350-e5e76dcc01b0",
+    "name": "Bulgarian Split Squat",
+    "type": "dumbbell",
+    "category": "legs",
+    "pattern": "lunge",
+    "level": "intermediate",
+    "default_scheme": "3x10",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "quadriceps",
+      "fessiers",
+      "hamstrings"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Pied arrière surélevé · 10 reps/jambe · tronc droit",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier"
+    ],
+    "movement_pattern": "unilateral_leg",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "9b496761-0cb5-4960-a82b-857968faef37",
+    "name": "Barbell Bent Over Row",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "upper back",
+      "biceps",
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Stand with your feet shoulder-width apart and knees slightly bent.. Bend forward at the hips while keeping your back straight and chest up.",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "9b9e0927-c2f8-4596-af3e-9e10e4d984be",
+    "name": "Barbell Sumo Deadlift",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "glutes",
+      "hamstrings",
+      "quadriceps",
+      "lower back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Stand with your feet wider than shoulder-width apart, toes pointing outwards.. Place a barbell on the ground in front of you, centered between your feet.",
+    "muscle_group": "Fessiers",
+    "muscle_specific": "Grand fessier",
+    "secondary_muscles": [
+      "Quadriceps",
+      "Ischio-jambiers"
+    ],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "9c04bf68-bdeb-44cb-92ff-eff643fb02d3",
+    "name": "Flat DB Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "pectorals",
+      "anterior deltoid",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "ROM complet · pas de rebond · coudes à 75°",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "9f0b0ed9-b7b0-45fa-8225-6cbd03915c3f",
+    "name": "Chin-Up",
+    "type": "machine",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "lats",
+      "rear delts"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Hang from a pull-up bar with your palms facing towards you and your hands shoulder-width apart.. Engage your core and pull your body up towards the bar, leading with your chest.",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps"
+    ],
+    "movement_pattern": "pull_vertical",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "a4abed3a-9b0d-4ad8-a926-185aa9d81f1c",
+    "name": "Neck Extension",
+    "type": "bodyweight",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x15-20",
+    "load_profile": "isolation",
+    "muscles": [
+      "neck"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "Contrôle le retour · évite l'hyperextension · garde le tronc immobile",
+    "muscle_group": "Cou",
+    "muscle_specific": "Splénius",
+    "secondary_muscles": [],
+    "movement_pattern": "other",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps",
+      "neck harness",
+      "plate"
+    ],
+    "alternate_name": "Neck Hyperextension",
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "a5f88a16-9d45-4ac7-8793-51b294c65648",
+    "name": "Wall Slides",
+    "type": null,
+    "category": "mobility",
+    "pattern": "mobility",
+    "level": null,
+    "default_scheme": "2x10",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "mobility",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Trapèzes",
+    "muscle_specific": "Trapèze inférieur",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "a6bcf831-7615-4cdc-b675-c18f871db05e",
+    "name": "DB Bench Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "pectorals",
+      "anterior deltoid",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Haltères · ROM complet · pas de rebond",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "ab22f53d-2d6d-420d-989f-2fb1efb228d3",
+    "name": "Walking Lunge",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "glutes",
+      "quadriceps",
+      "hamstrings",
+      "calves"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Haltères · 12 pas/jambe · tronc droit",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [],
+    "movement_pattern": "unilateral_leg",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:51:54.400416+00:00"
+  },
+  {
+    "id": "ab4b06c0-a64f-4653-8d1a-86085afbfd6e",
+    "name": "Barbell Incline Bench Press",
+    "type": "barbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "pectorals",
+      "shoulders",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "30–45° · prise légèrement plus large que les épaules",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral supérieur",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "adf08e12-6859-4f16-afa2-fe6d54e59971",
+    "name": "Pause Bench Press",
+    "type": "barbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "",
+    "default_scheme": "3x5",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "chest",
+      "triceps",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lie flat on a bench with your feet flat on the ground and your back pressed against the bench.. Grasp the barbell with an overhand grip slightly wider than shoulder-width apart.",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "b2457e20-6988-412e-9c80-21044a31b973",
+    "name": "Barbell Romanian Deadlift",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "intermediate",
+    "default_scheme": "3x5",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "hamstrings"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 180,
+    "tips": "Stand with your feet shoulder-width apart and your toes pointing forward.. Hold the barbell with an overhand grip, hands slightly wider than shoulder-width apart.",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Ischio-jambiers",
+    "secondary_muscles": [
+      "Grand fessier",
+      "Érecteurs du rachis"
+    ],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "b28c8331-7839-404d-817e-3c1b7b2d784c",
+    "name": "Plank",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "core",
+    "level": "",
+    "default_scheme": "3x60s",
+    "load_profile": "endurance",
+    "muscles": [
+      "core",
+      "abs"
+    ],
+    "increment": 0.0,
+    "bar_weight": 0.0,
+    "tracking_type": "time",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/1.jpg",
+    "muscle_group": "Core",
+    "muscle_specific": "Droit abdominal",
+    "secondary_muscles": [],
+    "movement_pattern": "core",
+    "weight_type": "endurance",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "b490e7c5-86b9-4ce6-82b6-3917f8fc9e71",
+    "name": "Barbell Lying Triceps Extension Skull Crusher",
+    "type": "ez-bar",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "intermediate",
+    "default_scheme": "3x10-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "shoulders",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lie flat on a bench with your feet flat on the ground and your head at the end of the bench.. Hold the barbell with an overhand grip, hands shoulder-width apart, and extend your arms straight up over your chest.",
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "b86e3362-8734-4bdc-a432-779b21906dd4",
+    "name": "Cable Y Raise",
+    "type": "cable_double",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "",
+    "default_scheme": "3x12-15",
+    "load_profile": null,
+    "muscles": [
+      "rotators",
+      "shoulders",
+      "traps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Trapèzes",
+    "muscle_specific": "Trapèze inférieur",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "cable_double",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "b921a222-5892-4464-98a1-583bfa7d343a",
+    "name": "Single Arm DB Overhead Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": null,
+    "muscles": [
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde antérieur",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde médial"
+    ],
+    "movement_pattern": "push_vertical",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "b953ce24-0fe9-4180-ba98-919e90f99597",
+    "name": "Reverse curls",
+    "type": "ez-bar",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps",
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Plate_Curls/1.jpg",
+    "muscle_group": "Avant-bras",
+    "muscle_specific": "Brachioradialis",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "b95a3324-7813-4d73-b0de-6e20867b0983",
+    "name": "Overhead Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "vertical_push",
+    "level": "intermediate",
+    "default_scheme": "3x8-10",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "anterior deltoid",
+      "traps",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Debout · barre · core engagé · poignets neutres",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde antérieur",
+    "secondary_muscles": null,
+    "movement_pattern": "Vertical Push",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "ba63c8aa-900e-4d7b-be75-81f6dad7895e",
+    "name": "Dumbbell Shrug",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "traps",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Stand with your feet shoulder-width apart and hold a dumbbell in each hand with your palms facing your body.. Keep your arms straight and let the dumbbells hang by your sides.",
+    "muscle_group": "Trapèzes",
+    "muscle_specific": "Trapèze supérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "bbbcbcb3-6693-4111-9528-06b8f0d725d9",
+    "name": "Tibialis Raises",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "2x15-20",
+    "load_profile": null,
+    "muscles": [
+      "tibialis_anterior"
+    ],
+    "increment": 0,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "Dos au mur, talons décollés, remonte les orteils vers les tibias — brûle vite.",
+    "muscle_group": "Mollets",
+    "muscle_specific": "Tibial antérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "wall"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "bc9e81bf-119d-4c3f-a339-ae16c6d59526",
+    "name": "Hanging Leg Raise",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "core",
+    "level": "advanced",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "abs",
+      "hip flexors"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Hang from a pull-up bar with your arms fully extended and your palms facing away from you.. Engage your core and lift your legs up in front of you, keeping them straight.",
+    "muscle_group": "Core",
+    "muscle_specific": "Droit abdominal",
+    "secondary_muscles": [
+      "Fléchisseurs de hanche"
+    ],
+    "movement_pattern": "core",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "bd09ae7b-69df-4790-807e-b4f7b46baac4",
+    "name": "Chest press",
+    "type": "machine",
+    "category": "push",
+    "pattern": "push",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "chest"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral majeur — chef claviculaire",
+    "secondary_muscles": [
+      "Deltoïde antérieur",
+      "Triceps — chef latéral",
+      "Triceps — chef médial"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "bda0a383-f3fa-4d71-aae4-1be678dd4084",
+    "name": "Hack Squat",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "intermediate",
+    "default_scheme": "3x12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "quadriceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Machine · pieds bas serrés · focus quad",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "bdc9b9c7-a501-47d4-a414-ada214f5514b",
+    "name": "Wide-Grip Cable Row",
+    "type": "machine",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": null,
+    "muscles": [
+      "back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Rhomboïdes",
+      "Trapèze — chef inférieur",
+      "Trapèze — chef moyen"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "c4ca8540-5012-45d8-a7d9-7731d89df6f1",
+    "name": "Shoulder Overhead Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "vertical_push",
+    "level": "intermediate",
+    "default_scheme": "3x6-8",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "anterior deltoid",
+      "traps",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Overhead_Shoulder_Press/1.jpg",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde antérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "push_vertical",
+    "weight_type": "dumbbell",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:52:31.799527+00:00"
+  },
+  {
+    "id": "c6b79878-6a18-4de2-a4d0-26b65ed069fe",
+    "name": "Sandbag Bear Hug Squat",
+    "type": "press",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "intermediate",
+    "default_scheme": "3x6-10",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "quads"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Quadriceps",
+    "muscle_specific": null,
+    "secondary_muscles": [
+      "Biceps fémoral — longue portion",
+      "Grand adducteur",
+      "Grand fessier"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "press",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "c74f4ad6-0243-4293-ad71-8cbef34a75cf",
+    "name": "Dumbbell Wrist Curl",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Dumbbell_Palms-Up_Wrist_Curl/1.jpg",
+    "muscle_group": "Avant-bras",
+    "muscle_specific": "Fléchisseurs du poignet",
+    "secondary_muscles": [],
+    "movement_pattern": "accessory_wrist",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "c7bbf0fa-3c18-4154-bc80-f6cf9337c136",
+    "name": "Cable Woodchopper",
+    "type": "cable",
+    "category": "core",
+    "pattern": "core",
+    "level": "intermediate",
+    "default_scheme": "3x12",
+    "load_profile": "isolation",
+    "muscles": [
+      "obliques",
+      "abdominals"
+    ],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "Pivote depuis le tronc, hanches stables. Le mouvement vient des obliques, pas des bras.",
+    "muscle_group": "Core",
+    "muscle_specific": "Obliques",
+    "secondary_muscles": [],
+    "movement_pattern": "rotation",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "c872b104-7eed-4dc3-a543-b5c654df7370",
+    "name": "Lever Seated Fly",
+    "type": "machine",
+    "category": "push",
+    "pattern": "horizontal_push",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "deltoids",
+      "pectorals",
+      "trapezius"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Adjust the seat height and position yourself on the machine with your back against the pad.. Grasp the handles with a pronated grip and keep your elbows slightly bent.",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral moyen",
+    "secondary_muscles": [],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "machine",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:54:20.582694+00:00"
+  },
+  {
+    "id": "c8b5663e-cd99-4aec-a4f6-1cbc8df09868",
+    "name": "Meadows Row",
+    "type": "landmine",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "landmine",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+    "name": "Cossack Squat",
+    "type": "bodyweight",
+    "category": "legs",
+    "pattern": "lunge",
+    "level": "beginner",
+    "default_scheme": "2x6",
+    "load_profile": null,
+    "muscles": [
+      "adductors",
+      "quads",
+      "glutes"
+    ],
+    "increment": 0,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "Talons au sol, jambe tendue orteils au plafond, torse droit, descente profonde.",
+    "muscle_group": "Hanches",
+    "muscle_specific": "Adducteurs",
+    "secondary_muscles": [
+      "Quadriceps",
+      "Grand fessier"
+    ],
+    "movement_pattern": "unilateral_leg",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "c9a0be3d-6761-4957-873d-a1b32f94ed8f",
+    "name": "Goblet Squat",
+    "type": "dumbbell",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "beginner",
+    "default_scheme": "4x12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "quadriceps",
+      "fessiers"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Kettlebell · talons surélevés · genoux ouverts",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": null,
+    "movement_pattern": "Squat",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "cb6ba509-253a-44f7-ae93-3fc4578e2a55",
+    "name": "Single-Arm DB Row",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x10",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "lats",
+      "rhomboids",
+      "traps",
+      "biceps"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Genou sur banc · coude au ciel · 10/côté",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "cd09e6d0-9b9a-4ab0-9b1d-4c4a9ba2684b",
+    "name": "Dumbbell Arnold Press",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "delts",
+      "triceps",
+      "upper chest"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Sit on a bench with back support and hold a dumbbell in each hand at shoulder level, palms facing your body and elbows bent.. Press the dumbbells upward until your arms are fully extended and your palms are facing forward.",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde antérieur",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde médial"
+    ],
+    "movement_pattern": "push_vertical",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "cdac5271-1a7a-4239-972a-fb6ebec1806c",
+    "name": "90/90 Hip + Band Shoulder Rotation",
+    "type": "bodyweight",
+    "category": "mobility",
+    "pattern": "mobility",
+    "level": "beginner",
+    "default_scheme": "2x30s",
+    "load_profile": "endurance",
+    "muscles": [
+      "hips",
+      "shoulders"
+    ],
+    "increment": 0,
+    "bar_weight": 0.0,
+    "tracking_type": "mobility",
+    "rest_seconds": 30,
+    "tips": "Assis 90/90, alterne côté à mi-durée. Bande légère pour rotations d'épaules.",
+    "muscle_group": "Hanches",
+    "muscle_specific": "Hanches",
+    "secondary_muscles": [
+      "Épaules"
+    ],
+    "movement_pattern": "rotation",
+    "weight_type": "endurance",
+    "equipment": [
+      "Bandes"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "cdf7b96a-722a-4267-ba32-a4dd816a4607",
+    "name": "Barbell Upright Row",
+    "type": "barbell",
+    "category": "push",
+    "pattern": "pull",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Wide grip, coude aux épaules au lever",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde médial",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_vertical",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "cf4a7ad6-b59a-4fe9-80e3-72f62b94794f",
+    "name": "Seated Leg Curl",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": null,
+    "muscles": [
+      "hamstrings"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Machine · hanche fléchie = plus de stretch ischio · descente lente",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Ischio-jambiers",
+    "secondary_muscles": [
+      "Gastrocnémien"
+    ],
+    "movement_pattern": "isolation_leg",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "cf7a77c8-9b70-4831-b436-06d360ccdff6",
+    "name": "Pendlay Row",
+    "type": "barbell",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "intermediate",
+    "default_scheme": "4x5-8",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": null,
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps",
+      "Rhomboïdes"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "d07b4c3a-07c1-46e4-a607-469f0f512e0e",
+    "name": "Seated Z Press",
+    "type": "barbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "abs",
+      "shoulders",
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde antérieur",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde médial"
+    ],
+    "movement_pattern": "push_vertical",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "d12573b8-e2f2-4667-be68-ff8a5bbbfb91",
+    "name": "Band Shoulder CARs",
+    "type": null,
+    "category": "mobility",
+    "pattern": "mobility",
+    "level": null,
+    "default_scheme": "2x5",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "mobility",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde postérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "rotation",
+    "weight_type": "endurance",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "d2544c9f-2565-46f1-b344-adcc96b96484",
+    "name": "Dumbbell Concentration Curl",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "biceps",
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Sit on a bench with your legs spread apart and a dumbbell in one hand, resting your elbow on the inside of your thigh.. Fully extend your arm and hold the dumbbell with an underhand grip.",
+    "muscle_group": "Biceps",
+    "muscle_specific": "Biceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": true,
+    "deleted_at": null
+  },
+  {
+    "id": "d2c36b51-1310-4f72-8417-f4b0ab3e3be2",
+    "name": "Lateral Raises",
+    "type": "machine",
+    "category": "push",
+    "pattern": null,
+    "level": null,
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "shoulders"
+    ],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/1.jpg",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde médial",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "machine",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:54:36.620349+00:00"
+  },
+  {
+    "id": "d3d248fd-46b4-4f3b-bf92-bf6c329858cb",
+    "name": "Russian Twist",
+    "type": "bodyweight",
+    "category": "core",
+    "pattern": "core",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": null,
+    "muscles": [
+      "abs",
+      "obliques"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Sit on the ground with your knees bent and feet flat on the floor.. Lean back slightly while keeping your back straight and your core engaged.",
+    "muscle_group": "Core",
+    "muscle_specific": "Obliques",
+    "secondary_muscles": [],
+    "movement_pattern": "rotation",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "d48ad620-1794-414d-ac93-a86e49085413",
+    "name": "Weighted Dips",
+    "type": "bodyweight",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "4x6-10",
+    "load_profile": null,
+    "muscles": [
+      "lower_chest",
+      "triceps",
+      "front_delts"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 150,
+    "tips": "Torse légèrement penché avant, épaules loin des oreilles, descente contrôlée.",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral inférieur",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "dip_bars",
+      "weight_belt"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "d65a0bd7-7def-4e32-a8ac-dbcd40e26621",
+    "name": "Pull-up / Weighted",
+    "type": "bodyweight",
+    "category": "pull",
+    "pattern": "vertical_pull",
+    "level": "intermediate",
+    "default_scheme": "4x6-8",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "lats",
+      "biceps",
+      "rhomboids"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lest si 3×8 acquis · prise légèrement large",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_vertical",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": "2026-11-01T12:53:26.809972+00:00"
+  },
+  {
+    "id": "d9b1359f-d412-4f59-8644-f22ecf3d82cd",
+    "name": "Cable Pull Over",
+    "type": "cable",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "lats",
+      "triceps"
+    ],
+    "increment": 10.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Straight-Arm_Pulldown/1.jpg",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_vertical",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "ddc39015-32cd-43e9-891b-dc89f5c82e63",
+    "name": "Face Pull",
+    "type": "cable",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "shoulders"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble · corde · hauteur yeux · rotation externe",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde postérieur",
+    "secondary_muscles": [
+      "Rhomboïdes",
+      "Coiffe des rotateurs"
+    ],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "de2c9e87-0a00-4d54-bc23-a4805413bcd3",
+    "name": "Dumbbell Lateral Raise",
+    "type": "dumbbell",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "delts",
+      "traps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Haltères · coudes légèrement fléchis · coude devant épaule",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde médial",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_shoulder",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "e0eeb2d6-092f-4b87-836a-fb24093ddcf8",
+    "name": "Weighted Crunch",
+    "type": "cable",
+    "category": "core",
+    "pattern": "core",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "abs",
+      "obliques"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lie flat on your back with your knees bent and feet flat on the ground.. Hold a weight plate or dumbbell on your chest.",
+    "muscle_group": "Core",
+    "muscle_specific": "Droit abdominal",
+    "secondary_muscles": null,
+    "movement_pattern": "Gainage",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+    "name": "World's Greatest Stretch",
+    "type": "bodyweight",
+    "category": "mobility",
+    "pattern": "mobility",
+    "level": "beginner",
+    "default_scheme": "1x5",
+    "load_profile": null,
+    "muscles": [
+      "hips",
+      "thoracic",
+      "hamstrings"
+    ],
+    "increment": 0,
+    "bar_weight": 0.0,
+    "tracking_type": "mobility",
+    "rest_seconds": 30,
+    "tips": "5 répétitions par côté, alternées. Fente + rotation thoracique.",
+    "muscle_group": "Hanches",
+    "muscle_specific": "Hanches",
+    "secondary_muscles": [
+      "Thoracique",
+      "Ischio-jambiers"
+    ],
+    "movement_pattern": "rotation",
+    "weight_type": "bodyweight",
+    "equipment": [],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "e2f5fab1-1382-49cd-bd1e-7007610f6af9",
+    "name": "Barbell Decline Bench Press",
+    "type": "barbell",
+    "category": "push",
+    "pattern": "push",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "pectorals",
+      "triceps",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lie on a decline bench with your feet secured and your head lower than your hips.. Grasp the barbell with an overhand grip slightly wider than shoulder-width apart.",
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral inférieur",
+    "secondary_muscles": [
+      "Triceps",
+      "Deltoïde antérieur"
+    ],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "e5548034-a819-4579-8230-a933a7482e80",
+    "name": "Leg Press",
+    "type": "machine",
+    "category": "legs",
+    "pattern": "squat",
+    "level": "beginner",
+    "default_scheme": "3x10-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "quadriceps",
+      "fessiers",
+      "hamstrings"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Pieds mi-hauteur · amplitude sans verrouiller",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier"
+    ],
+    "movement_pattern": "squat",
+    "weight_type": "machine",
+    "equipment": [
+      "Machine"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "e559c4a9-f67f-433e-83dd-8b8b4c916eeb",
+    "name": "Pull-Up",
+    "type": "bodyweight",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "advanced",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_heavy",
+    "muscles": [
+      "lats",
+      "biceps",
+      "forearms"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Lest si 3×8 acquis · prise légèrement large",
+    "muscle_group": "Dos",
+    "muscle_specific": "Grand dorsal",
+    "secondary_muscles": [
+      "Biceps"
+    ],
+    "movement_pattern": "pull_vertical",
+    "weight_type": "bodyweight",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "eae74946-256e-4f20-bd65-70274dc039c4",
+    "name": "Farmer's Carry",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "carry",
+    "level": "beginner",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "quads",
+      "calves",
+      "forearms",
+      "core"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "carry",
+    "rest_seconds": 120,
+    "tips": "Stand up straight with a dumbbell in each hand, palms facing your sides.. Keep your back straight and your shoulders back.",
+    "muscle_group": "Avant-bras",
+    "muscle_specific": "Fléchisseurs des doigts",
+    "secondary_muscles": [],
+    "movement_pattern": "carry",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "eb20250a-5db1-4acf-8fc8-da5b7314f896",
+    "name": "Barbell Good Morning",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "hinge",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "hamstrings",
+      "lower back"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Start by standing with your feet shoulder-width apart and the barbell resting on your upper back.. Keeping your back straight and your core engaged, hinge forward at the hips, pushing your buttocks back as if you were trying to touch the wall behind you with your glutes.",
+    "muscle_group": "Ischio-jambiers",
+    "muscle_specific": "Ischio-jambiers",
+    "secondary_muscles": [
+      "Grand fessier",
+      "Érecteurs du rachis"
+    ],
+    "movement_pattern": "hinge",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "f27c51f6-99a3-4aac-956a-90f385a5423e",
+    "name": "Cable Crunch",
+    "type": "cable",
+    "category": "strength",
+    "pattern": "core",
+    "level": "beginner",
+    "default_scheme": "3x12-15",
+    "load_profile": "isolation",
+    "muscles": [
+      "core"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": 60,
+    "tips": "À genoux, fléchissez la colonne (pas les hanches). Contraction maximale au bas. Coudes fixes.",
+    "muscle_group": "Core",
+    "muscle_specific": "Droit abdominal",
+    "secondary_muscles": [
+      "Obliques"
+    ],
+    "movement_pattern": "Gainage",
+    "weight_type": "cable_double",
+    "equipment": [
+      "câble"
+    ],
+    "alternate_name": "Crunch Poulie",
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "f435bd2e-1d48-4543-8c14-1112689a766e",
+    "name": "Deadhang",
+    "type": "bodyweight",
+    "category": "pull",
+    "pattern": "isolation",
+    "level": "intermediate",
+    "default_scheme": "1xmax",
+    "load_profile": "endurance",
+    "muscles": [
+      "back"
+    ],
+    "increment": 0.0,
+    "bar_weight": 0.0,
+    "tracking_type": "time",
+    "rest_seconds": null,
+    "tips": "Épaules engagées, pas de shrug — tiens jusqu'à l'échec propre",
+    "muscle_group": "Avant-bras",
+    "muscle_specific": "Fléchisseurs des doigts",
+    "secondary_muscles": [],
+    "movement_pattern": "other",
+    "weight_type": "endurance",
+    "equipment": [
+      "Poids du corps"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "f61760fc-5c55-44f9-a653-ac46f0f6a093",
+    "name": "Barbell Lunge",
+    "type": "barbell",
+    "category": "legs",
+    "pattern": "lunge",
+    "level": "intermediate",
+    "default_scheme": "3x8-12",
+    "load_profile": "compound_hypertrophy",
+    "muscles": [
+      "glutes",
+      "quadriceps",
+      "hamstrings",
+      "calves"
+    ],
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Start by standing with your feet shoulder-width apart and a barbell resting on your upper back.. Take a step forward with your right foot, keeping your torso upright.",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier"
+    ],
+    "movement_pattern": "unilateral_leg",
+    "weight_type": "barbell",
+    "equipment": [
+      "Barre"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "f7e5bdbf-3ce6-4ef2-b31b-966b516e1905",
+    "name": "Walking Lunges",
+    "type": "dumbbell",
+    "category": "legs",
+    "pattern": "lunge",
+    "level": "beginner",
+    "default_scheme": "3x12",
+    "load_profile": null,
+    "muscles": [
+      "quadriceps",
+      "fessiers",
+      "hamstrings"
+    ],
+    "increment": 2.5,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "12 pas/jambe · tronc droit · genou avant sur orteil",
+    "muscle_group": "Quadriceps",
+    "muscle_specific": "Quadriceps",
+    "secondary_muscles": [
+      "Grand fessier"
+    ],
+    "movement_pattern": "unilateral_leg",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "f82f7b09-970c-4f6d-b638-e3c0478aaba0",
+    "name": "Dumbbell Rear Delt Flys",
+    "type": "dumbbell",
+    "category": "pull",
+    "pattern": "pull",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": null,
+    "muscles": [
+      "rear delts",
+      "shoulders"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Haltères · penché avant · coudes légèrement fléchis",
+    "muscle_group": "Épaules",
+    "muscle_specific": "Deltoïde postérieur",
+    "secondary_muscles": [],
+    "movement_pattern": "pull_horizontal",
+    "weight_type": "dumbbell",
+    "equipment": [
+      "Haltères"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "fa5bd0b0-9217-4c48-9d4f-b131d1908b0b",
+    "name": "Cable Crossover",
+    "type": null,
+    "category": "push",
+    "pattern": "push",
+    "level": null,
+    "default_scheme": "3x12-15",
+    "load_profile": null,
+    "muscles": [],
+    "increment": 5,
+    "bar_weight": 0,
+    "tracking_type": "reps",
+    "rest_seconds": null,
+    "tips": null,
+    "muscle_group": "Pectoraux",
+    "muscle_specific": "Pectoral inférieur",
+    "secondary_muscles": [],
+    "movement_pattern": "push_horizontal",
+    "weight_type": "cable_double",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  },
+  {
+    "id": "fc506d23-f991-490a-8e46-37dc38461943",
+    "name": "Triceps Pushdown",
+    "type": "cable",
+    "category": "push",
+    "pattern": "isolation",
+    "level": "",
+    "default_scheme": "3x8-12",
+    "load_profile": "isolation",
+    "muscles": [
+      "triceps"
+    ],
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "tracking_type": "reps",
+    "rest_seconds": 120,
+    "tips": "Câble · corde · coudes fixes aux côtés",
+    "muscle_group": "Triceps",
+    "muscle_specific": "Triceps",
+    "secondary_muscles": [],
+    "movement_pattern": "isolation_arm",
+    "weight_type": "cable_single",
+    "equipment": [
+      "Câble"
+    ],
+    "alternate_name": null,
+    "is_unilateral": false,
+    "deleted_at": null
+  }
+]

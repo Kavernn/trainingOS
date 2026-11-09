@@ -1,0 +1,48 @@
+{
+  "backend": [
+    "api/exercise_taxonomy.py",
+    "api/exercise_taxonomy_data.py",
+    "api/db_exercises.py",
+    "api/analytics_adapter.py",
+    "api/cockpit_analytics_service.py",
+    "api/muscle_volume.py",
+    "api/utils.py",
+    "api/workout_dna.py",
+    "api/routes/workout_exercises.py"
+  ],
+  "ios": [
+    "Models/MuscleMapping.swift",
+    "Models/TrainingDoctrine.swift",
+    "Views/Inventaire/InventaireView.swift",
+    "Views/Dashboard/DashboardTodayCards.swift",
+    "Views/Seance/SeanceView.swift",
+    "Views/Seance/SessionSupportViews.swift"
+  ],
+  "scripts": [
+    "scripts/audit_exercise_catalogue.py",
+    "scripts/audit_exercise_catalogue_legacy.py",
+    "scripts/generate_catalogue_taxonomy_swift.py"
+  ],
+  "changed_or_new_tests": [
+    "tests/test_catalogue_taxonomy.py",
+    "tests/test_exercise_catalogue_quality.py",
+    "tests/test_analytics_adapter.py",
+    "tests/test_cockpit_muscles_targets_and_effective_sets.py",
+    "tests/test_inventory_exercise_routes.py",
+    "TrainingOSTests/MuscleMapperTests.swift"
+  ],
+  "reports": [
+    "docs/audits/catalogue-2026-11-07/",
+    "docs/audits/catalogue-2026-11-08-rollout/"
+  ],
+  "excluded_unrelated_dirty": [
+    "Services/SmartAlarmService.swift",
+    "TrainingOS.xcodeproj/project.pbxproj",
+    "TrainingOSTests/SmartAlarmServiceTests.swift",
+    "TrainingOSTests/SmartAlarmPlatformTests.swift",
+    "Views/Dashboard/DashboardRitualCards.swift",
+    "Views/Settings/SmartAlarmSettingsView.swift",
+    "Views/Programme/ProgrammeView.swift",
+    "TrainingOSTests/StructureSessionChoiceTests.swift"
+  ]
+}

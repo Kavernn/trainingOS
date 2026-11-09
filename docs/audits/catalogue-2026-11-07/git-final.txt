@@ -1,0 +1,29 @@
+$ git diff --check
+exit=0
+
+$ git diff --stat
+ Services/SmartAlarmService.swift             |  95 ++++++++++++-----
+ TrainingOS.xcodeproj/project.pbxproj         |   3 +-
+ TrainingOSTests/SmartAlarmServiceTests.swift |   6 ++
+ Views/Dashboard/DashboardRitualCards.swift   |   2 +-
+ Views/Programme/ProgrammeView.swift          | 153 ++++++++++++++++++++++-----
+ Views/Settings/SmartAlarmSettingsView.swift  |  12 ++-
+ api/utils.py                                 |   7 ++
+ 7 files changed, 224 insertions(+), 54 deletions(-)
+exit=0
+
+$ git status -sb
+## master...origin/master [behind 7]
+ M Services/SmartAlarmService.swift
+ M TrainingOS.xcodeproj/project.pbxproj
+ M TrainingOSTests/SmartAlarmServiceTests.swift
+ M Views/Dashboard/DashboardRitualCards.swift
+ M Views/Programme/ProgrammeView.swift
+ M Views/Settings/SmartAlarmSettingsView.swift
+ M api/utils.py
+?? TrainingOSTests/SmartAlarmPlatformTests.swift
+?? TrainingOSTests/StructureSessionChoiceTests.swift
+?? docs/audits/
+?? scripts/audit_exercise_catalogue.py
+?? tests/test_exercise_catalogue_quality.py
+exit=0
