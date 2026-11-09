@@ -137,3 +137,23 @@ def test_reporting_bucket_is_not_an_anatomical_alias_for_every_member():
     assert redundant_broad_secondary('Pectoral supérieur','Pectoraux')
     assignment=_muscle_assignment(dict(name='Hammer curl',muscle_specific='Brachial',secondary_muscles=['Biceps']))
     assert assignment.indirect_muscles==('Biceps',)
+
+
+@pytest.mark.parametrize("label,expected", [
+    ("Hanches", "Hanches"), ("Autre", "Autre"),
+    ("Brachialis", "Brachial"), ("Brachial", "Brachial"),
+    ("rotator_cuff", "Coiffe des rotateurs"), ("Coiffe des rotateurs", "Coiffe des rotateurs"),
+    ("hip_flexors", "Fléchisseurs de hanche"), ("Fléchisseurs de hanche", "Fléchisseurs de hanche"),
+])
+def test_release_transition_keeps_targets_and_original_history(label, expected):
+    original = dict(name="Transition", muscle_group=label, muscle_specific=label,
+                    secondary_muscles=[], equipment=["dip_bars", "medicine ball"],
+                    default_scheme="3x8", bar_weight=45, type="landmine", tracking_type="reps")
+    snapshot = copy.deepcopy(original)
+    normalized = normalize_metadata(original)
+    assignment = _muscle_assignment(normalized)
+    assert assignment.direct_muscles == (expected,)
+    assert normalized["equipment"] == ["dip_bars", "medicine ball"]
+    assert original == snapshot
+    assert {k: normalized[k] for k in ("default_scheme", "bar_weight", "type", "tracking_type")} == {
+        k: original[k] for k in ("default_scheme", "bar_weight", "type", "tracking_type")}
