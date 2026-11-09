@@ -193,6 +193,7 @@ struct BonusSeanceView: View {
     @State private var inventorySchemes: [String: String] = [:]
     @State private var inventoryMuscleGroups: [String: String] = [:]
     @State private var inventory: [String] = []
+    @State private var inventoryLoadError: String? = nil  // /api/programme_data échec → bouton remplacé par bandeau Réessayer
     @State private var showAddExercise = false
     @State private var showFinish = false
     @State private var showUnloggedWarning = false
@@ -397,20 +398,42 @@ struct BonusSeanceView: View {
     }
 
     @ViewBuilder private var addExerciseButton: some View {
-        let label = HStack(spacing: 8) {
-            Image(systemName: "plus.circle.fill").foregroundColor(Color.forge)
-            Text("Ajouter un exercice")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Color.forge)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(Color.forge.opacity(0.08))
-        .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.25), lineWidth: 1))
-        Button { showAddExercise = true } label: { label }
-            .buttonStyle(SpringButtonStyle())
+        if inventoryLoadError != nil && inventory.isEmpty {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundColor(Color.appDanger)
+                Text("Impossible de charger les exercices")
+                    .font(.appCaption).foregroundColor(Color.appDanger)
+                Spacer()
+                Button {
+                    Task { await loadInventory() }
+                } label: {
+                    Text("Réessayer")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(Color.forge)
+                        .frame(minHeight: 44)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(Color.appDanger.opacity(0.08))
+            .cornerRadius(8)
             .padding(.horizontal, 16)
+        } else {
+            let label = HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill").foregroundColor(Color.forge)
+                Text("Ajouter un exercice")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color.forge)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.forge.opacity(0.08))
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.25), lineWidth: 1))
+            Button { showAddExercise = true } label: { label }
+                .buttonStyle(SpringButtonStyle())
+                .padding(.horizontal, 16)
+        }
     }
 
     private var computedRPE: Double {
@@ -680,10 +703,34 @@ struct BonusSeanceView: View {
         // Séquentiel (pas async let — cf. feedback iOS 26 async let crash).
         await loadBonusPlan()
 
-        guard let url = URL(string: "\(APIConfig.base)/api/programme_data"),
-              let (data, _) = try? await URLSession.authed.data(from: url),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { isLoading = false; return }
+        // Fetch inventaire : échec → bouton "Ajouter" remplacé par
+        // "Impossible de charger les exercices · Réessayer" visible au user
+        // (sans ça, le sheet s'ouvrait sur liste vide sans raison).
+        guard let url = URL(string: "\(APIConfig.base)/api/programme_data") else {
+            await MainActor.run { inventoryLoadError = "URL invalide"; isLoading = false }
+            return
+        }
+        let payload: Data
+        do {
+            let (d, resp) = try await URLSession.authed.data(from: url)
+            if let http = resp as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                throw URLError(.badServerResponse)
+            }
+            payload = d
+        } catch {
+            let msg: String
+            if let url = error as? URLError, url.code == .notConnectedToInternet {
+                msg = "Hors ligne — réessaie quand tu es en ligne"
+            } else {
+                msg = "Erreur réseau — réessaie"
+            }
+            await MainActor.run { inventoryLoadError = msg; isLoading = false }
+            return
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: payload) as? [String: Any] else {
+            await MainActor.run { inventoryLoadError = "Réponse invalide — réessaie"; isLoading = false }
+            return
+        }
 
         let inv      = (json["inventory"] as? [String]) ?? []
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
@@ -698,6 +745,7 @@ struct BonusSeanceView: View {
             inventoryUnilateral = unilateral
             inventorySchemes  = schemes
             inventoryMuscleGroups = muscleGroups
+            inventoryLoadError = nil
             isLoading         = false
         }
     }

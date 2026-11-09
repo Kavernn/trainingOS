@@ -48,7 +48,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Profile/ProfileView.swift:getWarRoomConfig",
         "Views/Profile/ProfileView.swift:getWarRoomSummary",
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
-        "Views/Seance/BonusSeanceView.swift:URLSession.authed",
         "Views/Seance/SeanceSoirView.swift:URLSession.authed",
         "Views/Seasons/SeasonView.swift:getActiveSeason",
         "Views/Seasons/SeasonView.swift:getAllSeasons",
