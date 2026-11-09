@@ -3198,15 +3198,12 @@ private struct StructurePlanningSlotRow: View {
     let sessionsList: [String]
     let onPick: (String?) -> Void
 
-    private static let historicalSessionPrefixes: [String] = [
-        "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
-    ].flatMap { day in
-        ["\(day) AM — ", "\(day) PM — "]
-    }
+    @State private var showingChoices = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var displayedSessionName: String? {
         guard let seance else { return nil }
-        return displayName(for: seance)
+        return StructureSessionOption(id: seance).title
     }
 
     private var countLabel: String {
@@ -3226,7 +3223,10 @@ private struct StructurePlanningSlotRow: View {
                 .fill(moment.color.opacity(seance == nil ? 0.35 : 0.9))
                 .frame(width: 3)
 
-            HStack(spacing: 8) {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(spacing: 8))
+            layout {
                 HStack(spacing: 10) {
                     HStack(spacing: 4) {
                         Image(systemName: moment.icon)
@@ -3243,10 +3243,9 @@ private struct StructurePlanningSlotRow: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(displayedSessionName ?? "Aucune séance")
-                            .font(.appLabel.weight(.semibold))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundColor(seance == nil ? .appTextSecondary : .appTextPrimary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                            .fixedSize(horizontal: false, vertical: true)
                         if seance != nil {
                             Text(countLabel)
                                 .font(.appCaption)
@@ -3258,9 +3257,11 @@ private struct StructurePlanningSlotRow: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(accessibilitySummary)
 
-                Spacer(minLength: 4)
-                assignmentMenu
-                optionsMenu
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 4) }
+                HStack(spacing: 0) {
+                    assignmentButton
+                    optionsMenu
+                }
             }
             .padding(.leading, 12)
             .padding(.trailing, 4)
@@ -3275,24 +3276,33 @@ private struct StructurePlanningSlotRow: View {
         )
     }
 
-    private var assignmentMenu: some View {
-        Menu {
-            ForEach(sessionsList, id: \.self) { session in
-                Button(displayName(for: session)) { onPick(session) }
-            }
-        } label: {
+    private var assignmentButton: some View {
+        Button { showingChoices = true } label: {
             Text(seance == nil ? "Assigner" : "Changer")
-                .font(.appLabel.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundColor(moment.color)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 8)
-                .frame(minHeight: 44)
+                .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(
             seance == nil
                 ? "Assigner une séance au créneau du \(moment.spokenLabel.lowercased())."
-                : "Changer la séance du \(moment.spokenLabel.lowercased())."
+                : "Faire changer la séance du \(moment.spokenLabel.lowercased())."
         )
+        .accessibilityIdentifier("structure-choose-\(moment.label.lowercased())")
+        .sheet(isPresented: $showingChoices) {
+            StructureSessionChoiceSheet(
+                moment: moment.spokenLabel,
+                sessions: sessionsList,
+                selectedSession: seance,
+                onPick: { onPick($0) }
+            )
+            .environment(\.dynamicTypeSize, dynamicTypeSize)
+            .presentationDetents([.large])
+        }
     }
 
     @ViewBuilder
@@ -3315,12 +3325,101 @@ private struct StructurePlanningSlotRow: View {
         }
     }
 
-    private func displayName(for session: String) -> String {
-        for prefix in Self.historicalSessionPrefixes where session.hasPrefix(prefix) {
-            let name = String(session.dropFirst(prefix.count))
-            if !name.isEmpty { return name }
+}
+
+/// Names remain the business identity, even when historical prefixes are hidden.
+/// The historical prefix disambiguates otherwise identical display titles.
+struct StructureSessionOption: Identifiable, Equatable {
+    let id: String
+
+    var context: String? {
+        guard title != id else { return nil }
+        return String(id.dropLast(title.count + " — ".count))
+    }
+
+    var title: String {
+        for day in ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"] {
+            for moment in ["AM", "PM"] {
+                let prefix = "\(day) \(moment) — "
+                if id.hasPrefix(prefix), id.count > prefix.count {
+                    return String(id.dropFirst(prefix.count))
+                }
+            }
         }
-        return session
+        return id
+    }
+}
+
+/// The parent owns the assignment. This view only gates taps during dismissal;
+/// it never stores a draft business selection or writes a schedule itself.
+struct StructureSessionChoiceSheet: View {
+    let moment: String
+    let sessions: [String]
+    let selectedSession: String?
+    let onPick: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var didChoose = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(sessions.map { StructureSessionOption(id: $0) }) { option in
+                        Button {
+                            guard !didChoose else { return }
+                            didChoose = true
+                            // Existing synchronous parent callback: exactly one mutation.
+                            // Server persistence and error feedback remain with the parent.
+                            if option.id != selectedSession { onPick(option.id) }
+                            dismiss()
+                        } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(option.title)
+                                        .font(.body)
+                                    if let context = option.context {
+                                        Text(context)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    if option.id == selectedSession {
+                                        Text("Sélection actuelle")
+                                            .font(.subheadline.weight(.semibold))
+                                    }
+                                }
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                if option.id == selectedSession {
+                                    Image(systemName: "checkmark")
+                                        .accessibilityHidden(true)
+                                }
+                            }
+                            .foregroundStyle(.primary)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(didChoose)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(option.id == selectedSession ? .isSelected : [])
+                        .accessibilityIdentifier("structure-session-\(option.id)")
+                    }
+                    if sessions.isEmpty {
+                        Text("Aucune séance disponible dans ce programme.")
+                    }
+                } header: {
+                    Text("Créneau du \(moment.lowercased())")
+                }
+            }
+            .navigationTitle("Choisir une séance")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }
+                        .accessibilityIdentifier("structure-choice-cancel")
+                }
+            }
+        }
     }
 }
 
