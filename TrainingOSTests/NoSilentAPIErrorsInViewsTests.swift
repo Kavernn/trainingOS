@@ -29,7 +29,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Budget/BudgetView.swift:fetchBudgetStatus",
         "Views/GymFinder/GymFinderViewModel.swift:URLSession.authed",
         "Views/HIIT/HIITHistoriqueView.swift:fetchHIITData",
-        "Views/Historique/HistoriqueView.swift:URLSession.authed",
         "Views/Intelligence/RitualEveningView.swift:fetchRitualToday",
         "Views/Intelligence/RitualView.swift:fetchRitualToday",
         "Views/Intelligence/WarRoomGateView.swift:getCurrentOath",
@@ -70,6 +69,11 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // FoodCatalogStore local. Échec = le catalogue local (built-in +
             // persistance locale) reste pleinement fonctionnel ; prochain
             // ouverture du sheet retente. Pas de surface UI à ajouter.
+        "Views/Historique/HistoriqueView.swift:loadActiveExercises",
+            // Raison : alimente activeExercises (Set<String>) utilisé par
+            // MuscuSessionCard pour le highlight visuel discret. Un échec =
+            // highlight manquant, l'historique reste pleinement consultable.
+            // Pas de surface d'erreur à ajouter — bruit vs valeur.
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport",
             // Raison : schedule du notif recap hebdo uniquement. Aucune @Published,
             // aucune carte dashboard ne lit la réponse. Un échec = pas de rappel

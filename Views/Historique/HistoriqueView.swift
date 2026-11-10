@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let historiqueLogger = Logger(subsystem: "TrainingOS", category: "historique")
 
 // MARK: - Models
 struct EditableExo: Equatable {
@@ -205,48 +208,63 @@ struct HistoriqueView: View {
         }
 
         isLoading = true
+        defer { isLoading = false }
         var urlStr = "\(APIConfig.base)/api/historique_data?limit=\(pageSize)&offset=0"
         if let m = monthFilter { urlStr += "&month=\(m)" }
-        guard let url = URL(string: urlStr) else { isLoading = false; return }
+        guard let url = URL(string: urlStr) else { return }
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
-        if let (data, _) = try? await URLSession.authed.data(for: req),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        do {
+            let (data, _) = try await URLSession.authed.data(for: req)
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw URLError(.cannotParseResponse)
+            }
             if monthFilter == nil { CacheService.shared.save(data, for: "historique_data") }
             applyJSON(json, append: false)
             hasMore = json["has_more"] as? Bool ?? false
-        } else if muscuSessions.isEmpty && hiitSessions.isEmpty {
-            apiError = "Impossible de charger l'historique — vérifie ta connexion."
+            apiError = nil
+        } catch {
+            if muscuSessions.isEmpty && hiitSessions.isEmpty {
+                apiError = LoadError.from(error)?.message ?? "Impossible de charger l'historique — vérifie ta connexion."
+            }
         }
-        isLoading = false
     }
 
     private func loadActiveExercises() async {
         guard let url = URL(string: "\(APIConfig.base)/api/inventory") else { return }
         var req = URLRequest(url: url)
         req.timeoutInterval = 10
-        if let (data, _) = try? await URLSession.authed.data(for: req),
-           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            activeExercises = Set(dict.keys)
+        do {
+            let (data, _) = try await URLSession.authed.data(for: req)
+            if let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                activeExercises = Set(dict.keys)
+            }
+        } catch {
+            historiqueLogger.error("loadActiveExercises: \(error, privacy: .public)")
         }
     }
 
     private func loadMore() async {
         guard hasMore, !isLoadingMore else { return }
         isLoadingMore = true
+        defer { isLoadingMore = false }
         let newOffset = currentOffset + pageSize
         var urlStr = "\(APIConfig.base)/api/historique_data?limit=\(pageSize)&offset=\(newOffset)"
         if let m = monthFilter { urlStr += "&month=\(m)" }
-        guard let url = URL(string: urlStr) else { isLoadingMore = false; return }
+        guard let url = URL(string: urlStr) else { return }
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
-        if let (data, _) = try? await URLSession.authed.data(for: req),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        do {
+            let (data, _) = try await URLSession.authed.data(for: req)
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw URLError(.cannotParseResponse)
+            }
             applyJSON(json, append: true)
             hasMore = json["has_more"] as? Bool ?? false
             currentOffset = newOffset
+        } catch {
+            apiError = LoadError.from(error)?.message ?? "Impossible de charger la suite — réessaie."
         }
-        isLoadingMore = false
     }
 
     private func applyJSON(_ json: [String: Any], append: Bool) {
