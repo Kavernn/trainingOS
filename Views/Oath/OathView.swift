@@ -97,7 +97,19 @@ struct OathContentView: View {
                 if vm.isLoading {
                     ProgressView().tint(.onAccent).padding(.top, 60)
                 } else if let oath = vm.currentOath {
-                    oathDisplay(oath)
+                    VStack(spacing: 12) {
+                        if let msg = vm.loadError {
+                            ErrorBannerView(error: msg,
+                                onRetry: { Task { await vm.load() } },
+                                onDismiss: { vm.loadError = nil })
+                        }
+                        oathDisplay(oath)
+                    }
+                } else if vm.oathFailed {
+                    unavailableState(
+                        message: vm.loadError ?? "Serment indisponible",
+                        retry: { Task { await vm.load() } }
+                    )
                 } else {
                     emptyState
                 }
@@ -133,6 +145,22 @@ struct OathContentView: View {
             OathArchiveView(versions: vm.versions)
         }
         .task { await vm.load() }
+    }
+
+    private func unavailableState(message: String, retry: @escaping () -> Void) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "wifi.slash")
+                .font(.system(size: 32))
+                .foregroundColor(Color.appOnSurface.opacity(0.4))
+            Text(message)
+                .font(.appLabel)
+                .foregroundColor(Color.appOnSurface.opacity(0.6))
+                .multilineTextAlignment(.center)
+            Button("Réessayer", action: retry)
+                .font(.appBody.weight(.semibold))
+                .foregroundColor(Color.forge)
+        }
+        .padding(32)
     }
 
     private var emptyState: some View {
@@ -288,12 +316,29 @@ class OathViewModel: ObservableObject {
     @Published var versions:    [OathModel] = []
     @Published var isLoading = false
 
+    @Published var loadError: String?
+    private(set) var oathFailed = false
+    private(set) var versionsFailed = false
+
     func load() async {
         isLoading = true
         defer { isLoading = false }
+        loadError = nil
+        oathFailed = false
+        versionsFailed = false
         do { currentOath = try await APIService.shared.getCurrentOath() }
-        catch { oathLogger.error("getCurrentOath: \(error, privacy: .public)") }
+        catch {
+            oathFailed = true
+            loadError = LoadError.from(error)?.message ?? "Serment indisponible — réessaie."
+            oathLogger.error("getCurrentOath: \(error, privacy: .public)")
+        }
         do { versions = try await APIService.shared.getOathVersions() }
-        catch { oathLogger.error("getOathVersions: \(error, privacy: .public)") }
+        catch {
+            versionsFailed = true
+            if loadError == nil {
+                loadError = LoadError.from(error)?.message ?? "Historique indisponible."
+            }
+            oathLogger.error("getOathVersions: \(error, privacy: .public)")
+        }
     }
 }
