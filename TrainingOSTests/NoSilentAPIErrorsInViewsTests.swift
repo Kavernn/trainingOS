@@ -92,11 +92,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "TRANSIT — routing vers setup (user-visible).",
         "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig":
             "TRANSIT — toggles settings War Room.",
-        "Views/BodyComp/BodyCompView.swift:fetchProfilData":
-            "TRANSIT — profile/bodyWeight/tendance BodyComp.",
-        "Views/BodyComp/BodyCompView.swift:bodyProjection":
-            "TRANSIT — section projection BodyComp.",
-        "Views/Seance/WorkoutActiveView.swift:loadReadiness":
+"Views/Seance/WorkoutActiveView.swift:loadReadiness":
             "TRANSIT — ReadinessChip contextPanel.",
         // ── VRAIS EFFETS DE BORD ──
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport":

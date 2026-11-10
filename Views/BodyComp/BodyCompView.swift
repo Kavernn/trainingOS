@@ -9,6 +9,7 @@ struct BodyCompView: View {
     @State private var profile: UserProfile? = nil
     @State private var tendance = ""
     @State private var isLoading = true
+    @State private var loadError: String?
     @State private var sheetEntry: BodyWeightEntry? = nil
     @State private var showSheet = false
     @State private var projection: BodyProjectionData? = nil
@@ -39,6 +40,12 @@ struct BodyCompView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
+
+                            if let msg = loadError {
+                                ErrorBannerView(error: msg,
+                                    onRetry: { Task { await loadData() } },
+                                    onDismiss: { loadError = nil })
+                            }
 
                             // 1 — Poids actuel + chips maigre/gras
                             currentWeightCard
@@ -250,10 +257,12 @@ struct BodyCompView: View {
     private func loadData() async {
         isLoading = true
         defer { isLoading = false }
+        loadError = nil
         do {
             let (p, bw, t) = try await APIService.shared.fetchProfilData()
             profile = p; bodyWeight = bw; tendance = t
         } catch {
+            loadError = LoadError.from(error)?.message ?? "Impossible de charger le profil — réessaie."
             bodyCompLogger.error("fetchProfilData: \(error, privacy: .public)")
         }
         // Load body projection asynchronously
@@ -264,6 +273,12 @@ struct BodyCompView: View {
                 let proj = try APIService.decoder.decode(BodyProjectionData.self, from: data)
                 await MainActor.run { projection = proj }
             } catch {
+                await MainActor.run {
+                    // Ne pas écraser un message plus pertinent du load principal.
+                    if loadError == nil {
+                        loadError = LoadError.from(error)?.message ?? "Projection indisponible."
+                    }
+                }
                 bodyCompLogger.error("bodyProjection: \(error, privacy: .public)")
             }
         }
