@@ -385,9 +385,19 @@ _MUSCLE_ALIASES: dict = {
     "trapèze inférieur":   "trapezius",
     # Deltoïdes FR
     "deltoïde antérieur":  "deltoids",
+    "deltoïde médial":     "deltoids",
     "deltoïde postérieur": "rear delt",
+    "coiffe des rotateurs": "deltoids",
     # Fessiers FR
     "moyen fessier":       "fessiers",
+    "grand fessier":       "fessiers",
+    # Mollets FR
+    "gastrocnémien":       "calves",
+    # Dos FR (sous-régions)
+    "rhomboïdes":          "lats",
+    "érecteurs du rachis": "lats",
+    # Pectoraux FR
+    "pectoral majeur":     "chest",
     # Core FR
     "droit abdominal":     "core",
     # Synonymes exacts de l'éditeur : préserver l'attribution des anciennes
@@ -397,6 +407,18 @@ _MUSCLE_ALIASES: dict = {
     "trapèze — chef supérieur": "trapezius",
     "trapèze — chef moyen":     "trapezius",
     "trapèze — chef inférieur": "trapezius",
+    # Rotator cuff — alignement avec "coiffe des rotateurs" → Épaules.
+    # (Ancien : "rear delt"/Arrière d'épaule — anatomiquement incorrect, la
+    # coiffe des rotateurs = supra/infra-épineux + petit rond + sous-scap,
+    # muscles rotateurs profonds, distincts du deltoïde postérieur.)
+    "rotator_cuff":        "deltoids",
+    # Hanches / Fléchisseurs de hanche : groupe doctrine, exclu du volume
+    # (cohérent avec TrainingDoctrine._excludedFromVolume côté iOS). La
+    # normalisation résout vers "hanches", qui est filtré en amont par
+    # analytics_adapter._canonical_muscle_value.
+    "fléchisseurs de hanche": "hanches",
+    "hip flexors":            "hanches",
+    "hip_flexors":            "hanches",
 }
 
 

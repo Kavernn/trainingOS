@@ -54,7 +54,9 @@ def test_preserves_ids_sessions_dates_tracking_sets_and_builds_all_dtos():
     assert load.date == date(2026, 9, 1)
     assert strength.tracking_type == "reps"
     assert load.sets[0].weight == 100
-    assert result.assignments[0].direct_muscles == ("Pectoral majeur",)
+    # "Pectoral majeur" fusionne vers le groupe canonique "Pectoraux"
+    # (alias 2026-11-09, règle sous-région → groupe display).
+    assert result.assignments[0].direct_muscles == ("Pectoraux",)
 
 
 def test_specific_precedes_group_and_secondary_is_indirect():
@@ -63,7 +65,8 @@ def test_specific_precedes_group_and_secondary_is_indirect():
         period=PERIOD,
     )
     assignment = result.assignments[0]
-    assert assignment.direct_muscles == ("Pectoral majeur",)
+    assert assignment.direct_muscles == ("Pectoraux",)  # Pectoral majeur → Pectoraux
+    # Direct Pectoraux déduplique l'indirect Pectoraux implicite.
     assert assignment.indirect_muscles == ("Triceps",)
 
 

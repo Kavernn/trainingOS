@@ -118,11 +118,16 @@ def _sets(raw: object) -> tuple[TrainingLoadSet, ...] | None:
 
 def _canonical_muscle_value_detail(value: object) -> str | None:
     """Alias canonique au niveau cible détaillée (sans fusion vers groupe).
-    Utilisé pour le breakdown additif par sous-région."""
+    Utilisé pour le breakdown additif par sous-région. Applique la même
+    exclusion Hanches/Autre que la passe display pour garder les deux
+    résumés symétriques."""
     if not isinstance(value, str):
         return None
     cleaned = value.strip()
     if not cleaned:
+        return None
+    from utils import _normalize_muscle
+    if _normalize_muscle(cleaned) in _EXCLUDED_FROM_VOLUME:
         return None
     from exercise_taxonomy import detailed_target
     return detailed_target(cleaned)
@@ -147,11 +152,23 @@ def _muscle_assignment_detail(exercise: dict[str, Any]) -> ExerciseMuscleAssignm
     return ExerciseMuscleAssignment(exercise_name=name, direct_muscles=direct, indirect_muscles=indirect)
 
 
+_EXCLUDED_FROM_VOLUME = frozenset(("hanches", "autre"))
+
+
 def _canonical_muscle_value(value: object) -> str | None:
     if not isinstance(value, str):
         return None
     cleaned = value.strip()
     if not cleaned:
+        return None
+    # Exclusion doctrinale cohérente avec TrainingDoctrine._excludedFromVolume
+    # côté iOS : Hanches (Fléchisseurs de hanche incl.) et Autre n'ont pas
+    # de plage MEV/MAV et sortent du reporting volume — pas de tuile, pas
+    # de mention dans muscle_dominants. On filtre après `_normalize_muscle`
+    # pour attraper tous les alias (ex. "hip flexors", "Fléchisseurs de
+    # hanche" → "hanches"), puis ne pas émettre d'affectation.
+    from utils import canonical_muscle_display, _normalize_muscle
+    if _normalize_muscle(cleaned) in _EXCLUDED_FROM_VOLUME:
         return None
     # Volume + MEV/MAV reporting lives at the canonical display group level
     # (Pectoraux, Dos, Épaules, Abdominaux, Trapèzes, Arrière d'épaule,
@@ -159,12 +176,11 @@ def _canonical_muscle_value(value: object) -> str | None:
     # preserved in the catalogue via `normalize_metadata` and exposed as a
     # separate breakdown field in a follow-up commit — never fuse detail into
     # workloads here, no MEV range exists at sub-region level.
-    from utils import canonical_muscle_display
     display = canonical_muscle_display(cleaned)
     if display is not None:
         return display
-    # Hors doctrine (petits muscles sans landmark, hanches, cou…) : nom brut
-    # préservé, l'invariant OLD vs NEW l'affiche à l'identique.
+    # Hors doctrine (petits muscles sans landmark, cou…) : nom brut préservé,
+    # l'invariant OLD vs NEW l'affiche à l'identique.
     return cleaned
 
 

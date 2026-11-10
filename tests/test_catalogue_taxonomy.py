@@ -113,12 +113,20 @@ def test_verified_production_matches_only_safe_plan_and_preserves_archived_rows(
 
 @pytest.mark.parametrize("label,expected", [
     # Volume reporting is at the canonical display-group level (option A).
-    # Brachial → "Biceps" display, same bucket. Rotator cuff and hip flexors
-    # live outside the Israetel landmark set, so they stay as raw targets.
-    ("Hanches", "Hanches"), ("Autre", "Autre"),
+    # Brachial → "Biceps". Pectoral majeur → "Pectoraux". Rhomboïdes /
+    # Érecteurs du rachis → "Dos". Coiffe des rotateurs / Deltoïde médial →
+    # "Épaules". Grand fessier → "Fessiers". Gastrocnémien → "Mollets".
+    # Hanches / Fléchisseurs de hanche / Autre : EXCLUS du volume
+    # (doctrine 2026-11-09, cohérent avec iOS TrainingDoctrine
+    # _excludedFromVolume) → `None` d'assignment, pas de tuile.
     ("Brachialis", "Biceps"), ("Brachial", "Biceps"),
-    ("rotator_cuff", "Coiffe des rotateurs"), ("Coiffe des rotateurs", "Coiffe des rotateurs"),
-    ("hip_flexors", "Fléchisseurs de hanche"), ("Fléchisseurs de hanche", "Fléchisseurs de hanche"),
+    ("rotator_cuff", "Épaules"), ("Coiffe des rotateurs", "Épaules"),
+    ("Pectoral majeur", "Pectoraux"),
+    ("Grand fessier", "Fessiers"),
+    ("Gastrocnémien", "Mollets"),
+    ("Deltoïde médial", "Épaules"),
+    ("Rhomboïdes", "Dos"),
+    ("Érecteurs du rachis", "Dos"),
 ])
 def test_release_transition_keeps_targets_and_original_history(label, expected):
     original = dict(name="Transition", muscle_group=label, muscle_specific=label,
@@ -132,3 +140,27 @@ def test_release_transition_keeps_targets_and_original_history(label, expected):
     assert original == snapshot
     assert {k: normalized[k] for k in ("default_scheme", "bar_weight", "type", "tracking_type")} == {
         k: original[k] for k in ("default_scheme", "bar_weight", "type", "tracking_type")}
+
+
+@pytest.mark.parametrize("label", ["Hanches", "Autre", "Fléchisseurs de hanche", "hip_flexors"])
+def test_excluded_from_volume_yields_no_assignment(label):
+    """Hanches, Autre et Fléchisseurs de hanche sortent du volume cockpit
+    (aucune tuile, aucune mention dans muscle_dominants). _muscle_assignment
+    retourne None quand primary/secondaire est dans ce set."""
+    original = dict(name="Excluded", muscle_group=label, muscle_specific=label,
+                    secondary_muscles=[], equipment=[])
+    normalized = normalize_metadata(original)
+    assert _muscle_assignment(normalized) is None
+
+
+def test_excluded_secondary_is_dropped_but_direct_survives():
+    """Un secondaire Fléchisseurs de hanche sur un exercice Core ne fait pas
+    sortir de tuile hors des groupes canoniques."""
+    original = dict(name="Hanging Leg Raise", muscle_group="Core",
+                    muscle_specific="Droit abdominal",
+                    secondary_muscles=["Fléchisseurs de hanche"],
+                    equipment=[])
+    normalized = normalize_metadata(original)
+    a = _muscle_assignment(normalized)
+    assert a.direct_muscles == ("Abdominaux",)
+    assert a.indirect_muscles == ()  # Fléchisseurs de hanche exclu
