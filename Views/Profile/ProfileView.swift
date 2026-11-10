@@ -3,6 +3,9 @@ import Combine
 import PhotosUI
 import Charts
 import LocalAuthentication
+import OSLog
+
+private let profileLogger = Logger(subsystem: "TrainingOS", category: "profile")
 
 // Archetype accent — mirrors WorkoutDNAView, accessible app-wide from this file
 func dnaArchetypeAccent(_ key: String) -> Color {
@@ -872,26 +875,40 @@ struct ProfileView: View {
 
     private func loadData() async {
         isLoading = true
+        defer { isLoading = false }
         await api.fetchDashboard()
         await BodyCompService.shared.refresh()
-        dna        = try? await APIService.shared.fetchWorkoutDNA()
-        pssHistory = (try? await APIService.shared.fetchPSSHistory()) ?? []
-        oath       = try? await APIService.shared.getCurrentOath()
-        if let stats = try? await APIService.shared.fetchProfileStats() {
+        do { dna = try await APIService.shared.fetchWorkoutDNA() }
+        catch { profileLogger.error("fetchWorkoutDNA: \(error, privacy: .public)") }
+        do { pssHistory = try await APIService.shared.fetchPSSHistory() }
+        catch { profileLogger.error("fetchPSSHistory: \(error, privacy: .public)") }
+        do { oath = try await APIService.shared.getCurrentOath() }
+        catch { profileLogger.error("getCurrentOath: \(error, privacy: .public)") }
+        do {
+            let stats = try await APIService.shared.fetchProfileStats()
             totalSessions    = stats.totalSessions
             allTimeVolumeLbs = stats.allTimeVolumeLbs
             currentStreak    = stats.currentStreak
             longestStreak    = stats.longestStreak
             weeklyTonnage    = stats.weeklyTonnage.sorted { $0.weekStart < $1.weekStart }
             if let ms = stats.memberSince { memberSinceText = buildMemberSince(isoDate: ms) }
+        } catch {
+            profileLogger.error("fetchProfileStats: \(error, privacy: .public)")
         }
-        if let config = try? await APIService.shared.getWarRoomConfig(), config.warStartDate != nil {
-            warRoomEnabled = true
-            if let summary = try? await APIService.shared.getWarRoomSummary() {
-                warRoomVictoryStreak = summary.victoryStreak
+        do {
+            let config = try await APIService.shared.getWarRoomConfig()
+            if config.warStartDate != nil {
+                warRoomEnabled = true
+                do {
+                    let summary = try await APIService.shared.getWarRoomSummary()
+                    warRoomVictoryStreak = summary.victoryStreak
+                } catch {
+                    profileLogger.error("getWarRoomSummary: \(error, privacy: .public)")
+                }
             }
+        } catch {
+            profileLogger.error("getWarRoomConfig: \(error, privacy: .public)")
         }
-        isLoading = false
     }
 
     private func exportData() async {

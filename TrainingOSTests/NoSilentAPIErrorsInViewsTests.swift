@@ -35,12 +35,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Inventaire/InventaireView.swift:URLSession.authed",
         "Views/Oath/OathView.swift:getCurrentOath",
         "Views/Oath/OathView.swift:getOathVersions",
-        "Views/Profile/ProfileView.swift:fetchPSSHistory",
-        "Views/Profile/ProfileView.swift:fetchProfileStats",
-        "Views/Profile/ProfileView.swift:fetchWorkoutDNA",
-        "Views/Profile/ProfileView.swift:getCurrentOath",
-        "Views/Profile/ProfileView.swift:getWarRoomConfig",
-        "Views/Profile/ProfileView.swift:getWarRoomSummary",
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
         "Views/Seasons/SeasonView.swift:getActiveSeason",
         "Views/Seasons/SeasonView.swift:getAllSeasons",
@@ -73,6 +67,17 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // MuscuSessionCard pour le highlight visuel discret. Un échec =
             // highlight manquant, l'historique reste pleinement consultable.
             // Pas de surface d'erreur à ajouter — bruit vs valeur.
+        "Views/Profile/ProfileView.swift:fetchWorkoutDNA",
+        "Views/Profile/ProfileView.swift:fetchPSSHistory",
+        "Views/Profile/ProfileView.swift:getCurrentOath",
+        "Views/Profile/ProfileView.swift:fetchProfileStats",
+        "Views/Profile/ProfileView.swift:getWarRoomConfig",
+        "Views/Profile/ProfileView.swift:getWarRoomSummary",
+            // Raison (6 entries) : ProfileView = sections indépendantes "best effort"
+            // (DNA, PSS chart, oath, stats, war room). Chaque section s'auto-masque
+            // si sa donnée n'a pas chargé. Un échec = section cachée, pas un écran
+            // cassé — les autres sections restent pleinement fonctionnelles. Dédier
+            // une surface d'erreur par section (6 bannières) est du bruit vs valeur.
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport",
             // Raison : schedule du notif recap hebdo uniquement. Aucune @Published,
             // aucune carte dashboard ne lit la réponse. Un échec = pas de rappel
