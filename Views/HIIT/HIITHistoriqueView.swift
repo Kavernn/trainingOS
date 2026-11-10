@@ -3,6 +3,7 @@ import SwiftUI
 struct HIITHistoriqueView: View {
     @State private var hiitLog: [HIITEntry] = []
     @State private var isLoading = true
+    @State private var loadError: String?
     @State private var pendingDeletes: Set<String> = []
     @State private var queuedDeletes:  Set<String> = []
     @State private var deleteError: String?
@@ -20,6 +21,18 @@ struct HIITHistoriqueView: View {
 
                 if isLoading {
                     ProgressView().tint(Color.forge)
+                } else if let err = loadError {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 52)).foregroundColor(.forge)
+                        Text(err)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                        Button("Réessayer") { Task { await loadData() } }
+                            .buttonStyle(.borderedProminent).tint(Color.forge)
+                    }
                 } else if hiitLog.isEmpty {
                     EmptyStateView(icon: "figure.run", title: "Aucune session HIIT", compact: true)
                 } else {
@@ -80,8 +93,13 @@ struct HIITHistoriqueView: View {
 
     private func loadData() async {
         isLoading = true
-        hiitLog = (try? await APIService.shared.fetchHIITData()) ?? []
-        isLoading = false
+        defer { isLoading = false }
+        do {
+            hiitLog = try await APIService.shared.fetchHIITData()
+            loadError = nil
+        } catch {
+            loadError = LoadError.from(error)?.message ?? "Erreur réseau — réessaie"
+        }
     }
 
     private func delete(_ entry: HIITEntry) async {
