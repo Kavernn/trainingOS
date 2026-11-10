@@ -70,8 +70,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "TRANSIT — sheet séance picker Inventaire.",
         "Views/Inventaire/InventaireView.swift:loadGaps":
             "TRANSIT — sheet gaps Inventaire.",
-"Views/Intelligence/WarRoomGateView.swift:getCurrentOath":
-            "TRANSIT — routing vers setup (user-visible).",
         "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig":
             "TRANSIT — toggles settings War Room.",
 "Views/Seance/WorkoutActiveView.swift:loadReadiness":

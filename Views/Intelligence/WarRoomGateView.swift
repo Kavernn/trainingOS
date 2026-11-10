@@ -9,6 +9,7 @@ struct WarRoomGateView: View {
     @State private var authFailed    = false
     @State private var pulse         = false
     @State private var showOathSetup = false
+    @State private var oathCheckError: String?
 
     var body: some View {
         ZStack {
@@ -66,6 +67,12 @@ struct WarRoomGateView: View {
                     .background(Color.forge.opacity(0.12), in: Capsule())
             }
 
+            if let msg = oathCheckError {
+                ErrorBannerView(error: msg,
+                    onRetry: { checkOath() },
+                    onDismiss: { oathCheckError = nil })
+            }
+
             Spacer()
         }
         .onAppear { pulse = true }
@@ -96,9 +103,13 @@ struct WarRoomGateView: View {
             do {
                 let oath = try await APIService.shared.getCurrentOath()
                 await MainActor.run {
+                    oathCheckError = nil
                     if oath == nil { showOathSetup = true }
                 }
             } catch {
+                await MainActor.run {
+                    oathCheckError = LoadError.from(error)?.message ?? "Vérification du serment impossible — réessaie."
+                }
                 warRoomGateLogger.error("getCurrentOath: \(error, privacy: .public)")
             }
         }
