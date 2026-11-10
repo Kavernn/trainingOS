@@ -46,19 +46,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         // ── TRANSIT (à migrer un écran à la fois — chaque entrée alimente un
         //    affichage et doit sortir après que l'écran adopte loadError +
         //    ErrorBannerView + "Indisponible" sur section concernée) ──
-        "Views/Profile/ProfileView.swift:fetchWorkoutDNA":
-            "TRANSIT — section DNA Profile.",
-        "Views/Profile/ProfileView.swift:fetchPSSHistory":
-            "TRANSIT — PSS chart Profile.",
-        "Views/Profile/ProfileView.swift:getCurrentOath":
-            "TRANSIT — section oath Profile.",
-        "Views/Profile/ProfileView.swift:fetchProfileStats":
-            "TRANSIT — streaks/tonnage/memberSince Profile.",
-        "Views/Profile/ProfileView.swift:getWarRoomConfig":
-            "TRANSIT — section War Room Profile.",
-        "Views/Profile/ProfileView.swift:getWarRoomSummary":
-            "TRANSIT — streak War Room Profile.",
-        "Views/Inventaire/InventaireView.swift:loadGapsCount":
+"Views/Inventaire/InventaireView.swift:loadGapsCount":
             "TRANSIT — badge compteur gaps Inventaire.",
         "Views/Inventaire/InventaireView.swift:loadDetail":
             "TRANSIT — sheet exercise detail Inventaire.",

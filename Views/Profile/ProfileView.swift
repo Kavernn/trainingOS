@@ -27,6 +27,8 @@ struct ProfileView: View {
     @ObservedObject private var units    = UnitSettings.shared
 
     @State private var isLoading          = true
+    @State private var loadError: String? = nil
+    @State private var failedFetches: Set<String> = []
     @State private var showEdit           = false
     @State private var showAddWeight      = false
     @State private var showPhotoOptions   = false
@@ -183,6 +185,11 @@ struct ProfileView: View {
     private var profileScrollContent: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 18) {
+                if let msg = loadError {
+                    ErrorBannerView(error: msg,
+                        onRetry: { Task { await loadData() } },
+                        onDismiss: { loadError = nil })
+                }
                 if isProfileIncomplete { incompleteProfileBanner }
                 headerSection
                 statsGridSection
@@ -876,14 +883,25 @@ struct ProfileView: View {
     private func loadData() async {
         isLoading = true
         defer { isLoading = false }
+        loadError = nil
+        failedFetches.removeAll()
         await api.fetchDashboard()
         await BodyCompService.shared.refresh()
+
+        func recordFailure(_ key: String, _ fallback: String, _ error: Error) {
+            failedFetches.insert(key)
+            if loadError == nil {
+                loadError = LoadError.from(error)?.message ?? fallback
+            }
+            profileLogger.error("\(key): \(error, privacy: .public)")
+        }
+
         do { dna = try await APIService.shared.fetchWorkoutDNA() }
-        catch { profileLogger.error("fetchWorkoutDNA: \(error, privacy: .public)") }
+        catch { recordFailure("fetchWorkoutDNA", "DNA indisponible.", error) }
         do { pssHistory = try await APIService.shared.fetchPSSHistory() }
-        catch { profileLogger.error("fetchPSSHistory: \(error, privacy: .public)") }
+        catch { recordFailure("fetchPSSHistory", "Historique PSS indisponible.", error) }
         do { oath = try await APIService.shared.getCurrentOath() }
-        catch { profileLogger.error("getCurrentOath: \(error, privacy: .public)") }
+        catch { recordFailure("getCurrentOath", "Serment indisponible.", error) }
         do {
             let stats = try await APIService.shared.fetchProfileStats()
             totalSessions    = stats.totalSessions
@@ -893,7 +911,7 @@ struct ProfileView: View {
             weeklyTonnage    = stats.weeklyTonnage.sorted { $0.weekStart < $1.weekStart }
             if let ms = stats.memberSince { memberSinceText = buildMemberSince(isoDate: ms) }
         } catch {
-            profileLogger.error("fetchProfileStats: \(error, privacy: .public)")
+            recordFailure("fetchProfileStats", "Stats indisponibles.", error)
         }
         do {
             let config = try await APIService.shared.getWarRoomConfig()
@@ -903,11 +921,11 @@ struct ProfileView: View {
                     let summary = try await APIService.shared.getWarRoomSummary()
                     warRoomVictoryStreak = summary.victoryStreak
                 } catch {
-                    profileLogger.error("getWarRoomSummary: \(error, privacy: .public)")
+                    recordFailure("getWarRoomSummary", "War Room summary indisponible.", error)
                 }
             }
         } catch {
-            profileLogger.error("getWarRoomConfig: \(error, privacy: .public)")
+            recordFailure("getWarRoomConfig", "War Room config indisponible.", error)
         }
     }
 
