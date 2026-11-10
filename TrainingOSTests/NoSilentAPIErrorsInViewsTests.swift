@@ -48,9 +48,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         //    ErrorBannerView + "Indisponible" sur section concernée) ──
         "Views/Nutrition/AddNutritionSheet.swift:fetchFoodCatalog":
             "TRANSIT — picker catalogue remote (local fonctionne seul, enrichissement).",
-        "Views/Historique/HistoriqueView.swift:loadActiveExercises":
-            "TRANSIT — highlight MuscuSessionCard (visuel).",
-        "Views/Profile/ProfileView.swift:fetchWorkoutDNA":
+"Views/Profile/ProfileView.swift:fetchWorkoutDNA":
             "TRANSIT — section DNA Profile.",
         "Views/Profile/ProfileView.swift:fetchPSSHistory":
             "TRANSIT — PSS chart Profile.",

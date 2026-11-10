@@ -240,6 +240,10 @@ struct HistoriqueView: View {
                 activeExercises = Set(dict.keys)
             }
         } catch {
+            // Highlight visuel — surface silencieuse mais visible via apiError de l'écran.
+            if apiError == nil {
+                apiError = LoadError.from(error)?.message ?? "Inventaire indisponible — surlignage désactivé."
+            }
             historiqueLogger.error("loadActiveExercises: \(error, privacy: .public)")
         }
     }
