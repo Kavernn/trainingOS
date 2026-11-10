@@ -12,9 +12,6 @@ final class NutritionViewModel: ObservableObject {
     @Published var todaySession: String? = nil
     @Published var isLoading = true
     @Published var networkError: String? = nil
-    @Published var qualityScore: Int? = nil
-    @Published var qualityIsTooEarly: Bool = false
-    @Published var qualityNoData: Bool = false
     @Published var refreshID: UUID = UUID()
 
     @Published private(set) var hasLoaded = false
@@ -73,16 +70,9 @@ final class NutritionViewModel: ObservableObject {
             }
             return
         }
-        // Supplemental failures retain the last useful value; every publication
-        // belongs to this refresh, including responses from transports ignoring cancellation.
-        if let qURL = URL(string: "\(APIConfig.base)/api/nutrition/quality"),
-           let data = try? await responseData(for: URLRequest(url: qURL)),
-           let quality = try? APIService.decoder.decode(NutritionQualityResponse.self, from: data) {
-            guard token == generation, !Task.isCancelled else { return }
-            qualityScore = quality.noData ? nil : quality.score
-            qualityIsTooEarly = quality.isTooEarly
-            qualityNoData = quality.noData
-        }
+        // Energy est optionnel par design (TDEE pas encore calculé = targetCalories nil).
+        // Un échec réseau ici retombe sur la même UI dégradée ("Objectif non calculé —
+        // voir Énergie") : pas de surface d'erreur dédiée à ajouter.
         guard token == generation, !Task.isCancelled else { return }
         if let freshEnergy = try? await fetchEnergy() {
             guard token == generation, !Task.isCancelled else { return }

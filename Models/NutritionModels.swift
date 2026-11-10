@@ -180,23 +180,6 @@ extension DayTypeTargets {
     }
 }
 
-// MARK: - Nutrition Quality Score
-struct NutritionQualityResponse: Decodable {
-    let score: Int
-    let calPct: Int?
-    let protPct: Int?
-    let isTooEarly: Bool
-    let noData: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case score
-        case calPct     = "cal_pct"
-        case protPct    = "prot_pct"
-        case isTooEarly = "is_too_early"
-        case noData     = "no_data"
-    }
-}
-
 // MARK: - Nutrition Day (for stats compliance chart)
 struct NutritionDay: Codable, Identifiable {
     var id: String { date ?? "" }

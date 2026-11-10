@@ -88,30 +88,6 @@ final class NutritionUIStateTests: XCTestCase {
         XCTAssertNil(vm.networkError)
     }
 
-    func testLateQualityCannotOverwriteNewRefresh() async {
-        let started = expectation(description: "old quality suspended")
-        var old: CheckedContinuation<(Data, URLResponse), Error>?
-        var oldRequest: URLRequest?
-        var qualityCalls = 0
-        let vm = model { request in
-            if request.url!.path.contains("nutrition_data") {
-                return self.response(request, self.payload("meal"))
-            }
-            qualityCalls += 1
-            if qualityCalls == 1 {
-                oldRequest = request
-                return try await withCheckedThrowingContinuation { old = $0; started.fulfill() }
-            }
-            return self.response(request, Data("{\"score\":90,\"is_too_early\":false,\"no_data\":false}".utf8))
-        }
-        let a = Task { await vm.loadData() }
-        await fulfillment(of: [started], timeout: 2)
-        await vm.loadData()
-        old!.resume(returning: response(oldRequest!, Data("{\"score\":10,\"is_too_early\":true,\"no_data\":false}".utf8)))
-        await a.value
-        XCTAssertEqual(vm.qualityScore, 90)
-        XCTAssertFalse(vm.qualityIsTooEarly)
-    }
     func testMacroDraftRejectsNonFiniteNegativeAndOverflowValues() {
         for value in ["NaN", "inf", "-1", "1e999", "1e308", "abc"] {
             XCTAssertNil(NutritionMacroDraft(protein: value, fat: "0", carbs: "1"), value)
