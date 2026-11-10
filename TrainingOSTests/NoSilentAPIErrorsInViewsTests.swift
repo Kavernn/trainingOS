@@ -32,7 +32,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Intelligence/RitualView.swift:fetchRitualToday",
         "Views/Intelligence/WarRoomGateView.swift:getCurrentOath",
         "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig",
-        "Views/Inventaire/InventaireView.swift:URLSession.authed",
         "Views/Oath/OathView.swift:getCurrentOath",
         "Views/Oath/OathView.swift:getOathVersions",
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
@@ -73,6 +72,15 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Profile/ProfileView.swift:fetchProfileStats",
         "Views/Profile/ProfileView.swift:getWarRoomConfig",
         "Views/Profile/ProfileView.swift:getWarRoomSummary",
+        "Views/Inventaire/InventaireView.swift:loadGapsCount",
+        "Views/Inventaire/InventaireView.swift:loadDetail",
+        "Views/Inventaire/InventaireView.swift:loadSeances",
+        "Views/Inventaire/InventaireView.swift:loadGaps",
+            // Raison (4 entries) : loadGapsCount alimente un badge compteur
+            // (0 = pas affiché). loadDetail/loadSeances/loadGaps sont des
+            // sheets secondaires avec isLoading propre ; échec = sheet reste
+            // vide et l'utilisateur peut fermer+rouvrir. Load principal
+            // (loadData) utilise déjà loadError visible.
             // Raison (6 entries) : ProfileView = sections indépendantes "best effort"
             // (DNA, PSS chart, oath, stats, war room). Chaque section s'auto-masque
             // si sa donnée n'a pas chargé. Un échec = section cachée, pas un écran

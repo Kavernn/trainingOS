@@ -1,8 +1,10 @@
 import SwiftUI
 import Combine
 import Charts
+import OSLog
 
 private let kBaseURL = APIConfig.base
+private let inventaireLogger = Logger(subsystem: "TrainingOS", category: "inventaire")
 
 // MARK: - Model
 
@@ -77,7 +79,7 @@ struct CatalogueView: View {
     @State private var queuedDeletes:  Set<String> = []  // names enfilés hors ligne
     @State private var isSavePending = false
     @State private var isSaveQueued  = false
-    @State private var errorMsg: String?
+    @State private var loadError: String?
     @State private var pendingDelete: String?
     @State private var addToProgramTarget: InventoryItem?
     @State private var detailTarget: InventoryItem?
@@ -112,6 +114,18 @@ struct CatalogueView: View {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
                     CatalogueSkeletonView()
+                } else if let err = loadError, items.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 52)).foregroundColor(.forge)
+                        Text(err)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                        Button("Réessayer") { Task { await loadData() } }
+                            .buttonStyle(.borderedProminent).tint(Color.forge)
+                    }
                 } else {
                     VStack(spacing: 0) {
                         mutationBanner
@@ -389,26 +403,34 @@ struct CatalogueView: View {
 
     private func loadData() async {
         isLoading = true
-        guard let url = URL(string: "\(kBaseURL)/api/inventaire_data") else {
-            await MainActor.run { isLoading = false }; return
-        }
-        if let (data, _) = try? await URLSession.authed.data(from: url),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let inv  = json["inventory"] as? [String: [String: Any]] {
+        defer { Task { @MainActor in isLoading = false } }
+        guard let url = URL(string: "\(kBaseURL)/api/inventaire_data") else { return }
+        do {
+            let (data, _) = try await URLSession.authed.data(from: url)
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let inv  = json["inventory"] as? [String: [String: Any]] else {
+                throw URLError(.cannotParseResponse)
+            }
             let loaded   = inv.map { InventoryItem(name: $0.key, $0.value) }
             let prog     = Set(json["in_program"] as? [String] ?? [])
-            await MainActor.run { items = loaded; inProgram = prog }
+            await MainActor.run { items = loaded; inProgram = prog; loadError = nil }
+        } catch {
+            let msg = LoadError.from(error)?.message ?? "Impossible de charger l'inventaire — réessaie."
+            await MainActor.run { loadError = msg }
         }
-        await MainActor.run { isLoading = false }
         await loadGapsCount()
     }
 
     private func loadGapsCount() async {
         guard let url = URL(string: "\(kBaseURL)/api/exercises/classification_gaps") else { return }
-        if let (data, _) = try? await URLSession.authed.data(from: url),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let total = json["total"] as? Int {
-            await MainActor.run { gapsCount = total }
+        do {
+            let (data, _) = try await URLSession.authed.data(from: url)
+            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let total = json["total"] as? Int {
+                await MainActor.run { gapsCount = total }
+            }
+        } catch {
+            inventaireLogger.error("loadGapsCount: \(error, privacy: .public)")
         }
     }
 
@@ -1807,12 +1829,18 @@ struct CatalogueExerciseDetailView: View {
     // MARK: – Network
 
     private func loadDetail() async {
-        guard let url = URL(string: "\(kBaseURL)/api/exercise_detail?name=\(item.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else {
-            await MainActor.run { isLoading = false }; return
-        }
-        guard let (data, _) = try? await URLSession.authed.data(from: url),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            await MainActor.run { isLoading = false }; return
+        defer { Task { @MainActor in isLoading = false } }
+        guard let url = URL(string: "\(kBaseURL)/api/exercise_detail?name=\(item.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else { return }
+        let json: [String: Any]
+        do {
+            let (d, _) = try await URLSession.authed.data(from: url)
+            guard let j = try JSONSerialization.jsonObject(with: d) as? [String: Any] else {
+                throw URLError(.cannotParseResponse)
+            }
+            json = j
+        } catch {
+            inventaireLogger.error("loadDetail: \(error, privacy: .public)")
+            return
         }
 
         let e1rmCurrent = json["e1rm_current"] as? Double
@@ -1862,7 +1890,6 @@ struct CatalogueExerciseDetailView: View {
         )
         await MainActor.run {
             detail  = (e1rmCurrent != nil || !history.isEmpty || !inSessions.isEmpty) ? built : nil
-            isLoading = false
         }
     }
 
@@ -1983,16 +2010,17 @@ struct AddExerciseToProgramSheet: View {
     }
 
     private func loadSeances() async {
-        guard let url = URL(string: "\(kBaseURL)/api/programme_data") else {
-            await MainActor.run { isLoading = false }; return
-        }
-        if let (data, _) = try? await URLSession.authed.data(from: url),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let prog = json["full_program"] as? [String: Any] {
-            let names = prog.keys.sorted()
-            await MainActor.run { seances = names; isLoading = false }
-        } else {
-            await MainActor.run { isLoading = false }
+        defer { Task { @MainActor in isLoading = false } }
+        guard let url = URL(string: "\(kBaseURL)/api/programme_data") else { return }
+        do {
+            let (data, _) = try await URLSession.authed.data(from: url)
+            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let prog = json["full_program"] as? [String: Any] {
+                let names = prog.keys.sorted()
+                await MainActor.run { seances = names }
+            }
+        } catch {
+            inventaireLogger.error("loadSeances: \(error, privacy: .public)")
         }
     }
 
@@ -2211,16 +2239,17 @@ struct ClassificationGapsSheet: View {
     }
 
     private func loadGaps() async {
-        guard let url = URL(string: "\(kBaseURL)/api/exercises/classification_gaps") else {
-            await MainActor.run { isLoading = false }; return
-        }
-        if let (data, _) = try? await URLSession.authed.data(from: url),
-           let json = try? JSONDecoder().decode([String: [ClassificationGap]].self, from: data),
-           let loaded = json["gaps"] {
-            await MainActor.run { gaps = loaded; isLoading = false }
-            onCountChange(loaded.count)
-        } else {
-            await MainActor.run { isLoading = false }
+        defer { Task { @MainActor in isLoading = false } }
+        guard let url = URL(string: "\(kBaseURL)/api/exercises/classification_gaps") else { return }
+        do {
+            let (data, _) = try await URLSession.authed.data(from: url)
+            if let json = try? JSONDecoder().decode([String: [ClassificationGap]].self, from: data),
+               let loaded = json["gaps"] {
+                await MainActor.run { gaps = loaded }
+                onCountChange(loaded.count)
+            }
+        } catch {
+            inventaireLogger.error("loadGaps: \(error, privacy: .public)")
         }
     }
 
