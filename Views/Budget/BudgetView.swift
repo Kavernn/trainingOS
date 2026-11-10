@@ -18,6 +18,11 @@ struct BudgetView: View {
             if let s = status {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
+                        if let msg = errorMessage {
+                            ErrorBannerView(error: msg,
+                                onRetry: { Task { await load() } },
+                                onDismiss: { errorMessage = nil })
+                        }
                         headerSection(s)
                         envelopesSection(s.envelopes)
                         debtsSection(s.debts)
@@ -58,10 +63,13 @@ struct BudgetView: View {
                         Button {
                             Task {
                                 // Refresh silencieux avant ouverture — envelopes fraîches.
-                                // Si le refresh échoue, on garde status existant et on ouvre quand même.
+                                // Si le refresh échoue, on garde status existant mais on
+                                // surface l'erreur en bannière avant d'ouvrir le sheet.
                                 do {
                                     status = try await APIService.shared.fetchBudgetStatus()
+                                    errorMessage = nil
                                 } catch {
+                                    errorMessage = LoadError.from(error)?.message ?? "Refresh échoué — données affichées peuvent être obsolètes."
                                     budgetLogger.error("fetchBudgetStatus: \(error, privacy: .public)")
                                 }
                                 showLogSheet = true
