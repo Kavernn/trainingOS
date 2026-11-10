@@ -43,12 +43,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
     /// `test_every_knownBackgroundSideEffect_has_justification` échoue si une
     /// entrée a une justification vide — force à écrire la raison UI-neutre.
     private static let knownBackgroundSideEffects: [String: String] = [
-        // ── TRANSIT (à migrer un écran à la fois — chaque entrée alimente un
-        //    affichage et doit sortir après que l'écran adopte loadError +
-        //    ErrorBannerView + "Indisponible" sur section concernée) ──
-        "Views/Seance/WorkoutActiveView.swift:loadReadiness":
-            "TRANSIT — ReadinessChip contextPanel.",
-        // ── VRAIS EFFETS DE BORD ──
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport":
             "Notif recap hebdo uniquement. Aucune @Published ni carte dashboard ne lit la réponse. Un échec = pas de rappel cette semaine.",
         "Views/Dashboard/DashboardViewModel.swift:getActiveSeason":
