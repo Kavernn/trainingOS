@@ -15,6 +15,22 @@ struct WarRoomSettingsView: View {
         Form {
             if loading {
                 ProgressView().tint(Color.forge)
+            } else if config == nil, let msg = settingsError {
+                Section {
+                    VStack(spacing: 12) {
+                        Image(systemName: "wifi.slash")
+                            .foregroundColor(.appTextSecondary)
+                        Text(msg)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button("Réessayer") { Task { await load() } }
+                            .buttonStyle(.borderedProminent).tint(Color.forge)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .listRowBackground(Color.appCard)
             } else if config != nil {
                 Section("Intégrations") {
                     Toggle("Phoenix Score", isOn: binding(\.integrationPhoenix))
@@ -64,8 +80,13 @@ struct WarRoomSettingsView: View {
 
     private func load() async {
         defer { loading = false }
-        do { config = try await APIService.shared.getWarRoomConfig() }
-        catch { warRoomSettingsLogger.error("getWarRoomConfig: \(error, privacy: .public)") }
+        do {
+            config = try await APIService.shared.getWarRoomConfig()
+            settingsError = nil
+        } catch {
+            settingsError = LoadError.from(error)?.message ?? "Impossible de charger les paramètres."
+            warRoomSettingsLogger.error("getWarRoomConfig: \(error, privacy: .public)")
+        }
     }
 
     private func keyName(for kp: WritableKeyPath<WarRoomConfig, Bool>) -> String? {
