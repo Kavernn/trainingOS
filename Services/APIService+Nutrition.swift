@@ -102,9 +102,9 @@ extension APIService {
     }
 
     // MARK: - Food Catalog
-    func fetchFoodCatalog() async -> [FoodItem] {
-        guard let url = URL(string: "\(baseURL)/api/food_catalog"),
-              let data = try? await fetchWithCache(url: url, key: "food_catalog") else { return [] }
+    func fetchFoodCatalog() async throws -> [FoodItem] {
+        let url = try buildURL(path: "/api/food_catalog")
+        let data = try await fetchWithCache(url: url, key: "food_catalog")
         return FoodCatalogStore.decodeFromAPI(data)
     }
 
@@ -125,16 +125,11 @@ extension APIService {
     }
 
     // MARK: - Meal Templates
-    func fetchMealTemplates() async -> [MealTemplate] {
-        guard let url = URL(string: "\(baseURL)/api/meal_templates"),
-              let (data, _) = try? await URLSession.authed.data(from: url) else { return [] }
+    func fetchMealTemplates() async throws -> [MealTemplate] {
+        let url = try buildURL(path: "/api/meal_templates")
+        let (data, _) = try await URLSession.authed.data(from: url)
         struct Resp: Decodable { let templates: [MealTemplate] }
-        do {
-            return try APIService.decoder.decode(Resp.self, from: data).templates
-        } catch {
-            nutritionLogger.error("❌ fetchMealTemplates decode failed: \(error, privacy: .public)")
-            return []
-        }
+        return try APIService.decoder.decode(Resp.self, from: data).templates
     }
 
     func createMealTemplate(name: String, items: [MealTemplateItem]) async throws -> MealTemplate {

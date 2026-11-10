@@ -35,10 +35,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Intelligence/WarRoomGateView.swift:getCurrentOath",
         "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig",
         "Views/Inventaire/InventaireView.swift:URLSession.authed",
-        // à migrer avec l'écran Nutrition, après le commit du WIP de Vince
-        "Views/Nutrition/NutritionView.swift:fetchEnergyDaily",
-        // à migrer avec l'écran Nutrition, après le commit du WIP de Vince
-        "Views/Nutrition/NutritionViewModel.swift:URLSession.authed",
         "Views/Oath/OathView.swift:getCurrentOath",
         "Views/Oath/OathView.swift:getOathVersions",
         "Views/Profile/ProfileView.swift:fetchPSSHistory",
@@ -69,6 +65,11 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
     /// seul, etc.). Si tu ajoutes un site ici, écris pourquoi la UI n'a pas
     /// besoin de le remonter.
     private static let knownBackgroundSideEffects: Set<String> = [
+        "Views/Nutrition/AddNutritionSheet.swift:fetchFoodCatalog",
+            // Raison : sync opportuniste du catalogue remote au-dessus du
+            // FoodCatalogStore local. Échec = le catalogue local (built-in +
+            // persistance locale) reste pleinement fonctionnel ; prochain
+            // ouverture du sheet retente. Pas de surface UI à ajouter.
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport",
             // Raison : schedule du notif recap hebdo uniquement. Aucune @Published,
             // aucune carte dashboard ne lit la réponse. Un échec = pas de rappel

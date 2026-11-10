@@ -347,6 +347,7 @@ struct MealTemplateListSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var templates: [MealTemplate] = []
     @State private var isLoading = true
+    @State private var loadError: String?
     @State private var showCreate = false
     @State private var editTarget: MealTemplate? = nil
     @State private var deleteError: String?
@@ -358,6 +359,18 @@ struct MealTemplateListSheet: View {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
                     ProgressView().tint(.onAccent)
+                } else if let err = loadError {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 52)).foregroundColor(.forge)
+                        Text(err)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                        Button("Réessayer") { Task { await reload() } }
+                            .buttonStyle(.borderedProminent).tint(Color.forge)
+                    }
                 } else if templates.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "fork.knife.circle")
@@ -472,8 +485,13 @@ struct MealTemplateListSheet: View {
 
     private func reload() async {
         isLoading = true
-        templates = await APIService.shared.fetchMealTemplates()
-        isLoading = false
+        defer { isLoading = false }
+        do {
+            templates = try await APIService.shared.fetchMealTemplates()
+            loadError = nil
+        } catch {
+            loadError = LoadError.from(error)?.message ?? "Erreur réseau — réessaie"
+        }
     }
 }
 

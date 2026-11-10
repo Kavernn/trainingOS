@@ -1,5 +1,8 @@
 import SwiftUI
 import Combine
+import OSLog
+
+private let catalogLogger = Logger(subsystem: "TrainingOS", category: "nutrition.catalog")
 
 // MARK: - Add Nutrition Sheet
 
@@ -492,13 +495,17 @@ struct AddNutritionSheet: View {
                 FoodCatalogView(items: $catalog)
             }
             .task {
-                let remote = await APIService.shared.fetchFoodCatalog()
-                if !remote.isEmpty {
-                    let builtIn = FoodCatalogStore.builtInItems()
-                    let builtInNames = Set(builtIn.map { $0.name })
-                    let remoteCustom = remote.filter { !builtInNames.contains($0.name) }
-                    catalog = builtIn + remoteCustom
-                    FoodCatalogStore.save(catalog)
+                do {
+                    let remote = try await APIService.shared.fetchFoodCatalog()
+                    if !remote.isEmpty {
+                        let builtIn = FoodCatalogStore.builtInItems()
+                        let builtInNames = Set(builtIn.map { $0.name })
+                        let remoteCustom = remote.filter { !builtInNames.contains($0.name) }
+                        catalog = builtIn + remoteCustom
+                        FoodCatalogStore.save(catalog)
+                    }
+                } catch {
+                    catalogLogger.error("fetchFoodCatalog: \(error, privacy: .public)")
                 }
             }
             // C2: restore draft (saisie survit aux interruptions)
