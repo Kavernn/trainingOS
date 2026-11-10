@@ -128,6 +128,11 @@ struct CatalogueView: View {
                     }
                 } else {
                     VStack(spacing: 0) {
+                        if let msg = loadError {
+                            ErrorBannerView(error: msg,
+                                onRetry: { Task { await loadData() } },
+                                onDismiss: { loadError = nil })
+                        }
                         mutationBanner
                         searchBar
                         typeFilter
@@ -430,6 +435,11 @@ struct CatalogueView: View {
                 await MainActor.run { gapsCount = total }
             }
         } catch {
+            await MainActor.run {
+                if loadError == nil {
+                    loadError = LoadError.from(error)?.message ?? "Compteur gaps indisponible."
+                }
+            }
             inventaireLogger.error("loadGapsCount: \(error, privacy: .public)")
         }
     }
@@ -1561,6 +1571,7 @@ struct CatalogueExerciseDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var detail: ExerciseDetail?
     @State private var isLoading = true
+    @State private var loadError: String?
 
     var body: some View {
         NavigationStack {
@@ -1571,6 +1582,11 @@ struct CatalogueExerciseDetailView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 20) {
+                            if let msg = loadError {
+                                ErrorBannerView(error: msg,
+                                    onRetry: { Task { await loadDetail() } },
+                                    onDismiss: { loadError = nil })
+                            }
                             if let d = detail {
                                 if d.e1rmCurrent != nil || d.e1rmBest != nil {
                                     statsSection(d)
@@ -1829,7 +1845,9 @@ struct CatalogueExerciseDetailView: View {
     // MARK: – Network
 
     private func loadDetail() async {
+        isLoading = true
         defer { Task { @MainActor in isLoading = false } }
+        loadError = nil
         guard let url = URL(string: "\(kBaseURL)/api/exercise_detail?name=\(item.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else { return }
         let json: [String: Any]
         do {
@@ -1839,6 +1857,9 @@ struct CatalogueExerciseDetailView: View {
             }
             json = j
         } catch {
+            await MainActor.run {
+                loadError = LoadError.from(error)?.message ?? "Détail indisponible — réessaie."
+            }
             inventaireLogger.error("loadDetail: \(error, privacy: .public)")
             return
         }
@@ -1933,6 +1954,7 @@ struct AddExerciseToProgramSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var seances: [String] = []
     @State private var isLoading = true
+    @State private var loadError: String?
     @State private var pendingSeance: String? = nil
     @State private var addError: String?
 
@@ -1942,6 +1964,19 @@ struct AddExerciseToProgramSheet: View {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
                     ProgressView().tint(Color.forge)
+                } else if let msg = loadError {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.appTitle).foregroundColor(.forge)
+                        Text(msg)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                        Button("Réessayer") { Task { await loadSeances() } }
+                            .buttonStyle(.borderedProminent).tint(Color.forge)
+                    }
+                    .padding(.top, 60)
                 } else if seances.isEmpty {
                     EmptyStateView(icon: "list.bullet.clipboard", title: "Aucune séance dans ton programme", compact: true)
                         .padding(.top, 60)
@@ -2010,7 +2045,9 @@ struct AddExerciseToProgramSheet: View {
     }
 
     private func loadSeances() async {
+        isLoading = true
         defer { Task { @MainActor in isLoading = false } }
+        loadError = nil
         guard let url = URL(string: "\(kBaseURL)/api/programme_data") else { return }
         do {
             let (data, _) = try await URLSession.authed.data(from: url)
@@ -2020,6 +2057,9 @@ struct AddExerciseToProgramSheet: View {
                 await MainActor.run { seances = names }
             }
         } catch {
+            await MainActor.run {
+                loadError = LoadError.from(error)?.message ?? "Programme indisponible — réessaie."
+            }
             inventaireLogger.error("loadSeances: \(error, privacy: .public)")
         }
     }
@@ -2081,6 +2121,7 @@ struct ClassificationGapsSheet: View {
 
     @State private var gaps: [ClassificationGap] = []
     @State private var isLoading = true
+    @State private var loadError: String?
     @State private var appliedNames: Set<String> = []
     @State private var skippedNames: Set<String> = []
     @State private var applyingName: String?
@@ -2098,6 +2139,18 @@ struct ClassificationGapsSheet: View {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
                     ProgressView().tint(.forge)
+                } else if let msg = loadError {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.appTitle).foregroundColor(.forge)
+                        Text(msg)
+                            .font(.appCaption)
+                            .foregroundColor(.appTextSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                        Button("Réessayer") { Task { await loadGaps() } }
+                            .buttonStyle(.borderedProminent).tint(Color.forge)
+                    }
                 } else if visible.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "checkmark.seal.fill")
@@ -2239,7 +2292,9 @@ struct ClassificationGapsSheet: View {
     }
 
     private func loadGaps() async {
+        isLoading = true
         defer { Task { @MainActor in isLoading = false } }
+        loadError = nil
         guard let url = URL(string: "\(kBaseURL)/api/exercises/classification_gaps") else { return }
         do {
             let (data, _) = try await URLSession.authed.data(from: url)
@@ -2249,6 +2304,9 @@ struct ClassificationGapsSheet: View {
                 onCountChange(loaded.count)
             }
         } catch {
+            await MainActor.run {
+                loadError = LoadError.from(error)?.message ?? "Gaps indisponibles — réessaie."
+            }
             inventaireLogger.error("loadGaps: \(error, privacy: .public)")
         }
     }

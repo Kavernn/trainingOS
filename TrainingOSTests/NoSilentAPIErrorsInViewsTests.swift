@@ -46,14 +46,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         // ── TRANSIT (à migrer un écran à la fois — chaque entrée alimente un
         //    affichage et doit sortir après que l'écran adopte loadError +
         //    ErrorBannerView + "Indisponible" sur section concernée) ──
-"Views/Inventaire/InventaireView.swift:loadGapsCount":
-            "TRANSIT — badge compteur gaps Inventaire.",
-        "Views/Inventaire/InventaireView.swift:loadDetail":
-            "TRANSIT — sheet exercise detail Inventaire.",
-        "Views/Inventaire/InventaireView.swift:loadSeances":
-            "TRANSIT — sheet séance picker Inventaire.",
-        "Views/Inventaire/InventaireView.swift:loadGaps":
-            "TRANSIT — sheet gaps Inventaire.",
         "Views/Seance/WorkoutActiveView.swift:loadReadiness":
             "TRANSIT — ReadinessChip contextPanel.",
         // ── VRAIS EFFETS DE BORD ──
