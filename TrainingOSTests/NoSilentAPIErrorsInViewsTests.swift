@@ -96,9 +96,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "TRANSIT — profile/bodyWeight/tendance BodyComp.",
         "Views/BodyComp/BodyCompView.swift:bodyProjection":
             "TRANSIT — section projection BodyComp.",
-        "Views/BodyComp/NavyCalculatorView.swift:fetchProfilData":
-            "TRANSIT — pré-remplissage sex NavyCalculator.",
-"Views/Seance/WorkoutActiveView.swift:loadReadiness":
+        "Views/Seance/WorkoutActiveView.swift:loadReadiness":
             "TRANSIT — ReadinessChip contextPanel.",
         // ── VRAIS EFFETS DE BORD ──
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport":

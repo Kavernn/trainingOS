@@ -12,6 +12,7 @@ struct NavyCalculatorView: View {
     @State private var showEditSheet = false
     @State private var isMale: Bool = true
     @State private var sexUnknown: Bool = false
+    @State private var loadError: String?
     @AppStorage("navy_formula_corrected_seen") private var bannerSeen = false
 
     var body: some View {
@@ -20,6 +21,11 @@ struct NavyCalculatorView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
+                    if let msg = loadError {
+                        ErrorBannerView(error: msg,
+                            onRetry: { Task { await loadProfile() } },
+                            onDismiss: { loadError = nil })
+                    }
                     content
                         .padding(.bottom, 40)
                 }
@@ -56,7 +62,9 @@ struct NavyCalculatorView: View {
         let profile: UserProfile
         do {
             (profile, _, _) = try await APIService.shared.fetchProfilData()
+            loadError = nil
         } catch {
+            loadError = LoadError.from(error)?.message ?? "Profil indisponible — formule par défaut."
             navyLogger.error("fetchProfilData: \(error, privacy: .public)")
             return
         }
