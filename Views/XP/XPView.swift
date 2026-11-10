@@ -33,6 +33,7 @@ struct XPView: View {
     @State private var weights:   [String: WeightData] = [:]
     @State private var recovery:  [RecoveryEntry]    = []
     @State private var isLoading = true
+    @State private var loadError: String?
     @State private var selectedBadge: Badge? = nil
 
     // MARK: Computed stats
@@ -181,6 +182,11 @@ struct XPView: View {
             } else {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
+                        if let msg = loadError {
+                            ErrorBannerView(error: msg,
+                                onRetry: { Task { await loadData() } },
+                                onDismiss: { loadError = nil })
+                        }
                         levelCard
                         statsRow
                         badgesSection
@@ -326,14 +332,26 @@ struct XPView: View {
     private func loadData() async {
         isLoading = true
         defer { isLoading = false }
+        loadError = nil
         if api.dashboard == nil { await api.fetchDashboard() }
+        var firstError: String? = nil
         // sequential — async let LIFO crash on iOS 26 beta
         do { hiitLog = try await APIService.shared.fetchHIITData() }
-        catch { xpLogger.error("fetchHIITData: \(error, privacy: .public)") }
+        catch {
+            firstError = firstError ?? (LoadError.from(error)?.message ?? "HIIT indisponible.")
+            xpLogger.error("fetchHIITData: \(error, privacy: .public)")
+        }
         do { weights = try await APIService.shared.fetchWeights() }
-        catch { xpLogger.error("fetchWeights: \(error, privacy: .public)") }
+        catch {
+            firstError = firstError ?? (LoadError.from(error)?.message ?? "Charges indisponibles.")
+            xpLogger.error("fetchWeights: \(error, privacy: .public)")
+        }
         do { recovery = try await APIService.shared.fetchRecoveryData() }
-        catch { xpLogger.error("fetchRecoveryData: \(error, privacy: .public)") }
+        catch {
+            firstError = firstError ?? (LoadError.from(error)?.message ?? "Récupération indisponible.")
+            xpLogger.error("fetchRecoveryData: \(error, privacy: .public)")
+        }
+        loadError = firstError
     }
 }
 

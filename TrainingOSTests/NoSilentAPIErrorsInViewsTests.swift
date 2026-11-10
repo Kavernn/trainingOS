@@ -72,13 +72,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "TRANSIT — sheet gaps Inventaire.",
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions":
             "TRANSIT — hints progression (loop par séance).",
-        "Views/XP/XPView.swift:fetchHIITData":
-            "TRANSIT — badges HIIT.",
-        "Views/XP/XPView.swift:fetchWeights":
-            "TRANSIT — badges poids.",
-        "Views/XP/XPView.swift:fetchRecoveryData":
-            "TRANSIT — badges recovery.",
-        "Views/Intelligence/RitualView.swift:fetchRitualToday":
+"Views/Intelligence/RitualView.swift:fetchRitualToday":
             "TRANSIT — phase enum (nil → ritualUnavailableView).",
         "Views/Intelligence/WarRoomGateView.swift:getCurrentOath":
             "TRANSIT — routing vers setup (user-visible).",
