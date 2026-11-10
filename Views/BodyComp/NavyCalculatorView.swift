@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let navyLogger = Logger(subsystem: "TrainingOS", category: "bodycomp.navy")
 
 // MARK: - Navy Body Fat — Consultation View (reads from BodyCompService)
 
@@ -50,7 +53,13 @@ struct NavyCalculatorView: View {
     // MARK: - Profile loading
 
     private func loadProfile() async {
-        guard let (profile, _, _) = try? await APIService.shared.fetchProfilData() else { return }
+        let profile: UserProfile
+        do {
+            (profile, _, _) = try await APIService.shared.fetchProfilData()
+        } catch {
+            navyLogger.error("fetchProfilData: \(error, privacy: .public)")
+            return
+        }
         if let sex = profile.sex, !sex.isEmpty {
             isMale = sex.uppercased().hasPrefix("M")
             sexUnknown = false

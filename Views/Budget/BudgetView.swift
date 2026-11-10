@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let budgetLogger = Logger(subsystem: "TrainingOS", category: "budget")
 
 struct BudgetView: View {
     @State private var status: BudgetStatus?
@@ -56,8 +59,10 @@ struct BudgetView: View {
                             Task {
                                 // Refresh silencieux avant ouverture — envelopes fraîches.
                                 // Si le refresh échoue, on garde status existant et on ouvre quand même.
-                                if let fresh = try? await APIService.shared.fetchBudgetStatus() {
-                                    status = fresh
+                                do {
+                                    status = try await APIService.shared.fetchBudgetStatus()
+                                } catch {
+                                    budgetLogger.error("fetchBudgetStatus: \(error, privacy: .public)")
                                 }
                                 showLogSheet = true
                             }

@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let intelligenceLogger = Logger(subsystem: "TrainingOS", category: "intelligence")
 
 // Entry point — decides which ritual phase to show
 struct RitualView: View {
@@ -70,10 +73,11 @@ struct RitualView: View {
 
     private func load() async {
         isLoading = true
+        defer { isLoading = false }
         // Clear cache before fetching — stale data breaks the phase state machine
         CacheService.shared.clear(for: "ritual_today")
-        ritual    = try? await APIService.shared.fetchRitualToday()
-        isLoading = false
+        do { ritual = try await APIService.shared.fetchRitualToday() }
+        catch { intelligenceLogger.error("fetchRitualToday: \(error, privacy: .public)") }
     }
 }
 

@@ -2,6 +2,9 @@ import SwiftUI
 import CoreLocation
 import MapKit
 import Combine
+import OSLog
+
+private let gymFinderLogger = Logger(subsystem: "TrainingOS", category: "gymfinder")
 
 @MainActor
 final class GymFinderViewModel: NSObject, ObservableObject {
@@ -153,8 +156,14 @@ final class GymFinderViewModel: NSObject, ObservableObject {
         req.httpBody = body
         req.timeoutInterval = 10
 
-        guard let (data, _) = try? await URLSession.authed.data(for: req),
-              let decoded = try? APIService.decoder.decode([String: GymCrowdsource].self, from: data) else { return }
+        let decoded: [String: GymCrowdsource]
+        do {
+            let (data, _) = try await URLSession.authed.data(for: req)
+            decoded = try APIService.decoder.decode([String: GymCrowdsource].self, from: data)
+        } catch {
+            gymFinderLogger.error("fetchCrowdsource: \(error, privacy: .public)")
+            return
+        }
 
         for i in gyms.indices {
             gyms[i].crowdsource = decoded[gyms[i].id]

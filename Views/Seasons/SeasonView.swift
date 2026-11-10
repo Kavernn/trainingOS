@@ -1,5 +1,8 @@
 import SwiftUI
 import Combine
+import OSLog
+
+private let seasonLogger = Logger(subsystem: "TrainingOS", category: "season")
 
 // MARK: - Main view
 
@@ -309,8 +312,10 @@ class SeasonViewModel: ObservableObject {
 
     func load() async {
         isLoading = true
-        activeSeason = try? await APIService.shared.getActiveSeason()
-        allSeasons   = (try? await APIService.shared.getAllSeasons()) ?? []
-        isLoading    = false
+        defer { isLoading = false }
+        do { activeSeason = try await APIService.shared.getActiveSeason() }
+        catch { seasonLogger.error("getActiveSeason: \(error, privacy: .public)") }
+        do { allSeasons = try await APIService.shared.getAllSeasons() }
+        catch { seasonLogger.error("getAllSeasons: \(error, privacy: .public)") }
     }
 }

@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let xpLogger = Logger(subsystem: "TrainingOS", category: "xp")
 
 // MARK: - Badge Model
 
@@ -322,15 +325,15 @@ struct XPView: View {
 
     private func loadData() async {
         isLoading = true
+        defer { isLoading = false }
         if api.dashboard == nil { await api.fetchDashboard() }
         // sequential — async let LIFO crash on iOS 26 beta
-        let hh = try? await APIService.shared.fetchHIITData()
-        let ww = try? await APIService.shared.fetchWeights()
-        let rr = try? await APIService.shared.fetchRecoveryData()
-        hiitLog  = hh ?? []
-        weights  = ww ?? [:]
-        recovery = rr ?? []
-        isLoading = false
+        do { hiitLog = try await APIService.shared.fetchHIITData() }
+        catch { xpLogger.error("fetchHIITData: \(error, privacy: .public)") }
+        do { weights = try await APIService.shared.fetchWeights() }
+        catch { xpLogger.error("fetchWeights: \(error, privacy: .public)") }
+        do { recovery = try await APIService.shared.fetchRecoveryData() }
+        catch { xpLogger.error("fetchRecoveryData: \(error, privacy: .public)") }
     }
 }
 

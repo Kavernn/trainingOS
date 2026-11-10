@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let ritualEveningLogger = Logger(subsystem: "TrainingOS", category: "intelligence.ritualEvening")
 
 // Écran C — Création des engagements pour le lendemain
 struct EngagementCreationView: View {
@@ -242,8 +245,11 @@ struct EngagementCreationView: View {
                 }
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 CacheService.shared.clear(for: "ritual_today")
-                if let updated = try? await APIService.shared.fetchRitualToday() {
+                do {
+                    let updated = try await APIService.shared.fetchRitualToday()
                     await MainActor.run { onSaved(updated) }
+                } catch {
+                    ritualEveningLogger.error("fetchRitualToday: \(error, privacy: .public)")
                 }
             } catch {
                 await MainActor.run { isSaving = false }

@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let warRoomSettingsLogger = Logger(subsystem: "TrainingOS", category: "intelligence.warRoomSettings")
 
 struct WarRoomSettingsView: View {
     @ObservedObject var vm: WarRoomViewModel
@@ -60,8 +63,9 @@ struct WarRoomSettingsView: View {
     }
 
     private func load() async {
-        config  = try? await APIService.shared.getWarRoomConfig()
-        loading = false
+        defer { loading = false }
+        do { config = try await APIService.shared.getWarRoomConfig() }
+        catch { warRoomSettingsLogger.error("getWarRoomConfig: \(error, privacy: .public)") }
     }
 
     private func keyName(for kp: WritableKeyPath<WarRoomConfig, Bool>) -> String? {

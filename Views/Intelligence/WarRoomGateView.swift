@@ -1,5 +1,8 @@
 import SwiftUI
 import LocalAuthentication
+import OSLog
+
+private let warRoomGateLogger = Logger(subsystem: "TrainingOS", category: "intelligence.warRoomGate")
 
 struct WarRoomGateView: View {
     @State private var unlocked      = false
@@ -90,9 +93,13 @@ struct WarRoomGateView: View {
 
     private func checkOath() {
         Task {
-            let oath = try? await APIService.shared.getCurrentOath()
-            await MainActor.run {
-                if oath == nil { showOathSetup = true }
+            do {
+                let oath = try await APIService.shared.getCurrentOath()
+                await MainActor.run {
+                    if oath == nil { showOathSetup = true }
+                }
+            } catch {
+                warRoomGateLogger.error("getCurrentOath: \(error, privacy: .public)")
             }
         }
     }

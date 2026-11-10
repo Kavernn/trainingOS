@@ -1,6 +1,9 @@
 import SwiftUI
 import Combine
 import LocalAuthentication
+import OSLog
+
+private let oathLogger = Logger(subsystem: "TrainingOS", category: "oath")
 
 // MARK: - Gateex
 
@@ -287,8 +290,10 @@ class OathViewModel: ObservableObject {
 
     func load() async {
         isLoading = true
-        currentOath = try? await APIService.shared.getCurrentOath()
-        versions    = (try? await APIService.shared.getOathVersions()) ?? []
-        isLoading   = false
+        defer { isLoading = false }
+        do { currentOath = try await APIService.shared.getCurrentOath() }
+        catch { oathLogger.error("getCurrentOath: \(error, privacy: .public)") }
+        do { versions = try await APIService.shared.getOathVersions() }
+        catch { oathLogger.error("getOathVersions: \(error, privacy: .public)") }
     }
 }

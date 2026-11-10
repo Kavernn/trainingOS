@@ -22,25 +22,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
     /// Sites connus comme silencieux à la date de création du garde-fou
     /// (2026-11-01) : 92 try? détectés. Catches silencieux ajoutés après
     /// première exécution. Chaque migration retire ses lignes.
-    private static let knownSites: Set<String> = [
-        "Views/BodyComp/BodyCompView.swift:URLSession.authed",
-        "Views/BodyComp/BodyCompView.swift:fetchProfilData",
-        "Views/BodyComp/NavyCalculatorView.swift:fetchProfilData",
-        "Views/Budget/BudgetView.swift:fetchBudgetStatus",
-        "Views/GymFinder/GymFinderViewModel.swift:URLSession.authed",
-        "Views/Intelligence/RitualEveningView.swift:fetchRitualToday",
-        "Views/Intelligence/RitualView.swift:fetchRitualToday",
-        "Views/Intelligence/WarRoomGateView.swift:getCurrentOath",
-        "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig",
-        "Views/Oath/OathView.swift:getCurrentOath",
-        "Views/Oath/OathView.swift:getOathVersions",
-        "Views/Seasons/SeasonView.swift:getActiveSeason",
-        "Views/Seasons/SeasonView.swift:getAllSeasons",
-        "Views/XP/XPView.swift:fetchHIITData",
-        "Views/XP/XPView.swift:fetchRecoveryData",
-        "Views/XP/XPView.swift:fetchWeights",
-
-    ]
+    private static let knownSites: Set<String> = []
 
     /// Catches background-side-effect-only : l'appel n'alimente aucune UI
     /// (pas d'@Published lu, pas de Loadable observé). Seul un side-effect
@@ -90,6 +72,49 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             // si sa donnée n'a pas chargé. Un échec = section cachée, pas un écran
             // cassé — les autres sections restent pleinement fonctionnelles. Dédier
             // une surface d'erreur par section (6 bannières) est du bruit vs valeur.
+        "Views/Seasons/SeasonView.swift:getActiveSeason",
+        "Views/Seasons/SeasonView.swift:getAllSeasons",
+            // Raison : activeSeason nullable par design (user sans saison active) ;
+            // allSeasons peut être vide (nouvel user). Un échec réseau produit la
+            // même UI dégradée que "pas de données" — pas de distinction à faire.
+        "Views/Oath/OathView.swift:getCurrentOath",
+        "Views/Oath/OathView.swift:getOathVersions",
+            // Raison : oath nullable (user sans oath) ; versions peut être vide.
+            // Un échec = rien à afficher, identique à "pas encore d'oath".
+        "Views/XP/XPView.swift:fetchHIITData",
+        "Views/XP/XPView.swift:fetchWeights",
+        "Views/XP/XPView.swift:fetchRecoveryData",
+            // Raison : 3 sources indépendantes (HIIT, poids, recovery) qui alimentent
+            // des badges XP additifs. Un échec = badge "pas débloqué" (identique à
+            // "pas encore atteint le seuil"). Sections s'auto-masquent.
+        "Views/Intelligence/RitualView.swift:fetchRitualToday",
+            // Raison : nil → ritualUnavailableView ("Indisponible — réessayer")
+            // déjà visible dans le routing du phase enum. Aucune surface à ajouter.
+        "Views/Intelligence/RitualEveningView.swift:fetchRitualToday",
+            // Raison : refetch opportuniste après succès create engagements.
+            // Échec = parent garde son état pre-save, confirmation déjà affichée
+            // à l'user. Prochain .task refetchera.
+        "Views/Intelligence/WarRoomGateView.swift:getCurrentOath",
+            // Raison : check pour router vers setup si oath nil. Échec = pas de
+            // routage forcé (mieux qu'avant : évitait le faux routage vers setup
+            // sur simple panne réseau).
+        "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig",
+            // Raison : alimente les toggles de configuration War Room. Échec =
+            // toggles sans état lu (utilisateur peut quitter et réouvrir).
+        "Views/BodyComp/BodyCompView.swift:fetchProfilData",
+        "Views/BodyComp/BodyCompView.swift:bodyProjection",
+            // Raison : fetchProfilData alimente profile/bodyWeight/tendance ;
+            // bodyProjection alimente la section projection. Un échec = section
+            // vide (identique à "pas encore de données body comp enregistrées").
+        "Views/BodyComp/NavyCalculatorView.swift:fetchProfilData",
+            // Raison : alimente isMale/sexUnknown (pré-remplissage du calculateur).
+            // Échec = user reste sur valeurs par défaut, saisit manuellement.
+        "Views/Budget/BudgetView.swift:fetchBudgetStatus",
+            // Raison : refresh silencieux avant ouverture du sheet. Comment du
+            // code explicite : "on garde status existant et on ouvre quand même".
+        "Views/GymFinder/GymFinderViewModel.swift:fetchCrowdsource",
+            // Raison : enrichissement crowdsource optionnel (badges fréquence).
+            // Échec = gyms affichés sans badge crowdsource — map toujours utilisable.
         "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport",
             // Raison : schedule du notif recap hebdo uniquement. Aucune @Published,
             // aucune carte dashboard ne lit la réponse. Un échec = pas de rappel

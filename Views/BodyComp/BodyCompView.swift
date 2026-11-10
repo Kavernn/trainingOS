@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let bodyCompLogger = Logger(subsystem: "TrainingOS", category: "bodycomp")
 
 struct BodyCompView: View {
     @ObservedObject private var units = UnitSettings.shared
@@ -246,18 +249,24 @@ struct BodyCompView: View {
 
     private func loadData() async {
         isLoading = true
-        if let (p, bw, t) = try? await APIService.shared.fetchProfilData() {
+        defer { isLoading = false }
+        do {
+            let (p, bw, t) = try await APIService.shared.fetchProfilData()
             profile = p; bodyWeight = bw; tendance = t
+        } catch {
+            bodyCompLogger.error("fetchProfilData: \(error, privacy: .public)")
         }
         // Load body projection asynchronously
         Task {
-            guard let url = URL(string: "\(APIService.shared.baseURL)/api/body_projection"),
-                  let (data, _) = try? await URLSession.authed.data(from: url),
-                  let proj = try? APIService.decoder.decode(BodyProjectionData.self, from: data)
-            else { return }
-            await MainActor.run { projection = proj }
+            guard let url = URL(string: "\(APIService.shared.baseURL)/api/body_projection") else { return }
+            do {
+                let (data, _) = try await URLSession.authed.data(from: url)
+                let proj = try APIService.decoder.decode(BodyProjectionData.self, from: data)
+                await MainActor.run { projection = proj }
+            } catch {
+                bodyCompLogger.error("bodyProjection: \(error, privacy: .public)")
+            }
         }
-        isLoading = false
     }
 }
 
