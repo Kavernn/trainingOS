@@ -100,8 +100,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "TRANSIT — pré-remplissage sex NavyCalculator.",
         "Views/Budget/BudgetView.swift:fetchBudgetStatus":
             "TRANSIT — refresh status avant sheet.",
-        "Views/GymFinder/GymFinderViewModel.swift:fetchCrowdsource":
-            "TRANSIT — badges crowdsource liste gyms.",
         "Views/Seance/WorkoutActiveView.swift:loadReadiness":
             "TRANSIT — ReadinessChip contextPanel.",
         // ── VRAIS EFFETS DE BORD ──

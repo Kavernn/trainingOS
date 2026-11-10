@@ -161,6 +161,9 @@ final class GymFinderViewModel: NSObject, ObservableObject {
             let (data, _) = try await URLSession.authed.data(for: req)
             decoded = try APIService.decoder.decode([String: GymCrowdsource].self, from: data)
         } catch {
+            // Enrichissement visible (badges crowdsource) → surface screen-level,
+            // laisse searchGyms() continuer avec les gyms non enrichis.
+            self.error = LoadError.from(error)?.message ?? "Crowdsource indisponible — réessaie."
             gymFinderLogger.error("fetchCrowdsource: \(error, privacy: .public)")
             return
         }
