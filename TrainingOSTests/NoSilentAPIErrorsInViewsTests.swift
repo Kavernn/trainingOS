@@ -46,9 +46,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         // ── TRANSIT (à migrer un écran à la fois — chaque entrée alimente un
         //    affichage et doit sortir après que l'écran adopte loadError +
         //    ErrorBannerView + "Indisponible" sur section concernée) ──
-        "Views/Nutrition/AddNutritionSheet.swift:fetchFoodCatalog":
-            "TRANSIT — picker catalogue remote (local fonctionne seul, enrichissement).",
-"Views/Profile/ProfileView.swift:fetchWorkoutDNA":
+        "Views/Profile/ProfileView.swift:fetchWorkoutDNA":
             "TRANSIT — section DNA Profile.",
         "Views/Profile/ProfileView.swift:fetchPSSHistory":
             "TRANSIT — PSS chart Profile.",

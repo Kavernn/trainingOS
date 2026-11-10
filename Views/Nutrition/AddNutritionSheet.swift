@@ -25,6 +25,7 @@ struct AddNutritionSheet: View {
     @State private var showDiscardManualAlert = false
     @State private var confirmDiscard = false
     @State private var saveError: String? = nil
+    @State private var catalogSyncError: String? = nil
     @State private var showRecents = false
     @State private var showDictation = false
     @FocusState private var qtyFocused: Bool
@@ -130,6 +131,12 @@ struct AddNutritionSheet: View {
                     .padding(.horizontal, 14)
                     .padding(.top, 12)
                     .padding(.bottom, 8)
+
+                    if let msg = catalogSyncError {
+                        ErrorBannerView(error: msg,
+                            onRetry: { Task { await syncRemoteCatalog() } },
+                            onDismiss: { catalogSyncError = nil })
+                    }
 
                     Form {
                         if !manualMode {
@@ -494,20 +501,7 @@ struct AddNutritionSheet: View {
             }) {
                 FoodCatalogView(items: $catalog)
             }
-            .task {
-                do {
-                    let remote = try await APIService.shared.fetchFoodCatalog()
-                    if !remote.isEmpty {
-                        let builtIn = FoodCatalogStore.builtInItems()
-                        let builtInNames = Set(builtIn.map { $0.name })
-                        let remoteCustom = remote.filter { !builtInNames.contains($0.name) }
-                        catalog = builtIn + remoteCustom
-                        FoodCatalogStore.save(catalog)
-                    }
-                } catch {
-                    catalogLogger.error("fetchFoodCatalog: \(error, privacy: .public)")
-                }
-            }
+            .task { await syncRemoteCatalog() }
             // C2: restore draft (saisie survit aux interruptions)
             .onAppear { restoreDraftIfAny() }
             .onChange(of: draftPayload) { _, new in
@@ -529,6 +523,23 @@ struct AddNutritionSheet: View {
             Text("Les valeurs saisies seront perdues.")
         }
         .presentationDetents([.medium, .large])
+    }
+
+    private func syncRemoteCatalog() async {
+        do {
+            let remote = try await APIService.shared.fetchFoodCatalog()
+            catalogSyncError = nil
+            if !remote.isEmpty {
+                let builtIn = FoodCatalogStore.builtInItems()
+                let builtInNames = Set(builtIn.map { $0.name })
+                let remoteCustom = remote.filter { !builtInNames.contains($0.name) }
+                catalog = builtIn + remoteCustom
+                FoodCatalogStore.save(catalog)
+            }
+        } catch {
+            catalogSyncError = LoadError.from(error)?.message ?? "Sync catalogue impossible — catalogue local actif."
+            catalogLogger.error("fetchFoodCatalog: \(error, privacy: .public)")
+        }
     }
 
     private func save() {
