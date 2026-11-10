@@ -24,145 +24,121 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
     /// première exécution. Chaque migration retire ses lignes.
     private static let knownSites: Set<String> = []
 
-    /// Catches background-side-effect-only : l'appel n'alimente aucune UI
-    /// (pas d'@Published lu, pas de Loadable observé). Seul un side-effect
-    /// (notif, UserDefaults) suit le succès. Un échec silencieux est
-    /// acceptable — PAS de carte d'erreur, PAS de Loadable, logger uniquement.
+    /// Catches background-side-effect-only : l'appel n'alimente AUCUN affichage
+    /// visible par l'utilisateur. Seul un side-effect (notif, UserDefaults,
+    /// vérification post-save, préchargement de cache dont rien n'est lu pour
+    /// l'affichage) suit le succès. Un échec silencieux est acceptable — PAS
+    /// de carte d'erreur, PAS de Loadable, logger uniquement.
+    ///
+    /// Dès qu'une valeur fetched alimente une vue (tuile, badge, section, chip,
+    /// highlight, routing user-visible), l'entrée doit SORTIR d'ici : l'écran
+    /// adopte un indicateur d'échec local (loadError → ErrorBannerView +
+    /// sections concernées affichant "Indisponible").
     ///
     /// Convention : le catch doit commencer par `logger.error("fnName: …")`
-    /// — le scanner extrait fnName de la chaîne et vérifie l'appartenance
-    /// à ce set. Format : `Views/.../File.swift:fnName`.
+    /// — le scanner extrait fnName de la chaîne et vérifie l'appartenance.
+    /// Format : `Views/.../File.swift:fnName`.
     ///
-    /// Chaque entrée documente SA raison (notifications uniquement, UserDefaults
-    /// seul, etc.). Si tu ajoutes un site ici, écris pourquoi la UI n'a pas
-    /// besoin de le remonter.
-    private static let knownBackgroundSideEffects: Set<String> = [
-        "Views/Nutrition/AddNutritionSheet.swift:fetchFoodCatalog",
-            // Raison : sync opportuniste du catalogue remote au-dessus du
-            // FoodCatalogStore local. Échec = le catalogue local (built-in +
-            // persistance locale) reste pleinement fonctionnel ; prochain
-            // ouverture du sheet retente. Pas de surface UI à ajouter.
-        "Views/Historique/HistoriqueView.swift:loadActiveExercises",
-            // Raison : alimente activeExercises (Set<String>) utilisé par
-            // MuscuSessionCard pour le highlight visuel discret. Un échec =
-            // highlight manquant, l'historique reste pleinement consultable.
-            // Pas de surface d'erreur à ajouter — bruit vs valeur.
-        "Views/Profile/ProfileView.swift:fetchWorkoutDNA",
-        "Views/Profile/ProfileView.swift:fetchPSSHistory",
-        "Views/Profile/ProfileView.swift:getCurrentOath",
-        "Views/Profile/ProfileView.swift:fetchProfileStats",
-        "Views/Profile/ProfileView.swift:getWarRoomConfig",
-        "Views/Profile/ProfileView.swift:getWarRoomSummary",
-        "Views/Inventaire/InventaireView.swift:loadGapsCount",
-        "Views/Inventaire/InventaireView.swift:loadDetail",
-        "Views/Inventaire/InventaireView.swift:loadSeances",
-        "Views/Inventaire/InventaireView.swift:loadGaps",
-        "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
-            // Raison : alimente programSuggestions[seance] (hints de progression
-            // par exercice). Appelé par séance dans une boucle ; un échec sur
-            // une seule séance laisse les hints absents pour celle-ci, les
-            // autres continuent. Pas de surface d'erreur par séance à ajouter.
-            // Raison (4 entries) : loadGapsCount alimente un badge compteur
-            // (0 = pas affiché). loadDetail/loadSeances/loadGaps sont des
-            // sheets secondaires avec isLoading propre ; échec = sheet reste
-            // vide et l'utilisateur peut fermer+rouvrir. Load principal
-            // (loadData) utilise déjà loadError visible.
-            // Raison (6 entries) : ProfileView = sections indépendantes "best effort"
-            // (DNA, PSS chart, oath, stats, war room). Chaque section s'auto-masque
-            // si sa donnée n'a pas chargé. Un échec = section cachée, pas un écran
-            // cassé — les autres sections restent pleinement fonctionnelles. Dédier
-            // une surface d'erreur par section (6 bannières) est du bruit vs valeur.
-        "Views/Seasons/SeasonView.swift:getActiveSeason",
-        "Views/Seasons/SeasonView.swift:getAllSeasons",
-            // Raison : activeSeason nullable par design (user sans saison active) ;
-            // allSeasons peut être vide (nouvel user). Un échec réseau produit la
-            // même UI dégradée que "pas de données" — pas de distinction à faire.
-        "Views/Oath/OathView.swift:getCurrentOath",
-        "Views/Oath/OathView.swift:getOathVersions",
-            // Raison : oath nullable (user sans oath) ; versions peut être vide.
-            // Un échec = rien à afficher, identique à "pas encore d'oath".
-        "Views/XP/XPView.swift:fetchHIITData",
-        "Views/XP/XPView.swift:fetchWeights",
-        "Views/XP/XPView.swift:fetchRecoveryData",
-            // Raison : 3 sources indépendantes (HIIT, poids, recovery) qui alimentent
-            // des badges XP additifs. Un échec = badge "pas débloqué" (identique à
-            // "pas encore atteint le seuil"). Sections s'auto-masquent.
-        "Views/Intelligence/RitualView.swift:fetchRitualToday",
-            // Raison : nil → ritualUnavailableView ("Indisponible — réessayer")
-            // déjà visible dans le routing du phase enum. Aucune surface à ajouter.
-        "Views/Intelligence/RitualEveningView.swift:fetchRitualToday",
-            // Raison : refetch opportuniste après succès create engagements.
-            // Échec = parent garde son état pre-save, confirmation déjà affichée
-            // à l'user. Prochain .task refetchera.
-        "Views/Intelligence/WarRoomGateView.swift:getCurrentOath",
-            // Raison : check pour router vers setup si oath nil. Échec = pas de
-            // routage forcé (mieux qu'avant : évitait le faux routage vers setup
-            // sur simple panne réseau).
-        "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig",
-            // Raison : alimente les toggles de configuration War Room. Échec =
-            // toggles sans état lu (utilisateur peut quitter et réouvrir).
-        "Views/BodyComp/BodyCompView.swift:fetchProfilData",
-        "Views/BodyComp/BodyCompView.swift:bodyProjection",
-            // Raison : fetchProfilData alimente profile/bodyWeight/tendance ;
-            // bodyProjection alimente la section projection. Un échec = section
-            // vide (identique à "pas encore de données body comp enregistrées").
-        "Views/BodyComp/NavyCalculatorView.swift:fetchProfilData",
-            // Raison : alimente isMale/sexUnknown (pré-remplissage du calculateur).
-            // Échec = user reste sur valeurs par défaut, saisit manuellement.
-        "Views/Budget/BudgetView.swift:fetchBudgetStatus",
-            // Raison : refresh silencieux avant ouverture du sheet. Comment du
-            // code explicite : "on garde status existant et on ouvre quand même".
-        "Views/GymFinder/GymFinderViewModel.swift:fetchCrowdsource",
-            // Raison : enrichissement crowdsource optionnel (badges fréquence).
-            // Échec = gyms affichés sans badge crowdsource — map toujours utilisable.
-        "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport",
-            // Raison : schedule du notif recap hebdo uniquement. Aucune @Published,
-            // aucune carte dashboard ne lit la réponse. Un échec = pas de rappel
-            // cette semaine, l'utilisateur reverra son résumé au prochain cycle.
-        "Views/Dashboard/DashboardViewModel.swift:getActiveSeason",
-            // Raison : scheduleSeasonMilestones (notif) uniquement. L'état saison
-            // affiché vient d'ailleurs (SeasonView fetch dédié). Un échec = pas
-            // de rappels de milestone cette session, retry au prochain app open.
-        "Views/Dashboard/DashboardViewModel.swift:fetchWorkoutDNA",
-            // Raison : notifyDNAArchetypeChange (notif) uniquement. L'enqueue
-            // DNA evolution vit dans AppState.checkDNAEvolution (appel distinct).
-            // Un échec = pas de notif changement d'archétype, non critique.
-        "Views/Dashboard/DashboardViewModel.swift:fetchTimeCapsules",
-            // Raison : scheduleTimeCapsuleSoon (notif) uniquement. Les capsules
-            // sont consommées côté push notif seulement. Un échec = pas de
-            // rappel capsule aujourd'hui, l'app ne dépend pas de l'état client.
-        "Views/Seance/WorkoutActiveView.swift:loadReadiness",
-            // Raison : alimente uniquement le ReadinessChip optionnel du
-            // contextPanel. Affichage dégradé (pas de chip) acceptable sur
-            // échec — l'utilisateur continue sa séance LIVE sans ce signal.
-        "Views/Seance/ExerciseViewModel.swift:verifyFinishCompletion",
-            // Raison : verif conservative post-save. Échec = "non vérifié" →
-            // le caller (saveSession) set `submitError` "Séance non confirmée
-            // en base — réessaie", surfaced au user. Pas de nouvelle UI.
-        "Views/Seance/ExerciseViewModel.swift:finish",
-            // (continued)
-        "Views/Seance/SessionSupportViews.swift:logSession",
-            // Raison : verif post-save dans SpecialSeanceView (séance spéciale,
-            // ex. Cardio dédié). Échec = fresh nil → verified=false → vm.submitError
-            // "Séance non confirmée — vérifie ta connexion et réessaie." visible.
-        "Views/Seance/SeanceSoirView.swift:observeEveningCompletion",
-            // Raison : verif conservative post-save du soir. Échec = non confirmé
-            // → le caller affiche `saveStatusMessage = "Réponse serveur reçue.
-            // La clôture n'est pas confirmée. Les données locales sont conservées."`
-            // Raison : verif morning completion dans finish(). Échec = fresh
-            // nil → `verified` false → même submitError visible. Idem.
-        "Views/Seance/WorkoutActiveView.swift:retryWeightFetch",
-            // Raison : catch du bouton "Réessayer" dans weightFetchFailedRow /
-            // estimatedWeightRow. Déclenché par le user après avoir déjà vu
-            // l'erreur initiale — un nouvel échec laisse la row visible, user
-            // peut re-cliquer. Pas de nouvelle surface UI à ajouter.
-        "Views/Stats/StatsView.swift:syncDeloadFlag",
-            // Raison : UserDefaults "deload_active" + cancelDeloadNotifications
-            // (notif) uniquement. L'affichage du deload passe par
-            // fetchDeloadStatus (Loadable DeloadStatus). Un échec = flag non
-            // resynchronisé et notifs non-cancelled sur transition, retry au
-            // prochain app open.
+    /// Garde-fou : dictionnaire (site → justification non-vide). Le test
+    /// `test_every_knownBackgroundSideEffect_has_justification` échoue si une
+    /// entrée a une justification vide — force à écrire la raison UI-neutre.
+    private static let knownBackgroundSideEffects: [String: String] = [
+        // ── TRANSIT (à migrer un écran à la fois — chaque entrée alimente un
+        //    affichage et doit sortir après que l'écran adopte loadError +
+        //    ErrorBannerView + "Indisponible" sur section concernée) ──
+        "Views/Nutrition/AddNutritionSheet.swift:fetchFoodCatalog":
+            "TRANSIT — picker catalogue remote (local fonctionne seul, enrichissement).",
+        "Views/Historique/HistoriqueView.swift:loadActiveExercises":
+            "TRANSIT — highlight MuscuSessionCard (visuel).",
+        "Views/Profile/ProfileView.swift:fetchWorkoutDNA":
+            "TRANSIT — section DNA Profile.",
+        "Views/Profile/ProfileView.swift:fetchPSSHistory":
+            "TRANSIT — PSS chart Profile.",
+        "Views/Profile/ProfileView.swift:getCurrentOath":
+            "TRANSIT — section oath Profile.",
+        "Views/Profile/ProfileView.swift:fetchProfileStats":
+            "TRANSIT — streaks/tonnage/memberSince Profile.",
+        "Views/Profile/ProfileView.swift:getWarRoomConfig":
+            "TRANSIT — section War Room Profile.",
+        "Views/Profile/ProfileView.swift:getWarRoomSummary":
+            "TRANSIT — streak War Room Profile.",
+        "Views/Inventaire/InventaireView.swift:loadGapsCount":
+            "TRANSIT — badge compteur gaps Inventaire.",
+        "Views/Inventaire/InventaireView.swift:loadDetail":
+            "TRANSIT — sheet exercise detail Inventaire.",
+        "Views/Inventaire/InventaireView.swift:loadSeances":
+            "TRANSIT — sheet séance picker Inventaire.",
+        "Views/Inventaire/InventaireView.swift:loadGaps":
+            "TRANSIT — sheet gaps Inventaire.",
+        "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions":
+            "TRANSIT — hints progression (loop par séance).",
+        "Views/Seasons/SeasonView.swift:getActiveSeason":
+            "TRANSIT — section saison active.",
+        "Views/Seasons/SeasonView.swift:getAllSeasons":
+            "TRANSIT — liste saisons passées.",
+        "Views/Oath/OathView.swift:getCurrentOath":
+            "TRANSIT — oath affiché.",
+        "Views/Oath/OathView.swift:getOathVersions":
+            "TRANSIT — historique versions.",
+        "Views/XP/XPView.swift:fetchHIITData":
+            "TRANSIT — badges HIIT.",
+        "Views/XP/XPView.swift:fetchWeights":
+            "TRANSIT — badges poids.",
+        "Views/XP/XPView.swift:fetchRecoveryData":
+            "TRANSIT — badges recovery.",
+        "Views/Intelligence/RitualView.swift:fetchRitualToday":
+            "TRANSIT — phase enum (nil → ritualUnavailableView).",
+        "Views/Intelligence/WarRoomGateView.swift:getCurrentOath":
+            "TRANSIT — routing vers setup (user-visible).",
+        "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig":
+            "TRANSIT — toggles settings War Room.",
+        "Views/BodyComp/BodyCompView.swift:fetchProfilData":
+            "TRANSIT — profile/bodyWeight/tendance BodyComp.",
+        "Views/BodyComp/BodyCompView.swift:bodyProjection":
+            "TRANSIT — section projection BodyComp.",
+        "Views/BodyComp/NavyCalculatorView.swift:fetchProfilData":
+            "TRANSIT — pré-remplissage sex NavyCalculator.",
+        "Views/Budget/BudgetView.swift:fetchBudgetStatus":
+            "TRANSIT — refresh status avant sheet.",
+        "Views/GymFinder/GymFinderViewModel.swift:fetchCrowdsource":
+            "TRANSIT — badges crowdsource liste gyms.",
+        "Views/Seance/WorkoutActiveView.swift:loadReadiness":
+            "TRANSIT — ReadinessChip contextPanel.",
+        // ── VRAIS EFFETS DE BORD ──
+        "Views/Dashboard/DashboardViewModel.swift:fetchWeeklyReport":
+            "Notif recap hebdo uniquement. Aucune @Published ni carte dashboard ne lit la réponse. Un échec = pas de rappel cette semaine.",
+        "Views/Dashboard/DashboardViewModel.swift:getActiveSeason":
+            "scheduleSeasonMilestones (notif) uniquement. L'état saison affiché vient d'ailleurs (SeasonView fetch dédié).",
+        "Views/Dashboard/DashboardViewModel.swift:fetchWorkoutDNA":
+            "notifyDNAArchetypeChange (notif) uniquement. L'enqueue DNA evolution vit dans AppState.checkDNAEvolution (appel distinct).",
+        "Views/Dashboard/DashboardViewModel.swift:fetchTimeCapsules":
+            "scheduleTimeCapsuleSoon (notif) uniquement. Les capsules sont consommées côté push notif seulement.",
+        "Views/Seance/ExerciseViewModel.swift:verifyFinishCompletion":
+            "Verif post-save. Échec = 'non vérifié' → le caller (saveSession) set submitError visible au user. Pas de nouvelle UI.",
+        "Views/Seance/ExerciseViewModel.swift:finish":
+            "Verif morning completion dans finish(). Même contrat que verifyFinishCompletion : échec = submitError déjà surfacée.",
+        "Views/Seance/SessionSupportViews.swift:logSession":
+            "Verif post-save dans SpecialSeanceView. Échec = fresh nil → verified=false → vm.submitError visible.",
+        "Views/Seance/SeanceSoirView.swift:observeEveningCompletion":
+            "Verif conservative post-save du soir. Échec = saveStatusMessage 'La clôture n'est pas confirmée…' affiché.",
+        "Views/Seance/WorkoutActiveView.swift:retryWeightFetch":
+            "Catch du bouton 'Réessayer' dans weightFetchFailedRow. Déclenché par le user après erreur initiale — la row reste visible, user peut re-cliquer.",
+        "Views/Intelligence/RitualEveningView.swift:fetchRitualToday":
+            "Refetch opportuniste après succès create engagements. Confirmation déjà affichée à l'user ; prochain .task refetchera.",
+        "Views/Stats/StatsView.swift:syncDeloadFlag":
+            "UserDefaults 'deload_active' + cancelDeloadNotifications (notif) uniquement. L'affichage du deload passe par fetchDeloadStatus (Loadable DeloadStatus).",
     ]
+
+    /// Garde-fou : chaque entrée du dict doit avoir une justification non-vide.
+    /// Force à écrire pourquoi l'échec de ce site est UI-neutre.
+    func test_every_knownBackgroundSideEffect_has_justification() {
+        for (site, justification) in Self.knownBackgroundSideEffects {
+            XCTAssertFalse(
+                justification.trimmingCharacters(in: .whitespaces).isEmpty,
+                "knownBackgroundSideEffects[\(site)] doit avoir une justification non-vide — écris pourquoi la UI n'a pas besoin de le remonter."
+            )
+        }
+    }
 
     /// Prouve que le scanner est invariant aux symlinks dans le chemin racine.
     /// Avant la normalisation : scanner `/tmp/root` (symlink de `/private/tmp/root`)
@@ -380,7 +356,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
                                      range: NSRange(location: 0, length: ns.length)),
               m.numberOfRanges > 1 else { return false }
         let fn = ns.substring(with: m.range(at: 1))
-        return Self.knownBackgroundSideEffects.contains("\(path):\(fn)")
+        return Self.knownBackgroundSideEffects["\(path):\(fn)"] != nil
     }
 
     /// Récupère les lignes NON vides et NON commentaires du corps du catch
