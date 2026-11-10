@@ -1,5 +1,8 @@
 import SwiftUI
 import Combine
+import OSLog
+
+private let programmeLogger = Logger(subsystem: "TrainingOS", category: "programme")
 
 /// ViewModel de ProgrammeView — source de vérité pour les données serveur du
 /// programme (inventaire, planning, multi-progs), l'état runtime de chargement
@@ -408,10 +411,13 @@ final class ProgrammeViewModel: ObservableObject {
             let sessionType: String = amNames.contains(seance) ? "morning"
                                     : pmNames.contains(seance) ? "evening"
                                     : "morning"
-            if let list = try? await APIService.shared.fetchProgressionSuggestions(
-                date: dateStr, sessionType: sessionType, sessionName: seance
-            ) {
+            do {
+                let list = try await APIService.shared.fetchProgressionSuggestions(
+                    date: dateStr, sessionType: sessionType, sessionName: seance
+                )
                 programSuggestions[seance] = Dictionary(uniqueKeysWithValues: list.map { ($0.exerciseName, $0) })
+            } catch {
+                programmeLogger.error("fetchProgressionSuggestions: \(error, privacy: .public)")
             }
         }
     }

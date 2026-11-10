@@ -34,7 +34,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Intelligence/WarRoomSettingsView.swift:getWarRoomConfig",
         "Views/Oath/OathView.swift:getCurrentOath",
         "Views/Oath/OathView.swift:getOathVersions",
-        "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
         "Views/Seasons/SeasonView.swift:getActiveSeason",
         "Views/Seasons/SeasonView.swift:getAllSeasons",
         "Views/XP/XPView.swift:fetchHIITData",
@@ -76,6 +75,11 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
         "Views/Inventaire/InventaireView.swift:loadDetail",
         "Views/Inventaire/InventaireView.swift:loadSeances",
         "Views/Inventaire/InventaireView.swift:loadGaps",
+        "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions",
+            // Raison : alimente programSuggestions[seance] (hints de progression
+            // par exercice). Appelé par séance dans une boucle ; un échec sur
+            // une seule séance laisse les hints absents pour celle-ci, les
+            // autres continuent. Pas de surface d'erreur par séance à ajouter.
             // Raison (4 entries) : loadGapsCount alimente un badge compteur
             // (0 = pas affiché). loadDetail/loadSeances/loadGaps sont des
             // sheets secondaires avec isLoading propre ; échec = sheet reste
