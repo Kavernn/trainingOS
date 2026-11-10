@@ -1,0 +1,676 @@
+{
+  "plan": [
+    {
+      "id": "00332b97-110a-4915-b17a-4e2e49919e6d",
+      "name": "Copenhagen Plank",
+      "status": "OK",
+      "changes": [
+        [
+          "muscle_group",
+          "Core",
+          "Hanches"
+        ]
+      ]
+    },
+    {
+      "id": "0490140d-dfe8-4fe1-8463-90ffc2c93eab",
+      "name": "Inverted Row",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Biceps",
+            "Rhomboïdes"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "10b42a6a-497c-42a9-a84a-45b2deacba3b",
+      "name": "Romanian Deadlift",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier",
+            "Érecteurs du rachis"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "148511ac-237c-432d-accb-1b5ebfe046a1",
+      "name": "Barbell Close-Grip Bench Press",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Pectoral majeur",
+            "Deltoïde antérieur"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "2469a72a-0fed-4fe9-8287-0a48ea8cd033",
+      "name": "Lying Leg Curl",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Gastrocnémien"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "290eb168-e05b-481f-9ef3-07051d6cbff0",
+      "name": "Hammer Curl",
+      "status": "OK",
+      "changes": [
+        [
+          "muscle_specific",
+          "Brachialis",
+          "Brachial"
+        ]
+      ]
+    },
+    {
+      "id": "29153cb0-2fa5-4e66-bfc4-93b6c5914f23",
+      "name": "Lateral Bound",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Quadriceps",
+            "Grand fessier"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "2ae311da-6f2b-4683-b93a-81bd20b23e94",
+      "name": "Leg Curl",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Gastrocnémien"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "3b4b4a2f-4bf3-4526-bbaa-e4af98c0884a",
+      "name": "Back Squat",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [],
+          [
+            "Grand fessier"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "3d10e32d-23a1-4168-8b9e-013beb210f57",
+      "name": "Box Jump",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [
+            "Fessiers",
+            "Mollets"
+          ],
+          [
+            "Grand fessier",
+            "Gastrocnémien"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "413a9a12-4ed0-41d0-8497-3698ff40941b",
+      "name": "Zone-2 (vélo/rameur)",
+      "status": "OK",
+      "changes": [
+        [
+          "muscle_group",
+          "Cardio",
+          "Autre"
+        ]
+      ]
+    },
+    {
+      "id": "486b1277-3d39-4ac4-8247-b2b833ec03a8",
+      "name": "Dips",
+      "status": "OK",
+      "changes": [
+        [
+          "equipment",
+          null,
+          [
+            "dip_bars"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "5d26346d-6eb6-4d48-8790-7171a6d1e284",
+      "name": "Deep Barbell Squat",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "5ea88c96-99b5-4a75-93a7-4d07ab68d9e9",
+      "name": "Seated Cable Row",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Biceps",
+            "Rhomboïdes"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "60017691-bc43-4eaa-86d8-c0844621b6ab",
+      "name": "Cable Seated Row",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Biceps",
+            "Rhomboïdes"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "61ef73eb-53e4-464a-ae0f-bf2324d2fedb",
+      "name": "Barbell Front Squat",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "6db73454-2ed1-4ead-847c-a873e1588df9",
+      "name": "Intervalles (VO2)",
+      "status": "OK",
+      "changes": [
+        [
+          "muscle_group",
+          "Cardio",
+          "Autre"
+        ]
+      ]
+    },
+    {
+      "id": "753adbf6-5828-4e48-8c4b-1afbf251866a",
+      "name": "Deadlift",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [],
+          [
+            "Grand fessier",
+            "Érecteurs du rachis"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "781b2807-39ee-44e2-a783-084d41c8be1d",
+      "name": "Dumbbell Hammer Curl",
+      "status": "OK",
+      "changes": [
+        [
+          "muscle_specific",
+          "Brachialis",
+          "Brachial"
+        ]
+      ]
+    },
+    {
+      "id": "85313d3e-abab-484d-85e1-3a2700fdaed4",
+      "name": "Jump Squat",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier",
+            "Gastrocnémien"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "8b81e6ed-06f7-41d2-a526-69e8de626e2e",
+      "name": "Rear delts Face Pull",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [],
+          [
+            "Rhomboïdes",
+            "Coiffe des rotateurs"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "935673ee-71f3-4a2d-8766-feae5969c9af",
+      "name": "Medicine Ball Chest Pass",
+      "status": "OK",
+      "changes": [
+        [
+          "equipment",
+          null,
+          [
+            "medicine ball"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "93cc7342-2ded-4c95-bd91-0d47c46efe23",
+      "name": "Medicine Ball Slam",
+      "status": "OK",
+      "changes": [
+        [
+          "equipment",
+          null,
+          [
+            "medicine ball"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "941bd354-bb6a-421e-b86f-01d4176259c6",
+      "name": "Broad Jump",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier",
+            "Gastrocnémien"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "9877faf0-f077-4de7-9d57-ddc851583396",
+      "name": "Rope Hammer Curl",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [
+            "Biceps brachial — courte portion",
+            "Biceps brachial — longue portion",
+            "Brachial"
+          ],
+          [
+            "Biceps",
+            "Brachial"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "98c0a477-4482-4184-bb99-bde8a77528f7",
+      "name": "Barbell Row",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [
+            "Rhomboïdes"
+          ],
+          [
+            "Biceps",
+            "Rhomboïdes"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "992c71f7-aec4-4265-9350-e5e76dcc01b0",
+      "name": "Bulgarian Split Squat",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "9b496761-0cb5-4960-a82b-857968faef37",
+      "name": "Barbell Bent Over Row",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Biceps",
+            "Rhomboïdes"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "b2457e20-6988-412e-9c80-21044a31b973",
+      "name": "Barbell Romanian Deadlift",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [],
+          [
+            "Grand fessier",
+            "Érecteurs du rachis"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "b921a222-5892-4464-98a1-583bfa7d343a",
+      "name": "Single Arm DB Overhead Press",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Triceps",
+            "Deltoïde médial"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "bc9e81bf-119d-4c3f-a339-ae16c6d59526",
+      "name": "Hanging Leg Raise",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Fléchisseurs de hanche"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "bda0a383-f3fa-4d71-aae4-1be678dd4084",
+      "name": "Hack Squat",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "c8b5663e-cd99-4aec-a4f6-1cbc8df09868",
+      "name": "Meadows Row",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [],
+          [
+            "Biceps",
+            "Rhomboïdes"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "c96cc070-d44c-44e4-9658-d40370ebf8e2",
+      "name": "Cossack Squat",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [
+            "Quadriceps",
+            "Fessiers"
+          ],
+          [
+            "Quadriceps",
+            "Grand fessier"
+          ]
+        ],
+        [
+          "muscle_group",
+          "legs",
+          "Hanches"
+        ]
+      ]
+    },
+    {
+      "id": "cb6ba509-253a-44f7-ae93-3fc4578e2a55",
+      "name": "Single-Arm DB Row",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Biceps",
+            "Rhomboïdes"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "cd09e6d0-9b9a-4ab0-9b1d-4c4a9ba2684b",
+      "name": "Dumbbell Arnold Press",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Triceps",
+            "Deltoïde médial"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "cdac5271-1a7a-4239-972a-fb6ebec1806c",
+      "name": "90/90 Hip + Band Shoulder Rotation",
+      "status": "OK",
+      "changes": [
+        [
+          "muscle_group",
+          "Mobility",
+          "Hanches"
+        ]
+      ]
+    },
+    {
+      "id": "cf4a7ad6-b59a-4fe9-80e3-72f62b94794f",
+      "name": "Seated Leg Curl",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Gastrocnémien"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "cf7a77c8-9b70-4831-b436-06d360ccdff6",
+      "name": "Pendlay Row",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [],
+          [
+            "Biceps",
+            "Rhomboïdes"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "d07b4c3a-07c1-46e4-a607-469f0f512e0e",
+      "name": "Seated Z Press",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Triceps",
+            "Deltoïde médial"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "ddc39015-32cd-43e9-891b-dc89f5c82e63",
+      "name": "Face Pull",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          [],
+          [
+            "Rhomboïdes",
+            "Coiffe des rotateurs"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "e13acf43-f687-4a63-93e9-0b6ab7ca9400",
+      "name": "World's Greatest Stretch",
+      "status": "OK",
+      "changes": [
+        [
+          "muscle_group",
+          "Mobility",
+          "Hanches"
+        ]
+      ]
+    },
+    {
+      "id": "e5548034-a819-4579-8230-a933a7482e80",
+      "name": "Leg Press",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "eb20250a-5db1-4acf-8fc8-da5b7314f896",
+      "name": "Barbell Good Morning",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier",
+            "Érecteurs du rachis"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "f61760fc-5c55-44f9-a653-ac46f0f6a093",
+      "name": "Barbell Lunge",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier"
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "f7e5bdbf-3ce6-4ef2-b31b-966b516e1905",
+      "name": "Walking Lunges",
+      "status": "OK",
+      "changes": [
+        [
+          "secondary_muscles",
+          null,
+          [
+            "Grand fessier"
+          ]
+        ]
+      ]
+    }
+  ],
+  "violations": []
+}

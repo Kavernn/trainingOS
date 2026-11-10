@@ -419,6 +419,28 @@ _MUSCLE_ALIASES: dict = {
     "fléchisseurs de hanche": "hanches",
     "hip flexors":            "hanches",
     "hip_flexors":            "hanches",
+    # Orphelines fusions — 2026-11-09 : sous-régions pré-existantes au cockpit,
+    # non touchées par migration catalogue 46. Volume + zone au niveau groupe.
+    "biceps fémoral — longue portion": "hamstrings",
+    "biceps fémoral — courte portion": "hamstrings",
+    "triceps brachial":                 "triceps",
+    "triceps — longue portion":         "triceps",
+    "triceps — chef latéral":           "triceps",
+    "triceps — chef médial":            "triceps",
+    "pectoral majeur — chef costal":    "chest",
+    "pectoral majeur — chef claviculaire": "chest",
+    "pectoral majeur — chef sternal":   "chest",
+    "deltoïdes":                        "deltoids",
+    "grand rond":                       "lats",
+    "splénius":                         "neck",
+    "sterno-cléido-mastoïdien":         "neck",
+    "fléchisseurs des doigts":          "forearms",
+    # Thoracique = mobilité thoracique, pas du volume d'hypertrophie —
+    # décision explicite Vince : exclu du volume, ne gonfle PAS Dos.
+    "thoracique":                       "autre",
+    # Adducteurs : DÉLIBÉRÉMENT PAS FUSIONNÉ. Muscle canonique sans
+    # landmark, visible comme tuile avec son volume (pas vers Hanches
+    # — sinon volume disparaîtrait).
 }
 
 

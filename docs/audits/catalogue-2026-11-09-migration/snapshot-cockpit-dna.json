@@ -1,0 +1,735 @@
+{
+  "as_of": "2026-11-09",
+  "cockpit": {
+    "30d": {
+      "breakdown_by_muscle": {
+        "Abdominaux": [
+          {
+            "active_day_count": 3,
+            "direct_exposure_count": 3,
+            "direct_set_count": 7,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-10-29",
+            "muscle": "Droit abdominal",
+            "session_count": 3,
+            "weekly_effective_sets": 1.6333333333333333
+          },
+          {
+            "active_day_count": 3,
+            "direct_exposure_count": 3,
+            "direct_set_count": 6,
+            "indirect_exposure_count": 2,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-10-26",
+            "muscle": "Obliques",
+            "session_count": 4,
+            "weekly_effective_sets": 1.4000000000000001
+          }
+        ],
+        "Arrière d'épaule": [
+          {
+            "active_day_count": 9,
+            "direct_exposure_count": 8,
+            "direct_set_count": 24,
+            "indirect_exposure_count": 1,
+            "indirect_set_count": 2,
+            "last_exposure_date": "2026-11-06",
+            "muscle": "Deltoïde postérieur",
+            "session_count": 9,
+            "weekly_effective_sets": 5.833333333333334
+          }
+        ],
+        "Biceps": [
+          {
+            "active_day_count": 5,
+            "direct_exposure_count": 7,
+            "direct_set_count": 21,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-11-07",
+            "muscle": "Brachioradialis",
+            "session_count": 5,
+            "weekly_effective_sets": 4.9
+          },
+          {
+            "active_day_count": 4,
+            "direct_exposure_count": 0,
+            "direct_set_count": 0,
+            "indirect_exposure_count": 4,
+            "indirect_set_count": 12,
+            "last_exposure_date": "2026-11-07",
+            "muscle": "Brachial",
+            "session_count": 4,
+            "weekly_effective_sets": 1.4000000000000001
+          }
+        ],
+        "Dos": [
+          {
+            "active_day_count": 10,
+            "direct_exposure_count": 26,
+            "direct_set_count": 73,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-11-07",
+            "muscle": "Grand dorsal",
+            "session_count": 17,
+            "weekly_effective_sets": 17.033333333333335
+          }
+        ],
+        "Pectoraux": [
+          {
+            "active_day_count": 7,
+            "direct_exposure_count": 11,
+            "direct_set_count": 35,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-11-06",
+            "muscle": "Pectoral supérieur",
+            "session_count": 11,
+            "weekly_effective_sets": 8.166666666666666
+          },
+          {
+            "active_day_count": 5,
+            "direct_exposure_count": 5,
+            "direct_set_count": 15,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-11-09",
+            "muscle": "Pectoral moyen",
+            "session_count": 5,
+            "weekly_effective_sets": 3.5
+          },
+          {
+            "active_day_count": 4,
+            "direct_exposure_count": 3,
+            "direct_set_count": 9,
+            "indirect_exposure_count": 1,
+            "indirect_set_count": 3,
+            "last_exposure_date": "2026-11-06",
+            "muscle": "Pectoral inférieur",
+            "session_count": 4,
+            "weekly_effective_sets": 2.45
+          }
+        ],
+        "Trapèzes": [
+          {
+            "active_day_count": 3,
+            "direct_exposure_count": 1,
+            "direct_set_count": 3,
+            "indirect_exposure_count": 2,
+            "indirect_set_count": 6,
+            "last_exposure_date": "2026-10-27",
+            "muscle": "Trapèze inférieur",
+            "session_count": 3,
+            "weekly_effective_sets": 1.4000000000000001
+          },
+          {
+            "active_day_count": 1,
+            "direct_exposure_count": 1,
+            "direct_set_count": 3,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-10-25",
+            "muscle": "Trapèze supérieur",
+            "session_count": 1,
+            "weekly_effective_sets": 0.7000000000000001
+          }
+        ],
+        "Épaules": [
+          {
+            "active_day_count": 10,
+            "direct_exposure_count": 6,
+            "direct_set_count": 17,
+            "indirect_exposure_count": 12,
+            "indirect_set_count": 37,
+            "last_exposure_date": "2026-11-09",
+            "muscle": "Deltoïde antérieur",
+            "session_count": 11,
+            "weekly_effective_sets": 8.283333333333333
+          }
+        ]
+      },
+      "targets_by_muscle": {
+        "Abdominaux": {
+          "mav_week": 16,
+          "mev_week": 4,
+          "mrv_week": 25
+        },
+        "Adducteurs": null,
+        "Arrière d'épaule": null,
+        "Biceps": {
+          "mav_week": 14,
+          "mev_week": 6,
+          "mrv_week": 20
+        },
+        "Biceps brachial — courte portion": null,
+        "Biceps brachial — longue portion": null,
+        "Biceps fémoral — longue portion": null,
+        "Deltoïde médial": null,
+        "Deltoïdes": null,
+        "Dos": {
+          "mav_week": 18,
+          "mev_week": 10,
+          "mrv_week": 25
+        },
+        "Fléchisseurs des doigts": null,
+        "Gastrocnémien": null,
+        "Grand rond": null,
+        "Ischio-jambiers": {
+          "mav_week": 12,
+          "mev_week": 6,
+          "mrv_week": 16
+        },
+        "Pectoral majeur — chef costal": null,
+        "Pectoraux": {
+          "mav_week": 16,
+          "mev_week": 8,
+          "mrv_week": 22
+        },
+        "Quadriceps": {
+          "mav_week": 16,
+          "mev_week": 8,
+          "mrv_week": 22
+        },
+        "Rhomboïdes": null,
+        "Splénius": null,
+        "Sterno-cléido-mastoïdien": null,
+        "Trapèzes": {
+          "mav_week": 12,
+          "mev_week": 4,
+          "mrv_week": 18
+        },
+        "Triceps": {
+          "mav_week": 14,
+          "mev_week": 6,
+          "mrv_week": 18
+        },
+        "Triceps — longue portion": null,
+        "Épaules": null
+      },
+      "workloads": [
+        {
+          "muscle": "Abdominaux",
+          "weekly_effective_sets": 3.033333333333333
+        },
+        {
+          "muscle": "Adducteurs",
+          "weekly_effective_sets": 0.0
+        },
+        {
+          "muscle": "Arrière d'épaule",
+          "weekly_effective_sets": 5.833333333333334
+        },
+        {
+          "muscle": "Biceps",
+          "weekly_effective_sets": 15.983333333333334
+        },
+        {
+          "muscle": "Biceps brachial — courte portion",
+          "weekly_effective_sets": 1.4000000000000001
+        },
+        {
+          "muscle": "Biceps brachial — longue portion",
+          "weekly_effective_sets": 1.4000000000000001
+        },
+        {
+          "muscle": "Biceps fémoral — longue portion",
+          "weekly_effective_sets": 2.1
+        },
+        {
+          "muscle": "Deltoïde médial",
+          "weekly_effective_sets": 3.2666666666666666
+        },
+        {
+          "muscle": "Deltoïdes",
+          "weekly_effective_sets": 0.7000000000000001
+        },
+        {
+          "muscle": "Dos",
+          "weekly_effective_sets": 17.033333333333335
+        },
+        {
+          "muscle": "Fléchisseurs des doigts",
+          "weekly_effective_sets": 0.0
+        },
+        {
+          "muscle": "Gastrocnémien",
+          "weekly_effective_sets": 0.7000000000000001
+        },
+        {
+          "muscle": "Grand rond",
+          "weekly_effective_sets": 0.35000000000000003
+        },
+        {
+          "muscle": "Ischio-jambiers",
+          "weekly_effective_sets": 1.6333333333333333
+        },
+        {
+          "muscle": "Pectoral majeur — chef costal",
+          "weekly_effective_sets": 0.35000000000000003
+        },
+        {
+          "muscle": "Pectoraux",
+          "weekly_effective_sets": 13.766666666666667
+        },
+        {
+          "muscle": "Quadriceps",
+          "weekly_effective_sets": 3.966666666666667
+        },
+        {
+          "muscle": "Rhomboïdes",
+          "weekly_effective_sets": 2.3333333333333335
+        },
+        {
+          "muscle": "Splénius",
+          "weekly_effective_sets": 2.1
+        },
+        {
+          "muscle": "Sterno-cléido-mastoïdien",
+          "weekly_effective_sets": 1.6333333333333333
+        },
+        {
+          "muscle": "Trapèzes",
+          "weekly_effective_sets": 2.1
+        },
+        {
+          "muscle": "Triceps",
+          "weekly_effective_sets": 19.016666666666666
+        },
+        {
+          "muscle": "Triceps — longue portion",
+          "weekly_effective_sets": 0.35000000000000003
+        },
+        {
+          "muscle": "Épaules",
+          "weekly_effective_sets": 8.283333333333333
+        }
+      ]
+    },
+    "90d": {
+      "breakdown_by_muscle": {
+        "Abdominaux": [
+          {
+            "active_day_count": 11,
+            "direct_exposure_count": 8,
+            "direct_set_count": 20,
+            "indirect_exposure_count": 11,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-10-26",
+            "muscle": "Obliques",
+            "session_count": 15,
+            "weekly_effective_sets": 1.5555555555555556
+          },
+          {
+            "active_day_count": 7,
+            "direct_exposure_count": 7,
+            "direct_set_count": 19,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-10-29",
+            "muscle": "Droit abdominal",
+            "session_count": 7,
+            "weekly_effective_sets": 1.4777777777777776
+          }
+        ],
+        "Arrière d'épaule": [
+          {
+            "active_day_count": 28,
+            "direct_exposure_count": 29,
+            "direct_set_count": 66,
+            "indirect_exposure_count": 3,
+            "indirect_set_count": 7,
+            "last_exposure_date": "2026-11-06",
+            "muscle": "Deltoïde postérieur",
+            "session_count": 31,
+            "weekly_effective_sets": 5.405555555555555
+          }
+        ],
+        "Biceps": [
+          {
+            "active_day_count": 11,
+            "direct_exposure_count": 19,
+            "direct_set_count": 60,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-11-07",
+            "muscle": "Brachioradialis",
+            "session_count": 11,
+            "weekly_effective_sets": 4.666666666666666
+          },
+          {
+            "active_day_count": 10,
+            "direct_exposure_count": 0,
+            "direct_set_count": 0,
+            "indirect_exposure_count": 10,
+            "indirect_set_count": 31,
+            "last_exposure_date": "2026-11-07",
+            "muscle": "Brachial",
+            "session_count": 10,
+            "weekly_effective_sets": 1.2055555555555555
+          }
+        ],
+        "Dos": [
+          {
+            "active_day_count": 27,
+            "direct_exposure_count": 75,
+            "direct_set_count": 203,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-11-07",
+            "muscle": "Grand dorsal",
+            "session_count": 44,
+            "weekly_effective_sets": 15.788888888888888
+          }
+        ],
+        "Pectoraux": [
+          {
+            "active_day_count": 19,
+            "direct_exposure_count": 26,
+            "direct_set_count": 79,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-11-06",
+            "muscle": "Pectoral supérieur",
+            "session_count": 26,
+            "weekly_effective_sets": 6.144444444444444
+          },
+          {
+            "active_day_count": 11,
+            "direct_exposure_count": 14,
+            "direct_set_count": 43,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-11-09",
+            "muscle": "Pectoral moyen",
+            "session_count": 14,
+            "weekly_effective_sets": 3.344444444444444
+          },
+          {
+            "active_day_count": 8,
+            "direct_exposure_count": 7,
+            "direct_set_count": 21,
+            "indirect_exposure_count": 1,
+            "indirect_set_count": 3,
+            "last_exposure_date": "2026-11-06",
+            "muscle": "Pectoral inférieur",
+            "session_count": 8,
+            "weekly_effective_sets": 1.75
+          }
+        ],
+        "Trapèzes": [
+          {
+            "active_day_count": 11,
+            "direct_exposure_count": 5,
+            "direct_set_count": 3,
+            "indirect_exposure_count": 7,
+            "indirect_set_count": 20,
+            "last_exposure_date": "2026-10-27",
+            "muscle": "Trapèze inférieur",
+            "session_count": 12,
+            "weekly_effective_sets": 1.011111111111111
+          },
+          {
+            "active_day_count": 4,
+            "direct_exposure_count": 4,
+            "direct_set_count": 8,
+            "indirect_exposure_count": 0,
+            "indirect_set_count": 0,
+            "last_exposure_date": "2026-10-25",
+            "muscle": "Trapèze supérieur",
+            "session_count": 4,
+            "weekly_effective_sets": 0.6222222222222222
+          }
+        ],
+        "Épaules": [
+          {
+            "active_day_count": 26,
+            "direct_exposure_count": 20,
+            "direct_set_count": 48,
+            "indirect_exposure_count": 29,
+            "indirect_set_count": 88,
+            "last_exposure_date": "2026-11-09",
+            "muscle": "Deltoïde antérieur",
+            "session_count": 30,
+            "weekly_effective_sets": 7.155555555555555
+          }
+        ]
+      },
+      "targets_by_muscle": {
+        "Abdominaux": {
+          "mav_week": 16,
+          "mev_week": 4,
+          "mrv_week": 25
+        },
+        "Adducteurs": null,
+        "Arrière d'épaule": null,
+        "Biceps": {
+          "mav_week": 14,
+          "mev_week": 6,
+          "mrv_week": 20
+        },
+        "Biceps brachial — courte portion": null,
+        "Biceps brachial — longue portion": null,
+        "Biceps fémoral — longue portion": null,
+        "Coiffe des rotateurs": null,
+        "Deltoïde médial": null,
+        "Deltoïdes": null,
+        "Dos": {
+          "mav_week": 18,
+          "mev_week": 10,
+          "mrv_week": 25
+        },
+        "Fessiers": {
+          "mav_week": 12,
+          "mev_week": 4,
+          "mrv_week": 16
+        },
+        "Fléchisseurs des doigts": null,
+        "Fléchisseurs du poignet": null,
+        "Gastrocnémien": null,
+        "Grand fessier": null,
+        "Grand rond": null,
+        "Hanches": null,
+        "Ischio-jambiers": {
+          "mav_week": 12,
+          "mev_week": 6,
+          "mrv_week": 16
+        },
+        "Mollets": null,
+        "Pectoral majeur — chef costal": null,
+        "Pectoraux": {
+          "mav_week": 16,
+          "mev_week": 8,
+          "mrv_week": 22
+        },
+        "Plancher pelvien": null,
+        "Quadriceps": {
+          "mav_week": 16,
+          "mev_week": 8,
+          "mrv_week": 22
+        },
+        "Rhomboïdes": null,
+        "Splénius": null,
+        "Sterno-cléido-mastoïdien": null,
+        "Thoracique": null,
+        "Trapèze moyen": null,
+        "Trapèzes": {
+          "mav_week": 12,
+          "mev_week": 4,
+          "mrv_week": 18
+        },
+        "Triceps": {
+          "mav_week": 14,
+          "mev_week": 6,
+          "mrv_week": 18
+        },
+        "Triceps brachial": null,
+        "Triceps — chef latéral": null,
+        "Triceps — chef médial": null,
+        "Triceps — longue portion": null,
+        "Épaules": null
+      },
+      "workloads": [
+        {
+          "muscle": "Abdominaux",
+          "weekly_effective_sets": 3.033333333333333
+        },
+        {
+          "muscle": "Adducteurs",
+          "weekly_effective_sets": 0.0
+        },
+        {
+          "muscle": "Arrière d'épaule",
+          "weekly_effective_sets": 5.405555555555555
+        },
+        {
+          "muscle": "Biceps",
+          "weekly_effective_sets": 14.816666666666666
+        },
+        {
+          "muscle": "Biceps brachial — courte portion",
+          "weekly_effective_sets": 1.2055555555555555
+        },
+        {
+          "muscle": "Biceps brachial — longue portion",
+          "weekly_effective_sets": 1.2055555555555555
+        },
+        {
+          "muscle": "Biceps fémoral — longue portion",
+          "weekly_effective_sets": 0.9333333333333333
+        },
+        {
+          "muscle": "Coiffe des rotateurs",
+          "weekly_effective_sets": 0.15555555555555556
+        },
+        {
+          "muscle": "Deltoïde médial",
+          "weekly_effective_sets": 3.888888888888889
+        },
+        {
+          "muscle": "Deltoïdes",
+          "weekly_effective_sets": 0.7
+        },
+        {
+          "muscle": "Dos",
+          "weekly_effective_sets": 15.788888888888888
+        },
+        {
+          "muscle": "Fessiers",
+          "weekly_effective_sets": 0.0
+        },
+        {
+          "muscle": "Fléchisseurs des doigts",
+          "weekly_effective_sets": 0.0
+        },
+        {
+          "muscle": "Gastrocnémien",
+          "weekly_effective_sets": 0.9333333333333333
+        },
+        {
+          "muscle": "Grand rond",
+          "weekly_effective_sets": 0.11666666666666667
+        },
+        {
+          "muscle": "Hanches",
+          "weekly_effective_sets": 0.0
+        },
+        {
+          "muscle": "Ischio-jambiers",
+          "weekly_effective_sets": 2.1777777777777776
+        },
+        {
+          "muscle": "Mollets",
+          "weekly_effective_sets": 0.0
+        },
+        {
+          "muscle": "Pectoral majeur — chef costal",
+          "weekly_effective_sets": 0.11666666666666667
+        },
+        {
+          "muscle": "Pectoraux",
+          "weekly_effective_sets": 11.122222222222222
+        },
+        {
+          "muscle": "Quadriceps",
+          "weekly_effective_sets": 3.1888888888888887
+        },
+        {
+          "muscle": "Rhomboïdes",
+          "weekly_effective_sets": 2.411111111111111
+        },
+        {
+          "muscle": "Splénius",
+          "weekly_effective_sets": 1.2444444444444445
+        },
+        {
+          "muscle": "Sterno-cléido-mastoïdien",
+          "weekly_effective_sets": 1.5555555555555556
+        },
+        {
+          "muscle": "Thoracique",
+          "weekly_effective_sets": 0.0
+        },
+        {
+          "muscle": "Trapèzes",
+          "weekly_effective_sets": 1.6333333333333333
+        },
+        {
+          "muscle": "Triceps",
+          "weekly_effective_sets": 15.71111111111111
+        },
+        {
+          "muscle": "Triceps brachial",
+          "weekly_effective_sets": 0.23333333333333334
+        },
+        {
+          "muscle": "Triceps — longue portion",
+          "weekly_effective_sets": 0.11666666666666667
+        },
+        {
+          "muscle": "Épaules",
+          "weekly_effective_sets": 7.155555555555555
+        }
+      ]
+    }
+  },
+  "dna": {
+    "30d": [
+      {
+        "effective_sets": 19.0,
+        "muscle": "Triceps",
+        "pct": 18,
+        "sets": 19
+      },
+      {
+        "effective_sets": 17.0,
+        "muscle": "Dos",
+        "pct": 16,
+        "sets": 17
+      },
+      {
+        "effective_sets": 16.0,
+        "muscle": "Biceps",
+        "pct": 15,
+        "sets": 16
+      },
+      {
+        "effective_sets": 13.8,
+        "muscle": "Pectoraux",
+        "pct": 13,
+        "sets": 14
+      },
+      {
+        "effective_sets": 8.3,
+        "muscle": "Épaules",
+        "pct": 8,
+        "sets": 8
+      },
+      {
+        "effective_sets": 5.8,
+        "muscle": "Arrière d'épaule",
+        "pct": 5,
+        "sets": 6
+      }
+    ],
+    "90d": [
+      {
+        "effective_sets": 15.8,
+        "muscle": "Dos",
+        "pct": 17,
+        "sets": 16
+      },
+      {
+        "effective_sets": 15.7,
+        "muscle": "Triceps",
+        "pct": 17,
+        "sets": 16
+      },
+      {
+        "effective_sets": 14.8,
+        "muscle": "Biceps",
+        "pct": 16,
+        "sets": 15
+      },
+      {
+        "effective_sets": 11.1,
+        "muscle": "Pectoraux",
+        "pct": 12,
+        "sets": 11
+      },
+      {
+        "effective_sets": 7.2,
+        "muscle": "Épaules",
+        "pct": 8,
+        "sets": 7
+      },
+      {
+        "effective_sets": 5.4,
+        "muscle": "Arrière d'épaule",
+        "pct": 6,
+        "sets": 5
+      }
+    ]
+  }
+}

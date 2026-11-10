@@ -1,0 +1,322 @@
+{
+  "30d": {
+    "by_muscle": {
+      "Abdominaux": {
+        "targets": {
+          "mav_week": 16,
+          "mev_week": 4,
+          "mrv_week": 25
+        },
+        "weekly_effective_sets": 3.033333333333333
+      },
+      "Adducteurs": {
+        "targets": null,
+        "weekly_effective_sets": 0.0
+      },
+      "Arrière d'épaule": {
+        "targets": null,
+        "weekly_effective_sets": 5.833333333333334
+      },
+      "Biceps": {
+        "targets": {
+          "mav_week": 14,
+          "mev_week": 6,
+          "mrv_week": 20
+        },
+        "weekly_effective_sets": 18.433333333333334
+      },
+      "Biceps fémoral — longue portion": {
+        "targets": null,
+        "weekly_effective_sets": 2.1
+      },
+      "Deltoïdes": {
+        "targets": null,
+        "weekly_effective_sets": 0.7000000000000001
+      },
+      "Dos": {
+        "targets": {
+          "mav_week": 18,
+          "mev_week": 10,
+          "mrv_week": 25
+        },
+        "weekly_effective_sets": 19.483333333333334
+      },
+      "Fessiers": {
+        "targets": {
+          "mav_week": 12,
+          "mev_week": 4,
+          "mrv_week": 16
+        },
+        "weekly_effective_sets": 1.9833333333333334
+      },
+      "Fléchisseurs des doigts": {
+        "targets": null,
+        "weekly_effective_sets": 0.0
+      },
+      "Grand rond": {
+        "targets": null,
+        "weekly_effective_sets": 0.35000000000000003
+      },
+      "Ischio-jambiers": {
+        "targets": {
+          "mav_week": 12,
+          "mev_week": 6,
+          "mrv_week": 16
+        },
+        "weekly_effective_sets": 1.6333333333333333
+      },
+      "Mollets": {
+        "targets": null,
+        "weekly_effective_sets": 1.2833333333333334
+      },
+      "Pectoral majeur — chef costal": {
+        "targets": null,
+        "weekly_effective_sets": 0.35000000000000003
+      },
+      "Pectoraux": {
+        "targets": {
+          "mav_week": 16,
+          "mev_week": 8,
+          "mrv_week": 22
+        },
+        "weekly_effective_sets": 13.766666666666667
+      },
+      "Quadriceps": {
+        "targets": {
+          "mav_week": 16,
+          "mev_week": 8,
+          "mrv_week": 22
+        },
+        "weekly_effective_sets": 3.966666666666667
+      },
+      "Splénius": {
+        "targets": null,
+        "weekly_effective_sets": 2.1
+      },
+      "Sterno-cléido-mastoïdien": {
+        "targets": null,
+        "weekly_effective_sets": 1.6333333333333333
+      },
+      "Trapèzes": {
+        "targets": {
+          "mav_week": 12,
+          "mev_week": 4,
+          "mrv_week": 18
+        },
+        "weekly_effective_sets": 2.1
+      },
+      "Triceps": {
+        "targets": {
+          "mav_week": 14,
+          "mev_week": 6,
+          "mrv_week": 18
+        },
+        "weekly_effective_sets": 19.71666666666667
+      },
+      "Triceps — longue portion": {
+        "targets": null,
+        "weekly_effective_sets": 0.35000000000000003
+      },
+      "Épaules": {
+        "targets": null,
+        "weekly_effective_sets": 12.950000000000001
+      }
+    },
+    "dominants": [
+      {
+        "effective_sets": 19.7,
+        "muscle": "Triceps",
+        "pct": 18
+      },
+      {
+        "effective_sets": 19.5,
+        "muscle": "Dos",
+        "pct": 17
+      },
+      {
+        "effective_sets": 18.4,
+        "muscle": "Biceps",
+        "pct": 16
+      },
+      {
+        "effective_sets": 13.8,
+        "muscle": "Pectoraux",
+        "pct": 12
+      },
+      {
+        "effective_sets": 13.0,
+        "muscle": "Épaules",
+        "pct": 12
+      },
+      {
+        "effective_sets": 5.8,
+        "muscle": "Arrière d'épaule",
+        "pct": 5
+      }
+    ]
+  },
+  "90d": {
+    "by_muscle": {
+      "Abdominaux": {
+        "targets": {
+          "mav_week": 16,
+          "mev_week": 4,
+          "mrv_week": 25
+        },
+        "weekly_effective_sets": 3.033333333333333
+      },
+      "Adducteurs": {
+        "targets": null,
+        "weekly_effective_sets": 0.0
+      },
+      "Arrière d'épaule": {
+        "targets": null,
+        "weekly_effective_sets": 5.405555555555555
+      },
+      "Biceps": {
+        "targets": {
+          "mav_week": 14,
+          "mev_week": 6,
+          "mrv_week": 20
+        },
+        "weekly_effective_sets": 17.03333333333333
+      },
+      "Biceps fémoral — longue portion": {
+        "targets": null,
+        "weekly_effective_sets": 0.9333333333333333
+      },
+      "Deltoïdes": {
+        "targets": null,
+        "weekly_effective_sets": 0.7
+      },
+      "Dos": {
+        "targets": {
+          "mav_week": 18,
+          "mev_week": 10,
+          "mrv_week": 25
+        },
+        "weekly_effective_sets": 18.12222222222222
+      },
+      "Fessiers": {
+        "targets": {
+          "mav_week": 12,
+          "mev_week": 4,
+          "mrv_week": 16
+        },
+        "weekly_effective_sets": 2.061111111111111
+      },
+      "Fléchisseurs des doigts": {
+        "targets": null,
+        "weekly_effective_sets": 0.0
+      },
+      "Grand rond": {
+        "targets": null,
+        "weekly_effective_sets": 0.11666666666666667
+      },
+      "Ischio-jambiers": {
+        "targets": {
+          "mav_week": 12,
+          "mev_week": 6,
+          "mrv_week": 16
+        },
+        "weekly_effective_sets": 2.1777777777777776
+      },
+      "Mollets": {
+        "targets": null,
+        "weekly_effective_sets": 1.3611111111111112
+      },
+      "Pectoral majeur — chef costal": {
+        "targets": null,
+        "weekly_effective_sets": 0.11666666666666667
+      },
+      "Pectoraux": {
+        "targets": {
+          "mav_week": 16,
+          "mev_week": 8,
+          "mrv_week": 22
+        },
+        "weekly_effective_sets": 11.122222222222222
+      },
+      "Quadriceps": {
+        "targets": {
+          "mav_week": 16,
+          "mev_week": 8,
+          "mrv_week": 22
+        },
+        "weekly_effective_sets": 3.1888888888888887
+      },
+      "Splénius": {
+        "targets": null,
+        "weekly_effective_sets": 1.2444444444444445
+      },
+      "Sterno-cléido-mastoïdien": {
+        "targets": null,
+        "weekly_effective_sets": 1.5555555555555556
+      },
+      "Thoracique": {
+        "targets": null,
+        "weekly_effective_sets": 0.0
+      },
+      "Trapèzes": {
+        "targets": {
+          "mav_week": 12,
+          "mev_week": 4,
+          "mrv_week": 18
+        },
+        "weekly_effective_sets": 1.6333333333333333
+      },
+      "Triceps": {
+        "targets": {
+          "mav_week": 14,
+          "mev_week": 6,
+          "mrv_week": 18
+        },
+        "weekly_effective_sets": 16.76111111111111
+      },
+      "Triceps brachial": {
+        "targets": null,
+        "weekly_effective_sets": 0.23333333333333334
+      },
+      "Triceps — longue portion": {
+        "targets": null,
+        "weekly_effective_sets": 0.11666666666666667
+      },
+      "Épaules": {
+        "targets": null,
+        "weekly_effective_sets": 12.483333333333333
+      }
+    },
+    "dominants": [
+      {
+        "effective_sets": 18.1,
+        "muscle": "Dos",
+        "pct": 18
+      },
+      {
+        "effective_sets": 17.0,
+        "muscle": "Biceps",
+        "pct": 17
+      },
+      {
+        "effective_sets": 16.8,
+        "muscle": "Triceps",
+        "pct": 17
+      },
+      {
+        "effective_sets": 12.5,
+        "muscle": "Épaules",
+        "pct": 13
+      },
+      {
+        "effective_sets": 11.1,
+        "muscle": "Pectoraux",
+        "pct": 11
+      },
+      {
+        "effective_sets": 5.4,
+        "muscle": "Arrière d'épaule",
+        "pct": 5
+      }
+    ]
+  }
+}
