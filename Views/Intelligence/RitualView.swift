@@ -7,6 +7,7 @@ private let intelligenceLogger = Logger(subsystem: "TrainingOS", category: "inte
 struct RitualView: View {
     @State private var ritual: RitualToday? = nil
     @State private var isLoading = true
+    @State private var loadError: String?
     @Environment(\.dismiss) private var dismiss
 
     private var phase: RitualPhase {
@@ -63,8 +64,10 @@ struct RitualView: View {
         VStack(spacing: 16) {
             Image(systemName: "wifi.slash")
                 .font(.system(size: 32)).foregroundColor(.gray)
-            Text("Indisponible — réessaie dans un instant")
+            Text(loadError ?? "Indisponible — réessaie dans un instant")
                 .font(.system(size: 14)).foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
             Button("Réessayer") { Task { await load() } }
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(Color.appDanger)
@@ -74,10 +77,15 @@ struct RitualView: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
+        loadError = nil
         // Clear cache before fetching — stale data breaks the phase state machine
         CacheService.shared.clear(for: "ritual_today")
-        do { ritual = try await APIService.shared.fetchRitualToday() }
-        catch { intelligenceLogger.error("fetchRitualToday: \(error, privacy: .public)") }
+        do {
+            ritual = try await APIService.shared.fetchRitualToday()
+        } catch {
+            loadError = LoadError.from(error)?.message ?? "Indisponible — réessaie dans un instant"
+            intelligenceLogger.error("fetchRitualToday: \(error, privacy: .public)")
+        }
     }
 }
 
