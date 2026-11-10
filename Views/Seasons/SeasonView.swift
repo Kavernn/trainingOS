@@ -26,14 +26,23 @@ struct SeasonView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
+                        if let msg = vm.loadError {
+                            ErrorBannerView(error: msg,
+                                onRetry: { Task { await vm.load() } },
+                                onDismiss: { vm.loadError = nil })
+                        }
                         if let active = vm.activeSeason {
                             activeCard(active)
+                        } else if vm.activeFailed {
+                            unavailableCard(label: "Saison active indisponible")
                         } else {
                             noActiveCard
                         }
 
                         if !vm.completedSeasons.isEmpty {
                             chaptersSection
+                        } else if vm.allFailed {
+                            unavailableCard(label: "Chapitres indisponibles")
                         }
                     }
                     .padding(16)
@@ -79,6 +88,23 @@ struct SeasonView: View {
         } message: {
             Text(chapterError ?? "")
         }
+    }
+
+    // MARK: Indisponible
+
+    private func unavailableCard(label: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "wifi.slash")
+                .foregroundColor(.appTextSecondary)
+            Text(label)
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(12)
     }
 
     // MARK: Active card
@@ -307,15 +333,31 @@ class SeasonViewModel: ObservableObject {
     @Published var activeSeason: Season?
     @Published var allSeasons: [Season] = []
     @Published var isLoading = false
+    @Published var loadError: String?
+    private(set) var activeFailed = false
+    private(set) var allFailed    = false
 
     var completedSeasons: [Season] { allSeasons.filter { !$0.isActive } }
 
     func load() async {
         isLoading = true
         defer { isLoading = false }
+        loadError = nil
+        activeFailed = false
+        allFailed = false
         do { activeSeason = try await APIService.shared.getActiveSeason() }
-        catch { seasonLogger.error("getActiveSeason: \(error, privacy: .public)") }
+        catch {
+            activeFailed = true
+            loadError = LoadError.from(error)?.message ?? "Impossible de charger la saison active."
+            seasonLogger.error("getActiveSeason: \(error, privacy: .public)")
+        }
         do { allSeasons = try await APIService.shared.getAllSeasons() }
-        catch { seasonLogger.error("getAllSeasons: \(error, privacy: .public)") }
+        catch {
+            allFailed = true
+            if loadError == nil {
+                loadError = LoadError.from(error)?.message ?? "Impossible de charger les saisons."
+            }
+            seasonLogger.error("getAllSeasons: \(error, privacy: .public)")
+        }
     }
 }

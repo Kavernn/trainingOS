@@ -72,11 +72,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "TRANSIT — sheet gaps Inventaire.",
         "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions":
             "TRANSIT — hints progression (loop par séance).",
-        "Views/Seasons/SeasonView.swift:getActiveSeason":
-            "TRANSIT — section saison active.",
-        "Views/Seasons/SeasonView.swift:getAllSeasons":
-            "TRANSIT — liste saisons passées.",
-        "Views/Oath/OathView.swift:getCurrentOath":
+"Views/Oath/OathView.swift:getCurrentOath":
             "TRANSIT — oath affiché.",
         "Views/Oath/OathView.swift:getOathVersions":
             "TRANSIT — historique versions.",
