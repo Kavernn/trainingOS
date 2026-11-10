@@ -333,6 +333,12 @@ struct ProgrammeView: View {
                 } else {
                     VStack(spacing: 0) {
                         segmentedControl
+                        if let msg = vm.suggestionsError {
+                            ErrorBannerView(error: msg,
+                                onRetry: { Task { await vm.loadSuggestions() } },
+                                onDismiss: { vm.suggestionsError = nil })
+                                .padding(.top, 8)
+                        }
                         if !expectedVisibleProgramId.isEmpty,
                            vm.loadedProgramId != expectedVisibleProgramId {
                             programmeContextLoadError

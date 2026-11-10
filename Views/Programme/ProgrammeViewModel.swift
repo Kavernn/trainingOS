@@ -107,6 +107,8 @@ final class ProgrammeViewModel: ObservableObject {
     @Published private(set) var planningRevision = 0
     @Published private(set) var dayComposerCandidate: DayComposerPreparationCandidate?
     @Published var programSuggestions: [String: [String: ProgressionSuggestion]] = [:]
+    /// Erreur chargement hints progression — premier échec remonté comme bannière écran.
+    @Published var suggestionsError: String?
     @Published var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
 
     // MARK: - Runtime mutations
@@ -396,6 +398,7 @@ final class ProgrammeViewModel: ObservableObject {
         // trouve programSuggestions non vide et retourne. Reset : loadData(programId:)
         // sur switch de programme + invalidation cache (sessionLogged/programmeMutated).
         guard programSuggestions.isEmpty else { return }
+        suggestionsError = nil
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
         let dateStr = fmt.string(from: Date())
         let amNames = Set(schedule.values)
@@ -417,6 +420,9 @@ final class ProgrammeViewModel: ObservableObject {
                 )
                 programSuggestions[seance] = Dictionary(uniqueKeysWithValues: list.map { ($0.exerciseName, $0) })
             } catch {
+                if suggestionsError == nil {
+                    suggestionsError = LoadError.from(error)?.message ?? "Hints progression indisponibles — réessaie."
+                }
                 programmeLogger.error("fetchProgressionSuggestions: \(error, privacy: .public)")
             }
         }

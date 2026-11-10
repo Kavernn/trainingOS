@@ -70,9 +70,7 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "TRANSIT — sheet séance picker Inventaire.",
         "Views/Inventaire/InventaireView.swift:loadGaps":
             "TRANSIT — sheet gaps Inventaire.",
-        "Views/Programme/ProgrammeViewModel.swift:fetchProgressionSuggestions":
-            "TRANSIT — hints progression (loop par séance).",
-"Views/Intelligence/RitualView.swift:fetchRitualToday":
+        "Views/Intelligence/RitualView.swift:fetchRitualToday":
             "TRANSIT — phase enum (nil → ritualUnavailableView).",
         "Views/Intelligence/WarRoomGateView.swift:getCurrentOath":
             "TRANSIT — routing vers setup (user-visible).",
