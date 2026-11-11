@@ -16,7 +16,7 @@ for envf in (root / ".env", root / ".env.local"):
 from supabase import create_client
 
 URL = os.environ["SUPABASE_URL"]
-KEY = os.environ["SUPABASE_ANON_KEY"]
+KEY = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ["SUPABASE_ANON_KEY"])
 sb = create_client(URL, KEY)
 
 def norm(s: str) -> str:

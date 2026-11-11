@@ -15,7 +15,7 @@ for envf in (root / ".env", root / ".env.local"):
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 from supabase import create_client
-sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_ANON_KEY"])
+sb = create_client(os.environ["SUPABASE_URL"], (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ["SUPABASE_ANON_KEY"]))
 
 # --- normalisation aggressive ---
 ABBREV = {

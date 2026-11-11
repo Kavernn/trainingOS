@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger("migrate")
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_ANON_KEY"]
+SUPABASE_KEY = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ["SUPABASE_ANON_KEY"])
 
 try:
     from supabase import create_client, Client

@@ -11,7 +11,15 @@ logger = logging.getLogger("trainingos.db")
 #   HYBRID  : tente Supabase, fallback SQLite; en cas d'échec réseau, dirty=1
 MODE = os.getenv("APP_DATA_MODE", "ONLINE").upper()  # ONLINE | OFFLINE | HYBRID
 _SUPABASE_URL = os.getenv("SUPABASE_URL")
-_SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
+# Phase 1 audit RLS 2026-11 : le backend est le seul consommateur Supabase
+# (l'app iOS parle uniquement à Vercel). Préfère SERVICE_ROLE au client
+# principal pour bypass RLS → immunité aux policies anon_all encore ouvertes.
+# Fallback anon seulement si service_role absent (dev/preview). Phase 2
+# verrouillera les policies anon ; Phase 3 rotera les 2 clés.
+_SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+_SUPABASE_ANON_KEY    = os.getenv("SUPABASE_ANON_KEY")
+_SUPABASE_KEY         = _SUPABASE_SERVICE_KEY or _SUPABASE_ANON_KEY
+_SUPABASE_KEY_ROLE    = "service_role" if _SUPABASE_SERVICE_KEY else ("anon" if _SUPABASE_ANON_KEY else "none")
 # Détecter Vercel pour éviter tout write local en prod (FS readonly)
 _ON_VERCEL = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
 
@@ -54,6 +62,7 @@ if MODE != "OFFLINE":
         from supabase import Client
         if _SUPABASE_URL and _SUPABASE_KEY:
             _client: Client = _make_supabase_client(_SUPABASE_URL, _SUPABASE_KEY)
+            logger.info("Supabase client initialized with role=%s", _SUPABASE_KEY_ROLE)
         else:
             if MODE == "ONLINE":
                 # Pas de credentials → bascule HYBRID pour autoriser cache local

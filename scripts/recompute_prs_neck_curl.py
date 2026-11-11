@@ -22,7 +22,7 @@ sys.path.insert(0, str(root / "api"))
 import db_sessions  # noqa: E402
 from supabase import create_client  # noqa: E402
 
-sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_ANON_KEY"])
+sb = create_client(os.environ["SUPABASE_URL"], (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ["SUPABASE_ANON_KEY"]))
 CANON_ID = "10254163-84fd-4bd6-8187-132c40992e72"
 NAME = "Neck Curl"
 

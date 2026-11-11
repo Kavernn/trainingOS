@@ -37,7 +37,7 @@ from supabase import create_client
 
 db._client = create_client(
     os.environ["SUPABASE_URL"],
-    os.environ["SUPABASE_ANON_KEY"],
+    (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ["SUPABASE_ANON_KEY"]),
 )
 print("✅ Supabase connecté\n")
 
