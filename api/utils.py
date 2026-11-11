@@ -135,44 +135,72 @@ def get_current_week() -> int:
     return max(1, (delta.days // 7) + 1)
 
 
-# Durée du cycle mésocycle. Miroir iOS : TrainingDoctrine.mesocycleWeeks.
-# Toute modification doit être répercutée dans les 2 sources en même temps.
-MESOCYCLE_WEEKS = 11
+def _resolve_cycle_start() -> tuple[date | None, bool]:
+    """Return (cycle_start, db_error).
+
+    Doctrine : la décharge volontaire clôt le cycle. Début du mésocycle courant =
+    `max(deload_periods.completed_at)` si au moins une décharge est terminée,
+    sinon `programs.cycle_start_date`, sinon None. Pas d'auto-wrap calendaire
+    (fantôme éradiqué 714848e). `db_error` = True seulement si la lecture DB
+    a levé une exception (consommé par /api/mesocycle_status pour reason="error").
+    """
+    import db as _db
+    db_error = False
+    completed: list[date] = []
+    try:
+        for p in (_db.get_deload_periods() or []):
+            c = p.get("completed_at")
+            if not c:
+                continue
+            try:
+                completed.append(date.fromisoformat(str(c)[:10]))
+            except Exception:
+                pass
+    except Exception:
+        db_error = True
+    if completed:
+        return max(completed), False
+    try:
+        start_str = _db.get_cycle_start_date()
+    except Exception:
+        return None, True
+    if not start_str:
+        return None, db_error
+    try:
+        return date.fromisoformat(str(start_str)[:10]), False
+    except Exception:
+        return None, db_error
 
 
 def get_mesocycle_info() -> dict:
-    """Return mesocycle week + phase derived from programs.cycle_start_date.
+    """Return current mesocycle week + phase.
 
-    Doctrine 11 semaines / 5 phases alignée sur l'enum iOS Phase
-    (ProgrammeView.swift:35-50, card parlante validée commit 9c4f966) :
-      accumulation    S1-S2   Empile le volume         (base, préparer tissus)
-      intensification S3-S4   Monte la charge          (adaptation SNC)
-      force           S5-S8   Pousse tes charges       (recrutement, gain kilo)
-      peak            S9-S10  Vise le PR               (test max)
-      deload          S11     Récupère                 (vider fatigue)
+    Sources (décision 2026-11 : la décharge volontaire est la seule chose qui
+    clôt le cycle, pas la semaine calendaire) :
+      - cycle_start = fin de la dernière deload_period terminée, sinon
+        programs.cycle_start_date, sinon fallback 2026-04-25 (UL/PPL v1).
+      - phase = 'deload' si is_deload_day(today), sinon par semaine :
+        S1-S2 accumulation / S3-S4 intensification / S5-S8 force /
+        S9-S10 peak / S11+ Peak prolongé (label "Peak · semaine N").
 
-    Après S11 : phase="completed", reason="cycle_complete" — pas d'auto-wrap
-    (fantôme calendaire éradiqué commit 714848e). Nouveau cycle = geste
-    utilisateur explicite via bouton POST /api/cycle_start_date.
-
-    Falls back to 2026-04-25 (UL/PPL v1 start) if unset.
+    Le cycle ne s'auto-ferme plus — pas de phase "completed" ici.
     """
-    try:
-        import db as _db
-        start_str = _db.get_cycle_start_date() or "2026-04-25"
-        start = date.fromisoformat(start_str[:10])
-    except Exception:
+    from analytics_adapter import is_deload_day
+    today = date.fromisoformat(_today_mtl())
+    start, _db_err = _resolve_cycle_start()
+    if start is None:
         start = date(2026, 4, 25)
+    week = max(1, ((today - start).days // 7) + 1)
+    is_deload = is_deload_day(today)
 
-    week = max(1, ((date.fromisoformat(_today_mtl()) - start).days // 7) + 1)
-
-    if week > MESOCYCLE_WEEKS:
+    if is_deload:
         return {
-            "week": week,
-            "phase": "completed",
-            "phase_label": "Terminé",
-            "rpe_target": "—",
-            "note": "Cycle terminé — démarre le prochain.",
+            "week":             week,
+            "phase":            "deload",
+            "phase_label":      "Décharge",
+            "rpe_target":       "5-6",
+            "note":             "Vider la fatigue, préparer le prochain cycle.",
+            "is_deload_today":  True,
         }
 
     if week <= 2:
@@ -187,16 +215,19 @@ def get_mesocycle_info() -> dict:
     elif week <= 10:
         phase, phase_label, rpe_target = "peak", "S9-S10", "9"
         note = "Test max, expression de la force."
-    else:  # week == 11
-        phase, phase_label, rpe_target = "deload", "S11", "5-6"
-        note = "Vider la fatigue, préparer le prochain cycle."
+    else:
+        # S11+ sans décharge active : Peak prolongé. Libellé honnête "Peak · semaine N"
+        # — pas "S9-S10" (mensonger), pas "completed" (plus d'auto-wrap).
+        phase, phase_label, rpe_target = "peak", f"Peak · semaine {week}", "9"
+        note = "Peak prolongé — décharge au moment choisi."
 
     return {
-        "week": week,
-        "phase": phase,
-        "phase_label": phase_label,
-        "rpe_target": rpe_target,
-        "note": note,
+        "week":             week,
+        "phase":            phase,
+        "phase_label":      phase_label,
+        "rpe_target":       rpe_target,
+        "note":             note,
+        "is_deload_today":  False,
     }
 
 

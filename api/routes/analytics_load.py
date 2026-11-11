@@ -342,20 +342,21 @@ def api_one_rm_programming():
 
 @analytics_load_bp.route("/api/mesocycle_status")
 def api_mesocycle_status():
-    """Return current mesocycle phase based on training weeks since last deload.
+    """Current mesocycle phase. Source unique : utils.get_mesocycle_info().
 
-    Doctrine anti-fantôme : ne JAMAIS retourner une phase inventée à partir de la
-    semaine calendaire ISO quand aucun cycle réel n'est démarré. Absence explicite :
-    phase=null + reason in {"no_cycle_start", "error"}.
+    Doctrine (2026-11) : la décharge volontaire clôt le cycle ; cycle_start =
+    fin de la dernière deload_period terminée, sinon programs.cycle_start_date.
+    Absence explicite (phase=null) si ni décharge terminée ni cycle_start.
+    Phase="deload" uniquement si is_deload_day(today). Pas d'auto-wrap S11 —
+    Peak prolongé avec libellé "Peak · semaine N".
     """
-    from utils import get_current_week
+    from utils import get_current_week, _resolve_cycle_start, get_mesocycle_info
     import db as _db
     from datetime import date as date_cls
 
     current_week = get_current_week()
-    today        = date_cls.fromisoformat(_today_mtl())
 
-    # Métadata : dernière séance nommée "deload"/"décharge" (60 dernières), exposée en last_deload_date
+    # Métadata : dernière séance nommée "deload"/"décharge" (60 dernières)
     sessions_raw     = _db.get_workout_sessions(limit=60)
     last_deload_date = None
     for s in sessions_raw:
@@ -365,98 +366,31 @@ def api_mesocycle_status():
             if last_deload_date is None or d > last_deload_date:
                 last_deload_date = d
 
-    # Source primaire : programs.cycle_start_date via get_cycle_start_date().
-    # get_active_program() n'existait pas — l'appel throw AttributeError capturé
-    # par le try/except → tous les prod runs tombaient sur reason:"error". Les
-    # tests mockaient dynamiquement db.get_active_program via MagicMock, ce qui
-    # masquait le bug. get_cycle_start_date() est la vraie API (db_programs.py:193),
-    # utilisée aussi par utils.get_mesocycle_info et plateau.py.
-    weeks_since       = None
-    active_prog_error = False
-    try:
-        cycle_start_str = _db.get_cycle_start_date()
-        if cycle_start_str:
-            cycle_start = date_cls.fromisoformat(str(cycle_start_str)[:10])
-            weeks_since = max(0, (today - cycle_start).days // 7)
-    except Exception as e:
-        logger.warning("mesocycle_status cycle_start_date lookup failed: %s", e)
-        active_prog_error = True
+    cycle_start, db_error = _resolve_cycle_start()
 
-    # Fallback : dernière séance deload
-    if weeks_since is None and last_deload_date:
-        weeks_since = (today - date_cls.fromisoformat(last_deload_date)).days // 7
-
-    # Absence explicite (jamais de phase calendaire inventée)
-    if weeks_since is None:
+    # Absence explicite : ni décharge terminée ni cycle_start — jamais de phase
+    # calendaire inventée (fantôme éradiqué 714848e).
+    if cycle_start is None:
         return jsonify({
             "current_week": current_week,
             "phase":        None,
-            "reason":       "error" if active_prog_error else "no_cycle_start",
+            "reason":       "error" if db_error else "no_cycle_start",
         })
 
-    # Fin de cycle explicite : après S11, l'utilisateur DOIT décider le prochain
-    # démarrage (bouton POST /api/cycle_start_date). Pas d'auto-wrap % 11 —
-    # même doctrine que le fantôme calendaire éradiqué 714848e.
-    from utils import MESOCYCLE_WEEKS
-    week_in_cycle = weeks_since + 1  # S1 = weeks_since 0
-    if week_in_cycle > MESOCYCLE_WEEKS:
-        return jsonify({
-            "current_week":     current_week,
-            "phase":            None,
-            "reason":           "cycle_complete",
-            "weeks_since_start": weeks_since,
-            "last_deload_date": last_deload_date,
-        })
-
-    # Doctrine iOS 5 phases sur 11 semaines (source card parlante commit 9c4f966).
-    if week_in_cycle <= 2:
-        phase        = "accumulation"
-        phase_label  = "S1-S2"
-        description  = "Empile le volume"
-        icon         = "📈"
-        rpe_target   = "7"
-        vol_guidance = "MAV progressif"
-    elif week_in_cycle <= 4:
-        phase        = "intensification"
-        phase_label  = "S3-S4"
-        description  = "Monte la charge"
-        icon         = "💪"
-        rpe_target   = "8"
-        vol_guidance = "MAV"
-    elif week_in_cycle <= 8:
-        phase        = "force"
-        phase_label  = "S5-S8"
-        description  = "Pousse tes charges"
-        icon         = "🔥"
-        rpe_target   = "8-9"
-        vol_guidance = "MEV-MAV, intensité prime"
-    elif week_in_cycle <= 10:
-        phase        = "peak"
-        phase_label  = "S9-S10"
-        description  = "Vise le PR"
-        icon         = "🎯"
-        rpe_target   = "9"
-        vol_guidance = "MEV strict, PR focus"
-    else:  # week_in_cycle == 11
-        phase        = "deload"
-        phase_label  = "S11"
-        description  = "Récupère"
-        icon         = "🧘"
-        rpe_target   = "5-6"
-        vol_guidance = "<60% baseline"
+    info          = get_mesocycle_info()
+    week_in_cycle = info["week"]
+    weeks_since   = week_in_cycle - 1  # S1 → weeks_since=0 (compat historique)
 
     return jsonify({
-        "current_week":         current_week,
-        "week_in_cycle":        week_in_cycle,
-        "weeks_since_deload":   weeks_since,
-        "phase":                phase,
-        "phase_label":          phase_label,
-        "description":          description,
-        "icon":                 icon,
-        "rpe_target":           rpe_target,
-        "vol_guidance":         vol_guidance,
-        "last_deload_date":     last_deload_date,
-        "next_deload_in_weeks": max(0, MESOCYCLE_WEEKS - week_in_cycle),
+        "current_week":        current_week,
+        "week_in_cycle":       week_in_cycle,
+        "weeks_since_deload":  weeks_since,
+        "phase":               info["phase"],
+        "phase_label":         info["phase_label"],
+        "rpe_target":          info["rpe_target"],
+        "note":                info["note"],
+        "is_deload_today":     info["is_deload_today"],
+        "last_deload_date":    last_deload_date,
     })
 
 
