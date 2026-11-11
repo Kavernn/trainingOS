@@ -36,7 +36,7 @@ struct MoodTrackerView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                TopFailureBanner(aggregator: topFailureAggregator)
+                ErrorBannerView.fromAggregator(topFailureAggregator)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 

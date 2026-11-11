@@ -76,7 +76,7 @@ struct HealthDashboardView: View {
         || hrvAnalysis != nil
     }
 
-    /// Agrège les 12 Loadable pour un unique `TopFailureBanner` d'écran
+    /// Agrège les 12 Loadable pour un unique `ErrorBannerView.fromAggregator` d'écran
     /// (incluant l'onglet Énergie/Récup : HealthDashboard est l'enveloppe).
     /// retryAll relance les 12 via `loadData()`.
     private var allLoadableStates: [any LoadableStateView] {
@@ -112,7 +112,7 @@ struct HealthDashboardView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
 
-                    TopFailureBanner(aggregator: topFailureAggregator)
+                    ErrorBannerView.fromAggregator(topFailureAggregator)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
 

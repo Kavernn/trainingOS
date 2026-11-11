@@ -45,7 +45,7 @@ struct MentalAmeView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    TopFailureBanner(aggregator: topFailureAggregator)
+                    ErrorBannerView.fromAggregator(topFailureAggregator)
                         .padding(.horizontal)
                         .padding(.top, 8)
 

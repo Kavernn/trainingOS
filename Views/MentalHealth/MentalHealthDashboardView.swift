@@ -31,7 +31,7 @@ struct MentalHealthDashboardView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 18) {
-                    TopFailureBanner(aggregator: topFailureAggregator)
+                    ErrorBannerView.fromAggregator(topFailureAggregator)
                         .padding(.horizontal)
 
                     Picker("Période", selection: $selectedDays) {

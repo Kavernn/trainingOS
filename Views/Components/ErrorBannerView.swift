@@ -1,18 +1,30 @@
 import SwiftUI
 
+/// Bandeau d'erreur unique. Remplace l'ancien TopFailureBanner — même composant,
+/// deux portes d'entrée : message brut (sections loadError @State) ou agrégateur
+/// Loadable (orchestration offline/network globale avec âge des données).
 struct ErrorBannerView: View {
     let error: String
+    var detail: String? = nil
+    var icon: String = "exclamationmark.triangle.fill"
     var onRetry: (() -> Void)? = nil
     var onDismiss: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(error, systemImage: "exclamationmark.triangle.fill")
+            Label(error, systemImage: icon)
                 .font(.subheadline)
                 .foregroundColor(.appTextPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityLabel(error)
+                .accessibilityLabel(detail.map { "\(error). \($0)" } ?? error)
+            if let detail {
+                Text(detail)
+                    .font(.caption)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
             HStack(spacing: 8) {
                 if let onRetry {
                     Button(action: onRetry) {
@@ -41,5 +53,27 @@ struct ErrorBannerView: View {
         .cornerRadius(10)
         .padding(.horizontal)
         .accessibilityElement(children: .contain)
+    }
+}
+
+extension ErrorBannerView {
+    /// Reprend le comportement de l'ancien TopFailureBanner : rend EmptyView
+    /// si aucune panne globale, sinon un ErrorBannerView dérivé (icône wifi.slash
+    /// vs triangle, titre Hors ligne/Erreur réseau, âge des dernières données,
+    /// retry = aggregator.retryAll). Un seul endroit à maintenir côté UI.
+    @ViewBuilder
+    static func fromAggregator(_ aggregator: LoadableAggregator) -> some View {
+        if aggregator.hasGlobalFailure {
+            let isOffline = aggregator.globalKind == .offline
+            let ageDetail: String? = aggregator.oldestSuccess.map {
+                "Données \($0.formatted(.relative(presentation: .named)))"
+            }
+            ErrorBannerView(
+                error:   isOffline ? "Hors ligne" : "Erreur réseau",
+                detail:  ageDetail,
+                icon:    isOffline ? "wifi.slash" : "exclamationmark.triangle.fill",
+                onRetry: { Task { await aggregator.retryAll() } }
+            )
+        }
     }
 }

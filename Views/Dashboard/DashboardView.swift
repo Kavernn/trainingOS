@@ -192,7 +192,7 @@ struct DashboardView: View {
             // SYSTÈME — bannière offline/network unifiée (série C.4).
             // Remplace partialLoadWarning. Les erreurs server/decoding
             // apparaissent via SectionErrorView au-dessus de chaque carte.
-            TopFailureBanner(aggregator: vm.topFailureAggregator)
+            ErrorBannerView.fromAggregator(vm.topFailureAggregator)
 
             // 3 — Alerte critique
             if let signal = vm.criticalSignal(dash: dash) {

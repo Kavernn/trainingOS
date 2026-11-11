@@ -109,7 +109,7 @@ struct WorkoutSeanceView: View {
     @State private var isEditMode = false
     // Mutations : messages d'erreur inline discrets (nil = pas d'erreur active).
     // Doctrine CLAUDE.md : erreurs visibles mais non bloquantes, à l'endroit
-    // concerné. Pas de TopFailureBanner sur WorkoutActiveView (séance LIVE).
+    // concerné. Pas de ErrorBannerView.fromAggregator sur WorkoutActiveView (séance LIVE).
     @State private var orderSaveError: String? = nil
     @State private var addError: String? = nil
     @State private var editError: String? = nil

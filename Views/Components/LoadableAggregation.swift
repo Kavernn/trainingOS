@@ -77,58 +77,15 @@ struct LoadableAggregator {
 
 // MARK: - Views
 
-/// Bandeau top des pages orchestrées (ex. Stats). Visible UNIQUEMENT quand
-/// l'agrégateur détecte une panne globale (offline/network). Un seul Réessayer
-/// relance tous les groupes affectés.
-struct TopFailureBanner: View {
-    let aggregator: LoadableAggregator
-
-    var body: some View {
-        if aggregator.hasGlobalFailure {
-            HStack(spacing: 8) {
-                Image(systemName: aggregator.globalKind == .offline
-                      ? "wifi.slash"
-                      : "exclamationmark.triangle")
-                    .foregroundColor(.forge)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(aggregator.globalKind == .offline ? "Hors ligne" : "Erreur réseau")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.appTextSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let age = aggregator.oldestSuccess {
-                        Text("Données \(age.formatted(.relative(presentation: .named)))")
-                            .font(.appCaption)
-                            .foregroundColor(.appTextSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                Spacer(minLength: 4)
-
-                Button {
-                    Task { await aggregator.retryAll() }
-                } label: {
-                    Text("Réessayer")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.forge)
-                        .frame(minWidth: 44, minHeight: 44)
-                }
-                .accessibilityHint("Relance les sections affectées")
-            }
-            .padding(12)
-            .background(Color.appCard)
-            .cornerRadius(8)
-        }
-    }
-}
+// TopFailureBanner retiré — fusionné dans ErrorBannerView.fromAggregator(_:)
+// (Views/Components/ErrorBannerView.swift). Un seul composant pour toutes les
+// bannières d'erreur (loadError @State + agrégateur Loadable).
 
 /// Carte / bannière d'erreur à placer AU-DESSUS d'une section de données.
 /// - .server / .decoding / .unknown → bannière avec message + Réessayer local.
 ///   (.unknown surface aussi : une erreur imprévue ne doit jamais être muette.)
 /// - .offline / .network ET pas de value → "Indisponible" compact, sans bouton
-///   (le TopFailureBanner global gère la relance).
+///   (le bandeau global `ErrorBannerView.fromAggregator` gère la relance).
 /// - Autrement : rien (section affiche ses données, stale ou fraîches).
 struct SectionErrorView: View {
     let state: any LoadableStateView

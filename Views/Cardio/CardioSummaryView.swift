@@ -129,7 +129,7 @@ struct CardioSummaryView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    TopFailureBanner(aggregator: topFailureAggregator)
+                    ErrorBannerView.fromAggregator(topFailureAggregator)
                         .padding(.horizontal, 16)
                         .padding(.top, 24)
                     headerSection

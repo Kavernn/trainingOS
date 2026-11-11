@@ -352,7 +352,7 @@ struct StatsView: View {
     var tabAmbientColor: Color { .forge }
 
     // ── Body ─────────────────────────────────────────────────────────
-    /// Agrège les 15 Loadables de StatsView. Consommé par TopFailureBanner
+    /// Agrège les 15 Loadables de StatsView. Consommé par ErrorBannerView.fromAggregator
     /// (bandeau global offline/network) et plus tard SectionErrorView (3f.3/3f.4).
     /// Les 4 groupes = 4 fonctions de retry (loadData couvre 12 states, les 3
     /// autres chargent une section à la demande selon l'onglet).
@@ -397,7 +397,7 @@ struct StatsView: View {
                     .padding(.horizontal, 40)
                 } else {
                     VStack(spacing: 0) {
-                        TopFailureBanner(aggregator: statsAggregator)
+                        ErrorBannerView.fromAggregator(statsAggregator)
                             .padding(.horizontal, .appPagePadding)
                             .padding(.top, 4)
 

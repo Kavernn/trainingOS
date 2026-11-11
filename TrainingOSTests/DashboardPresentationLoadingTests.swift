@@ -406,7 +406,7 @@ extension DashboardPresentationLoadingTests {
         XCTAssertFalse(vm.topFailureAggregator.hasGlobalFailure)
     }
 
-    /// Erreur .offline sur un Loadable tenté → bannière globale TopFailureBanner,
+    /// Erreur .offline sur un Loadable tenté → bannière globale ErrorBannerView.fromAggregator,
     /// et sans valeur la section rend .unavailable (compact, sans bouton Réessayer
     /// propre : la relance globale gère).
     func testOfflineErrorRaisesGlobalBannerAndMarksSectionUnavailable() async throws {
