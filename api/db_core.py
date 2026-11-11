@@ -12,14 +12,13 @@ logger = logging.getLogger("trainingos.db")
 MODE = os.getenv("APP_DATA_MODE", "ONLINE").upper()  # ONLINE | OFFLINE | HYBRID
 _SUPABASE_URL = os.getenv("SUPABASE_URL")
 # Phase 1 audit RLS 2026-11 : le backend est le seul consommateur Supabase
-# (l'app iOS parle uniquement à Vercel). Préfère SERVICE_ROLE au client
-# principal pour bypass RLS → immunité aux policies anon_all encore ouvertes.
-# Fallback anon seulement si service_role absent (dev/preview). Phase 2
-# verrouillera les policies anon ; Phase 3 rotera les 2 clés.
-_SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-_SUPABASE_ANON_KEY    = os.getenv("SUPABASE_ANON_KEY")
-_SUPABASE_KEY         = _SUPABASE_SERVICE_KEY or _SUPABASE_ANON_KEY
-_SUPABASE_KEY_ROLE    = "service_role" if _SUPABASE_SERVICE_KEY else ("anon" if _SUPABASE_ANON_KEY else "none")
+# (l'app iOS parle uniquement à Vercel). Le client principal utilise
+# SERVICE_ROLE (bypass RLS) → immunité aux policies anon avant/après Phase 2.
+# Pas de repli sur anon : après Phase 2, les lectures RLS-refusées renvoient
+# une liste VIDE (pas une erreur) et afficheraient des écrans vides sans
+# signal. Fail fast au boot si la clé manque : logs loud, pas de drift.
+_SUPABASE_KEY      = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+_SUPABASE_KEY_ROLE = "service_role"
 # Détecter Vercel pour éviter tout write local en prod (FS readonly)
 _ON_VERCEL = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
 
@@ -58,19 +57,30 @@ def _make_supabase_client(url: str, key: str):
 # Client Supabase (si accessible)
 _client = None
 if MODE != "OFFLINE":
-    try:
-        from supabase import Client
-        if _SUPABASE_URL and _SUPABASE_KEY:
+    if not _SUPABASE_URL or not _SUPABASE_KEY:
+        # Fail fast en déploiement Vercel : sans la clé service, les lectures
+        # post-Phase 2 renverraient [] (RLS refuse silencieusement) et l'app
+        # afficherait des écrans vides. Mieux vaut planter au boot.
+        # En dev local sans env (tests, repl), on retombe HYBRID (cache SQLite).
+        if _ON_VERCEL and MODE == "ONLINE":
+            raise RuntimeError(
+                "SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY manquant sur Vercel. "
+                "Phase 1 RLS audit : le backend requiert la clé service (plus de "
+                "repli sur anon). Ajoute-la dans l'env Vercel (Production + Preview)."
+            )
+        if MODE == "ONLINE":
+            MODE = "HYBRID"  # dev local sans credentials → cache SQLite seul
+    else:
+        try:
+            from supabase import Client
             _client: Client = _make_supabase_client(_SUPABASE_URL, _SUPABASE_KEY)
             logger.info("Supabase client initialized with role=%s", _SUPABASE_KEY_ROLE)
-        else:
+        except BaseException:
+            # SDK indisponible (incl. pyo3 panics) → fail loud sur Vercel, tolère ailleurs
+            if _ON_VERCEL and MODE == "ONLINE":
+                raise
             if MODE == "ONLINE":
-                # Pas de credentials → bascule HYBRID pour autoriser cache local
                 MODE = "HYBRID"
-    except BaseException:
-        # Supabase SDK indisponible (incl. pyo3 panics) → on retombe HYBRID/OFFLINE
-        if MODE == "ONLINE":
-            MODE = "HYBRID"
 
 
 _service_client = None
