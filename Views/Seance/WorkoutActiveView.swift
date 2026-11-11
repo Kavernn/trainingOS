@@ -67,6 +67,7 @@ struct WorkoutSeanceView: View {
     @State private var ghostData: GhostData? = nil
     @State private var ghostFetchError = false  // cold-start fetchStatsData échec → mention discrète
     @State private var weightFetchFailed: Set<String> = []  // exos dont fetchExerciseWeightData a échoué → "Poids précédent indisponible"
+    @State private var weightFetchRetryFailed: Set<String> = []  // bouton "Réessayer" a échoué → libellé explicite au lieu du générique
     @State private var inventoryLoadError: String? = nil  // /api/programme_data échec → sélecteur affiche erreur + Réessayer
     @State private var swapWeightEstimated: Set<String> = []  // exos remplacés dont le poids affiché vient d'une CONVERSION (pas de l'historique réel)
     // W-C3 — showGhost persists per session so the dismissed banner doesn't reappear
@@ -1029,11 +1030,12 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder
     private func weightFetchFailedRow(for name: String) -> some View {
+        let retried = weightFetchRetryFailed.contains(name)
         HStack(spacing: 6) {
-            Image(systemName: "chart.bar.doc.horizontal")
-                .font(.appMicro).foregroundColor(.gray)
-            Text("Poids précédent indisponible")
-                .font(.appMicro).foregroundColor(.gray)
+            Image(systemName: retried ? "exclamationmark.triangle.fill" : "chart.bar.doc.horizontal")
+                .font(.appMicro).foregroundColor(retried ? .appDanger : .gray)
+            Text(retried ? "Nouvel échec — réessayer ?" : "Poids précédent indisponible")
+                .font(.appMicro).foregroundColor(retried ? .appDanger : .gray)
             Spacer(minLength: 4)
             Button {
                 Task { await retryWeightFetch(for: name) }
@@ -1051,8 +1053,9 @@ struct WorkoutSeanceView: View {
     }
 
     /// Relance fetchExerciseWeightData pour cet exercice seulement. Succès →
-    /// retire de weightFetchFailed + met à jour swapWeightData. Échec → reste
-    /// dans weightFetchFailed (le label + bouton restent visibles).
+    /// retire de weightFetchFailed + met à jour swapWeightData. Échec → marque
+    /// weightFetchRetryFailed pour que le libellé passe en "Nouvel échec" (le
+    /// user voit que son clic a été pris en compte et a raté).
     private func retryWeightFetch(for name: String) async {
         do {
             let fetched = try await APIService.shared.fetchExerciseWeightData(name: name)
@@ -1064,9 +1067,11 @@ struct WorkoutSeanceView: View {
                     swapWeightEstimated.remove(name)
                 }
                 weightFetchFailed.remove(name)
+                weightFetchRetryFailed.remove(name)
             }
         } catch {
             logger.error("retryWeightFetch: \(error.localizedDescription)")
+            await MainActor.run { weightFetchRetryFailed.insert(name) }
         }
     }
 

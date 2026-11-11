@@ -59,8 +59,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "Verif post-save dans SpecialSeanceView. Échec = fresh nil → verified=false → vm.submitError visible.",
         "Views/Seance/SeanceSoirView.swift:observeEveningCompletion":
             "Verif conservative post-save du soir. Échec = saveStatusMessage 'La clôture n'est pas confirmée…' affiché.",
-        "Views/Seance/WorkoutActiveView.swift:retryWeightFetch":
-            "Catch du bouton 'Réessayer' dans weightFetchFailedRow. Déclenché par le user après erreur initiale — la row reste visible, user peut re-cliquer.",
         "Views/Intelligence/RitualEveningView.swift:fetchRitualToday":
             "Refetch opportuniste après succès create engagements. Confirmation déjà affichée à l'user ; prochain .task refetchera.",
         "Views/Stats/StatsView.swift:syncDeloadFlag":
