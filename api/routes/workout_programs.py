@@ -161,31 +161,27 @@ def api_programme():
         # (même id → logs intacts) AVANT le pass programme, dans la même
         # transaction. Plus de row fantôme, plus de soft-delete silencieux.
         #
-        # 3 cas à distinguer (le RPC rename ne couvre que le premier) :
+        # 3 cas valides + 1 erreur :
         #   (a) old présent, new absent  → rename atomique dans la RPC
         #   (b) old présent, new présent → merge non supporté (RPC lèvera
         #       unique_violation lors de l'étape 0 rename)
         #   (c) old absent, new présent  → pas de source à renommer, le
-        #       programme pointera naturellement vers l'id existant de new
-        #       via le lookup par nom (pas de rename, pas d'auto-create)
-        #   (d) old absent, new absent   → self-heal : insère new_ex avec
-        #       defaults avant la RPC (sinon RAISE "exercise non trouvé")
+        #       programme pointera vers l'id existant de new (pas de rename,
+        #       pas d'auto-create côté route non plus)
+        #   (d) old absent, new absent   → ERREUR explicite. Même règle que
+        #       la RPC : exercice inconnu = erreur, pas de valeurs inventées.
         inv = load_inventory() or {}
         rename_param: dict | None = None
         if old_ex != new_ex:
             if old_ex in inv:
                 rename_param = {"old_name": old_ex, "new_name": new_ex}
             elif new_ex not in inv:
-                # Cas (d) : self-heal. Dérive le scheme depuis la nouvelle
-                # version du programme ou new_scheme ; fallback 3x8-12.
-                scheme = new_scheme or "3x8-12"
-                for sdef in modified.values():
-                    hits = find_blocks_containing(sdef.get("blocks", []), new_ex)
-                    if hits:
-                        scheme = (hits[0].get("exercises") or {}).get(new_ex, scheme)
-                        break
-                add_exercise(new_ex, {"type": "machine", "increment": 5, "default_scheme": scheme})
-            # Cas (c) : rien à faire, new_ex existe déjà → rename_param reste None
+                # Cas (d) : catalogue désynchronisé — refuse explicitement.
+                return jsonify({
+                    "error": f"Renommage impossible : ni '{old_ex}' ni '{new_ex}' au catalogue.",
+                    "programme_ok": False,
+                }), 400
+            # Cas (c) : new_ex déjà au catalogue → rename_param reste None
 
         try:
             report = _db.save_full_program(modified, program_id, rename=rename_param)

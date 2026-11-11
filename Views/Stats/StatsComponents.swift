@@ -2768,10 +2768,28 @@ struct StatsMySevenDaysCard: View {
     private var currentCurve: [(dayIdx: Int, volume: Double)] { cumulative(from: mondayStr, upTo: todayIdx) }
     private var previousCurve: [(dayIdx: Int, volume: Double)] { cumulative(from: prevMondayStr, upTo: 6) }
 
+    /// Tonnage du jour (pas cumulatif) sur une fenêtre démarrant à `startStr`.
+    /// Pas de barre future : on borne à `endIdx` (todayIdx pour cette sem).
+    private func daily(from startStr: String, upTo endIdx: Int) -> [(dayIdx: Int, volume: Double)] {
+        guard let start = Self.fmt.date(from: startStr) else { return [] }
+        var out: [(Int, Double)] = []
+        for i in 0...endIdx {
+            let d = Self.fmt.string(from: Self.isoCal.date(byAdding: .day, value: i, to: start) ?? start)
+            let v = trainingLoad.daily.first(where: { $0.date == d })?.tonnage.value ?? 0
+            out.append((i, v))
+        }
+        return out
+    }
+
+    private var currentDaily: [(dayIdx: Int, volume: Double)] { daily(from: mondayStr, upTo: todayIdx) }
+    private var previousDaily: [(dayIdx: Int, volume: Double)] { daily(from: prevMondayStr, upTo: 6) }
+
+    /// Barres jour-par-jour. Une paire par jour (cette sem / sem passée)
+    /// qui n'a plus l'ambiguïté des courbes cumulatives croisées.
     private var chartPoints: [Point] {
         var all: [Point] = []
-        for (i, v) in currentCurve  { all.append(.init(id: "cur-\(i)",  series: "Cette semaine",   dayIdx: i, volume: v)) }
-        for (i, v) in previousCurve { all.append(.init(id: "prev-\(i)", series: "Semaine passée",  dayIdx: i, volume: v)) }
+        for (i, v) in currentDaily  { all.append(.init(id: "cur-\(i)",  series: "Cette semaine",   dayIdx: i, volume: v)) }
+        for (i, v) in previousDaily { all.append(.init(id: "prev-\(i)", series: "Semaine passée",  dayIdx: i, volume: v)) }
         return all
     }
 
@@ -2892,6 +2910,11 @@ struct StatsMySevenDaysCard: View {
                     .clipShape(Capsule())
             }
 
+            HStack(spacing: 14) {
+                legendDot(color: .forge, label: "Cette semaine")
+                legendDot(color: .appTextSecondary.opacity(0.45), label: "Semaine passée")
+                Spacer()
+            }
             chart
                 .frame(height: 120)
 
@@ -2941,30 +2964,27 @@ struct StatsMySevenDaysCard: View {
         }
     }
 
+    private func legendDot(color: Color, label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label).font(.appMicro.weight(.semibold)).foregroundColor(.appTextSecondary)
+        }
+    }
+
     @ViewBuilder private var chart: some View {
         Chart(chartPoints) { pt in
-            if pt.series == "Cette semaine" {
-                LineMark(
-                    x: .value("Jour", TrainingDoctrine.dayNames[pt.dayIdx]),
-                    y: .value("Cumul", pt.volume)
-                )
-                .foregroundStyle(Color.forge)
-                .lineStyle(StrokeStyle(lineWidth: 2.5))
-                .interpolationMethod(.monotone)
-            } else {
-                LineMark(
-                    x: .value("Jour", TrainingDoctrine.dayNames[pt.dayIdx]),
-                    y: .value("Cumul", pt.volume)
-                )
-                .foregroundStyle(Color.appTextSecondary.opacity(0.5))
-                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                .interpolationMethod(.monotone)
-            }
+            BarMark(
+                x: .value("Jour", TrainingDoctrine.dayNames[pt.dayIdx]),
+                y: .value("Volume", pt.volume)
+            )
+            .foregroundStyle(by: .value("Semaine", pt.series))
+            .position(by: .value("Semaine", pt.series))
+            .cornerRadius(2)
         }
         .chartXScale(domain: TrainingDoctrine.dayNames)
         .chartForegroundStyleScale([
             "Cette semaine":  Color.forge,
-            "Semaine passée": Color.appTextSecondary.opacity(0.5),
+            "Semaine passée": Color.appTextSecondary.opacity(0.45),
         ])
         .chartLegend(.hidden)
         .chartYAxis { AxisMarks(position: .leading) { _ in

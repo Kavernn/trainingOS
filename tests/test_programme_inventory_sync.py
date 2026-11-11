@@ -382,42 +382,27 @@ class TestRenameNoFuzzyMatch(BaseRouteTest):
         self.assertIn("Barbell Row Variant", self.store["inventory"])
 
 
-# ── Bug fix: rename when old_ex absent de l'inventaire ────────────────────────
+# ── Rename catalogue désynchronisé (migration 101) ────────────────────────────
 
 class TestRenameNotInInventory(BaseRouteTest):
-    """Bug fix: rename must add new_ex to inventory even when old_ex was absent."""
+    """Migration 101 : refus explicite si ni old_ex ni new_ex au catalogue.
+    Avant : self-heal créait silencieusement new_ex avec des valeurs inventées
+    (type='machine', increment=5). Règle 2026-11 : exercice inconnu = erreur."""
 
     def setUp(self):
         super().setUp()
-        # Retire Bench Press de l'inventaire pour simuler l'état bugué
+        # Retire Bench Press de l'inventaire pour simuler l'état désynchronisé
         del self.store["inventory"]["Bench Press"]
 
-    def test_rename_adds_new_ex_to_inventory(self):
-        """Régression principale : nouveau nom doit apparaître dans l'inventaire."""
-        self.post("/api/programme", {
+    def test_rename_both_absent_returns_400_no_catalog_write(self):
+        r = self.post("/api/programme", {
             "action": "rename", "jour": "Upper A",
             "old_exercise": "Bench Press",
             "new_exercise": "BB Bench Press",
         })
-        self.assertIn("BB Bench Press", self.store["inventory"])
-
-    def test_rename_old_ex_absent_new_ex_uses_programme_scheme(self):
-        """Le scheme de l'entrée créée doit correspondre au scheme du programme."""
-        self.post("/api/programme", {
-            "action": "rename", "jour": "Upper A",
-            "old_exercise": "Bench Press",
-            "new_exercise": "BB Bench Press",
-        })
-        self.assertEqual("4x5-7", self.store["inventory"]["BB Bench Press"]["default_scheme"])
-
-    def test_rename_old_ex_absent_old_name_not_in_inventory(self):
-        """L'ancien nom ne doit pas être réintroduit dans l'inventaire."""
-        self.post("/api/programme", {
-            "action": "rename", "jour": "Upper A",
-            "old_exercise": "Bench Press",
-            "new_exercise": "BB Bench Press",
-        })
-        self.assertNotIn("Bench Press", self.store["inventory"])
+        self.assertEqual(400, r.status_code)
+        self.assertNotIn("BB Bench Press", self.store["inventory"])
+        self.assertNotIn("Bench Press",    self.store["inventory"])
 
     def test_rename_old_absent_new_present_preserves_existing_entry(self):
         """Cas (c) du flux rename : old absent du catalogue mais new déjà là.
