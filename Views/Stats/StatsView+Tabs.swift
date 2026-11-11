@@ -356,6 +356,13 @@ extension StatsView {
     }
 
     // MARK: - Vue Globale Tab
+    //
+    // Doctrine : résumé + chevrons. Chaque carte = 1 verdict + 1 détail + tap
+    // vers l'onglet détaillé. Aucun graphique ou tableau dupliqué ici — les
+    // cartes complètes (TRAJECTOIRE FORCE, CHARGE EXTERNE, MUSCLES, PR TIMELINE)
+    // vivent dans leur onglet. Règles verdict testables et calculées sur
+    // `cockpit.progression.statusCounts`, `cockpit.muscles.*`,
+    // `streakData.currentWeek.daysActive`, et `recentPRs` (fenêtre 30j).
     @ViewBuilder var vueGlobaleTab: some View {
 
         SectionErrorView(state: cockpitState, retry: { await loadCockpitData() })
@@ -376,31 +383,27 @@ extension StatsView {
                 plan: APIService.shared.dashboardPlan
             )
 
-            StatsProgressionHero(
-                progression: cockpit.progression,
-                onOpen: { selectedTab = .strength },
-                onSelectExercise: { selectedExercise = $0 }
-            )
-
-            StatsOverviewActivityCard(trainingLoad: cockpit.trainingLoad) {
-                selectedTab = .consistency
+            StatsForceSummaryRow(counts: cockpit.progression.statusCounts) {
+                selectedTab = .strength
             }
 
-            StatsOverviewExternalLoadCard(trainingLoad: cockpit.trainingLoad) {
+            StatsChargeSummaryRow(muscles: cockpit.muscles) {
                 selectedTab = .load
+            }
+
+            if let streak = streakData {
+                StatsRegularitySummaryRow(
+                    daysActive: streak.currentWeek.daysActive,
+                    target: streak.weeklyTarget
+                ) {
+                    selectedTab = .consistency
+                }
             }
 
             SectionErrorView(state: prTrackerState, retry: { await loadData() })
                 .padding(.horizontal, .appPagePadding)
 
-            StatsPRTimelineView(prs: recentPRs, lastPR: lastPR, compact: true)
-                .padding(.horizontal, .appPagePadding)
-
-            StatsOverviewNotableCard(
-                movers: cockpit.progression.topMovers,
-                attention: cockpit.progression.attention,
-                onSelectExercise: { selectedExercise = $0 }
-            )
+            StatsRecordsSummaryRow(recentPRs: recentPRs)
         }
 
         SectionErrorView(state: deloadState, retry: { await loadData() })

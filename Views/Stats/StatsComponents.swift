@@ -525,6 +525,26 @@ struct StatsMuscleWorkloadSection: View {
     }
 }
 
+/// Classification de zone pour un muscle sur une fenêtre donnée.
+/// Source unique utilisée par `StatsMuscleWorkloadRow` (badges de l'onglet
+/// Charge) ET par `StatsChargeSummaryRow` (comptes Vue d'ensemble). Même
+/// payload → mêmes comptes, par construction.
+enum MuscleWorkloadZone {
+    case belowMev, productive, high, overMrv, noTarget, deloaded
+
+    /// `weeklyEffectiveSets == nil` = fenêtre 100 % décharge → `.deloaded`
+    /// (pas de verdict). `targets == nil` = muscle hors doctrine → `.noTarget`.
+    static func classify(workload: StatsMuscleWorkload,
+                         targets: StatsMuscleTargets?) -> MuscleWorkloadZone {
+        guard let w = workload.weeklyEffectiveSets else { return .deloaded }
+        guard let targets else { return .noTarget }
+        if w < Double(targets.mevWeek) { return .belowMev }
+        if w < Double(targets.mavWeek) { return .productive }
+        if w <= Double(targets.mrvWeek) { return .high }
+        return .overMrv
+    }
+}
+
 struct StatsMuscleWorkloadRow: View {
     let workload: StatsMuscleWorkload
     let previousWorkload: StatsMuscleWorkload?
@@ -537,9 +557,7 @@ struct StatsMuscleWorkloadRow: View {
     let currentDeloadDaysExcluded: Int
     let previousDeloadDaysExcluded: Int
 
-    private enum Zone {
-        case belowMev, productive, high, overMrv, noTarget, deloaded
-    }
+    private typealias Zone = MuscleWorkloadZone
 
     private var hasExposureWithoutValidSets: Bool {
         workload.directSetCount == 0
@@ -554,16 +572,8 @@ struct StatsMuscleWorkloadRow: View {
         currentDeloadDaysExcluded > 0 || previousDeloadDaysExcluded > 0
     }
 
-    /// Zone principale basée sur weekly_effective_sets vs targets.
-    /// weeklyEffectiveSets nil = fenêtre 100 % décharge → zone neutre
-    /// "Décharge" (pas de verdict).
     private var zone: Zone {
-        guard let w = workload.weeklyEffectiveSets else { return .deloaded }
-        guard let targets else { return .noTarget }
-        if w < Double(targets.mevWeek) { return .belowMev }
-        if w < Double(targets.mavWeek) { return .productive }
-        if w <= Double(targets.mrvWeek) { return .high }
-        return .overMrv
+        MuscleWorkloadZone.classify(workload: workload, targets: targets)
     }
 
     private var zoneLabel: String {
@@ -2754,12 +2764,16 @@ struct StatsMySevenDaysCard: View {
             // Jauges fait/prévu
             VStack(spacing: 10) {
                 gauge(label: "Séances",
+                      subtitle: plan != nil && plannedSlotsThisWeek > 0
+                          ? "\(doneSlotsThisWeek) \(doneSlotsThisWeek <= 1 ? "séance faite" : "séances faites") · \(plannedSlotsThisWeek) \(plannedSlotsThisWeek <= 1 ? "prévue" : "prévues") cette semaine"
+                          : nil,
                       done: Double(doneSlotsThisWeek),
                       target: Double(max(plannedSlotsThisWeek, 1)),
                       targetAvailable: plan != nil && plannedSlotsThisWeek > 0,
                       format: { String(Int($0.rounded())) })
                 if let ref = reference {
                     gauge(label: "Volume",
+                          subtitle: "\(UnitSettings.shared.formatTonnage(currentVolumeToday)) sur une semaine habituelle de ~\(UnitSettings.shared.formatTonnage(ref.volume))",
                           done: currentVolumeToday,
                           target: ref.volume,
                           targetAvailable: true,
@@ -2828,7 +2842,7 @@ struct StatsMySevenDaysCard: View {
         }}
     }
 
-    @ViewBuilder private func gauge(label: String, done: Double, target: Double,
+    @ViewBuilder private func gauge(label: String, subtitle: String?, done: Double, target: Double,
                                     targetAvailable: Bool, format: (Double) -> String) -> some View {
         let pct = targetAvailable && target > 0 ? min(done / target, 1.5) : 0
         VStack(alignment: .leading, spacing: 4) {
@@ -2836,14 +2850,18 @@ struct StatsMySevenDaysCard: View {
                 Text(label).font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
                 Spacer()
                 if targetAvailable {
-                    Text("\(format(done)) / \(format(target))")
-                        .font(.appCaption).foregroundColor(.appTextPrimary)
-                    Text("· \(Int((done / target * 100).rounded())) %")
+                    Text("\(Int((done / target * 100).rounded())) %")
                         .font(.appCaption.weight(.semibold))
                         .foregroundColor(done >= target ? .statusGreen : .appTextSecondary)
                 } else {
                     Text(format(done)).font(.appCaption).foregroundColor(.appTextPrimary)
                 }
+            }
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -2856,5 +2874,268 @@ struct StatsMySevenDaysCard: View {
             }
             .frame(height: 6)
         }
+    }
+}
+
+// MARK: - Glossaire ⓘ (popover partagé entre onglets Stats)
+
+enum StatsGlossary {
+    case e1rm, pr, mevMrv, tonnage, volumeEffectif, acwr
+
+    var title: String {
+        switch self {
+        case .e1rm: return "1RM estimé (e1RM)"
+        case .pr: return "PR (Personal Record)"
+        case .mevMrv: return "MEV / MRV"
+        case .tonnage: return "Tonnage"
+        case .volumeEffectif: return "Volume effectif"
+        case .acwr: return "Ratio charge récente / référence"
+        }
+    }
+
+    var body: String {
+        switch self {
+        case .e1rm:
+            return "Charge théorique que tu lèverais pour 1 rep max, calculée depuis tes séries normales (formule d’Epley). Évite de tester un vrai 1RM."
+        case .pr:
+            return "Personal Record : meilleure charge jamais soulevée sur un exercice, exprimée en 1RM estimé équivalent."
+        case .mevMrv:
+            return "MEV = volume minimum pour progresser. MRV = maximum avant surcharge. Entre les deux = zone productive."
+        case .tonnage:
+            return "Poids × reps additionnés sur chaque série. Mesure le travail mécanique total."
+        case .volumeEffectif:
+            return "Séries par semaine pour un muscle = séries directes + 50 % des séries indirectes. Les jours de décharge sont exclus."
+        case .acwr:
+            return "Charge des 7 derniers jours ÷ moyenne des 28 derniers. Au-dessus de 1,3, ta charge monte plus vite que ton habitude ; en dessous de 0,8, elle baisse."
+        }
+    }
+}
+
+struct StatsGlossaryButton: View {
+    let entry: StatsGlossary
+    @State private var presented = false
+
+    var body: some View {
+        Button { presented = true } label: {
+            Image(systemName: "info.circle")
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Comment lire : \(entry.title)")
+        .popover(isPresented: $presented) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(entry.title)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                Text(entry.body)
+                    .font(.appCaption)
+                    .foregroundColor(.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+            .frame(maxWidth: 280)
+            .presentationCompactAdaptation(.popover)
+        }
+    }
+}
+
+// MARK: - Overview Summary Rows (Vue d’ensemble = résumés + chevrons)
+
+/// Carte-résumé compacte : icône + verdict (gros) + détail (petit) + ⓘ + chevron.
+/// Tap → action (bascule d’onglet). Les règles de calcul des verdicts sont
+/// internes aux 4 wrappers ci-dessous, pas dans ce composant.
+struct StatsOverviewSummaryRow: View {
+    let icon: String
+    let title: String
+    let detail: String?
+    let glossary: StatsGlossary?
+    let action: (() -> Void)?
+
+    var body: some View {
+        let content = HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.appLabel)
+                .foregroundColor(.appTextSecondary)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.appTextPrimary)
+                    .multilineTextAlignment(.leading)
+                if let detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.appCaption)
+                        .foregroundColor(.appTextSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            if let glossary {
+                StatsGlossaryButton(entry: glossary)
+            }
+            if action != nil {
+                Image(systemName: "chevron.right")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.appTextMuted)
+                    .accessibilityHidden(true)
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 58)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+
+        Group {
+            if let action {
+                Button(action: action) { content }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(.isButton)
+            } else {
+                content
+            }
+        }
+        .background(Color.appCard)
+        .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
+        .padding(.horizontal, .appPagePadding)
+    }
+}
+
+// MARK: - Force résumé
+
+struct StatsForceSummaryRow: View {
+    let counts: StatsProgressionStatusCounts
+    let action: () -> Void
+
+    private var verdict: String {
+        let up = counts.improving, down = counts.declining
+        if up > down + 1 { return "Force en progression" }
+        if down > up + 1 { return "Force en recul" }
+        return "Force stable"
+    }
+
+    private var detail: String {
+        "\(counts.improving) progressent · \(counts.declining) reculent · \(counts.stable) stables"
+    }
+
+    var body: some View {
+        StatsOverviewSummaryRow(
+            icon: "dumbbell.fill",
+            title: verdict,
+            detail: detail,
+            glossary: nil,
+            action: action
+        )
+    }
+}
+
+// MARK: - Charge résumé
+
+struct StatsChargeSummaryRow: View {
+    let muscles: StatsCockpitMuscles
+    let action: () -> Void
+
+    private struct Classified { var inZone = 0; var below = 0; var above = 0 }
+
+    /// Compte via `MuscleWorkloadZone.classify` — même source que les badges
+    /// "Productif" / "Sous MEV" / "Au-delà MRV" de StatsMuscleWorkloadRow.
+    /// `.high`, `.noTarget`, `.deloaded` ne contribuent à aucun compteur ici
+    /// (visibles seulement dans l'onglet détail).
+    private var classified: Classified {
+        var c = Classified()
+        for w in muscles.workloads {
+            let targets = muscles.targetsByMuscle[w.muscle] ?? nil
+            switch MuscleWorkloadZone.classify(workload: w, targets: targets) {
+            case .productive: c.inZone += 1
+            case .belowMev:   c.below += 1
+            case .overMrv:    c.above += 1
+            case .high, .noTarget, .deloaded: break
+            }
+        }
+        return c
+    }
+
+    private var verdict: String {
+        let n = classified.inZone
+        return n <= 1 ? "\(n) muscle en zone productive" : "\(n) muscles en zone productive"
+    }
+
+    private var detail: String? {
+        let c = classified
+        if c.below > 0 {
+            return c.below <= 1 ? "1 sous le minimum" : "\(c.below) sous le minimum"
+        }
+        if c.above > 0 {
+            return c.above <= 1 ? "1 au-delà du max" : "\(c.above) au-delà du max"
+        }
+        return nil
+    }
+
+    var body: some View {
+        StatsOverviewSummaryRow(
+            icon: "figure.strengthtraining.traditional",
+            title: verdict,
+            detail: detail,
+            glossary: .mevMrv,
+            action: action
+        )
+    }
+}
+
+// MARK: - Régularité résumé
+
+struct StatsRegularitySummaryRow: View {
+    let daysActive: Int
+    let target: Int
+    let action: () -> Void
+
+    private var verdict: String {
+        let doneLabel = daysActive <= 1 ? "jour actif" : "jours actifs"
+        let targetLabel = target <= 1 ? "visé" : "visés"
+        return "\(daysActive) \(doneLabel) sur \(target) \(targetLabel) cette semaine"
+    }
+
+    var body: some View {
+        StatsOverviewSummaryRow(
+            icon: "calendar.badge.clock",
+            title: verdict,
+            detail: nil,
+            glossary: nil,
+            action: action
+        )
+    }
+}
+
+// MARK: - Records résumé (fenêtre glissante 30 jours)
+
+struct StatsRecordsSummaryRow: View {
+    let recentPRs: [RecentPR]
+
+    private var count: Int {
+        let cal = Calendar.mtl
+        guard let cutoff = cal.date(byAdding: .day, value: -30, to: Date()) else { return 0 }
+        let cutoffStr = DateFormatter.isoDate.string(from: cutoff)
+        return recentPRs.filter { $0.date >= cutoffStr }.count
+    }
+
+    private var verdict: String {
+        let n = count
+        if n == 0 { return "Aucun record ces 30 derniers jours" }
+        if n == 1 { return "1 record ces 30 derniers jours" }
+        return "\(n) records ces 30 derniers jours"
+    }
+
+    var body: some View {
+        StatsOverviewSummaryRow(
+            icon: "trophy.fill",
+            title: verdict,
+            detail: nil,
+            glossary: .pr,
+            action: nil
+        )
     }
 }

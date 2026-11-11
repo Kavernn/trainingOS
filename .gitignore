@@ -79,3 +79,4 @@ scripts/backups/
 agentdb.rvf
 agentdb.rvf.lock
 ruvector.db
+capturestats
