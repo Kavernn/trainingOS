@@ -1,19 +1,16 @@
 """
-Tests : save_full_program (db_programs.py) ne perd AUCUN exercice même si
-une écriture intermédiaire échoue.
+Tests : save_full_program (db_programs.py) — contrat RPC atomique (migration 101).
 
-Ancien pattern dangereux : DELETE all exercises for block → INSERT 1-par-1.
-Un échec au milieu laissait le bloc avec 0..N exos (les inserts qui avaient
-eu le temps de passer) alors que N exos existaient avant → perte.
-
-Nouveau pattern :
-  1) UPSERT bulk (on_conflict=(block_id, exercise_id)) → si échec, rien
-     n'est supprimé.
-  2) DELETE sélectif des anciens (not.in nouveaux ids) → si échec, pire
-     cas = lignes orphelines, jamais une perte.
-
-Routes couvertes : fonction db_programs.save_full_program (appelée en aval
-par /api/programme actions add/remove/scheme/rename/replace/reorder/...).
+Avant : séquence N appels PostgREST, pattern upsert-puis-delete pour éviter la
+perte en cas d'échec intermédiaire. Après 2026-11 : une seule RPC plpgsql
+`save_full_program_atomic` — l'atomicité est garantie par la transaction
+Postgres (toute exception → rollback intégral). Les tests Python se limitent
+à valider le wiring :
+  - payload correctement sérialisé (dict → arrays, exercises dict → array
+    d'objets {name, scheme}) pour préserver l'ordre.
+  - le `rename` param est passé tel quel.
+  - échec RPC → RuntimeError (pas de False silencieux, pas de repli séquentiel).
+  - réponse jsonb décapsulée vers dict Python.
 """
 import os
 import sys
@@ -23,160 +20,107 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 
-def _make_mock_client():
-    """Construit un mock Supabase client qui enregistre la séquence des calls
-    (upsert / delete / insert) pour ce test. Chaque .table(...).*.execute()
-    retourne un objet avec .data = [] par défaut (success-ish)."""
-    client = MagicMock()
-    # execute() default returns data=[] (ex_id not found → auto-create path).
-    client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
-    return client
-
-
-class TestSaveFullProgramSafety(unittest.TestCase):
-    """Vérifie l'ordre upsert→delete et le fail-safe (aucun exo perdu)."""
+class TestSaveFullProgramAtomic(unittest.TestCase):
+    """Wiring Python → RPC save_full_program_atomic."""
 
     def setUp(self):
-        # Reload db_programs with a fresh mocked db_core
         import db_core
-        self._original_client = db_core._client
-        self._original_mode = db_core.MODE
+        self._orig_mode = db_core.MODE
+        self._orig_client = db_core._client
         db_core.MODE = "ONLINE"
-        db_core._client = _make_mock_client()
+        db_core._client = MagicMock()
+        self.service = MagicMock()
+        self.service.rpc.return_value.execute.return_value.data = {
+            "skipped_empty_blocks": [],
+            "renamed_exercise":     None,
+        }
+        self._svc_patch = patch.object(db_core, "get_service_supabase",
+                                        return_value=self.service)
+        self._svc_patch.start()
 
     def tearDown(self):
+        self._svc_patch.stop()
         import db_core
-        db_core._client = self._original_client
-        db_core.MODE = self._original_mode
+        db_core._client = self._orig_client
+        db_core.MODE = self._orig_mode
 
-    def _mock_exercise_ids(self, client, name_to_id):
-        """Configure le mock : exercises.select.eq(name=NAME).execute() → data=[{'id': ID}]."""
-        def select_side_effect(*args, **kwargs):
-            selector = MagicMock()
-            def eq_side_effect(col, value):
-                result_builder = MagicMock()
-                if col == "name" and value in name_to_id:
-                    result_builder.execute.return_value.data = [{"id": name_to_id[value]}]
-                else:
-                    result_builder.execute.return_value.data = []
-                return result_builder
-            selector.eq.side_effect = eq_side_effect
-            return selector
-        # Only override the "exercises" table .select path; keep .table() for others.
-        original_table = client.table
-        def table_side_effect(name):
-            t = original_table(name)
-            if name == "exercises":
-                t.select.side_effect = select_side_effect
-            return t
-        client.table.side_effect = table_side_effect
-
-    def _mock_sessions_upsert(self, client, session_id=42):
-        """Mock /program_sessions/upsert → return + select single returns session_id."""
-        def table_side_effect(name):
-            t = MagicMock()
-            if name == "program_sessions":
-                # upsert().execute().data = [...]
-                t.upsert.return_value.execute.return_value.data = [{"id": session_id}]
-                # select("id").eq(name=...).eq(program_id=...).single().execute().data
-                sel = MagicMock()
-                sel.eq.return_value.eq.return_value.single.return_value.execute.return_value.data = {"id": session_id}
-                sel.eq.return_value.single.return_value.execute.return_value.data = {"id": session_id}
-                t.select.return_value = sel
-            elif name == "program_blocks":
-                # existing_block.data = [] → insert path
-                sel = MagicMock()
-                sel.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-                t.select.return_value = sel
-                t.insert.return_value.execute.return_value.data = [{"id": 100}]
-            return t
-        client.table.side_effect = table_side_effect
-        return client
-
-    def test_upsert_called_before_delete(self):
-        """Le bulk upsert doit précéder le delete sélectif pour que rien
-        ne soit supprimé tant que les nouvelles lignes n'existent pas."""
+    def test_sessions_serialized_as_array_preserving_order(self):
+        """Python dict → JSON array pour préserver l'ordre d'insertion."""
         import db_programs
-        client = _make_mock_client()
-        self._mock_sessions_upsert(client, session_id=42)
-        # Track sequence on program_block_exercises specifically.
-        pbe = MagicMock()
-        call_log = []
-        pbe.upsert.side_effect = lambda *a, **k: (call_log.append(("upsert", a, k)), MagicMock(execute=MagicMock(return_value=MagicMock(data=[]))))[1]
-        pbe.delete.side_effect = lambda *a, **k: (call_log.append(("delete", a, k)), MagicMock(eq=MagicMock(return_value=MagicMock(filter=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=MagicMock(data=[])))))))) [1]
+        db_programs.save_full_program(
+            {"B_second": {"blocks": []}, "A_first": {"blocks": []}},
+            program_id="pid-1",
+        )
+        args = self.service.rpc.call_args
+        self.assertEqual(args.args[0], "save_full_program_atomic")
+        sessions = args.args[1]["p_sessions"]
+        self.assertEqual([s["name"] for s in sessions], ["B_second", "A_first"])
 
-        original_side = client.table.side_effect
-        def hooked(name):
-            if name == "program_block_exercises":
-                return pbe
-            if name == "exercises":
-                t = MagicMock()
-                # Return existing exercise ids to avoid auto-create branch
-                sel = MagicMock()
-                sel.eq.return_value.execute.return_value.data = [{"id": 999}]
-                t.select.return_value = sel
-                return t
-            return original_side(name)
-        client.table.side_effect = hooked
-
-        import db_core
-        db_core._client = client
-
-        program = {"Upper A": {"blocks": [{
-            "type": "strength", "order": 0,
-            "exercises": {"Bench Press": "4x5"},
-        }]}}
-        ok = db_programs.save_full_program(program, program_id="pid-1")
-        self.assertTrue(ok)
-
-        # Séquence attendue : upsert AVANT delete
-        ops = [c[0] for c in call_log]
-        self.assertIn("upsert", ops, "bulk upsert attendu sur program_block_exercises")
-        self.assertIn("delete", ops, "delete sélectif attendu")
-        self.assertLess(ops.index("upsert"), ops.index("delete"),
-                        "upsert doit précéder delete (safety-ordered)")
-
-    def test_upsert_failure_leaves_old_rows_intact(self):
-        """Si l'upsert bulk échoue, le delete en aval NE DOIT PAS se produire
-        → aucune ligne ancienne n'est supprimée."""
+    def test_exercises_serialized_as_array_of_objects(self):
+        """exercises dict {name: scheme} → array [{name, scheme}] pour l'ordre."""
         import db_programs
-        client = _make_mock_client()
-        self._mock_sessions_upsert(client, session_id=42)
-        pbe = MagicMock()
-        delete_called = {"n": 0}
-        # upsert raise
-        pbe.upsert.return_value.execute.side_effect = RuntimeError("supabase 503")
-        def delete_tracker(*a, **k):
-            delete_called["n"] += 1
-            return MagicMock(eq=MagicMock(return_value=MagicMock(filter=MagicMock(return_value=MagicMock(execute=MagicMock())))))
-        pbe.delete.side_effect = delete_tracker
+        db_programs.save_full_program(
+            {"Upper": {"blocks": [{
+                "type": "strength", "order": 0,
+                "exercises": {"Bench": "4x5", "Squat": "3x8"},
+            }]}},
+            program_id="pid-1",
+        )
+        exos = self.service.rpc.call_args.args[1]["p_sessions"][0]["blocks"][0]["exercises"]
+        self.assertEqual(exos, [{"name": "Bench", "scheme": "4x5"},
+                                {"name": "Squat", "scheme": "3x8"}])
 
-        original_side = client.table.side_effect
-        def hooked(name):
-            if name == "program_block_exercises":
-                return pbe
-            if name == "exercises":
-                t = MagicMock()
-                sel = MagicMock()
-                sel.eq.return_value.execute.return_value.data = [{"id": 999}]
-                t.select.return_value = sel
-                return t
-            return original_side(name)
-        client.table.side_effect = hooked
+    def test_rename_param_passed_through(self):
+        import db_programs
+        db_programs.save_full_program(
+            {"Upper": {"blocks": []}},
+            program_id="pid-1",
+            rename={"old_name": "Old", "new_name": "New"},
+        )
+        self.assertEqual(
+            self.service.rpc.call_args.args[1]["p_rename"],
+            {"old_name": "Old", "new_name": "New"},
+        )
 
-        import db_core
-        db_core._client = client
+    def test_rpc_exception_raises_runtimeerror(self):
+        """Un échec RPC lève — plus de False silencieux. Le caller traduit en 500."""
+        import db_programs
+        self.service.rpc.return_value.execute.side_effect = RuntimeError("supabase 503")
+        with self.assertRaises(RuntimeError):
+            db_programs.save_full_program(
+                {"Upper": {"blocks": []}},
+                program_id="pid-1",
+            )
 
-        program = {"Upper A": {"blocks": [{
-            "type": "strength", "order": 0,
-            "exercises": {"Bench Press": "4x5"},
-        }]}}
-        ok = db_programs.save_full_program(program, program_id="pid-1")
-        # Retry path kicks in on exception → may still return False after retry failure.
-        # Key assertion : le delete n'a jamais été appelé pour ce block → aucune perte.
-        self.assertFalse(ok, "upsert failure doit renvoyer False")
-        self.assertEqual(0, delete_called["n"],
-                         "delete NE DOIT PAS être appelé quand l'upsert échoue — sinon on perd les anciens exos")
+    def test_report_returned_as_dict(self):
+        """Réponse jsonb → dict Python avec skipped_empty_blocks et renamed_exercise."""
+        import db_programs
+        self.service.rpc.return_value.execute.return_value.data = {
+            "skipped_empty_blocks": [{"session_name": "X", "block_type": "strength",
+                                      "block_order": 0, "existing_count": 3}],
+            "renamed_exercise":     {"old_name": "A", "new_name": "B",
+                                     "exercise_id": "uuid-1"},
+        }
+        report = db_programs.save_full_program(
+            {"Upper": {"blocks": []}},
+            program_id="pid-1",
+        )
+        self.assertEqual(len(report["skipped_empty_blocks"]), 1)
+        self.assertEqual(report["renamed_exercise"]["new_name"], "B")
+
+    def test_hiit_block_has_no_exercises_array(self):
+        """Blocks hiit/cardio ne portent pas d'exercises relationnels."""
+        import db_programs
+        db_programs.save_full_program(
+            {"HIIT": {"blocks": [{
+                "type": "hiit", "order": 0,
+                "hiit_config": {"rounds": 8, "sprint": 30, "rest": 30},
+            }]}},
+            program_id="pid-1",
+        )
+        block = self.service.rpc.call_args.args[1]["p_sessions"][0]["blocks"][0]
+        self.assertNotIn("exercises", block)
+        self.assertEqual(block["hiit_config"]["rounds"], 8)
 
 
 if __name__ == "__main__":

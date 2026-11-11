@@ -110,7 +110,10 @@ class ServiceClientContracts(unittest.TestCase):
         for path in (ROOT / 'api').rglob('*.py'):
             if path.name != 'db_core.py' and 'get_service_supabase(' in path.read_text():
                 consumers.append(str(path.relative_to(ROOT)))
-        self.assertEqual(consumers, ['api/db_exercises.py'])
+        # Service-role client est réservé aux RPC atomiques privilégiées.
+        # db_exercises.apply_progression_atomic + db_programs.save_full_program
+        # (migration 101 : RPC atomique save_full_program_atomic).
+        self.assertEqual(sorted(consumers), sorted(['api/db_exercises.py', 'api/db_programs.py']))
 
 
 if __name__ == '__main__':

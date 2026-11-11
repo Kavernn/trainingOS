@@ -157,50 +157,58 @@ def api_programme():
                 block.get("exercises", {})[new_ex] = new_scheme
             modified[jour_for_scheme] = target_sdef
 
-        # Programme : UN SEUL save_full_program, erreur explicite si échec.
-        if modified:
-            ok = _db.save_full_program(modified, program_id)
-            if not ok:
-                return jsonify({
-                    "error": "Échec de la sauvegarde du programme",
-                    "programme_ok": False,
-                }), 500
+        # Rename atomique (migration 101) : la RPC renomme la row exercises
+        # (même id → logs intacts) AVANT le pass programme, dans la même
+        # transaction. Plus de row fantôme, plus de soft-delete silencieux.
+        #
+        # 3 cas à distinguer (le RPC rename ne couvre que le premier) :
+        #   (a) old présent, new absent  → rename atomique dans la RPC
+        #   (b) old présent, new présent → merge non supporté (RPC lèvera
+        #       unique_violation lors de l'étape 0 rename)
+        #   (c) old absent, new présent  → pas de source à renommer, le
+        #       programme pointera naturellement vers l'id existant de new
+        #       via le lookup par nom (pas de rename, pas d'auto-create)
+        #   (d) old absent, new absent   → self-heal : insère new_ex avec
+        #       defaults avant la RPC (sinon RAISE "exercise non trouvé")
+        inv = load_inventory() or {}
+        rename_param: dict | None = None
+        if old_ex != new_ex:
+            if old_ex in inv:
+                rename_param = {"old_name": old_ex, "new_name": new_ex}
+            elif new_ex not in inv:
+                # Cas (d) : self-heal. Dérive le scheme depuis la nouvelle
+                # version du programme ou new_scheme ; fallback 3x8-12.
+                scheme = new_scheme or "3x8-12"
+                for sdef in modified.values():
+                    hits = find_blocks_containing(sdef.get("blocks", []), new_ex)
+                    if hits:
+                        scheme = (hits[0].get("exercises") or {}).get(new_ex, scheme)
+                        break
+                add_exercise(new_ex, {"type": "machine", "increment": 5, "default_scheme": scheme})
+            # Cas (c) : rien à faire, new_ex existe déjà → rename_param reste None
 
-        # Inventaire : AFTER programme save. Si échec, programme OK mais
-        # inventaire désynchronisé → 500 explicite pour que le caller sache.
         try:
-            inv = load_inventory() or {}
-            if new_ex in inv:
-                if old_ex in inv:
-                    from db import delete_exercise_by_name
-                    delete_exercise_by_name(old_ex)
-            else:
-                info = inv.get(old_ex)
-                if info is None:
-                    scheme = new_scheme or "3x8-12"
-                    for sdef in program.values():
-                        hits = find_blocks_containing(sdef.get("blocks", []), new_ex)
-                        if hits:
-                            scheme = (hits[0].get("exercises") or {}).get(new_ex, scheme)
-                            break
-                    info = {"type": "machine", "increment": 5, "default_scheme": scheme}
-                rename_inventory_exercise(old_ex, new_ex, info)
-            # Sync default_scheme pour new_ex quand new_scheme fourni.
-            if new_scheme is not None:
+            report = _db.save_full_program(modified, program_id, rename=rename_param)
+        except Exception as e:
+            logger.error("rename: save_full_program_atomic a échoué: %s", e)
+            return jsonify({
+                "error": f"Échec de la sauvegarde du renommage: {e}",
+                "programme_ok": False,
+            }), 500
+
+        # Sync default_scheme catalogue quand new_scheme fourni (hint UX
+        # séparé des programmes ; pas critique à l'atomicité).
+        if new_scheme is not None:
+            try:
                 inv2 = load_inventory() or {}
                 if new_ex in inv2 and isinstance(inv2[new_ex], dict):
                     entry = dict(inv2[new_ex])
                     entry["default_scheme"] = new_scheme
                     add_exercise(new_ex, entry)
-        except Exception as e:
-            logger.error("rename: inventory update failed after programme save: %s", e)
-            return jsonify({
-                "error": "Programme sauvegardé mais inventaire désynchronisé",
-                "programme_ok": True,
-                "inventaire_ok": False,
-            }), 500
+            except Exception as e:
+                logger.warning("rename: default_scheme catalogue non sync (non critique): %s", e)
 
-        return jsonify({"success": True})
+        return jsonify({"success": True, "report": report})
 
     if action == "reorder_sessions":
         order = data.get("order", [])

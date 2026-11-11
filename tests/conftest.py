@@ -246,11 +246,30 @@ def make_store():
     def get_full_program(program_id=None):
         return copy.deepcopy(store.get("program", {}))
 
-    def save_full_program(program, program_id=None, allow_empty_blocks=False):
+    def save_full_program(program, program_id=None, allow_empty_blocks=False, rename=None):
+        """Fake miroir du contrat RPC migration 101 : applique rename catalogue
+        AVANT le pass programme (même id → logs intacts dans le store), retourne
+        dict compte rendu, raise sur merge non supporté. Pas de garde anti-wipe
+        dans le fake — les tests qui le vérifient utilisent db_programs direct."""
+        inv = store.get("inventory", {})
+        renamed_report = None
+        if rename:
+            old_name = rename.get("old_name")
+            new_name = rename.get("new_name")
+            if old_name and new_name and old_name != new_name:
+                if new_name in inv and new_name != old_name:
+                    raise RuntimeError(
+                        f"save_full_program_atomic: rename cible '{new_name}' déjà au catalogue (merge non supporté)"
+                    )
+                if old_name in inv:
+                    inv[new_name] = inv.pop(old_name)
+                    store["inventory"] = inv
+                renamed_report = {"old_name": old_name, "new_name": new_name,
+                                  "exercise_id": new_name}  # id = name dans le fake
         current = store.get("program", {})
         current.update(copy.deepcopy(program))
         store["program"] = current
-        return True
+        return {"skipped_empty_blocks": [], "renamed_exercise": renamed_report}
 
     def get_workout_sessions(limit=100, offset=0, since=None):
         # Signature miroir db_sessions.py:9 — offset (pagination), since (filtre

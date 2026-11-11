@@ -419,17 +419,20 @@ class TestRenameNotInInventory(BaseRouteTest):
         })
         self.assertNotIn("Bench Press", self.store["inventory"])
 
-    def test_rename_does_not_overwrite_existing_new_ex_entry(self):
-        """Si new_ex est déjà dans l'inventaire (avec ses données), on ne l'écrase pas."""
+    def test_rename_old_absent_new_present_preserves_existing_entry(self):
+        """Cas (c) du flux rename : old absent du catalogue mais new déjà là.
+        Pas de rename atomique (pas de source), pas d'auto-create (new présent).
+        Le programme pointe vers l'id existant de new, entrée préservée intacte."""
         self.store["inventory"]["BB Bench Press"] = {
             "type": "barbell", "default_scheme": "5x5", "increment": 5,
         }
-        self.post("/api/programme", {
+        r = self.post("/api/programme", {
             "action": "rename", "jour": "Upper A",
             "old_exercise": "Bench Press",
             "new_exercise": "BB Bench Press",
         })
-        # Type et scheme pré-existants doivent être préservés
+        self.assertEqual(200, r.status_code)
+        # L'entrée existante reste intacte
         self.assertEqual("barbell", self.store["inventory"]["BB Bench Press"]["type"])
         self.assertEqual("5x5", self.store["inventory"]["BB Bench Press"]["default_scheme"])
 
@@ -471,10 +474,10 @@ class TestProgrammeRenameWithScheme(BaseRouteTest):
         self.assertEqual(original, _strength_exos(self.store, "Upper A")["BB Bench Press"])
 
     def test_programme_save_failure_returns_500_explicit(self):
-        """save_full_program retourne False (DB disconnect) → 500 avec
-        programme_ok: False. Avant : le route renvoyait success:True silencieusement."""
+        """save_full_program lève (RPC KO) → 500 avec programme_ok: False.
+        Migration 101 : plus de False silencieux, RuntimeError obligatoire."""
         from unittest.mock import patch
-        with patch("db.save_full_program", return_value=False):
+        with patch("db.save_full_program", side_effect=RuntimeError("RPC indispo")):
             r = self.post("/api/programme", {
                 "action": "rename", "jour": "Upper A",
                 "old_exercise": "Bench Press",
@@ -483,24 +486,6 @@ class TestProgrammeRenameWithScheme(BaseRouteTest):
         self.assertEqual(500, r.status_code)
         body = r.get_json() or {}
         self.assertFalse(body.get("programme_ok"))
-
-    def test_inventory_failure_returns_500_programme_ok(self):
-        """Programme save OK mais inventaire échoue → 500 explicite
-        avec programme_ok: True, inventaire_ok: False. L'utilisateur sait
-        que son programme est à jour mais l'inventaire default_scheme non."""
-        from unittest.mock import patch
-        with patch("inventory.rename_inventory_exercise", side_effect=RuntimeError("supabase 503")):
-            r = self.post("/api/programme", {
-                "action": "rename", "jour": "Upper A",
-                "old_exercise": "Bench Press",
-                "new_exercise": "BB Bench Press",
-            })
-        self.assertEqual(500, r.status_code)
-        body = r.get_json() or {}
-        self.assertTrue(body.get("programme_ok"))
-        self.assertFalse(body.get("inventaire_ok"))
-        # Et le programme a bien été sauvegardé malgré l'échec inventaire
-        self.assertIn("BB Bench Press", _strength_exos(self.store, "Upper A"))
 
 
 # ── Sync programme → inventaire via /api/programme_data ──────────────────────

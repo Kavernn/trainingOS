@@ -474,181 +474,83 @@ def reorder_program_sessions(session_names: list, program_id: str) -> bool:
 
 
 def save_full_program(program: dict, program_id: str | None = None,
-                      allow_empty_blocks: bool = False) -> bool:
-    """Persist {session_name: {"blocks": [...]}} to relational tables.
+                      allow_empty_blocks: bool = False,
+                      rename: dict | None = None) -> dict:
+    """Persist {session_name: {"blocks": [...]}} via la RPC atomique
+    `save_full_program_atomic` (migration 101). Tout réussit ou rien n'est
+    écrit (transaction unique côté Postgres).
 
-    If program_id is None, uses the first/oldest program.
-    For each session: upsert program_sessions, upsert program_blocks,
-    delete + reinsert program_block_exercises.
-    Returns True on full success, False on any error.
+    Signature :
+        program             dict session_name → {"blocks": [...]}
+        program_id          UUID ou None (None = premier programme)
+        allow_empty_blocks  bypass du garde anti-wipe sur block existant
+        rename              None ou {"old_name","new_name"} : rename atomique
+                            de la row exercises AVANT le pass programme
+                            (même id → logs intacts). Utilisé par le flux
+                            rename de /api/programme — avant, l'auto-create
+                            silencieux créait une row fantôme et orphelinait
+                            les exercise_logs.
 
-    allow_empty_blocks: si True, autorise l'écriture d'un block vide (0 exercices)
-    sur un block existant qui en avait N. Réservé aux mutations d'intention
-    explicite (ex : action=remove du dernier exo d'un block). Default False
-    conserve le filet anti-wipe accidentel (cf. commit 4420151, lessons.md
-    §"DELETE ALL + reinsert = opération dangereuse sans guard").
+    Retour : dict compte rendu
+        {"skipped_empty_blocks":  [{"session_name","block_type","block_order",
+                                    "existing_count"}, ...],
+         "renamed_exercise":      None ou {"old_name","new_name","exercise_id"}}
+
+    Raise RuntimeError si la RPC échoue (plus de False silencieux, plus de
+    repli séquentiel non atomique). Caller doit traduire en 500 HTTP explicite.
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
-        return False
+        raise RuntimeError("save_full_program: Supabase indisponible")
     if program_id is None:
         program_id = get_default_program_id()
 
-    def _do() -> bool:
-        for order_idx, (session_name, session_def) in enumerate(program.items()):
-            # Upsert session (conflict on program_id + name after migration)
-            upsert_data: dict = {"name": session_name, "order_index": order_idx}
-            if program_id:
-                upsert_data["program_id"] = program_id
-            sess_resp = (
-                db_core._client.table("program_sessions")
-                .upsert(upsert_data, on_conflict="program_id,name")
-                .execute()
-            )
-            # Fetch session id
-            q = db_core._client.table("program_sessions").select("id").eq("name", session_name)
-            if program_id:
-                q = q.eq("program_id", program_id)
-            sess_row = q.single().execute()
-            if not sess_row.data:
-                db_core.logger.error("save_full_program: session %s not found after upsert", session_name)
-                continue
-            session_id = sess_row.data["id"]
+    # Sérialise sessions / exercises en arrays (préserve l'ordre — jsonb ne
+    # garantit pas l'ordre des clés d'objet).
+    sessions_payload = []
+    for session_name, session_def in program.items():
+        blocks_payload = []
+        for block in session_def.get("blocks", []):
+            btype    = block.get("type", "strength")
+            b_obj: dict = {
+                "type":        btype,
+                "order":       block.get("order", 0),
+                "hiit_config": block.get("hiit_config", {}),
+            }
+            if btype in REPS_BLOCKS:
+                exos = block.get("exercises") or {}
+                b_obj["exercises"] = [
+                    {"name": name, "scheme": scheme}
+                    for name, scheme in exos.items()
+                ]
+            blocks_payload.append(b_obj)
+        sessions_payload.append({"name": session_name, "blocks": blocks_payload})
 
-            blocks = session_def.get("blocks", [])
-            for block in sorted(blocks, key=lambda b: b.get("order", 0)):
-                btype = block.get("type", "strength")
-                border = block.get("order", 0)
-                hiit_cfg = block.get("hiit_config", {})
-
-                # Upsert block (match by session_id + type + order_index)
-                existing_block = (
-                    db_core._client.table("program_blocks")
-                    .select("id")
-                    .eq("session_id", session_id)
-                    .eq("type", btype)
-                    .eq("order_index", border)
-                    .execute()
-                )
-                if existing_block.data:
-                    block_id = existing_block.data[0]["id"]
-                    db_core._client.table("program_blocks").update({"hiit_config": hiit_cfg}).eq("id", block_id).execute()
-                else:
-                    block_resp = (
-                        db_core._client.table("program_blocks")
-                        .insert({"session_id": session_id, "type": btype, "order_index": border, "hiit_config": hiit_cfg})
-                        .execute()
-                    )
-                    block_id = block_resp.data[0]["id"] if block_resp.data else None
-
-                if not block_id or btype not in REPS_BLOCKS:
-                    continue
-
-                exercises = block.get("exercises", {})
-
-                # Safety guard: never wipe a block that has exercises when saving 0
-                # (would silently delete all exercises from program_block_exercises).
-                # Bypass via allow_empty_blocks=True quand l'appelant porte
-                # l'intention explicite (ex: action=remove du dernier exo).
-                if not exercises:
-                    existing_count_resp = (
-                        db_core._client.table("program_block_exercises")
-                        .select("id", count="exact")
-                        .eq("block_id", block_id)
-                        .execute()
-                    )
-                    existing_count = existing_count_resp.count  # None on query error
-                    if existing_count is None or existing_count > 0:
-                        if allow_empty_blocks:
-                            db_core.logger.info(
-                                "save_full_program: intentional empty block %s (allow_empty_blocks=True), was %d",
-                                block_id, existing_count or 0,
-                            )
-                        else:
-                            db_core.logger.warning(
-                                "save_full_program: refusing to save 0 exercises over %d existing for block %s — skipping",
-                                existing_count, block_id,
-                            )
-                            continue
-
-                # Safety-ordered rewrite : UPSERT bulk d'abord, puis DELETE
-                # sélectif. Ancien pattern (DELETE-all + INSERT 1-par-1) perdait
-                # TOUS les exos du bloc si l'une des insertions post-delete
-                # échouait. Nouvel ordre : si l'UPSERT échoue, rien n'est
-                # supprimé ; si le DELETE échoue, on a au pire des lignes
-                # orphelines (doublons) mais jamais une perte.
-                #
-                # Contrainte UNIQUE(block_id, exercise_id) sur program_block_exercises
-                # → on_conflict="block_id,exercise_id" permet à l'upsert de MAJ
-                # scheme/order_index sur les lignes existantes.
-                rows = []
-                for ex_order, (ex_name, scheme) in enumerate(exercises.items()):
-                    ex_id_resp = (
-                        db_core._client.table("exercises")
-                        .select("id")
-                        .eq("name", ex_name)
-                        .execute()
-                    )
-                    if not ex_id_resp.data:
-                        # Auto-create exercise in inventory with defaults so nothing is lost
-                        ins = db_core._client.table("exercises").insert({
-                            "name": ex_name,
-                            "type": "machine",
-                            "category": "strength",
-                            "increment": 5.0,
-                            "default_scheme": scheme,
-                        }).execute()
-                        if not ins.data:
-                            db_core.logger.warning("save_full_program: could not create exercise '%s', skipping", ex_name)
-                            continue
-                        ex_id = ins.data[0]["id"]
-                    else:
-                        ex_id = ex_id_resp.data[0]["id"]
-                    rows.append({
-                        "block_id": block_id,
-                        "exercise_id": ex_id,
-                        "scheme": scheme,
-                        "order_index": ex_order,
-                    })
-
-                if rows:
-                    # 1) Bulk upsert : lève si problème → rien n'est delete en aval.
-                    (
-                        db_core._client.table("program_block_exercises")
-                        .upsert(rows, on_conflict="block_id,exercise_id")
-                        .execute()
-                    )
-                    # 2) Delete sélectif : retire les anciens exos qui ne sont
-                    # plus dans la nouvelle liste. Si l'upsert ci-dessus a
-                    # échoué (exception), on n'arrive jamais ici → les anciens
-                    # exos restent intacts. Si ce delete échoue, pire cas =
-                    # lignes anciennes orphelines (plus dans exercises de la
-                    # nouvelle liste) mais aucune perte des nouvelles.
-                    new_ex_ids = [r["exercise_id"] for r in rows]
-                    ids_csv = ",".join(str(i) for i in new_ex_ids)
-                    (
-                        db_core._client.table("program_block_exercises")
-                        .delete()
-                        .eq("block_id", block_id)
-                        .filter("exercise_id", "not.in", f"({ids_csv})")
-                        .execute()
-                    )
-                else:
-                    # exercises vide + allow_empty_blocks : delete all (chemin existant).
-                    db_core._client.table("program_block_exercises").delete().eq("block_id", block_id).execute()
-
-        return True
-
+    client = db_core.get_service_supabase()
     try:
-        return _do()
+        resp = client.rpc("save_full_program_atomic", {
+            "p_program_id":         program_id,
+            "p_allow_empty_blocks": bool(allow_empty_blocks),
+            "p_sessions":           sessions_payload,
+            "p_rename":             rename,
+        }).execute()
     except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("save_full_program retry error: %s", e2)
-                return False
-        db_core.logger.error("save_full_program error: %s", e)
-        return False
+        db_core.logger.error("save_full_program_atomic RPC failed: %s", e)
+        raise RuntimeError(f"save_full_program_atomic: {e}") from e
+
+    data = getattr(resp, "data", resp)
+    if not isinstance(data, dict):
+        raise RuntimeError(f"save_full_program_atomic: réponse inattendue {data!r}")
+
+    skipped = data.get("skipped_empty_blocks") or []
+    if skipped:
+        db_core.logger.info(
+            "save_full_program: %d block(s) skipped par le garde anti-wipe: %s",
+            len(skipped), skipped,
+        )
+    return {
+        "skipped_empty_blocks": skipped,
+        "renamed_exercise":     data.get("renamed_exercise"),
+    }
 
 
 def delete_program_session(name: str, program_id: str | None = None) -> bool:
