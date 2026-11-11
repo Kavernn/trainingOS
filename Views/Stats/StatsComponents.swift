@@ -904,17 +904,29 @@ struct StatsForceProgressionHero: View {
         comparable == 1 ? "1 exercice comparable" : "\(comparable) exercices comparables"
     }
 
+    private var verdict: String {
+        StatsForceVerdict.title(up: improving, down: declining)
+    }
+
     private var accessibilitySummary: String {
         let stableSummary = stable == 1 ? "1 exercice stable" : "\(stable) exercices stables"
-        return "Trajectoire force. Comparaison des \(progression.comparisonWindowDays) derniers jours aux \(progression.comparisonWindowDays) jours précédents. \(improving) exercices en hausse. \(stableSummary). \(declining) en baisse. \(comparableLabel)."
+        return "\(verdict). Comparaison des \(progression.comparisonWindowDays) derniers jours aux \(progression.comparisonWindowDays) jours précédents. \(improving) exercices en hausse. \(stableSummary). \(declining) en baisse. \(comparableLabel)."
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("TRAJECTOIRE FORCE")
-                .font(.appMicro.weight(.bold))
-                .tracking(2)
-                .foregroundColor(Color.domainAccent(.training))
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("TRAJECTOIRE FORCE")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(Color.domainAccent(.training))
+                Spacer()
+                StatsGlossaryButton(entry: .exosComparables)
+            }
+
+            Text(verdict)
+                .font(.appHeadline.weight(.bold))
+                .foregroundColor(.appTextPrimary)
 
             Text("\(progression.comparisonWindowDays) derniers jours vs \(progression.comparisonWindowDays) jours précédents")
                 .font(.appCaption)
@@ -997,11 +1009,15 @@ struct StatsStrengthProgressionSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("PROGRESSION PAR EXERCICE")
-                .font(.appMicro.weight(.bold))
-                .tracking(2)
-                .foregroundColor(.appTextMuted)
-            Text("Meilleur 1RM estimé · \(comparisonWindowDays) derniers jours vs \(comparisonWindowDays) jours précédents")
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("DÉTAIL PAR EXERCICE — 1RM ESTIMÉ")
+                    .font(.appMicro.weight(.bold))
+                    .tracking(2)
+                    .foregroundColor(.appTextMuted)
+                Spacer()
+                StatsGlossaryButton(entry: .e1rm)
+            }
+            Text("\(comparisonWindowDays) derniers jours vs \(comparisonWindowDays) jours précédents")
                 .font(.appCaption)
                 .foregroundColor(.appTextSecondary)
 
@@ -1083,7 +1099,7 @@ struct StatsStrengthComparisonRow: View {
         return String(format: "%+.1f", delta * 100).replacingOccurrences(of: ".", with: ",") + " %"
     }
     private var exposureLabel: String {
-        let previous = comparison.baselineExposureCount == 1 ? "exposition précédente" : "expositions précédentes"
+        let previous = comparison.baselineExposureCount == 1 ? "séance préc." : "séances préc."
         let recent = comparison.recentExposureCount == 1 ? "récente" : "récentes"
         return "\(comparison.baselineExposureCount) \(previous) · \(comparison.recentExposureCount) \(recent)"
     }
@@ -2099,13 +2115,14 @@ struct StatsMoversView: View {
     var body: some View {
         if !movers.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("TOP MOVERS")
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("PROGRESSIONS SUR 12 SEMAINES")
                         .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
                     Spacer()
-                    Text("12 SEMAINES")
-                        .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+                    StatsGlossaryButton(entry: .e1rm)
                 }
+                Text("Classé par hausse du 1RM estimé.")
+                    .font(.appCaption).foregroundColor(.appTextSecondary)
                 ForEach(Array(movers.enumerated()), id: \.element.exerciseName) { index, mover in
                     moverRow(mover)
                     if index < movers.count - 1 {
@@ -2243,12 +2260,13 @@ struct StatsPRTimelineView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text("RECORDS RÉCENTS")
                 .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-            Spacer()
             Text("\(windowDays) JOURS")
                 .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+            Spacer()
+            StatsGlossaryButton(entry: .pr)
         }
     }
 
@@ -2880,7 +2898,7 @@ struct StatsMySevenDaysCard: View {
 // MARK: - Glossaire ⓘ (popover partagé entre onglets Stats)
 
 enum StatsGlossary {
-    case e1rm, pr, mevMrv, tonnage, volumeEffectif, acwr
+    case e1rm, pr, mevMrv, tonnage, volumeEffectif, acwr, exosComparables
 
     var title: String {
         switch self {
@@ -2890,6 +2908,7 @@ enum StatsGlossary {
         case .tonnage: return "Tonnage"
         case .volumeEffectif: return "Volume effectif"
         case .acwr: return "Ratio charge récente / référence"
+        case .exosComparables: return "Exercices comparables"
         }
     }
 
@@ -2907,7 +2926,24 @@ enum StatsGlossary {
             return "Séries par semaine pour un muscle = séries directes + 50 % des séries indirectes. Les jours de décharge sont exclus."
         case .acwr:
             return "Charge des 7 derniers jours ÷ moyenne des 28 derniers. Au-dessus de 1,3, ta charge monte plus vite que ton habitude ; en dessous de 0,8, elle baisse."
+        case .exosComparables:
+            return "Exercices avec au moins 2 séances dans la fenêtre récente ET 2 dans la fenêtre précédente. Les autres sont ignorés faute de base de comparaison."
         }
+    }
+}
+
+/// Verdict et détail de la Trajectoire Force. Source unique appelée par la
+/// carte résumé Vue d'ensemble (`StatsForceSummaryRow`) ET par le hero
+/// `StatsForceProgressionHero` dans l'onglet Force. Même entrée → même titre.
+enum StatsForceVerdict {
+    static func title(up: Int, down: Int) -> String {
+        if up > down + 1 { return "Force en progression" }
+        if down > up + 1 { return "Force en recul" }
+        return "Force stable"
+    }
+
+    static func detail(up: Int, down: Int, stable: Int) -> String {
+        "\(up) progressent · \(down) reculent · \(stable) stables"
     }
 }
 
@@ -3011,22 +3047,11 @@ struct StatsForceSummaryRow: View {
     let counts: StatsProgressionStatusCounts
     let action: () -> Void
 
-    private var verdict: String {
-        let up = counts.improving, down = counts.declining
-        if up > down + 1 { return "Force en progression" }
-        if down > up + 1 { return "Force en recul" }
-        return "Force stable"
-    }
-
-    private var detail: String {
-        "\(counts.improving) progressent · \(counts.declining) reculent · \(counts.stable) stables"
-    }
-
     var body: some View {
         StatsOverviewSummaryRow(
             icon: "dumbbell.fill",
-            title: verdict,
-            detail: detail,
+            title: StatsForceVerdict.title(up: counts.improving, down: counts.declining),
+            detail: StatsForceVerdict.detail(up: counts.improving, down: counts.declining, stable: counts.stable),
             glossary: nil,
             action: action
         )

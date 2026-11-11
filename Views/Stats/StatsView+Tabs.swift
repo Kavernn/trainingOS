@@ -625,9 +625,13 @@ extension StatsView {
 
         // 5. Exercices — recherche et poids actuels
         VStack(alignment: .leading, spacing: 8) {
-            Text("TOUS LES EXERCICES")
-                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-                .padding(.horizontal, 16)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("TOUS LES EXERCICES")
+                    .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
+                Spacer()
+                StatsGlossaryButton(entry: .e1rm)
+            }
+            .padding(.horizontal, 16)
             HStack {
                 Image(systemName: "magnifyingglass").foregroundColor(.gray)
                 TextField("Rechercher un exercice...", text: $searchText)

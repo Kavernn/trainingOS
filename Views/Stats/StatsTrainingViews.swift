@@ -691,17 +691,49 @@ struct ExerciseStatRow: View {
         return .appTextSecondary
     }
 
+    /// "10,10,10,10" → "4 × 10 reps" si toutes identiques, sinon "10, 10, 8 reps".
+    /// nil si lastReps vide ou non parsable.
+    private var compactRepsLabel: String? {
+        guard let reps = data.lastReps, !reps.isEmpty else { return nil }
+        let parts = reps.split(separator: ",")
+            .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+        guard !parts.isEmpty else { return nil }
+        if parts.count > 1, Set(parts).count == 1 {
+            return "\(parts.count) × \(parts[0]) reps"
+        }
+        return parts.map(String.init).joined(separator: ", ") + " reps"
+    }
+
+    /// Ancienneté du dernier point utile de la fenêtre 8 sem.
+    /// Granularité : aujourd'hui / hier / il y a N j / il y a N sem / il y a N mois.
+    private var ageLabel: String? {
+        guard let last = windowed.last?.date else { return nil }
+        let days = Calendar.mtl.dateComponents([.day], from: last, to: Date()).day ?? 0
+        switch days {
+        case ..<1: return "aujourd'hui"
+        case 1: return "hier"
+        case 2..<7: return "il y a \(days) j"
+        case 7..<28:
+            let weeks = Int(ceil(Double(days) / 7.0))
+            return weeks == 1 ? "il y a 1 sem" : "il y a \(weeks) sem"
+        default:
+            let months = Int(round(Double(days) / 30.0))
+            return months <= 1 ? "il y a 1 mois" : "il y a \(months) mois"
+        }
+    }
+
+    private var subLabel: String? {
+        let parts = [compactRepsLabel, ageLabel].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name).font(.appBody.weight(.semibold))
                     .foregroundColor(.appTextPrimary).lineLimit(1)
-                if let reps = data.lastReps, !reps.isEmpty {
-                    Text(reps).font(.appCaption).foregroundColor(.appTextSecondary)
-                }
-                if let weeks = coverageWeeks, weeks < 8 {
-                    Text("sur \(weeks) sem")
-                        .font(.appMicro).foregroundColor(.appTextMuted)
+                if let sub = subLabel {
+                    Text(sub).font(.appCaption).foregroundColor(.appTextSecondary)
                 }
             }
             Spacer(minLength: 4)
@@ -714,6 +746,8 @@ struct ExerciseStatRow: View {
                         .font(.appCaption.weight(.semibold))
                         .foregroundColor(deltaColor(delta))
                         .monospacedDigit()
+                    Text("vs il y a 1 mois")
+                        .font(.appMicro).foregroundColor(.appTextMuted)
                 }
             }
             Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
@@ -728,14 +762,14 @@ struct ExerciseStatRow: View {
                     .font(.appHeadline.weight(.black))
                     .foregroundColor(Color.forge).monospacedDigit()
             } else {
-                Text("—").font(.appCaption).foregroundColor(.appTextSecondary)
+                Text("pas de reps").font(.appCaption).foregroundColor(.appTextSecondary)
             }
         } else if let w = data.currentWeight, w > 0 {
             Text(units.format(w, decimals: 0))
                 .font(.appHeadline.weight(.black))
                 .foregroundColor(Color.forge).monospacedDigit()
         } else {
-            Text("—").font(.appCaption).foregroundColor(.appTextSecondary)
+            Text("pas de poids").font(.appCaption).foregroundColor(.appTextSecondary)
         }
     }
 
