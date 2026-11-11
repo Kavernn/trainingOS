@@ -207,10 +207,13 @@ def _check_d1(recovery: list[dict], acwr: dict | None, hrv: dict | None, readine
 
 # ── Intelligence insights helpers ────────────────────────────────────────────
 
-_PUSH_MUSCLES = {"chest", "pectorals", "pectoral", "triceps", "tricep",
-                 "front deltoid", "anterior deltoid", "shoulders", "shoulder"}
-_PULL_MUSCLES = {"back", "lats", "lat", "biceps", "bicep", "rear deltoid",
-                 "posterior deltoid", "traps", "trap", "rhomboids", "rhomboid"}
+# Push/pull canoniques — clés après `_normalize_muscle` (source unique _MUSCLE_ALIASES).
+# Les noms catalogue (FR Title Case post-fusion : "Pectoraux", "Dos", "Épaules",
+# "Arrière d'épaule"...) normalisent vers ces clés. Ne pas lister les variantes
+# brutes ici — c'est le rôle d'_MUSCLE_ALIASES. Avant 2026-11, cet insight
+# comparait des mots anglais bruts et ne matchait plus rien post-fusion.
+_PUSH_MUSCLES = {"chest", "triceps", "deltoids"}
+_PULL_MUSCLES = {"lats", "biceps", "rear delt", "trapezius"}
 
 
 def _recent_exercise_weights(days: int = 42) -> dict:
@@ -316,14 +319,15 @@ def _check_d5(sessions: list, nutrition: list) -> dict | None:
 
 def _check_d8(ex_logs: list) -> dict | None:
     """D8: push/pull volume imbalance over 28 days (ratio < 0.55 or > 1.8)."""
+    from utils import _normalize_muscle
     push_sets = 0
     pull_sets = 0
     for log in ex_logs:
-        muscles = [m.lower().strip() for m in (log.get("muscles") or [])]
+        muscles = {_normalize_muscle(m) for m in (log.get("muscles") or []) if isinstance(m, str)}
         sets = len(log.get("sets_json") or []) or 1
-        if any(m in _PUSH_MUSCLES for m in muscles):
+        if muscles & _PUSH_MUSCLES:
             push_sets += sets
-        elif any(m in _PULL_MUSCLES for m in muscles):
+        elif muscles & _PULL_MUSCLES:
             pull_sets += sets
 
     if push_sets + pull_sets < 20:
