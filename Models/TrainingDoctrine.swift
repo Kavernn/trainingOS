@@ -29,10 +29,6 @@ enum TrainingDoctrine {
         return schedule[dayNames[tomorrowIdx]] ?? "Repos"
     }
 
-    /// Durée du cycle mésocycle en semaines. Miroir backend : utils.MESOCYCLE_WEEKS.
-    /// Toute modification doit être répercutée dans les 2 sources en même temps.
-    static let mesocycleWeeks: Int = 11
-
     /// Ordre canonique des séances du split hebdomadaire. Les séances custom
     /// (hors de cette liste) viennent après, triées alphabétiquement — voir
     /// consommateurs (ProgrammeView.orderedSeances, SeanceView.sessionList).

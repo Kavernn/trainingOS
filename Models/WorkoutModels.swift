@@ -342,11 +342,28 @@ struct MesocycleInfo: Codable {
     let phaseLabel: String
     let rpeTarget: String
     let note: String
+    /// Doctrine 2026-11 : phase='deload' uniquement si deload_periods actif
+    /// aujourd'hui (même prédicat que Stats/DNA). L'iOS lit ce champ au lieu
+    /// de recalculer un deload calendaire local.
+    let isDeloadToday: Bool
 
     enum CodingKeys: String, CodingKey {
         case week, phase, note
-        case phaseLabel = "phase_label"
-        case rpeTarget  = "rpe_target"
+        case phaseLabel     = "phase_label"
+        case rpeTarget      = "rpe_target"
+        case isDeloadToday  = "is_deload_today"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        week          = try c.decode(Int.self,    forKey: .week)
+        phase         = try c.decode(String.self, forKey: .phase)
+        phaseLabel    = try c.decode(String.self, forKey: .phaseLabel)
+        rpeTarget     = try c.decode(String.self, forKey: .rpeTarget)
+        note          = try c.decode(String.self, forKey: .note)
+        // Défaut false : rétrocompat cache pré-2026-11 (champ absent) → pas de
+        // fantôme deload, le backend reste autoritaire pour la phase.
+        isDeloadToday = try c.decodeIfPresent(Bool.self, forKey: .isDeloadToday) ?? false
     }
 }
 

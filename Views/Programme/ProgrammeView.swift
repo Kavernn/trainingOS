@@ -38,16 +38,16 @@ fileprivate enum Phase: String, CaseIterable {
     case force           = "Force"
     case peak            = "Peak"
     case deload          = "Deload"
-    case completed       = "Cycle terminé"
+    // .completed retiré (2026-11) : la décharge volontaire clôt le cycle —
+    // plus d'auto-wrap calendaire. S11+ sans décharge = Peak prolongé.
 
     var weeks: ClosedRange<Int> {
         switch self {
         case .accumulation:    return 1...2
         case .intensification: return 3...4
         case .force:           return 5...8
-        case .peak:            return 9...10
-        case .deload:          return 11...11
-        case .completed:       return 12...Int.max
+        case .peak:            return 9...Int.max    // Peak prolongé après S10
+        case .deload:          return 0...0           // jamais via `at(week:)` — backend only
         }
     }
 
@@ -58,7 +58,6 @@ fileprivate enum Phase: String, CaseIterable {
         case .force:           return "Pousse tes charges"
         case .peak:            return "Vise le PR"
         case .deload:          return "Récupère"
-        case .completed:       return "Cycle terminé"
         }
     }
 
@@ -69,7 +68,6 @@ fileprivate enum Phase: String, CaseIterable {
         case .force:           return "4-5 × 4-6, 82-90% 1RM"
         case .peak:            return "5 × 1-3, 90-95% 1RM"
         case .deload:          return "3 × 8-10, 55-65% 1RM"
-        case .completed:       return "Démarre le prochain."
         }
     }
 
@@ -80,7 +78,6 @@ fileprivate enum Phase: String, CaseIterable {
         case .force:           return "5x5"
         case .peak:            return "5x2"
         case .deload:          return "3x9"
-        case .completed:       return "—"
         }
     }
 
@@ -91,7 +88,6 @@ fileprivate enum Phase: String, CaseIterable {
         case .force:           return "3min"
         case .peak:            return "4min"
         case .deload:          return "90s"
-        case .completed:       return "—"
         }
     }
 
@@ -102,7 +98,6 @@ fileprivate enum Phase: String, CaseIterable {
         case .force:           return "Recruter les fibres, gagner du kilo."
         case .peak:            return "Test max, expression de la force."
         case .deload:          return "Vider la fatigue, préparer le prochain cycle."
-        case .completed:       return "Nouveau cycle = nouvelle base à décider."
         }
     }
 
@@ -113,7 +108,6 @@ fileprivate enum Phase: String, CaseIterable {
         case .force:           return .alert
         case .peak:            return .evening
         case .deload:          return .success
-        case .completed:       return .neutral
         }
     }
 
@@ -127,10 +121,9 @@ fileprivate enum Phase: String, CaseIterable {
 
     static func at(week: Int) -> Phase {
         let w = max(1, week)
-        // Fallback .completed (pas .deload) — au-delà de S11, le cycle est fini.
-        // Pas d'auto-wrap : le prochain cycle démarre par un geste utilisateur
-        // explicite (bouton POST cycle_start_date).
-        return Phase.allCases.first { $0.weeks.contains(w) } ?? .completed
+        // Fallback .peak : plus de deload calendaire (décision 2026-11).
+        // phase='deload' vient uniquement du backend (is_deload_today, deload_periods).
+        return Phase.allCases.first { $0.weeks.contains(w) } ?? .peak
     }
 }
 
@@ -204,13 +197,6 @@ struct ProgrammeView: View {
         return max(1, days / 7 + 1)
     }
     private var currentPhase: Phase { Phase.at(week: mesocycleWeek) }
-
-    /// true si le cycle a dépassé S11 sans nouveau démarrage. Fin explicite —
-    /// pas d'auto-wrap (fantôme éradiqué). Le prochain cycle démarre par le
-    /// bouton "Démarrer un nouveau cycle" qui POST cycle_start_date.
-    private var isCycleComplete: Bool {
-        !periodisationStart.isEmpty && mesocycleWeek > TrainingDoctrine.mesocycleWeeks
-    }
 
     private func applyPhaseScheme() async {
         let scheme = currentPhase.shortScheme
@@ -1101,10 +1087,8 @@ struct ProgrammeView: View {
                 Spacer()
                 if periodisationStart.isEmpty {
                     Text("Non démarré").font(.appLabel).foregroundColor(.appTextSecondary)
-                } else if isCycleComplete {
-                    Text("Cycle terminé").font(.appLabel).foregroundColor(.appTextSecondary)
                 } else {
-                    Text("\(currentPhase.verb) · S\(mesocycleWeek)/\(TrainingDoctrine.mesocycleWeeks)")
+                    Text("\(currentPhase.verb) · S\(mesocycleWeek)")
                         .font(.appLabel).foregroundColor(.appTextSecondary)
                 }
                 Image(systemName: "chevron.right").foregroundColor(.appTextSecondary)
@@ -1331,15 +1315,6 @@ struct ProgrammeView: View {
         }
     }
 
-    private var deloadHorizon: String {
-        let w = mesocycleWeek
-        if w >= 11 { return "en cours" }
-        let remaining = TrainingDoctrine.mesocycleWeeks - w
-        if remaining <= 0 { return "cycle terminé" }
-        if remaining == 1 { return "la semaine prochaine" }
-        return "dans \(remaining) semaines"
-    }
-
     @ViewBuilder
     private var mesocycleCard: some View {
         if periodisationStart.isEmpty {
@@ -1354,27 +1329,17 @@ struct ProgrammeView: View {
             .padding(.horizontal, .appCardInsetH)
             .padding(.vertical, .appCardInsetV)
             .glassCard()
-        } else if isCycleComplete {
-            let phase = Phase.completed
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("Cycle terminé")
-                        .font(.appBody.weight(.semibold))
-                        .foregroundColor(.appTextPrimary)
-                    Spacer()
-                    AppBadge(phase.rawValue.uppercased(), role: phase.badgeRole)
-                }
-                Text(phase.verb).font(.appBody.weight(.semibold)).foregroundColor(.appTextPrimary)
-                Text(phase.why).font(.appLabel).italic().foregroundColor(.appTextSecondary)
-            }
-            .padding(.horizontal, .appCardInsetH)
-            .padding(.vertical, .appCardInsetV)
-            .glassCard()
         } else {
             let phase = currentPhase
+            // Au-delà de S10, Peak prolongé : libellé honnête 'Peak · semaine N',
+            // pas 'S9-S10'. La décharge arrive au moment choisi, pas calendaire.
+            let weekLabel: String = {
+                if phase == .peak && mesocycleWeek > 10 { return "Peak · semaine \(mesocycleWeek)" }
+                return "Semaine \(mesocycleWeek)"
+            }()
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Semaine \(mesocycleWeek) sur \(TrainingDoctrine.mesocycleWeeks)")
+                    Text(weekLabel)
                         .font(.appBody.weight(.semibold))
                         .foregroundColor(.appTextPrimary)
                     Spacer()
@@ -1395,12 +1360,6 @@ struct ProgrammeView: View {
                 Text(phase.why)
                     .font(.appLabel)
                     .italic()
-                    .foregroundColor(.appTextSecondary)
-                Rectangle()
-                    .fill(Color.appTextSecondary.opacity(0.10))
-                    .frame(height: .appHairline)
-                Text("Deload \(deloadHorizon)")
-                    .font(.appLabel)
                     .foregroundColor(.appTextSecondary)
             }
             .padding(.horizontal, .appCardInsetH)
@@ -1426,11 +1385,6 @@ struct ProgrammeView: View {
     private var mesocycleActions: some View {
         if periodisationStart.isEmpty {
             PrimaryButton(title: "Démarrer un mésocycle", icon: "play.fill") {
-                Task { await vm.saveCycleStartDate(DateFormatter.isoDate.string(from: Date())) }
-            }
-            .padding(.horizontal, .appPagePadding)
-        } else if isCycleComplete {
-            PrimaryButton(title: "Démarrer un nouveau cycle", icon: "play.fill") {
                 Task { await vm.saveCycleStartDate(DateFormatter.isoDate.string(from: Date())) }
             }
             .padding(.horizontal, .appPagePadding)
