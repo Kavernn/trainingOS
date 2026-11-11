@@ -156,6 +156,22 @@ struct StatsRegularityHero: View {
 // MARK: - Charge summary and muscle comparison
 struct StatsChargeHeroCard: View {
     let trainingLoad: StatsCockpitTrainingLoad
+    /// Cible jours-actifs/semaine. Même source que l'onglet Régularité
+    /// (streakData.weeklyTarget). nil si streak pas encore chargé.
+    let weeklyTarget: Int?
+
+    private var weeklyAverageActiveDays: String {
+        let avg = Double(trainingLoad.summary.activeDayCount) / 12.0
+        return String(format: "%.1f", locale: Locale(identifier: "fr_CA"), avg)
+    }
+
+    private var activityPhrase: String {
+        let avg = weeklyAverageActiveDays
+        if let target = weeklyTarget {
+            return "\(trainingLoad.summary.activeDayCount) jours actifs en 12 semaines · \(avg) par semaine (cible \(target))"
+        }
+        return "\(trainingLoad.summary.activeDayCount) jours actifs en 12 semaines · \(avg) par semaine"
+    }
 
     private var weeklySetDelta: Int? {
         let completeWeeks = trainingLoad.weekly
@@ -166,25 +182,29 @@ struct StatsChargeHeroCard: View {
             - completeWeeks[completeWeeks.count - 2].validRepsSetCount
     }
 
-    private var weeklyDeltaLabel: String? {
-        guard let weeklySetDelta else { return nil }
-        guard weeklySetDelta != 0 else {
-            return "Même nombre de séries que la semaine précédente"
+    private var sessionsPhrase: String {
+        let sessions = trainingLoad.summary.sessionCount
+        let sets = trainingLoad.summary.validRepsSetCount
+        var phrase = "\(sessions) séance\(sessions <= 1 ? "" : "s") · \(sets) série\(sets <= 1 ? "" : "s") validée\(sets <= 1 ? "" : "s")"
+        if let delta = weeklySetDelta {
+            if delta == 0 {
+                phrase += ". Dernière semaine : même nombre de séries que la précédente."
+            } else {
+                let sign = delta > 0 ? "+" : "−"
+                let count = abs(delta)
+                let unit = count == 1 ? "série" : "séries"
+                phrase += ". Dernière semaine : \(sign)\(count) \(unit) vs la précédente."
+            }
         }
-        let sign = weeklySetDelta > 0 ? "+" : "−"
-        let count = abs(weeklySetDelta)
-        let unit = count == 1 ? "série" : "séries"
-        return "\(sign)\(count) \(unit) vs semaine précédente"
+        return phrase
     }
 
     private var accessibilitySummary: String {
-        let summary = "Activité sur 12 semaines. \(trainingLoad.summary.sessionCount) séances, \(trainingLoad.summary.activeDayCount) jours actifs et \(trainingLoad.summary.validRepsSetCount) séries valides."
-        guard let weeklyDeltaLabel else { return summary }
-        return "\(summary) Dernière semaine complète : \(weeklyDeltaLabel)."
+        "Activité sur 12 semaines. \(activityPhrase). \(sessionsPhrase)"
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text("ACTIVITÉ")
                     .font(.appMicro.weight(.bold))
@@ -196,44 +216,24 @@ struct StatsChargeHeroCard: View {
                     .foregroundColor(.appTextSecondary)
             }
 
-            HStack(spacing: 12) {
-                metric(value: "\(trainingLoad.summary.sessionCount)", label: "Séances")
-                metric(value: "\(trainingLoad.summary.activeDayCount)", label: "Jours actifs")
-                metric(value: "\(trainingLoad.summary.validRepsSetCount)", label: "Séries valides")
-            }
+            Text(activityPhrase)
+                .font(.appHeadline.weight(.bold))
+                .foregroundColor(.appTextPrimary)
+                .fixedSize(horizontal: false, vertical: true)
 
-            if let weeklyDeltaLabel {
-                Divider().overlay(Color.appSeparatorSubtle)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("DERNIÈRE SEMAINE COMPLÈTE")
-                        .font(.appMicro.weight(.bold))
-                        .tracking(1)
-                        .foregroundColor(.appTextMuted)
-                    Text(weeklyDeltaLabel)
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.appTextSecondary)
-                }
-            }
+            Text(sessionsPhrase)
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.appCardInsetV)
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
     }
 
-    private func metric(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(value)
-                .font(.appHeadline.weight(.semibold))
-                .foregroundColor(.appTextPrimary)
-            Text(label)
-                .font(.appMicro)
-                .foregroundColor(.appTextSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
 }
 
 struct StatsMuscleWorkloadComparisonChart: View {
@@ -291,6 +291,23 @@ struct StatsMuscleWorkloadComparisonChart: View {
         }
     }
 
+    /// Titre dynamique : top 2 par weeklyEffectiveSets (séries/sem).
+    /// Règle testable : 0 → "Aucun muscle travaillé", 1 → "{m1} seul en tête",
+    /// ≥2 → "{m1} et {m2} en tête cette période".
+    private var topTitle: String {
+        let ranked = muscles.workloads
+            .compactMap { w -> (String, Double)? in
+                guard let v = w.weeklyEffectiveSets, v > 0 else { return nil }
+                return (statsMuscleDisplayName(w.muscle), v)
+            }
+            .sorted { $0.1 > $1.1 }
+        switch ranked.count {
+        case 0:  return "Aucun muscle travaillé sur cette période"
+        case 1:  return "\(ranked[0].0) seul en tête"
+        default: return "\(ranked[0].0) et \(ranked[1].0) en tête cette période"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
@@ -303,6 +320,11 @@ struct StatsMuscleWorkloadComparisonChart: View {
                     .font(.appCaption.weight(.semibold))
                     .foregroundColor(.appTextSecondary)
             }
+
+            Text(topTitle)
+                .font(.appHeadline.weight(.bold))
+                .foregroundColor(.appTextPrimary)
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack(alignment: .firstTextBaseline, spacing: 7) {
                 Text("\(solicitedMuscleCount)")
@@ -341,26 +363,12 @@ struct StatsMuscleWorkloadComparisonChart: View {
                     .font(.appMicro)
                     .foregroundColor(.appTextSecondary)
 
-                Chart {
-                    ForEach(topWorkloads, id: \.muscle) { workload in
-                        BarMark(x: .value("Séries", workload.directSetCount), y: .value("Muscle", displayLabel(workload.muscle)))
-                            .foregroundStyle(AppTheme.shared.chartColor(0))
-                            .position(by: .value("Type", "Direct"))
-                        BarMark(x: .value("Séries", workload.indirectSetCount), y: .value("Muscle", displayLabel(workload.muscle)))
-                            .foregroundStyle(AppTheme.shared.chartColor(1))
-                            .position(by: .value("Type", "Indirect"))
-                    }
-                }
-                .chartXAxis { AxisMarks { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(Color.appSeparatorSubtle)
-                    AxisValueLabel().foregroundStyle(Color.appTextMuted)
-                } }
-                .chartYAxis { AxisMarks { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5)).foregroundStyle(Color.appSeparatorSubtle)
-                    AxisValueLabel().foregroundStyle(Color.appTextMuted)
-                } }
-                .chartLegend(.hidden)
-                .frame(height: CGFloat(topWorkloads.count * 34 + 34))
+                // SwiftUI Charts place mal les labels Y d'un bar horizontal
+                // avec `position(by:)` (empilement visuel sur les barres).
+                // ponytail: on désactive l'axe Y du Chart et on affiche la
+                // colonne des muscles à gauche en HStack — hauteur par row
+                // calée sur celle du Chart (rowHeight constant).
+                chartWithLabels
             }
         }
         .padding(.appCardInsetV)
@@ -369,6 +377,56 @@ struct StatsMuscleWorkloadComparisonChart: View {
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    /// Chart avec colonne labels muscles à gauche. `rowHeight` doit matcher
+    /// la hauteur réservée par muscle dans `Chart.frame(height:)` moins
+    /// l'axe X (36 px). 36 px + rowHeight × count = hauteur totale.
+    private var chartWithLabels: some View {
+        let rowHeight: CGFloat = 44
+        let axisHeight: CGFloat = 28
+        let totalHeight = rowHeight * CGFloat(topWorkloads.count) + axisHeight
+        return HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .trailing, spacing: 0) {
+                ForEach(topWorkloads, id: \.muscle) { workload in
+                    Text(displayLabel(workload.muscle))
+                        .font(.appCaption)
+                        .foregroundColor(.appTextSecondary)
+                        .lineLimit(1)
+                        .frame(height: rowHeight, alignment: .center)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                Color.clear.frame(height: axisHeight)
+            }
+            .frame(width: 80)
+
+            Chart {
+                ForEach(topWorkloads, id: \.muscle) { workload in
+                    BarMark(
+                        x: .value("Séries", workload.directSetCount),
+                        y: .value("Muscle", displayLabel(workload.muscle))
+                    )
+                    .foregroundStyle(AppTheme.shared.chartColor(0))
+                    .position(by: .value("Type", "Direct"))
+                    BarMark(
+                        x: .value("Séries", workload.indirectSetCount),
+                        y: .value("Muscle", displayLabel(workload.muscle))
+                    )
+                    .foregroundStyle(AppTheme.shared.chartColor(1))
+                    .position(by: .value("Type", "Indirect"))
+                }
+            }
+            .chartXAxis {
+                AxisMarks(position: .bottom) { _ in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.appSeparatorSubtle)
+                    AxisValueLabel().foregroundStyle(Color.appTextMuted)
+                }
+            }
+            .chartYAxis(.hidden)
+            .chartLegend(.hidden)
+            .frame(height: totalHeight)
+        }
     }
 
     private var emptyChartMessage: String {
@@ -466,15 +524,18 @@ struct StatsMuscleWorkloadSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("DÉTAIL MUSCULAIRE")
                     .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-                Spacer()
                 Text("30 JOURS · vs 30 J PRÉCÉDENTS")
                     .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+                Spacer()
+                StatsGlossaryButton(entry: .volumeEffectif)
             }
             Text("Volume effectif = direct + 0,5 × indirect, en séries/sem")
                 .font(.appCaption).foregroundColor(.appTextSecondary)
+
+            MuscleZoneLegend()
 
             if let coverageMessage {
                 Text(coverageMessage)
@@ -543,6 +604,60 @@ enum MuscleWorkloadZone {
         if w <= Double(targets.mrvWeek) { return .high }
         return .overMrv
     }
+
+    var label: String {
+        switch self {
+        case .belowMev:   return "Sous MEV"
+        case .productive: return "Productif"
+        case .high:       return "Haut"
+        case .overMrv:    return "Au-delà MRV"
+        case .noTarget:   return "Pas de repère"
+        case .deloaded:   return "Décharge"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .belowMev, .overMrv:              return .forge
+        case .productive:                      return .statusGreen
+        case .high, .noTarget, .deloaded:      return .appTextSecondary
+        }
+    }
+
+    /// Mini-phrase actionnable affichée dans StatsMuscleWorkloadRow sous le
+    /// volume, et nulle part ailleurs. nil = pas de phrase (noTarget).
+    var guidance: String? {
+        switch self {
+        case .belowMev:   return "Sous le minimum pour progresser"
+        case .productive: return "Dans la zone productive"
+        case .high:       return "Volume élevé mais récupérable"
+        case .overMrv:    return "Au-delà du maximum récupérable : surveille ta fatigue"
+        case .deloaded:   return "Décharge en cours"
+        case .noTarget:   return nil
+        }
+    }
+}
+
+/// Légende des badges MuscleWorkloadZone, affichée en tête du DÉTAIL
+/// MUSCULAIRE. Source unique des labels/couleurs via `MuscleWorkloadZone`.
+struct MuscleZoneLegend: View {
+    private let zones: [MuscleWorkloadZone] = [.belowMev, .productive, .high, .overMrv, .noTarget]
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(zones.enumerated()), id: \.offset) { _, zone in
+                Text(zone.label)
+                    .font(.appMicro.weight(.bold)).tracking(0.5)
+                    .foregroundColor(zone.color)
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .background(zone.color.opacity(0.14))
+                    .clipShape(Capsule())
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Légende : sous MEV, productif, haut, au-delà MRV, pas de repère.")
+    }
 }
 
 struct StatsMuscleWorkloadRow: View {
@@ -576,29 +691,16 @@ struct StatsMuscleWorkloadRow: View {
         MuscleWorkloadZone.classify(workload: workload, targets: targets)
     }
 
-    private var zoneLabel: String {
-        switch zone {
-        case .belowMev:   return "Sous MEV"
-        case .productive: return "Productif"
-        case .high:       return "Haut"
-        case .overMrv:    return "Au-delà MRV"
-        case .noTarget:   return "Pas de repère"
-        case .deloaded:   return "Décharge"
-        }
-    }
-
-    private var zoneColor: Color {
-        switch zone {
-        case .belowMev, .overMrv:              return .forge
-        case .productive:                      return .statusGreen
-        case .high, .noTarget, .deloaded:      return .appTextSecondary
-        }
-    }
+    private var zoneLabel: String { zone.label }
+    private var zoneColor: Color { zone.color }
 
     private var maxBarValue: Double {
         let cur = workload.weeklyEffectiveSets ?? 0
         let prev = previousWorkload?.weeklyEffectiveSets ?? 0
-        return max(cur, prev, 0.1)
+        // Inclut MRV pour que les traits de plage restent dans la barre
+        // même si le volume actuel est bien en-dessous.
+        let mrv = targets.map { Double($0.mrvWeek) } ?? 0
+        return max(cur, prev, mrv, 0.1)
     }
 
     private var deltaString: String? {
@@ -673,6 +775,12 @@ struct StatsMuscleWorkloadRow: View {
                         .font(.appMicro.weight(.semibold))
                         .foregroundColor(.appTextSecondary).monospacedDigit()
                 }
+                if let guidance = zone.guidance {
+                    Text(guidance)
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(zoneColor)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             if !breakdown.isEmpty {
                 Text(breakdownSummary)
@@ -704,33 +812,53 @@ struct StatsMuscleWorkloadRow: View {
         VStack(alignment: .leading, spacing: 4) {
             barRow(label: "Courant",
                    value: workload.weeklyEffectiveSets,
-                   opacity: 1.0)
+                   opacity: 1.0,
+                   showsTargets: true)
             if let prev = previousWorkload {
                 barRow(label: "Précédent",
                        value: prev.weeklyEffectiveSets,
-                       opacity: 0.35)
+                       opacity: 0.35,
+                       showsTargets: false)
             }
         }
     }
 
-    private func barRow(label: String, value: Double?, opacity: Double) -> some View {
+    private func barRow(label: String, value: Double?, opacity: Double, showsTargets: Bool) -> some View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.appMicro).foregroundColor(.appTextMuted)
                 .frame(width: 64, alignment: .leading)
             GeometryReader { geo in
                 let fraction = (value.map { min(max($0 / maxBarValue, 0), 1) }) ?? 0
-                Capsule()
-                    .fill(Color.appTextSecondary.opacity(opacity))
-                    .frame(width: max(geo.size.width * CGFloat(fraction), 2), height: 8)
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.appTextSecondary.opacity(0.12))
+                        .frame(width: geo.size.width, height: 8)
+                    Capsule()
+                        .fill(Color.appTextSecondary.opacity(opacity))
+                        .frame(width: max(geo.size.width * CGFloat(fraction), 2), height: 8)
+                    if showsTargets, let t = targets {
+                        // ponytail: traits MEV/MRV en séries/sem — même échelle
+                        // que weeklyEffectiveSets, pas de ×4.
+                        marker(x: geo.size.width * CGFloat(min(max(Double(t.mevWeek) / maxBarValue, 0), 1)))
+                        marker(x: geo.size.width * CGFloat(min(max(Double(t.mrvWeek) / maxBarValue, 0), 1)))
+                    }
+                }
             }
-            .frame(height: 8)
+            .frame(height: 10)
             Text(value.map(formatted) ?? "—")
                 .font(.appMicro.weight(.semibold))
                 .foregroundColor(.appTextPrimary.opacity(opacity))
                 .monospacedDigit()
                 .frame(width: 44, alignment: .trailing)
         }
+    }
+
+    private func marker(x: CGFloat) -> some View {
+        Rectangle()
+            .fill(Color.appTextPrimary.opacity(0.65))
+            .frame(width: 1.5, height: 12)
+            .offset(x: x - 0.75)
     }
 }
 
@@ -754,26 +882,24 @@ struct StatsExternalLoadSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("CHARGE EXTERNE")
                     .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.appTextMuted)
-                Spacer()
                 Text("12 SEMAINES")
                     .font(.appCaption.weight(.semibold)).foregroundColor(.appTextSecondary)
+                Spacer()
+                StatsGlossaryButton(entry: .tonnage)
             }
-            Text("Tonnage · poids × reps")
-                .font(.appCaption).foregroundColor(.appTextSecondary)
 
-            HStack(spacing: 12) {
-                metric(value: tonnageLabel, label: "Tonnage", detail: coverageLabel)
-                metric(value: "\(trainingLoad.summary.validRepsSetCount)", label: "Séries valides", detail: nil)
-                metric(
-                    value: "\(trainingLoad.summary.tonnage.calculableExposureCount) / \(trainingLoad.summary.tonnage.applicableExposureCount)",
-                    label: "Expositions avec tonnage",
-                    detail: nil
-                )
-            }
+            Text("Tonnage 12 semaines : \(tonnageLabel)")
+                .font(.appHeadline.weight(.bold))
+                .foregroundColor(.appTextPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("\(trainingLoad.summary.validRepsSetCount) série\(trainingLoad.summary.validRepsSetCount <= 1 ? "" : "s") validée\(trainingLoad.summary.validRepsSetCount <= 1 ? "" : "s"). \(coverageLabel).")
+                .font(.appCaption)
+                .foregroundColor(.appTextSecondary)
 
             StatsWeeklyTonnageChart(weekly: trainingLoad.weekly)
         }
@@ -782,19 +908,9 @@ struct StatsExternalLoadSection: View {
         .clipShape(RoundedRectangle(cornerRadius: .appCardRadius))
         .padding(.horizontal, .appPagePadding)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Charge externe sur 12 semaines. Tonnage poids fois répétitions, \(tonnageLabel). \(coverageLabel). \(trainingLoad.summary.validRepsSetCount) séries valides.")
+        .accessibilityLabel("Charge externe sur 12 semaines. Tonnage \(tonnageLabel). \(coverageLabel). \(trainingLoad.summary.validRepsSetCount) séries validées.")
     }
 
-    private func metric(value: String, label: String, detail: String?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value).font(.appHeadline.weight(.semibold)).foregroundColor(.appTextPrimary)
-                .lineLimit(1).minimumScaleFactor(0.65)
-            Text(label).font(.appMicro).foregroundColor(.appTextSecondary)
-            if let detail { Text(detail).font(.appMicro.weight(.semibold)).foregroundColor(.appTextMuted).lineLimit(2) }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
 }
 
 struct StatsWeeklyTonnageChart: View {
@@ -2923,7 +3039,7 @@ enum StatsGlossary {
         case .tonnage:
             return "Poids × reps additionnés sur chaque série. Mesure le travail mécanique total."
         case .volumeEffectif:
-            return "Séries par semaine pour un muscle = séries directes + 50 % des séries indirectes. Les jours de décharge sont exclus."
+            return "Séries par semaine = séries directes + 50 % des séries indirectes. Le facteur 0,5 est une convention d’estimation (pas une mesure exacte). Les jours de décharge sont exclus."
         case .acwr:
             return "Charge des 7 derniers jours ÷ moyenne des 28 derniers. Au-dessus de 1,3, ta charge monte plus vite que ton habitude ; en dessous de 0,8, elle baisse."
         case .exosComparables:

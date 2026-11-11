@@ -429,7 +429,10 @@ extension StatsView {
     @ViewBuilder var chargeVolumeTab: some View {
 
         if let cockpit = cockpitData {
-            StatsChargeHeroCard(trainingLoad: cockpit.trainingLoad)
+            StatsChargeHeroCard(
+                trainingLoad: cockpit.trainingLoad,
+                weeklyTarget: streakData?.weeklyTarget
+            )
             StatsExternalLoadSection(trainingLoad: cockpit.trainingLoad)
             StatsMuscleWorkloadComparisonChart(muscles: cockpit.muscles)
             StatsMuscleWorkloadSection(muscles: cockpit.muscles)

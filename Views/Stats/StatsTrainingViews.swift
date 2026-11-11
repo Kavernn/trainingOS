@@ -76,10 +76,11 @@ struct ACWRCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            HStack(spacing: 6) {
                 Text("RATIO CHARGE RÉCENTE / RÉFÉRENCE")
                     .font(.appMicro).tracking(2).foregroundColor(.appTextMuted)
                 Spacer()
+                StatsGlossaryButton(entry: .acwr)
             }
 
             if hasIncompleteHistory {
