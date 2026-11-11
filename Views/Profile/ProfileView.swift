@@ -47,6 +47,8 @@ struct ProfileView: View {
     @State private var weeklyTonnage: [WeeklyTonnageEntry] = []
     @State private var pssHistory: [PSSRecord] = []
     @State private var allTimeVolumeLbs: Double = 0
+    // Streak = SEMAINES (source weekly_streaks.compute, même que Régularité/Stats).
+    // Alimenté depuis stats.weeklyStreakCurrent / weeklyStreakBest (voir loadProfile).
     @State private var currentStreak: Int = 0
     @State private var longestStreak: Int = 0
     @State private var oath: OathModel?         = nil
@@ -313,9 +315,9 @@ struct ProfileView: View {
                 hasData: displayTotalSessions > 0
             )
             ProfileStatSquare(
-                value: currentStreak > 0 ? "\(currentStreak)j" : "—",
+                value: currentStreak > 0 ? "\(currentStreak) sem" : "—",
                 label: "STREAK", icon: "flame.fill", color: Color.appDanger,
-                subtitle: longestStreak > 0 ? "record \(longestStreak)j" : nil,
+                subtitle: longestStreak > 0 ? "record \(longestStreak) sem" : nil,
                 isRecord: currentStreak > 0 && currentStreak >= longestStreak,
                 hasData: currentStreak > 0
             )
@@ -906,8 +908,8 @@ struct ProfileView: View {
             let stats = try await APIService.shared.fetchProfileStats()
             totalSessions    = stats.totalSessions
             allTimeVolumeLbs = stats.allTimeVolumeLbs
-            currentStreak    = stats.currentStreak
-            longestStreak    = stats.longestStreak
+            currentStreak    = stats.weeklyStreakCurrent
+            longestStreak    = stats.weeklyStreakBest
             weeklyTonnage    = stats.weeklyTonnage.sorted { $0.weekStart < $1.weekStart }
             if let ms = stats.memberSince { memberSinceText = buildMemberSince(isoDate: ms) }
         } catch {

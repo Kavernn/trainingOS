@@ -33,13 +33,23 @@ def api_profil_data():
 
 @profile_bp.route("/api/profile_stats")
 def api_profile_stats():
-    """Lightweight profile stats — replaces the heavy stats_data call for ProfileView."""
-    import db as _db
+    """Lightweight profile stats — replaces the heavy stats_data call for ProfileView.
 
-    total_sessions  = _db.get_total_session_count()
-    all_time_volume = _db.get_all_time_volume_lbs()
-    streaks         = _db.get_session_streaks()
-    weekly_tonnage  = _db.get_weekly_tonnage(8)
+    Streak additif (2026-11) : ajout de weekly_streak_current / weekly_streak_best
+    (source weekly_streaks.compute, même que grille Régularité et Stats). Les
+    anciens champs current_streak / longest_streak (JOURS consécutifs, via
+    get_session_streaks) restent pour les versions iOS installées qui les lisent
+    encore — retirés dans un commit séparé après install du build qui consomme
+    les nouveaux champs.
+    """
+    import db as _db
+    from weekly_streaks import compute as _compute_weekly_streaks
+
+    total_sessions   = _db.get_total_session_count()
+    all_time_volume  = _db.get_all_time_volume_lbs()
+    streaks          = _db.get_session_streaks()            # JOURS — déprécié
+    weekly_streaks   = _compute_weekly_streaks()            # SEMAINES — source unique
+    weekly_tonnage   = _db.get_weekly_tonnage(8)
 
     member_since = None
     try:
@@ -58,12 +68,14 @@ def api_profile_stats():
         logger.warning("profile_stats member_since query failed: %s", e)
 
     return jsonify({
-        "total_sessions":      total_sessions,
-        "all_time_volume_lbs": all_time_volume,
-        "current_streak":      streaks.get("current", 0),
-        "longest_streak":      streaks.get("longest", 0),
-        "member_since":        member_since,
-        "weekly_tonnage":      weekly_tonnage,
+        "total_sessions":        total_sessions,
+        "all_time_volume_lbs":   all_time_volume,
+        "current_streak":        streaks.get("current", 0),                       # JOURS — déprécié
+        "longest_streak":        streaks.get("longest", 0),                       # JOURS — déprécié
+        "weekly_streak_current": weekly_streaks.get("weekly_streak_current", 0),  # SEMAINES — nouveau
+        "weekly_streak_best":    weekly_streaks.get("weekly_streak_best", 0),     # SEMAINES — nouveau
+        "member_since":          member_since,
+        "weekly_tonnage":        weekly_tonnage,
     })
 
 
