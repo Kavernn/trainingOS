@@ -183,7 +183,7 @@ struct HealthDashboardView: View {
             .appearAnimation(delay: 0.04)
 
         if let t = today {
-            HealthKPIGrid(summary: t, yesterday: yesterday,
+            HealthKPIGrid(summary: t, yesterday: yesterday, history: week,
                           hkRestingHR: hkRestingHR, hkHRV: hkHRV,
                           hkSpO2: hkSpO2, hkWristTemp: hkWristTemp,
                           hkActiveEnergy: hkActiveEnergy)
@@ -554,6 +554,7 @@ struct DataSourcesRow: View {
 struct HealthKPIGrid: View {
     let summary: DailyHealthSummary
     let yesterday: DailyHealthSummary?
+    var history: [DailyHealthSummary] = []
     var hkRestingHR: Double? = nil
     var hkHRV: Double? = nil
     var hkSpO2: Double? = nil
@@ -568,7 +569,31 @@ struct HealthKPIGrid: View {
     private var hrIsLive:  Bool { summary.restingHeartRate == nil && hkRestingHR != nil }
     private var hrvIsLive: Bool { summary.hrv == nil && hkHRV != nil }
 
+    private func lastKnown(_ pick: (DailyHealthSummary) -> Double?) -> (value: Double, daysAgo: Int, label: String)? {
+        for entry in history where entry.date != summary.date {
+            if let v = pick(entry), let d = DateFormatter.isoDate.date(from: entry.date) {
+                let days = max(1, Int((Calendar.current.startOfDay(for: Date()).timeIntervalSince(Calendar.current.startOfDay(for: d))) / 86400))
+                let fmt = DateFormatter(); fmt.locale = Locale(identifier: "fr_FR")
+                fmt.setLocalizedDateFormatFromTemplate("d MMM")
+                return (v, days, fmt.string(from: d))
+            }
+        }
+        return nil
+    }
+
+    private var lastHR: (value: Double, daysAgo: Int, label: String)? {
+        effectiveHR == nil ? lastKnown { $0.restingHeartRate } : nil
+    }
+    private var lastHRV: (value: Double, daysAgo: Int, label: String)? {
+        effectiveHRV == nil ? lastKnown { $0.hrv } : nil
+    }
+    private var staleBannerDays: Int? {
+        let d = [lastHR?.daysAgo, lastHRV?.daysAgo].compactMap { $0 }.min()
+        return (d.map { $0 > 2 } ?? false) ? d : nil
+    }
+
     var body: some View {
+        VStack(spacing: 10) {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             if let steps = summary.steps {
                 let delta = yesterday?.steps.map { steps - $0 }
@@ -587,12 +612,20 @@ struct HealthKPIGrid: View {
                 StatCard(value: String(format: "%.0f bpm", hr),
                          label: hrIsLive ? "FC repos ◆ live" : "FC repos", color: .statusRed,
                          delta: delta.map { deltaDouble($0, unit: "", invertGood: true) })
+            } else if let last = lastHR {
+                StatCard(value: String(format: "%.0f bpm", last.value),
+                         label: "FC repos", color: .statusRed,
+                         subtitle: "dernière mesure le \(last.label)")
             }
             if let hrv = effectiveHRV {
                 let delta = hrvIsLive ? nil : yesterday?.hrv.map { hrv - $0 }
                 StatCard(value: String(format: "%.0f ms", hrv),
                          label: hrvIsLive ? "HRV ◆ live" : "HRV", color: .statusCyan,
                          delta: delta.map { deltaDouble($0, unit: " ms", invertGood: false) })
+            } else if let last = lastHRV {
+                StatCard(value: String(format: "%.0f ms", last.value),
+                         label: "HRV", color: .statusCyan,
+                         subtitle: "dernière mesure le \(last.label)")
             }
             if let sp = hkSpO2 {
                 StatCard(value: String(format: "%.0f%%", sp), label: "SpO₂ ◆ live", color: .statusCyan)
@@ -603,6 +636,20 @@ struct HealthKPIGrid: View {
             if let ae = hkActiveEnergy {
                 StatCard(value: String(format: "%.0f kcal", ae), label: "Énergie active ◆ live", color: Color.forge)
             }
+        }
+        if staleBannerDays != nil {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "applewatch.slash")
+                    .font(.appCaption).foregroundColor(Color.appTextMuted)
+                Text("Aucune mesure récente : vérifie que ta Watch est portée et que le mode Économie d’énergie est désactivé.")
+                    .font(.appCaption).foregroundColor(Color.appTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(Color.appSurfaceInset)
+            .cornerRadius(8)
+        }
         }
     }
 
