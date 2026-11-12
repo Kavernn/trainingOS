@@ -29,7 +29,7 @@ struct DashboardView: View {
     @State private var warRoomToastMessage: String? = nil
     @State private var educationalCapsules: [EducationalCapsule] = []
     @State private var educationalLoadedDate: String? = nil
-    @State private var lessonOfDay: EducationalCapsule? = nil
+    @State private var lessonOfDay: LessonOfDayStore.DailyPick? = nil
     @State private var lessonSheetCapsule: EducationalCapsule? = nil
     @State private var lessonBypassAttemptedDate: String? = nil
     @State private var lessonRefreshFailed: Bool = false
@@ -132,41 +132,53 @@ struct DashboardView: View {
 
                     }
 
-                    // 9 — Leçon du jour (registre calme)
-                    if let lesson = lessonOfDay {
+                    // 9 — Leçon du jour (registre calme). Résolution canonique
+                    // via LessonOfDayStore.presentation : garantit qu'aucun combo
+                    // ne produit de carte invisible (hors pool live vide).
+                    switch LessonOfDayStore.presentation(pick: lessonOfDay, refreshFailedToday: lessonRefreshFailedToday) {
+                    case .present(let lesson):
                         LessonOfDayCard(
-                            capsule: lesson,
-                            exhausted: false,
+                            capsule: lesson.capsule,
+                            isRevision: lesson.isRevision,
                             refreshFailed: false,
-                            onTap: { lessonSheetCapsule = lesson },
+                            onTap: { lessonSheetCapsule = lesson.capsule },
                             onRetry: { }
                         )
                         .frame(maxWidth: .infinity)
-
-                    } else if lessonRefreshFailedToday {
+                    case .refreshFailed:
                         LessonOfDayCard(
                             capsule: nil,
-                            exhausted: false,
+                            isRevision: false,
                             refreshFailed: true,
                             onTap: { },
                             onRetry: {
                                 lessonBypassAttemptedDate = nil
                                 lessonRefreshFailed = false
-                                Task { await refreshEducationalLive() }
+                                educationalLoadedDate = nil
+                                Task { await loadEducationalIfNeeded() }
                             }
                         )
                         .frame(maxWidth: .infinity)
-
-                    } else if lessonExhausted {
-                        LessonOfDayCard(
-                            capsule: nil,
-                            exhausted: true,
-                            refreshFailed: false,
-                            onTap: { },
-                            onRetry: { }
-                        )
-                        .frame(maxWidth: .infinity)
-
+                    case .absent:
+                        VStack(alignment: .leading, spacing: 9) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "book.closed")
+                                    .font(.appLabel)
+                                    .foregroundColor(Color.appTextMuted)
+                                Text("LEÇON DU JOUR")
+                                    .font(.appMicro.weight(.black))
+                                    .foregroundColor(Color.appTextMuted)
+                                    .tracking(1.4)
+                            }
+                            Text("Aucune capsule pour l'instant.")
+                                .font(.appLabel)
+                                .foregroundColor(Color.appTextSecondary)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+                        .glassCard(cornerRadius: 14)
+                        .opacity(0.6)
                     }
                 }
 
@@ -578,26 +590,29 @@ struct DashboardView: View {
                 educationalCapsules = try await api.fetchEducationalContent()
                 educationalLoadedDate = todayStr
             } catch {
-                return  // carte absente si fetch initial KO (registre non-critique)
+                // Échec du premier chargement : surface comme "vérification impossible"
+                // + Réessayer, jamais une carte vide. Marque le jour pour que le
+                // Retry puisse réinitialiser proprement.
+                lessonBypassAttemptedDate = todayStr
+                lessonRefreshFailed = true
+                return
             }
         }
         resolveLessonOfDay()
-        // Épuisement présumé : le pool est celui du cache 24h. Avant d'afficher
-        // "tu as tout parcouru", on force un aller-retour réseau pour vérifier
-        // qu'aucune capsule neuve n'a été ajoutée côté DB.
-        if !educationalCapsules.isEmpty
-            && lessonOfDay == nil
-            && lessonBypassAttemptedDate != todayStr {
+        // Vérification quotidienne du pool live : détecte les nouvelles capsules
+        // (qui supplantent une révision) et confirme l'épuisement avant de laisser
+        // la carte en révision. Une seule tentative par session (@State reset au
+        // cold-start → nouvelle vérification au relaunch du lendemain).
+        if !educationalCapsules.isEmpty && lessonBypassAttemptedDate != todayStr {
             await refreshEducationalLive()
         }
     }
 
-    /// Bypass cache pour vérifier le pool live avant de conclure "épuisé".
-    /// Garde : un seul appel par jour astro. `lessonBypassAttemptedDate` est
-    /// marqué AVANT l'await pour verrouiller toute réentrance depuis un
-    /// re-render pendant que le fetch est en vol.
+    /// Bypass cache : rafraîchit le pool depuis la DB, purge les IDs zombie,
+    /// et si la capsule du jour est en révision ET que des capsules neuves
+    /// existent → elle est supplantée par une nouveauté.
     /// Erreur : pas de fallback silencieux — `lessonRefreshFailed = true`
-    /// bascule l'UI sur l'état "vérification impossible", jamais sur "épuisé".
+    /// bascule l'UI sur l'état "vérification impossible" + Réessayer.
     private func refreshEducationalLive() async {
         lessonBypassAttemptedDate = todayStr
         do {
@@ -605,21 +620,18 @@ struct DashboardView: View {
             LessonOfDayStore.reconcileSeen(against: Set(live.map(\.id)))
             educationalCapsules = live
             lessonRefreshFailed = false
-            resolveLessonOfDay()
+            if let fresh = LessonOfDayStore.supersedeRevisionIfPossible(from: live, todayStr: todayStr) {
+                lessonOfDay = fresh
+            } else {
+                resolveLessonOfDay()
+            }
         } catch {
             lessonRefreshFailed = true
         }
     }
 
     private func resolveLessonOfDay() {
-        lessonOfDay = LessonOfDayStore.todayLesson(from: educationalCapsules, todayStr: todayStr)
-    }
-
-    private var lessonExhausted: Bool {
-        !educationalCapsules.isEmpty
-            && lessonOfDay == nil
-            && lessonBypassAttemptedDate == todayStr
-            && !lessonRefreshFailed
+        lessonOfDay = LessonOfDayStore.todayPick(from: educationalCapsules, todayStr: todayStr)
     }
 
     private var lessonRefreshFailedToday: Bool {

@@ -122,13 +122,14 @@ struct MomentumStripView: View {
 // MARK: - Lesson of Day Card
 //
 // Registre calme : carte compacte dans le cluster secondaire du dashboard.
-// 3 états : capsule disponible (tap → sheet) | vérification impossible
-// (tap → retry) | épuisé (message, pas de tap). Carte absente si pas de
-// données (fetch initial vide/échec).
+// 3 états : capsule disponible (tap → sheet, mention Révision si applicable)
+// | vérification impossible (tap → retry). Pas d'état "épuisé" dead-end :
+// quand le pool est intégralement vu, la carte passe en révision (la plus
+// anciennement vue d'abord). Carte absente uniquement si le pool live est vide.
 
 struct LessonOfDayCard: View {
     let capsule: EducationalCapsule?
-    let exhausted: Bool
+    let isRevision: Bool
     let refreshFailed: Bool
     let onTap: () -> Void
     let onRetry: () -> Void
@@ -175,6 +176,11 @@ struct LessonOfDayCard: View {
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
                     }
+                    if isRevision {
+                        Text("Révision · ajoute de nouvelles capsules")
+                            .font(.appMicro).fontWeight(.medium)
+                            .foregroundColor(Color.appTextMuted)
+                    }
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
@@ -209,26 +215,6 @@ struct LessonOfDayCard: View {
                 .opacity(0.75)
             }
             .buttonStyle(ScaleButtonStyle())
-        } else if exhausted {
-            VStack(alignment: .leading, spacing: 9) {
-                HStack(spacing: 6) {
-                    Image(systemName: "book.closed")
-                        .font(.appLabel)
-                        .foregroundColor(Color.appTextMuted)
-                    Text("LEÇON DU JOUR")
-                        .font(.appMicro.weight(.black))
-                        .foregroundColor(Color.appTextMuted)
-                        .tracking(1.4)
-                }
-                Text("Tu as tout parcouru — il est temps d'ajouter des capsules.")
-                    .font(.appLabel)
-                    .foregroundColor(Color.appTextSecondary)
-                    .multilineTextAlignment(.leading)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
-            .glassCard(cornerRadius: 14)
-            .opacity(0.6)
         }
     }
 }
