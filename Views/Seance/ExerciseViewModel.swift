@@ -457,7 +457,6 @@ final class ExerciseViewModel: ObservableObject {
     }
     @Published var setBySetMode: Bool = false
     @Published var currentSetIndex: Int = 0
-    @Published var repCountMode: Bool = false
     @Published var showWarmup: Bool = false
     @Published var isLogged = false
     @Published var isEditing = false
@@ -896,17 +895,6 @@ final class ExerciseViewModel: ObservableObject {
             sets[i].weight = ExerciseCalculator.perSideExact(for: i, weightData: weightData, equipmentType: equipmentType, barWeight: barWeight) ?? ""
             sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
         }
-    }
-
-    /// Confirme le set courant avec le compte local de la RepCounterSection. Retourne true si c'était le dernier set.
-    func confirmSet(reps: Int) -> Bool {
-        guard setBySetMode, currentSetIndex < sets.count else { return false }
-        if reps > 0 { sets[currentSetIndex].reps = String(reps) }
-        if currentSetIndex < sets.count - 1 {
-            currentSetIndex += 1
-            return false
-        }
-        return true
     }
 
     func resetAfterClear() {

@@ -91,10 +91,10 @@ struct FloatingRestTimerCard: View {
                     .accessibilityLabel("Retirer 10 secondes de repos")
 
                     Button {
-                        timer.adjust(by: 10)
+                        timer.adjust(by: 30)
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     } label: {
-                        Text("+10s")
+                        Text("+30s")
                             .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.semibold) : .appLabel.weight(.semibold))
                             .foregroundColor(ringColor.opacity(0.85))
                             .frame(minWidth: 52, minHeight: 44)
@@ -102,7 +102,7 @@ struct FloatingRestTimerCard: View {
                             .cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: .appHairline))
                     }
-                    .accessibilityLabel("Ajouter 10 secondes de repos")
+                    .accessibilityLabel("Ajouter 30 secondes de repos")
 
                     Button { timer.reset() } label: {
                         Image(systemName: "arrow.counterclockwise")
@@ -132,14 +132,20 @@ struct FloatingRestTimerCard: View {
                             timer.dismiss()
                         }
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.appLabel.weight(.bold))
-                            .foregroundColor(Color.appOnSurface.opacity(0.45))
-                            .frame(width: 44, height: 44)
-                            .background(Color.appSurfaceInset)
-                            .clipShape(Circle())
+                        HStack(spacing: 4) {
+                            Image(systemName: "forward.end.fill")
+                                .font(.appCaption.weight(.bold))
+                            Text("Passer")
+                                .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.semibold) : .appLabel.weight(.semibold))
+                        }
+                        .foregroundColor(Color.appOnSurface.opacity(0.7))
+                        .frame(minWidth: 52, minHeight: 44)
+                        .padding(.horizontal, 8)
+                        .background(Color.appSurfaceInset)
+                        .cornerRadius(14)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appSeparator, lineWidth: .appHairline))
                     }
-                    .accessibilityLabel("Fermer le repos")
+                    .accessibilityLabel("Passer le repos")
                 }
                 // ponytail: override .tint(theme.accent) racine (ContentView L80)
                 // qui projetait un halo orange sur chaque bouton via le style auto iOS 26.

@@ -1256,7 +1256,8 @@ struct WorkoutSeanceView: View {
                 HStack(spacing: 8) {
                     ForEach(Array(exercises.enumerated()), id: \.element.0) { index, ex in
                         let isLogged = vm.logResults[ex.0] != nil || mobilityChecked.contains(ex.0)
-                        let isCurrent = ex.0 == currentExerciseName
+                        let isSkipped = !isLogged && skippedExercises.contains(ex.0)
+                        let isCurrent = !isLogged && !isSkipped && ex.0 == currentExerciseName
                         Button {
                             // Reveal the existing destination even when its section is folded.
                             if isLogged && collapsedCompleted {
@@ -1271,26 +1272,38 @@ struct WorkoutSeanceView: View {
                             HStack(spacing: 4) {
                                 Text("\(index + 1)")
                                     .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.semibold) : .appLabel.weight(.semibold))
+                                    .strikethrough(isSkipped)
                                     .fixedSize()
                                 if isLogged {
                                     Image(systemName: "checkmark")
                                         .font(.appCaption)
+                                } else if isSkipped {
+                                    Image(systemName: "xmark")
+                                        .font(.appCaption)
                                 }
                             }
                             .foregroundColor(isCurrent ? Color.forge : Color.appTextSecondary)
+                            .opacity(isSkipped ? 0.5 : 1)
                             .padding(.horizontal, 8)
                             .frame(minWidth: 44, minHeight: 44)
                             .background(isCurrent ? Color.forge.opacity(0.12) : Color.appSurfaceInset)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 10)
-                                    .stroke(isCurrent ? Color.forge : Color.appSeparator, lineWidth: 1)
+                                    .stroke(
+                                        isCurrent ? Color.forge : Color.appSeparator,
+                                        style: StrokeStyle(lineWidth: 1, dash: isSkipped ? [3, 3] : [])
+                                    )
                             }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Exercice \(index + 1) sur \(exercises.count), \(ex.0)")
-                        .accessibilityValue(isLogged ? (isCurrent ? "Terminé, courant" : "Terminé") : (isCurrent ? "Courant" : "Non terminé"))
+                        .accessibilityValue(
+                            isLogged ? (isCurrent ? "Terminé, courant" : "Terminé")
+                            : isSkipped ? "Sauté"
+                            : (isCurrent ? "Courant" : "Non terminé")
+                        )
                         .accessibilityHint("Afficher cet exercice")
                         .accessibilityAddTraits(isCurrent ? .isSelected : [])
                     }
@@ -1802,7 +1815,7 @@ struct WorkoutSeanceView: View {
             Image(systemName: "scalemass.fill")
                 .font(.appCaption)
                 .foregroundColor(currentVolume > 0 ? Color.forge.opacity(0.7) : Color.appTextMuted)
-            Text("Volume total")
+            Text("Volume validé")
                 .font(.appCaption).fontWeight(.semibold).foregroundColor(Color.appTextMuted)
             Spacer()
             Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")

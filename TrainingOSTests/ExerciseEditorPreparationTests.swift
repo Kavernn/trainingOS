@@ -181,19 +181,6 @@ final class ExerciseEditorPreparationTests: XCTestCase {
         _ = try ready(controller)
     }
 
-    func testExplicitCounterConfirmationTransfersBeforeResolution() throws {
-        let vm = try makeVM()
-        let controller = ExerciseEditorPreparationController()
-        controller.attach(vm)
-        controller.setCount(5, identity: "counter.set-0.reps")
-        XCTAssertThrowsError(try ready(controller))
-        _ = vm.confirmSet(reps: controller.count(identity: "counter.set-0.reps"))
-        controller.setCount(0, identity: "counter.set-0.reps", explicitlyResolved: true)
-        _ = try ready(controller)
-        XCTAssertEqual(vm.sets[0].reps, "5")
-        XCTAssertFalse(vm.isLogged)
-    }
-
     func testEveryActiveTimerStateBlocksWithoutFinishingOrLogging() throws {
         let vm = try makeVM()
         let controller = ExerciseEditorPreparationController()

@@ -61,12 +61,11 @@ fileprivate struct ExerciseEditorMode: Equatable {
     let logged: Bool
     let editing: Bool
     let setBySet: Bool
-    let counter: Bool
     let setIndex: Int
 
     @MainActor init(_ vm: ExerciseViewModel) {
         logged = vm.isLogged; editing = vm.isEditing
-        setBySet = vm.setBySetMode; counter = vm.repCountMode; setIndex = vm.currentSetIndex
+        setBySet = vm.setBySetMode; setIndex = vm.currentSetIndex
     }
 }
 

@@ -272,7 +272,7 @@ struct ExerciseCard: View {
 
     private var hasSetLevelAction: Bool {
         switch trackingType {
-        case "reps": return evm.setBySetMode || evm.repCountMode
+        case "reps": return evm.setBySetMode
         case "carry", "plyo": return evm.setBySetMode
         default: return false
         }
@@ -537,7 +537,7 @@ struct ExerciseCard: View {
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 40)
                         .onEnded { v in
-                            guard isActive && !evm.repCountMode else { return }
+                            guard isActive else { return }
                             guard v.translation.width > 60, abs(v.translation.height) < 50 else { return }
                             guard allowAction() else { return }
                             withAnimation {
@@ -560,12 +560,7 @@ struct ExerciseCard: View {
                 .padding(.top, 4)
             }
             overloadHintLine()
-            if evm.repCountMode {
-                RepCounterSection(evm: evm, doLog: doLog,
-                                  preparation: preparesEditors ? editorController : nil)
-            } else {
-                setBySetLogButton
-            }
+            setBySetLogButton
         }
     }
 
@@ -740,7 +735,7 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func setRowWeightSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
-        if isActive && !evm.repCountMode {
+        if isActive {
             Image(systemName: "chevron.right.2")
                 .font(.appMicro).fontWeight(.semibold)
                 .foregroundColor(Color.forge.opacity(0.35))
@@ -780,32 +775,20 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func setRowRepsSide(i: Int, isActive: Bool, isDone: Bool) -> some View {
-        if evm.repCountMode && isActive {
-            Text("—")
-                .font(.appBody).fontWeight(.bold)
-                .foregroundColor(Color.gray)
-                .multilineTextAlignment(.center)
-                .frame(width: 56)
-                .padding(8)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-                .accessibilityHidden(true)
-        } else {
-            StepperInput(
-                valueStr: setText(i, \.reps),
-                increment: 1,
-                minimum: evm.equipmentType == "fixed_weight" ? 0 : 1,
-                placeholder: Double(evm.lastRepsParts.indices.contains(i)
-                    ? evm.lastRepsParts[i] : "1") ?? 1,
-                isInteger: true,
-                isDisabled: evm.setBySetMode && !isActive && !isDone,
-                isCompact: evm.setBySetMode,
-                accessibilityTitle: trackingType == "plyo" ? "Sauts" : "Répétitions",
-                editorPreparation: stepperContext(i, field: "reps", keyPath: \.reps,
-                    minimum: { evm.equipmentType == "fixed_weight" ? 0 : 1 }, isInteger: true)
-            )
-            .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
-        }
+        StepperInput(
+            valueStr: setText(i, \.reps),
+            increment: 1,
+            minimum: evm.equipmentType == "fixed_weight" ? 0 : 1,
+            placeholder: Double(evm.lastRepsParts.indices.contains(i)
+                ? evm.lastRepsParts[i] : "1") ?? 1,
+            isInteger: true,
+            isDisabled: evm.setBySetMode && !isActive && !isDone,
+            isCompact: evm.setBySetMode,
+            accessibilityTitle: trackingType == "plyo" ? "Sauts" : "Répétitions",
+            editorPreparation: stepperContext(i, field: "reps", keyPath: \.reps,
+                minimum: { evm.equipmentType == "fixed_weight" ? 0 : 1 }, isInteger: true)
+        )
+        .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : (evm.setBySetMode ? 152 : 140))
         // W-C2 — hide RIR tiles for time-based exercises
         if showRIRColumn && !isTimeBased {
             RPEHelper.RIRTiles(
@@ -905,9 +888,6 @@ struct ExerciseCard: View {
         .padding(.top, 4)
     }
 
-    // ponytail: exposition partagée du bouton set-à-set. setRows a une mutex
-    // avec repCountMode (RepCounterSection prioritaire) ; carry/plyo n'ont
-    // pas de RepCounterSection utile — juste ce bouton en mode set-à-set.
     @ViewBuilder private var setBySetLogButton: some View {
         if evm.setBySetMode { setCompletionButton }
     }
@@ -1243,11 +1223,24 @@ struct ExerciseCard: View {
                 // MARK: Header — always visible, tap to expand/collapse
                 headerButton
                 if isSkippedCompact {
-                    Button("Reprendre cet exercice") { changeSkipped(false) }
-                        .font(.appCaption).foregroundColor(Color.appDanger)
-                        .frame(minHeight: 44)
-                        .padding(.horizontal, 16)
-                        .accessibilityLabel("Reprendre \(name), exercice sauté")
+                    Button { changeSkipped(false) } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.uturn.backward")
+                            Text("Reprendre l'exercice")
+                        }
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(Color.appDanger)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(Color.appDanger.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.appDanger.opacity(0.4), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .accessibilityLabel("Reprendre \(name), exercice sauté")
                 }
                 persistenceIssueBanner
 
@@ -1648,59 +1641,6 @@ struct ExerciseCard: View {
                     .background(Color.appSurfaceInset).clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
-            }
-            // ponytail: toggle Set à set + Compteur visibles UNIQUEMENT pour les
-            // tracking_types qui font du multi-set set-à-set (reps, carry, plyo).
-            // Masqué pour protocol (bouton Fait binaire), time (chrono), et
-            // nonLoggable (stub). Compteur a son propre inner guard reps-only.
-            if trackingType == "reps" || trackingType == "carry" || trackingType == "plyo" {
-                Button {
-                    withAnimation {
-                        guard allowAction() else { return }
-                        evm.setBySetMode.toggle()
-                        if evm.setBySetMode { evm.currentSetIndex = 0 }
-                        if !evm.setBySetMode { evm.repCountMode = false }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: evm.setBySetMode ? "list.number" : "arrow.forward.circle")
-                            .font(.appCaption)
-                        Text("Set à set")
-                            .font(.appMicro).fontWeight(.semibold)
-                    }
-                    .foregroundColor(evm.setBySetMode && !evm.repCountMode ? Color.forge : .gray.opacity(0.6))
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Color.appSurfaceInset).clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                // ponytail: Compteur = RepCounterSection tactile, câblé pour reps seulement.
-                // Masqué pour carry (distance en m) et plyo (sauts saisis au clavier) — le
-                // compteur tactile n'a pas de sens quand la saisie n'est pas un nb de reps.
-                if trackingType == "reps" {
-                    Button {
-                        withAnimation {
-                            guard allowAction() else { return }
-                            if evm.repCountMode {
-                                evm.repCountMode = false
-                            } else {
-                                evm.repCountMode = true
-                                evm.setBySetMode = true
-                                evm.currentSetIndex = 0
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "hand.tap.fill")
-                                .font(.appCaption)
-                            Text("Compteur")
-                                .font(.appMicro).fontWeight(.semibold)
-                        }
-                        .foregroundColor(evm.repCountMode ? Color.forge : .gray.opacity(0.6))
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.appSurfaceInset).clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
             }
             Spacer()
             Menu {
@@ -2284,145 +2224,6 @@ struct ExerciseCard: View {
             return units.display(current)
         }
         return 0
-    }
-}
-
-// MARK: - Rep Counter Section (isolated so only this view re-renders on each tap)
-
-private struct RepCounterSection: View {
-    @ObservedObject var evm: ExerciseViewModel
-    let doLog: () -> Void
-    var preparation: ExerciseEditorPreparationController? = nil
-    @StateObject private var editor = ExercisePrivateEditor()
-
-    @State private var count: Int = 0
-    @State private var registeredIdentity = ""
-
-    private var mayEdit: Bool { preparation?.gate.allowsOrdinaryMutation ?? true }
-    private func mountCounter() {
-        let id = evm.sets.indices.contains(evm.currentSetIndex)
-            ? evm.sets[evm.currentSetIndex].id.uuidString : "missing"
-        let index = evm.currentSetIndex
-        registeredIdentity = "counter.\(index).\(id).reps"
-        editor.mount(preparation, identity: registeredIdentity)
-        editor.isAvailable = { [weak evm] in
-            guard let evm, evm.sets.indices.contains(evm.currentSetIndex) else { return false }
-            return evm.currentSetIndex == index && evm.sets[index].id.uuidString == id
-        }
-        if let preparation { count = preparation.count(identity: registeredIdentity) }
-    }
-    private func updateCount(_ value: Int, resolved: Bool = false) {
-        count = value
-        preparation?.setCount(value, identity: registeredIdentity, explicitlyResolved: resolved)
-        editor.changed()
-    }
-
-    var body: some View {
-        let isLastSet = evm.currentSetIndex == evm.sets.count - 1
-        VStack(spacing: 16) {
-            Divider().background(Color.gray.opacity(0.2)).padding(.top, 4)
-
-            Text("SET \(evm.currentSetIndex + 1) / \(evm.sets.count)")
-                .font(.appCaption).fontWeight(.bold).tracking(2)
-                .foregroundColor(Color.forge.opacity(0.7))
-                .accessibilityLabel("Série \(evm.currentSetIndex + 1) sur \(evm.sets.count)")
-                .accessibilityValue("Active")
-
-            Text("\(count)")
-                .font(.appDisplay)
-                .foregroundColor(Color.forge)
-                .contentTransition(.numericText())
-                .animation(.spring(response: 0.2, dampingFraction: 0.6), value: count)
-                .frame(minWidth: 100)
-                .accessibilityLabel("Répétitions comptées")
-                .accessibilityValue("\(count)")
-
-            HStack(spacing: 36) { // ponytail: écart rep-counter volontaire (isolation tap-target)
-                Button {
-                    guard mayEdit else { return }
-                    updateCount(max(0, count - 1))
-                    triggerImpact(style: .light)
-                } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.appHero)
-                        .foregroundColor(.gray.opacity(0.45))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Diminuer les répétitions")
-                .accessibilityValue("\(count)")
-
-                Button {
-                    guard mayEdit else { return }
-                    updateCount(count + 1)
-                    triggerImpact(style: .medium)
-                } label: {
-                    ZStack {
-                        Circle().fill(Color.forge.opacity(0.12)).frame(width: 112, height: 112)
-                        VStack(spacing: 4) {
-                            Image(systemName: "hand.tap.fill").font(.appTitle)
-                            Text("REP").font(.appLabel).fontWeight(.black)
-                        }
-                        .foregroundColor(Color.forge)
-                    }
-                }
-                .buttonStyle(SpringButtonStyle(scale: 0.92))
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Ajouter une répétition")
-                .accessibilityValue("\(count)")
-
-                Button {
-                    guard mayEdit else { return }
-                    updateCount(0, resolved: true)
-                    triggerImpact(style: .light)
-                } label: {
-                    Image(systemName: "arrow.counterclockwise.circle.fill")
-                        .font(.appHero)
-                        .foregroundColor(.gray.opacity(0.45))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Remettre le compteur à zéro")
-                .accessibilityValue("\(count)")
-            }
-
-            Button {
-                guard mayEdit else { return }
-                guard preparation == nil || (editor.isAvailable() && evm.setBySetMode && count > 0) else { return }
-                let allDone = evm.confirmSet(reps: count)
-                updateCount(0, resolved: true)
-                triggerImpact(style: .medium)
-                if allDone { doLog() }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: isLastSet ? "checkmark.circle.fill" : "arrow.right.circle.fill")
-                        .font(.appHeadline)
-                        .accessibilityHidden(true)
-                    Text(isLastSet
-                         ? (evm.isEditing ? "Mettre à jour l’exercice" : "Logger l’exercice")
-                         : "Terminer la série \(evm.currentSetIndex + 1)")
-                        .font(.appBody).fontWeight(.bold)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .padding(.vertical, 12)
-                .background(count > 0 ? Color.forge : Color.gray.opacity(0.1))
-                .foregroundColor(count > 0 ? .white : .gray)
-                .cornerRadius(8)
-            }
-            .disabled(count == 0)
-            .buttonStyle(SpringButtonStyle())
-        }
-        .padding(.top, 4)
-        .onAppear { mountCounter() }
-        .onDisappear { editor.unmount() }
-        .onChange(of: evm.currentSetIndex) { _ in
-            if preparation == nil { count = 0 }
-            else { mountCounter() }
-        }
-        .onChange(of: evm.sets.map(\.id)) { _, _ in
-            if preparation != nil { mountCounter() }
-        }
     }
 }
 
