@@ -50,7 +50,14 @@ struct StepperInput: View {
         ExerciseStepperEditor.formatted(v, isInteger: false)
     }
 
+    private var incrementLabel: String? {
+        guard increment != 1 else { return nil }
+        let value = isInteger ? "\(Int(increment))" : ExerciseStepperEditor.formatted(increment, isInteger: false)
+        return "±\(value)"
+    }
+
     var body: some View {
+        VStack(spacing: 0) {
         HStack(spacing: 0) {
             stepIcon(systemName: "minus", isHeld: minusHeld)
                 .gesture(
@@ -121,6 +128,14 @@ struct StepperInput: View {
         .disabled(!editor.allowsOrdinaryMutation)
         .background(Color.appSurfaceInset)
         .cornerRadius(8)
+        if let incrementLabel {
+            Text(incrementLabel)
+                .font(.appMicro).fontWeight(.semibold)
+                .foregroundColor(Color.appTextMuted)
+                .padding(.top, 2)
+                .accessibilityHidden(true)
+        }
+        }
         .onChange(of: isManualFocused) { _, focused in
             if focused {
                 let epoch = editor.callbackEpoch

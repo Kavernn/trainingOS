@@ -661,12 +661,12 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func setHeaderWeightLabels() -> some View {
-        let headerColor = Color.appTextSecondary.opacity(0.7)
+        let headerColor = Color.appTextSecondary
         Text("SET")
-            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
+            .font(.appLabel).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
             .frame(width: 28, alignment: .leading)
         Text(weightColumnLabel)
-            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
+            .font(.appLabel).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
         if evm.equipmentType == "landmine" || evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
             let activeIdx = evm.setBySetMode ? evm.currentSetIndex : 0
             if evm.sets.indices.contains(activeIdx) {
@@ -718,10 +718,10 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private func setHeaderRepsLabels() -> some View {
-        let headerColor = Color.appTextSecondary.opacity(0.7)
+        let headerColor = Color.appTextSecondary
         let repsLabel = evm.equipmentType == "fixed_weight" ? "REPS (OPT.)" : "REPS"
         Text(repsLabel)
-            .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
+            .font(.appLabel).fontWeight(.bold).tracking(1).foregroundColor(headerColor)
             .frame(width: evm.setBySetMode ? 132 : 140, alignment: .center)
         // W-C2 — hide RIR column for time-based exercises
         if showRIRColumn && !isTimeBased {
@@ -2035,6 +2035,18 @@ struct ExerciseCard: View {
         }
     }
 
+    private func friendlyHistoryDate(_ iso: String?) -> String {
+        guard let iso, let d = DateFormatter.isoDate.date(from: iso) else { return iso ?? "—" }
+        let days = Int(Date().timeIntervalSince(d) / 86400)
+        if days <= 0 { return "aujourd’hui" }
+        if days == 1 { return "hier" }
+        if days < 7  { return "il y a \(days) j." }
+        let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "fr_FR")
+        fmt.setLocalizedDateFormatFromTemplate("d MMM")
+        return fmt.string(from: d)
+    }
+
     @ViewBuilder private var historySection: some View {
         if let history = weightData?.history, !history.isEmpty {
             let historyPerSide: (Double) -> Double = { stored in
@@ -2083,7 +2095,15 @@ struct ExerciseCard: View {
                                 Image(systemName: i == 0 ? "clock.arrow.circlepath" : "circle.fill")
                                     .font(.appMicro)
                                     .foregroundColor(.gray.opacity(i == 0 ? 0.5 : 0.25))
-                                Text(entry.date ?? "—").font(.appMicro).foregroundColor(i == 0 ? .gray : .gray.opacity(0.7))
+                                Group {
+                                    if i == 0 {
+                                        Text("Dernière fois · \(friendlyHistoryDate(entry.date))")
+                                            .font(.appMicro).fontWeight(.semibold).foregroundColor(.gray)
+                                    } else {
+                                        Text(friendlyHistoryDate(entry.date))
+                                            .font(.appMicro).foregroundColor(.gray.opacity(0.7))
+                                    }
+                                }
                                 if let note = entry.note, !note.isEmpty {
                                     Text(note).font(.appMicro).fontWeight(.medium)
                                         .foregroundColor(note.hasPrefix("+")
@@ -2125,14 +2145,24 @@ struct ExerciseCard: View {
                     }
                 }
                 if history.count > defaultCount {
+                    let remaining = history.count - defaultCount
                     Button(action: { evm.showHistory.toggle() }) {
-                        HStack(spacing: 4) {
-                            Text(evm.showHistory ? "Moins" : "+\(history.count - defaultCount) sessions").font(.appMicro)
-                            Image(systemName: evm.showHistory ? "chevron.up" : "chevron.down").font(.appMicro)
+                        HStack(spacing: 6) {
+                            Image(systemName: evm.showHistory ? "chevron.up" : "chevron.down")
+                                .font(.appMicro).fontWeight(.bold)
+                            Text(evm.showHistory
+                                 ? "Masquer l’historique"
+                                 : "Voir \(remaining) séance\(remaining > 1 ? "s" : "") de plus")
+                                .font(.appCaption).fontWeight(.semibold)
                         }
-                        .foregroundColor(.gray.opacity(0.5))
+                        .foregroundColor(Color.appTextSecondary)
+                        .frame(minHeight: 44)
+                        .padding(.horizontal, 12)
+                        .background(Color.appSurfaceInset)
+                        .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    .padding(.top, 4)
                 }
             }
         }

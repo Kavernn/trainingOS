@@ -543,20 +543,17 @@ struct WorkoutSeanceView: View {
             .cornerRadius(8)
             .padding(.horizontal, 16)
         } else {
-        // Add exercise — session-local only, doesn't modify the programme
         Button { showAddLocal = true } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill").foregroundColor(Color.forge.opacity(0.7))
+            HStack(spacing: 6) {
+                Image(systemName: "plus.circle")
+                    .font(.appCaption)
                 Text("Ajouter un exercice")
-                    .font(.appLabel).fontWeight(.semibold)
-                    .foregroundColor(Color.forge.opacity(0.7))
+                    .font(.appCaption).fontWeight(.semibold)
             }
+            .foregroundColor(Color.appTextSecondary)
             .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.vertical, 12)
-            .background(Color.forge.opacity(0.06))
-            .cornerRadius(8)
         }
-        .buttonStyle(SpringButtonStyle())
+        .buttonStyle(.plain)
         .padding(.horizontal, 16)
         }
     }
