@@ -57,6 +57,7 @@ struct WorkoutSeanceView: View {
     @State private var durationOverrideText: String = ""
     @State private var showRestartConfirmation = false
     @State private var exercisePendingDeletion: String? = nil
+    @State private var activeSetProgress: (setIndex: Int, setCount: Int) = (0, 0)
     // PM partielle : dialogue "Reprendre plus tard / Clore la séance" quand
     // isSecondSession && exos loggés < plan total. Route dédiée, court-circuite
     // WorkoutSummarySheet (AM/bonus conservent l'existant).
@@ -687,8 +688,16 @@ struct WorkoutSeanceView: View {
                 Text("SÉANCE TERMINÉE")
                     .font(.appMicro).fontWeight(.bold).tracking(2)
                     .foregroundColor(Color.appTextMuted)
+            } else if progressTotal == 0 {
+                Text("MOBILITÉ")
+                    .font(.appMicro).fontWeight(.bold).tracking(2)
+                    .foregroundColor(Color.appTextMuted)
             } else {
-                Text(progressTotal == 0 ? "MOBILITÉ" : "EXO COURANT · \(progressDone)/\(progressTotal)")
+                let exoIdx = (exercises.firstIndex { $0.0 == currentExerciseName } ?? 0) + 1
+                let setLabel: String = activeSetProgress.setCount > 0
+                    ? " · S\(min(activeSetProgress.setIndex + 1, activeSetProgress.setCount))/\(activeSetProgress.setCount)"
+                    : ""
+                Text("EXO \(exoIdx)/\(progressTotal)\(setLabel)")
                     .font(.appMicro).fontWeight(.bold).tracking(2)
                     .foregroundColor(Color.appTextMuted)
             }
@@ -959,7 +968,15 @@ struct WorkoutSeanceView: View {
                 } else {
                     skippedExercises.remove(name)
                 }
-            }
+            },
+            onSetChange: name == currentExerciseName ? { idx, count in
+                activeSetProgress = (idx, count)
+                if idx > 0 && !vm.sessionStarted && !vm.isResuming {
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.82)) {
+                        vm.startSession()
+                    }
+                }
+            } : nil
         )
 
         // Row sous la carte selon la SOURCE réelle du poids affiché :

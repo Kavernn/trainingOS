@@ -37,6 +37,7 @@ struct ExerciseCard: View {
     private var recoveredInitialState: ExerciseRecoveryHydration?
     var onLogged: (() -> Void)? = nil
     private let onSkippedChanged: ((Bool) -> Void)?
+    private let onSetChange: ((Int, Int) -> Void)?
     private let onSubmitLogCandidate: ((ExerciseLogResult?) -> LocalPersistenceResult)?
     private let onPersistenceRefused: ((LocalPersistenceResult) -> Void)?
     private let requiresAcceptance: Bool
@@ -113,8 +114,11 @@ struct ExerciseCard: View {
          onDraftPersisted: (() -> Void)? = nil,
          editorPreparation: ExerciseEditorPreparationController? = nil,
          sourceRegistration: DayComposerCardRegistration? = nil,
-         onSkippedChanged: ((Bool) -> Void)? = nil, occurrenceKey: String? = nil) {
+         onSkippedChanged: ((Bool) -> Void)? = nil,
+         onSetChange: ((Int, Int) -> Void)? = nil,
+         occurrenceKey: String? = nil) {
         self.onSkippedChanged = onSkippedChanged
+        self.onSetChange = onSetChange
         self.sourceRegistration = sourceRegistration
         self.preparesEditors = editorPreparation != nil || sourceRegistration != nil
         _editorController = StateObject(wrappedValue: editorPreparation ?? ExerciseEditorPreparationController())
@@ -1280,6 +1284,13 @@ struct ExerciseCard: View {
             if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }
             if preparesEditors { editorController.attach(evm, requiresEnduranceInspection: isTimeBased) }
             sourceRegistration?.appear(editorController)
+            onSetChange?(evm.currentSetIndex, evm.sets.count)
+        }
+        .onChange(of: evm.currentSetIndex) { _, idx in
+            onSetChange?(idx, evm.sets.count)
+        }
+        .onChange(of: evm.sets.count) { _, count in
+            onSetChange?(evm.currentSetIndex, count)
         }
         .onDisappear {
             sourceRegistration?.disappear(editorController)
@@ -1623,25 +1634,32 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var expandedTopBar: some View {
         HStack {
-            if let onSwap {
-                Button {
-                    if alreadyLogged {
-                        confirmSwapAfterLog = true
-                    } else {
-                        triggerImpact(style: .light)
-                        guard allowAction() else { return }
-                        onSwap()
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.left.arrow.right").font(.appCaption)
-                        Text("Changer").font(.appCaption).fontWeight(.semibold)
-                    }
-                    .foregroundColor(.gray.opacity(0.7)).padding(.horizontal, 12).padding(.vertical, 4)
-                    .background(Color.appSurfaceInset).clipShape(Capsule())
+            Menu {
+                if let onSwap {
+                    Button {
+                        if alreadyLogged {
+                            confirmSwapAfterLog = true
+                        } else {
+                            triggerImpact(style: .light)
+                            guard allowAction() else { return }
+                            onSwap()
+                        }
+                    } label: { Label("Changer l'exercice", systemImage: "arrow.left.arrow.right") }
                 }
-                .buttonStyle(.plain)
+                if !evm.isEditing && !evm.isSkipped {
+                    Button(role: .destructive) { confirmSkip = true } label: {
+                        Label("Sauter l'exercice", systemImage: "forward.fill")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.appBody.weight(.semibold))
+                    .foregroundColor(.gray.opacity(0.7))
+                    .frame(width: 44, height: 44)
+                    .background(Color.appSurfaceInset).clipShape(Circle())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Plus d'actions pour \(name)")
             Spacer()
             Menu {
                 Button { changeEquipment("landmine") } label: { Label("Landmine", systemImage: "minus.circle.fill") }
@@ -2164,20 +2182,6 @@ struct ExerciseCard: View {
                 Button(action: { guard allowAction() else { return }; evm.isEditing = false }) {
                     Text("Annuler")
                         .font(.appCaption).fontWeight(.medium).foregroundColor(.gray.opacity(0.5))
-                }
-            } else {
-                Button(action: { confirmSkip = true }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "forward.fill")
-                            .font(.appMicro).fontWeight(.bold)
-                        Text("Sauter")
-                            .font(.appCaption).fontWeight(.semibold)
-                    }
-                    .foregroundColor(Color.appDanger.opacity(0.7))
-                    .frame(minHeight: 44)
-                    .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(Color.appDanger.opacity(0.08))
-                    .cornerRadius(8)
                 }
             }
         }
