@@ -188,33 +188,6 @@ struct NutritionDay: Codable, Identifiable {
     let proteines: Double?
 }
 
-// MARK: - Meal Template
-struct MealTemplate: Identifiable, Codable {
-    let id: String
-    var name: String
-    var items: [MealTemplateItem]
-
-    var totalCalories:  Double { items.reduce(0) { $0 + $1.calories } }
-    var totalProteines: Double { items.reduce(0) { $0 + $1.proteines } }
-    var totalGlucides:  Double { items.reduce(0) { $0 + $1.glucides } }
-    var totalLipides:   Double { items.reduce(0) { $0 + $1.lipides } }
-
-    enum CodingKeys: String, CodingKey { case id, name, items }
-}
-
-struct MealTemplateItem: Identifiable, Codable {
-    var id = UUID()
-    var name: String
-    var calories: Double
-    var proteines: Double
-    var glucides: Double
-    var lipides: Double
-
-    enum CodingKeys: String, CodingKey {
-        case name, calories, proteines, glucides, lipides
-    }
-}
-
 // MARK: - Nutrition Correlations
 struct NutritionCorrelations: Decodable {
     let protRpe:    ProtRpeInsight?
