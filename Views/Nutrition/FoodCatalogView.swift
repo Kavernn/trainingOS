@@ -10,8 +10,6 @@ struct FoodCatalogView: View {
     @State private var pendingDeleteId: UUID? = nil
     @State private var showDeleteConfirm = false
     @State private var searchText = ""
-    // N-D7: track sync failures
-    @State private var syncFailed = false
 
     private var filteredItems: [FoodItem] {
         guard !searchText.isEmpty else { return items }
@@ -23,27 +21,6 @@ struct FoodCatalogView: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    // N-D7: sync failure banner
-                    if syncFailed {
-                        HStack(spacing: 10) {
-                            Image(systemName: "exclamationmark.icloud.fill")
-                                .foregroundColor(Color.forge)
-                            Text("Modifications non synchronisées")
-                                .font(.appLabel)
-                                .foregroundColor(.appTextPrimary)
-                            Spacer()
-                            Button {
-                                Task { await syncCatalog(items) }
-                            } label: {
-                                Image(systemName: "arrow.clockwise")
-                                    .foregroundColor(Color.forge)
-                            }
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.forge.opacity(0.1))
-                    }
-
                     List {
                         ForEach(filteredItems) { item in
                             Button {
@@ -113,7 +90,6 @@ struct FoodCatalogView: View {
                     if let deleteId = pendingDeleteId {
                         items.removeAll { $0.id == deleteId }
                         FoodCatalogStore.save(items)
-                        Task { await syncCatalog(items) }
                     }
                 }
                 Button("Annuler", role: .cancel) { pendingDeleteId = nil }
@@ -122,7 +98,6 @@ struct FoodCatalogView: View {
                 FoodItemFormView(existing: nil) { newItem in
                     items.append(newItem)
                     FoodCatalogStore.save(items)
-                    Task { await syncCatalog(items) }
                 }
             }
             .sheet(item: $editTarget) { item in
@@ -130,24 +105,12 @@ struct FoodCatalogView: View {
                     if let idx = items.firstIndex(where: { $0.id == updated.id }) {
                         items[idx] = updated
                         FoodCatalogStore.save(items)
-                        Task { await syncCatalog(items) }
                     }
                 }
             }
         }
     }
 
-    // N-D7: wrapped save with error tracking
-    // offline → offlinePost enqueue (SyncManager retry auto, no throw) → syncFailed=false
-    // server error 4xx/5xx → throws → syncFailed=true, bannière visible
-    private func syncCatalog(_ current: [FoodItem]) async {
-        do {
-            try await APIService.shared.saveFoodCatalog(current)
-            syncFailed = false
-        } catch {
-            syncFailed = true
-        }
-    }
 
     @ViewBuilder
     private func categoryBadge(_ cat: String) -> some View {

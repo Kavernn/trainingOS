@@ -158,32 +158,6 @@ enum FoodCatalogStore {
         UserDefaults.standard.removeObject(forKey: legacyKey)
     }
 
-    // MARK: - Sync state
-
-    static let syncFailedKey = "food_catalog_sync_failed"
-    static var syncFailed: Bool {
-        get { UserDefaults.standard.bool(forKey: syncFailedKey) }
-        set { UserDefaults.standard.set(newValue, forKey: syncFailedKey) }
-    }
-
-    // MARK: - API codec (snake_case ↔ camelCase) — syncs custom items only
-
-    private static var apiEncoder: JSONEncoder {
-        let e = JSONEncoder(); e.keyEncodingStrategy = .convertToSnakeCase; return e
-    }
-    private static var apiDecoder: JSONDecoder {
-        let d = JSONDecoder(); d.keyDecodingStrategy = .convertFromSnakeCase; return d
-    }
-
-    static func encodeForAPI(_ items: [FoodItem]) -> Data? {
-        struct Payload: Encodable { let items: [FoodItem] }
-        return try? apiEncoder.encode(Payload(items: items.filter { !$0.isBuiltIn }))
-    }
-
-    static func decodeFromAPI(_ data: Data) -> [FoodItem] {
-        struct Resp: Decodable { let items: [FoodItem] }
-        return (try? apiDecoder.decode(Resp.self, from: data))?.items ?? []
-    }
 }
 
 // MARK: - Recent Foods
