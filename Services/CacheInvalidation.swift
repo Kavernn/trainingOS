@@ -49,15 +49,12 @@ enum CacheInvalidation {
     case warRoomArsenalMutated
 
     // MARK: - Other domains
-    case timeCapsuleCreated       // capsules + snapshot
-    case timeCapsuleOpened        // capsules only
     case oathUpdated
     case patternsPinMutated
     case plateauDismissed
     case nutritionLogged       // add / delete / edit (entries + dashboard + score)
     case cardioLogged
     case energyLogged
-    case foodCatalogUpdated
     case dashboardInvalidated
     case profileUpdated        // name / age / height / goal / level / sex
 
@@ -141,10 +138,6 @@ enum CacheInvalidation {
             return ["war_room_triggers", "war_room_today_status"]
         case .warRoomArsenalMutated:
             return ["war_room_arsenal"]
-        case .timeCapsuleCreated:
-            return ["time_capsules", "capsule_snapshot"]
-        case .timeCapsuleOpened:
-            return ["time_capsules"]
         case .oathUpdated:
             return ["oath_current", "oath_versions"]
         case .patternsPinMutated:
@@ -157,8 +150,6 @@ enum CacheInvalidation {
             return ["cardio_data", "cardio_metrics", "streak_data"]
         case .energyLogged:
             return ["energy_daily_today", "energy_history_7"]
-        case .foodCatalogUpdated:
-            return ["food_catalog"]
         case .dashboardInvalidated:
             return ["dashboard"]
         case .profileUpdated:
@@ -187,11 +178,6 @@ enum CacheInvalidation {
     func invalidate() {
         keys.forEach { CacheService.shared.clear(for: $0) }
         prefixesToClear.forEach { CacheService.shared.clear(prefix: $0) }
-        // Brief contract (voir keys ci-dessus) : toute case listant "morning_brief"
-        // rend le brief stale — invalidation paresseuse, refetch au prochain affichage.
-        if keys.contains("morning_brief") {
-            DailyBriefService.invalidate()
-        }
     }
 
     /// Deduplicates keys across N cases before clearing — use when calling invalidate() in a loop.
@@ -204,8 +190,5 @@ enum CacheInvalidation {
         }
         uniqueKeys.forEach { CacheService.shared.clear(for: $0) }
         uniquePrefixes.forEach { CacheService.shared.clear(prefix: $0) }
-        if uniqueKeys.contains("morning_brief") {
-            DailyBriefService.invalidate()
-        }
     }
 }

@@ -76,13 +76,10 @@ _db_startup.ensure_schema_migrations()
 
 # ── Register blueprints ──────────────────────────────────────
 from routes.profile      import profile_bp
+from routes.body_weight  import body_weight_bp
 from routes.nutrition_entries   import nutrition_bp
-from routes.nutrition_food      import nutrition_food_bp
-from routes.nutrition_templates import nutrition_templates_bp
 from routes.nutrition_analytics import nutrition_analytics_bp
-from routes.nutrition_hydration import nutrition_hydration_bp
 from routes.ai_coach_memory  import ai_coach_memory_bp
-from routes.goals        import goals_bp
 from routes.analytics_load  import analytics_load_bp
 from routes.analytics_coach import analytics_coach_bp
 from routes.analytics_stats import analytics_stats_bp
@@ -101,7 +98,6 @@ from routes.wellness_spirit   import wellness_spirit_bp
 from routes.patterns     import patterns_bp
 from routes.readiness    import readiness_bp
 from routes.budget       import budget_bp
-from routes.time_capsule import time_capsule_bp
 from routes.workout_dna  import workout_dna_bp
 from routes.plateau      import plateau_bp
 from routes.ritual       import ritual_bp
@@ -114,19 +110,16 @@ from routes.cardio_metrics import cardio_metrics_bp
 from routes.energy_daily  import energy_daily_bp
 from routes.coach_insights       import coach_insights_bp
 from routes.proactive_insights   import proactive_insights_bp
-from routes.daily_brief          import daily_brief_bp
 from routes.velocity             import velocity_bp
 from routes.compound             import compound_bp
 from routes.temporal             import temporal_bp
 from routes.portrait             import portrait_bp
-from routes.behavioral_prs       import behavioral_prs_bp
 from routes.rupture              import rupture_bp
 from routes.performance_conditions import performance_conditions_bp
 from routes.sleep_debt           import sleep_debt_bp
 from routes.training_load        import training_load_bp
 from routes.ideal_week           import ideal_week_bp
 from routes.nutrition_performance import nutrition_performance_bp
-from routes.comeback_arc         import comeback_arc_bp
 from routes.weekly_momentum      import weekly_momentum_bp
 from routes.weekly_tonnage       import weekly_tonnage_bp
 from routes.optimal_day          import optimal_day_bp
@@ -140,25 +133,20 @@ from routes.stress_load          import stress_load_bp
 from routes.progressive_overload import progressive_overload_bp
 from routes.session_quality      import session_quality_bp
 from routes.training_heatmap     import training_heatmap_bp
-from routes.body_weight_trend    import body_weight_trend_bp
 from routes.energy_performance   import energy_performance_bp
 from routes.pr_tracker           import pr_tracker_bp
 from routes.soreness_fatigue     import soreness_fatigue_bp
 from routes.sleep_quality        import sleep_quality_bp
 from routes.workout_duration     import workout_duration_bp
-from routes.smart_alarm          import smart_alarm_bp
 from routes.session_progression  import session_progression_bp
 from routes.deload_management    import deload_management_bp
 from routes.educational          import educational_bp
 
 app.register_blueprint(profile_bp)
+app.register_blueprint(body_weight_bp)
 app.register_blueprint(nutrition_bp)
-app.register_blueprint(nutrition_food_bp)
-app.register_blueprint(nutrition_templates_bp)
 app.register_blueprint(nutrition_analytics_bp)
-app.register_blueprint(nutrition_hydration_bp)
 app.register_blueprint(ai_coach_memory_bp)
-app.register_blueprint(goals_bp)
 app.register_blueprint(analytics_load_bp)
 app.register_blueprint(analytics_coach_bp)
 app.register_blueprint(analytics_stats_bp)
@@ -177,7 +165,6 @@ app.register_blueprint(wellness_spirit_bp)
 app.register_blueprint(patterns_bp)
 app.register_blueprint(readiness_bp)
 app.register_blueprint(budget_bp)
-app.register_blueprint(time_capsule_bp)
 app.register_blueprint(workout_dna_bp)
 app.register_blueprint(plateau_bp)
 app.register_blueprint(ritual_bp)
@@ -190,19 +177,16 @@ app.register_blueprint(cardio_metrics_bp)
 app.register_blueprint(energy_daily_bp)
 app.register_blueprint(coach_insights_bp)
 app.register_blueprint(proactive_insights_bp)
-app.register_blueprint(daily_brief_bp)
 app.register_blueprint(velocity_bp)
 app.register_blueprint(compound_bp)
 app.register_blueprint(temporal_bp)
 app.register_blueprint(portrait_bp)
-app.register_blueprint(behavioral_prs_bp)
 app.register_blueprint(rupture_bp)
 app.register_blueprint(performance_conditions_bp)
 app.register_blueprint(sleep_debt_bp)
 app.register_blueprint(training_load_bp)
 app.register_blueprint(ideal_week_bp)
 app.register_blueprint(nutrition_performance_bp)
-app.register_blueprint(comeback_arc_bp)
 app.register_blueprint(weekly_momentum_bp)
 app.register_blueprint(weekly_tonnage_bp)
 app.register_blueprint(optimal_day_bp)
@@ -216,13 +200,11 @@ app.register_blueprint(stress_load_bp)
 app.register_blueprint(progressive_overload_bp)
 app.register_blueprint(session_quality_bp)
 app.register_blueprint(training_heatmap_bp)
-app.register_blueprint(body_weight_trend_bp)
 app.register_blueprint(energy_performance_bp)
 app.register_blueprint(pr_tracker_bp)
 app.register_blueprint(soreness_fatigue_bp)
 app.register_blueprint(sleep_quality_bp)
 app.register_blueprint(workout_duration_bp)
-app.register_blueprint(smart_alarm_bp)
 app.register_blueprint(session_progression_bp)
 app.register_blueprint(deload_management_bp)
 app.register_blueprint(educational_bp)

@@ -68,7 +68,6 @@ enum SyncDiscardLabel {
         if endpoint == "/api/log_recovery"               { return "Récupération — log" }
         if endpoint == "/api/delete_recovery"            { return "Récupération — suppression" }
         if endpoint == "/api/pss/submit"                 { return "Récupération — PSS" }
-        if endpoint == "/api/smart_alarm/bedtime"        { return "Récupération — smart alarm" }
         // Mental
         if endpoint == "/api/mood/log"                   { return "Mental — humeur" }
         if endpoint == "/api/journal/save"               { return "Mental — journal" }
@@ -98,14 +97,6 @@ enum SyncDiscardLabel {
         if endpoint == "/api/nutrition/add"              { return "Nutrition — ajout entrée" }
         if endpoint == "/api/nutrition/delete"           { return "Nutrition — suppression entrée" }
         if endpoint == "/api/nutrition/settings"         { return "Nutrition — réglages" }
-        if endpoint == "/api/food_catalog"               { return "Nutrition — catalogue aliments" }
-        if endpoint == "/api/meal_templates"             { return "Nutrition — nouveau repas-template" }
-        if endpoint.hasPrefix("/api/meal_templates/") {
-            if endpoint.hasSuffix("/update")             { return "Nutrition — repas-template (update)" }
-            if endpoint.hasSuffix("/delete")             { return "Nutrition — repas-template (suppression)" }
-            if endpoint.hasSuffix("/log")                { return "Nutrition — repas-template (log)" }
-            return "Nutrition — repas-template"
-        }
         // Saisons
         if endpoint == "/api/seasons/start"              { return "Saisons — démarrage" }
         // Fallback : chemin brut

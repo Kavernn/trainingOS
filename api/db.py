@@ -11,12 +11,6 @@ from __future__ import annotations
 # ── Core (shared state + SQLite helpers) ──────────────────────────────────────
 import db_core
 
-# ── Smart Alarm sessions ──────────────────────────────────────────────────────
-from db_smart_alarm import (
-    upsert_smart_alarm_session,
-    get_smart_alarm_sessions,
-)
-
 # Re-export module-level globals so `from db import _client` keeps working
 from db_core import (
     MODE,
@@ -144,14 +138,6 @@ from db_profile import (
     delete_nutrition_entry,
     delete_nutrition_entries_for_date,
     get_nutrition_entries_recent,
-    get_hydration_today,
-    log_hydration,
-    get_food_catalog,
-    save_food_catalog,
-    get_meal_templates,
-    create_meal_template,
-    update_meal_template,
-    delete_meal_template,
     get_active_deload_period,
     get_deload_periods,
     get_last_completed_deload,
@@ -208,19 +194,8 @@ from db_wellness import (
     set_self_care_log_for_date,
     get_life_stress_score_db,
     upsert_life_stress_score,
-    get_coach_history,
-    insert_coach_message,
-    get_goals_archived,
-    add_goal_archived,
-    remove_goal_archived,
     update_exercise_current_weight,
     get_sessions_for_correlations,
-    get_smart_goals,
-    upsert_smart_goal,
-    delete_smart_goal,
-    compute_smart_goal_current,
-    compute_smart_goal_progress,
-    SMART_GOAL_META,
 )
 
 # ── Stats / Analytics ─────────────────────────────────────────────────────────
