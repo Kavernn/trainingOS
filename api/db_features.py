@@ -990,9 +990,9 @@ def save_season_snapshot(season_id: str, snap_type: str, data: dict) -> Optional
                 return _do()
             except Exception as e2:
                 db_core.logger.error("save_season_snapshot retry: %s", e2)
-                return None
+                raise
         db_core.logger.error("save_season_snapshot error: %s", e)
-        return None
+        raise
 
 
 def close_season(season_id: str, ended_at: str, generated_title: str, dominant_arc: str) -> Optional[dict]:

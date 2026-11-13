@@ -91,6 +91,24 @@ sur `recovery_logs` avec `DEFAULT 'manual'` (`docs/schema.sql:322, 356`).
 
 ---
 
+### 1.7 Composition corporelle — méthodes mélangées
+
+Les lignes de `body_weight_logs` combinent **deux méthodes de mesure** incompatibles entre elles :
+- **Scan Styku** (DEXA-like optique) : notes du type "Scan Styku", observées avril 2025 et mars 2026.
+- **Mesure manuelle** (mètre ruban + impédance maison) : le reste.
+
+Les écarts entre méthodes sont importants (ex. masse grasse 18,1 → 25,2 % ; cuisse 69 → 56 cm —
+cf. saison 2026-05-11) et viennent du changement de méthode, pas d'une évolution physiologique.
+
+**Règle :** toute comparaison corporelle dans le temps (onglet Corps, saison-vs-saison, trend) ne
+doit comparer que des mesures de **même méthode**. Filtre à ajouter sur `notes LIKE '%Styku%'` vs
+non-Styku avant tout delta.
+
+**TODO :** colonne `measurement_method` (`styku` / `manual`) sur `body_weight_logs` + migration qui
+backfill depuis `notes`. Et UI qui marque la méthode à la saisie.
+
+---
+
 ## 2. Unités — lbs canonique
 
 Le stockage est toujours en **livres (lbs)**, jamais en kg.
