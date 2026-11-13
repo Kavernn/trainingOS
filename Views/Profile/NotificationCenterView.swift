@@ -31,7 +31,6 @@ struct NotificationCenterView: View {
     @AppStorage("hrv_morning_minute")   private var hrvMinute   = 0
 
     // MARK: - Intelligence
-    @AppStorage("notif_on_capsule")   private var capsule   = true
     @AppStorage("notif_on_phoenix")   private var phoenix   = true
 @AppStorage("notif_on_dna")       private var dna       = true
     @AppStorage("notif_on_proactive") private var proactive = true
@@ -277,15 +276,6 @@ struct NotificationCenterView: View {
 
     private var intelligenceSection: some View {
         Section("Intelligence") {
-            notifToggle(icon: "clock.badge.fill", color: .statusYellow,
-                        title: "Capsule temporelle",
-                        subtitle: "7 jours avant l'ouverture",
-                        isOn: $capsule,
-                        ids: [],
-                        onToggle: { enabled in
-                            if !enabled { removeCapsuleNotifications() }
-                            NotificationService.scheduleAll()
-                        })
             notifToggle(icon: "bird.fill", color: Color(hex: "FF6B00"),
                         title: "Évolutions Phoenix",
                         subtitle: "Quand ton score change de catégorie",
@@ -488,12 +478,4 @@ notifToggle(icon: "staroflife.fill", color: .indigo,
         }
     }
 
-    private func removeCapsuleNotifications() {
-        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
-            let ids = requests
-                .filter { $0.identifier.hasPrefix("event.capsule.soon.") }
-                .map(\.identifier)
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
-        }
-    }
 }

@@ -574,16 +574,6 @@ final class DashboardViewModel: ObservableObject {
                     }
                     return .effects
                 }
-                group.addTask { @MainActor in
-                    do {
-                        let capsules = try await APIService.shared.fetchTimeCapsules()
-                        guard self.canPublish(contextVersion, today: today) else { return .effects }
-                        NotificationService.scheduleTimeCapsuleSoon(capsules: capsules)
-                    } catch {
-                        self.logger.error("fetchTimeCapsules: \(error, privacy: .public)")
-                    }
-                    return .effects
-                }
             }
             guard canPublish(contextVersion, today: today) else { return }
             analyticsLoadedDate = today

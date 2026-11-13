@@ -49,8 +49,6 @@ final class NoSilentAPIErrorsInViewsTests: XCTestCase {
             "scheduleSeasonMilestones (notif) uniquement. L'état saison affiché vient d'ailleurs (SeasonView fetch dédié).",
         "Views/Dashboard/DashboardViewModel.swift:fetchWorkoutDNA":
             "notifyDNAArchetypeChange (notif) uniquement. L'enqueue DNA evolution vit dans AppState.checkDNAEvolution (appel distinct).",
-        "Views/Dashboard/DashboardViewModel.swift:fetchTimeCapsules":
-            "scheduleTimeCapsuleSoon (notif) uniquement. Les capsules sont consommées côté push notif seulement.",
         "Views/Seance/ExerciseViewModel.swift:verifyFinishCompletion":
             "Verif post-save. Échec = 'non vérifié' → le caller (saveSession) set submitError visible au user. Pas de nouvelle UI.",
         "Views/Seance/ExerciseViewModel.swift:finish":

@@ -631,44 +631,6 @@ enum NotificationService {
         }
     }
 
-    // MARK: - Event: Time Capsule unlocking soon (≤7 days)
-
-    /// Schedules a one-shot notification for each capsule unlocking within 7 days.
-    static func scheduleTimeCapsuleSoon(capsules: [TimeCapsule]) {
-        // Calendar.current + parsing device VOLONTAIRE — la capsule est un rendez-vous
-        // avec soi-même, pas avec un fuseau. L'heure d'ouverture suit le device.
-        // Ne pas migrer vers Calendar.mtl.
-        guard !globalDisabled, isEnabled("notif_on_capsule") else { return }
-        let center = UNUserNotificationCenter.current()
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
-        let now = Date()
-        let sevenDays = 7.0 * 86400
-
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-            for capsule in capsules {
-                let unlockISO = capsule.unlockAt
-                guard let unlockDate = f.date(from: String(unlockISO.prefix(10))) else { continue }
-                let interval = unlockDate.timeIntervalSince(now)
-                guard interval > 0 && interval <= sevenDays else { continue }
-                let id = "event.capsule.soon.\(capsule.id)"
-                center.removePendingNotificationRequests(withIdentifiers: [id])
-                let daysLeft = max(1, Int(interval / 86400))
-                let content = UNMutableNotificationContent()
-                content.title = "Ta capsule temporelle s'ouvre bientôt"
-                content.body  = daysLeft == 1
-                    ? "Ta capsule temporelle s'ouvre demain. Prépare-toi."
-                    : "Ta capsule temporelle s'ouvre dans \(daysLeft) jours."
-                content.sound = .default
-                // Fire at 9:00 on the day that is 7 days before unlock
-                var dc = Calendar.current.dateComponents([.year, .month, .day], from: now)
-                dc.hour = 9; dc.minute = 0
-                let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
-                center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
-            }
-        }
-    }
-
     // MARK: - Weekly recap with real data
 
     /// Reschedule Sunday recap with actual session/PR counts from the latest report.
