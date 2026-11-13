@@ -61,14 +61,10 @@ def api_deload_activate():
     if db.get_active_deload_period() is not None:
         return jsonify({"error": "Une décharge est déjà active"}), 409
     activer_deload(reason=reason, duration_days=duration_days, started_at=started_at)
-    from routes.daily_brief import invalidate_cache as _brief_invalidate
-    _brief_invalidate()
     return jsonify({"ok": True, "started_at": started_at, "duration_days": duration_days})
 
 
 @deload_management_bp.route("/api/deload/deactivate", methods=["POST"])
 def api_deload_deactivate():
     desactiver_deload()
-    from routes.daily_brief import invalidate_cache as _brief_invalidate
-    _brief_invalidate()
     return jsonify({"ok": True, "completed_at": _today_mtl()})
