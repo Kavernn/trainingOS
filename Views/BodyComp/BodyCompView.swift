@@ -12,7 +12,6 @@ struct BodyCompView: View {
     @State private var loadError: String?
     @State private var sheetEntry: BodyWeightEntry? = nil
     @State private var showSheet = false
-    @State private var projection: BodyProjectionData? = nil
     @State private var pendingDeletes: Set<String> = []
     @State private var queuedDeletes:  Set<String> = []
     @State private var deleteError: String?
@@ -89,13 +88,6 @@ struct BodyCompView: View {
                                 WeightChartView(entries: Array(bodyWeight.prefix(20).reversed()))
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.25)
-                            }
-
-                            // 7 — Projection objectifs
-                            if let proj = projection, !proj.projections.isEmpty {
-                                BodyProjectionCard(projection: proj)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.28)
                             }
 
                             // 8 — Historique
@@ -265,23 +257,7 @@ struct BodyCompView: View {
             loadError = LoadError.from(error)?.message ?? "Impossible de charger le profil — réessaie."
             bodyCompLogger.error("fetchProfilData: \(error, privacy: .public)")
         }
-        // Load body projection asynchronously
-        Task {
-            guard let url = URL(string: "\(APIService.shared.baseURL)/api/body_projection") else { return }
-            do {
-                let (data, _) = try await URLSession.authed.data(from: url)
-                let proj = try APIService.decoder.decode(BodyProjectionData.self, from: data)
-                await MainActor.run { projection = proj }
-            } catch {
-                await MainActor.run {
-                    // Ne pas écraser un message plus pertinent du load principal.
-                    if loadError == nil {
-                        loadError = LoadError.from(error)?.message ?? "Projection indisponible."
-                    }
-                }
-                bodyCompLogger.error("bodyProjection: \(error, privacy: .public)")
-            }
-        }
+    }
     }
 }
 
@@ -1143,85 +1119,3 @@ struct WeightChartView: View {
     }
 }
 
-// MARK: - Body Projection Card
-
-struct BodyProjectionCard: View {
-    let projection: BodyProjectionData
-
-    private func formatDate(_ iso: String?) -> String {
-        guard let iso else { return "—" }
-        guard let d = DateFormatter.isoDate.date(from: iso) else { return iso }
-        let f = DateFormatter()
-        f.dateFormat = "MMMM yyyy"
-        f.locale = Locale(identifier: "fr_CA")
-        return f.string(from: d)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .foregroundColor(.statusCyan)
-                Text("PROJECTIONS OBJECTIFS")
-                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
-            }
-
-            ForEach(projection.projections) { proj in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        let isBodyFat = proj.goalType == "body_fat"
-                        Text(isBodyFat ? "Masse grasse" : "Masse maigre")
-                            .font(.appLabel.weight(.semibold)).foregroundColor(.appTextPrimary)
-                        Spacer()
-                        if let date = proj.projectedDate {
-                            Text(formatDate(date))
-                                .font(.appCaption.weight(.bold))
-                                .foregroundColor(.statusCyan)
-                        } else {
-                            Text("Tendance insuffisante")
-                                .font(.appCaption).foregroundColor(.gray)
-                        }
-                    }
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("ACTUEL")
-                                .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                            let unit = proj.goalType == "body_fat" ? "%" : " lbs"
-                            Text(String(format: "%.1f\(unit)", proj.current))
-                                .font(.appBody.weight(.black)).foregroundColor(.appTextPrimary)
-                        }
-                        Image(systemName: "arrow.right")
-                            .font(.appCaption).foregroundColor(.gray)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("OBJECTIF")
-                                .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                            let unit = proj.goalType == "body_fat" ? "%" : " lbs"
-                            Text(String(format: "%.1f\(unit)", proj.target))
-                                .font(.appBody.weight(.black)).foregroundColor(.statusCyan)
-                        }
-                        Spacer()
-                        if let r2 = proj.r2 {
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("FIABILITÉ")
-                                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-                                Text(String(format: "%.0f%%", r2 * 100))
-                                    .font(.appLabel.weight(.bold))
-                                    .foregroundColor(r2 >= 0.7 ? .statusGreen : r2 >= 0.4 ? .statusYellow : .statusOrange)
-                            }
-                        }
-                    }
-                    let rate = proj.slopePerWeek
-                    let rateStr = rate < 0 ? String(format: "%.2f/sem", rate) : String(format: "+%.2f/sem", rate)
-                    Text("Tendance : \(rateStr)")
-                        .font(.appCaption).foregroundColor(.gray.opacity(0.7))
-                }
-                .padding(12)
-                .background(Color.appSurfaceInset)
-                .cornerRadius(10)
-            }
-        }
-        .padding(16)
-        .background(Color.appCard)
-        .cornerRadius(16)
-    }
-}

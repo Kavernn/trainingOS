@@ -80,7 +80,6 @@ struct DashboardData: Codable {
     let schedule: [String: String]
     let sessions: [String: SessionEntry]
     let goals: [String: GoalProgress]
-    let smartGoalsCount: Int
     let fullProgram: [String: [String: SafeString]]
     let exerciseMuscleMetadata: [String: ExerciseMuscleMetadata]
     let nutritionTotals: NutritionTotals
@@ -114,7 +113,6 @@ struct DashboardData: Codable {
         case hasPartialLogs = "has_partial_logs"
         case completed
         case schedule, sessions, goals
-        case smartGoalsCount = "smart_goals_count"
         case fullProgram = "full_program"
         case exerciseMuscleMetadata = "exercise_muscle_metadata"
         case nutritionTotals = "nutrition_totals"
@@ -145,7 +143,6 @@ struct DashboardData: Codable {
         schedule            = try c.decode([String: String].self, forKey: .schedule)
         sessions            = try c.decode([String: SessionEntry].self, forKey: .sessions)
         goals               = try c.decode([String: GoalProgress].self, forKey: .goals)
-        smartGoalsCount     = (try? c.decode(Int.self, forKey: .smartGoalsCount)) ?? 0
         fullProgram         = try c.decode([String: [String: SafeString]].self, forKey: .fullProgram)
         exerciseMuscleMetadata = (try? c.decode([String: ExerciseMuscleMetadata].self, forKey: .exerciseMuscleMetadata)) ?? [:]
         nutritionTotals     = try c.decode(NutritionTotals.self, forKey: .nutritionTotals)

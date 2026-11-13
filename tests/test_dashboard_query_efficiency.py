@@ -190,7 +190,6 @@ class TestDashboardQueryEfficiency(BaseRouteTest):
         patch('planner.get_day_plan', return_value={'morning': {'Bench Press': '4x5-7'},
               'evening': {}, 'bonus': {}, 'pushed_to_evening': [], 'pushed_to_bonus': []}).start()
         patch('tdee.compute_target_calories', return_value=2345).start()
-        patch.object(self.facade, 'get_smart_goals', return_value=[]).start()
         self.store['hiit_log'] = []
         self.store['goals'] = {'Bench Press': {'goal_weight': 150, 'achieved': False}}
 

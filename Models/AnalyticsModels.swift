@@ -412,60 +412,6 @@ struct PushPullRatio: Codable {
     }
 }
 
-// MARK: - Body Projection
-struct BodyProjectionData: Codable {
-    let bodyFat:   LinearReg?
-    let leanMass:  LinearReg?
-    let bodyWeight: LinearReg?
-    let projections: [BodyGoalProjection]
-    let bfSeries:   [BodyDataPoint]
-    let leanSeries: [BodyDataPoint]
-
-    enum CodingKeys: String, CodingKey {
-        case projections
-        case bodyFat    = "body_fat"
-        case leanMass   = "lean_mass"
-        case bodyWeight = "body_weight"
-        case bfSeries   = "bf_series"
-        case leanSeries = "lean_series"
-    }
-}
-
-struct LinearReg: Codable {
-    let slopePerDay:    Double
-    let currentValue:   Double
-    let r2:             Double?
-
-    enum CodingKeys: String, CodingKey {
-        case r2
-        case slopePerDay  = "slope_per_day"
-        case currentValue = "current_value"
-    }
-}
-
-struct BodyGoalProjection: Codable, Identifiable {
-    var id: String { goalType }
-    let goalType:       String
-    let target:         Double
-    let current:        Double
-    let slopePerWeek:   Double
-    let r2:             Double?
-    let projectedDate:  String?
-
-    enum CodingKeys: String, CodingKey {
-        case target, current, r2
-        case goalType      = "goal_type"
-        case slopePerWeek  = "slope_per_week"
-        case projectedDate = "projected_date"
-    }
-}
-
-struct BodyDataPoint: Codable, Identifiable {
-    var id: String { date }
-    let date:  String
-    let value: Double
-}
-
 // MARK: - Pain Journal
 struct PainJournalEntry: Codable, Identifiable {
     var id: String { (date ?? "") + (exercise ?? "") }

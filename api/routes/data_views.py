@@ -221,12 +221,6 @@ def api_dashboard():
     for _d, _entry in merged_sessions.items():
         _entry["session_count"] = (_entry.get("session_count") or 0) + _hiit_count_by_date.get(_d, 0)
 
-    smart_goals_count = 0
-    try:
-        smart_goals_count = len(_db.get_smart_goals())
-    except Exception:
-        pass
-
     _total_workout_min_today = sum(int(s.get("duration_min") or 0) for s in _today_all)
 
     # Séance 2 planifiée : source de vérité UNIQUE = get_today_evening() (planner.py),
@@ -289,7 +283,6 @@ def api_dashboard():
         "sessions":            merged_sessions,
         "suggestions":         suggestions,
         "goals":               goals_progress,
-        "smart_goals_count":   smart_goals_count,
         "full_program":        _full_program_payload,
         "exercise_muscle_metadata": _exercise_muscle_metadata,
         # Étape 3b — exos poussés matin→soir today. Consommé par iOS

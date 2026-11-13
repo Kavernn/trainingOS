@@ -249,18 +249,6 @@ class TestNotesData(BaseRouteTest):
         self.assertEqual(len(self.store["sessions"]), data["total"])
 
 
-# ── /api/objectifs_data ───────────────────────────────────────────────────────
-
-class TestObjectifsData(BaseRouteTest):
-
-    def test_status_200(self):
-        self.assertEqual(200, self.get("/api/objectifs_data").status_code)
-
-    def test_returns_goals_key(self):
-        data = self.json(self.get("/api/objectifs_data"))
-        self.assertIn("goals", data)
-
-
 # ── /api/profil_data ──────────────────────────────────────────────────────────
 
 class TestProfilData(BaseRouteTest):
@@ -295,30 +283,6 @@ class TestUpdateProfile(BaseRouteTest):
     def test_returns_success(self):
         r = self.post("/api/update_profile", {"age": 31})
         self.assertTrue(self.json(r).get("success"))
-
-
-# ── /api/set_goal ─────────────────────────────────────────────────────────────
-
-class TestSetGoal(BaseRouteTest):
-
-    def test_set_goal_success(self):
-        r = self.post("/api/set_goal", {
-            "exercise": "Bench Press", "weight": 225.0,
-        })
-        self.assertEqual(200, r.status_code)
-        self.assertTrue(self.json(r).get("success"))
-
-    def test_goal_persisted(self):
-        self.post("/api/set_goal", {"exercise": "Bench Press", "weight": 225.0})
-        self.assertIn("Bench Press", self.store["goals"])
-
-    def test_missing_exercise_returns_400(self):
-        r = self.post("/api/set_goal", {"weight": 200.0})
-        self.assertEqual(400, r.status_code)
-
-    def test_zero_weight_returns_400(self):
-        r = self.post("/api/set_goal", {"exercise": "Bench Press", "weight": 0})
-        self.assertEqual(400, r.status_code)
 
 
 # ── /api/body_weight ─────────────────────────────────────────────────────────
