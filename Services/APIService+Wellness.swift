@@ -184,17 +184,4 @@ extension APIService {
         return try APIService.decoder.decode(MorningBriefData.self, from: data)
     }
 
-    // MARK: - Smart Alarm
-    // Écrit dans smart_alarm_sessions (lu uniquement par /api/smart_alarm/latency
-    // non cachée + sync HK pour calibration) — aucun impact sur les clés cachées.
-    func logBedtimeTap(_ bedtimeDate: Date) async throws {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "HH:mm"
-        let dateFmt = DateFormatter()
-        dateFmt.dateFormat = "yyyy-MM-dd"
-        _ = try await offlinePost(endpoint: "/api/smart_alarm/bedtime", payload: [
-            "bedtime_tap": fmt.string(from: bedtimeDate),
-            "date":        dateFmt.string(from: bedtimeDate),
-        ])
-    }
 }

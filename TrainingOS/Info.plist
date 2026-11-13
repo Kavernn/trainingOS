@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSAlarmKitUsageDescription</key>
-	<string>VinceSeven utilise AlarmKit pour te réveiller au meilleur moment de ton cycle de sommeil.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>VinceSeven utilise le micro pour la dictée du journal. L'audio n'est jamais transmis — traitement entièrement sur l'appareil.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

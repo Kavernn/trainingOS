@@ -81,16 +81,6 @@ struct HealthRecoverySettingsView: View {
                 .listRowBackground(Color.appCard)
                 .listRowSeparatorTint(Color.appSeparator)
 
-                Section("Sommeil") {
-                    MoreRow(icon: "alarm.fill", color: .statusPurple,
-                            title: "Réveil intelligent",
-                            subtitle: "Fenêtre de réveil et activation") {
-                        SmartAlarmSettingsView()
-                    }
-                }
-                .listRowBackground(Color.appCard)
-                .listRowSeparatorTint(Color.appSeparator)
-
                 Section("Activité") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 12) {

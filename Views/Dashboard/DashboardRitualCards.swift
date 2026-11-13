@@ -424,7 +424,6 @@ struct EveningSleepSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var reminders: [String] = EveningRemindersStore.get()
     @State private var newReminder: String = ""
-    @ObservedObject private var alarm = SmartAlarmService.shared
 
     var body: some View {
         NavigationStack {
@@ -432,7 +431,6 @@ struct EveningSleepSheet: View {
                 VStack(alignment: .leading, spacing: 24) {
                     sleepTipsSection
                     remindersSection
-                    if SmartAlarmService.isSupported && alarm.isEnabled { alarmSection }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -539,72 +537,4 @@ struct EveningSleepSheet: View {
         reminders = EveningRemindersStore.get()
     }
 
-    private var alarmSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("RÉVEIL")
-                .font(.appMicro.weight(.bold))
-                .tracking(1.5)
-                .foregroundColor(Color.appOnSurface.opacity(0.5))
-            alarmRow
-        }
-    }
-
-    private var alarmRow: some View {
-        let isArmed: Bool
-        let label: String
-        if case .armed(let t) = alarm.state {
-            isArmed = true
-            let fmt = DateFormatter()
-            fmt.dateFormat = "HH:mm"
-            label = "Armé — \(fmt.string(from: t))"
-        } else {
-            isArmed = false
-            label = "Armer réveil cyclique"
-        }
-        return Button {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            if isArmed {
-                alarm.cancelAlarm()
-            } else {
-                Task { try? await alarm.scheduleAlarm(bedtimeDate: Date()) }
-            }
-        } label: {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .stroke(isArmed ? Color.appSuccess.opacity(0.6) : Color.appOnSurface.opacity(0.2), lineWidth: 1.5)
-                        .frame(width: 20, height: 20)
-                    Image(systemName: isArmed ? "bell.fill" : "bell")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(isArmed ? Color.statusGreen : Color.appOnSurface.opacity(0.5))
-                }
-                .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isArmed)
-                Text("🔔").font(.system(size: 14))
-                Text(label)
-                    .font(.appCaption)
-                    .foregroundColor(isArmed ? Color.statusGreen.opacity(0.85) : Color.appOnSurface.opacity(0.8))
-                Spacer()
-                if isArmed {
-                    Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        alarm.cancelAlarm()
-                    } label: {
-                        Text("Annuler")
-                            .font(.appMicro.weight(.bold))
-                            .foregroundColor(Color.forge)
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Color.forge.opacity(0.12))
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-            .background(Color.appCard)
-            .cornerRadius(10)
-        }
-        .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.2), value: isArmed)
-    }
 }
