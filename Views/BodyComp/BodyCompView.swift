@@ -258,7 +258,6 @@ struct BodyCompView: View {
             bodyCompLogger.error("fetchProfilData: \(error, privacy: .public)")
         }
     }
-    }
 }
 
 // MARK: - Comp Chip
