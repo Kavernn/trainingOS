@@ -75,10 +75,18 @@ def api_self_care_habits_delete(habit_id: str):
 
 @wellness_spirit_bp.route("/api/self_care/log", methods=["POST"])
 def api_self_care_log():
-    from self_care import log_today as sc_log
+    from self_care import log_for_date as sc_log
     data = request.get_json(silent=True) or {}
+    date_str  = data.get("date")
     habit_ids = data.get("habit_ids", [])
-    return jsonify(sc_log(habit_ids))
+    if not date_str:
+        return jsonify({"error": "date requise (YYYY-MM-DD)"}), 400
+    if not isinstance(habit_ids, list):
+        return jsonify({"error": "habit_ids doit être une liste"}), 400
+    try:
+        return jsonify(sc_log(date_str, habit_ids))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @wellness_spirit_bp.route("/api/self_care/today")

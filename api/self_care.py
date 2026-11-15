@@ -68,12 +68,27 @@ def delete_habit(habit_id: str) -> bool:
 
 # ── Log quotidien ─────────────────────────────────────────────────────────────
 
-def log_today(habit_ids: list[str]) -> dict:
-    """Remplace le log du jour par la liste fournie."""
-    today     = date_cls.fromisoformat(_today_mtl()).isoformat()
+_LOG_WINDOW_DAYS = 7
+
+
+def log_for_date(date_str: str, habit_ids: list[str]) -> dict:
+    """Remplace le log d'une date par la liste fournie.
+
+    La date vient du client (jour du geste capturé au tap) : stable à travers
+    les replay offlinePost cross-midnight. Fenêtre autorisée : [today-7, today]
+    pour éviter de réécrire un historique arbitraire."""
+    try:
+        target = date_cls.fromisoformat(date_str)
+    except (TypeError, ValueError):
+        raise ValueError("date invalide (attendu YYYY-MM-DD)")
+    today = date_cls.fromisoformat(_today_mtl())
+    if target > today:
+        raise ValueError("date future interdite")
+    if (today - target).days > _LOG_WINDOW_DAYS:
+        raise ValueError(f"date trop ancienne (>{_LOG_WINDOW_DAYS} jours)")
     valid_ids = {h["id"] for h in get_habits()}
     filtered  = [hid for hid in habit_ids if hid in valid_ids]
-    db.set_self_care_log_for_date(today, filtered)
+    db.set_self_care_log_for_date(target.isoformat(), filtered)
     return get_today_status()
 
 def get_today_status() -> dict:
