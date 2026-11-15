@@ -41,31 +41,6 @@ def _hour_mtl() -> int:
     return _now_mtl().hour
 
 
-def _mtl_tz():
-    """Même fallback que _now_mtl, mais ré-utilisable pour convertir un timestamp
-    arbitraire. zoneinfo → pytz → calcul DST manuel (sans dépendance)."""
-    try:
-        from zoneinfo import ZoneInfo
-        return ZoneInfo("America/Montreal")
-    except Exception:
-        pass
-    try:
-        import pytz
-        return pytz.timezone("America/Montreal")
-    except Exception:
-        pass
-    from datetime import timezone, timedelta as td
-    utc = datetime.now(timezone.utc)
-    def _nth_sunday(y, m, n):
-        first = datetime(y, m, 1)
-        return first + td(days=(6 - first.weekday()) % 7 + 7 * (n - 1))
-    y = utc.year
-    dst_start = _nth_sunday(y, 3,  2).replace(hour=7, tzinfo=timezone.utc)
-    dst_end   = _nth_sunday(y, 11, 1).replace(hour=6, tzinfo=timezone.utc)
-    offset = -4 if dst_start <= utc < dst_end else -5
-    return timezone(td(hours=offset))
-
-
 def _parse_iso_aware(ts: str) -> datetime:
     """Parse ISO 8601. Lève ValueError si vide, invalide ou sans fuseau horaire."""
     if not isinstance(ts, str) or not ts:
@@ -78,12 +53,14 @@ def _parse_iso_aware(ts: str) -> datetime:
 
 def mtl_date_of(ts: str) -> str:
     """Date civile America/Montreal (YYYY-MM-DD) d'un ISO 8601 aware."""
-    return _parse_iso_aware(ts).astimezone(_mtl_tz()).date().isoformat()
+    from zoneinfo import ZoneInfo
+    return _parse_iso_aware(ts).astimezone(ZoneInfo("America/Montreal")).date().isoformat()
 
 
 def mtl_hour_of(ts: str) -> int:
     """Heure civile America/Montreal (0-23) d'un ISO 8601 aware."""
-    return _parse_iso_aware(ts).astimezone(_mtl_tz()).hour
+    from zoneinfo import ZoneInfo
+    return _parse_iso_aware(ts).astimezone(ZoneInfo("America/Montreal")).hour
 
 
 def get_nutrition_time_context(target_date: str | None = None) -> dict:
