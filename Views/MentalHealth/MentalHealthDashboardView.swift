@@ -64,6 +64,28 @@ struct MentalHealthDashboardView: View {
     @ViewBuilder
     private func dashboardContent(_ s: MentalHealthSummary) -> some View {
 
+        // Pratiques — accès aux outils (respiration, etc.)
+        MHSectionCard(title: "Pratiques", icon: "leaf.fill") {
+            NavigationLink { BreathworkPracticeView() } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "wind")
+                        .font(.title3.weight(.regular))
+                        .foregroundStyle(Color.forge)
+                        .frame(width: 32)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Respiration").font(.appBody.weight(.semibold))
+                            .foregroundColor(Color.appOnSurface)
+                        Text("4 techniques guidées").font(.appCaption)
+                            .foregroundColor(Color.appOnSurface.opacity(0.6))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(Color.appOnSurface.opacity(0.3))
+                }
+            }
+        }
+
         // KPI unique — Humeur moyenne
         MHKPICell(label: "Humeur moyenne", value: s.avgMood.map { String(format: "%.1f", $0) } ?? "–",
                   unit: "/10", color: moodColor(s.avgMood))
