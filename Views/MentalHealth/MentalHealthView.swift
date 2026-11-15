@@ -289,6 +289,25 @@ private struct MesuresContent: View {
                 PSSCard(summary: summary, initialLoaded: initialLoaded)
                     .appearAnimation(delay: 0.06)
 
+                NavigationLink { BreathworkPracticeView() } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "wind")
+                            .font(.title2).foregroundColor(Color.forge)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Respiration")
+                                .font(.headline).foregroundColor(.appTextPrimary)
+                            Text("4 techniques guidées")
+                                .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundColor(.appTextMuted)
+                    }
+                    .padding(14)
+                    .glassCard()
+                    .padding(.horizontal)
+                }
+                .appearAnimation(delay: 0.065)
+
                 NavigationLink { MoodTrackerView() } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "face.smiling.fill")
