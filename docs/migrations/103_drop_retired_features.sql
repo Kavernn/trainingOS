@@ -12,7 +12,6 @@
 --   SELECT 'time_capsules',             COUNT(*) FROM time_capsules UNION ALL
 --   SELECT 'food_catalog',              COUNT(*) FROM food_catalog UNION ALL
 --   SELECT 'smart_goals',               COUNT(*) FROM smart_goals UNION ALL
---   SELECT 'goals',                     COUNT(*) FROM goals UNION ALL
 --   SELECT 'goals_archived',            COUNT(*) FROM goals_archived UNION ALL
 --   SELECT 'body_budget_log',           COUNT(*) FROM body_budget_log UNION ALL
 --   SELECT 'meal_templates',            COUNT(*) FROM meal_templates;
@@ -34,6 +33,5 @@ DROP TABLE IF EXISTS time_capsules                CASCADE;
 DROP TABLE IF EXISTS food_catalog                 CASCADE;
 DROP TABLE IF EXISTS smart_goals                  CASCADE;
 DROP TABLE IF EXISTS goals_archived               CASCADE;
-DROP TABLE IF EXISTS goals                        CASCADE;
 DROP TABLE IF EXISTS body_budget_log              CASCADE;
 DROP TABLE IF EXISTS meal_templates               CASCADE;
