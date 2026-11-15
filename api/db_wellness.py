@@ -363,7 +363,6 @@ def get_breathwork_sessions(days: int = 30) -> List[dict]:
         resp = (
             db_core._client.table("breathwork_sessions")
             .select("*")
-            .filter("technique_id", "not.is", "null")
             .gte("date", cutoff)
             .order("date", desc=True)
             .execute()
@@ -384,13 +383,32 @@ def get_breathwork_sessions(days: int = 30) -> List[dict]:
 
 
 def insert_breathwork_session(entry: dict) -> Optional[dict]:
-    """Insert a breathwork session."""
+    """Upsert breathwork session. started_at = clé d'idempotence (UNIQUE) :
+    un replay retombe sur la ligne existante, pas de doublon."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return None
 
     def _do() -> Optional[dict]:
-        resp = db_core._client.table("breathwork_sessions").insert(entry).execute()
-        return resp.data[0] if resp.data else None
+        resp = (
+            db_core._client.table("breathwork_sessions")
+            .upsert(entry, on_conflict="started_at", ignore_duplicates=True)
+            .execute()
+        )
+        if resp.data:
+            return resp.data[0]
+        # PostgREST : conflit avec ignore_duplicates → data = []. Relire la ligne.
+        existing = (
+            db_core._client.table("breathwork_sessions")
+            .select("*")
+            .eq("started_at", entry["started_at"])
+            .limit(1)
+            .execute()
+        )
+        if not existing.data:
+            raise RuntimeError(
+                f"insert_breathwork_session: upsert sans data et aucune ligne trouvée pour started_at={entry['started_at']}"
+            )
+        return existing.data[0]
 
     try:
         return _do()

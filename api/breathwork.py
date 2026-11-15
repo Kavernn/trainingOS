@@ -7,16 +7,17 @@ Endpoints exposés dans index.py :
   GET  /api/breathwork/techniques
   POST /api/breathwork/log
   GET  /api/breathwork/history
-  GET  /api/breathwork/stats
 """
 from __future__ import annotations
 
-from datetime import date as date_cls, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 
 import db
-from utils import _today_mtl
 import db_wellness as _db_wellness
+
+# America/Montreal EDT = UTC-4 (approximation suffisante pour arrondir à un jour civil).
+_MTL_OFFSET_HOURS = 4
 
 # ── Techniques disponibles ────────────────────────────────────────────────────
 
@@ -84,39 +85,49 @@ TECHNIQUES = [
 ]
 
 _TECHNIQUE_MAP = {t["id"]: t for t in TECHNIQUES}
-_TECHNIQUE_MAP_BY_NAME = {t["name"]: t for t in TECHNIQUES}
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
-def log_session(technique_id: str, duration_sec: int, cycles: int) -> dict:
+def _parse_started_at(raw: str) -> datetime:
+    """Parse un ISO 8601 (avec ou sans suffixe Z). Lève ValueError si invalide."""
+    if not isinstance(raw, str) or not raw:
+        raise ValueError("started_at requis (ISO 8601)")
+    return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+
+
+def _mtl_date_from(dt: datetime) -> str:
+    """Jour civil America/Montreal (YYYY-MM-DD) d'un timestamp aware."""
+    if dt.tzinfo is None:
+        raise ValueError("started_at doit inclure un fuseau horaire")
+    local = dt.astimezone(timezone(timedelta(hours=-_MTL_OFFSET_HOURS)))
+    return local.date().isoformat()
+
+
+def log_session(technique_id: str, duration_sec: int, cycles: int, started_at: str) -> dict:
     if technique_id not in _TECHNIQUE_MAP:
         raise ValueError(f"Technique inconnue : {technique_id}")
+    dt = _parse_started_at(started_at)
 
     technique_name = _TECHNIQUE_MAP[technique_id]["name"]
     session = {
         "id":           str(uuid.uuid4()),
-        "date":         _today_mtl(),
+        "date":         _mtl_date_from(dt),
         "technique_id": technique_id,
         "technique":    technique_name,
         "duration_sec": duration_sec,
         "duration_min": duration_sec // 60,
         "cycles":       cycles,
-        "logged_at":    _today_mtl(),
+        "started_at":   dt.isoformat(),
     }
-    db.insert_breathwork_session(session)
-    return session
+    saved = db.insert_breathwork_session(session)
+    if not saved:
+        raise RuntimeError("insert_breathwork_session a échoué (DB indisponible)")
+    return saved
 
 
 def get_history(days: int = 30) -> list:
-    sessions = _db_wellness.get_breathwork_sessions(days=days)
-    # Enrichit technique_id si absent (données migrées)
-    for s in sessions:
-        if not s.get("technique_id") and s.get("technique"):
-            tech = _TECHNIQUE_MAP_BY_NAME.get(s["technique"])
-            if tech:
-                s["technique_id"] = tech["id"]
-    return sessions
+    return _db_wellness.get_breathwork_sessions(days=days)
 
 
 def get_stats(days: int = 7) -> dict:

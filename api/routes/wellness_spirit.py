@@ -3,10 +3,8 @@ from flask import Blueprint, jsonify, request
 wellness_spirit_bp = Blueprint("wellness_spirit", __name__)
 
 
-# Wellness breathwork: writes technique_id (str key e.g. "coherence"), technique (display name),
-# duration_min, logged_at. Distinct from Spirit breathwork (protocol: calm_storm/ignite/stillness).
-# Both share breathwork_sessions table; reads are partitioned by technique_id IS NOT NULL (wellness)
-# vs protocol IS NOT NULL (spirit) — do not remove those filters.
+# Partition unique (migration 104) : toute séance a technique_id NOT NULL.
+# Idempotence : started_at UNIQUE — un replay offlinePost retombe sur la ligne existante.
 @wellness_spirit_bp.route("/api/breathwork/techniques")
 def api_breathwork_techniques():
     from breathwork import TECHNIQUES
@@ -18,17 +16,21 @@ def api_breathwork_log():
     from breathwork import log_session as bw_log
     data = request.get_json(silent=True) or {}
     technique_id = data.get("technique_id")
+    started_at   = data.get("started_at")
     if not technique_id:
         return jsonify({"error": "technique_id requis"}), 400
+    if not started_at:
+        return jsonify({"error": "started_at requis (ISO 8601)"}), 400
     try:
         session = bw_log(
             technique_id = technique_id,
             duration_sec = int(data.get("duration_sec", 0)),
             cycles       = int(data.get("cycles", 0)),
+            started_at   = started_at,
         )
         return jsonify(session), 201
     except ValueError as e:
-        return jsonify({"error": str(e)}), 422
+        return jsonify({"error": str(e)}), 400
 
 
 @wellness_spirit_bp.route("/api/breathwork/history")
@@ -39,16 +41,6 @@ def api_breathwork_history():
     except ValueError:
         days = 30
     return jsonify(bw_history(days))
-
-
-@wellness_spirit_bp.route("/api/breathwork/stats")
-def api_breathwork_stats():
-    from breathwork import get_stats as bw_stats_fn
-    try:
-        days = int(request.args.get("days", 7))
-    except ValueError:
-        days = 7
-    return jsonify(bw_stats_fn(days))
 
 
 @wellness_spirit_bp.route("/api/self_care/habits")
