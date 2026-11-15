@@ -222,6 +222,7 @@ private struct SignalDuJourHeader: View {
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(10)
         .background {
             RoundedRectangle(cornerRadius: 14)
