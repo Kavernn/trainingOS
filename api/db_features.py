@@ -1063,14 +1063,14 @@ def get_spirit_metadata(days: int = 7) -> dict:
         return result
     from utils import mtl_date_of
     try:
-        resp = db_core._client.table("breathwork_sessions").select("started_at").gte("started_at", cutoff + "T00:00:00").execute()
+        # `date` est la source de vérité (jour civil MTL calculé serveur). Les
+        # backfill rows ont started_at = minuit UTC du jour date → convertir
+        # started_at en MTL ferait reculer d'un jour. Toujours lire `date`.
+        resp = db_core._client.table("breathwork_sessions").select("date").gte("date", cutoff).execute()
         bw_dates: set[str] = set()
         for row in (resp.data or []):
-            try:
-                d = mtl_date_of(row.get("started_at") or "")
-            except ValueError:
-                continue
-            if d >= cutoff:
+            d = row.get("date")
+            if d and d >= cutoff:
                 bw_dates.add(d)
         result["breathwork_count"] = len(resp.data or [])
         result["days_with_breathwork"] = sorted(bw_dates)

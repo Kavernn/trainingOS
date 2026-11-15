@@ -118,6 +118,24 @@ def test_log_mtl_date_from_evening_utc_minus_5(fake_db):
     assert session["date"] == "2026-11-14"
 
 
+def test_spirit_axis_uses_date_column_not_started_at(monkeypatch):
+    """Séance date=2026-06-10 / started_at=2026-06-11T00:01:31Z (20h MTL
+    la veille) doit compter pour le 10 juin, via la colonne date."""
+    bw_rows = [
+        {"id": "a", "date": "2026-06-10", "technique_id": "coherence",
+         "started_at": "2026-06-11T00:01:31+00:00"},
+    ]
+    import db as _db
+    monkeypatch.setattr(_db, "get_breathwork_sessions",    lambda days=60: bw_rows)
+    monkeypatch.setattr(_db, "get_meditation_sessions",    lambda limit=60: [])
+    monkeypatch.setattr(_db, "get_spirit_journal_entries", lambda limit=30: [])
+
+    last7  = {"2026-06-10", "2026-06-11"}
+    prior7 = set()
+    _, details = spirit_engine.compute_spirit_axis(last7, prior7)
+    assert details["breathwork_last"] == 1  # compté pour le 10, pas le 11
+
+
 def test_morning_breathwork_uses_mtl_hour(monkeypatch):
     """Séance à 07:00 MTL (12:00 UTC en EST) compte comme matin (<10h)."""
     bw_rows = [
