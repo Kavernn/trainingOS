@@ -10,14 +10,11 @@ Endpoints exposés dans index.py :
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 import uuid
 
 import db
 import db_wellness as _db_wellness
-
-# America/Montreal EDT = UTC-4 (approximation suffisante pour arrondir à un jour civil).
-_MTL_OFFSET_HOURS = 4
+from utils import _parse_iso_aware, mtl_date_of
 
 # ── Techniques disponibles ────────────────────────────────────────────────────
 
@@ -89,30 +86,15 @@ _TECHNIQUE_MAP = {t["id"]: t for t in TECHNIQUES}
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
-def _parse_started_at(raw: str) -> datetime:
-    """Parse un ISO 8601 (avec ou sans suffixe Z). Lève ValueError si invalide."""
-    if not isinstance(raw, str) or not raw:
-        raise ValueError("started_at requis (ISO 8601)")
-    return datetime.fromisoformat(raw.replace("Z", "+00:00"))
-
-
-def _mtl_date_from(dt: datetime) -> str:
-    """Jour civil America/Montreal (YYYY-MM-DD) d'un timestamp aware."""
-    if dt.tzinfo is None:
-        raise ValueError("started_at doit inclure un fuseau horaire")
-    local = dt.astimezone(timezone(timedelta(hours=-_MTL_OFFSET_HOURS)))
-    return local.date().isoformat()
-
-
 def log_session(technique_id: str, duration_sec: int, cycles: int, started_at: str) -> dict:
     if technique_id not in _TECHNIQUE_MAP:
         raise ValueError(f"Technique inconnue : {technique_id}")
-    dt = _parse_started_at(started_at)
+    dt = _parse_iso_aware(started_at)
 
     technique_name = _TECHNIQUE_MAP[technique_id]["name"]
     session = {
         "id":           str(uuid.uuid4()),
-        "date":         _mtl_date_from(dt),
+        "date":         mtl_date_of(started_at),
         "technique_id": technique_id,
         "technique":    technique_name,
         "duration_sec": duration_sec,

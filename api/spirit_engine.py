@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import date, timedelta
-from utils import _today_mtl_date as _today
+from utils import _today_mtl_date as _today, mtl_hour_of
 
 logger = logging.getLogger("trainingos.spirit")
 
@@ -122,7 +122,7 @@ def compute_spirit_patterns() -> dict:
             })
 
     # 3. Morning breathwork pattern
-    morning_bw = [s for s in bw_recent if _local_hour(s.get("started_at", "")) < 10]
+    morning_bw = [s for s in bw_recent if _mtl_hour_safe(s.get("started_at", "")) < 10]
     if len(morning_bw) >= 3:
         insights.append({
             "type":   "morning_breathwork",
@@ -157,10 +157,9 @@ def compute_spirit_patterns() -> dict:
     }
 
 
-def _local_hour(ts: str) -> int:
-    if "T" in ts:
-        try:
-            return (int(ts.split("T")[1][:2]) - 4) % 24
-        except Exception:
-            pass
-    return 12
+def _mtl_hour_safe(ts: str) -> int:
+    """mtl_hour_of robuste aux timestamps vides/invalides (fallback midi = ni matin ni soir)."""
+    try:
+        return mtl_hour_of(ts)
+    except Exception:
+        return 12

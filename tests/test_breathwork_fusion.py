@@ -98,13 +98,42 @@ def test_log_unknown_technique_raises():
 
 
 def test_log_missing_started_at_raises():
-    with pytest.raises(ValueError, match="started_at"):
+    with pytest.raises(ValueError, match="ISO 8601"):
         breathwork.log_session("coherence", 150, 15, "")
 
 
 def test_log_naive_started_at_raises():
     with pytest.raises(ValueError, match="fuseau"):
         breathwork.log_session("coherence", 150, 15, "2026-11-15T09:00:00")
+
+
+def test_log_mtl_date_from_evening_utc_minus_5(fake_db):
+    """Séance 2026-11-14T20:30:00-05:00 → jour MTL 2026-11-14 (pas 15)."""
+    session = breathwork.log_session(
+        technique_id="coherence",
+        duration_sec=150,
+        cycles=15,
+        started_at="2026-11-14T20:30:00-05:00",
+    )
+    assert session["date"] == "2026-11-14"
+
+
+def test_morning_breathwork_uses_mtl_hour(monkeypatch):
+    """Séance à 07:00 MTL (12:00 UTC en EST) compte comme matin (<10h)."""
+    bw_rows = [
+        {"date": f"2026-11-{d:02d}", "technique_id": "coherence",
+         "started_at": f"2026-11-{d:02d}T12:00:00+00:00"}
+        for d in (10, 11, 12)
+    ]
+    import db as _db
+    monkeypatch.setattr(_db, "get_breathwork_sessions", lambda days=90: bw_rows)
+    monkeypatch.setattr(_db, "get_meditation_sessions", lambda limit=200: [])
+    monkeypatch.setattr(_db, "get_pss_records",         lambda limit=90: [])
+    out = spirit_engine.compute_spirit_patterns()
+    types = [i["type"] for i in out["insights"]]
+    assert "morning_breathwork" in types
+
+
 
 
 def test_history_returns_migrated_spirit_sessions(fake_db):

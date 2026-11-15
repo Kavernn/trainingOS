@@ -1061,11 +1061,15 @@ def get_spirit_metadata(days: int = 7) -> dict:
     }
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return result
+    from utils import mtl_date_of
     try:
         resp = db_core._client.table("breathwork_sessions").select("started_at").gte("started_at", cutoff + "T00:00:00").execute()
         bw_dates: set[str] = set()
         for row in (resp.data or []):
-            d = str(row.get("started_at") or "")[:10]
+            try:
+                d = mtl_date_of(row.get("started_at") or "")
+            except ValueError:
+                continue
             if d >= cutoff:
                 bw_dates.add(d)
         result["breathwork_count"] = len(resp.data or [])
@@ -1082,7 +1086,10 @@ def get_spirit_metadata(days: int = 7) -> dict:
         resp = db_core._client.table("meditation_sessions").select("started_at").gte("started_at", cutoff + "T00:00:00").eq("completed", True).execute()
         med_dates: set[str] = set()
         for row in (resp.data or []):
-            d = str(row.get("started_at") or "")[:10]
+            try:
+                d = mtl_date_of(row.get("started_at") or "")
+            except ValueError:
+                continue
             if d >= cutoff:
                 med_dates.add(d)
         result["meditation_count"] = len(resp.data or [])
