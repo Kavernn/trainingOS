@@ -134,6 +134,32 @@ def test_morning_breathwork_uses_mtl_hour(monkeypatch):
     assert "morning_breathwork" in types
 
 
+# ── season_engine : fenêtre couvre les saisons passées ──────────────────────
+
+def test_spirit_breathwork_count_past_season(monkeypatch):
+    """Saison terminée il y a 90j avec 1 séance au milieu → count = 1."""
+    import season_engine
+    from datetime import date, timedelta
+
+    today_mtl = date(2026, 11, 15)
+    season_start = (today_mtl - timedelta(days=120)).isoformat()  # il y a 120j
+    season_end   = (today_mtl - timedelta(days=90)).isoformat()   # il y a 90j
+    mid_season   = (today_mtl - timedelta(days=105)).isoformat()  # au milieu
+
+    bw_rows = [{"date": mid_season, "technique_id": "coherence",
+                "started_at": f"{mid_season}T12:00:00+00:00"}]
+
+    captured = {}
+    def _fake_get(days: int = 30):
+        captured["days"] = days
+        return bw_rows
+
+    monkeypatch.setattr(season_engine, "_today", lambda: today_mtl)
+    monkeypatch.setattr(season_engine.db, "get_breathwork_sessions", _fake_get)
+
+    count = season_engine._spirit_breathwork_count(season_start, season_end)
+    assert count == 1
+    assert captured["days"] >= 121  # couvre start → today
 
 
 def test_history_returns_migrated_spirit_sessions(fake_db):

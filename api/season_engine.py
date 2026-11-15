@@ -139,8 +139,10 @@ def _sleep_avg_last_n_days(days: int) -> Optional[float]:
 
 
 def _spirit_breathwork_count(start: str, end: str) -> int:
-    span_days = (date.fromisoformat(end) - date.fromisoformat(start)).days + 1
-    sessions = db.get_breathwork_sessions(days=max(span_days, 1))
+    # get_breathwork_sessions(days=N) filtre date >= today - N : il faut remonter
+    # jusqu'à start pour couvrir aussi les saisons passées (compare_seasons).
+    lookback_days = (_today() - date.fromisoformat(start)).days + 1
+    sessions = db.get_breathwork_sessions(days=max(lookback_days, 1))
     return sum(1 for s in sessions
                if start <= (s.get("date") or "") <= end)
 
