@@ -3,7 +3,6 @@ Journal content is ultra-private — never included in AI coach context or expor
 """
 from __future__ import annotations
 from flask import Blueprint, jsonify, request
-from datetime import date
 import logging
 from utils import _today_mtl
 
@@ -31,44 +30,6 @@ def api_spirit_config_update():
     if not ok:
         return jsonify({"error": "Erreur base de données"}), 500
     return jsonify({"ok": True})
-
-
-# ── Breathwork ────────────────────────────────────────────────────────────────
-
-@spirit_bp.route("/api/spirit/breathwork", methods=["GET"])
-def api_spirit_breathwork_get():
-    import db
-    limit  = int(request.args.get("limit", 60))
-    return jsonify(db.get_breathwork_sessions_spirit_alias(limit=limit) or [])
-
-
-# Spirit breathwork: writes protocol (calm_storm/ignite/stillness), triggered_from, duration_sec, cycles.
-# Wellness breathwork writes technique_id + technique name instead.
-# Reads are partitioned: get_breathwork_sessions_spirit filters protocol IS NOT NULL.
-@spirit_bp.route("/api/spirit/breathwork", methods=["POST"])
-def api_spirit_breathwork_log():
-    import db
-    data = request.get_json(silent=True) or {}
-
-    protocol = data.get("protocol", "")
-    if protocol not in ("calm_storm", "ignite", "stillness"):
-        return jsonify({"error": "Invalid protocol"}), 400
-
-    triggered_from = data.get("triggered_from", "standalone")
-    if triggered_from not in ("standalone", "arsenal", "ritual", "morning"):
-        triggered_from = "standalone"
-
-    payload = {
-        "protocol":       protocol,
-        "date":           _today_mtl(),
-        "duration_sec":   max(0, int(data.get("duration_sec", 0))),
-        "cycles":         max(0, int(data.get("cycles", 0))),
-        "triggered_from": triggered_from,
-    }
-    row = db.log_breathwork_session(payload)
-    if not row:
-        return jsonify({"error": "Erreur base de données"}), 500
-    return jsonify({"ok": True, "id": row.get("id")}), 201
 
 
 # ── Meditation ────────────────────────────────────────────────────────────────

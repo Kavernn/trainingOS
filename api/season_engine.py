@@ -139,9 +139,10 @@ def _sleep_avg_last_n_days(days: int) -> Optional[float]:
 
 
 def _spirit_breathwork_count(start: str, end: str) -> int:
-    sessions = db.get_breathwork_sessions_spirit(limit=500)
+    span_days = (date.fromisoformat(end) - date.fromisoformat(start)).days + 1
+    sessions = db.get_breathwork_sessions(days=max(span_days, 1))
     return sum(1 for s in sessions
-               if start <= (s.get("started_at") or "")[:10] <= end)
+               if start <= (s.get("date") or "") <= end)
 
 
 def _spirit_meditation_minutes(start: str, end: str) -> int:

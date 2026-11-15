@@ -196,7 +196,6 @@ Dérivé du `session_name` de la séance démarrée aujourd'hui (`workout_sessio
 | GET | `/api/journal/entries` | Journal history |
 | GET | `/api/breathwork/techniques` | Available breathwork techniques |
 | POST | `/api/breathwork/log` | Log breathwork session |
-| GET | `/api/breathwork/stats` | Breathwork stats |
 | GET | `/api/self_care/habits` | Self-care habits list |
 | POST | `/api/self_care/habits` | Create habit |
 | DELETE | `/api/self_care/habits/<id>` | Delete habit |

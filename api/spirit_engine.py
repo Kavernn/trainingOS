@@ -14,11 +14,11 @@ def compute_spirit_axis(last7_dates: set[str], prior7_dates: set[str]) -> tuple[
     """Returns (delta%, details) for optional 4th Phoenix axis."""
     import db
 
-    bw  = db.get_breathwork_sessions_spirit_alias(limit=60)  or []
+    bw  = db.get_breathwork_sessions(days=60) or []
     med = db.get_meditation_sessions(limit=60)  or []
     journals = db.get_spirit_journal_entries(limit=30) or []
 
-    bw_dates  = {s["started_at"][:10] for s in bw}
+    bw_dates  = {s["date"] for s in bw if s.get("date")}
     med_dates = {s["started_at"][:10] for s in med}
     j_dates   = {j["date"] for j in journals}
 
@@ -67,10 +67,10 @@ def compute_spirit_patterns() -> dict:
     today  = _today()
     cutoff = (today - timedelta(days=90)).isoformat()
 
-    bw  = db.get_breathwork_sessions_spirit_alias(limit=200) or []
+    bw  = db.get_breathwork_sessions(days=90) or []
     med = db.get_meditation_sessions(limit=200) or []
 
-    bw_recent  = [s for s in bw  if s.get("started_at", "")[:10] >= cutoff]
+    bw_recent  = [s for s in bw  if (s.get("date") or "") >= cutoff]
     med_recent = [s for s in med if s.get("started_at", "")[:10] >= cutoff]
 
     total = len(bw_recent) + len(med_recent)
@@ -79,20 +79,24 @@ def compute_spirit_patterns() -> dict:
 
     insights = []
 
-    # 1. Protocol distribution
+    # 1. Technique dominante (nom affiché = catalogue breathwork.TECHNIQUES)
     if bw_recent:
+        from breathwork import _TECHNIQUE_MAP
         counts: dict[str, int] = {}
         for s in bw_recent:
-            p = s.get("protocol", "calm_storm")
-            counts[p] = counts.get(p, 0) + 1
-        top_p, top_n = max(counts.items(), key=lambda x: x[1])
-        labels = {"calm_storm": "Calm the Storm", "ignite": "Ignite", "stillness": "Stillness"}
-        insights.append({
-            "type":   "protocol_dominant",
-            "title":  "Protocole dominant",
-            "body":   f"{labels.get(top_p, top_p)} : {top_n} sessions",
-            "detail": f"Sur {len(bw_recent)} séances de breathwork.",
-        })
+            tid = s.get("technique_id")
+            if not tid:
+                continue
+            counts[tid] = counts.get(tid, 0) + 1
+        if counts:
+            top_id, top_n = max(counts.items(), key=lambda x: x[1])
+            top_name = _TECHNIQUE_MAP.get(top_id, {}).get("name", top_id)
+            insights.append({
+                "type":   "technique_dominant",
+                "title":  "Technique dominante",
+                "body":   f"{top_name} : {top_n} sessions",
+                "detail": f"Sur {len(bw_recent)} séances de breathwork.",
+            })
 
     # 2. Breathwork × PSS correlation
     pss_records = db.get_pss_records(limit=90) or []
@@ -100,7 +104,7 @@ def compute_spirit_patterns() -> dict:
         r.get("date", ""): float(r.get("pss_score") or r.get("score") or 0)
         for r in pss_records
     }
-    bw_days     = {s["started_at"][:10] for s in bw_recent}
+    bw_days     = {s["date"] for s in bw_recent if s.get("date")}
     all_pss_days = set(pss_by_date.keys())
     bw_pss      = [pss_by_date[d] for d in bw_days     if d in pss_by_date]
     non_bw_pss  = [pss_by_date[d] for d in all_pss_days if d not in bw_days]
@@ -145,16 +149,6 @@ def compute_spirit_patterns() -> dict:
                 "body":   f"{streak} sessions rapprochées.",
                 "detail": "La régularité compte plus que la durée.",
             })
-
-    # 5. Arsenal trigger usage
-    arsenal_bw = [s for s in bw_recent if s.get("triggered_from") == "arsenal"]
-    if len(arsenal_bw) >= 2:
-        insights.append({
-            "type":   "arsenal_usage",
-            "title":  "Calm the Storm déployé",
-            "body":   f"{len(arsenal_bw)} fois depuis l'Arsenal.",
-            "detail": "Tu utilises le breathwork comme première ligne de défense.",
-        })
 
     return {
         "insights":       insights,

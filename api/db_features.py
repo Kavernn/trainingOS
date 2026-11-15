@@ -494,54 +494,6 @@ def upsert_spirit_config(data: dict) -> bool:
         return False
 
 
-def log_breathwork_session(data: dict) -> Optional[dict]:
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return None
-
-    def _do():
-        resp = db_core._client.table("breathwork_sessions").insert(data).execute()
-        return (resp.data or [None])[0]
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("log_breathwork_session retry: %s", e2)
-                return None
-        db_core.logger.error("log_breathwork_session error: %s", e)
-        return None
-
-
-def get_breathwork_sessions(limit: int = 60) -> List[dict]:
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return []
-
-    def _do():
-        resp = (
-            db_core._client.table("breathwork_sessions")
-            .select("id, protocol, duration_sec, cycles, started_at, triggered_from")
-            .order("started_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-        return resp.data or []
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("get_breathwork_sessions retry: %s", e2)
-                return []
-        db_core.logger.error("get_breathwork_sessions error: %s", e)
-        return []
-
-
 def log_meditation_session(data: dict) -> Optional[dict]:
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return None
@@ -796,37 +748,6 @@ def get_oath_recalls(limit: int = 20) -> List[dict]:
                 db_core.logger.error("get_oath_recalls retry: %s", e2)
                 return []
         db_core.logger.error("get_oath_recalls error: %s", e)
-        return []
-
-
-# ── Spirit breathwork (renamed to avoid conflict with wellness breathwork) ────
-
-def get_breathwork_sessions_spirit(limit: int = 500) -> List[dict]:
-    """Spirit breathwork sessions (breathwork_sessions table)."""
-    if db_core._client is None or db_core.MODE == "OFFLINE":
-        return []
-
-    def _do():
-        resp = (
-            db_core._client.table("breathwork_sessions")
-            .select("id, protocol, duration_sec, cycles, started_at")
-            .filter("protocol", "not.is", "null")
-            .order("started_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-        return resp.data or []
-
-    try:
-        return _do()
-    except Exception as e:
-        if db_core._is_disconnect(e) and db_core._reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                db_core.logger.error("get_breathwork_sessions_spirit retry: %s", e2)
-                return []
-        db_core.logger.error("get_breathwork_sessions_spirit error: %s", e)
         return []
 
 
