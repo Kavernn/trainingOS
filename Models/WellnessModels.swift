@@ -173,26 +173,13 @@ struct BreathworkSession: Codable, Identifiable {
     let technique: String
     let durationSec: Int
     let cycles: Int
+    let startedAt: String
 
     enum CodingKeys: String, CodingKey {
         case id, date, technique, cycles
         case techniqueId  = "technique_id"
         case durationSec  = "duration_sec"
-    }
-}
-
-struct BreathworkStats: Codable {
-    let sessionsCount: Int
-    let totalMinutes: Int
-    let favorite: String?
-    let byTechnique: [String: Int]
-    let days: Int
-
-    enum CodingKeys: String, CodingKey {
-        case favorite, days
-        case sessionsCount = "sessions_count"
-        case totalMinutes  = "total_minutes"
-        case byTechnique   = "by_technique"
+        case startedAt    = "started_at"
     }
 }
 

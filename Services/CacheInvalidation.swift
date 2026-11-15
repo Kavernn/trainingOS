@@ -63,9 +63,10 @@ enum CacheInvalidation {
     // Brief contract: toute mutation qui modifie un signal lu par api/morning_brief.py
     // (LSS = HRV/sleep/RHR + PSS + RPE + nutrition, engagement_streak, profil, session du jour)
     // DOIT inclure "morning_brief" dans ses keys, sinon le verdict du brief reste stale.
-    // Cases couvertes au 2026-06-30 : exerciseLogged, sessionLogged, sessionMutated,
+    // Cases couvertes au 2026-11-15 : exerciseLogged, sessionLogged, sessionMutated,
     // deloadApplied, recoveryLogged, wearableSynced, pssSubmitted,
-    // moodLogged, ritualActioned, ritualUpdated, nutritionLogged, profileUpdated.
+    // moodLogged, breathworkLogged, ritualActioned, ritualUpdated,
+    // nutritionLogged, profileUpdated.
     // (hiitLogged: log isolé hors sessions → ne nourrit pas le brief, ne pas ajouter.)
     var keys: [String] {
         switch self {
@@ -105,7 +106,8 @@ enum CacheInvalidation {
         case .journalLogged:
             return ["journal_entries"]
         case .breathworkLogged:
-            return ["breathwork_stats"]
+            return ["breathwork_history_30", "mental_health_summary_7",
+                    "mental_health_summary_30", "morning_brief"]
         case .selfCareLogged:
             return ["self_care_today", "self_care_streaks"]
         case .selfCareHabitsUpdated:

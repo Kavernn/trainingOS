@@ -85,25 +85,32 @@ extension APIService {
     }
 
     // MARK: - Breathwork
-    func fetchBreathworkTechniques() async throws -> [BreathworkTechnique] {
+    static let breathworkTechniquesCacheKey = "breathwork_techniques"
+    static func breathworkHistoryCacheKey(days: Int = 30) -> String { "breathwork_history_\(days)" }
+
+    func fetchBreathworkTechniques(forceRefresh: Bool = false) async throws -> [BreathworkTechnique] {
         let url = try buildURL(path: "/api/breathwork/techniques")
-        let data = try await fetchWithCache(url: url, key: "breathwork_techniques")
+        let data = try await fetchWithCache(url: url, key: Self.breathworkTechniquesCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode([BreathworkTechnique].self, from: data)
     }
 
     func submitBreathworkSession(techniqueId: String, durationSec: Int,
-                                 cycles: Int) async throws -> BreathworkSession {
+                                 cycles: Int, startedAt: Date) async throws -> BreathworkSession {
+        let iso = ISO8601DateFormatter().string(from: startedAt)
         guard let data = try await offlinePost(endpoint: "/api/breathwork/log", payload: [
-            "technique_id": techniqueId, "duration_sec": durationSec, "cycles": cycles,
+            "technique_id": techniqueId,
+            "duration_sec": durationSec,
+            "cycles":       cycles,
+            "started_at":   iso,
         ]) else { throw APIError.queuedOffline }
         CacheInvalidation.breathworkLogged.invalidate()
         return try APIService.decoder.decode(BreathworkSession.self, from: data)
     }
 
-    func fetchBreathworkStats(days: Int = 7) async throws -> BreathworkStats {
-        let url = try buildURL(path: "/api/breathwork/stats", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
-        let data = try await fetchWithCache(url: url, key: "breathwork_stats")
-        return try APIService.decoder.decode(BreathworkStats.self, from: data)
+    func fetchBreathworkHistory(days: Int = 30, forceRefresh: Bool = false) async throws -> [BreathworkSession] {
+        let url = try buildURL(path: "/api/breathwork/history", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
+        let data = try await fetchWithCache(url: url, key: Self.breathworkHistoryCacheKey(days: days), forceRefresh: forceRefresh)
+        return try APIService.decoder.decode([BreathworkSession].self, from: data)
     }
 
     // MARK: - Self-Care
