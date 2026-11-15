@@ -13,7 +13,6 @@ struct PSSView: View {
     @State private var lssTrendState  = Loadable<[LifeStressScore]>()
     @State private var showSheet = false
     @AppStorage("pss.shortMode") private var isShortMode = false  // P-D6: persisted — false = PSS-10, true = PSS-4
-    @State private var showBreathworkAfter = false  // shown after moderate/high PSS result
 
     // Accessors : préservent la signature du body (PSSKPIRow, PSSTrendChart,
     // LSSCompactCard, PSSdueBanner lisent toujours history/dueStatus/lss…).
@@ -58,8 +57,6 @@ struct PSSView: View {
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.03)
                             }
-
-                            // P-C1: Breathwork CTA removed from main view — kept only in results page
 
                             // LSS compact card — P-D4: error fallback
                             if let lss = lssToday {
@@ -157,7 +154,6 @@ struct PSSView: View {
             }
             .sheet(isPresented: $showSheet) {
                 PSSQuestionnaireSheet(isShort: isShortMode, onSaved: { record in
-                    showBreathworkAfter = (record?.category == "moderate" || record?.category == "high")
                     if let r = record {
                         ActionFeedbackManager.shared.show(.pssComplete(score: r.score, maxScore: r.maxScore))
                     }
