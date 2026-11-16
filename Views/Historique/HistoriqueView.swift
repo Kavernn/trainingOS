@@ -385,7 +385,7 @@ struct HistoriqueView: View {
                 toast = ToastMessage(message: "Séance HIIT supprimée", style: .success)
             } catch APIError.queuedOffline {
                 // Mutation enfilée hors ligne — pas d'erreur à montrer, l'élément
-                // reste visible jusqu'au rejeu (parité HIITHistoriqueView).
+                // reste visible jusqu'au rejeu.
                 toast = ToastMessage(message: "Suppression en attente — hors ligne", style: .info)
             } catch APIError.serverError(_, let msg) {
                 apiError = msg.isEmpty ? "Erreur serveur" : msg

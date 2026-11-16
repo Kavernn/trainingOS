@@ -65,7 +65,6 @@
 		AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010012F5D98B8002AE470 /* MoreView.swift */; };
 		AA0020022F5D98BA002AE470 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010022F5D98B8002AE470 /* StatsView.swift */; };
 		AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010042F5D98B8002AE470 /* BodyCompView.swift */; };
-		AA0020052F5D98BA002AE470 /* HIITHistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */; };
 		AA0020062F5D98BA002AE470 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010062F5D98B8002AE470 /* NutritionView.swift */; };
 		AA0020072F5D98BA002AE470 /* ProgrammeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010072F5D98B8002AE470 /* ProgrammeView.swift */; };
 		AA0020082F5D98BA002AE470 /* XPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010082F5D98B8002AE470 /* XPView.swift */; };
@@ -343,7 +342,6 @@
 		AA0010012F5D98B8002AE470 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
 		AA0010022F5D98B8002AE470 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		AA0010042F5D98B8002AE470 /* BodyCompView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompView.swift; sourceTree = "<group>"; };
-		AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIITHistoriqueView.swift; sourceTree = "<group>"; };
 		AA0010062F5D98B8002AE470 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		AA0010072F5D98B8002AE470 /* ProgrammeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammeView.swift; sourceTree = "<group>"; };
 		AA0010082F5D98B8002AE470 /* XPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPView.swift; sourceTree = "<group>"; };
@@ -721,14 +719,6 @@
 			path = BodyComp;
 			sourceTree = "<group>";
 		};
-		AA0030052F5D98B8002AE470 /* HIIT */ = {
-			isa = PBXGroup;
-			children = (
-				AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */,
-			);
-			path = HIIT;
-			sourceTree = "<group>";
-		};
 		AA0030062F5D98B8002AE470 /* Nutrition */ = {
 			isa = PBXGroup;
 			children = (
@@ -1048,7 +1038,6 @@
 				AA0030012F5D98B8002AE470 /* More */,
 				AA0030022F5D98B8002AE470 /* Stats */,
 				AA0030042F5D98B8002AE470 /* BodyComp */,
-				AA0030052F5D98B8002AE470 /* HIIT */,
 				AA0030062F5D98B8002AE470 /* Nutrition */,
 				AA0030072F5D98B8002AE470 /* Programme */,
 				AA0030082F5D98B8002AE470 /* XP */,
@@ -1461,7 +1450,6 @@
 				BC0000012F5D98BA002AE470 /* BodyCompEntry.swift in Sources */,
 				BC0000032F5D98BA002AE470 /* NavyCalculatorView.swift in Sources */,
 				BC0000052F5D98BA002AE470 /* BodyCompHistoryView.swift in Sources */,
-				AA0020052F5D98BA002AE470 /* HIITHistoriqueView.swift in Sources */,
 				AA0020062F5D98BA002AE470 /* NutritionView.swift in Sources */,
 				44C9676C9DEC490EA46497D2 /* FoodCatalogStore.swift in Sources */,
 				FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */,
