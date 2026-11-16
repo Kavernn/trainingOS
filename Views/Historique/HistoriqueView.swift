@@ -30,6 +30,10 @@ struct HistoriqueExo: Identifiable {
 // MARK: - Main View
 struct HistoriqueView: View {
     @State private var muscuSessions: [HistoriqueMuscu] = []
+    // Dates HIIT par jour, alimentent uniquement le compteur de la Timeline.
+    // L'onglet HIIT lui-même vit dans CardioView (D1 a737ad08).
+    @State private var hiitCountsByDate: [String: Int] = [:]
+    @State private var hiitRPEByDate: [String: Double] = [:]   // 1er RPE HIIT du jour, fallback Timeline
     @State private var isLoading = true
     @State private var isLoadingMore = false
     @State private var hasMore = false
@@ -155,6 +159,8 @@ struct HistoriqueView: View {
             await loadActiveExercises()
         }
         .onChange(of: muscuSessions.count) { timelineCache = buildTimeline() }
+        .onChange(of: hiitCountsByDate)    { timelineCache = buildTimeline() }
+        .onChange(of: hiitRPEByDate)       { timelineCache = buildTimeline() }
         .sheet(item: $editTarget) { session in
             EditSessionSheet(session: session) { date, rpe, comment, exos in
                 await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType, exos: exos)
@@ -284,6 +290,19 @@ struct HistoriqueView: View {
                 muscuSessions = parsed
             }
         }
+        // ponytail: dates seulement — la liste/édition HIIT vit dans CardioView.
+        // Remplacement (pas append) : le backend renvoie hiit_log complet à chaque page (data_views.py:749).
+        if let list = json["hiit_list"] as? [[String: Any]] {
+            var counts: [String: Int] = [:]
+            var rpes: [String: Double] = [:]
+            for d in list {
+                guard let date = d["date"] as? String else { continue }
+                counts[date, default: 0] += 1
+                if rpes[date] == nil, let rpe = d["rpe"] as? Double { rpes[date] = rpe }
+            }
+            hiitCountsByDate = counts
+            hiitRPEByDate = rpes
+        }
     }
 
     private func deleteMuscu(_ session: HistoriqueMuscu) async {
@@ -342,6 +361,7 @@ struct HistoriqueView: View {
         var id: String { date }
         let date: String
         let muscuCount: Int
+        let hiitCount: Int
         let exercises: [String]
         let rpe: Double?
     }
@@ -361,8 +381,12 @@ struct HistoriqueView: View {
             }
         }
 
-        return muscu.keys.map { date in
+        let hiit = hiitCountsByDate
+        for (date, rpe) in hiitRPEByDate where rpes[date] == nil { rpes[date] = rpe }
+        let allDates = Set(muscu.keys).union(hiit.keys)
+        return allDates.map { date in
             TimelineDay(date: date, muscuCount: muscu[date] ?? 0,
+                        hiitCount: hiit[date] ?? 0,
                         exercises: exos[date] ?? [], rpe: rpes[date])
         }.sorted { $0.date > $1.date }
     }
@@ -393,6 +417,10 @@ struct TimelineRow: View {
                     if item.muscuCount > 0 {
                         Label("\(item.muscuCount) muscu", systemImage: "dumbbell.fill")
                             .font(.appCaption.weight(.semibold)).foregroundColor(Color.forge)
+                    }
+                    if item.hiitCount > 0 {
+                        Label("\(item.hiitCount) HIIT", systemImage: "bolt.fill")
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.statusRed)
                     }
                 }
                 if !item.exercises.isEmpty {
