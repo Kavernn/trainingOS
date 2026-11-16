@@ -2183,6 +2183,8 @@ struct ExerciseCard: View {
             if showUndo {
                 Button {
                     guard removeLog(undo: true) else { return }
+                    // Le repos lancé par ce log devient fantôme : on l'arrête seulement s'il est encore le sien.
+                    if RestTimerManager.shared.exerciseName == name { RestTimerManager.shared.dismiss() }
                     undoTask?.cancel(); undoTask = nil
                     withAnimation(.easeOut(duration: 0.25)) { showUndo = false }
                 } label: {
