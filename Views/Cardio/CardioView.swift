@@ -17,6 +17,7 @@ struct CardioView: View {
     @State private var isImportingHK = false
     @State private var apiError: String? = nil  // Réservé aux erreurs HK import / mutations (hors Loadable).
     @State private var toast: ToastMessage? = nil
+    @State private var hiitEditTarget: HIITEntry? = nil
 
     private var cardioLog: [CardioEntry] { cardioLogState.value ?? [] }
     private var hiitLog: [HIITEntry]     { hiitLogState.value ?? [] }
@@ -118,9 +119,11 @@ struct CardioView: View {
                                         .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                         .padding(.horizontal, 16)
                                     ForEach(history) { entry in
-                                        UnifiedHistoryRow(entry: entry, onDelete: {
-                                            await deleteEntry(entry)
-                                        })
+                                        UnifiedHistoryRow(
+                                            entry: entry,
+                                            onDelete: { await deleteEntry(entry) },
+                                            onEditHIIT: { hiitEditTarget = $0 }
+                                        )
                                         .padding(.horizontal, 16)
                                     }
                                 }
@@ -163,6 +166,11 @@ struct CardioView: View {
             }
             .sheet(isPresented: $showSheet) {
                 LogCardioSheet(onSaved: { await loadData() })
+            }
+            .sheet(item: $hiitEditTarget) { session in
+                EditHIITSheet(session: session) { rpe, rounds, notes in
+                    await saveHIITEdit(session: session, rpe: rpe, rounds: rounds, notes: notes)
+                }
             }
             .fullScreenCover(isPresented: $showActiveSession) {
                 CardioActiveView()
@@ -216,6 +224,22 @@ struct CardioView: View {
             await MainActor.run { apiError = "Erreur réseau — réessaie" }
         }
         await loadData()
+    }
+
+    private func saveHIITEdit(session: HIITEntry, rpe: Double, rounds: Int, notes: String) async -> Bool {
+        guard let date = session.date, let type = session.sessionType else { return false }
+        do {
+            let body: [String: Any] = ["date": date, "session_type": type,
+                                       "rpe": rpe, "rounds": rounds, "notes": notes]
+            _ = try await APIService.shared.hiitEdit(body: body)
+            hiitEditTarget = nil
+            CacheService.shared.clear(for: "historique_data")
+            await loadData()
+            return true
+        } catch {
+            apiError = "Erreur réseau — réessaie"
+            return false
+        }
     }
 
     private func importFromHealthKit() {
@@ -703,6 +727,7 @@ struct PaceZonesCard: View {
 struct UnifiedHistoryRow: View {
     let entry: UnifiedCardioEntry
     let onDelete: () async -> Void
+    let onEditHIIT: (HIITEntry) -> Void
     @State private var showDetail = false
 
     var body: some View {
@@ -716,7 +741,10 @@ struct UnifiedHistoryRow: View {
         }
         .onTapGesture { showDetail = true }
         .sheet(isPresented: $showDetail) {
-            CardioHistoryDetailSheet(entry: entry)
+            CardioHistoryDetailSheet(entry: entry, onEditHIIT: { session in
+                showDetail = false
+                onEditHIIT(session)
+            })
         }
     }
 }
@@ -724,6 +752,7 @@ struct UnifiedHistoryRow: View {
 // MARK: - History Detail Sheet
 struct CardioHistoryDetailSheet: View {
     let entry: UnifiedCardioEntry
+    let onEditHIIT: (HIITEntry) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -743,6 +772,11 @@ struct CardioHistoryDetailSheet: View {
             .navigationTitle(detailTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                if case .hiit(let e) = entry {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Modifier") { onEditHIIT(e) }.foregroundColor(Color.forge)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fermer") { dismiss() }.foregroundColor(Color.statusCyan)
                 }

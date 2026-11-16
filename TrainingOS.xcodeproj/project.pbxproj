@@ -62,6 +62,7 @@
 		A70D23180D5B43EEAB1E1543 /* CoachMemoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 325289C855B34EF58D37849F /* CoachMemoryStore.swift */; };
 		A7F8B4D3C2E19056871F3A2B /* BudgetJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A9E5D4C3F20167982E4B3C /* BudgetJournalView.swift */; };
 		A8B9C0D1E2F3A4B5C6D7E8F9 /* CardioSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */; };
+		HC000001HC000001HC000001 /* EditHIITSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = HC000002HC000002HC000002 /* EditHIITSheet.swift */; };
 		AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010012F5D98B8002AE470 /* MoreView.swift */; };
 		AA0020022F5D98BA002AE470 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010022F5D98B8002AE470 /* StatsView.swift */; };
 		AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010042F5D98B8002AE470 /* BodyCompView.swift */; };
@@ -374,6 +375,7 @@
 		AT000002AT000002AT000002 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		B8A9E5D4C3F20167982E4B3C /* BudgetJournalView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BudgetJournalView.swift; path = Views/Budget/BudgetJournalView.swift; sourceTree = SOURCE_ROOT; };
 		B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSummaryView.swift; sourceTree = "<group>"; };
+		HC000002HC000002HC000002 /* EditHIITSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditHIITSheet.swift; sourceTree = "<group>"; };
 		BAC82E18346773B8F8591B8F /* RitualMorningView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMorningView.swift; sourceTree = "<group>"; };
 		BB001002BB001002BB001002 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDashboardView.swift; sourceTree = "<group>"; };
@@ -1083,6 +1085,7 @@
 				AAD71080385415CDA19C0F0A /* CardioView.swift */,
 				F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */,
 				B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */,
+				HC000002HC000002HC000002 /* EditHIITSheet.swift */,
 			);
 			path = Cardio;
 			sourceTree = "<group>";
@@ -1480,6 +1483,7 @@
 				663379608FE0A821EC0F7D89 /* CardioView.swift in Sources */,
 				E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */,
 				A8B9C0D1E2F3A4B5C6D7E8F9 /* CardioSummaryView.swift in Sources */,
+				HC000001HC000001HC000001 /* EditHIITSheet.swift in Sources */,
 				7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */,
 				RV0001RV0001RV0001RV0001 /* RecoveryRow.swift in Sources */,
 				RV0003RV0003RV0003RV0003 /* RecoveryCharts.swift in Sources */,
