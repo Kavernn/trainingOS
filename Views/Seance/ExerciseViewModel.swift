@@ -1640,6 +1640,8 @@ class SeanceViewModel: ObservableObject {
     var currentPlanningLoader: (Date, Bool) async throws -> (program: String, data: SeanceData) = {
         try await APIService.shared.fetchCurrentPlannedSeance(date: $0, preserveRecovery: $1)
     }
+    /// Lecture fraîche de load() (hors suivi du planning actif). Injectable pour les tests.
+    var seanceDataFetch: () async throws -> SeanceData = { try await APIService.shared.fetchSeanceData() }
 
     private func hasPlanningRecovery(date: String) -> Bool {
         SessionDraftStore.loadStartedAt(date: date, sessionType: draftSessionType) != nil ||
@@ -1744,7 +1746,7 @@ class SeanceViewModel: ObservableObject {
         if seanceData == nil { isLoading = true }
         error = nil
         do {
-            let fresh = try await APIService.shared.fetchSeanceData()
+            let fresh = try await seanceDataFetch()
             seanceData = fresh
             restoreLogResults(from: fresh, serverSessionType: "morning", serverCompleted: fresh.alreadyLogged)
         } catch {

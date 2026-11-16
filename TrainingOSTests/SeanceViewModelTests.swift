@@ -2591,10 +2591,22 @@ final class SeanceViewModelTests: XCTestCase {
             historyWeight: 80.0,
             historyReps: "5"
         )
+        // Un brouillon local du même jour serait restauré : on part d'un état vide.
+        SessionDraftStore.clear(date: todayDate, sessionType: "morning")
+        defer { SessionDraftStore.clear(date: todayDate, sessionType: "morning") }
         let vm = makeViewModel(cacheData: data)
+        // La lecture fraîche renvoie la même journée (historique d'hier) : ni le cache
+        // ni la lecture fraîche ne doivent restaurer — sans réseau.
+        var fetches = 0
+        vm.seanceDataFetch = {
+            fetches += 1
+            return try APIService.decoder.decode(SeanceData.self, from: data)
+        }
 
         await vm.load()
 
+        XCTAssertEqual(fetches, 1)
+        XCTAssertEqual(vm.seanceData?.todayDate, todayDate)
         XCTAssertNil(vm.logResults["Bench Press"],
                      "logResults should be empty when history date is older than todayDate")
     }
@@ -2603,6 +2615,7 @@ final class SeanceViewModelTests: XCTestCase {
         let todayDate = "2026-03-15"
         let data = Fixtures.seanceDataJSON(today: "Push A", todayDate: todayDate)
         let vm = makeViewModel(cacheData: data)
+        vm.seanceDataFetch = { try APIService.decoder.decode(SeanceData.self, from: data) }
 
         XCTAssertFalse(vm.isLoading, "isLoading should start false")
         await vm.load()
@@ -2613,10 +2626,16 @@ final class SeanceViewModelTests: XCTestCase {
         let todayDate = "2026-03-15"
         let data = Fixtures.seanceDataJSON(today: "Push A", todayDate: todayDate)
         let vm = makeViewModel(cacheData: data)
+        // Échec réseau contrôlé (et non un échec DNS de tests.invalid).
+        var fetches = 0
+        vm.seanceDataFetch = {
+            fetches += 1
+            throw URLError(.notConnectedToInternet)
+        }
 
         await vm.load()
 
-        // Network will fail, but we have cached data so error should not be surfaced
+        XCTAssertEqual(fetches, 1)
         XCTAssertNil(vm.error, "error should remain nil when cached data is available")
         XCTAssertNotNil(vm.seanceData, "seanceData should be populated from cache")
     }
