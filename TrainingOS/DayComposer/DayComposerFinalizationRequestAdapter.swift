@@ -17,8 +17,7 @@ struct DayComposerFinalizationRequestAdapter {
             throw DayComposerFinalInputsError.contextMismatch
         }
         try capture.finalInputs.values.validate()
-        let items = (local.source == .morning ? local.canonicalPlan.morning : local.canonicalPlan.evening)
-            .units.flatMap(\.items).sorted {
+        let items = local.canonicalPlan.requiredItems(local.source, setAside: local.setAside).sorted {
                 $0.sourceOrder != $1.sourceOrder ? $0.sourceOrder < $1.sourceOrder
                     : DayComposerFinalizationCoding.precedes($0.id, $1.id)
             }

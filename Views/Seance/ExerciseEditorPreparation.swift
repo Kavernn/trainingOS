@@ -121,6 +121,8 @@ final class ExerciseEditorPreparationController: ObservableObject {
     }
 
     func detach() { attached = false; editorGeneration &+= 1 }
+    /// Lu par la mise de côté du Day Composer (même tour du main actor que la disparition).
+    var hasUnpersistedEdits: Bool { vm?.hasUnpersistedEdits ?? false }
     func didMutatePrivateState() { editorGeneration &+= 1 }
 
     func setEquipment(_ value: String) {

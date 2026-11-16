@@ -1442,4 +1442,182 @@ final class DayComposerTests: XCTestCase {
             XCTAssertEqual(store.defaults.data(forKey: key), Data("broken".utf8))
         }
     }
+
+    // MARK: - Mise de côté (lot V1, commit 1a)
+
+    @MainActor private final class PendingCard: DayComposerCardParticipant {
+        let instance = UUID()
+        let gate = ExerciseEditorMutationGate()
+        var hasUnpersistedEdits = true
+        func prepareForSource() throws -> DayComposerPreparedCard {
+            .init(verify: { true }, flush: { .init(verify: { true }) })
+        }
+    }
+
+    private func setAsideSnapshot() throws -> DayComposerSnapshot {
+        try DayComposerSnapshot(date: "2026-11-16", activeProgramID: "P",
+            morning: .init(source: .morning, session: "AM", schemes: ["A": "3x8", "B": "3x8", "C": "3x5"],
+                           order: ["A", "B", "C"], pairs: [.init(group: "SS", a: "A", b: "B", rest: 90)]),
+            evening: .init(source: .evening, session: "PM", schemes: ["E": "3x8"], order: ["E"]),
+            morningCompleted: false, eveningCompleted: false)
+    }
+
+    func testRequiredItemsFiltersWholeSetAsideUnitAndLeavesFingerprintUntouched() throws {
+        let s = try setAsideSnapshot()
+        let before = try s.fingerprint
+        let superset = s.morning.units[0].id
+        XCTAssertEqual(s.requiredItems(.morning, setAside: []).map(\.name), ["A", "B", "C"])
+        XCTAssertEqual(s.requiredItems(.morning, setAside: [superset]).map(\.name), ["C"], "Le superset part en entier")
+        XCTAssertEqual(s.requiredItems(.evening, setAside: [superset]).map(\.name), ["E"])
+        XCTAssertEqual(try s.fingerprint, before, "Le plan (donc l'identité de finalisation) reste figé")
+    }
+
+    func testStoreV3SetAsideRoundTripSurvivesReorderAndRejectsOtherPlan() throws {
+        let suite = "dc-setaside-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = DayComposerStore(defaults: defaults)
+        let s = try setAsideSnapshot()
+        let fp = try s.fingerprint
+        let c = s.morning.units[1].id
+        XCTAssertEqual(try store.loadSetAside(date: s.date, program: s.activeProgramID, fingerprint: fp), [])
+        // Sans état préalable : création v3, l'ordre reste chargeable.
+        try store.saveSetAside([c], date: s.date, program: s.activeProgramID, fingerprint: fp, orderedIDs: s.initialIDs)
+        XCTAssertEqual(try store.loadSetAside(date: s.date, program: s.activeProgramID, fingerprint: fp), [c])
+        guard case .restored(let units) = try store.load(s) else { return XCTFail("v3 sans affectations refusé") }
+        XCTAssertEqual(units, s.initialUnits)
+        // Réordonner (préparation) ne perd pas la mise de côté.
+        let moved = DayComposerSnapshot.moving(s.initialUnits, from: IndexSet(integer: 2), to: 0)
+        try store.save(moved, for: s)
+        XCTAssertEqual(try store.loadSetAside(date: s.date, program: s.activeProgramID, fingerprint: fp), [c])
+        // Autre plan : échec fort, jamais « aucune mise de côté ».
+        XCTAssertThrowsError(try store.loadSetAside(date: s.date, program: s.activeProgramID, fingerprint: "other"))
+    }
+
+    @MainActor
+    func testSetAsideRefusesLoggedUnitAndPendingEdits() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A", "B"], evening: ["E"]))
+            let c = try coordinator(input)
+            let barrier = try c.makeStabilizationBarrier()
+            let a = input.snapshot.morning.units[0].id, b = input.snapshot.morning.units[1].id
+            XCTAssertEqual(c.submit(candidate: executionLog("A"), for: a), .accepted)
+            XCTAssertEqual(c.setAsideCheck(a), .refused(.logged))
+            let card = PendingCard()
+            XCTAssertTrue(barrier.register(card, identity: try XCTUnwrap(c.executionIdentity(for: b))))
+            XCTAssertEqual(c.setAsideCheck(b), .refused(.pendingEdits))
+            XCTAssertThrowsError(try c.setAsideUnit(b, discardingDrafts: true)) {
+                XCTAssertEqual($0 as? DayComposerExecutionCoordinator.SetAsideRefusal, .pendingEdits)
+            }
+            card.hasUnpersistedEdits = false
+            XCTAssertEqual(c.setAsideCheck(b), .allowed)
+            XCTAssertFalse(c.isSetAside(b))
+        }
+    }
+
+    @MainActor
+    func testSetAsideWithDraftNeedsConfirmationAndClearsOnlyThatExerciseDraft() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A", "B"], evening: ["E"]))
+            let c = try coordinator(input)
+            let a = input.snapshot.morning.units[0].id
+            let token = try c.authorization(for: .morning)
+            for name in ["A", "B"] {
+                let card = ExerciseViewModel(name: name, scheme: "1x5", weightData: nil, sessionDate: date, draftAuthorization: token)
+                card.initializeSets()
+                card.sets[0].weight = "80"
+                XCTAssertEqual(card.saveDraft(), .accepted)
+            }
+            func presence(_ name: String) -> ExerciseDraftPersistence.Presence {
+                ExerciseDraftPersistence(date: date, sessionType: "morning", exerciseName: name).presence()
+            }
+            XCTAssertEqual(c.setAsideCheck(a), .requiresDraftDiscard)
+            XCTAssertThrowsError(try c.setAsideUnit(a, discardingDrafts: false)) {
+                XCTAssertEqual($0 as? DayComposerExecutionCoordinator.SetAsideRefusal, .draftRequiresConfirmation)
+            }
+            XCTAssertEqual(presence("A"), .presentDecodable, "Refus = rien d'effacé")
+            try c.setAsideUnit(a, discardingDrafts: true)
+            XCTAssertTrue(c.isSetAside(a))
+            XCTAssertEqual(presence("A"), .absent, "Invariant : aucun brouillon pour l'unité mise de côté")
+            XCTAssertEqual(presence("B"), .presentDecodable, "Les brouillons des autres exercices sont intacts")
+            XCTAssertFalse(c.isLocked)
+        }
+    }
+
+    @MainActor
+    func testSetAsideMidExecutionOffersFinishAndLeavesBarrierExpectations() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A", "B"], evening: ["E"]))
+            let c = try coordinator(input)
+            let a = input.snapshot.morning.units[0].id, b = input.snapshot.morning.units[1].id
+            XCTAssertEqual(c.submit(candidate: executionLog("B"), for: b), .accepted)
+            XCTAssertFalse(c.canOfferFinish(.morning), "A n'est pas encore fait")
+            let identityA = try XCTUnwrap(c.executionIdentity(for: a))
+            XCTAssertTrue(c.expectedMutableParticipantIDs(for: .morning).contains(identityA))
+            try c.setAsideUnit(a, discardingDrafts: false)
+            XCTAssertEqual(c.presentation(for: a)?.rendering, .setAside)
+            XCTAssertNil(c.presentation(for: a)?.authorization)
+            XCTAssertFalse(c.expectedMutableParticipantIDs(for: .morning).contains(identityA),
+                           "La barrière n'attend plus de carte pour l'unité mise de côté")
+            XCTAssertEqual(c.requiredItems(.morning).map(\.name), ["B"])
+            XCTAssertTrue(c.canOfferFinish(.morning), "La fin est proposée dès que le reste est logué")
+            XCTAssertEqual(c.executableCount, 2, "B + E")
+        }
+    }
+
+    @MainActor
+    func testLastUnitOfDayRefusedWithoutAnyLogAndCancelRestores() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A"], evening: ["E"]))
+            let c = try coordinator(input)
+            let a = input.snapshot.morning.units[0].id, e = input.snapshot.evening.units[0].id
+            try c.setAsideUnit(a, discardingDrafts: false)
+            XCTAssertEqual(c.setAsideCheck(e), .refused(.lastUnitOfDay), "Garde au moins un exercice pour la journée")
+            try c.cancelSetAside(a)
+            XCTAssertFalse(c.isSetAside(a))
+            XCTAssertEqual(try DayComposerStore().loadSetAside(date: date, program: input.context.activeProgramID,
+                                                                fingerprint: input.planningFingerprint), [])
+            XCTAssertEqual(c.presentation(for: a)?.rendering, .mutable)
+        }
+    }
+
+    @MainActor
+    func testWholeSourceSetAsideWithLoggedDayIsSetAsideStateNotDayCompleted() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A", "B"], evening: ["E"]))
+            let c = try coordinator(input)
+            let finish = try c.makeFinishCoordinator()
+            let a = input.snapshot.morning.units[0].id, b = input.snapshot.morning.units[1].id
+            let e = input.snapshot.evening.units[0].id
+            XCTAssertEqual(c.submit(candidate: executionLog("B"), for: b), .accepted)
+            try c.setAsideUnit(a, discardingDrafts: false)
+            try c.setAsideUnit(e, discardingDrafts: false) // permis : B est logué
+            XCTAssertEqual(finish.productState(.evening), .setAside)
+            XCTAssertEqual(finish.productState(.morning), .ready, "Le matin reste à terminer (RPE + Terminer)")
+            XCTAssertFalse(finish.dayCompleted, "Pas de journée terminée automatique")
+            XCTAssertFalse(c.canOfferFinish(.evening))
+        }
+    }
+
+    @MainActor
+    func testIncoherentSetAsideWithDraftAtReopenFailsIncompatible() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A", "B"], evening: ["E"]))
+            let c = try coordinator(input)
+            let a = input.snapshot.morning.units[0].id
+            let card = ExerciseViewModel(name: "A", scheme: "1x5", weightData: nil, sessionDate: date,
+                                         draftAuthorization: try c.authorization(for: .morning))
+            card.initializeSets()
+            card.sets[0].weight = "80"
+            XCTAssertEqual(card.saveDraft(), .accepted)
+            // Contourne la garde : seule une corruption peut produire cet état.
+            try DayComposerStore().saveSetAside([a], date: date, program: input.context.activeProgramID,
+                fingerprint: input.planningFingerprint, orderedIDs: input.snapshot.initialIDs)
+            XCTAssertThrowsError(try coordinator(input)) {
+                guard case .some(.incompatible) = $0 as? DayComposerExecutionCoordinator.Failure else {
+                    return XCTFail("Attendu Failure.incompatible, reçu \($0)")
+                }
+            }
+        }
+    }
 }

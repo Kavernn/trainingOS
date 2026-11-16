@@ -251,8 +251,8 @@ struct DayComposerActiveView: View {
                         }
                         if state == .ready {
                             Button("Terminer \(source.title)") {
-                                let hasTracked = coordinator.orderedUnits.flatMap(\.items).contains {
-                                    $0.assignedSource == source && WorkoutCompletion.tracks($0.tracking)
+                                let hasTracked = coordinator.requiredItems(source).contains {
+                                    WorkoutCompletion.tracks($0.tracking)
                                 }
                                 if hasTracked { selectedRPE = nil; present(.rpe(source)) }
                                 else {
@@ -548,6 +548,7 @@ private struct DayComposerReadOnlyContent: View {
         case .unsupported: return "Cet exercice ne peut pas être saisi dans Ma journée. Consulte-le depuis sa séance habituelle."
         case .locked: return "La journée a changé. Tes saisies enregistrées restent disponibles."
         case .localReadOnly: return "Saisie conservée sur cet appareil, disponible en consultation."
+        case .setAside: return "Mis de côté aujourd’hui."
         case .mutable: return ""
         }
     }

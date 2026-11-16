@@ -15,11 +15,12 @@ struct DayComposerSourceFinalizationInput {
     let server: DayComposerSourceServerFacts
     /// Caller-supplied, validated historical facts. Never loaded by this type.
     let history: DayComposerFinalizationHistory
+    /// Unités mises de côté, figées dans la capture. canonicalPlan reste complet (identité).
+    var setAside: Set<DayComposerItemID> = []
 
     var sessionName: String { identity.session(for: source) }
     var planItems: [DayComposerItem] {
-        let plan = source == .morning ? canonicalPlan.morning : canonicalPlan.evening
-        return plan.units.flatMap(\.items).sorted {
+        canonicalPlan.requiredItems(source, setAside: setAside).sorted {
             $0.sourceOrder != $1.sourceOrder ? $0.sourceOrder < $1.sourceOrder
                 : DayComposerFinalizationCoding.precedes($0.id, $1.id)
         }

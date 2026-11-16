@@ -17,8 +17,11 @@ struct DayComposerPreparedFinalization {
 final class DayComposerFinishCoordinator: ObservableObject {
     enum ProductState: Equatable {
         case ready, processing, pending, review, failed, completed
+        /// Toute la source est mise de côté : aucun log_session ne sera envoyé pour elle.
+        case setAside
         var title: String {
             switch self {
+            case .setAside: return "Mise de côté aujourd’hui"
             case .ready: return "À terminer"
             case .processing: return "Enregistrement en cours…"
             case .pending: return "En attente de synchronisation"
@@ -94,8 +97,8 @@ final class DayComposerFinishCoordinator: ObservableObject {
     }
 
     private func observeCoaching(_ state: DayComposerSourceFinishState?, currentFinalization: Bool = false) {
-        guard let state, let execution, execution.orderedUnits.flatMap(\.items).contains(where: {
-            $0.assignedSource == state.source && WorkoutCompletion.tracks($0.tracking)
+        guard let state, let execution, execution.requiredItems(state.source).contains(where: {
+            WorkoutCompletion.tracks($0.tracking)
         }) else { return }
         coaching.observe(state, currentFinalization: currentFinalization)
     }
@@ -113,18 +116,26 @@ final class DayComposerFinishCoordinator: ObservableObject {
     @Published private(set) var productResults: [DayComposerSource: Result] = [:]
     @Published private var preparing: Set<DayComposerSource> = []
 
+    /// Vrai quand toutes les unités de la source sont mises de côté (rien à finaliser).
+    private func isSetAside(_ source: DayComposerSource) -> Bool {
+        execution?.requiredItems(source).isEmpty == true
+    }
+
     func productState(_ source: DayComposerSource) -> ProductState {
+        if isSetAside(source) { return .setAside }
         if preparing.contains(source) || (phases[source] ?? .idle) != .idle { return .processing }
         return .from(productResults[source])
     }
     var dayCompleted: Bool {
-        productState(.morning) == .completed && productState(.evening) == .completed && coaching.allResolved
+        [DayComposerSource.morning, .evening].allSatisfy { [.completed, .setAside].contains(productState($0)) }
+            && coaching.allResolved
     }
 
     /// Explicit user command. Every invocation obtains a NEW stabilized capture;
     /// no cached UI artifact survives editing, leaving the screen, or relaunch.
     func finishSource(_ source: DayComposerSource, rpe: Double) async {
-        guard preparing.insert(source).inserted else { return }
+        // Source entièrement mise de côté : jamais de log_session pour elle.
+        guard !isSetAside(source), preparing.insert(source).inserted else { return }
         defer {
             // Application ACK and completion remain finalization-owned. Coaching
             // is admitted synchronously before processing becomes completed.
@@ -133,9 +144,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
         }
         do {
             guard let execution else { throw Failure.contextRejected }
-            let tracks = execution.orderedUnits.flatMap(\.items).contains {
-                $0.assignedSource == source && WorkoutCompletion.tracks($0.tracking)
-            }
+            let tracks = execution.requiredItems(source).contains { WorkoutCompletion.tracks($0.tracking) }
             guard !tracks || rpe != 0 else { throw DayComposerFinalInputsError.invalidRPE }
             try execution.setFinalRPE(tracks ? rpe : 0, for: source)
             let artifact = try await prepareSource(source)
@@ -164,7 +173,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
     /// Reopen/foreground is observation, NEVER an implicit retry/POST. Missing
     /// RPE remains incomplete; no default is written on behalf of the user.
     func refreshSource(_ source: DayComposerSource) async {
-        guard !preparing.contains(source), !busy.contains(source), let execution,
+        guard !isSetAside(source), !preparing.contains(source), !busy.contains(source), let execution,
               (try? execution.finalInputsParticipant(for: source).prepare()) != nil else { return }
         if let confirmed = productResults[source]?.reconciliation,
            confirmed.isResolved, confirmed.finalOperation.application == .confirmed {
@@ -238,7 +247,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
         return .init(identity: local.identity, source: local.source, canonicalPlan: local.canonicalPlan,
             contextFreshness: .fresh, provenanceGuard: local.guardValue, provenanceCompatible: true,
             stabilization: .stableAccepted(local.guardValue), itemFacts: local.itemFacts, comment: local.comment,
-            server: server, history: history)
+            server: server, history: history, setAside: local.setAside)
     }
 
     /// Explicit fresh facts are required; this synchronous method never performs
@@ -288,7 +297,7 @@ final class DayComposerFinishCoordinator: ObservableObject {
         let provisional = DayComposerFinalSourceCapture(local: .init(identity: local.identity, source: local.source,
             canonicalPlan: local.canonicalPlan, itemFacts: local.itemFacts.map {
                 .init(itemID: $0.itemID, local: $0.local, draft: $0.draft, localConflictsWithServer: false)
-            }, comment: local.comment, guardValue: local.guardValue), finalInputs: capture.finalInputs)
+            }, comment: local.comment, guardValue: local.guardValue, setAside: local.setAside), finalInputs: capture.finalInputs)
         let initial = try history(identity: local.identity, source: local.source)
         let snapshot = try DayComposerFinalizationSnapshot.build(input(provisional, server: server, history: initial)).get()
         let resolved = try history(identity: local.identity, source: local.source,
@@ -302,7 +311,8 @@ final class DayComposerFinishCoordinator: ObservableObject {
             return .init(itemID: fact.itemID, local: fact.local, draft: fact.draft, localConflictsWithServer: false)
         }
         return .init(local: .init(identity: local.identity, source: local.source, canonicalPlan: local.canonicalPlan,
-            itemFacts: facts, comment: local.comment, guardValue: local.guardValue), finalInputs: capture.finalInputs)
+            itemFacts: facts, comment: local.comment, guardValue: local.guardValue, setAside: local.setAside),
+            finalInputs: capture.finalInputs)
     }
 
     private func verify(_ artifact: DayComposerPreparedFinalization) throws {

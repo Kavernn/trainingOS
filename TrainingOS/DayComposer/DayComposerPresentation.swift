@@ -25,6 +25,7 @@ struct DayComposerFinishPresentation {
         case .review: "info.circle"
         case .failed: "exclamationmark.circle"
         case .completed: "checkmark.circle.fill"
+        case .setAside: "minus.circle"
         }
     }
     var title: String {
@@ -35,6 +36,7 @@ struct DayComposerFinishPresentation {
         case .review: "Vérification requise"
         case .failed: "Enregistrement non confirmé"
         case .completed: "Séance terminée"
+        case .setAside: "Mise de côté aujourd’hui"
         }
     }
     var detail: String? {
@@ -43,6 +45,7 @@ struct DayComposerFinishPresentation {
         case .review: "Le résultat doit être vérifié avant de continuer. Cette vérification ne renvoie pas tes données."
         case .failed: "La séance n’a pas pu être confirmée. Vérifie son état avant de tenter de la terminer à nouveau."
         case .completed: "Tu peux poursuivre l’autre séance de ta journée."
+        case .setAside: "Tous ses exercices sont mis de côté : rien ne sera enregistré pour cette séance."
         case .ready, .processing: nil
         }
     }

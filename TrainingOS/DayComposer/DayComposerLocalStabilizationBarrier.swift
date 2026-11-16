@@ -24,7 +24,12 @@ struct DayComposerVerifiedCard {
 protocol DayComposerCardParticipant: AnyObject {
     var instance: UUID { get }
     var gate: ExerciseEditorMutationGate { get }
+    var hasUnpersistedEdits: Bool { get }
     func prepareForSource() throws -> DayComposerPreparedCard
+}
+
+extension DayComposerCardParticipant {
+    var hasUnpersistedEdits: Bool { false }
 }
 
 extension ExerciseEditorPreparationController: DayComposerCardParticipant {
@@ -176,6 +181,11 @@ final class DayComposerLocalStabilizationBarrier: ObservableObject {
         cards[identity] = entries
         generations[identity.source, default: 0] &+= 1
         return entries.count == 1
+    }
+
+    /// Vrai si une carte inscrite pour cet exercice a une saisie pas encore écrite.
+    func hasUnpersistedEdits(_ identity: DayComposerExecutionItemIdentity) -> Bool {
+        cards[identity]?.values.contains { $0.handle?.hasUnpersistedEdits == true } ?? false
     }
 
     func unregister(identity: DayComposerExecutionItemIdentity, token: UUID) {

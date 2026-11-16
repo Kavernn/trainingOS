@@ -149,6 +149,12 @@ struct DayComposerSnapshot {
         source == .morning ? morningCompleted : eveningCompleted
     }
 
+    /// Exercices à faire pour une source. SEUL point de filtrage des mises de côté
+    /// (têtes d'unité) : le plan, donc l'empreinte et l'identité de finalisation, reste complet.
+    func requiredItems(_ source: DayComposerSource, setAside: Set<DayComposerItemID>) -> [DayComposerItem] {
+        (source == .morning ? morning : evening).units.filter { !setAside.contains($0.id) }.flatMap(\.items)
+    }
+
     func canStart(orderedIDs: [DayComposerItemID], activeProgram: String, date: String,
                   loading: Bool, incompatible: Bool) -> Bool {
         !loading && !incompatible && activeProgramID == activeProgram && self.date == date
@@ -235,6 +241,8 @@ struct DayComposerState: Codable {
     let sourceFingerprint: String
     let orderedItemIDs: [DayComposerItemID]
     var assignments: [Assignment]? = nil
+    /// v3 : unités mises de côté pour la journée (têtes d'unité). Hors empreinte.
+    var setAside: [DayComposerItemID]? = nil
     struct Assignment: Codable {
         let id: DayComposerItemID
         let source: DayComposerSource

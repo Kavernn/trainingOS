@@ -50,10 +50,26 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     private var awaitingAdvance: Set<DayComposerItemID> = []
     @Published private(set) var currentUnitID: DayComposerItemID?
     @Published private(set) var currentMemberID: DayComposerItemID?
+    /// Unités mises de côté pour la journée (têtes d'unité). Le plan reste figé.
+    @Published private(set) var setAside: Set<DayComposerItemID>
+    private let orderStore: DayComposerStore
+    private let finalizationStore: DayComposerFinalizationStore
 
     var context: DayComposerExecutionContext { input.context }
+
+    /// Seul point de filtrage côté exécution (délègue à DayComposerSnapshot.requiredItems).
+    func requiredItems(_ source: DayComposerSource) -> [DayComposerItem] {
+        input.snapshot.requiredItems(source, setAside: setAside)
+    }
+    func isSetAside(_ id: DayComposerItemID) -> Bool {
+        orderedUnits.contains { setAside.contains($0.id) && $0.items.contains { $0.id == id } }
+    }
+    private func isActionable(_ id: DayComposerItemID) -> Bool {
+        !isSetAside(id) && status(for: id)?.isActionable == true
+    }
+
     func canOfferFinish(_ source: DayComposerSource) -> Bool {
-        let required = items.filter { $0.assignedSource == source }
+        let required = requiredItems(source)
         return !isLocked && !required.isEmpty && required.allSatisfy { item in
             guard let state = status(for: item.id) else { return false }
             if !WorkoutCompletion.tracks(item.tracking) { return state.draft != .presentUnreadable }
@@ -75,6 +91,8 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         validatedInput input: DayComposerValidatedExecutionInput,
         currentDate: @escaping () -> String = { DateFormatter.isoDate.string(from: Date()) },
         finalInputsStore: DayComposerFinalInputsStore = DayComposerFinalInputsStore(),
+        orderStore: DayComposerStore = DayComposerStore(),
+        finalizationStore: DayComposerFinalizationStore = DayComposerFinalizationStore(),
         makeOwner: @MainActor (DayComposerSource) throws -> SeanceViewModel = {
             $0 == .morning ? SeanceViewModel(draftSessionType: "morning") : SeanceSoirViewModel()
         },
@@ -112,6 +130,9 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         }
         try validateResults(morning, plan: input.snapshot.morning)
         try validateResults(evening, plan: input.snapshot.evening)
+        let setAside = try orderStore.loadSetAside(date: input.context.date, program: input.context.activeProgramID,
+                                                   fingerprint: input.planningFingerprint)
+        try validateSetAside(setAside, input: input, morning: morning, evening: evening)
         if fresh { try store.create(context: input.context) }
         let morningToken = try store.authorize(context: input.context, source: .morning)
         let eveningToken = try store.authorize(context: input.context, source: .evening)
@@ -120,7 +141,8 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         let coordinator = DayComposerExecutionCoordinator(input: input, morning: morning, evening: evening,
             morningToken: morningToken, eveningToken: eveningToken, currentDate: currentDate,
             finalInputsIdentity: try DayComposerExecutionIdentity(executionID: morningToken.executionID, context: input.context),
-            finalInputsStore: finalInputsStore)
+            finalInputsStore: finalInputsStore, setAside: setAside, orderStore: orderStore,
+            finalizationStore: finalizationStore)
         guard coordinator.revalidateExecutionContext() else { throw Failure.incompatible }
         // Eagerly restore both lazy participants after self is fully initialized.
         // Missing/corrupt inputs remain source-local projections, not a local-only lock.
@@ -134,7 +156,9 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     private init(input: DayComposerValidatedExecutionInput, morning: SeanceViewModel, evening: SeanceViewModel,
                  morningToken: DayComposerProvenanceStore.Authorization,
                  eveningToken: DayComposerProvenanceStore.Authorization, currentDate: @escaping () -> String,
-                 finalInputsIdentity: DayComposerExecutionIdentity, finalInputsStore: DayComposerFinalInputsStore) {
+                 finalInputsIdentity: DayComposerExecutionIdentity, finalInputsStore: DayComposerFinalInputsStore,
+                 setAside: Set<DayComposerItemID>, orderStore: DayComposerStore,
+                 finalizationStore: DayComposerFinalizationStore) {
         self.input = input
         morningVM = morning
         eveningVM = evening
@@ -143,6 +167,112 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         self.currentDate = currentDate
         self.finalInputsIdentity = finalInputsIdentity
         self.finalInputsStore = finalInputsStore
+        self.setAside = setAside
+        self.orderStore = orderStore
+        self.finalizationStore = finalizationStore
+    }
+
+    /// Une mise de côté désigne une tête d'unité de la journée, sans log local ni brouillon.
+    /// L'interface rend l'inverse impossible : un tel état est une corruption → échec fort.
+    private static func validateSetAside(_ setAside: Set<DayComposerItemID>, input: DayComposerValidatedExecutionInput,
+                                         morning: SeanceViewModel, evening: SeanceViewModel) throws {
+        for id in setAside {
+            guard let unit = input.orderedUnits.first(where: { $0.id == id }) else { throw Failure.incompatible }
+            for item in unit.items {
+                let owner = item.assignedSource == .morning ? morning : evening
+                guard owner.logResults[item.storageKey] == nil,
+                      ExerciseDraftPersistence(date: input.context.date, sessionType: item.assignedSource.rawValue,
+                          exerciseName: item.storageKey).presence() == .absent else { throw Failure.incompatible }
+            }
+        }
+    }
+
+    // MARK: - Mise de côté
+
+    enum SetAsideRefusal: Error, Equatable {
+        case locked, busy, invalidUnit, logged, pendingEdits, sourceFinished, lastUnitOfDay
+        case draftRequiresConfirmation, persistence
+    }
+    enum SetAsideCheck: Equatable { case allowed, requiresDraftDiscard, refused(SetAsideRefusal) }
+
+    /// Source terminée (serveur) ou finalisation déjà engagée (intention finale) : figée.
+    /// Une lecture locale illisible ferme aussi (fail closed).
+    private func sourceFinished(_ source: DayComposerSource) -> Bool {
+        if input.snapshot.completed(source) { return true }
+        do {
+            return try finalizationStore.load(identity: finalInputsIdentity)?.finalIntents
+                .contains { $0.sourceVersion.source == source } ?? false
+        } catch { return true }
+    }
+
+    private func commonSetAsideRefusal(_ unitID: DayComposerItemID) -> SetAsideRefusal? {
+        guard !isLocked, revalidateExecutionContext() else { return .locked }
+        guard permitsNavigation else { return .busy }
+        guard let unit = orderedUnits.first(where: { $0.id == unitID }) else { return .invalidUnit }
+        return sourceFinished(unit.source) ? .sourceFinished : nil
+    }
+
+    private func isLogged(_ item: DayComposerItem) -> Bool {
+        let status = status(for: item.id)?.status
+        return status == .localLogged || status == .serverObserved
+    }
+
+    /// Ordre des règles validé : logué → refus ; saisie en attente → refus temporaire ;
+    /// dernière unité requise sans aucun log dans la journée → refus ; brouillon → confirmation.
+    func setAsideCheck(_ unitID: DayComposerItemID) -> SetAsideCheck {
+        if let refusal = commonSetAsideRefusal(unitID) { return .refused(refusal) }
+        guard !setAside.contains(unitID), let unit = orderedUnits.first(where: { $0.id == unitID }) else {
+            return .refused(.invalidUnit)
+        }
+        if unit.items.contains(where: isLogged) { return .refused(.logged) }
+        if unit.items.contains(where: { item in
+            executionIdentity(for: item.id).map { stabilizationBarrier?.hasUnpersistedEdits($0) == true } ?? false
+        }) { return .refused(.pendingEdits) }
+        let remaining = (requiredItems(.morning) + requiredItems(.evening)).filter { item in
+            !unit.items.contains { $0.id == item.id }
+        }
+        if remaining.isEmpty && !items.contains(where: isLogged) { return .refused(.lastUnitOfDay) }
+        if unit.items.contains(where: { status(for: $0.id)?.draft != .absent }) { return .requiresDraftDiscard }
+        return .allowed
+    }
+
+    /// Invariant à la sortie : ni brouillon ni saisie en attente pour l'unité. Les brouillons
+    /// supprimés sont ceux de CETTE unité uniquement (une clé par exercice/occurrence).
+    func setAsideUnit(_ unitID: DayComposerItemID, discardingDrafts: Bool) throws {
+        switch setAsideCheck(unitID) {
+        case .refused(let refusal): throw refusal
+        case .requiresDraftDiscard where !discardingDrafts: throw SetAsideRefusal.draftRequiresConfirmation
+        case .allowed, .requiresDraftDiscard: break
+        }
+        guard let unit = orderedUnits.first(where: { $0.id == unitID }) else { throw SetAsideRefusal.invalidUnit }
+        for item in unit.items where status(for: item.id)?.draft != .absent {
+            let token = item.assignedSource == .morning ? morningAuthorization : eveningAuthorization
+            let draft = ExerciseDraftPersistence(date: context.date, sessionType: item.assignedSource.rawValue,
+                                                 exerciseName: item.storageKey, authorization: token)
+            let result = draft.clear()
+            guard result == .accepted, draft.presence() == .absent else {
+                report(result == .accepted ? .failed : result)
+                throw SetAsideRefusal.persistence
+            }
+        }
+        try persistSetAside(setAside.union([unitID]))
+        if let current = currentMemberID, isSetAside(current) { selectFirstActionable() }
+    }
+
+    /// Annulable tant que la source n'est ni terminée ni engagée en finalisation.
+    func cancelSetAside(_ unitID: DayComposerItemID) throws {
+        if let refusal = commonSetAsideRefusal(unitID) { throw refusal }
+        guard setAside.contains(unitID) else { throw SetAsideRefusal.invalidUnit }
+        try persistSetAside(setAside.subtracting([unitID]))
+    }
+
+    private func persistSetAside(_ updated: Set<DayComposerItemID>) throws {
+        do {
+            try orderStore.saveSetAside(updated, date: context.date, program: context.activeProgramID,
+                fingerprint: input.planningFingerprint, orderedIDs: items.map(\.id))
+        } catch { throw SetAsideRefusal.persistence }
+        setAside = updated
+        refreshDerivedState()
     }
 
     private func makeFinalInputsParticipant(_ source: DayComposerSource) -> DayComposerFinalInputsParticipant {
@@ -313,9 +443,12 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         else { status = .unknown }
         return ItemState(status: status, draft: draft, serverObserved: observed)
     }
-    var executableCount: Int { items.filter { Self.isSupported($0.tracking) && WorkoutCompletion.tracks($0.tracking) }.count }
+    var executableCount: Int {
+        items.filter { !isSetAside($0.id) && Self.isSupported($0.tracking) && WorkoutCompletion.tracks($0.tracking) }.count
+    }
     var treatedCount: Int {
         items.filter { item in
+            guard !isSetAside(item.id) else { return false }
             guard WorkoutCompletion.tracks(item.tracking) else { return false }
             let itemStatus = status(for: item.id)?.status
             return itemStatus == .localLogged || itemStatus == .serverObserved
@@ -351,12 +484,12 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     }
     func selectFirstActionable() {
         guard permitsNavigation, revalidateExecutionContext() else { return }
-        setSelection(items.first(where: { status(for: $0.id)?.isActionable == true })?.id)
+        setSelection(items.first(where: { isActionable($0.id) })?.id)
     }
     func next() {
         guard permitsNavigation, revalidateExecutionContext() else { return }
         let start = currentMemberID.flatMap { id in items.firstIndex(where: { $0.id == id }) }.map { $0 + 1 } ?? 0
-        setSelection(items.dropFirst(start).first(where: { status(for: $0.id)?.isActionable == true })?.id)
+        setSelection(items.dropFirst(start).first(where: { isActionable($0.id) })?.id)
     }
     func previous() {
         guard permitsNavigation, revalidateExecutionContext() else { return }
@@ -374,7 +507,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     // MARK: - Pure shell projections (safe during SwiftUI body evaluation)
 
     enum Rendering: Equatable {
-        case mutable, localReadOnly, observed, corruptDraft, conflict, unsupported, locked
+        case mutable, localReadOnly, observed, corruptDraft, conflict, unsupported, locked, setAside
     }
     struct Presentation {
         let item: DayComposerItem
@@ -390,7 +523,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     }
     var selectedSource: DayComposerSource? { currentMemberID.flatMap { item(for: $0)?.assignedSource } ?? selectedUnit?.source }
     var selectedUnit: DayComposerUnit? { orderedUnits.first { $0.id == currentUnitID } }
-    var hasActionableItems: Bool { items.contains { status(for: $0.id)?.isActionable == true } }
+    var hasActionableItems: Bool { items.contains { isActionable($0.id) } }
 
     func consultationResult(for id: DayComposerItemID) -> ExerciseLogResult? {
         guard let item = item(for: id) else { return nil }
@@ -415,6 +548,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         let rendering: Rendering
         let label: String
         if isLocked { rendering = .locked; label = "Lecture seule — contexte modifié" }
+        else if isSetAside(id) { rendering = .setAside; label = "Mis de côté aujourd’hui" } // sans carte → hors expectedMutableParticipantIDs
         else if state.status == .unsupported { rendering = .unsupported; label = "Non pris en charge" }
         else if state.draftCorrupt { rendering = .corruptDraft; label = "Brouillon local à vérifier" }
         else if result != nil {
@@ -433,7 +567,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     }
     func nextActionableName(after id: DayComposerItemID) -> String? {
         guard let index = items.firstIndex(where: { $0.id == id }),
-              let next = items.dropFirst(index + 1).first(where: { status(for: $0.id)?.isActionable == true }) else { return nil }
+              let next = items.dropFirst(index + 1).first(where: { isActionable($0.id) }) else { return nil }
         return "\(next.name) · \(next.assignedSource.title)"
     }
 
@@ -527,7 +661,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
               try currentFinalizationGuard(for: source) == evidence.guardValue,
               persistedCommentMatches(evidence.comment, for: source),
               sourceOwner(source).persistedLogsMatchCurrentState() else { throw DayComposerStabilizationError.staleEvidence }
-        let planItems = (source == .morning ? input.snapshot.morning : input.snapshot.evening).units.flatMap(\.items)
+        let planItems = requiredItems(source)
         let facts: [DayComposerRequiredItemFacts] = try planItems.map { item in
             guard let state = status(for: item.id) else { throw Failure.invalidItem }
             let draft: DayComposerRawDraftFact
@@ -560,7 +694,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         guard evidence.isCurrentAttempt, try currentFinalizationGuard(for: source) == evidence.guardValue,
               sourceOwner(source).persistedLogsMatchCurrentState() else { throw DayComposerStabilizationError.staleEvidence }
         return .init(identity: evidence.identity, source: source, canonicalPlan: input.snapshot,
-                     itemFacts: facts, comment: evidence.comment, guardValue: evidence.guardValue)
+                     itemFacts: facts, comment: evidence.comment, guardValue: evidence.guardValue, setAside: setAside)
     }
 
     /// Immutable local data only. No snapshot write, binding, request or submission.
@@ -585,7 +719,7 @@ final class DayComposerExecutionCoordinator: ObservableObject {
     /// Also checks owner memory, including private restoration paths outside G2.
     func verifyFinalCapture(_ capture: DayComposerFinalSourceCapture) throws {
         let local = capture.local
-        guard local.identity == finalInputsIdentity,
+        guard local.identity == finalInputsIdentity, local.setAside == setAside,
               try currentFinalizationGuard(for: local.source) == local.guardValue,
               persistedCommentMatches(local.comment, for: local.source),
               sourceOwner(local.source).persistedLogsMatchCurrentState() else {
@@ -632,6 +766,8 @@ struct DayComposerLocalFinalizationFacts {
     let itemFacts: [DayComposerRequiredItemFacts]
     let comment: String
     let guardValue: DayComposerFinalizationGuard
+    /// Mises de côté au moment de la capture ; revérifiées par verifyFinalCapture.
+    var setAside: Set<DayComposerItemID> = []
 }
 
 /// A value capture, never a cached authorization. p2b owns reconstruction/binding.

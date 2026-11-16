@@ -679,6 +679,12 @@ final class ExerciseViewModel: ObservableObject {
         }
     }
 
+    /// Saisie pas encore écrite : enregistrement différé armé, ou écart avec le dernier
+    /// brouillon enregistré. Faux ⇒ aucune écriture ne peut partir sans nouvelle saisie.
+    var hasUnpersistedEdits: Bool {
+        hasPendingSetsPersistence || canonical(currentDraft) != baselineEditor
+    }
+
     private var currentDraft: ExerciseCardDraft {
         ExerciseCardDraft(sets: draftSets(sets), sessionNote: sessionNote,
             equipmentType: equipmentType == "landmine" ? equipmentType : nil,
