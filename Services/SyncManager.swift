@@ -99,7 +99,7 @@ final class SyncManager: ObservableObject {
             .filter { $0 }
             .debounce(for: .seconds(1), scheduler: RunLoop.main)
             .sink { [weak self] _ in
-                Task { await self?.flushQueue() }
+                Task { @MainActor in self?.launchFlush() }
             }
             .store(in: &cancellables)
     }
