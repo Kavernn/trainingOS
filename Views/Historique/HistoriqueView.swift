@@ -30,7 +30,6 @@ struct HistoriqueExo: Identifiable {
 // MARK: - Main View
 struct HistoriqueView: View {
     @State private var muscuSessions: [HistoriqueMuscu] = []
-    @State private var hiitSessions: [HIITEntry] = []
     @State private var isLoading = true
     @State private var isLoadingMore = false
     @State private var hasMore = false
@@ -39,7 +38,6 @@ struct HistoriqueView: View {
     @AppStorage("historique_selectedTab") private var selectedTab = 0
     @State private var expandedIDs: Set<String> = []
     @State private var editTarget: HistoriqueMuscu? = nil
-    @State private var editHIITTarget: HIITEntry? = nil
     @State private var apiError: String? = nil
     @State private var toast: ToastMessage? = nil
     @State private var monthFilter: String? = nil   // "YYYY-MM"
@@ -60,7 +58,6 @@ struct HistoriqueView: View {
                         // Tabs
                         HStack(spacing: 8) {
                             ChipButton(label: "🏋️ Muscu (\(muscuSessions.count))", isSelected: selectedTab == 0, color: Color.forge) { selectedTab = 0 }
-                            ChipButton(label: "⚡ HIIT (\(hiitSessions.count))", isSelected: selectedTab == 1, color: Color.forge) { selectedTab = 1 }
                             ChipButton(label: "📅 Timeline", isSelected: selectedTab == 2, color: Color.forge) { selectedTab = 2 }
                         }
                         .padding(.horizontal, 16)
@@ -130,19 +127,6 @@ struct HistoriqueView: View {
                                             .disabled(isLoadingMore)
                                         }
                                     }
-                                } else if selectedTab == 1 {
-                                    if hiitSessions.isEmpty {
-                                        EmptyHistoriqueView(label: "Aucune séance HIIT")
-                                    } else {
-                                        ForEach(hiitSessions) { session in
-                                            HIITSessionCard(
-                                                session: session,
-                                                onDelete: { Task { await deleteHIIT(session) } },
-                                                onEdit: { editHIITTarget = session }
-                                            )
-                                            .padding(.horizontal, 16)
-                                        }
-                                    }
                                 } else {
                                     if timelineCache.isEmpty {
                                         EmptyHistoriqueView(label: "Aucune activité")
@@ -165,19 +149,15 @@ struct HistoriqueView: View {
             .navigationBarTitleDisplayMode(.large)
         }
         .task {
+            // Migration : l'ancien onglet HIIT (selectedTab==1) a été retiré.
+            if selectedTab == 1 { selectedTab = 0 }
             await loadData()
             await loadActiveExercises()
         }
         .onChange(of: muscuSessions.count) { timelineCache = buildTimeline() }
-        .onChange(of: hiitSessions.count)  { timelineCache = buildTimeline() }
         .sheet(item: $editTarget) { session in
             EditSessionSheet(session: session) { date, rpe, comment, exos in
                 await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType, exos: exos)
-            }
-        }
-        .sheet(item: $editHIITTarget) { session in
-            EditHIITSheet(session: session) { rpe, rounds, notes in
-                await saveHIITEdit(session: session, rpe: rpe, rounds: rounds, notes: notes)
             }
         }
         .sheet(isPresented: $showMonthPicker) {
@@ -224,7 +204,7 @@ struct HistoriqueView: View {
             hasMore = json["has_more"] as? Bool ?? false
             apiError = nil
         } catch {
-            if muscuSessions.isEmpty && hiitSessions.isEmpty {
+            if muscuSessions.isEmpty {
                 apiError = LoadError.from(error)?.message ?? "Impossible de charger l'historique — vérifie ta connexion."
             }
         }
@@ -304,24 +284,6 @@ struct HistoriqueView: View {
                 muscuSessions = parsed
             }
         }
-        if let list = json["hiit_list"] as? [[String: Any]] {
-            let parsed = list.compactMap { d in
-                HIITEntry(
-                    date: d["date"] as? String,
-                    sessionType: d["session_type"] as? String,
-                    rounds: d["rounds_completes"] as? Int ?? d["rounds"] as? Int,
-                    workTime: d["work_time"] as? Int,
-                    restTime: d["rest_time"] as? Int,
-                    rpe: d["rpe"] as? Double,
-                    notes: d["comment"] as? String ?? d["notes"] as? String
-                )
-            }
-            if append {
-                hiitSessions.append(contentsOf: parsed)
-            } else {
-                hiitSessions = parsed
-            }
-        }
     }
 
     private func deleteMuscu(_ session: HistoriqueMuscu) async {
@@ -376,59 +338,16 @@ struct HistoriqueView: View {
         }
     }
 
-    private func deleteHIIT(_ session: HIITEntry) async {
-        if let date = session.date, let type = session.sessionType {
-            do {
-                try await APIService.shared.deleteHIIT(date: date, sessionType: type)
-                hiitSessions.removeAll { $0.id == session.id }
-                CacheService.shared.clear(for: "historique_data")
-                toast = ToastMessage(message: "Séance HIIT supprimée", style: .success)
-            } catch APIError.queuedOffline {
-                // Mutation enfilée hors ligne — pas d'erreur à montrer, l'élément
-                // reste visible jusqu'au rejeu.
-                toast = ToastMessage(message: "Suppression en attente — hors ligne", style: .info)
-            } catch APIError.serverError(_, let msg) {
-                apiError = msg.isEmpty ? "Erreur serveur" : msg
-            } catch {
-                apiError = "Erreur réseau — réessaie"
-            }
-        }
-    }
-
-    private func saveHIITEdit(session: HIITEntry, rpe: Double, rounds: Int, notes: String) async -> Bool {
-        guard let date = session.date, let type = session.sessionType else { return false }
-        do {
-            let body: [String: Any] = ["date": date, "session_type": type,
-                                       "rpe": rpe, "rounds": rounds, "notes": notes]
-            _ = try await APIService.shared.hiitEdit(body: body)
-            if let idx = hiitSessions.firstIndex(where: { $0.id == session.id }) {
-                hiitSessions[idx] = HIITEntry(
-                    date: date, sessionType: type,
-                    rounds: rounds, workTime: session.workTime, restTime: session.restTime,
-                    rpe: rpe, notes: notes.isEmpty ? nil : notes
-                )
-            }
-            editHIITTarget = nil
-            CacheService.shared.clear(for: "historique_data")
-            return true
-        } catch {
-            apiError = "Erreur réseau — réessaie"
-            return false
-        }
-    }
-
     struct TimelineDay: Identifiable {
         var id: String { date }
         let date: String
         let muscuCount: Int
-        let hiitCount: Int
         let exercises: [String]
         let rpe: Double?
     }
 
     private func buildTimeline() -> [TimelineDay] {
         var muscu: [String: Int] = [:]
-        var hiit:  [String: Int] = [:]
         var exos:  [String: [String]] = [:]
         var rpes:  [String: Double] = [:]
 
@@ -441,16 +360,9 @@ struct HistoriqueView: View {
                 exos[s.date] = list
             }
         }
-        for h in hiitSessions {
-            guard let date = h.date else { continue }
-            hiit[date, default: 0] += 1
-            if rpes[date] == nil, let rpe = h.rpe { rpes[date] = rpe }
-        }
 
-        let allDates = Set(muscu.keys).union(hiit.keys)
-        return allDates.map { date in
+        return muscu.keys.map { date in
             TimelineDay(date: date, muscuCount: muscu[date] ?? 0,
-                        hiitCount: hiit[date] ?? 0,
                         exercises: exos[date] ?? [], rpe: rpes[date])
         }.sorted { $0.date > $1.date }
     }
@@ -481,10 +393,6 @@ struct TimelineRow: View {
                     if item.muscuCount > 0 {
                         Label("\(item.muscuCount) muscu", systemImage: "dumbbell.fill")
                             .font(.appCaption.weight(.semibold)).foregroundColor(Color.forge)
-                    }
-                    if item.hiitCount > 0 {
-                        Label("\(item.hiitCount) HIIT", systemImage: "bolt.fill")
-                            .font(.appCaption.weight(.semibold)).foregroundColor(.statusRed)
                     }
                 }
                 if !item.exercises.isEmpty {
@@ -721,116 +629,6 @@ struct MuscuSessionCard: View {
             Button("Supprimer", role: .destructive) { onDelete() }
             Button("Annuler", role: .cancel) {}
         }
-    }
-}
-
-// MARK: - HIIT Card
-struct HIITSessionCard: View {
-    let session: HIITEntry
-    let onDelete: () -> Void
-    var onEdit: (() -> Void)? = nil
-    @State private var isExpanded = false
-    @State private var confirmDelete = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Button(action: { isExpanded.toggle() }) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(session.sessionType ?? "HIIT")
-                            .font(.appBody.weight(.bold))
-                            .foregroundColor(Color.forge)
-                        if let date = session.date {
-                            Text(date)
-                                .font(.appCaption)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    Spacer()
-                    if let rounds = session.rounds {
-                        Text("\(rounds) rounds")
-                            .font(.appCaption.weight(.bold))
-                            .foregroundColor(Color.forge)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color.forge.opacity(0.12))
-                            .clipShape(Capsule())
-                    }
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.gray)
-                        .padding(.leading, 8)
-                }
-                .padding(14)
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded {
-                Divider().background(Color.appSeparator)
-                VStack(spacing: 8) {
-                    HStack(spacing: 16) {
-                        if let wt = session.workTime {
-                            LabelValue(label: "WORK", value: "\(wt)s", color: .statusOrange)
-                        }
-                        if let rt = session.restTime {
-                            LabelValue(label: "REST", value: "\(rt)s", color: .statusGreen)
-                        }
-                        if let rpe = session.rpe {
-                            LabelValue(label: "RPE", value: String(format: "%.1f", rpe), color: .statusPurple)
-                        }
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.top, 10)
-
-                    if let notes = session.notes, !notes.isEmpty {
-                        HStack {
-                            Image(systemName: "quote.bubble").font(.appCaption).foregroundColor(.statusBlue)
-                            Text(notes).font(.appLabel.weight(.regular)).foregroundColor(.gray).italic()
-                            Spacer()
-                        }
-                        .padding(.horizontal, 14)
-                    }
-
-                    HStack {
-                        if let onEdit = onEdit {
-                            Button(action: onEdit) {
-                                Label("Modifier", systemImage: "pencil")
-                                    .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(Color.forge)
-                            }
-                        }
-                        Spacer()
-                        Button(role: .destructive) { confirmDelete = true } label: {
-                            Label("Supprimer", systemImage: "trash")
-                                .font(.appCaption.weight(.semibold))
-                                .foregroundColor(.statusRed)
-                        }
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 10)
-                }
-            }
-        }
-        .background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.12), lineWidth: 1))
-        .confirmationDialog("Supprimer cette séance HIIT ?", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Supprimer", role: .destructive) { onDelete() }
-            Button("Annuler", role: .cancel) {}
-        }
-    }
-}
-
-struct LabelValue: View {
-    let label: String
-    let value: String
-    let color: Color
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(value).font(.appHeadline.weight(.black)).foregroundColor(color)
-            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 
