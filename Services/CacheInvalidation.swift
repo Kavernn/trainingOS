@@ -109,9 +109,10 @@ enum CacheInvalidation {
             return ["breathwork_history_30", "mental_health_summary_7",
                     "mental_health_summary_30", "morning_brief"]
         case .selfCareLogged:
-            return ["self_care_today", "self_care_streaks"]
+            return ["self_care_today", "self_care_streaks",
+                    "mental_health_summary_7", "mental_health_summary_30"]
         case .selfCareHabitsUpdated:
-            return ["self_care_habits", "self_care_today"]
+            return ["self_care_habits", "self_care_today", "self_care_streaks"]
         case .bodyWeightMutated:
             return ["profil_data"]
         case .exerciseSaved:

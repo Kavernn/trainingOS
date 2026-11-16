@@ -114,23 +114,28 @@ extension APIService {
     }
 
     // MARK: - Self-Care
-    func fetchSelfCareToday() async throws -> SelfCareToday {
+    static let selfCareTodayCacheKey   = "self_care_today"
+    static let selfCareStreaksCacheKey = "self_care_streaks"
+
+    func fetchSelfCareToday(forceRefresh: Bool = false) async throws -> SelfCareToday {
         let url = try buildURL(path: "/api/self_care/today")
-        let data = try await fetchWithCache(url: url, key: "self_care_today")
+        let data = try await fetchWithCache(url: url, key: Self.selfCareTodayCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode(SelfCareToday.self, from: data)
     }
 
-    func submitSelfCareLog(habitIds: [String]) async throws -> SelfCareToday {
+    /// `date` = jour civil MTL capturé au tap (figé dans payloadData du SyncManager,
+    /// stable à travers un replay cross-midnight). Backend valide [today, today-7j].
+    func submitSelfCareLog(date: String, habitIds: [String]) async throws -> SelfCareToday {
         guard let data = try await offlinePost(endpoint: "/api/self_care/log",
-                                               payload: ["habit_ids": habitIds])
+                                               payload: ["date": date, "habit_ids": habitIds])
         else { throw APIError.queuedOffline }
         CacheInvalidation.selfCareLogged.invalidate()
         return try APIService.decoder.decode(SelfCareToday.self, from: data)
     }
 
-    func fetchSelfCareStreaks() async throws -> [SelfCareStreak] {
+    func fetchSelfCareStreaks(forceRefresh: Bool = false) async throws -> [SelfCareStreak] {
         let url = try buildURL(path: "/api/self_care/streaks")
-        let data = try await fetchWithCache(url: url, key: "self_care_streaks")
+        let data = try await fetchWithCache(url: url, key: Self.selfCareStreaksCacheKey, forceRefresh: forceRefresh)
         return try APIService.decoder.decode([SelfCareStreak].self, from: data)
     }
 
