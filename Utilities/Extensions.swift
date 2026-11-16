@@ -25,8 +25,13 @@ enum AppEnvironment {
 
 // MARK: - API Config (single source of truth for base URL and auth)
 enum APIConfig {
-    static let base = "https://training-os-rho.vercel.app"
-    // apiKey est défini dans Utilities/APIConfig.swift (gitignored — ne jamais commiter)
+    /// Sous XCTest : hôte non résolvable (RFC 2606) et clé vide — un appel non mocké
+    /// échoue au lieu d'atteindre la prod avec la vraie clé.
+    static let base = AppEnvironment.isRunningUnitTests
+        ? "https://tests.invalid"
+        : "https://training-os-rho.vercel.app"
+    /// Seule lectrice de rawAPIKey (Utilities/APIConfig.swift, gitignored — ne jamais commiter).
+    static var apiKey: String { AppEnvironment.isRunningUnitTests ? "" : rawAPIKey }
 }
 
 // MARK: - Design tokens (spacing / radius)
