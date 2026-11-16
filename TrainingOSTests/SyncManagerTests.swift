@@ -26,6 +26,7 @@ final class SyncManagerTests: XCTestCase {
     }
 
     override func tearDown() async throws {
+        await manager.drainFlush()
         manager.urlSession.invalidateAndCancel()
         manager = nil
         queue = nil
@@ -41,6 +42,17 @@ final class SyncManagerTests: XCTestCase {
         let before = manager.pendingCount
         manager.enqueue(endpoint: "/api/log", payload: ["exercise": "Bench Press"])
         XCTAssertEqual(manager.pendingCount, before + 1)
+    }
+
+    /// Régression course tearDown : les flushs lancés par enqueue (en ligne) sont
+    /// terminés quand drainFlush rend la main — donc avant toute invalidation de session.
+    func testDrainFlushWaitsForEveryEnqueueLaunchedFlush() async {
+        manager.enqueue(endpoint: "/api/log", payload: ["exercise": "Dip"])
+        manager.enqueue(endpoint: "/api/log", payload: ["exercise": "Pull-up"])
+        await manager.drainFlush()
+        XCTAssertEqual(manager.pendingCount, 0)
+        XCTAssertEqual(queue.load().count, 2)
+        XCTAssertTrue(queue.load().allSatisfy { $0.isSynced })
     }
 
     func testFlushSuccessMarksSynced() async throws {

@@ -11,7 +11,7 @@ import XCTest
         suite="progression-transport-\(UUID().uuidString)";defaults=UserDefaults(suiteName:suite)!
         queue=UserDefaultsSyncQueue(defaults:defaults);manager=SyncManager(queue:queue);manager.isOnlineProvider={true}
     }
-    override func tearDown() async throws { manager.urlSession.invalidateAndCancel();defaults.removePersistentDomain(forName:suite) }
+    override func tearDown() async throws { await manager.drainFlush(); manager.urlSession.invalidateAndCancel();defaults.removePersistentDomain(forName:suite) }
     func request() -> ProgressionApplyRequest {
         .init(context:context,exercise:"X",programID:"fixture",weight:105,scheme:"4x12",expectedWeight:100,expectedScheme:"3x12")
     }

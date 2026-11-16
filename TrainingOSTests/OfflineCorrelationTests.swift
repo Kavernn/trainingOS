@@ -27,6 +27,7 @@ final class OfflineCorrelationTests: XCTestCase {
     }
 
     override func tearDown() async throws {
+        await manager.drainFlush()
         manager.urlSession.invalidateAndCancel()
         defaults.removePersistentDomain(forName: suite)
         manager = nil; queue = nil; defaults = nil

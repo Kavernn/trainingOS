@@ -133,9 +133,29 @@ final class SyncManager: ObservableObject {
         queue.append(mutation)
         refreshPendingCount()
         showOfflineToast()
-        if isOnlineProvider() {
-            Task { await flushQueue() }
+        if isOnlineProvider() { launchFlush() }
+    }
+
+    /// Flushs lancés par enqueue, gardés jusqu'à leur fin pour pouvoir être attendus.
+    /// Dictionnaire et non Task? unique : deux enqueue rapprochés lancent deux Tasks,
+    /// la seconde ne doit pas masquer la première encore en vol.
+    private var flushTasks: [UUID: Task<Void, Never>] = [:]
+
+    /// Même comportement qu'avant (flush immédiat, garde isSyncing inchangée) ;
+    /// seule différence : la Task est référencée jusqu'à sa fin.
+    private func launchFlush() {
+        let id = UUID()
+        // MainActor : le corps ne peut pas démarrer avant la fin de cette affectation.
+        flushTasks[id] = Task {
+            await flushQueue()
+            flushTasks[id] = nil
         }
+    }
+
+    /// Attend la fin de tous les flushs lancés par enqueue. Utilisé par les tearDown
+    /// de tests avant d'invalider une URLSession injectée.
+    func drainFlush() async {
+        while let task = flushTasks.values.first { await task.value }
     }
 
     func status(for operationKey: OfflineOperationKey) -> OfflineMutationStatus {
@@ -149,7 +169,7 @@ final class SyncManager: ObservableObject {
         let receipt = try queue.enqueue(endpoint: endpoint, method: method,
                                         payloadData: payloadData, operationKey: operationKey)
         refreshPendingCount()
-        if isOnlineProvider() { Task { await flushQueue() } }
+        if isOnlineProvider() { launchFlush() }
         return receipt
     }
 
