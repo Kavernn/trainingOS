@@ -83,6 +83,17 @@ final class DayComposerTests: XCTestCase {
     }
 
     @MainActor
+    func testSupersetBWithoutConfiguredRestFallsBackTo120() throws {
+        try withExecution { date in
+            let input = try executionInput(executionBundle(date, morning: ["A", "B"],
+                supersets: ["AM": ["SS": .init(a: "A", b: "B", rest: nil)]]))
+            let c = try coordinator(input)
+            let b = try XCTUnwrap(c.presentation(for: .init(source: .morning, name: "B", exerciseID: nil)))
+            XCTAssertEqual(b.restSeconds, 120)
+        }
+    }
+
+    @MainActor
     func testShellSupersetRestAndObservedUnsupportedMatrix() throws {
         try withExecution { date in
             let input = try executionInput(executionBundle(date, morning: ["A", "B", "M", "U"],
@@ -96,7 +107,7 @@ final class DayComposerTests: XCTestCase {
             let b = try XCTUnwrap(c.presentation(for: id("B")))
             XCTAssertNil(a.restSeconds)
             XCTAssertFalse(a.allowsManualRest)
-            XCTAssertEqual(b.restSeconds, 120)
+            XCTAssertEqual(b.restSeconds, 90, "B porte unit.rest de la paire, pas 120 codé en dur")
             XCTAssertTrue(b.allowsManualRest)
             XCTAssertEqual(c.presentation(for: id("M"))?.rendering, .mutable)
             XCTAssertEqual(c.presentation(for: id("U"))?.rendering, .unsupported)
