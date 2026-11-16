@@ -73,6 +73,7 @@ struct ExerciseCard: View {
     @AppStorage("increment_upper_lbs")     private var incrementUpperLbs: Double = 2.5
     @AppStorage("increment_lower_lbs")     private var incrementLowerLbs: Double = 5.0
     @State private var confirmSkip = false
+    @State private var lastSetAdvanceAt = Date.distantPast
     @State private var confirmSwapAfterLog = false
     @State private var showAdvanced = false
     @State private var showPlateCalculator = false
@@ -541,17 +542,7 @@ struct ExerciseCard: View {
                         .onEnded { v in
                             guard isActive else { return }
                             guard v.translation.width > 60, abs(v.translation.height) < 50 else { return }
-                            guard allowAction() else { return }
-                            withAnimation {
-                                triggerImpact(style: .medium)
-                                if evm.currentSetIndex < evm.sets.count - 1 {
-                                    evm.currentSetIndex += 1
-                                    startAutoRestIfEnabled()
-                                } else {
-                                    evm.setBySetMode = false
-                                    doLog()
-                                }
-                            }
+                            advanceSet()
                         }
                 )
             }
@@ -859,17 +850,7 @@ struct ExerciseCard: View {
             ? (evm.isEditing ? "Mettre à jour l’exercice" : "Logger l’exercice")
             : "Terminer la série \(evm.currentSetIndex + 1)"
         Button {
-            guard allowAction() else { return }
-            withAnimation {
-                triggerImpact(style: .medium)
-                if evm.currentSetIndex < evm.sets.count - 1 {
-                    evm.currentSetIndex += 1
-                    startAutoRestIfEnabled()
-                } else {
-                    evm.setBySetMode = false
-                    doLog()
-                }
-            }
+            advanceSet()
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: isLastSet ? "checkmark.circle.fill" : "checkmark")
@@ -900,6 +881,25 @@ struct ExerciseCard: View {
     private func startAutoRestIfEnabled() {
         guard trackingType != "mobility", autoStartTimer, let secs = restSeconds, secs > 0 else { return }
         RestTimerManager.shared.start(seconds: secs, exerciseName: name)
+    }
+
+    /// Avancée de série commune au bouton « Terminer la série N » et au swipe.
+    /// Anti-rebond partagé : un double tap (ou swipe + tap) ne saute plus une série.
+    private func advanceSet() {
+        let now = Date()
+        // Fenêtre de 0,8 s : un double tap involontaire est < 0,5 s, une vraie série dure des dizaines de secondes.
+        guard now.timeIntervalSince(lastSetAdvanceAt) >= 0.8, allowAction() else { return }
+        lastSetAdvanceAt = now
+        withAnimation {
+            triggerImpact(style: .medium)
+            if evm.currentSetIndex < evm.sets.count - 1 {
+                evm.currentSetIndex += 1
+                startAutoRestIfEnabled()
+            } else {
+                evm.setBySetMode = false
+                doLog()
+            }
+        }
     }
 
     @ViewBuilder private var setBySetLogButton: some View {
