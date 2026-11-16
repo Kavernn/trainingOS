@@ -308,6 +308,25 @@ private struct MesuresContent: View {
                 }
                 .appearAnimation(delay: 0.065)
 
+                NavigationLink { SelfCareView() } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "heart.fill")
+                            .font(.title2).foregroundColor(Color.forge)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Self-care")
+                                .font(.headline).foregroundColor(.appTextPrimary)
+                            Text("Habitudes quotidiennes + streaks")
+                                .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundColor(.appTextMuted)
+                    }
+                    .padding(14)
+                    .glassCard()
+                    .padding(.horizontal)
+                }
+                .appearAnimation(delay: 0.068)
+
                 NavigationLink { MoodTrackerView() } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "face.smiling.fill")
