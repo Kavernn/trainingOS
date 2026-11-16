@@ -327,6 +327,25 @@ private struct MesuresContent: View {
                 }
                 .appearAnimation(delay: 0.068)
 
+                NavigationLink { MeditationView() } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "brain.head.profile")
+                            .font(.title2).foregroundColor(Color.forge)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Méditation")
+                                .font(.headline).foregroundColor(.appTextPrimary)
+                            Text("Minuteur + cloche d'intervalle")
+                                .font(.caption).foregroundColor(Color.appOnSurface.opacity(0.6))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundColor(.appTextMuted)
+                    }
+                    .padding(14)
+                    .glassCard()
+                    .padding(.horizontal)
+                }
+                .appearAnimation(delay: 0.069)
+
                 NavigationLink { MoodTrackerView() } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "face.smiling.fill")
