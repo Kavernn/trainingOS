@@ -427,9 +427,7 @@ struct ExerciseCard: View {
         if !requiresAcceptance { onLogged?() }
         triggerNotificationFeedback(.success)
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        if trackingType != "mobility", autoStartTimer, let secs = restSeconds, secs > 0 {
-            RestTimerManager.shared.start(seconds: secs, exerciseName: name)
-        }
+        startAutoRestIfEnabled()
         undoCountdown = 8
         undoTask?.cancel()
         undoTask = Task { @MainActor in
@@ -548,6 +546,7 @@ struct ExerciseCard: View {
                                 triggerImpact(style: .medium)
                                 if evm.currentSetIndex < evm.sets.count - 1 {
                                     evm.currentSetIndex += 1
+                                    startAutoRestIfEnabled()
                                 } else {
                                     evm.setBySetMode = false
                                     doLog()
@@ -865,6 +864,7 @@ struct ExerciseCard: View {
                 triggerImpact(style: .medium)
                 if evm.currentSetIndex < evm.sets.count - 1 {
                     evm.currentSetIndex += 1
+                    startAutoRestIfEnabled()
                 } else {
                     evm.setBySetMode = false
                     doLog()
@@ -890,6 +890,16 @@ struct ExerciseCard: View {
         .buttonStyle(SpringButtonStyle(scale: 0.88))
         .frame(maxWidth: .infinity)
         .padding(.top, 4)
+    }
+
+    /// Seul déclencheur automatique du repos : fin d'une série intermédiaire ou log
+    /// de l'exercice (dernière série incluse, via doLog). Gardes d'origine inchangées :
+    /// réglage `auto_start_rest_timer`, repos > 0, hors mobilité. Superset : le 1er
+    /// membre reçoit restSeconds == nil (WorkoutActiveView forceNoRest, DayComposer
+    /// firstInPair) → le repos ne part qu'après B.
+    private func startAutoRestIfEnabled() {
+        guard trackingType != "mobility", autoStartTimer, let secs = restSeconds, secs > 0 else { return }
+        RestTimerManager.shared.start(seconds: secs, exerciseName: name)
     }
 
     @ViewBuilder private var setBySetLogButton: some View {
