@@ -93,9 +93,7 @@ final class SyncManager: ObservableObject {
     func setup() {
         refreshPendingCount()
 
-        if isOnlineProvider() {
-            Task { await flushQueue() }
-        }
+        if isOnlineProvider() { launchFlush() }
 
         NetworkMonitor.shared.$isOnline
             .filter { $0 }
