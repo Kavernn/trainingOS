@@ -183,6 +183,24 @@ struct BreathworkSession: Codable, Identifiable {
     }
 }
 
+// MARK: - Meditation
+struct MeditationSession: Codable, Identifiable {
+    let id: String
+    let plannedSec: Int
+    let actualSec: Int
+    let bellInterval: Int
+    let startedAt: String
+    let completed: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id, completed
+        case plannedSec   = "planned_sec"
+        case actualSec    = "actual_sec"
+        case bellInterval = "bell_interval"
+        case startedAt    = "started_at"
+    }
+}
+
 // MARK: - Self-Care
 struct SelfCareHabit: Codable, Identifiable {
     let id: String

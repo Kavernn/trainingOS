@@ -139,6 +139,7 @@
 		DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */; };
 		BW000001BW000001BW000001 /* BreathworkPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BW000002BW000002BW000002 /* BreathworkPracticeView.swift */; };
 		SC000001SC000001SC000001 /* SelfCareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC000002SC000002SC000002 /* SelfCareView.swift */; };
+		MD000001MD000001MD000001 /* MeditationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MD000002MD000002MD000002 /* MeditationView.swift */; };
 		E573C31F2F96E31F04483DBD /* DiscardedMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBCF95F54ACA7EFF71CD1ABE /* DiscardedMutation.swift */; };
 		E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */; };
 		E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */; };
@@ -428,6 +429,7 @@
 		DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthDashboardView.swift; sourceTree = "<group>"; };
 		BW000002BW000002BW000002 /* BreathworkPracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreathworkPracticeView.swift; sourceTree = "<group>"; };
 		SC000002SC000002SC000002 /* SelfCareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareView.swift; sourceTree = "<group>"; };
+		MD000002MD000002MD000002 /* MeditationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeditationView.swift; sourceTree = "<group>"; };
 		E163D5411790B6DA5108E310 /* PatternModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternModels.swift; sourceTree = "<group>"; };
 		E28DFDE63827E1A91C5C5B5D /* RoundedCorner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoundedCorner.swift; sourceTree = "<group>"; };
 		E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalyticsModels.swift; sourceTree = "<group>"; };
@@ -1075,6 +1077,7 @@
 				DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */,
 				BW000002BW000002BW000002 /* BreathworkPracticeView.swift */,
 				SC000002SC000002SC000002 /* SelfCareView.swift */,
+				MD000002MD000002MD000002 /* MeditationView.swift */,
 			);
 			path = MentalHealth;
 			sourceTree = "<group>";
@@ -1509,6 +1512,7 @@
 				DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */,
 				BW000001BW000001BW000001 /* BreathworkPracticeView.swift in Sources */,
 				SC000001SC000001SC000001 /* SelfCareView.swift in Sources */,
+				MD000001MD000001MD000001 /* MeditationView.swift in Sources */,
 				FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */,
 				PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */,
 				PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */,

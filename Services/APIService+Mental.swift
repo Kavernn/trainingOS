@@ -113,6 +113,29 @@ extension APIService {
         return try APIService.decoder.decode([BreathworkSession].self, from: data)
     }
 
+    // MARK: - Meditation
+    static let meditationHistoryCacheKey = "meditation_history"
+
+    func fetchMeditationHistory(forceRefresh: Bool = false) async throws -> [MeditationSession] {
+        let url = try buildURL(path: "/api/spirit/meditation", queryItems: [URLQueryItem(name: "limit", value: "10")])
+        let data = try await fetchWithCache(url: url, key: Self.meditationHistoryCacheKey, forceRefresh: forceRefresh)
+        return try APIService.decoder.decode([MeditationSession].self, from: data)
+    }
+
+    /// Log de terrain → offlinePost. Idempotent côté serveur : `startedAt` (capturé
+    /// au lancement) est la clé UNIQUE (migration 106) — un replay retombe sur la même ligne.
+    func submitMeditationSession(plannedSec: Int, actualSec: Int, bellInterval: Int,
+                                 completed: Bool, startedAt: Date) async throws {
+        let iso = ISO8601DateFormatter().string(from: startedAt)
+        guard try await offlinePost(endpoint: "/api/spirit/meditation", payload: [
+            "planned_sec":   plannedSec,
+            "actual_sec":    actualSec,
+            "bell_interval": bellInterval,
+            "completed":     completed,
+            "started_at":    iso,
+        ]) != nil else { throw APIError.queuedOffline }
+    }
+
     // MARK: - Self-Care
     static let selfCareTodayCacheKey   = "self_care_today"
     static let selfCareStreaksCacheKey = "self_care_streaks"
