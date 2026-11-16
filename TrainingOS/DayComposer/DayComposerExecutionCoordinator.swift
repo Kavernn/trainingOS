@@ -424,8 +424,8 @@ final class DayComposerExecutionCoordinator: ObservableObject {
         else if state.serverObserved { rendering = .observed; label = "Observé" }
         else { rendering = .mutable; label = state.hasDraft ? "Brouillon local" : "À vérifier" }
         let firstInPair = unit.group != nil && unit.items.first?.id == id
-        // Superset: A enchaîne sans repos ; B porte le repos configuré de la paire (120 s si non renseigné).
-        let rest = unit.group == nil ? dto.inventoryRest[item.name] : (firstInPair ? nil : (unit.rest ?? 120))
+        let rest = unit.group == nil ? dto.inventoryRest[item.name]
+            : (firstInPair ? nil : SupersetRest.secondMemberRest(unit.rest))
         return .init(item: item, identity: identity, rendering: rendering, label: label,
                      result: result, hydration: hydration,
                      authorization: rendering == .mutable ? (item.assignedSource == .morning ? morningAuthorization : eveningAuthorization) : nil,

@@ -332,6 +332,13 @@ struct SupersetEntry: Codable, Equatable, Hashable {
     }
 }
 
+/// Repos d'un superset — source unique pour la Séance normale et le Day Composer.
+/// A enchaîne sans repos ; B porte le repos configuré de la paire.
+enum SupersetRest {
+    static let defaultSeconds = 120
+    static func secondMemberRest(_ rest: Int?) -> Int { rest ?? defaultSeconds }
+}
+
 // MARK: - Seance
 struct MesocycleInfo: Codable {
     let week: Int

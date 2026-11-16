@@ -82,6 +82,14 @@ final class DayComposerTests: XCTestCase {
         }
     }
 
+    /// Source unique du repos de B (Séance normale + Day Composer).
+    func testSupersetSecondMemberRestUsesPairRestOrDefault() {
+        XCTAssertEqual(SupersetRest.secondMemberRest(90), 90)
+        XCTAssertEqual(SupersetRest.secondMemberRest(0), 0, "0 configuré reste 0, pas de repli")
+        XCTAssertEqual(SupersetRest.secondMemberRest(nil), 120)
+        XCTAssertEqual(SupersetRest.defaultSeconds, 120)
+    }
+
     @MainActor
     func testSupersetBWithoutConfiguredRestFallsBackTo120() throws {
         try withExecution { date in

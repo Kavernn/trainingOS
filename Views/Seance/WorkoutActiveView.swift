@@ -813,7 +813,7 @@ struct WorkoutSeanceView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "timer")
                         .font(.appMicro)
-                    Text("120 s repos")
+                    Text("\(SupersetRest.secondMemberRest(entry.rest)) s repos")
                         .font(.appCaption).fontWeight(.medium)
                 }
                 .foregroundColor(.gray)
@@ -844,7 +844,7 @@ struct WorkoutSeanceView: View {
             .frame(maxWidth: .infinity, alignment: .center)
 
             draggableCard(name: entry.b, scheme: schemeB, nextExerciseName: nextName,
-                          restOverride: 120)
+                          restOverride: SupersetRest.secondMemberRest(entry.rest))
         }
     }
 
