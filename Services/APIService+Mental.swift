@@ -134,6 +134,7 @@ extension APIService {
             "completed":     completed,
             "started_at":    iso,
         ]) != nil else { throw APIError.queuedOffline }
+        CacheInvalidation.meditationLogged.invalidate()
     }
 
     // MARK: - Self-Care

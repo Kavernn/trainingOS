@@ -22,6 +22,7 @@ enum CacheInvalidation {
     case moodLogged
     case journalLogged
     case breathworkLogged
+    case meditationLogged
     case selfCareLogged
     case selfCareHabitsUpdated
 
@@ -65,7 +66,7 @@ enum CacheInvalidation {
     // DOIT inclure "morning_brief" dans ses keys, sinon le verdict du brief reste stale.
     // Cases couvertes au 2026-11-15 : exerciseLogged, sessionLogged, sessionMutated,
     // deloadApplied, recoveryLogged, wearableSynced, pssSubmitted,
-    // moodLogged, breathworkLogged, ritualActioned, ritualUpdated,
+    // moodLogged, breathworkLogged, meditationLogged, ritualActioned, ritualUpdated,
     // nutritionLogged, profileUpdated.
     // (hiitLogged: log isolé hors sessions → ne nourrit pas le brief, ne pas ajouter.)
     var keys: [String] {
@@ -108,6 +109,12 @@ enum CacheInvalidation {
         case .breathworkLogged:
             return ["breathwork_history_30", "mental_health_summary_7",
                     "mental_health_summary_30", "morning_brief"]
+        case .meditationLogged:
+            // Lecteurs serveur de meditation_sessions exposés à iOS (preuve 0d) :
+            // GET /api/spirit/meditation, morning_brief (get_spirit_metadata),
+            // /api/patterns/daily (pattern_engine), /api/insights/correlations.
+            return ["meditation_history", "morning_brief",
+                    "patterns_daily", "insights_correlations"]
         case .selfCareLogged:
             return ["self_care_today", "self_care_streaks",
                     "mental_health_summary_7", "mental_health_summary_30"]
