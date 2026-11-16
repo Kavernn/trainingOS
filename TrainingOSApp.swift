@@ -178,7 +178,12 @@ struct TrainingOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if let container = modelContainer {
+            if AppEnvironment.isRunningUnitTests {
+                // Hôte de tests unitaires : aucun lancement d'app (pas de SyncManager.setup,
+                // WatchSync, loadProfile, CoachMemory, HealthKit, ContentView) — sinon ⌘U
+                // rejoue la vraie file d'attente et pousse des données santé vers la prod.
+                Color.clear
+            } else if let container = modelContainer {
                 rootView.modelContainer(container)
             } else {
                 rootView

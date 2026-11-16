@@ -14,6 +14,15 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - App environment
+
+enum AppEnvironment {
+    /// Vrai quand l'app sert d'hôte aux tests unitaires (XCTest injecte cette variable
+    /// dans le process hôte). Faux en usage normal et pour les UI tests (process séparé,
+    /// pilotés par UITEST_MODE). Source unique : ne pas redétecter ailleurs.
+    static let isRunningUnitTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+}
+
 // MARK: - API Config (single source of truth for base URL and auth)
 enum APIConfig {
     static let base = "https://training-os-rho.vercel.app"
