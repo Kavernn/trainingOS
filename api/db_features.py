@@ -495,12 +495,32 @@ def upsert_spirit_config(data: dict) -> bool:
 
 
 def log_meditation_session(data: dict) -> Optional[dict]:
+    """Upsert séance de méditation. started_at = clé d'idempotence (UNIQUE,
+    migration 106) : un replay offlinePost retombe sur la ligne existante."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return None
 
-    def _do():
-        resp = db_core._client.table("meditation_sessions").insert(data).execute()
-        return (resp.data or [None])[0]
+    def _do() -> Optional[dict]:
+        resp = (
+            db_core._client.table("meditation_sessions")
+            .upsert(data, on_conflict="started_at", ignore_duplicates=True)
+            .execute()
+        )
+        if resp.data:
+            return resp.data[0]
+        # PostgREST : conflit avec ignore_duplicates → data = []. Relire la ligne.
+        existing = (
+            db_core._client.table("meditation_sessions")
+            .select("*")
+            .eq("started_at", data["started_at"])
+            .limit(1)
+            .execute()
+        )
+        if not existing.data:
+            raise RuntimeError(
+                f"log_meditation_session: upsert sans data et aucune ligne trouvée pour started_at={data['started_at']}"
+            )
+        return existing.data[0]
 
     try:
         return _do()
@@ -515,9 +535,10 @@ def log_meditation_session(data: dict) -> Optional[dict]:
         return None
 
 
-def get_meditation_sessions(limit: int = 60) -> List[dict]:
+def get_meditation_sessions(limit: int = 60) -> Optional[List[dict]]:
+    """[] = aucune séance ; None = erreur DB (le GET la remonte en 500)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
-        return []
+        return None
 
     def _do():
         resp = (
@@ -537,9 +558,9 @@ def get_meditation_sessions(limit: int = 60) -> List[dict]:
                 return _do()
             except Exception as e2:
                 db_core.logger.error("get_meditation_sessions retry: %s", e2)
-                return []
+                return None
         db_core.logger.error("get_meditation_sessions error: %s", e)
-        return []
+        return None
 
 
 def save_spirit_journal_entry(data: dict) -> bool:

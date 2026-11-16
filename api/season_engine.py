@@ -148,7 +148,8 @@ def _spirit_breathwork_count(start: str, end: str) -> int:
 
 
 def _spirit_meditation_minutes(start: str, end: str) -> int:
-    sessions = db.get_meditation_sessions(limit=500)
+    # None = erreur DB (contrat migration 106) ; comportement inchangé ici (hors périmètre lot méditation).
+    sessions = db.get_meditation_sessions(limit=500) or []
     total_sec = sum(s.get("actual_sec") or 0 for s in sessions
                     if start <= (s.get("started_at") or "")[:10] <= end)
     return total_sec // 60

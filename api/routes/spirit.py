@@ -37,21 +37,37 @@ def api_spirit_config_update():
 @spirit_bp.route("/api/spirit/meditation", methods=["GET"])
 def api_spirit_meditation_get():
     import db
-    limit = int(request.args.get("limit", 60))
-    return jsonify(db.get_meditation_sessions(limit=limit) or [])
+    try:
+        limit = int(request.args.get("limit", 60))
+    except ValueError:
+        return jsonify({"error": "limit doit être un entier"}), 400
+    rows = db.get_meditation_sessions(limit=limit)
+    if rows is None:
+        return jsonify({"error": "Erreur base de données"}), 500
+    return jsonify(rows)
 
 
+# Idempotence : started_at UNIQUE (migration 106) — fourni par le client au
+# lancement de la séance ; un replay offlinePost retombe sur la ligne existante.
 @spirit_bp.route("/api/spirit/meditation", methods=["POST"])
 def api_spirit_meditation_log():
     import db
+    from utils import _parse_iso_aware
     data = request.get_json(silent=True) or {}
-
-    payload = {
-        "planned_sec":   max(0, int(data.get("planned_sec",  0))),
-        "actual_sec":    max(0, int(data.get("actual_sec",   0))),
-        "bell_interval": max(0, int(data.get("bell_interval", 0))),
-        "completed":     bool(data.get("completed", False)),
-    }
+    started_at = data.get("started_at")
+    if not started_at:
+        return jsonify({"error": "started_at requis (ISO 8601)"}), 400
+    try:
+        dt = _parse_iso_aware(started_at)
+        payload = {
+            "planned_sec":   max(0, int(data.get("planned_sec",  0))),
+            "actual_sec":    max(0, int(data.get("actual_sec",   0))),
+            "bell_interval": max(0, int(data.get("bell_interval", 0))),
+            "completed":     bool(data.get("completed", False)),
+            "started_at":    dt.isoformat(),
+        }
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": str(e)}), 400
     row = db.log_meditation_session(payload)
     if not row:
         return jsonify({"error": "Erreur base de données"}), 500
