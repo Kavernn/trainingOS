@@ -76,6 +76,36 @@ final class DayComposerProductFlowTests: XCTestCase {
         XCTAssertTrue((89...91).contains(morning + evening), "Somme ≈ durée totale : \(morning) + \(evening)")
     }
 
+    /// Intention finale enregistrée (envoi en attente, pas d'ACK), puis réouverture et relance
+    /// plus tard : même durationMin, même finalVersion, aucune seconde intention.
+    func testPendingFinalIntentKeepsDurationAndFinalVersionAcrossLaterReopen() async throws {
+        let r = try DayComposerFinishRig(); defer { r.cleanup() }
+        let c = r.fixture.coordinator, s = c.input.snapshot
+        let order = DayComposerStore()
+        try order.save(c.orderedUnits, for: s)
+        try order.markStarted(Date().addingTimeInterval(-30 * 60), for: s)
+        r.finalHook = { request in
+            let receipt = DayComposerFinishRig.receipt(request.operationKey)
+            r.statuses[request.operationKey] = .pending(receipt)
+            return .queued(receipt)
+        }
+        let id = c.morningFinalInputs.identity
+        await r.engine.finishSource(.morning, rpe: 8)
+        let intents = try XCTUnwrap(r.store.load(identity: id)?.finalIntents.filter { $0.sourceVersion.source == .morning })
+        XCTAssertEqual(intents.count, 1, "Intention finale enregistrée")
+        let version = try XCTUnwrap(intents.first?.finalPayloadVersion)
+        let duration = try XCTUnwrap(r.inputs.load(executionIdentity: id, source: .morning)?.values.durationMin,
+                                     "La durée est persistée avec l'intention")
+        // Horloge avancée : le départ recule de 2 h.
+        try order.markStarted(Date().addingTimeInterval(-150 * 60), for: s)
+        await r.engine.refreshSource(.morning)
+        XCTAssertEqual(try r.prepare(.morning).adapter.finalVersion, version, "Réouverture : même finalVersion")
+        await r.engine.finishSource(.morning, rpe: 8)
+        XCTAssertEqual(try r.inputs.load(executionIdentity: id, source: .morning)?.values.durationMin, duration)
+        let after = try XCTUnwrap(r.store.load(identity: id)?.finalIntents.filter { $0.sourceVersion.source == .morning })
+        XCTAssertEqual(Set(after.map(\.finalPayloadVersion)), [version], "Aucune intention d'un autre payload")
+    }
+
     func testInvalidRPECannotPostAndNoAutomaticFallback() async throws {
         let r = try DayComposerFinishRig(); defer { r.cleanup() }
         for value in [5.0, 7.5, 11.0] {
