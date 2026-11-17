@@ -102,7 +102,7 @@ struct DayComposerView: View {
                 ProgressView("Chargement de la journée…")
             } else if let snapshot {
                 Section {
-                    Text("2 séances · \(snapshot.initialIDs.count) exercices")
+                    Text("2 séances · \(snapshot.initialIDs.count) exercices\(totalDurationSuffix(snapshot))")
                         .font(.appBody.weight(.semibold))
                     Text(countsLine)
                         .font(.appCaption)
@@ -196,6 +196,19 @@ struct DayComposerView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: setAsideToggles)
     }
 
+    /// Durées estimées : uniquement sur un snapshot vérifié (repos et prescriptions réels) ;
+    /// l'aperçu non vérifié n'affiche rien plutôt qu'une valeur inventée.
+    private func totalDurationSuffix(_ snapshot: DayComposerSnapshot) -> String {
+        guard verified else { return "" }
+        return " · " + DayComposerDuration.totalLabel(
+            DayComposerDuration.totalSeconds(units, setAside: setAside, in: snapshot))
+    }
+
+    private func unitDurationLabel(_ unit: DayComposerUnit, snapshot: DayComposerSnapshot) -> String? {
+        guard verified, !setAside.contains(unit.id) else { return nil }
+        return DayComposerDuration.unitLabel(DayComposerDuration.seconds(unit, in: snapshot))
+    }
+
     /// Compteurs hors mises de côté, plus le nombre d'exercices mis de côté s'il y en a.
     private var countsLine: String {
         func count(_ source: DayComposerSource) -> Int {
@@ -270,6 +283,9 @@ struct DayComposerView: View {
                     Label("Séance terminée", systemImage: "checkmark.circle")
                         .font(.appCaption).foregroundColor(.appTextSecondary)
                 }
+                if let label = unitDurationLabel(unit, snapshot: snapshot) {
+                    Text(label).font(.appCaption).foregroundColor(.appTextSecondary)
+                }
                 Spacer(minLength: 8)
                 if !incompatible {
                     Button(DayComposerSetAsidePresentation.toggleTitle(isSetAside: setAside.contains(unit.id))) {
@@ -319,7 +335,7 @@ struct DayComposerView: View {
         .padding(.vertical, 4)
         .listRowBackground(Color.appCard)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(unit.items.map(\.name).joined(separator: ", ")). \(unit.source.title). \(unit.group == nil ? "" : "Superset. ")Position \(index + 1) sur \(units.count).\(snapshot.completed(unit.source) ? " Séance terminée." : "")\(setAside.contains(unit.id) ? " Mis de côté aujourd’hui." : "")")
+        .accessibilityLabel("\(unit.items.map(\.name).joined(separator: ", ")). \(unit.source.title). \(unit.group == nil ? "" : "Superset. ")Position \(index + 1) sur \(units.count).\(snapshot.completed(unit.source) ? " Séance terminée." : "")\(setAside.contains(unit.id) ? " Mis de côté aujourd’hui." : "")\(unitDurationLabel(unit, snapshot: snapshot).map { " Durée estimée \($0)." } ?? "")")
         .accessibilityActions {
             if verified && !incompatible && !sourcesLocked && !loading {
                 Button(DayComposerSetAsidePresentation.toggleTitle(isSetAside: setAside.contains(unit.id))) {

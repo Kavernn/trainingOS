@@ -123,6 +123,11 @@ struct DayComposerSnapshot {
     // Only authoritative source completion. Never the global loggedTodayNames union.
     let morningCompleted: Bool
     let eveningCompleted: Bool
+    /// Entrées de la durée estimée, HORS empreinte (`fingerprint` n'encode que [morning, evening]).
+    /// Indexées par occurrence, lues dans la séance d'origine de l'exercice (comme l'exécution).
+    /// Remplies uniquement par `DayComposerLoader.validate` ; vides dans l'aperçu non vérifié.
+    var restSeconds: [DayComposerItemID: Int] = [:]
+    var prescriptions: [DayComposerItemID: ExercisePrescription] = [:]
 
     var initialUnits: [DayComposerUnit] { morning.units + evening.units }
     var initialIDs: [DayComposerItemID] { initialUnits.flatMap { $0.items.map(\.id) } }
@@ -216,7 +221,8 @@ struct DayComposerSnapshot {
         return .init(date: date, activeProgramID: activeProgramID,
             morning: .init(source: .morning, session: morning.session, units: units.filter { $0.source == .morning }),
             evening: .init(source: .evening, session: evening.session, units: units.filter { $0.source == .evening }),
-            morningCompleted: morningCompleted, eveningCompleted: eveningCompleted)
+            morningCompleted: morningCompleted, eveningCompleted: eveningCompleted,
+            restSeconds: restSeconds, prescriptions: prescriptions)
     }
 
     static func transferring(_ units: [DayComposerUnit], id: DayComposerItemID,
@@ -263,5 +269,47 @@ struct DayComposerState: Codable {
     struct Assignment: Codable {
         let id: DayComposerItemID
         let source: DayComposerSource
+    }
+}
+
+/// Durée estimée d'une journée (préparation). Forfait indicatif, pas une mesure.
+/// Limite connue V1 : aucun temps de transition entre exercices.
+enum DayComposerDuration {
+    /// Forfait d'effort par série, en secondes (×2 pour un exercice unilatéral).
+    static let effortSecondsPerSet = 40
+
+    /// Exercice seul : séries × effort + (séries − 1) × repos (inventaire, sinon SupersetRest.defaultSeconds).
+    /// Superset : n = max des séries ; n × (effortA + effortB) + (n − 1) × repos du superset.
+    static func seconds(_ unit: DayComposerUnit, in snapshot: DayComposerSnapshot) -> Int {
+        func sets(_ item: DayComposerItem) -> Int {
+            ExerciseCalculator.effectiveSetsCount(scheme: item.scheme, prescription: snapshot.prescriptions[item.id],
+                                                  tracking: item.tracking)
+        }
+        func effort(_ item: DayComposerItem) -> Int { effortSecondsPerSet * (item.unilateral ? 2 : 1) }
+        if unit.group != nil {
+            let n = unit.items.map(sets).max() ?? 0
+            return n * unit.items.map(effort).reduce(0, +) + max(n - 1, 0) * SupersetRest.secondMemberRest(unit.rest)
+        }
+        return unit.items.map { item in
+            let n = sets(item)
+            return n * effort(item) + max(n - 1, 0) * (snapshot.restSeconds[item.id] ?? SupersetRest.defaultSeconds)
+        }.reduce(0, +)
+    }
+
+    /// Somme des unités NON mises de côté.
+    static func totalSeconds(_ units: [DayComposerUnit], setAside: Set<DayComposerItemID>,
+                             in snapshot: DayComposerSnapshot) -> Int {
+        units.filter { !setAside.contains($0.id) }.map { seconds($0, in: snapshot) }.reduce(0, +)
+    }
+
+    /// « ≈ N min », arrondi à la minute, minimum 1 min.
+    static func unitLabel(_ seconds: Int) -> String {
+        "≈ \(max(1, Int((Double(seconds) / 60).rounded()))) min"
+    }
+
+    /// Arrondi aux 5 min : « ≈ 45 min » sous 1 h, « ≈ 1 h 05 » au-delà.
+    static func totalLabel(_ seconds: Int) -> String {
+        let minutes = Int((Double(seconds) / 300).rounded()) * 5
+        return minutes < 60 ? "≈ \(minutes) min" : "≈ \(minutes / 60) h \(String(format: "%02d", minutes % 60))"
     }
 }

@@ -273,6 +273,12 @@ struct ExerciseDraftPersistence {
 
 enum ExerciseCalculator {
 
+    /// Séries effectivement proposées en séance : mobilité = 1 (checklist), sinon setsCount.
+    /// Source unique pour l'exécution et la durée estimée de Ma journée.
+    static func effectiveSetsCount(scheme: String, prescription: ExercisePrescription?, tracking: String) -> Int {
+        tracking == "mobility" ? 1 : setsCount(scheme: scheme, prescription: prescription)
+    }
+
     static func setsCount(scheme: String, prescription: ExercisePrescription?) -> Int {
         if let p = prescription { return max(1, min(p.sets, 12)) }
         let s = scheme.lowercased()
@@ -559,7 +565,7 @@ final class ExerciseViewModel: ObservableObject {
     var lastReps: String { weightData?.lastReps ?? "—" }
     var isFirstTime: Bool { weightData?.history?.isEmpty ?? true }
 
-    var setsCount: Int { trackingType == "mobility" ? 1 : ExerciseCalculator.setsCount(scheme: scheme, prescription: prescription) }
+    var setsCount: Int { ExerciseCalculator.effectiveSetsCount(scheme: scheme, prescription: prescription, tracking: trackingType) }
 
     var avgWeight: Double? {
         var sum = 0.0; var count = 0

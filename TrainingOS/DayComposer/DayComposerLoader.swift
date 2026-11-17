@@ -272,10 +272,16 @@ enum DayComposerLoader {
                                        order: data.exerciseOrder[data.today] ?? [], exerciseIDs: data.exerciseIds,
                                        tracking: data.inventoryTracking, unilateral: data.inventoryUnilateral, pairs: pairs)
         }
-        let snapshot = try DayComposerSnapshot(date: date, activeProgramID: program,
+        var snapshot = try DayComposerSnapshot(date: date, activeProgramID: program,
                                        morning: plan(morning, source: .morning), evening: plan(evening, source: .evening),
                                        morningCompleted: morning.alreadyLogged,
                                        eveningCompleted: completion.second_session_completed)
+        // Durée estimée : même lecture que l'exécution (séance d'origine), hors empreinte.
+        for item in snapshot.initialUnits.flatMap(\.items) {
+            let data = item.originSource == .morning ? morning : evening
+            snapshot.restSeconds[item.id] = data.inventoryRest[item.name]
+            snapshot.prescriptions[item.id] = data.prescriptions?[item.name]
+        }
         return DayComposerLoadedBundle(snapshot: snapshot, morningData: morning, eveningData: evening)
     }
 

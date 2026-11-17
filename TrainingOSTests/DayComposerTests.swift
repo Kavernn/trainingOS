@@ -1492,6 +1492,106 @@ final class DayComposerTests: XCTestCase {
         XCTAssertEqual(P.toggleTitle(isSetAside: true), "Annuler la mise de côté")
     }
 
+    // MARK: Durée estimée
+
+    private func durationSnapshot(morning: [String: String], evening: [String: String] = ["E": "2x8"],
+                                  tracking: [String: String] = [:], unilateral: [String: Bool] = [:]) throws -> DayComposerSnapshot {
+        DayComposerSnapshot(date: "2026-11-16", activeProgramID: "P",
+            morning: try .init(source: .morning, session: "AM", schemes: morning, order: morning.keys.sorted(),
+                               tracking: tracking, unilateral: unilateral),
+            evening: try .init(source: .evening, session: "PM", schemes: evening, order: evening.keys.sorted()),
+            morningCompleted: false, eveningCompleted: false)
+    }
+
+    func testDurationSoloExerciseUsesInventoryRestOrDefault() throws {
+        var s = try durationSnapshot(morning: ["A": "3x10"])
+        let a = s.morning.units[0], e = s.evening.units[0]
+        s.restSeconds[a.id] = 90
+        XCTAssertEqual(DayComposerDuration.seconds(a, in: s), 3 * 40 + 2 * 90)
+        XCTAssertEqual(DayComposerDuration.seconds(e, in: s), 2 * 40 + 1 * SupersetRest.defaultSeconds, "Repos absent → 120 s")
+        XCTAssertEqual(SupersetRest.defaultSeconds, 120)
+    }
+
+    func testDurationUnilateralDoublesEffortNotRest() throws {
+        var s = try durationSnapshot(morning: ["A": "3x10"], unilateral: ["A": true])
+        let a = s.morning.units[0]
+        s.restSeconds[a.id] = 90
+        XCTAssertEqual(DayComposerDuration.seconds(a, in: s), 3 * 80 + 2 * 90)
+    }
+
+    func testDurationSetsFollowExecutionRule() throws {
+        var s = try durationSnapshot(morning: ["A": "3x10", "M": "3x30s"], tracking: ["M": "mobility"])
+        let a = s.morning.units[0], m = s.morning.units[1]
+        s.restSeconds[a.id] = 60; s.restSeconds[m.id] = 60
+        XCTAssertEqual(DayComposerDuration.seconds(m, in: s), 40, "Mobilité = 1 série, comme l'exécution")
+        s.prescriptions[a.id] = ExercisePrescription(sets: 5, repMin: 6, repMax: 8, note: nil)
+        XCTAssertEqual(DayComposerDuration.seconds(a, in: s), 5 * 40 + 4 * 60, "Prescription du jour prioritaire")
+        XCTAssertEqual(ExerciseCalculator.effectiveSetsCount(scheme: "3x30s", prescription: nil, tracking: "mobility"), 1)
+        XCTAssertEqual(ExerciseCalculator.effectiveSetsCount(scheme: "4x8", prescription: nil, tracking: "reps"), 4)
+    }
+
+    func testDurationSupersetAndSetAsideTotal() throws {
+        let s = try setAsideSnapshot()   // SS A/B 3x8 repos 90 ; C 3x5 ; soir E 3x8 (repos absents)
+        let superset = s.morning.units[0]
+        XCTAssertEqual(DayComposerDuration.seconds(superset, in: s), 3 * (40 + 40) + 2 * 90)
+        let all = DayComposerDuration.totalSeconds(s.initialUnits, setAside: [], in: s)
+        XCTAssertEqual(all, 420 + 360 + 360)
+        let aside = DayComposerDuration.totalSeconds(s.initialUnits, setAside: [superset.id], in: s)
+        XCTAssertEqual(aside, 720, "Une unité mise de côté sort du total")
+        XCTAssertEqual(DayComposerDuration.totalLabel(all), "≈ 20 min")
+        XCTAssertEqual(DayComposerDuration.totalLabel(aside), "≈ 10 min")
+    }
+
+    func testDurationRounding() {
+        XCTAssertEqual(DayComposerDuration.unitLabel(20), "≈ 1 min", "Minimum 1 min")
+        XCTAssertEqual(DayComposerDuration.unitLabel(89), "≈ 1 min")
+        XCTAssertEqual(DayComposerDuration.unitLabel(90), "≈ 2 min")
+        XCTAssertEqual(DayComposerDuration.totalLabel(2700), "≈ 45 min")
+        XCTAssertEqual(DayComposerDuration.totalLabel(3449), "≈ 55 min")
+        XCTAssertEqual(DayComposerDuration.totalLabel(3450), "≈ 1 h 00")
+        XCTAssertEqual(DayComposerDuration.totalLabel(3900), "≈ 1 h 05")
+    }
+
+    func testDurationInputsLeaveFingerprintAndSurviveReassignment() throws {
+        let plain = try setAsideSnapshot()
+        var s = plain
+        let c = s.morning.units[1].id
+        s.restSeconds[c] = 75
+        s.prescriptions[c] = ExercisePrescription(sets: 4, repMin: 5, repMax: 5, note: nil)
+        XCTAssertEqual(try s.fingerprint, try plain.fingerprint, "Maps hors empreinte")
+        let moved = try DayComposerSnapshot.transferring(s.initialUnits, id: c, locked: false)
+        let assigned = try s.assigning(moved)
+        XCTAssertEqual(assigned.restSeconds, s.restSeconds)
+        XCTAssertEqual(assigned.prescriptions[c]?.sets, 4)
+        XCTAssertEqual(DayComposerDuration.totalSeconds(moved, setAside: [], in: assigned),
+                       DayComposerDuration.totalSeconds(s.initialUnits, setAside: [], in: s),
+                       "Déplacement Matin/Soir : durées inchangées")
+    }
+
+    @MainActor
+    func testValidateFillsDurationInputsPerOccurrenceFromOriginSession() throws {
+        let date = "2026-11-16"
+        let program = ["AM": ["A": SafeString("3x10")], "PM": ["A": SafeString("3x10")]]
+        let order = ["AM": ["A"], "PM": ["A"]]
+        func dto(_ name: String, rest: Int, sets: Int) -> SeanceData {
+            SeanceData(today: name, todayDate: date, alreadyLogged: false,
+                schedule: [TrainingDoctrine.dayNames[0]: name], fullProgram: program, weights: [:], week: 1,
+                inventoryTypes: [:], inventoryRest: ["A": rest], exerciseOrder: order,
+                prescriptions: ["A": ExercisePrescription(sets: sets, repMin: 8, repMax: 10, note: nil)])
+        }
+        let context = DayComposerLoader.Context(active_program_id: "A", current_program_id: "A",
+            full_program: program, schedule: dto("AM", rest: 0, sets: 1).schedule, exercise_order: order)
+        let s = try DayComposerLoader.validate(program: "A", date: date, currentDate: date, weekdayIndex: 0,
+            before: context, after: context, morning: dto("AM", rest: 60, sets: 3), evening: dto("PM", rest: 150, sets: 2),
+            completion: .init(today_date: date, second_session_completed: false)).snapshot
+        let am = s.morning.units[0].items[0].id, pm = s.evening.units[0].items[0].id
+        XCTAssertNotEqual(am, pm)
+        XCTAssertEqual(s.restSeconds[am], 60)
+        XCTAssertEqual(s.restSeconds[pm], 150, "Chaque occurrence garde le repos de sa séance d'origine")
+        XCTAssertEqual(s.prescriptions[am]?.sets, 3)
+        XCTAssertEqual(s.prescriptions[pm]?.sets, 2)
+    }
+
     func testStoreV3SetAsideRoundTripSurvivesReorderAndRejectsOtherPlan() throws {
         let suite = "dc-setaside-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
