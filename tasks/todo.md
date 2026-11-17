@@ -419,6 +419,7 @@ de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — �
 ## 🔤 Migration typographie — tokens design system
 
 > Remplacer tous les `.font(.system(size:))` par les 7 tokens (`appHero/appTitle/appHeadline/appBody/appLabel/appCaption/appMicro`).
+> ⚠️ État réel au 2026-11-16 (source : `Utilities/DesignSystem.swift`) : **10 tokens** — ajout de `appDisplay` (64 pt fixe), `appCardHero` / `appCardMetric` (taille `heroNumberSize` du thème) ; `appHero` = **42 pt**. `appFocus` (96 pt, étape 4 séance) validé mais non implémenté.
 > Règles dans `DesignSystem.swift`. Exceptions : <9pt KEEP, 25-31pt KEEP, 35pt+ KEEP, `.design: .rounded` KEEP, `.design: .serif` KEEP.
 > Workflow : un dossier à la fois, approbation visuelle entre chaque.
 

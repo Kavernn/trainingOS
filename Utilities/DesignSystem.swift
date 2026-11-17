@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Type Scale
 // 7 niveaux — remplace 40 tailles ad-hoc
-// Mapping : voir docs/typography_migration.md
+// Inventaire à jour : tasks/todo.md § Migration typographie (note 2026-11-16)
 
 extension Font {
     /// 64pt black rounded — chiffre display plein écran (compteur reps, timer séance)
